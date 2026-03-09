@@ -1,0 +1,208 @@
+cmake_minimum_required(VERSION 3.16)
+project(scootui VERSION 1.0.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_AUTOMOC ON)
+
+find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Svg Network Sql Concurrent)
+
+qt_standard_project_setup(REQUIRES 6.4)
+
+set(CPP_SOURCES
+    src/main.cpp
+    src/core/EnvConfig.cpp
+    src/core/Application.cpp
+    src/repositories/InMemoryMdbRepository.cpp
+    src/repositories/RedisMdbRepository.cpp
+    src/stores/SyncableStore.cpp
+    src/stores/EngineStore.cpp
+    src/stores/VehicleStore.cpp
+    src/stores/BatteryStore.cpp
+    src/stores/GpsStore.cpp
+    src/stores/BluetoothStore.cpp
+    src/stores/InternetStore.cpp
+    src/stores/NavigationStore.cpp
+    src/stores/SettingsStore.cpp
+    src/stores/OtaStore.cpp
+    src/stores/UsbStore.cpp
+    src/stores/SpeedLimitStore.cpp
+    src/stores/AutoStandbyStore.cpp
+    src/stores/CbBatteryStore.cpp
+    src/stores/AuxBatteryStore.cpp
+    src/stores/ThemeStore.cpp
+    src/stores/ScreenStore.cpp
+    src/stores/MenuStore.cpp
+    src/stores/TripStore.cpp
+    src/stores/ShutdownStore.cpp
+    src/stores/LocaleStore.cpp
+    src/stores/ShortcutMenuStore.cpp
+    src/services/SettingsService.cpp
+    src/services/AutoThemeService.cpp
+    src/services/InputHandler.cpp
+    src/services/NavigationService.cpp
+    src/routing/ValhallaClient.cpp
+    src/l10n/Translations.cpp
+)
+
+set(CPP_HEADERS
+    src/core/AppConfig.h
+    src/core/EnvConfig.h
+    src/core/Application.h
+    src/models/Enums.h
+    src/repositories/MdbRepository.h
+    src/repositories/InMemoryMdbRepository.h
+    src/repositories/RedisMdbRepository.h
+    src/stores/SyncableStore.h
+    src/stores/EngineStore.h
+    src/stores/VehicleStore.h
+    src/stores/BatteryStore.h
+    src/stores/GpsStore.h
+    src/stores/BluetoothStore.h
+    src/stores/InternetStore.h
+    src/stores/NavigationStore.h
+    src/stores/SettingsStore.h
+    src/stores/OtaStore.h
+    src/stores/UsbStore.h
+    src/stores/SpeedLimitStore.h
+    src/stores/AutoStandbyStore.h
+    src/stores/CbBatteryStore.h
+    src/stores/AuxBatteryStore.h
+    src/stores/ThemeStore.h
+    src/stores/ScreenStore.h
+    src/stores/MenuStore.h
+    src/stores/TripStore.h
+    src/stores/ShutdownStore.h
+    src/stores/LocaleStore.h
+    src/stores/ShortcutMenuStore.h
+    src/models/MenuNode.h
+    src/services/SettingsService.h
+    src/services/AutoThemeService.h
+    src/services/InputHandler.h
+    src/services/NavigationService.h
+    src/routing/RouteModels.h
+    src/routing/RouteHelpers.h
+    src/routing/ValhallaClient.h
+    src/l10n/Translations.h
+)
+
+qt_add_executable(scootui ${CPP_SOURCES} ${CPP_HEADERS})
+
+set_target_properties(scootui PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+
+qt_add_qml_module(scootui
+    URI ScootUI
+    VERSION 1.0
+    QML_FILES
+        qml/Main.qml
+        qml/screens/ClusterScreen.qml
+        qml/screens/MaintenanceScreen.qml
+        qml/screens/AboutScreen.qml
+        qml/screens/DebugScreen.qml
+        qml/screens/OtaBackgroundScreen.qml
+        qml/screens/MapScreen.qml
+        qml/screens/AddressSelectionScreen.qml
+        qml/widgets/navigation/TurnByTurnWidget.qml
+        qml/widgets/navigation/NavigationStatusOverlay.qml
+        qml/widgets/speedometer/SpeedometerDisplay.qml
+        qml/widgets/status_bars/TopStatusBar.qml
+        qml/widgets/status_bars/BatteryDisplay.qml
+        qml/widgets/status_bars/UnifiedBottomStatusBar.qml
+        qml/widgets/status_bars/SpeedCenterWidget.qml
+        qml/widgets/cluster/BlinkerRow.qml
+        qml/widgets/cluster/ClusterBottomBar.qml
+        qml/widgets/power/PowerDisplay.qml
+        qml/widgets/indicators/IndicatorLight.qml
+        qml/widgets/indicators/IndicatorLights.qml
+        qml/widgets/indicators/StatusIndicators.qml
+        qml/widgets/blinker/BlinkerOverlay.qml
+        qml/widgets/shutdown/ShutdownOverlay.qml
+        qml/widgets/components/SvgIcon.qml
+        qml/overlays/MenuOverlay.qml
+        qml/overlays/MenuItem.qml
+        qml/overlays/ShortcutMenuOverlay.qml
+        qml/overlays/UmsOverlay.qml
+        qml/overlays/BluetoothPinCodeOverlay.qml
+        qml/overlays/ManualHibernationOverlay.qml
+        qml/overlays/VersionOverlay.qml
+    RESOURCES
+        assets/icons/librescoot-turn-left.svg
+        assets/icons/librescoot-turn-right.svg
+        assets/icons/librescoot-hazards.svg
+        assets/icons/librescoot-engine-warning.svg
+        assets/icons/librescoot-parking-brake.svg
+        assets/icons/librescoot-seatbox-open.svg
+        assets/icons/librescoot-turtle-mode.svg
+        assets/icons/librescoot-propulsion-battery-fault.svg
+        assets/icons/librescoot-main-battery-blank.svg
+        assets/icons/librescoot-main-battery-empty.svg
+        assets/icons/librescoot-main-battery-absent.svg
+        assets/icons/librescoot-main-battery-asleep.svg
+        assets/icons/librescoot-main-battery-asleep-mask.svg
+        assets/icons/librescoot-main-battery-asleep-overlay.svg
+        assets/icons/librescoot-main-battery-fault.svg
+        assets/icons/librescoot-main-battery-locked.svg
+        assets/icons/librescoot-cb-battery-blank.svg
+        assets/icons/librescoot-cb-battery-level-0.svg
+        assets/icons/librescoot-cb-battery-level-25.svg
+        assets/icons/librescoot-cb-battery-level-50.svg
+        assets/icons/librescoot-cb-battery-level-75.svg
+        assets/icons/librescoot-cb-battery-level-100.svg
+        assets/icons/librescoot-aux-battery-blank.svg
+        assets/icons/librescoot-aux-battery-level-0.svg
+        assets/icons/librescoot-aux-battery-level-25.svg
+        assets/icons/librescoot-aux-battery-level-50.svg
+        assets/icons/librescoot-aux-battery-level-75.svg
+        assets/icons/librescoot-aux-battery-level-100.svg
+        assets/icons/librescoot-overlay-error.svg
+        assets/icons/librescoot-overlay-locked.svg
+        assets/icons/librescoot-overlay-slashed.svg
+        assets/icons/librescoot-overlay-charging.svg
+        assets/icons/librescoot-overlay-asleep.svg
+        assets/icons/librescoot-overlay-idle.svg
+        assets/icons/librescoot-bluetooth-connected.svg
+        assets/icons/librescoot-bluetooth-disconnected.svg
+        assets/icons/librescoot-bluetooth-error.svg
+        assets/icons/librescoot-gps-off.svg
+        assets/icons/librescoot-gps-searching.svg
+        assets/icons/librescoot-gps-fix-established.svg
+        assets/icons/librescoot-gps-error.svg
+        assets/icons/librescoot-internet-cloud-connected.svg
+        assets/icons/librescoot-internet-cloud-disconnected.svg
+        assets/icons/librescoot-internet-modem-off.svg
+        assets/icons/librescoot-internet-modem-disconnected.svg
+        assets/icons/librescoot-internet-modem-connected-0.svg
+        assets/icons/librescoot-internet-modem-connected-1.svg
+        assets/icons/librescoot-internet-modem-connected-2.svg
+        assets/icons/librescoot-internet-modem-connected-3.svg
+        assets/icons/librescoot-internet-modem-connected-4.svg
+        assets/icons/librescoot-ota-status-downloading.svg
+        assets/icons/librescoot-ota-status-installing.svg
+        assets/icons/librescoot-ota-status-waiting-for-reboot.svg
+        assets/icons/speedlimit_none.svg
+        assets/icons/speedlimit_unknown.svg
+        assets/icons/speedlimit_blank.svg
+        assets/fonts/Roboto-Regular.ttf
+        assets/fonts/Roboto-Bold.ttf
+        assets/fonts/Roboto-Medium.ttf
+        assets/fonts/Roboto-Light.ttf
+        assets/fonts/RobotoCondensed-Bold.ttf
+        assets/fonts/RobotoCondensed-Regular.ttf
+)
+
+target_link_libraries(scootui PRIVATE
+    Qt6::Quick
+    Qt6::Svg
+    Qt6::Network
+    Qt6::Sql
+    Qt6::Concurrent
+)
+
+target_include_directories(scootui PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
+install(TARGETS scootui
+    BUNDLE DESTINATION .
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)

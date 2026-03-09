@@ -1,0 +1,105 @@
+import QtQuick
+
+Item {
+    id: shutdownOverlay
+
+    visible: overlay.opacity > 0
+
+    Rectangle {
+        id: overlay
+        anchors.fill: parent
+        color: "black"
+        opacity: 0
+    }
+
+    // Shutdown content text (fades out during animation)
+    Column {
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 50
+        anchors.horizontalCenter: parent.horizontalCenter
+        spacing: 12
+        visible: shutdownAnim.running
+
+        // Fade out content during first half of shutdown animation
+        opacity: shutdownAnim.running ? Math.max(0, 1.0 - (overlay.opacity - 0.8) * 5) : 0
+
+        Text {
+            text: "Shutting down..."
+            color: "white"
+            font.pixelSize: 18
+            font.bold: true
+            anchors.horizontalCenter: parent.horizontalCenter
+        }
+    }
+
+    // OTA status during shutdown (centered, persistent)
+    Column {
+        anchors.centerIn: parent
+        spacing: 12
+        visible: overlay.opacity > 0.9
+                 && typeof otaStore !== "undefined"
+                 && otaStore.isActive
+
+        Text {
+            text: {
+                if (typeof otaStore === "undefined") return ""
+                if (otaStore.dbcStatus === "downloading")
+                    return "OTA Downloading " + otaStore.dbcUpdateVersion
+                if (otaStore.dbcStatus === "installing")
+                    return "OTA Installing " + otaStore.dbcUpdateVersion
+                if (otaStore.mdbStatus === "downloading")
+                    return "OTA Downloading " + otaStore.mdbUpdateVersion
+                if (otaStore.mdbStatus === "installing")
+                    return "OTA Installing " + otaStore.mdbUpdateVersion
+                return ""
+            }
+            color: "white"
+            font.pixelSize: 18
+            font.bold: true
+            anchors.horizontalCenter: parent.horizontalCenter
+        }
+    }
+
+    Connections {
+        target: typeof shutdownStore !== "undefined" ? shutdownStore : null
+
+        function onShuttingDownChanged() {
+            if (shutdownStore.isShuttingDown && !shutdownStore.showBlackout) {
+                shutdownAnim.start()
+            }
+        }
+
+        function onShowBlackoutChanged() {
+            if (shutdownStore.showBlackout) {
+                shutdownAnim.stop()
+                blackoutAnim.start()
+            }
+        }
+    }
+
+    // Normal shutdown: fade 0.8 -> 1.0 over 1500ms
+    NumberAnimation {
+        id: shutdownAnim
+        target: overlay
+        property: "opacity"
+        from: 0.8; to: 1.0
+        duration: 1500
+        onFinished: {
+            if (typeof shutdownStore !== "undefined")
+                shutdownStore.animationComplete()
+        }
+    }
+
+    // SIGTERM blackout: fast fade 0 -> 1.0 over 600ms
+    NumberAnimation {
+        id: blackoutAnim
+        target: overlay
+        property: "opacity"
+        to: 1.0
+        duration: 600
+        onFinished: {
+            if (typeof shutdownStore !== "undefined")
+                shutdownStore.animationComplete()
+        }
+    }
+}

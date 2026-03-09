@@ -1,0 +1,38 @@
+FROM debian:bookworm
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Add armhf architecture
+RUN dpkg --add-architecture armhf && apt-get update && apt-get upgrade -y
+
+# Native build tools + ARM cross-compiler
+RUN apt-get install -y --no-install-recommends \
+    build-essential cmake ninja-build pkg-config \
+    gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+
+# Native Qt6 tools (moc, rcc, qmlcachegen, etc.)
+RUN apt-get install -y --no-install-recommends \
+    qt6-base-dev-tools \
+    qt6-declarative-dev-tools \
+    qt6-tools-dev-tools \
+    qt6-l10n-tools
+
+# armhf Qt6 development libraries + QML runtime plugins
+RUN apt-get install -y --no-install-recommends \
+    qt6-base-dev:armhf \
+    qt6-declarative-dev:armhf \
+    libqt6svg6-dev:armhf \
+    libqt6sql6-sqlite:armhf \
+    libgl-dev:armhf \
+    libglx-dev:armhf \
+    libegl-dev:armhf \
+    libgles-dev:armhf \
+    libqt6opengl6-dev:armhf \
+    qml6-module-qtquick:armhf \
+    qml6-module-qtqml-workerscript:armhf \
+    qml6-module-qtquick-window:armhf \
+    qml6-module-qtquick-shapes:armhf \
+    qml6-module-qtquick-layouts:armhf && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src

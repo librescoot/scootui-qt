@@ -1,0 +1,47 @@
+# Build directories
+build/
+build-*/
+deploy-*/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!cmake/
+!CMakeLists.txt
+
+# Qt generated
+*.moc
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+.qmake.stash
+*.qmlc
+*.jsc
+
+# Compiled objects
+*.o
+*.obj
+*.a
+*.so
+*.so.*
+*.dylib
+
+# Docker
+docker/*.tar
+docker/*.tar.gz
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+compile_commands.json
+.cache/

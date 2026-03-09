@@ -1,0 +1,79 @@
+#pragma once
+
+#include "SyncableStore.h"
+#include "models/Enums.h"
+
+class VehicleStore : public SyncableStore
+{
+    Q_OBJECT
+    Q_PROPERTY(int blinkerState READ blinkerState NOTIFY blinkerStateChanged)
+    Q_PROPERTY(int blinkerSwitch READ blinkerSwitch NOTIFY blinkerSwitchChanged)
+    Q_PROPERTY(int brakeLeft READ brakeLeft NOTIFY brakeLeftChanged)
+    Q_PROPERTY(int brakeRight READ brakeRight NOTIFY brakeRightChanged)
+    Q_PROPERTY(int kickstand READ kickstand NOTIFY kickstandChanged)
+    Q_PROPERTY(int state READ state NOTIFY stateChanged)
+    Q_PROPERTY(QString stateRaw READ stateRaw NOTIFY stateRawChanged)
+    Q_PROPERTY(int handleBarLockSensor READ handleBarLockSensor NOTIFY handleBarLockSensorChanged)
+    Q_PROPERTY(int handleBarPosition READ handleBarPosition NOTIFY handleBarPositionChanged)
+    Q_PROPERTY(int seatboxButton READ seatboxButton NOTIFY seatboxButtonChanged)
+    Q_PROPERTY(int seatboxLock READ seatboxLock NOTIFY seatboxLockChanged)
+    Q_PROPERTY(int hornButton READ hornButton NOTIFY hornButtonChanged)
+    Q_PROPERTY(int isUnableToDrive READ isUnableToDrive NOTIFY isUnableToDriveChanged)
+
+public:
+    explicit VehicleStore(MdbRepository *repo, QObject *parent = nullptr);
+
+    int blinkerState() const { return static_cast<int>(m_blinkerState); }
+    int blinkerSwitch() const { return static_cast<int>(m_blinkerSwitch); }
+    int brakeLeft() const { return static_cast<int>(m_brakeLeft); }
+    int brakeRight() const { return static_cast<int>(m_brakeRight); }
+    int kickstand() const { return static_cast<int>(m_kickstand); }
+    int state() const { return static_cast<int>(m_state); }
+    QString stateRaw() const { return m_stateRaw; }
+    int handleBarLockSensor() const { return static_cast<int>(m_handleBarLockSensor); }
+    int handleBarPosition() const { return static_cast<int>(m_handleBarPosition); }
+    int seatboxButton() const { return static_cast<int>(m_seatboxButton); }
+    int seatboxLock() const { return static_cast<int>(m_seatboxLock); }
+    int hornButton() const { return static_cast<int>(m_hornButton); }
+    int isUnableToDrive() const { return static_cast<int>(m_isUnableToDrive); }
+
+    // Helper getters for QML
+    Q_INVOKABLE bool isParked() const { return m_state == ScootEnums::ScooterState::Parked; }
+    Q_INVOKABLE bool isReadyToDrive() const { return m_state == ScootEnums::ScooterState::ReadyToDrive; }
+    Q_INVOKABLE bool isOff() const { return m_state == ScootEnums::ScooterState::Off; }
+    Q_INVOKABLE bool isShuttingDown() const { return m_state == ScootEnums::ScooterState::ShuttingDown; }
+
+signals:
+    void blinkerStateChanged();
+    void blinkerSwitchChanged();
+    void brakeLeftChanged();
+    void brakeRightChanged();
+    void kickstandChanged();
+    void stateChanged();
+    void stateRawChanged();
+    void handleBarLockSensorChanged();
+    void handleBarPositionChanged();
+    void seatboxButtonChanged();
+    void seatboxLockChanged();
+    void hornButtonChanged();
+    void isUnableToDriveChanged();
+
+protected:
+    SyncSettings syncSettings() const override;
+    void applyFieldUpdate(const QString &variable, const QString &value) override;
+
+private:
+    ScootEnums::BlinkerState m_blinkerState = ScootEnums::BlinkerState::Off;
+    ScootEnums::BlinkerSwitch m_blinkerSwitch = ScootEnums::BlinkerSwitch::Off;
+    ScootEnums::Toggle m_brakeLeft = ScootEnums::Toggle::Off;
+    ScootEnums::Toggle m_brakeRight = ScootEnums::Toggle::Off;
+    ScootEnums::Kickstand m_kickstand = ScootEnums::Kickstand::Down;
+    ScootEnums::ScooterState m_state = ScootEnums::ScooterState::Unknown;
+    QString m_stateRaw;
+    ScootEnums::HandleBarLockSensor m_handleBarLockSensor = ScootEnums::HandleBarLockSensor::Locked;
+    ScootEnums::HandleBarPosition m_handleBarPosition = ScootEnums::HandleBarPosition::OnPlace;
+    ScootEnums::Toggle m_seatboxButton = ScootEnums::Toggle::Off;
+    ScootEnums::SeatboxLock m_seatboxLock = ScootEnums::SeatboxLock::Closed;
+    ScootEnums::Toggle m_hornButton = ScootEnums::Toggle::Off;
+    ScootEnums::Toggle m_isUnableToDrive = ScootEnums::Toggle::Off;
+};
