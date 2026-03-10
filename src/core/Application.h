@@ -12,6 +12,14 @@ class Translations;
 class InputHandler;
 class ShutdownStore;
 class QSocketNotifier;
+class ToastService;
+class MapService;
+class LowTemperatureMonitor;
+class BluetoothHealthMonitor;
+class NavigationAvailabilityService;
+class SavedLocationsService;
+class ReverseGeocodingService;
+class SerialNumberService;
 
 class Application : public QObject
 {
@@ -22,6 +30,7 @@ public:
     ~Application();
 
     bool initialize(QQmlApplicationEngine &engine);
+    void fadeInOverlay();
 
 private:
     void createStores(QQmlApplicationEngine &engine);
@@ -36,5 +45,13 @@ private:
     InputHandler *m_inputHandler = nullptr;
     ShutdownStore *m_shutdownStore = nullptr;
     QSocketNotifier *m_sigTermNotifier = nullptr;
+    ToastService *m_toastService = nullptr;
+    MapService *m_mapService = nullptr;
+    LowTemperatureMonitor *m_lowTempMonitor = nullptr;
+    BluetoothHealthMonitor *m_bleHealthMonitor = nullptr;
+    NavigationAvailabilityService *m_navAvailability = nullptr;
+    SavedLocationsService *m_savedLocationsService = nullptr;
+    ReverseGeocodingService *m_reverseGeocoding = nullptr;
+    SerialNumberService *m_serialNumberService = nullptr;
     QList<QObject*> m_stores;
 };

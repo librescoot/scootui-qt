@@ -23,15 +23,73 @@ Rectangle {
         { name: "redis-plus-plus", license: "Apache-2.0" }
     ]
 
+    // Easter egg state machine
+    // Sequence: [down×4, up×3, down×2, up×1] = [d,d,d,d,u,u,u,d,d,u]
+    readonly property var easterEggSequence: ["d","d","d","d","u","u","u","d","d","u"]
+    property var easterEggProgress: []
+    property bool holdActive: false
+
+    Timer {
+        id: holdTimer
+        interval: 500
+        onTriggered: aboutScreen.holdActive = true
+    }
+
+    function handleLeftAction(isDown) {
+        if (isDown) {
+            holdTimer.start()
+        } else {
+            holdTimer.stop()
+            if (holdActive) {
+                // Hold = scroll up
+                flickable.contentY = Math.max(flickable.contentY - 60, 0)
+                easterEggProgress.push("u")
+            } else {
+                // Tap = scroll down
+                flickable.contentY = Math.min(
+                    flickable.contentY + 60,
+                    flickable.contentHeight - flickable.height
+                )
+                easterEggProgress.push("d")
+            }
+            holdActive = false
+
+            // Check sequence
+            if (easterEggProgress.length > easterEggSequence.length)
+                easterEggProgress = easterEggProgress.slice(-easterEggSequence.length)
+
+            if (easterEggProgress.length === easterEggSequence.length) {
+                var match = true
+                for (var i = 0; i < easterEggSequence.length; i++) {
+                    if (easterEggProgress[i] !== easterEggSequence[i]) {
+                        match = false
+                        break
+                    }
+                }
+                if (match) {
+                    // Check right brake is held
+                    if (typeof vehicleStore !== "undefined" && vehicleStore.brakeRight === 0) {
+                        easterEggProgress = []
+                        if (typeof settingsService !== "undefined") {
+                            settingsService.togglePlymouthTheme()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // Scroll handling via brake inputs
     Connections {
         target: typeof vehicleStore !== "undefined" ? vehicleStore : null
         function onBrakeLeftChanged() {
-            if (typeof vehicleStore !== "undefined" && vehicleStore.brakeLeft === 1) {
-                flickable.contentY = Math.min(
-                    flickable.contentY + 60,
-                    flickable.contentHeight - flickable.height
-                );
+            if (typeof vehicleStore !== "undefined") {
+                // Toggle::On = 0, Toggle::Off = 1
+                if (vehicleStore.brakeLeft === 0) {
+                    aboutScreen.handleLeftAction(true)
+                } else {
+                    aboutScreen.handleLeftAction(false)
+                }
             }
         }
         function onBrakeRightChanged() {

@@ -84,20 +84,42 @@ Rectangle {
             Layout.fillWidth: true
             spacing: 12
 
-            // Maneuver icon
-            Text {
-                id: maneuverIcon
+            // Maneuver icon — use RoundaboutIcon canvas for roundabout types,
+            // otherwise fall back to the Unicode arrow text.
+            Item {
+                id: maneuverIconContainer
+                Layout.preferredWidth: 56
+                Layout.preferredHeight: 56
+
                 property int mType: typeof navigationService !== "undefined"
                                     ? navigationService.currentManeuverType : 0
                 property double mDist: typeof navigationService !== "undefined"
                                        ? navigationService.currentManeuverDistance : 0
+                property bool isRoundabout: (mType === mtRoundaboutEnter || mType === mtRoundaboutExit)
+                                            && mDist <= iconThreshold(mType)
 
-                text: mDist <= iconThreshold(mType) ? maneuverArrow(mType) : "\u2191"
-                font.pixelSize: 48
-                font.bold: true
-                color: "white"
-                Layout.preferredWidth: 56
-                horizontalAlignment: Text.AlignHCenter
+                Loader {
+                    id: roundaboutLoader
+                    anchors.centerIn: parent
+                    active: maneuverIconContainer.isRoundabout
+                    sourceComponent: RoundaboutIcon {
+                        exitNumber: typeof navigationService !== "undefined"
+                                    ? Math.max(1, navigationService.roundaboutExitCount) : 1
+                        isDark: true
+                        size: 48
+                    }
+                }
+
+                Text {
+                    id: maneuverIcon
+                    anchors.centerIn: parent
+                    visible: !maneuverIconContainer.isRoundabout
+                    text: maneuverIconContainer.mDist <= iconThreshold(maneuverIconContainer.mType)
+                          ? maneuverArrow(maneuverIconContainer.mType) : "\u2191"
+                    font.pixelSize: 48
+                    font.bold: true
+                    color: "white"
+                }
             }
 
             // Distance + street

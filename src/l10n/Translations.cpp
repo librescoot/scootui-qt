@@ -36,6 +36,10 @@ void Translations::initStrings()
     auto &en = m_strings[QStringLiteral("en")];
     auto &de = m_strings[QStringLiteral("de")];
 
+    // -----------------------------------------------------------------------
+    // Menu strings
+    // -----------------------------------------------------------------------
+
     en[QStringLiteral("menuTitle")] = QStringLiteral("MENU");
     de[QStringLiteral("menuTitle")] = QStringLiteral("MEN\u00DC");
 
@@ -165,7 +169,60 @@ void Translations::initStrings()
     en[QStringLiteral("menuOnlineOsm")] = QStringLiteral("Online (OpenStreetMap)");
     de[QStringLiteral("menuOnlineOsm")] = QStringLiteral("Online (OpenStreetMap)");
 
+    // -----------------------------------------------------------------------
+    // Menu headers
+    // -----------------------------------------------------------------------
+
+    en[QStringLiteral("menuNavigationHeader")] = QStringLiteral("NAVIGATION");
+    de[QStringLiteral("menuNavigationHeader")] = QStringLiteral("NAVIGATION");
+
+    en[QStringLiteral("menuSettingsHeader")] = QStringLiteral("SETTINGS");
+    de[QStringLiteral("menuSettingsHeader")] = QStringLiteral("EINSTELLUNGEN");
+
+    en[QStringLiteral("menuThemeHeader")] = QStringLiteral("CHANGE THEME");
+    de[QStringLiteral("menuThemeHeader")] = QStringLiteral("DESIGN \u00C4NDERN");
+
+    en[QStringLiteral("menuLanguageHeader")] = QStringLiteral("LANGUAGE");
+    de[QStringLiteral("menuLanguageHeader")] = QStringLiteral("SPRACHE");
+
+    en[QStringLiteral("menuAlarmHeader")] = QStringLiteral("ALARM");
+    de[QStringLiteral("menuAlarmHeader")] = QStringLiteral("ALARM");
+
+    en[QStringLiteral("menuSavedLocationsHeader")] = QStringLiteral("SAVED LOCATIONS");
+    de[QStringLiteral("menuSavedLocationsHeader")] = QStringLiteral("GESPEICHERTE ORTE");
+
+    en[QStringLiteral("menuAlarmDurationHeader")] = QStringLiteral("ALARM DURATION");
+    de[QStringLiteral("menuAlarmDurationHeader")] = QStringLiteral("ALARMDAUER");
+
+    // -----------------------------------------------------------------------
+    // Menu actions
+    // -----------------------------------------------------------------------
+
+    en[QStringLiteral("menuToggleHazardLights")] = QStringLiteral("Toggle Hazard Lights");
+    de[QStringLiteral("menuToggleHazardLights")] = QStringLiteral("Warnblinker umschalten");
+
+    en[QStringLiteral("menuSwitchToCluster")] = QStringLiteral("Switch to Cluster View");
+    de[QStringLiteral("menuSwitchToCluster")] = QStringLiteral("Zur Tacho-Ansicht");
+
+    en[QStringLiteral("menuSwitchToMap")] = QStringLiteral("Switch to Map View");
+    de[QStringLiteral("menuSwitchToMap")] = QStringLiteral("Zur Kartenansicht");
+
+    en[QStringLiteral("menuEnterDestinationCode")] = QStringLiteral("Enter Destination Code");
+    de[QStringLiteral("menuEnterDestinationCode")] = QStringLiteral("Zielcode eingeben");
+
+    en[QStringLiteral("menuDeleteLocation")] = QStringLiteral("Delete Location");
+    de[QStringLiteral("menuDeleteLocation")] = QStringLiteral("Ort l\u00F6schen");
+
+    en[QStringLiteral("menuStartNavigation")] = QStringLiteral("Start Navigation");
+    de[QStringLiteral("menuStartNavigation")] = QStringLiteral("Navigation starten");
+
+    en[QStringLiteral("menuStopNavigation")] = QStringLiteral("Stop Navigation");
+    de[QStringLiteral("menuStopNavigation")] = QStringLiteral("Navigation beenden");
+
+    // -----------------------------------------------------------------------
     // Visibility options
+    // -----------------------------------------------------------------------
+
     en[QStringLiteral("optAlways")] = QStringLiteral("Always");
     de[QStringLiteral("optAlways")] = QStringLiteral("Immer");
 
@@ -178,7 +235,10 @@ void Translations::initStrings()
     en[QStringLiteral("optNever")] = QStringLiteral("Never");
     de[QStringLiteral("optNever")] = QStringLiteral("Nie");
 
+    // -----------------------------------------------------------------------
     // Control hints
+    // -----------------------------------------------------------------------
+
     en[QStringLiteral("controlBack")] = QStringLiteral("Back");
     de[QStringLiteral("controlBack")] = QStringLiteral("Zur\u00FCck");
 
@@ -194,9 +254,46 @@ void Translations::initStrings()
     en[QStringLiteral("controlScroll")] = QStringLiteral("Scroll");
     de[QStringLiteral("controlScroll")] = QStringLiteral("Scrollen");
 
-    // M6: Shutdown / overlays
+    en[QStringLiteral("controlLeftBrake")] = QStringLiteral("Left Brake");
+    de[QStringLiteral("controlLeftBrake")] = QStringLiteral("Linke Bremse");
+
+    en[QStringLiteral("controlRightBrake")] = QStringLiteral("Right Brake");
+    de[QStringLiteral("controlRightBrake")] = QStringLiteral("Rechte Bremse");
+
+    en[QStringLiteral("controlNextItem")] = QStringLiteral("Next Item");
+    de[QStringLiteral("controlNextItem")] = QStringLiteral("N\u00E4chster Eintrag");
+
+    en[QStringLiteral("controlPressRightBrakeConfirm")] = QStringLiteral("Press Right Brake to Confirm");
+    de[QStringLiteral("controlPressRightBrakeConfirm")] = QStringLiteral("Rechte Bremse zum Best\u00E4tigen");
+
+    en[QStringLiteral("controlPressLeftBrakeEdit")] = QStringLiteral("Press Left Brake to Edit");
+    de[QStringLiteral("controlPressLeftBrakeEdit")] = QStringLiteral("Linke Bremse zum Bearbeiten");
+
+    // -----------------------------------------------------------------------
+    // Shutdown states
+    // -----------------------------------------------------------------------
+
     en[QStringLiteral("shuttingDown")] = QStringLiteral("Shutting down...");
-    de[QStringLiteral("shuttingDown")] = QStringLiteral("Herunterfahren...");
+    de[QStringLiteral("shuttingDown")] = QStringLiteral("Wird heruntergefahren...");
+
+    en[QStringLiteral("shutdownComplete")] = QStringLiteral("Shutdown complete.\nTap keycard to unlock.");
+    de[QStringLiteral("shutdownComplete")] = QStringLiteral("Herunterfahren abgeschlossen.\nKeycard antippen zum Entsperren.");
+
+    en[QStringLiteral("shutdownSuspending")] = QStringLiteral("Suspending...");
+    de[QStringLiteral("shutdownSuspending")] = QStringLiteral("Wird pausiert...");
+
+    en[QStringLiteral("shutdownHibernationImminent")] = QStringLiteral("Hibernation imminent...");
+    de[QStringLiteral("shutdownHibernationImminent")] = QStringLiteral("Ruhezustand steht bevor...");
+
+    en[QStringLiteral("shutdownSuspensionImminent")] = QStringLiteral("Suspension imminent...");
+    de[QStringLiteral("shutdownSuspensionImminent")] = QStringLiteral("Standby steht bevor...");
+
+    en[QStringLiteral("shutdownProcessing")] = QStringLiteral("Processing...");
+    de[QStringLiteral("shutdownProcessing")] = QStringLiteral("Verarbeitung...");
+
+    // -----------------------------------------------------------------------
+    // Connection
+    // -----------------------------------------------------------------------
 
     en[QStringLiteral("connectingTitle")] = QStringLiteral("Trying to connect to vehicle system...");
     de[QStringLiteral("connectingTitle")] = QStringLiteral("Verbindung zum Fahrzeugsystem wird hergestellt...");
@@ -206,6 +303,19 @@ void Translations::initStrings()
 
     en[QStringLiteral("connectingBypassHint")] = QStringLiteral("To put your scooter into drive mode anyway, raise the kickstand, hold both brakes and press the seatbox button.");
     de[QStringLiteral("connectingBypassHint")] = QStringLiteral("Um den Roller trotzdem in den Fahrmodus zu versetzen, klappen Sie den St\u00E4nder hoch, halten Sie beide Bremsen und dr\u00FCcken Sie die Sitzbanktaste.");
+
+    en[QStringLiteral("connectionLost")] = QStringLiteral("Connection to vehicle system lost");
+    de[QStringLiteral("connectionLost")] = QStringLiteral("Verbindung zum Fahrzeugsystem verloren");
+
+    en[QStringLiteral("connectionReconnecting")] = QStringLiteral("Attempting to reconnect to vehicle system...");
+    de[QStringLiteral("connectionReconnecting")] = QStringLiteral("Verbindung zum Fahrzeugsystem wird wiederhergestellt...");
+
+    en[QStringLiteral("connectionRestored")] = QStringLiteral("Connected to vehicle system");
+    de[QStringLiteral("connectionRestored")] = QStringLiteral("Fahrzeugsystem verbunden");
+
+    // -----------------------------------------------------------------------
+    // UMS
+    // -----------------------------------------------------------------------
 
     en[QStringLiteral("umsPreparing")] = QStringLiteral("Preparing Storage");
     de[QStringLiteral("umsPreparing")] = QStringLiteral("Speicher wird vorbereitet");
@@ -219,8 +329,31 @@ void Translations::initStrings()
     en[QStringLiteral("umsProcessing")] = QStringLiteral("Processing Files");
     de[QStringLiteral("umsProcessing")] = QStringLiteral("Dateien werden verarbeitet");
 
+    en[QStringLiteral("umsTitle")] = QStringLiteral("USB Mass Storage Mode");
+    de[QStringLiteral("umsTitle")] = QStringLiteral("USB-Massenspeichermodus");
+
+    en[QStringLiteral("umsConnectToComputer")] = QStringLiteral("Connect to a computer to transfer files.");
+    de[QStringLiteral("umsConnectToComputer")] = QStringLiteral("Zum Dateitransfer mit Computer verbinden.");
+
+    // -----------------------------------------------------------------------
+    // Bluetooth
+    // -----------------------------------------------------------------------
+
     en[QStringLiteral("blePinPrompt")] = QStringLiteral("Enter the PIN on your device");
     de[QStringLiteral("blePinPrompt")] = QStringLiteral("Geben Sie die PIN auf Ihrem Ger\u00E4t ein");
+
+    en[QStringLiteral("bleCommError")] = QStringLiteral("BLE: Communication error");
+    de[QStringLiteral("bleCommError")] = QStringLiteral("BLE: Kommunikationsfehler");
+
+    en[QStringLiteral("bluetoothCommError")] = QStringLiteral("Bluetooth service communication error");
+    de[QStringLiteral("bluetoothCommError")] = QStringLiteral("Bluetooth-Kommunikationsfehler");
+
+    en[QStringLiteral("bluetoothPinInstruction")] = QStringLiteral("Use this code to pair your device");
+    de[QStringLiteral("bluetoothPinInstruction")] = QStringLiteral("Diesen Code zum Koppeln verwenden");
+
+    // -----------------------------------------------------------------------
+    // Hibernation
+    // -----------------------------------------------------------------------
 
     en[QStringLiteral("hibernatePrompt")] = QStringLiteral("Hold Both Brakes to Hibernate");
     de[QStringLiteral("hibernatePrompt")] = QStringLiteral("Beide Bremsen halten zum Ruhezustand");
@@ -237,18 +370,110 @@ void Translations::initStrings()
     en[QStringLiteral("hibernating")] = QStringLiteral("Hibernating...");
     de[QStringLiteral("hibernating")] = QStringLiteral("Ruhezustand...");
 
+    en[QStringLiteral("hibernationTitle")] = QStringLiteral("Manual Hibernation");
+    de[QStringLiteral("hibernationTitle")] = QStringLiteral("Manueller Ruhezustand");
+
+    en[QStringLiteral("hibernationTapKeycardToConfirm")] = QStringLiteral("Tap keycard to confirm");
+    de[QStringLiteral("hibernationTapKeycardToConfirm")] = QStringLiteral("Keycard antippen zum Best\u00E4tigen");
+
+    en[QStringLiteral("hibernationKeepHoldingBrakes")] = QStringLiteral("Keep holding brakes to force");
+    de[QStringLiteral("hibernationKeepHoldingBrakes")] = QStringLiteral("Bremsen weiterhin halten zum Erzwingen");
+
+    en[QStringLiteral("hibernationOrHoldBrakes")] = QStringLiteral("Or hold both brakes for 15s to force");
+    de[QStringLiteral("hibernationOrHoldBrakes")] = QStringLiteral("Oder beide Bremsen 15s halten zum Erzwingen");
+
+    en[QStringLiteral("hibernationCancel")] = QStringLiteral("CANCEL");
+    de[QStringLiteral("hibernationCancel")] = QStringLiteral("ABBRECHEN");
+
+    en[QStringLiteral("hibernationKickstand")] = QStringLiteral("Kickstand");
+    de[QStringLiteral("hibernationKickstand")] = QStringLiteral("Seitenst\u00E4nder");
+
+    en[QStringLiteral("hibernationConfirm")] = QStringLiteral("CONFIRM");
+    de[QStringLiteral("hibernationConfirm")] = QStringLiteral("BEST\u00C4TIGEN");
+
+    // -----------------------------------------------------------------------
+    // About
+    // -----------------------------------------------------------------------
+
     en[QStringLiteral("aboutTitle")] = QStringLiteral("LibreScoot");
     de[QStringLiteral("aboutTitle")] = QStringLiteral("LibreScoot");
+
+    en[QStringLiteral("aboutNonCommercialTitle")] = QStringLiteral("NON-COMMERCIAL SOFTWARE");
+    de[QStringLiteral("aboutNonCommercialTitle")] = QStringLiteral("NICHT-KOMMERZIELLE SOFTWARE");
+
+    en[QStringLiteral("aboutFossDescription")] = QStringLiteral("FOSS firmware for unu Scooter Pro e-mopeds");
+    de[QStringLiteral("aboutFossDescription")] = QStringLiteral("FOSS-Firmware f\u00FCr unu Scooter Pro E-Mopeds");
+
+    en[QStringLiteral("aboutOpenSourceComponents")] = QStringLiteral("OPEN SOURCE COMPONENTS");
+    de[QStringLiteral("aboutOpenSourceComponents")] = QStringLiteral("OPEN-SOURCE-KOMPONENTEN");
+
+    en[QStringLiteral("aboutScrollAction")] = QStringLiteral("Scroll");
+    de[QStringLiteral("aboutScrollAction")] = QStringLiteral("Scrollen");
+
+    en[QStringLiteral("aboutBackAction")] = QStringLiteral("Back");
+    de[QStringLiteral("aboutBackAction")] = QStringLiteral("Zur\u00FCck");
+
+    en[QStringLiteral("aboutBootThemeRestored")] = QStringLiteral("Boot theme: LibreScoot restored.");
+    de[QStringLiteral("aboutBootThemeRestored")] = QStringLiteral("Boot-Theme: LibreScoot wiederhergestellt.");
+
+    en[QStringLiteral("aboutGenuineAdvantage")] = QStringLiteral("Genuine Advantage activated.");
+    de[QStringLiteral("aboutGenuineAdvantage")] = QStringLiteral("Genuine Advantage aktiviert.");
 
     en[QStringLiteral("nonCommercialLicense")] = QStringLiteral("This software is licensed for non-commercial use only.");
     de[QStringLiteral("nonCommercialLicense")] = QStringLiteral("Diese Software ist nur f\u00FCr nicht-kommerzielle Nutzung lizenziert.");
 
-    // M7: Navigation
+    // -----------------------------------------------------------------------
+    // Toast / monitoring
+    // -----------------------------------------------------------------------
+
+    en[QStringLiteral("lowTempWarning")] = QStringLiteral("Low Temperatures - Ride Carefully");
+    de[QStringLiteral("lowTempWarning")] = QStringLiteral("Niedrige Temperaturen - Vorsichtig fahren");
+
+    en[QStringLiteral("lowTempMotor")] = QStringLiteral("Motor");
+    de[QStringLiteral("lowTempMotor")] = QStringLiteral("Motor");
+
+    en[QStringLiteral("lowTempBattery")] = QStringLiteral("Battery");
+    de[QStringLiteral("lowTempBattery")] = QStringLiteral("Batterie");
+
+    en[QStringLiteral("lowTemp12vBattery")] = QStringLiteral("12V Battery");
+    de[QStringLiteral("lowTemp12vBattery")] = QStringLiteral("12V-Batterie");
+
+    en[QStringLiteral("redisDisconnected")] = QStringLiteral("System connection lost");
+    de[QStringLiteral("redisDisconnected")] = QStringLiteral("Systemverbindung verloren");
+
+    en[QStringLiteral("locationSaved")] = QStringLiteral("Location saved");
+    de[QStringLiteral("locationSaved")] = QStringLiteral("Standort gespeichert");
+
+    en[QStringLiteral("locationDeleted")] = QStringLiteral("Location deleted");
+    de[QStringLiteral("locationDeleted")] = QStringLiteral("Standort gel\u00F6scht");
+
+    en[QStringLiteral("maxLocationsReached")] = QStringLiteral("Maximum saved locations reached");
+    de[QStringLiteral("maxLocationsReached")] = QStringLiteral("Maximale Anzahl gespeicherter Standorte erreicht");
+
+    en[QStringLiteral("savedLocationsFailed")] = QStringLiteral("Failed to load saved locations");
+    de[QStringLiteral("savedLocationsFailed")] = QStringLiteral("Gespeicherte Orte konnten nicht geladen werden");
+
+    en[QStringLiteral("menuSavedLocations")] = QStringLiteral("Saved Locations");
+    de[QStringLiteral("menuSavedLocations")] = QStringLiteral("Gespeicherte Orte");
+
+    en[QStringLiteral("menuSaveLocation")] = QStringLiteral("Save Current Location");
+    de[QStringLiteral("menuSaveLocation")] = QStringLiteral("Aktuellen Standort speichern");
+
+    en[QStringLiteral("menuNavSetup")] = QStringLiteral("Navigation Setup");
+    de[QStringLiteral("menuNavSetup")] = QStringLiteral("Navigationseinrichtung");
+
+    en[QStringLiteral("plymouthToggled")] = QStringLiteral("Boot theme changed");
+    de[QStringLiteral("plymouthToggled")] = QStringLiteral("Startdesign ge\u00E4ndert");
+
+    // -----------------------------------------------------------------------
+    // Navigation
+    // -----------------------------------------------------------------------
+
     en[QStringLiteral("navCalculating")] = QStringLiteral("Calculating route...");
     de[QStringLiteral("navCalculating")] = QStringLiteral("Route wird berechnet...");
 
-    en[QStringLiteral("navRecalculating")] = QStringLiteral("Recalculating...");
-    de[QStringLiteral("navRecalculating")] = QStringLiteral("Neuberechnung...");
+    en[QStringLiteral("navRecalculating")] = QStringLiteral("Recalculating route...");
+    de[QStringLiteral("navRecalculating")] = QStringLiteral("Route wird neu berechnet...");
 
     en[QStringLiteral("navArrived")] = QStringLiteral("You have arrived");
     de[QStringLiteral("navArrived")] = QStringLiteral("Sie sind angekommen");
@@ -270,4 +495,408 @@ void Translations::initStrings()
 
     en[QStringLiteral("navThen")] = QStringLiteral("Then");
     de[QStringLiteral("navThen")] = QStringLiteral("Dann");
+
+    en[QStringLiteral("navYouHaveArrived")] = QStringLiteral("You have arrived!");
+    de[QStringLiteral("navYouHaveArrived")] = QStringLiteral("Ziel erreicht!");
+
+    en[QStringLiteral("navDistance")] = QStringLiteral("Distance");
+    de[QStringLiteral("navDistance")] = QStringLiteral("Entfernung");
+
+    en[QStringLiteral("navRemaining")] = QStringLiteral("Remaining");
+    de[QStringLiteral("navRemaining")] = QStringLiteral("Verbleibend");
+
+    en[QStringLiteral("navEta")] = QStringLiteral("ETA");
+    de[QStringLiteral("navEta")] = QStringLiteral("Ankunft");
+
+    en[QStringLiteral("navContinue")] = QStringLiteral("Continue");
+    de[QStringLiteral("navContinue")] = QStringLiteral("Weiter");
+
+    en[QStringLiteral("navReturnToRoute")] = QStringLiteral("Return to the route");
+    de[QStringLiteral("navReturnToRoute")] = QStringLiteral("Zur\u00FCck zur Route");
+
+    en[QStringLiteral("navCurrentPositionNotAvailable")] = QStringLiteral("Current position not available");
+    de[QStringLiteral("navCurrentPositionNotAvailable")] = QStringLiteral("Aktuelle Position nicht verf\u00FCgbar");
+
+    en[QStringLiteral("navCouldNotCalculateRoute")] = QStringLiteral("Could not calculate route");
+    de[QStringLiteral("navCouldNotCalculateRoute")] = QStringLiteral("Route konnte nicht berechnet werden");
+
+    en[QStringLiteral("navDestinationUnreachable")] = QStringLiteral("Destination is unreachable. Please select a different location.");
+    de[QStringLiteral("navDestinationUnreachable")] = QStringLiteral("Ziel ist nicht erreichbar. Bitte anderen Standort w\u00E4hlen.");
+
+    en[QStringLiteral("navNewDestination")] = QStringLiteral("New navigation destination received. Calculating route...");
+    de[QStringLiteral("navNewDestination")] = QStringLiteral("Neues Navigationsziel empfangen. Route wird berechnet...");
+
+    en[QStringLiteral("navWaitingForGps")] = QStringLiteral("Waiting for GPS fix");
+    de[QStringLiteral("navWaitingForGps")] = QStringLiteral("Warte auf GPS-Signal");
+
+    en[QStringLiteral("navWaitingForGpsRoute")] = QStringLiteral("Waiting for recent GPS fix to calculate route.");
+    de[QStringLiteral("navWaitingForGpsRoute")] = QStringLiteral("Warte auf GPS-Signal zur Routenberechnung.");
+
+    en[QStringLiteral("navResumingNavigation")] = QStringLiteral("Resuming navigation.");
+    de[QStringLiteral("navResumingNavigation")] = QStringLiteral("Navigation wird fortgesetzt.");
+
+    en[QStringLiteral("navArrivedAtDestination")] = QStringLiteral("You have arrived at your destination!");
+    de[QStringLiteral("navArrivedAtDestination")] = QStringLiteral("Du hast dein Ziel erreicht!");
+
+    en[QStringLiteral("navOffRouteRerouting")] = QStringLiteral("Off route. Attempting to reroute...");
+    de[QStringLiteral("navOffRouteRerouting")] = QStringLiteral("Abseits der Route. Neue Route wird berechnet...");
+
+    en[QStringLiteral("navCouldNotCalculateNewRoute")] = QStringLiteral("Could not calculate new route");
+    de[QStringLiteral("navCouldNotCalculateNewRoute")] = QStringLiteral("Neue Route konnte nicht berechnet werden");
+
+    // -----------------------------------------------------------------------
+    // Navigation short instructions
+    // -----------------------------------------------------------------------
+
+    en[QStringLiteral("navShortContinueStraight")] = QStringLiteral("continue straight");
+    de[QStringLiteral("navShortContinueStraight")] = QStringLiteral("geradeaus weiter");
+
+    en[QStringLiteral("navShortTurnLeft")] = QStringLiteral("turn left");
+    de[QStringLiteral("navShortTurnLeft")] = QStringLiteral("links abbiegen");
+
+    en[QStringLiteral("navShortTurnRight")] = QStringLiteral("turn right");
+    de[QStringLiteral("navShortTurnRight")] = QStringLiteral("rechts abbiegen");
+
+    en[QStringLiteral("navShortTurnSlightlyLeft")] = QStringLiteral("turn slightly left");
+    de[QStringLiteral("navShortTurnSlightlyLeft")] = QStringLiteral("leicht links abbiegen");
+
+    en[QStringLiteral("navShortTurnSlightlyRight")] = QStringLiteral("turn slightly right");
+    de[QStringLiteral("navShortTurnSlightlyRight")] = QStringLiteral("leicht rechts abbiegen");
+
+    en[QStringLiteral("navShortTurnSharplyLeft")] = QStringLiteral("turn sharply left");
+    de[QStringLiteral("navShortTurnSharplyLeft")] = QStringLiteral("scharf links abbiegen");
+
+    en[QStringLiteral("navShortTurnSharplyRight")] = QStringLiteral("turn sharply right");
+    de[QStringLiteral("navShortTurnSharplyRight")] = QStringLiteral("scharf rechts abbiegen");
+
+    en[QStringLiteral("navShortUturn")] = QStringLiteral("make a U-turn");
+    de[QStringLiteral("navShortUturn")] = QStringLiteral("wenden");
+
+    en[QStringLiteral("navShortUturnRight")] = QStringLiteral("make a right U-turn");
+    de[QStringLiteral("navShortUturnRight")] = QStringLiteral("rechts wenden");
+
+    en[QStringLiteral("navShortMerge")] = QStringLiteral("merge");
+    de[QStringLiteral("navShortMerge")] = QStringLiteral("einf\u00E4deln");
+
+    en[QStringLiteral("navShortMergeLeft")] = QStringLiteral("merge left");
+    de[QStringLiteral("navShortMergeLeft")] = QStringLiteral("links einf\u00E4deln");
+
+    en[QStringLiteral("navShortMergeRight")] = QStringLiteral("merge right");
+    de[QStringLiteral("navShortMergeRight")] = QStringLiteral("rechts einf\u00E4deln");
+
+    en[QStringLiteral("navShortContinue")] = QStringLiteral("continue");
+    de[QStringLiteral("navShortContinue")] = QStringLiteral("weiter");
+
+    // -----------------------------------------------------------------------
+    // Navigation setup screen
+    // -----------------------------------------------------------------------
+
+    en[QStringLiteral("navSetupTitle")] = QStringLiteral("Navigation Setup");
+    de[QStringLiteral("navSetupTitle")] = QStringLiteral("Navigation einrichten");
+
+    en[QStringLiteral("navSetupTitleRoutingUnavailable")] = QStringLiteral("Routing Not Available");
+    de[QStringLiteral("navSetupTitleRoutingUnavailable")] = QStringLiteral("Routing nicht verf\u00FCgbar");
+
+    en[QStringLiteral("navSetupTitleMapsUnavailable")] = QStringLiteral("Map Tiles Not Available");
+    de[QStringLiteral("navSetupTitleMapsUnavailable")] = QStringLiteral("Kartenkacheln nicht verf\u00FCgbar");
+
+    en[QStringLiteral("navSetupTitleBothUnavailable")] = QStringLiteral("Navigation Not Available");
+    de[QStringLiteral("navSetupTitleBothUnavailable")] = QStringLiteral("Navigation nicht verf\u00FCgbar");
+
+    en[QStringLiteral("navSetupLocalDisplayMaps")] = QStringLiteral("Offline display maps");
+    de[QStringLiteral("navSetupLocalDisplayMaps")] = QStringLiteral("Offline-Kartenkacheln");
+
+    en[QStringLiteral("navSetupRoutingEngine")] = QStringLiteral("Routing engine");
+    de[QStringLiteral("navSetupRoutingEngine")] = QStringLiteral("Routing-Engine");
+
+    en[QStringLiteral("navSetupNoRoutingBody")] = QStringLiteral("Map display and routing are independent. Display tiles can be local (offline .mbtiles) or online. Routing requires a Valhalla engine \u2014 local (needs routing maps) or a remote server.");
+    de[QStringLiteral("navSetupNoRoutingBody")] = QStringLiteral("Kartenanzeige und Routing sind unabh\u00E4ngig. Kartenkacheln k\u00F6nnen lokal (offline .mbtiles) oder online sein. F\u00FCr Routing wird eine Valhalla-Engine ben\u00F6tigt \u2014 lokal (Routing-Karten erforderlich) oder ein Remote-Server.");
+
+    en[QStringLiteral("navSetupScanForInstructions")] = QStringLiteral("Scan for setup instructions");
+    de[QStringLiteral("navSetupScanForInstructions")] = QStringLiteral("F\u00FCr Anleitung scannen");
+
+    // -----------------------------------------------------------------------
+    // OTA
+    // -----------------------------------------------------------------------
+
+    en[QStringLiteral("otaDownloading")] = QStringLiteral("Downloading");
+    de[QStringLiteral("otaDownloading")] = QStringLiteral("Lade herunter");
+
+    en[QStringLiteral("otaInstalling")] = QStringLiteral("Installing");
+    de[QStringLiteral("otaInstalling")] = QStringLiteral("Installiere");
+
+    en[QStringLiteral("otaInitializing")] = QStringLiteral("Initializing update...");
+    de[QStringLiteral("otaInitializing")] = QStringLiteral("Update wird initialisiert...");
+
+    en[QStringLiteral("otaCheckingUpdates")] = QStringLiteral("Checking for updates...");
+    de[QStringLiteral("otaCheckingUpdates")] = QStringLiteral("Suche nach Updates...");
+
+    en[QStringLiteral("otaCheckFailed")] = QStringLiteral("Update check failed.");
+    de[QStringLiteral("otaCheckFailed")] = QStringLiteral("Update-Pr\u00FCfung fehlgeschlagen.");
+
+    en[QStringLiteral("otaDeviceUpdated")] = QStringLiteral("Device updated.");
+    de[QStringLiteral("otaDeviceUpdated")] = QStringLiteral("Ger\u00E4t aktualisiert.");
+
+    en[QStringLiteral("otaWaitingDashboard")] = QStringLiteral("Waiting for dashboard...");
+    de[QStringLiteral("otaWaitingDashboard")] = QStringLiteral("Warte auf Dashboard...");
+
+    en[QStringLiteral("otaDownloadingUpdates")] = QStringLiteral("Downloading updates...");
+    de[QStringLiteral("otaDownloadingUpdates")] = QStringLiteral("Updates werden heruntergeladen...");
+
+    en[QStringLiteral("otaDownloadFailed")] = QStringLiteral("Download failed.");
+    de[QStringLiteral("otaDownloadFailed")] = QStringLiteral("Download fehlgeschlagen.");
+
+    en[QStringLiteral("otaInstallingUpdates")] = QStringLiteral("Installing updates...");
+    de[QStringLiteral("otaInstallingUpdates")] = QStringLiteral("Updates werden installiert...");
+
+    en[QStringLiteral("otaInstallFailed")] = QStringLiteral("Installation failed.");
+    de[QStringLiteral("otaInstallFailed")] = QStringLiteral("Installation fehlgeschlagen.");
+
+    en[QStringLiteral("otaWaitingForReboot")] = QStringLiteral("Update installed. Waiting for reboot");
+    de[QStringLiteral("otaWaitingForReboot")] = QStringLiteral("Update installiert. Warte auf Neustart");
+
+    en[QStringLiteral("otaStatusWaitingForReboot")] = QStringLiteral("Waiting for reboot");
+    de[QStringLiteral("otaStatusWaitingForReboot")] = QStringLiteral("Warte auf Neustart");
+
+    en[QStringLiteral("otaStatusDownloading")] = QStringLiteral("Downloading");
+    de[QStringLiteral("otaStatusDownloading")] = QStringLiteral("Wird heruntergeladen");
+
+    en[QStringLiteral("otaStatusInstalling")] = QStringLiteral("Installing");
+    de[QStringLiteral("otaStatusInstalling")] = QStringLiteral("Wird installiert");
+
+    en[QStringLiteral("otaUpdate")] = QStringLiteral(" update");
+    de[QStringLiteral("otaUpdate")] = QStringLiteral(" Update");
+
+    en[QStringLiteral("otaInvalidRelease")] = QStringLiteral("Invalid release");
+    de[QStringLiteral("otaInvalidRelease")] = QStringLiteral("Ung\u00FCltige Version");
+
+    en[QStringLiteral("otaDownloadFailedShort")] = QStringLiteral("Download failed");
+    de[QStringLiteral("otaDownloadFailedShort")] = QStringLiteral("Download fehlgeschlagen");
+
+    en[QStringLiteral("otaInstallFailedShort")] = QStringLiteral("Install failed");
+    de[QStringLiteral("otaInstallFailedShort")] = QStringLiteral("Installation fehlgeschlagen");
+
+    en[QStringLiteral("otaRebootFailed")] = QStringLiteral("Reboot failed");
+    de[QStringLiteral("otaRebootFailed")] = QStringLiteral("Neustart fehlgeschlagen");
+
+    en[QStringLiteral("otaUpdateError")] = QStringLiteral("Update error");
+    de[QStringLiteral("otaUpdateError")] = QStringLiteral("Update-Fehler");
+
+    // -----------------------------------------------------------------------
+    // Battery messages
+    // -----------------------------------------------------------------------
+
+    en[QStringLiteral("batteryKm")] = QStringLiteral("km");
+    de[QStringLiteral("batteryKm")] = QStringLiteral("km");
+
+    en[QStringLiteral("batteryCbNotCharging")] = QStringLiteral("CB Battery not charging");
+    de[QStringLiteral("batteryCbNotCharging")] = QStringLiteral("CB-Batterie l\u00E4dt nicht");
+
+    en[QStringLiteral("batteryAuxLowNotCharging")] = QStringLiteral("AUX Battery low and not charging");
+    de[QStringLiteral("batteryAuxLowNotCharging")] = QStringLiteral("AUX-Batterie schwach und l\u00E4dt nicht");
+
+    en[QStringLiteral("batteryAuxVoltageLow")] = QStringLiteral("AUX Battery voltage low");
+    de[QStringLiteral("batteryAuxVoltageLow")] = QStringLiteral("AUX-Batterie Spannung niedrig");
+
+    en[QStringLiteral("batteryAuxVoltageVeryLowReplace")] = QStringLiteral("AUX Battery voltage very low - may need replacement");
+    de[QStringLiteral("batteryAuxVoltageVeryLowReplace")] = QStringLiteral("AUX-Batterie Spannung sehr niedrig - evtl. Austausch n\u00F6tig");
+
+    en[QStringLiteral("batteryAuxVoltageVeryLowCharge")] = QStringLiteral("AUX Battery voltage very low - insert main battery to charge");
+    de[QStringLiteral("batteryAuxVoltageVeryLowCharge")] = QStringLiteral("AUX-Batterie Spannung sehr niedrig - Hauptbatterie einsetzen zum Laden");
+
+    en[QStringLiteral("batteryEmptyRecharge")] = QStringLiteral("Battery empty. Recharge battery");
+    de[QStringLiteral("batteryEmptyRecharge")] = QStringLiteral("Batterie leer. Bitte aufladen");
+
+    en[QStringLiteral("batteryMaxSpeedReduced")] = QStringLiteral("Max speed is reduced. Battery is below 5%");
+    de[QStringLiteral("batteryMaxSpeedReduced")] = QStringLiteral("H\u00F6chstgeschwindigkeit reduziert. Batterie unter 5%");
+
+    en[QStringLiteral("batteryLowPowerReduced")] = QStringLiteral("Battery low. Power reduced. Please recharge battery");
+    de[QStringLiteral("batteryLowPowerReduced")] = QStringLiteral("Batterie schwach. Leistung reduziert. Bitte aufladen");
+
+    en[QStringLiteral("batterySlot0")] = QStringLiteral("Battery 0");
+    de[QStringLiteral("batterySlot0")] = QStringLiteral("Batterie 0");
+
+    en[QStringLiteral("batterySlot1")] = QStringLiteral("Battery 1");
+    de[QStringLiteral("batterySlot1")] = QStringLiteral("Batterie 1");
+
+    // -----------------------------------------------------------------------
+    // Speed & power
+    // -----------------------------------------------------------------------
+
+    en[QStringLiteral("speedKmh")] = QStringLiteral("km/h");
+    de[QStringLiteral("speedKmh")] = QStringLiteral("km/h");
+
+    en[QStringLiteral("powerRegen")] = QStringLiteral("REGEN");
+    de[QStringLiteral("powerRegen")] = QStringLiteral("REKU");
+
+    en[QStringLiteral("powerDischarge")] = QStringLiteral("DISCHARGE");
+    de[QStringLiteral("powerDischarge")] = QStringLiteral("ENTLADUNG");
+
+    // -----------------------------------------------------------------------
+    // Fault codes
+    // -----------------------------------------------------------------------
+
+    en[QStringLiteral("faultSignalWireBroken")] = QStringLiteral("Signal wire broken");
+    de[QStringLiteral("faultSignalWireBroken")] = QStringLiteral("Signaldraht defekt");
+
+    en[QStringLiteral("faultCriticalOverTemp")] = QStringLiteral("Critical over-temperature");
+    de[QStringLiteral("faultCriticalOverTemp")] = QStringLiteral("Kritische \u00DCbertemperatur");
+
+    en[QStringLiteral("faultShortCircuit")] = QStringLiteral("Short circuit");
+    de[QStringLiteral("faultShortCircuit")] = QStringLiteral("Kurzschluss");
+
+    en[QStringLiteral("faultBmsNotFollowing")] = QStringLiteral("BMS not following commands");
+    de[QStringLiteral("faultBmsNotFollowing")] = QStringLiteral("BMS reagiert nicht auf Befehle");
+
+    en[QStringLiteral("faultBmsCommError")] = QStringLiteral("BMS communication error");
+    de[QStringLiteral("faultBmsCommError")] = QStringLiteral("BMS-Kommunikationsfehler");
+
+    en[QStringLiteral("faultNfcReaderError")] = QStringLiteral("NFC reader error");
+    de[QStringLiteral("faultNfcReaderError")] = QStringLiteral("NFC-Leser Fehler");
+
+    en[QStringLiteral("faultOverTempCharging")] = QStringLiteral("Over-temperature while charging");
+    de[QStringLiteral("faultOverTempCharging")] = QStringLiteral("\u00DCbertemperatur beim Laden");
+
+    en[QStringLiteral("faultUnderTempCharging")] = QStringLiteral("Under-temperature while charging");
+    de[QStringLiteral("faultUnderTempCharging")] = QStringLiteral("Untertemperatur beim Laden");
+
+    en[QStringLiteral("faultOverTempDischarging")] = QStringLiteral("Over-temperature while discharging");
+    de[QStringLiteral("faultOverTempDischarging")] = QStringLiteral("\u00DCbertemperatur beim Entladen");
+
+    en[QStringLiteral("faultUnderTempDischarging")] = QStringLiteral("Under-temperature while discharging");
+    de[QStringLiteral("faultUnderTempDischarging")] = QStringLiteral("Untertemperatur beim Entladen");
+
+    en[QStringLiteral("faultMosfetOverTemp")] = QStringLiteral("MOSFET over-temperature");
+    de[QStringLiteral("faultMosfetOverTemp")] = QStringLiteral("MOSFET-\u00DCbertemperatur");
+
+    en[QStringLiteral("faultCellOverVoltage")] = QStringLiteral("Cell over-voltage");
+    de[QStringLiteral("faultCellOverVoltage")] = QStringLiteral("Zellen-\u00DCberspannung");
+
+    en[QStringLiteral("faultCellUnderVoltage")] = QStringLiteral("Cell under-voltage");
+    de[QStringLiteral("faultCellUnderVoltage")] = QStringLiteral("Zellen-Unterspannung");
+
+    en[QStringLiteral("faultOverCurrentCharging")] = QStringLiteral("Over-current while charging");
+    de[QStringLiteral("faultOverCurrentCharging")] = QStringLiteral("\u00DCberstrom beim Laden");
+
+    en[QStringLiteral("faultOverCurrentDischarging")] = QStringLiteral("Over-current while discharging");
+    de[QStringLiteral("faultOverCurrentDischarging")] = QStringLiteral("\u00DCberstrom beim Entladen");
+
+    en[QStringLiteral("faultPackOverVoltage")] = QStringLiteral("Pack over-voltage");
+    de[QStringLiteral("faultPackOverVoltage")] = QStringLiteral("Pack-\u00DCberspannung");
+
+    en[QStringLiteral("faultPackUnderVoltage")] = QStringLiteral("Pack under-voltage");
+    de[QStringLiteral("faultPackUnderVoltage")] = QStringLiteral("Pack-Unterspannung");
+
+    en[QStringLiteral("faultReserved")] = QStringLiteral("Reserved");
+    de[QStringLiteral("faultReserved")] = QStringLiteral("Reserviert");
+
+    en[QStringLiteral("faultBmsZeroData")] = QStringLiteral("BMS has zero data");
+    de[QStringLiteral("faultBmsZeroData")] = QStringLiteral("BMS hat keine Daten");
+
+    en[QStringLiteral("faultUnknown")] = QStringLiteral("Unknown fault");
+    de[QStringLiteral("faultUnknown")] = QStringLiteral("Unbekannter Fehler");
+
+    en[QStringLiteral("faultMultipleCritical")] = QStringLiteral("Multiple Critical Issues");
+    de[QStringLiteral("faultMultipleCritical")] = QStringLiteral("Mehrere kritische Probleme");
+
+    en[QStringLiteral("faultMultipleBattery")] = QStringLiteral("Multiple Battery Issues");
+    de[QStringLiteral("faultMultipleBattery")] = QStringLiteral("Mehrere Batterieprobleme");
+
+    // -----------------------------------------------------------------------
+    // Status bar & odometer
+    // -----------------------------------------------------------------------
+
+    en[QStringLiteral("statusBarDuration")] = QStringLiteral("DURATION");
+    de[QStringLiteral("statusBarDuration")] = QStringLiteral("DAUER");
+
+    en[QStringLiteral("statusBarAvgSpeed")] = QStringLiteral("\u00D8 SPEED");
+    de[QStringLiteral("statusBarAvgSpeed")] = QStringLiteral("\u00D8 TEMPO");
+
+    en[QStringLiteral("statusBarTrip")] = QStringLiteral("TRIP");
+    de[QStringLiteral("statusBarTrip")] = QStringLiteral("STRECKE");
+
+    en[QStringLiteral("statusBarTotal")] = QStringLiteral("TOTAL");
+    de[QStringLiteral("statusBarTotal")] = QStringLiteral("GESAMT");
+
+    en[QStringLiteral("statusBarKmh")] = QStringLiteral("km/h");
+    de[QStringLiteral("statusBarKmh")] = QStringLiteral("km/h");
+
+    en[QStringLiteral("odometerTrip")] = QStringLiteral("TRIP");
+    de[QStringLiteral("odometerTrip")] = QStringLiteral("STRECKE");
+
+    en[QStringLiteral("odometerTotal")] = QStringLiteral("TOTAL");
+    de[QStringLiteral("odometerTotal")] = QStringLiteral("GESAMT");
+
+    en[QStringLiteral("odometerAvgSpeed")] = QStringLiteral("AVG SPEED");
+    de[QStringLiteral("odometerAvgSpeed")] = QStringLiteral("\u00D8 TEMPO");
+
+    en[QStringLiteral("odometerTripTime")] = QStringLiteral("TRIP TIME");
+    de[QStringLiteral("odometerTripTime")] = QStringLiteral("FAHRZEIT");
+
+    // -----------------------------------------------------------------------
+    // Address entry
+    // -----------------------------------------------------------------------
+
+    en[QStringLiteral("addressEditAction")] = QStringLiteral("Edit");
+    de[QStringLiteral("addressEditAction")] = QStringLiteral("\u00C4ndern");
+
+    en[QStringLiteral("addressScrollAction")] = QStringLiteral("Scroll");
+    de[QStringLiteral("addressScrollAction")] = QStringLiteral("Scrollen");
+
+    en[QStringLiteral("addressConfirmAction")] = QStringLiteral("Confirm");
+    de[QStringLiteral("addressConfirmAction")] = QStringLiteral("Best\u00E4tigen");
+
+    en[QStringLiteral("addressNextAction")] = QStringLiteral("Next");
+    de[QStringLiteral("addressNextAction")] = QStringLiteral("Weiter");
+
+    en[QStringLiteral("addressCloseAction")] = QStringLiteral("Close");
+    de[QStringLiteral("addressCloseAction")] = QStringLiteral("Schlie\u00DFen");
+
+    en[QStringLiteral("addressCancelAction")] = QStringLiteral("Cancel");
+    de[QStringLiteral("addressCancelAction")] = QStringLiteral("Abbrechen");
+
+    en[QStringLiteral("addressScreenTitle")] = QStringLiteral("Enter Destination Code");
+    de[QStringLiteral("addressScreenTitle")] = QStringLiteral("Zielcode eingeben");
+
+    en[QStringLiteral("addressLoading")] = QStringLiteral("Loading address database...");
+    de[QStringLiteral("addressLoading")] = QStringLiteral("Adressdatenbank wird geladen...");
+
+    en[QStringLiteral("addressMapNotFound")] = QStringLiteral("Map file not found.");
+    de[QStringLiteral("addressMapNotFound")] = QStringLiteral("Kartendatei nicht gefunden.");
+
+    // -----------------------------------------------------------------------
+    // Standby
+    // -----------------------------------------------------------------------
+
+    en[QStringLiteral("standbyWarning")] = QStringLiteral("Vehicle will enter standby in");
+    de[QStringLiteral("standbyWarning")] = QStringLiteral("Fahrzeug geht in Standby in");
+
+    en[QStringLiteral("standbySeconds")] = QStringLiteral("seconds");
+    de[QStringLiteral("standbySeconds")] = QStringLiteral("Sekunden");
+
+    en[QStringLiteral("standbyCancel")] = QStringLiteral("Press brake or move kickstand to cancel");
+    de[QStringLiteral("standbyCancel")] = QStringLiteral("Bremse dr\u00FCcken oder Seitenst\u00E4nder bewegen zum Abbrechen");
+
+    // -----------------------------------------------------------------------
+    // Destination & map
+    // -----------------------------------------------------------------------
+
+    en[QStringLiteral("destinationOfflineOnly")] = QStringLiteral("The destination selector only works with offline maps");
+    de[QStringLiteral("destinationOfflineOnly")] = QStringLiteral("Die Zielauswahl funktioniert nur mit Offline-Karten");
+
+    en[QStringLiteral("destinationInstallMapData")] = QStringLiteral("Please install the map data to use this feature");
+    de[QStringLiteral("destinationInstallMapData")] = QStringLiteral("Bitte installiere die Kartendaten, um diese Funktion zu nutzen");
+
+    en[QStringLiteral("mapWaitingForGps")] = QStringLiteral("Waiting for GPS fix");
+    de[QStringLiteral("mapWaitingForGps")] = QStringLiteral("Warte auf GPS-Signal");
+
+    en[QStringLiteral("mapOutOfCoverage")] = QStringLiteral("No map data for current location");
+    de[QStringLiteral("mapOutOfCoverage")] = QStringLiteral("Keine Kartendaten f\u00FCr den aktuellen Standort");
+
+    // -----------------------------------------------------------------------
+    // Shortcut menu
+    // -----------------------------------------------------------------------
+
+    en[QStringLiteral("shortcutPressToConfirm")] = QStringLiteral("Press to confirm");
+    de[QStringLiteral("shortcutPressToConfirm")] = QStringLiteral("Zum Best\u00E4tigen dr\u00FCcken");
 }

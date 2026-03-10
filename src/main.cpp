@@ -41,6 +41,16 @@ int main(int argc, char *argv[])
         &app, []() { QCoreApplication::exit(1); },
         Qt::QueuedConnection);
 
+    // Boot animation: fade in overlay after QML loads
+    QObject::connect(
+        &engine, &QQmlApplicationEngine::objectCreated,
+        &application, [&application](QObject *obj, const QUrl &) {
+            if (obj) {
+                application.fadeInOverlay();
+            }
+        },
+        Qt::QueuedConnection);
+
     const QUrl url(QStringLiteral("qrc:/ScootUI/qml/Main.qml"));
     engine.load(url);
 

@@ -7,6 +7,11 @@ set(CMAKE_AUTOMOC ON)
 
 find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Qml Svg Network Sql Concurrent)
 
+# QMapLibre for map rendering (required for map screen)
+find_package(QMapLibre REQUIRED)
+find_package(Qt6 COMPONENTS OpenGL REQUIRED)
+add_definitions(-DHAS_QMAPLIBRE)
+
 qt_standard_project_setup(REQUIRES 6.4)
 
 set(CPP_SOURCES
@@ -37,12 +42,24 @@ set(CPP_SOURCES
     src/stores/ShutdownStore.cpp
     src/stores/LocaleStore.cpp
     src/stores/ShortcutMenuStore.cpp
+    src/stores/ConnectionStore.cpp
+    src/stores/DashboardStore.cpp
+    src/stores/SavedLocationsStore.cpp
     src/services/SettingsService.cpp
     src/services/AutoThemeService.cpp
     src/services/InputHandler.cpp
     src/services/NavigationService.cpp
+    src/services/ToastService.cpp
+    src/services/MapService.cpp
+    src/services/LowTemperatureMonitor.cpp
+    src/services/BluetoothHealthMonitor.cpp
+    src/services/NavigationAvailabilityService.cpp
+    src/services/SavedLocationsService.cpp
+    src/services/ReverseGeocodingService.cpp
+    src/services/SerialNumberService.cpp
     src/routing/ValhallaClient.cpp
     src/l10n/Translations.cpp
+    src/utils/FaultFormatter.cpp
 )
 
 set(CPP_HEADERS
@@ -50,6 +67,8 @@ set(CPP_HEADERS
     src/core/EnvConfig.h
     src/core/Application.h
     src/models/Enums.h
+    src/models/MenuNode.h
+    src/models/SavedLocation.h
     src/repositories/MdbRepository.h
     src/repositories/InMemoryMdbRepository.h
     src/repositories/RedisMdbRepository.h
@@ -75,15 +94,26 @@ set(CPP_HEADERS
     src/stores/ShutdownStore.h
     src/stores/LocaleStore.h
     src/stores/ShortcutMenuStore.h
-    src/models/MenuNode.h
+    src/stores/ConnectionStore.h
+    src/stores/DashboardStore.h
+    src/stores/SavedLocationsStore.h
     src/services/SettingsService.h
     src/services/AutoThemeService.h
     src/services/InputHandler.h
     src/services/NavigationService.h
+    src/services/ToastService.h
+    src/services/MapService.h
+    src/services/LowTemperatureMonitor.h
+    src/services/BluetoothHealthMonitor.h
+    src/services/NavigationAvailabilityService.h
+    src/services/SavedLocationsService.h
+    src/services/ReverseGeocodingService.h
+    src/services/SerialNumberService.h
     src/routing/RouteModels.h
     src/routing/RouteHelpers.h
     src/routing/ValhallaClient.h
     src/l10n/Translations.h
+    src/utils/FaultFormatter.h
 )
 
 qt_add_executable(scootui ${CPP_SOURCES} ${CPP_HEADERS})
@@ -104,8 +134,11 @@ qt_add_qml_module(scootui
         qml/screens/OtaBackgroundScreen.qml
         qml/screens/MapScreen.qml
         qml/screens/AddressSelectionScreen.qml
+        qml/screens/NavigationSetupScreen.qml
+        qml/screens/DestinationScreen.qml
         qml/widgets/navigation/TurnByTurnWidget.qml
         qml/widgets/navigation/NavigationStatusOverlay.qml
+        qml/widgets/navigation/RoundaboutIcon.qml
         qml/widgets/speedometer/SpeedometerDisplay.qml
         qml/widgets/status_bars/TopStatusBar.qml
         qml/widgets/status_bars/BatteryDisplay.qml
@@ -120,6 +153,11 @@ qt_add_qml_module(scootui
         qml/widgets/blinker/BlinkerOverlay.qml
         qml/widgets/shutdown/ShutdownOverlay.qml
         qml/widgets/components/SvgIcon.qml
+        qml/widgets/components/ControlHints.qml
+        qml/widgets/map/MapViewWidget.qml
+        qml/widgets/map/VehicleMarker.qml
+        qml/widgets/map/NorthIndicator.qml
+        qml/widgets/map/ScaleBar.qml
         qml/overlays/MenuOverlay.qml
         qml/overlays/MenuItem.qml
         qml/overlays/ShortcutMenuOverlay.qml
@@ -127,6 +165,8 @@ qt_add_qml_module(scootui
         qml/overlays/BluetoothPinCodeOverlay.qml
         qml/overlays/ManualHibernationOverlay.qml
         qml/overlays/VersionOverlay.qml
+        qml/overlays/ToastOverlay.qml
+        qml/overlays/DebugOverlay.qml
     RESOURCES
         assets/icons/librescoot-turn-left.svg
         assets/icons/librescoot-turn-right.svg
@@ -190,6 +230,8 @@ qt_add_qml_module(scootui
         assets/fonts/Roboto-Light.ttf
         assets/fonts/RobotoCondensed-Bold.ttf
         assets/fonts/RobotoCondensed-Regular.ttf
+        assets/styles/mapdark.json
+        assets/styles/maplight.json
 )
 
 target_link_libraries(scootui PRIVATE
@@ -198,6 +240,8 @@ target_link_libraries(scootui PRIVATE
     Qt6::Network
     Qt6::Sql
     Qt6::Concurrent
+    Qt6::OpenGL
+    QMapLibre::QMapLibre
 )
 
 target_include_directories(scootui PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

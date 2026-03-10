@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import "../widgets/status_bars"
 import "../widgets/navigation"
 import "../widgets/indicators"
+import "../widgets/map"
 
 Rectangle {
     id: mapScreen
@@ -26,25 +27,32 @@ Rectangle {
             Layout.preferredHeight: 40
         }
 
-        // Map area (currently dark background - QMapLibre requires EGLFS)
+        // Map area
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            // Dark background with grid hint (no actual map yet)
-            Rectangle {
+            // Map view (QMapLibre wrapper)
+            MapViewWidget {
                 anchors.fill: parent
-                color: typeof themeStore !== "undefined" && themeStore.isDark
-                       ? "#1a1a2e" : "#e8e8e8"
             }
 
-            // No-map message (shown when not navigating)
+            // Vehicle marker at fixed screen position
+            VehicleMarker {
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: parent.height / 2 + (typeof mapService !== "undefined" ? mapService.vehicleOffsetY : 0) - 18
+                visible: typeof mapService !== "undefined" && mapService.isReady
+            }
+
+            // No-map message (shown when not navigating and no map position)
             Text {
                 anchors.centerIn: parent
-                visible: !mapScreen.hasNav
+                visible: !mapScreen.hasNav && (typeof mapService === "undefined" || !mapService.isReady)
                 text: typeof navigationService !== "undefined"
-                      ? "Set a destination to start navigation"
-                      : "Navigation unavailable"
+                      ? (typeof translations !== "undefined" ? translations.navSetDestination
+                         : "Set a destination to start navigation")
+                      : (typeof translations !== "undefined" ? translations.navUnavailable
+                         : "Navigation unavailable")
                 color: typeof themeStore !== "undefined" && themeStore.isDark
                        ? Qt.rgba(1, 1, 1, 0.4) : Qt.rgba(0, 0, 0, 0.4)
                 font.pixelSize: 16
@@ -139,6 +147,19 @@ Rectangle {
                     font.pixelSize: 14
                     color: "white"
                 }
+            }
+
+            // North indicator + Scale bar (bottom-right)
+            Column {
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.rightMargin: 8
+                anchors.bottomMargin: 48
+                spacing: 4
+                visible: typeof mapService !== "undefined" && mapService.isReady
+
+                NorthIndicator {}
+                ScaleBar {}
             }
 
             // Warning indicators (bottom right)

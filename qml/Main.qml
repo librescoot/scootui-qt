@@ -21,6 +21,10 @@ Window {
     readonly property int currentScreen: typeof screenStore !== "undefined" ? screenStore.currentScreen : 0
 
     readonly property bool showMaintenance: {
+        // Prolonged Redis disconnect before ever connecting
+        if (typeof connectionStore !== "undefined"
+            && connectionStore.prolongedDisconnect
+            && !connectionStore.hasEverConnected) return true
         if (allowedStates.indexOf(vehicleState) === -1) return true
         if (vehicleState === 0 && startupGraceElapsed) return true
         return false
@@ -45,6 +49,25 @@ Window {
         }
     }
 
+    // Show permanent toast on mid-session Redis disconnect
+    Connections {
+        target: typeof connectionStore !== "undefined" ? connectionStore : null
+        function onProlongedDisconnectChanged() {
+            if (typeof connectionStore !== "undefined" && typeof toastService !== "undefined") {
+                if (connectionStore.prolongedDisconnect && connectionStore.hasEverConnected) {
+                    toastService.showPermanentError(
+                        typeof translations !== "undefined"
+                            ? translations.redisDisconnected
+                            : "System connection lost",
+                        "redis-disconnect"
+                    )
+                } else {
+                    toastService.dismiss("redis-disconnect")
+                }
+            }
+        }
+    }
+
     // Screen switcher
     Loader {
         id: screenLoader
@@ -59,6 +82,8 @@ Window {
                 case 5: return maintenanceComponent   // Maintenance
                 case 6: return otaBgComponent         // OTA Background
                 case 7: return addressComponent       // Address Selection
+                case 9: return navSetupComponent      // Navigation Setup
+                case 10: return destinationComponent  // Destination
                 default: return clusterComponent
             }
         }
@@ -71,8 +96,17 @@ Window {
     Component { id: debugComponent; DebugScreen {} }
     Component { id: otaBgComponent; OtaBackgroundScreen {} }
     Component { id: addressComponent; AddressSelectionScreen {} }
+    Component { id: navSetupComponent; NavigationSetupScreen {} }
+    Component { id: destinationComponent; DestinationScreen {} }
 
     // Overlays (bottom to top stacking order)
+
+    // Debug overlay (floating, lowest z)
+    DebugOverlay {
+        anchors.fill: parent
+        z: 50
+    }
+
     BlinkerOverlay {
         anchors.fill: parent
         z: 100
@@ -86,6 +120,12 @@ Window {
     ShortcutMenuOverlay {
         anchors.fill: parent
         z: 300
+    }
+
+    // Toast notifications
+    ToastOverlay {
+        anchors.fill: parent
+        z: 900
     }
 
     ShutdownOverlay {

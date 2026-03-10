@@ -103,6 +103,23 @@ Item {
                 font.pixelSize: 12
                 color: parent.parent.textColor
             }
+
+            // Serial number
+            Rectangle {
+                visible: typeof serialNumberService !== "undefined" && serialNumberService.available
+                width: parent.width
+                height: 1
+                color: parent.parent.textColor
+                opacity: 0.3
+            }
+
+            Text {
+                visible: typeof serialNumberService !== "undefined" && serialNumberService.available
+                text: "S/N: " + (typeof serialNumberService !== "undefined"
+                      ? serialNumberService.serialNumber : "")
+                font.pixelSize: 11
+                color: parent.parent.textColor
+            }
         }
     }
 }
