@@ -20,6 +20,7 @@ class NavigationAvailabilityService;
 class SavedLocationsService;
 class ReverseGeocodingService;
 class SerialNumberService;
+class SimulatorService;
 
 class Application : public QObject
 {
@@ -31,6 +32,7 @@ public:
 
     bool initialize(QQmlApplicationEngine &engine);
     void fadeInOverlay();
+    bool isSimulatorMode() const { return m_simulatorMode; }
 
 private:
     void createStores(QQmlApplicationEngine &engine);
@@ -53,5 +55,7 @@ private:
     SavedLocationsService *m_savedLocationsService = nullptr;
     ReverseGeocodingService *m_reverseGeocoding = nullptr;
     SerialNumberService *m_serialNumberService = nullptr;
+    SimulatorService *m_simulatorService = nullptr;
+    bool m_simulatorMode = false;
     QList<QObject*> m_stores;
 };

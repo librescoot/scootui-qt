@@ -42,6 +42,7 @@
 #include "services/SerialNumberService.h"
 #include "l10n/Translations.h"
 #include "utils/FaultFormatter.h"
+#include "simulator/SimulatorService.h"
 
 #include <QQmlContext>
 #include <QDebug>
@@ -76,6 +77,7 @@ bool Application::initialize(QQmlApplicationEngine &engine)
     if (redisHost.isEmpty() || redisHost == QLatin1String("none")) {
         qDebug() << "Using InMemoryMdbRepository (simulator mode)";
         m_repository = std::make_unique<InMemoryMdbRepository>();
+        m_simulatorMode = true;
     } else {
         qDebug() << "Connecting to Redis at" << redisHost;
         m_repository = std::make_unique<RedisMdbRepository>(redisHost, 6379);
@@ -268,6 +270,16 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("navAvailabilityService"), m_navAvailability);
     ctx->setContextProperty(QStringLiteral("savedLocationsStore"), savedLocationsStore);
     ctx->setContextProperty(QStringLiteral("serialNumberService"), m_serialNumberService);
+
+    // Simulator service (created in sim mode, null otherwise)
+    if (m_simulatorMode) {
+        m_simulatorService = new SimulatorService(repo, this);
+        ctx->setContextProperty(QStringLiteral("simulator"), m_simulatorService);
+        ctx->setContextProperty(QStringLiteral("simulatorMode"), true);
+    } else {
+        ctx->setContextProperty(QStringLiteral("simulator"), nullptr);
+        ctx->setContextProperty(QStringLiteral("simulatorMode"), false);
+    }
 
     // Store references for lifecycle management
     m_stores = {engineStore, vehicleStore, battery0Store, battery1Store,

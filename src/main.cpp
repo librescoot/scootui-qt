@@ -54,5 +54,11 @@ int main(int argc, char *argv[])
     const QUrl url(QStringLiteral("qrc:/ScootUI/qml/Main.qml"));
     engine.load(url);
 
+    // In simulator mode, also load the simulator control panel window
+    if (application.isSimulatorMode()) {
+        const QUrl simUrl(QStringLiteral("qrc:/ScootUI/qml/simulator/SimulatorWindow.qml"));
+        engine.load(simUrl);
+    }
+
     return app.exec();
 }

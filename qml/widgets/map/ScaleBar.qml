@@ -31,6 +31,7 @@ Item {
         : scaleMeters + " m"
 
     Canvas {
+        id: canvas
         width: Math.min(scaleBar.barWidth + 10, scaleBar.maxWidthPx)
         height: scaleBar.height
         anchors.right: parent.right
@@ -67,9 +68,10 @@ Item {
             ctx.stroke()
         }
 
-        onZoomChanged: requestPaint()
-        onLatitudeChanged: requestPaint()
     }
+
+    onZoomChanged: canvas.requestPaint()
+    onLatitudeChanged: canvas.requestPaint()
 
     Text {
         anchors.right: parent.right

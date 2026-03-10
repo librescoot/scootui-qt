@@ -1,76 +1,47 @@
 import QtQuick
 import QtQuick.Layouts
-import QtLocation
-import QtPositioning
 
 // QMapLibre MapView wrapper
-// Binds camera to mapService properties, handles style loading and offline MBTiles
+// Uses a Loader to gracefully handle missing QtLocation/QMapLibre plugin
 Item {
     id: mapViewWidget
     anchors.fill: parent
 
     property bool mapReady: typeof mapService !== "undefined" ? mapService.isReady : false
 
-    MapView {
-        id: mapView
+    Loader {
+        id: mapLoader
         anchors.fill: parent
-        visible: mapReady
-
-        map.plugin: Plugin {
-            name: "maplibre"
-            PluginParameter {
-                name: "maplibre.map.styles"
-                value: typeof mapService !== "undefined" ? mapService.styleUrl : ""
-            }
-        }
-
-        map.center: QtPositioning.coordinate(
-            typeof mapService !== "undefined" ? mapService.mapLatitude : 0,
-            typeof mapService !== "undefined" ? mapService.mapLongitude : 0
-        )
-
-        map.zoomLevel: typeof mapService !== "undefined" ? mapService.mapZoom : 16
-        map.bearing: typeof mapService !== "undefined" ? mapService.mapBearing : 0
-
-        map.activeMapType: map.supportedMapTypes[0]
-
-        // Disable user interaction (camera is driven by MapService)
-        gesture.enabled: false
-
-        // Route polyline
-        MapPolyline {
-            id: routeBorder
-            visible: typeof mapService !== "undefined" && mapService.routeCoordinates.length > 0
-            line.width: 6
-            line.color: "white"
-
-            path: {
-                var p = []
-                if (typeof mapService !== "undefined") {
-                    var coords = mapService.routeCoordinates
-                    for (var i = 0; i < coords.length; i++) {
-                        p.push(QtPositioning.coordinate(coords[i].lat, coords[i].lng))
-                    }
-                }
-                return p
-            }
-        }
-
-        MapPolyline {
-            id: routeFill
-            visible: routeBorder.visible
-            line.width: 4
-            line.color: "#42A5F5"  // Blue.shade400
-
-            path: routeBorder.path
-        }
+        active: mapReady
+        source: Qt.resolvedUrl("MapViewContent.qml")
     }
 
-    // Fallback background when map not ready
+    // Fallback background when map not ready or plugin unavailable
     Rectangle {
         anchors.fill: parent
-        visible: !mapReady
+        visible: !mapReady || mapLoader.status === Loader.Error
         color: typeof themeStore !== "undefined" && themeStore.isDark
                ? "#1a1a2e" : "#e8e8e8"
+
+        Column {
+            anchors.centerIn: parent
+            spacing: 8
+            visible: mapLoader.status === Loader.Error
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Map unavailable"
+                color: typeof themeStore !== "undefined" && themeStore.isDark
+                       ? "#666" : "#999"
+                font.pixelSize: 16
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "QMapLibre plugin not installed"
+                color: typeof themeStore !== "undefined" && themeStore.isDark
+                       ? "#444" : "#bbb"
+                font.pixelSize: 12
+            }
+        }
     }
 }
