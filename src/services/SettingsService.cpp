@@ -2,6 +2,10 @@
 #include "repositories/MdbRepository.h"
 #include "core/AppConfig.h"
 
+#include <QFile>
+#include <QTextStream>
+#include <QDebug>
+
 SettingsService::SettingsService(MdbRepository *repo, QObject *parent)
     : QObject(parent)
     , m_repo(repo)
@@ -101,4 +105,46 @@ void SettingsService::updateValhallaEndpoint(const QString &url)
 void SettingsService::updatePowerDisplayMode(const QString &mode)
 {
     writeSetting(QStringLiteral("dashboard.power-display-mode"), mode);
+}
+
+void SettingsService::togglePlymouthTheme()
+{
+#ifdef Q_OS_LINUX
+    // Read current theme from plymouth config
+    QString currentTheme = QStringLiteral("librescoot");
+    QFile confFile(QStringLiteral("/etc/plymouth/plymouthd.conf"));
+    if (confFile.open(QIODevice::ReadOnly)) {
+        QTextStream in(&confFile);
+        while (!in.atEnd()) {
+            QString line = in.readLine().trimmed();
+            if (line.startsWith(QLatin1String("Theme="))) {
+                currentTheme = line.mid(6);
+                break;
+            }
+        }
+        confFile.close();
+    }
+
+    // Toggle between librescoot and windowsxp
+    QString newTheme = (currentTheme == QLatin1String("windowsxp"))
+        ? QStringLiteral("librescoot") : QStringLiteral("windowsxp");
+
+    // Write updated plymouth config
+    if (confFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        QTextStream out(&confFile);
+        out << "[Daemon]\n";
+        out << "Theme=" << newTheme << "\n";
+        confFile.close();
+    }
+
+    // Write marker file for boot-animation service
+    QFile markerFile(QStringLiteral("/data/plymouth-theme"));
+    if (markerFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        QTextStream out(&markerFile);
+        out << newTheme;
+        markerFile.close();
+    }
+
+    qDebug() << "Plymouth theme toggled to:" << newTheme;
+#endif
 }

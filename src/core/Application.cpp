@@ -25,15 +25,29 @@
 #include "stores/ShutdownStore.h"
 #include "stores/LocaleStore.h"
 #include "stores/ShortcutMenuStore.h"
+#include "stores/ConnectionStore.h"
+#include "stores/DashboardStore.h"
+#include "stores/SavedLocationsStore.h"
 #include "services/SettingsService.h"
 #include "services/AutoThemeService.h"
 #include "services/InputHandler.h"
 #include "services/NavigationService.h"
+#include "services/ToastService.h"
+#include "services/MapService.h"
+#include "services/LowTemperatureMonitor.h"
+#include "services/BluetoothHealthMonitor.h"
+#include "services/NavigationAvailabilityService.h"
+#include "services/SavedLocationsService.h"
+#include "services/ReverseGeocodingService.h"
+#include "services/SerialNumberService.h"
 #include "l10n/Translations.h"
+#include "utils/FaultFormatter.h"
+#include "simulator/SimulatorService.h"
 
 #include <QQmlContext>
 #include <QDebug>
 #include <QProcess>
+#include <QFile>
 
 #ifdef Q_OS_LINUX
 #include <QSocketNotifier>
@@ -63,6 +77,7 @@ bool Application::initialize(QQmlApplicationEngine &engine)
     if (redisHost.isEmpty() || redisHost == QLatin1String("none")) {
         qDebug() << "Using InMemoryMdbRepository (simulator mode)";
         m_repository = std::make_unique<InMemoryMdbRepository>();
+        m_simulatorMode = true;
     } else {
         qDebug() << "Connecting to Redis at" << redisHost;
         m_repository = std::make_unique<RedisMdbRepository>(redisHost, 6379);
@@ -102,14 +117,80 @@ void Application::createStores(QQmlApplicationEngine &engine)
     auto *shutdownStore = m_shutdownStore;
     auto *localeStore = new LocaleStore(settingsStore, this);
 
+    // New stores
+    auto *connectionStore = new ConnectionStore(repo, this);
+    auto *dashboardStore = new DashboardStore(repo, this);
+
     // M5: Services
     m_settingsService = new SettingsService(repo, this);
     m_translations = new Translations(this);
     m_autoThemeService = new AutoThemeService(repo, themeStore, this);
+    m_toastService = new ToastService(this);
+    m_serialNumberService = new SerialNumberService(this);
 
     // M7: Navigation service
     m_navigationService = new NavigationService(gpsStore, navigationStore, vehicleStore,
                                                  settingsStore, speedLimitStore, repo, this);
+
+    // Map service (A2)
+    m_mapService = new MapService(gpsStore, engineStore, m_navigationService,
+                                   settingsStore, themeStore, this);
+
+    // Navigation availability (B6)
+    m_navAvailability = new NavigationAvailabilityService(settingsStore, internetStore, this);
+
+    // Saved locations (B7)
+    m_savedLocationsService = new SavedLocationsService(repo, this);
+    m_reverseGeocoding = new ReverseGeocodingService(this);
+    auto *savedLocationsStore = new SavedLocationsStore(
+        m_savedLocationsService, m_reverseGeocoding, gpsStore, m_navigationService,
+        m_toastService, this);
+
+    // Monitoring services (B3, B4)
+    m_lowTempMonitor = new LowTemperatureMonitor(engineStore, battery0Store,
+                                                   cbBatteryStore, m_toastService, this);
+    m_bleHealthMonitor = new BluetoothHealthMonitor(bluetoothStore, m_toastService, this);
+
+    // Battery fault monitoring
+    auto connectFaultMonitor = [this](BatteryStore *batteryStore) {
+        connect(batteryStore, &BatteryStore::faultsChanged, this,
+                [this, batteryStore]() {
+            auto faults = batteryStore->faults();
+            if (faults.isEmpty())
+                return;
+            QString slotName = batteryStore->batteryId() == QLatin1String("0")
+                ? m_translations->batterySlot0()
+                : m_translations->batterySlot1();
+            if (faults.size() == 1) {
+                QString msg = slotName + QStringLiteral(": ")
+                    + FaultFormatter::formatSingleFault(faults.first(), m_translations);
+                if (FaultFormatter::hasAnyCritical(faults))
+                    m_toastService->showError(msg);
+                else
+                    m_toastService->showWarning(msg);
+            } else {
+                QString title = slotName + QStringLiteral(": ")
+                    + FaultFormatter::getMultipleFaultsTitle(faults, m_translations);
+                QString detail = FaultFormatter::formatMultipleFaults(faults, m_translations);
+                if (FaultFormatter::hasAnyCritical(faults))
+                    m_toastService->showError(title + QStringLiteral("\n") + detail);
+                else
+                    m_toastService->showWarning(title + QStringLiteral("\n") + detail);
+            }
+        });
+    };
+    connectFaultMonitor(battery0Store);
+    connectFaultMonitor(battery1Store);
+
+    // Wire route waypoints from NavigationService to MapService
+    connect(m_navigationService, &NavigationService::routeChanged, this, [this]() {
+        if (m_navigationService->hasRoute()) {
+            // Route waypoints will be set via MapService's internal handling
+            m_mapService->updateRouteFromNavigation();
+        } else {
+            m_mapService->clearRoute();
+        }
+    });
 
     // M5: Wire translations to locale
     connect(localeStore, &LocaleStore::languageChanged, m_translations, [this, localeStore]() {
@@ -129,6 +210,10 @@ void Application::createStores(QQmlApplicationEngine &engine)
     auto *menuStore = new MenuStore(settingsStore, vehicleStore, themeStore,
                                     tripStore, m_translations, m_settingsService,
                                     repo, this);
+
+    // Wire saved locations and screen store into menu
+    menuStore->setSavedLocationsStore(savedLocationsStore);
+    menuStore->setScreenStore(screenStore);
 
     // M5: ShortcutMenuStore
     auto *shortcutMenuStore = new ShortcutMenuStore(themeStore, m_settingsService, this);
@@ -177,11 +262,30 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("settingsService"), m_settingsService);
     ctx->setContextProperty(QStringLiteral("navigationService"), m_navigationService);
 
+    // New context properties
+    ctx->setContextProperty(QStringLiteral("connectionStore"), connectionStore);
+    ctx->setContextProperty(QStringLiteral("dashboardStore"), dashboardStore);
+    ctx->setContextProperty(QStringLiteral("toastService"), m_toastService);
+    ctx->setContextProperty(QStringLiteral("mapService"), m_mapService);
+    ctx->setContextProperty(QStringLiteral("navAvailabilityService"), m_navAvailability);
+    ctx->setContextProperty(QStringLiteral("savedLocationsStore"), savedLocationsStore);
+    ctx->setContextProperty(QStringLiteral("serialNumberService"), m_serialNumberService);
+
+    // Simulator service (created in sim mode, null otherwise)
+    if (m_simulatorMode) {
+        m_simulatorService = new SimulatorService(repo, this);
+        ctx->setContextProperty(QStringLiteral("simulator"), m_simulatorService);
+        ctx->setContextProperty(QStringLiteral("simulatorMode"), true);
+    } else {
+        ctx->setContextProperty(QStringLiteral("simulator"), nullptr);
+        ctx->setContextProperty(QStringLiteral("simulatorMode"), false);
+    }
+
     // Store references for lifecycle management
     m_stores = {engineStore, vehicleStore, battery0Store, battery1Store,
                 gpsStore, bluetoothStore, internetStore, navigationStore,
                 settingsStore, otaStore, usbStore, speedLimitStore,
-                autoStandbyStore, cbBatteryStore, auxBatteryStore};
+                autoStandbyStore, cbBatteryStore, auxBatteryStore, dashboardStore};
 
     // Start all syncable stores
     for (auto *store : m_stores) {
@@ -190,7 +294,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
         }
     }
 
-    qDebug() << "All stores created and started (M5: menu, settings, translations, auto-theme)";
+    qDebug() << "All stores created and started (M5: menu, settings, translations, auto-theme, toast, map, nav-availability, saved-locations, serial-number)";
 }
 
 void Application::registerContextProperties(QQmlApplicationEngine &engine)
@@ -199,6 +303,33 @@ void Application::registerContextProperties(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("appWidth"), EnvConfig::resolution().width());
     ctx->setContextProperty(QStringLiteral("appHeight"), EnvConfig::resolution().height());
     ctx->setContextProperty(QStringLiteral("scaleFactor"), EnvConfig::scaleFactor());
+}
+
+void Application::fadeInOverlay()
+{
+#ifdef Q_OS_LINUX
+    // Guard: only run if imx overlay alpha interface exists
+    if (!QFile::exists(QStringLiteral("/sys/class/graphics/fb1/overlay_alpha")))
+        return;
+
+    qDebug() << "Starting boot animation fade-in...";
+    auto *proc = new QProcess(this);
+    proc->setProgram(QStringLiteral("/usr/bin/imx-overlay-alpha"));
+    proc->setArguments({QStringLiteral("fade"), QStringLiteral("0"),
+                        QStringLiteral("255"), QStringLiteral("1000")});
+
+    connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, [proc](int exitCode, QProcess::ExitStatus) {
+        proc->deleteLater();
+        if (exitCode == 0) {
+            QProcess::startDetached(QStringLiteral("systemctl"),
+                                     {QStringLiteral("stop"), QStringLiteral("boot-animation.service")});
+            qDebug() << "Boot animation stopped";
+        }
+    });
+
+    proc->start();
+#endif
 }
 
 void Application::setupSignalHandlers()

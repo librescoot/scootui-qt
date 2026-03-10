@@ -8,11 +8,25 @@ Row {
     // Battery 0
     readonly property int charge0: typeof battery0Store !== "undefined" ? battery0Store.charge : 0
     readonly property bool present0: typeof battery0Store !== "undefined" ? battery0Store.present : false
+    readonly property int soh0: typeof battery0Store !== "undefined" ? battery0Store.stateOfHealth : 100
 
     // Battery 1 (dual battery mode)
     readonly property int charge1: typeof battery1Store !== "undefined" ? battery1Store.charge : 0
     readonly property bool present1: typeof battery1Store !== "undefined" ? battery1Store.present : false
+    readonly property int soh1: typeof battery1Store !== "undefined" ? battery1Store.stateOfHealth : 100
     readonly property bool showDual: present1
+
+    // Battery range display mode
+    readonly property bool showAsRange: typeof settingsStore !== "undefined"
+                                         && settingsStore.batteryDisplayMode === "range"
+
+    // Range calculation: 45 km * (soh/100) * (charge/100)
+    function rangeText(charge, soh) {
+        var rangeKm = 45.0 * (soh / 100.0) * (charge / 100.0)
+        if (rangeKm >= 10)
+            return Math.floor(rangeKm) + " km"
+        return rangeKm.toFixed(1) + " km"
+    }
 
     // Seatbox
     // SeatboxLock::Open = 0, SeatboxLock::Closed = 1
@@ -50,11 +64,11 @@ Row {
         }
     }
 
-    // Battery 0 charge text
+    // Battery 0 charge/range text
     Text {
         anchors.verticalCenter: parent.verticalCenter
-        text: present0 ? charge0 + "%" : ""
-        font.pixelSize: 16
+        text: present0 ? (showAsRange ? rangeText(charge0, soh0) : charge0 + "%") : ""
+        font.pixelSize: showAsRange ? 14 : 16
         font.weight: Font.DemiBold
         font.letterSpacing: -1.1
         color: {
@@ -96,12 +110,12 @@ Row {
         }
     }
 
-    // Battery 1 charge text
+    // Battery 1 charge/range text
     Text {
         anchors.verticalCenter: parent.verticalCenter
         visible: batteryDisplay.showDual
-        text: present1 ? charge1 + "%" : ""
-        font.pixelSize: 16
+        text: present1 ? (showAsRange ? rangeText(charge1, soh1) : charge1 + "%") : ""
+        font.pixelSize: showAsRange ? 14 : 16
         font.weight: Font.DemiBold
         font.letterSpacing: -1.1
         color: {

@@ -13,6 +13,8 @@ class TripStore;
 class Translations;
 class SettingsService;
 class MdbRepository;
+class SavedLocationsStore;
+class ScreenStore;
 
 class MenuStore : public QObject
 {
@@ -30,6 +32,9 @@ public:
                        ThemeStore *theme, TripStore *trip,
                        Translations *translations, SettingsService *settingsService,
                        MdbRepository *repo, QObject *parent = nullptr);
+
+    void setSavedLocationsStore(SavedLocationsStore *store);
+    void setScreenStore(ScreenStore *store);
     ~MenuStore() override;
 
     bool isOpen() const { return m_isOpen; }
@@ -64,6 +69,8 @@ private:
     Translations *m_translations;
     SettingsService *m_settingsService;
     MdbRepository *m_repo;
+    SavedLocationsStore *m_savedLocations = nullptr;
+    ScreenStore *m_screenStore = nullptr;
 
     std::unique_ptr<MenuNode> m_rootNode;
     bool m_isOpen = false;

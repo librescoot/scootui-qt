@@ -2,4 +2,138 @@ import QtQuick
 
 Rectangle {
     color: "black"
+
+    readonly property string dbcStatus: typeof otaStore !== "undefined" ? otaStore.dbcStatus : "idle"
+    readonly property int downloadProgress: typeof otaStore !== "undefined" ? otaStore.dbcDownloadProgress : 0
+    readonly property int installProgress: typeof otaStore !== "undefined" ? otaStore.dbcInstallProgress : 0
+    readonly property string updateVersion: typeof otaStore !== "undefined" ? otaStore.dbcUpdateVersion : ""
+    readonly property string dbcError: typeof otaStore !== "undefined" ? otaStore.dbcError : ""
+    readonly property string dbcErrorMessage: typeof otaStore !== "undefined" ? otaStore.dbcErrorMessage : ""
+
+    readonly property int currentProgress: {
+        if (dbcStatus === "downloading") return downloadProgress
+        if (dbcStatus === "installing") return installProgress
+        return 0
+    }
+
+    Column {
+        anchors.centerIn: parent
+        spacing: 16
+
+        // OTA icon
+        Item {
+            width: 64; height: 64
+            anchors.horizontalCenter: parent.horizontalCenter
+
+            Image {
+                id: otaMainIcon
+                anchors.fill: parent
+                sourceSize: Qt.size(64, 64)
+                source: {
+                    switch (dbcStatus) {
+                        case "downloading":
+                            return "qrc:/ScootUI/assets/icons/librescoot-ota-status-downloading.svg"
+                        case "installing":
+                            return "qrc:/ScootUI/assets/icons/librescoot-ota-status-installing.svg"
+                        case "rebooting":
+                        case "reboot-failed":
+                            return "qrc:/ScootUI/assets/icons/librescoot-ota-status-waiting-for-reboot.svg"
+                        case "error":
+                        case "error-failed":
+                            return "qrc:/ScootUI/assets/icons/librescoot-ota-status-downloading.svg"
+                        default:
+                            return "qrc:/ScootUI/assets/icons/librescoot-ota-status-downloading.svg"
+                    }
+                }
+            }
+
+            Image {
+                anchors.fill: parent
+                sourceSize: Qt.size(64, 64)
+                source: "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
+                visible: dbcStatus === "error" || dbcStatus === "error-failed"
+            }
+        }
+
+        // Status text
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            font.pixelSize: 16
+            font.bold: true
+            color: "white"
+            text: {
+                var tr = typeof translations !== "undefined" ? translations : null
+                switch (dbcStatus) {
+                    case "downloading": return tr ? tr.otaDownloadingUpdates : "Downloading updates..."
+                    case "installing": return tr ? tr.otaInstallingUpdates : "Installing updates..."
+                    case "rebooting": return tr ? tr.otaStatusWaitingForReboot : "Waiting for reboot..."
+                    case "reboot-failed": return tr ? tr.otaRebootFailed : "Reboot failed"
+                    case "error":
+                    case "error-failed": return tr ? tr.otaUpdateError : "Update failed"
+                    default: return tr ? tr.otaInitializing : "Updating..."
+                }
+            }
+        }
+
+        // Progress bar
+        Item {
+            width: 200; height: 4
+            anchors.horizontalCenter: parent.horizontalCenter
+            visible: dbcStatus === "downloading" || dbcStatus === "installing"
+
+            Rectangle {
+                anchors.fill: parent
+                color: "#333333"
+                radius: 2
+            }
+
+            Rectangle {
+                width: parent.width * (currentProgress / 100)
+                height: parent.height
+                color: "#2196F3"
+                radius: 2
+
+                Behavior on width {
+                    NumberAnimation { duration: 300; easing.type: Easing.OutQuad }
+                }
+            }
+
+            // Progress percentage text
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: parent.bottom
+                anchors.topMargin: 8
+                font.pixelSize: 14
+                color: "white"
+                text: currentProgress + "%"
+            }
+        }
+
+        // Spacer for progress text below bar
+        Item {
+            width: 1; height: 16
+            visible: dbcStatus === "downloading" || dbcStatus === "installing"
+        }
+
+        // Version text
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            font.pixelSize: 12
+            color: "#aaaaaa"
+            visible: updateVersion !== ""
+            text: "Version: " + updateVersion
+        }
+
+        // Error message
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            font.pixelSize: 12
+            color: "#ff5555"
+            visible: (dbcStatus === "error" || dbcStatus === "error-failed") && dbcErrorMessage !== ""
+            text: dbcErrorMessage
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            width: 240
+        }
+    }
 }

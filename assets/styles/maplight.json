@@ -1,0 +1,447 @@
+{
+	"id": "light",
+	"version": 8,
+	"name": "simplified-light",
+	"metadata": {
+		"license": "https://creativecommons.org/publicdomain/zero/1.0/"
+	},
+	"glyphs": "https://tiles.versatiles.org/assets/glyphs/{fontstack}/{range}.pbf",
+	"sprite": [
+		{
+			"id": "basics",
+			"url": "https://tiles.versatiles.org/assets/sprites/basics/sprites"
+		}
+	],
+	"sources": {
+		"versatiles-shortbread": {
+			"attribution": "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors",
+			"tiles": [
+				"https://tiles.versatiles.org/tiles/osm/{z}/{x}/{y}"
+			],
+			"type": "vector",
+			"scheme": "xyz",
+			"bounds": [
+				-180,
+				-85.0511287798066,
+				180,
+				85.0511287798066
+			],
+			"minzoom": 0,
+			"maxzoom": 18
+		}
+	},
+	"layers": [
+		{
+			"id": "background",
+			"type": "background",
+			"paint": {
+				"background-color": "#f0e9e6"
+			}
+		},
+		{
+			"id": "water",
+			"type": "fill",
+			"source": "versatiles-shortbread",
+			"source-layer": "water_polygons",
+			"paint": {
+				"fill-color": "hsl(205,50%,75%)"
+			}
+		},
+		{
+			"id": "water_lines_ditch",
+			"type": "line",
+			"source": "versatiles-shortbread",
+			"source-layer": "water_lines",
+			"filter": ["==", "kind", "ditch"],
+			"paint": {
+				"line-color": "hsl(205,50%,75%)",
+				"line-width": {
+					"stops": [
+						[14, 0.5],
+						[16, 1]
+					]
+				}
+			},
+			"minzoom": 14
+		},
+		{
+			"id": "water_lines_stream",
+			"type": "line",
+			"source": "versatiles-shortbread",
+			"source-layer": "water_lines",
+			"filter": ["==", "kind", "stream"],
+			"paint": {
+				"line-color": "hsl(205,50%,75%)",
+				"line-width": {
+					"stops": [
+						[12, 0.5],
+						[14, 1],
+						[16, 2]
+					]
+				}
+			},
+			"minzoom": 12
+		},
+		{
+			"id": "water_lines_canal",
+			"type": "line",
+			"source": "versatiles-shortbread",
+			"source-layer": "water_lines",
+			"filter": ["==", "kind", "canal"],
+			"paint": {
+				"line-color": "hsl(205,50%,75%)",
+				"line-width": {
+					"stops": [
+						[10, 1],
+						[12, 2],
+						[14, 3],
+						[16, 4]
+					]
+				}
+			},
+			"minzoom": 10
+		},
+		{
+			"id": "water_lines_river",
+			"type": "line",
+			"source": "versatiles-shortbread",
+			"source-layer": "water_lines",
+			"filter": ["==", "kind", "river"],
+			"paint": {
+				"line-color": "hsl(205,50%,75%)",
+				"line-width": {
+					"stops": [
+						[8, 1],
+						[10, 2],
+						[12, 3],
+						[14, 5],
+						[16, 8]
+					]
+				}
+			},
+			"minzoom": 8
+		},
+		{
+			"id": "land",
+			"type": "fill",
+			"source": "versatiles-shortbread",
+			"source-layer": "land",
+			"paint": {
+				"fill-color": "#e0d7c1"
+			}
+		},
+		{
+			"id": "landuse-residential",
+			"type": "fill",
+			"source": "versatiles-shortbread",
+			"source-layer": "land",
+			"filter": ["in", "kind", "residential", "garages"],
+			"paint": {
+				"fill-color": "hsl(0,0%,88%)",
+				"fill-opacity": 0.5
+			},
+			"minzoom": 11
+		},
+		{
+			"id": "landuse-commercial",
+			"type": "fill",
+			"source": "versatiles-shortbread",
+			"source-layer": "land",
+			"filter": ["in", "kind", "commercial", "retail"],
+			"paint": {
+				"fill-color": "hsl(330,25%,92%)",
+				"fill-opacity": 0.5
+			},
+			"minzoom": 11
+		},
+		{
+			"id": "landuse-industrial",
+			"type": "fill",
+			"source": "versatiles-shortbread",
+			"source-layer": "land",
+			"filter": ["in", "kind", "industrial", "quarry", "railway"],
+			"paint": {
+				"fill-color": "hsl(48,30%,88%)",
+				"fill-opacity": 0.5
+			},
+			"minzoom": 11
+		},
+		{
+			"id": "landuse-agriculture",
+			"type": "fill",
+			"source": "versatiles-shortbread",
+			"source-layer": "land",
+			"filter": ["in", "kind", "farmland", "farmyard", "orchard", "vineyard", "greenhouse_horticulture", "plant_nursery"],
+			"paint": {
+				"fill-color": "hsl(40,30%,90%)"
+			},
+			"minzoom": 10
+		},
+		{
+			"id": "landuse-cemetery",
+			"type": "fill",
+			"source": "versatiles-shortbread",
+			"source-layer": "land",
+			"filter": ["in", "kind", "cemetery", "grave_yard"],
+			"paint": {
+				"fill-color": "hsl(100,20%,87%)"
+			},
+			"minzoom": 13
+		},
+		{
+			"id": "landuse-beach",
+			"type": "fill",
+			"source": "versatiles-shortbread",
+			"source-layer": "land",
+			"filter": ["in", "kind", "beach", "sand"],
+			"paint": {
+				"fill-color": "hsl(45,40%,92%)"
+			},
+			"minzoom": 10
+		},
+		{
+			"id": "landuse-rock",
+			"type": "fill",
+			"source": "versatiles-shortbread",
+			"source-layer": "land",
+			"filter": ["in", "kind", "bare_rock", "scree", "shingle"],
+			"paint": {
+				"fill-color": "hsl(0,0%,85%)"
+			},
+			"minzoom": 12
+		},
+		{
+			"id": "landuse-wetland",
+			"type": "fill",
+			"source": "versatiles-shortbread",
+			"source-layer": "land",
+			"filter": ["in", "kind", "bog", "marsh", "swamp"],
+			"paint": {
+				"fill-color": "hsl(190,30%,85%)"
+			},
+			"minzoom": 10
+		},
+		{
+			"id": "landuse-forest",
+			"type": "fill",
+			"source": "versatiles-shortbread",
+			"source-layer": "land",
+			"filter": ["==", "kind", "forest"],
+			"paint": {
+				"fill-color": "hsl(110,40%,70%)"
+			},
+			"minzoom": 7
+		},
+		{
+			"id": "landuse-scrub",
+			"type": "fill",
+			"source": "versatiles-shortbread",
+			"source-layer": "land",
+			"filter": ["in", "kind", "scrub", "heath"],
+			"paint": {
+				"fill-color": "hsl(90,30%,78%)"
+			},
+			"minzoom": 11
+		},
+		{
+			"id": "landuse-grass",
+			"type": "fill",
+			"source": "versatiles-shortbread",
+			"source-layer": "land",
+			"filter": ["in", "kind", "grass", "grassland", "meadow"],
+			"paint": {
+				"fill-color": "hsl(95,35%,82%)"
+			},
+			"minzoom": 11
+		},
+		{
+			"id": "landuse-park",
+			"type": "fill",
+			"source": "versatiles-shortbread",
+			"source-layer": "land",
+			"filter": ["in", "kind", "park", "village_green", "recreation_ground", "playground", "golf_course"],
+			"paint": {
+				"fill-color": "hsl(100,35%,80%)"
+			},
+			"minzoom": 11
+		},
+		{
+			"id": "landuse-garden",
+			"type": "fill",
+			"source": "versatiles-shortbread",
+			"source-layer": "land",
+			"filter": ["in", "kind", "allotments", "garden"],
+			"paint": {
+				"fill-color": "hsl(95,30%,78%)"
+			},
+			"minzoom": 12
+		},
+		{
+			"id": "railways",
+			"type": "line",
+			"source": "versatiles-shortbread",
+			"source-layer": "streets",
+			"filter": ["==", "kind", "rail"],
+			"paint": {
+				"line-color": "#999999",
+				"line-width": 1,
+				"line-dasharray": [3, 3]
+			},
+			"minzoom": 13
+		},
+		{
+			"id": "local-roads-casing",
+			"type": "line",
+			"source": "versatiles-shortbread",
+			"source-layer": "streets",
+			"filter": ["in", "kind", "tertiary", "unclassified", "residential", "living_street"],
+			"paint": {
+				"line-color": "#d0d0d0",
+				"line-width": {
+					"stops": [
+						[10, 1.5],
+						[12, 3],
+						[14, 5],
+						[16, 8],
+						[18, 12]
+					]
+				}
+			},
+			"minzoom": 10
+		},
+		{
+			"id": "local-roads",
+			"type": "line",
+			"source": "versatiles-shortbread",
+			"source-layer": "streets",
+			"filter": ["in", "kind", "tertiary", "unclassified", "residential", "living_street"],
+			"paint": {
+				"line-color": "#ffffff",
+				"line-width": {
+					"stops": [
+						[10, 0.5],
+						[12, 1.5],
+						[14, 3],
+						[16, 5.5],
+						[18, 9]
+					]
+				}
+			},
+			"minzoom": 10
+		},
+		{
+			"id": "main-roads-casing",
+			"type": "line",
+			"source": "versatiles-shortbread",
+			"source-layer": "streets",
+			"filter": ["in", "kind", "primary", "secondary"],
+			"paint": {
+				"line-color": "#bbb",
+				"line-width": {
+					"stops": [
+						[8, 2],
+						[10, 3],
+						[12, 5],
+						[14, 8],
+						[16, 13],
+						[18, 20]
+					]
+				}
+			},
+			"minzoom": 8
+		},
+		{
+			"id": "main-roads",
+			"type": "line",
+			"source": "versatiles-shortbread",
+			"source-layer": "streets",
+			"filter": ["in", "kind", "primary", "secondary"],
+			"paint": {
+				"line-color": "#fafafa",
+				"line-width": {
+					"stops": [
+						[8, 1],
+						[10, 1.5],
+						[12, 3],
+						[14, 5.5],
+						[16, 9.5],
+						[18, 16]
+					]
+				}
+			},
+			"minzoom": 8
+		},
+		{
+			"id": "major-roads-casing",
+			"type": "line",
+			"source": "versatiles-shortbread",
+			"source-layer": "streets",
+			"filter": ["in", "kind", "motorway", "trunk"],
+			"paint": {
+				"line-color": "#aaa",
+				"line-width": {
+					"stops": [
+						[6, 2.5],
+						[8, 3.5],
+						[10, 4.5],
+						[12, 6],
+						[14, 10],
+						[16, 16],
+						[18, 24]
+					]
+				}
+			},
+			"minzoom": 6
+		},
+		{
+			"id": "major-roads",
+			"type": "line",
+			"source": "versatiles-shortbread",
+			"source-layer": "streets",
+			"filter": ["in", "kind", "motorway", "trunk"],
+			"paint": {
+				"line-color": "#f5f5f5",
+				"line-width": {
+					"stops": [
+						[6, 1.5],
+						[8, 2],
+						[10, 3],
+						[12, 4],
+						[14, 7],
+						[16, 12],
+						[18, 19]
+					]
+				}
+			},
+			"minzoom": 6
+		},
+		{
+			"id": "labels-roads",
+			"type": "symbol",
+			"source": "versatiles-shortbread",
+			"source-layer": "street_labels",
+			"filter": [
+				"in",
+				"kind",
+				"motorway",
+				"trunk",
+				"primary",
+				"secondary"
+			],
+			"layout": {
+				"text-field": "{name}",
+				"text-font": [
+					"noto_sans_regular"
+				],
+				"symbol-placement": "line",
+				"text-size": 12
+			},
+			"paint": {
+				"text-color": "#333344",
+				"text-halo-color": "rgba(255,255,255,0.8)",
+				"text-halo-width": 1.5
+			},
+			"minzoom": 12
+		}
+	]
+}

@@ -4,6 +4,8 @@
 #include "VehicleStore.h"
 #include "ThemeStore.h"
 #include "TripStore.h"
+#include "ScreenStore.h"
+#include "SavedLocationsStore.h"
 #include "l10n/Translations.h"
 #include "services/SettingsService.h"
 #include "repositories/MdbRepository.h"
@@ -49,6 +51,21 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
 }
 
 MenuStore::~MenuStore() = default;
+
+void MenuStore::setSavedLocationsStore(SavedLocationsStore *store)
+{
+    m_savedLocations = store;
+    if (m_savedLocations) {
+        connect(m_savedLocations, &SavedLocationsStore::locationsChanged,
+                this, &MenuStore::rebuildMenuTree);
+    }
+    rebuildMenuTree();
+}
+
+void MenuStore::setScreenStore(ScreenStore *store)
+{
+    m_screenStore = store;
+}
 
 void MenuStore::rebuildMenuTree()
 {
@@ -231,6 +248,47 @@ void MenuStore::rebuildMenuTree()
         close();
     }));
 
+    // === Saved Locations submenu (B7) ===
+    if (m_savedLocations) {
+        auto *savedLocsNode = MenuNode::submenu(QStringLiteral("saved_locations"),
+                                                 tr->menuSavedLocations());
+        m_rootNode->addChild(savedLocsNode);
+
+        // "Save Current Location" action
+        savedLocsNode->addChild(MenuNode::action(QStringLiteral("save_current_loc"),
+            tr->menuSaveLocation(), [this]() {
+                m_savedLocations->saveCurrentLocation();
+                close();
+            }));
+
+        // Dynamic entries for each saved location
+        auto locs = m_savedLocations->locations();
+        for (const auto &locVar : locs) {
+            auto loc = locVar.toMap();
+            int locId = loc[QStringLiteral("id")].toInt();
+            QString label = loc[QStringLiteral("label")].toString();
+            if (label.isEmpty())
+                label = QStringLiteral("%1, %2").arg(
+                    loc[QStringLiteral("latitude")].toDouble(), 0, 'f', 5).arg(
+                    loc[QStringLiteral("longitude")].toDouble(), 0, 'f', 5);
+
+            savedLocsNode->addChild(MenuNode::action(
+                QStringLiteral("saved_loc_%1").arg(locId), label,
+                [this, locId]() {
+                    m_savedLocations->navigateToLocation(locId);
+                    close();
+                }));
+        }
+    }
+
+    // === Navigation Setup entry (B6) ===
+    m_rootNode->addChild(MenuNode::action(QStringLiteral("nav_setup"), tr->menuNavSetup(), [this]() {
+        close();
+        if (m_screenStore) {
+            m_screenStore->setScreen(9); // NavigationSetup screen
+        }
+    }));
+
     // === Top-level actions ===
     m_rootNode->addChild(MenuNode::action(QStringLiteral("reset_trip"), tr->menuResetTrip(), [this, trip]() {
         trip->reset();
@@ -239,7 +297,9 @@ void MenuStore::rebuildMenuTree()
 
     m_rootNode->addChild(MenuNode::action(QStringLiteral("about"), tr->menuAbout(), [this]() {
         close();
-        // TODO: show about screen via ScreenStore
+        if (m_screenStore) {
+            m_screenStore->setScreen(4); // About screen
+        }
     }));
 
     m_rootNode->addChild(MenuNode::action(QStringLiteral("exit"), tr->menuExit(), [this]() {

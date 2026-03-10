@@ -41,8 +41,24 @@ int main(int argc, char *argv[])
         &app, []() { QCoreApplication::exit(1); },
         Qt::QueuedConnection);
 
+    // Boot animation: fade in overlay after QML loads
+    QObject::connect(
+        &engine, &QQmlApplicationEngine::objectCreated,
+        &application, [&application](QObject *obj, const QUrl &) {
+            if (obj) {
+                application.fadeInOverlay();
+            }
+        },
+        Qt::QueuedConnection);
+
     const QUrl url(QStringLiteral("qrc:/ScootUI/qml/Main.qml"));
     engine.load(url);
+
+    // In simulator mode, also load the simulator control panel window
+    if (application.isSimulatorMode()) {
+        const QUrl simUrl(QStringLiteral("qrc:/ScootUI/qml/simulator/SimulatorWindow.qml"));
+        engine.load(simUrl);
+    }
 
     return app.exec();
 }
