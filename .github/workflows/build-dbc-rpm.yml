@@ -1,0 +1,218 @@
+name: Build DBC ScootUI-Qt RPM
+
+permissions:
+  contents: write
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  generate-timestamp:
+    name: Generate Build Timestamp
+    runs-on: self-hosted
+    outputs:
+      timestamp: ${{ steps.set-timestamp.outputs.timestamp }}
+    steps:
+      - name: Set timestamp
+        id: set-timestamp
+        run: |
+          # Generate timestamp in format YYYYMMDDThhmmss
+          TIMESTAMP=$(date -u '+%Y%m%dT%H%M%S')
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+          echo "Generated timestamp: $TIMESTAMP"
+
+  build-dbc-rpm:
+    name: Build ScootUI-Qt RPM for DBC
+    needs: [generate-timestamp]
+    runs-on: dbc
+    steps:
+      - name: Checkout librescoot repository
+        uses: actions/checkout@v4
+        with:
+          repository: librescoot/librescoot
+          fetch-depth: 0
+          clean: false
+          path: librescoot
+
+      - name: Checkout scootui-qt repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          clean: false
+          path: scootui-qt
+
+      - name: Setup build environment
+        working-directory: librescoot
+        run: |
+          mkdir -p yocto
+          sudo chown 999:999 yocto
+
+      - name: Detect scootui-qt branch and commit
+        id: scootui-qt-ref
+        working-directory: scootui-qt
+        run: |
+          # Get the current commit SHA (full)
+          SCOOTUI_QT_COMMIT=$(git rev-parse HEAD)
+          echo "commit=$SCOOTUI_QT_COMMIT" >> $GITHUB_OUTPUT
+          echo "Detected scootui-qt commit: $SCOOTUI_QT_COMMIT"
+
+          # Get the branch name from GitHub context (handles detached HEAD in Actions)
+          SCOOTUI_QT_BRANCH="${{ github.head_ref || github.ref_name }}"
+          echo "branch=$SCOOTUI_QT_BRANCH" >> $GITHUB_OUTPUT
+          echo "Detected scootui-qt branch: $SCOOTUI_QT_BRANCH"
+
+      - name: Patch entrypoint.sh to apply scootui-qt overrides after local.conf is written
+        working-directory: librescoot
+        run: |
+          # entrypoint.sh's clone_layer resets meta-librescoot (wiping any recipe file patches),
+          # and overwrites local.conf AFTER its SRCREV-append loop (so those appends are lost too).
+          # Fix: inject an override block just before "Starting build process..." so our
+          # SCOOTUI_QT_SRCREV/BRANCH/VERSION_UPDATE appends happen after the local.conf overwrite.
+          # build.sh detects a dirty git tree and rebuilds the Docker image (fast: only the
+          # COPY layer for entrypoint.sh is invalidated; apt layers are cached).
+          python3 << 'PYEOF'
+          with open('docker/entrypoint.sh', 'r') as f:
+              content = f.read()
+          lines = [
+              '# Apply scootui-qt overrides after local.conf is overwritten by target config.',
+              '# SCOOTUI_QT_BRANCH overrides SCOOTUI_QT_BRANCH ??= "main" in the recipe.',
+              '# SCOOTUI_QT_SRCREV overrides SCOOTUI_QT_SRCREV ??= "${AUTOREV}" in the recipe.',
+              '# SRCREV = "${SCOOTUI_QT_SRCREV}" in the recipe then pins the fetched commit.',
+              'if [ -n "$SCOOTUI_QT_SRCREV" ]; then',
+              '    echo "SCOOTUI_QT_SRCREV = \\"${SCOOTUI_QT_SRCREV}\\"" >> /yocto/build/conf/local.conf',
+              'fi',
+              'if [ -n "$SCOOTUI_QT_BRANCH" ]; then',
+              '    echo "SCOOTUI_QT_BRANCH = \\"${SCOOTUI_QT_BRANCH}\\"" >> /yocto/build/conf/local.conf',
+              'fi',
+              'if [ -n "$SCOOTUI_QT_VERSION_UPDATE" ]; then',
+              '    echo "PV:pn-scootui-qt = \\"${SCOOTUI_QT_VERSION_UPDATE}\\"" >> /yocto/build/conf/local.conf',
+              'fi',
+              '',
+          ]
+          inject = '\n'.join(lines) + '\n'
+          marker = 'echo "Starting build process..."'
+          assert marker in content, 'Marker not found in entrypoint.sh'
+          content = content.replace(marker, inject + marker, 1)
+          with open('docker/entrypoint.sh', 'w') as f:
+              f.write(content)
+          print('Patched docker/entrypoint.sh successfully')
+          PYEOF
+          echo "=== DEBUG: injected block ==="
+          grep -A15 "Apply scootui-qt overrides" docker/entrypoint.sh || echo "NOT FOUND"
+
+      - name: Patch build.sh to pass scootui-qt env vars to Docker
+        working-directory: librescoot
+        run: |
+          # Modify build scripts for non-interactive mode
+          sed -i 's/docker run -it/docker run -i/' build.sh
+          sed -i 's/docker run -it/docker run -i/' interactive.sh
+          sed -i 's/docker run -i/docker run -i -e EULA=1/' build.sh
+
+          # Add SCOOTUI_QT_* env var passthrough to Docker run command in build.sh
+          # Insert after the BUILD_CHANNEL line (unique anchor) to avoid duplicate-line issues
+          sed -i '/BUILD_CHANNEL/a\    -e SCOOTUI_QT_VERSION_UPDATE="${SCOOTUI_QT_VERSION_UPDATE}" \\\n    -e SCOOTUI_QT_SRCREV="${SCOOTUI_QT_SRCREV}" \\\n    -e SCOOTUI_QT_BRANCH="${SCOOTUI_QT_BRANCH}" \\' build.sh
+
+      - name: Build scootui-qt package for DBC
+        working-directory: librescoot
+        run: |
+          # Clean up any existing container from previous runs
+          sudo docker rm -f yocto-build 2>/dev/null || true
+
+          # build.sh already passes SCOOTUI_SRCREV and SCOOTUI_BRANCH as -e flags to Docker.
+          # Our patched entrypoint.sh will write the _QT variants to local.conf after the target overwrite.
+          # Our patched build.sh will pass them through to Docker.
+          BUILD_CHANNEL="nightly" \
+          LIBRESCOOT_VERSION="${{ needs.generate-timestamp.outputs.timestamp }}" \
+          SCOOTUI_QT_VERSION_UPDATE="1.0.0+git${{ needs.generate-timestamp.outputs.timestamp }}" \
+          SCOOTUI_QT_SRCREV="${{ steps.scootui-qt-ref.outputs.commit }}" \
+          SCOOTUI_QT_BRANCH="${{ steps.scootui-qt-ref.outputs.branch }}" \
+          PACKAGE="scootui-qt" \
+          ./build.sh dbc
+
+      - name: Sanitize branch name for artifact
+        id: sanitize
+        run: |
+          BRANCH_NAME="${{ github.ref_name }}"
+          SAFE_BRANCH_NAME="${BRANCH_NAME//\//-}"
+          echo "branch=$SAFE_BRANCH_NAME" >> $GITHUB_OUTPUT
+
+      - name: Extract ScootUI-Qt RPM
+        run: |
+          rm -rf artifacts
+          mkdir -p artifacts/dbc-rpm
+
+          # Find and copy scootui-qt RPM from the DBC build (exclude dbg and dev variants)
+          SCOOTUI_QT_RPM=$(find librescoot/yocto/build/tmp/deploy/rpm -name "*scootui-qt*.rpm" | grep -v -E -- "-(dbg|dev)-" | head -1)
+          if [ -n "$SCOOTUI_QT_RPM" ]; then
+            cp "$SCOOTUI_QT_RPM" artifacts/dbc-rpm/scootui-qt-dbc-${{ steps.sanitize.outputs.branch }}-${{ needs.generate-timestamp.outputs.timestamp }}.rpm
+            echo "Found ScootUI-Qt RPM: $SCOOTUI_QT_RPM"
+            ls -la artifacts/dbc-rpm/
+          else
+            echo "ERROR: No ScootUI-Qt RPM found!"
+            find librescoot/yocto/build -name "*scootui*.rpm" | head -10
+            exit 1
+          fi
+
+      - name: Upload ScootUI-Qt RPM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scootui-qt-dbc-rpm-${{ steps.sanitize.outputs.branch }}-${{ needs.generate-timestamp.outputs.timestamp }}
+          path: artifacts/dbc-rpm/*.rpm
+          retention-days: 30
+          compression-level: 0
+
+  create-release:
+    name: Create Release
+    needs: [build-dbc-rpm, generate-timestamp]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download RPM artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          CHANGELOG="Automated RPM build."
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Set date tag
+        id: date
+        run: |
+          echo "value=${{ needs.generate-timestamp.outputs.timestamp }}" >> $GITHUB_OUTPUT
+
+      - name: Sanitize branch name for tag
+        id: sanitize-tag
+        run: |
+          BRANCH_NAME="${{ github.ref_name }}"
+          SAFE_BRANCH_NAME="${BRANCH_NAME//\//-}"
+          echo "branch=$SAFE_BRANCH_NAME" >> $GITHUB_OUTPUT
+
+      - name: Create Github release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: ScootUI-Qt DBC RPM Build ${{ github.ref_name }} ${{ steps.date.outputs.value }}
+          tag_name: dbc-rpm-${{ steps.sanitize-tag.outputs.branch }}-${{ steps.date.outputs.value }}
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          files: |
+            artifacts/**/*.rpm
+          body: |
+            📦 ScootUI-Qt DBC RPM Build (version ${{ steps.date.outputs.value }})
+
+            This build contains the ScootUI-Qt RPM package specifically built for the Dashboard Controller (DBC).
+
+            **Branch:** ${{ github.ref_name }}
+            **Commit:** ${{ github.sha }}
+
+            ## Changelog
+            ${{ steps.changelog.outputs.content }}
+
+            Build completed at: ${{ github.event.repository.updated_at }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
