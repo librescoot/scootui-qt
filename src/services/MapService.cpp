@@ -320,6 +320,19 @@ QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString
     root.remove(QStringLiteral("glyphs"));
     root.remove(QStringLiteral("sprite"));
 
+    // Remove symbol layers (require remote glyph PBFs)
+    QJsonArray layers = root.value(QStringLiteral("layers")).toArray();
+    QJsonArray filtered;
+    for (const QJsonValue &v : layers) {
+        QJsonObject layer = v.toObject();
+        if (layer.value(QStringLiteral("type")).toString() == QStringLiteral("symbol")) {
+            qDebug() << "MapService: stripping symbol layer" << layer.value(QStringLiteral("id")).toString();
+            continue;
+        }
+        filtered.append(v);
+    }
+    root[QStringLiteral("layers")] = filtered;
+
     // Write to /tmp
     QFile out(outPath);
     if (!out.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
