@@ -34,15 +34,24 @@ MapView {
         line.width: 6
         line.color: "white"
 
-        path: {
+        function updatePath() {
             var p = []
             if (typeof mapService !== "undefined") {
                 var coords = mapService.routeCoordinates
                 for (var i = 0; i < coords.length; i++) {
-                    p.push(QtPositioning.coordinate(coords[i].lat, coords[i].lng))
+                    p.push(QtPositioning.coordinate(coords[i].latitude, coords[i].longitude))
                 }
             }
-            return p
+            path = p
+        }
+
+        Component.onCompleted: updatePath()
+
+        Connections {
+            target: typeof mapService !== "undefined" ? mapService : null
+            function onRouteCoordinatesChanged() {
+                routeBorder.updatePath()
+            }
         }
     }
 

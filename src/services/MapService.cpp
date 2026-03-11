@@ -130,8 +130,8 @@ void MapService::setRouteWaypoints(const QVariantList &waypoints)
 
     for (const QVariant &v : waypoints) {
         const QVariantMap m = v.toMap();
-        double lat = m.value(QStringLiteral("lat")).toDouble();
-        double lng = m.value(QStringLiteral("lng")).toDouble();
+        double lat = m.value(QStringLiteral("latitude")).toDouble();
+        double lng = m.value(QStringLiteral("longitude")).toDouble();
         
         // Filter out duplicate points to prevent division by zero/NaN in bearing logic
         if (!m_routeShape.isEmpty()) {
@@ -141,7 +141,11 @@ void MapService::setRouteWaypoints(const QVariantList &waypoints)
         }
 
         m_routeShape.append({lat, lng});
-        coords.append(v);
+        
+        QVariantMap wp;
+        wp[QStringLiteral("latitude")] = lat;
+        wp[QStringLiteral("longitude")] = lng;
+        coords.append(wp);
     }
 
     m_routeCoordinates = coords;
@@ -160,8 +164,8 @@ void MapService::updateRouteFromNavigation()
         if (!std::isfinite(wp.latitude) || !std::isfinite(wp.longitude))
             continue;
         QVariantMap m;
-        m[QStringLiteral("lat")] = wp.latitude;
-        m[QStringLiteral("lng")] = wp.longitude;
+        m[QStringLiteral("latitude")] = wp.latitude;
+        m[QStringLiteral("longitude")] = wp.longitude;
         varList.append(m);
     }
     setRouteWaypoints(varList);
