@@ -98,17 +98,23 @@ Rectangle {
                 }
             }
 
-            // North indicator + Scale bar (bottom-right)
-            Column {
+            // North indicator (bottom-right, fixed position)
+            NorthIndicator {
+                anchors.right: parent.right
+                anchors.bottom: scaleBar.top
+                anchors.rightMargin: 8
+                anchors.bottomMargin: 4
+                visible: typeof mapService !== "undefined" && mapService.isReady
+            }
+
+            // Scale bar (bottom-right)
+            ScaleBar {
+                id: scaleBar
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 anchors.rightMargin: 8
                 anchors.bottomMargin: 8
-                spacing: 4
                 visible: typeof mapService !== "undefined" && mapService.isReady
-
-                NorthIndicator {}
-                ScaleBar {}
             }
 
             // Warning telltales (bottom left) - engine warning, hazards, parking brake

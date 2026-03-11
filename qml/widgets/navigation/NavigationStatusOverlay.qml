@@ -79,21 +79,45 @@ Item {
                 }
             }
 
-            // Arrived icon
-            Text {
+            // Arrived icon (checkmark)
+            Canvas {
+                width: 16; height: 16
                 visible: navStatusOverlay.navStatus === statusArrived
-                text: "\u2713"  // ✓
-                font.pixelSize: 16
-                font.bold: true
-                color: "white"
+                onPaint: {
+                    var ctx = getContext("2d")
+                    ctx.clearRect(0, 0, width, height)
+                    ctx.strokeStyle = "white"
+                    ctx.lineWidth = 2.5
+                    ctx.lineCap = "round"
+                    ctx.lineJoin = "round"
+                    ctx.beginPath()
+                    ctx.moveTo(2, 9)
+                    ctx.lineTo(6, 13)
+                    ctx.lineTo(14, 3)
+                    ctx.stroke()
+                }
             }
 
-            // Error icon
-            Text {
+            // Error icon (warning triangle)
+            Canvas {
+                width: 16; height: 16
                 visible: navStatusOverlay.navStatus === statusError
-                text: "\u26A0"  // ⚠
-                font.pixelSize: 16
-                color: "white"
+                onPaint: {
+                    var ctx = getContext("2d")
+                    ctx.clearRect(0, 0, width, height)
+                    // Triangle
+                    ctx.fillStyle = "white"
+                    ctx.beginPath()
+                    ctx.moveTo(8, 1)
+                    ctx.lineTo(15, 15)
+                    ctx.lineTo(1, 15)
+                    ctx.closePath()
+                    ctx.fill()
+                    // Exclamation mark
+                    ctx.fillStyle = "#C62828"
+                    ctx.fillRect(7, 5, 2, 5)
+                    ctx.fillRect(7, 12, 2, 2)
+                }
             }
 
             Text {
@@ -133,8 +157,26 @@ Item {
             anchors.centerIn: parent
             spacing: 6
 
+            Canvas {
+                width: 14; height: 14
+                onPaint: {
+                    var ctx = getContext("2d")
+                    ctx.clearRect(0, 0, width, height)
+                    ctx.fillStyle = "white"
+                    ctx.beginPath()
+                    ctx.moveTo(7, 1)
+                    ctx.lineTo(13, 13)
+                    ctx.lineTo(1, 13)
+                    ctx.closePath()
+                    ctx.fill()
+                    ctx.fillStyle = "#E65100"
+                    ctx.fillRect(6, 4, 2, 4.5)
+                    ctx.fillRect(6, 10, 2, 2)
+                }
+            }
+
             Text {
-                text: "\u26A0 Off route"
+                text: "Off route"
                 font.pixelSize: 13
                 font.bold: true
                 color: "white"
