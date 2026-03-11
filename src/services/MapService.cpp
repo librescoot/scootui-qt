@@ -259,19 +259,23 @@ void MapService::rebuildStyleUrl()
     bool isDark = m_theme->isDark();
     bool useLocal = QFile::exists(MbtilesPath);
 
+    qDebug() << "MapService: rebuildStyleUrl - dark:" << isDark
+             << "mbtiles exists:" << useLocal << "path:" << MbtilesPath;
+
     QString qrcPath = isDark
         ? QStringLiteral("qrc:/ScootUI/assets/styles/mapdark.json")
         : QStringLiteral("qrc:/ScootUI/assets/styles/maplight.json");
 
     QString url;
     if (useLocal) {
-        // Rewrite the embedded style to use local MBTiles source
         url = rewriteStyleForMbtiles(qrcPath, MbtilesPath);
     } else {
         url = qrcPath;
+        qDebug() << "MapService: using online style:" << url;
     }
 
     if (url != m_styleUrl) {
+        qDebug() << "MapService: style URL changed:" << url;
         m_styleUrl = url;
         emit styleUrlChanged();
     }
@@ -304,10 +308,11 @@ QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString
     QJsonObject sources = root.value(QStringLiteral("sources")).toObject();
     for (auto it = sources.begin(); it != sources.end(); ++it) {
         QJsonObject src = it.value().toObject();
-        // Remove "tiles" array and set "url" to mbtiles path
         src.remove(QStringLiteral("tiles"));
-        src[QStringLiteral("url")] = QStringLiteral("mbtiles://") + mbtilesPath;
+        QString mbtilesUrl = QStringLiteral("mbtiles://") + mbtilesPath;
+        src[QStringLiteral("url")] = mbtilesUrl;
         sources[it.key()] = src;
+        qDebug() << "MapService: source" << it.key() << "-> " << mbtilesUrl;
     }
     root[QStringLiteral("sources")] = sources;
 
@@ -321,9 +326,11 @@ QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString
         qWarning() << "MapService: cannot write" << outPath;
         return qrcPath;
     }
-    out.write(QJsonDocument(root).toJson(QJsonDocument::Compact));
+    QByteArray json = QJsonDocument(root).toJson(QJsonDocument::Compact);
+    out.write(json);
     out.close();
 
+    qDebug() << "MapService: wrote offline style to" << outPath << "(" << json.size() << "bytes)";
     return outPath;
 }
 
