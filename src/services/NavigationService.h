@@ -90,6 +90,7 @@ public:
 
     Q_INVOKABLE void setDestination(double lat, double lng, const QString &address = {});
     Q_INVOKABLE void clearNavigation();
+    Q_INVOKABLE void setRoute(const Route &route);
 
     // Route waypoints for MapService dead reckoning
     QList<LatLng> routeWaypoints() const { return m_route.waypoints; }

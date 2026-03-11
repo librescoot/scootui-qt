@@ -213,6 +213,11 @@ void NavigationService::clearNavigation()
     m_repo->publish(QStringLiteral("navigation"), QStringLiteral("cleared"));
 }
 
+void NavigationService::setRoute(const Route &route)
+{
+    onRouteCalculated(route);
+}
+
 // --- Slot handlers ---
 
 void NavigationService::onGpsChanged()

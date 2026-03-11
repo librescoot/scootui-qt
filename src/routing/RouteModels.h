@@ -95,6 +95,8 @@ struct Route {
     bool isValid() const { return !waypoints.isEmpty() && !instructions.isEmpty(); }
 };
 
+Q_DECLARE_METATYPE(Route)
+
 // Decode Google Polyline Algorithm (precision 6 for Valhalla)
 inline QList<LatLng> decodePolyline(const QString &encoded, int precision = 6) {
     QList<LatLng> points;

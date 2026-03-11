@@ -6,9 +6,12 @@
 
 #include "core/EnvConfig.h"
 #include "core/Application.h"
+#include "routing/RouteModels.h"
 
 int main(int argc, char *argv[])
 {
+    qRegisterMetaType<Route>("Route");
+
     QGuiApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("ScootUI"));
     app.setApplicationVersion(QStringLiteral("1.0.0"));

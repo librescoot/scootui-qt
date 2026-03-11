@@ -331,7 +331,7 @@ void SimulatorService::loadTestRoute(int index)
         setGpsState(QStringLiteral("fix-established"));
         
         // Push route to NavigationService
-        QMetaObject::invokeMethod(m_nav, "onRouteCalculated", Q_ARG(Route, route));
+        m_nav->setRoute(route);
     } else {
         qWarning() << "Simulator: Failed to parse route" << index;
     }
