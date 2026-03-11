@@ -98,6 +98,8 @@ struct Route {
 // Decode Google Polyline Algorithm (precision 6 for Valhalla)
 inline QList<LatLng> decodePolyline(const QString &encoded, int precision = 6) {
     QList<LatLng> points;
+    if (encoded.isEmpty()) return points;
+
     double factor = std::pow(10, precision);
     int index = 0;
     int lat = 0, lng = 0;
@@ -108,21 +110,23 @@ inline QList<LatLng> decodePolyline(const QString &encoded, int precision = 6) {
         int shift = 0, result = 0;
         int b;
         do {
+            if (index >= len) return points; // Truncated
             b = bytes[index++] - 63;
             result |= (b & 0x1F) << shift;
             shift += 5;
-        } while (b >= 0x20 && index < len);
+        } while (b >= 0x20);
         lat += (result & 1) ? ~(result >> 1) : (result >> 1);
 
         shift = 0; result = 0;
         do {
+            if (index >= len) return points; // Truncated
             b = bytes[index++] - 63;
             result |= (b & 0x1F) << shift;
             shift += 5;
-        } while (b >= 0x20 && index < len);
+        } while (b >= 0x20);
         lng += (result & 1) ? ~(result >> 1) : (result >> 1);
 
-        points.append({lat / factor, lng / factor});
+        points.append({static_cast<double>(lat) / factor, static_cast<double>(lng) / factor});
     }
     return points;
 }

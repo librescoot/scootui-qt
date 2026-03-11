@@ -247,6 +247,9 @@ void MapService::onRouteChanged()
         return;
     }
 
+    // Update waypoints before computing overview zoom
+    updateRouteFromNavigation();
+
     // Zoom out to show the full route, then animate back
     m_inRouteOverview = true;
     m_targetZoom = computeRouteOverviewZoom();

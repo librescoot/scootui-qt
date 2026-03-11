@@ -182,16 +182,6 @@ void Application::createStores(QQmlApplicationEngine &engine)
     connectFaultMonitor(battery0Store);
     connectFaultMonitor(battery1Store);
 
-    // Wire route waypoints from NavigationService to MapService
-    connect(m_navigationService, &NavigationService::routeChanged, this, [this]() {
-        if (m_navigationService->hasRoute()) {
-            // Route waypoints will be set via MapService's internal handling
-            m_mapService->updateRouteFromNavigation();
-        } else {
-            m_mapService->clearRoute();
-        }
-    });
-
     // M5: Wire translations to locale
     connect(localeStore, &LocaleStore::languageChanged, m_translations, [this, localeStore]() {
         m_translations->setLanguage(localeStore->language());

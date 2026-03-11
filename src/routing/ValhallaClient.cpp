@@ -31,6 +31,7 @@ void ValhallaClient::calculateRoute(const LatLng &from, const LatLng &to)
     request[QStringLiteral("costing")] = QStringLiteral("motor_scooter");
     request[QStringLiteral("units")] = QStringLiteral("kilometers");
     request[QStringLiteral("language")] = QStringLiteral("en-US");
+    request[QStringLiteral("shape_format")] = QStringLiteral("polyline6");
     QJsonObject dirOpts;
     dirOpts[QStringLiteral("units")] = QStringLiteral("kilometers");
     dirOpts[QStringLiteral("language")] = QStringLiteral("en-US");
