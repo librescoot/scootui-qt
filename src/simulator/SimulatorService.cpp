@@ -1,13 +1,20 @@
 #include "SimulatorService.h"
 #include "repositories/MdbRepository.h"
+#include "services/NavigationService.h"
+#include "routing/RouteHelpers.h"
 
 #include <QtMath>
 #include <QDateTime>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 #include <QDebug>
 
-SimulatorService::SimulatorService(MdbRepository *repo, QObject *parent)
+SimulatorService::SimulatorService(MdbRepository *repo, NavigationService *nav, QObject *parent)
     : QObject(parent)
     , m_repo(repo)
+    , m_nav(nav)
 {
     m_autoDriveTimer = new QTimer(this);
     m_autoDriveTimer->setInterval(100); // 10 Hz
@@ -300,6 +307,34 @@ void SimulatorService::loadPreset(const QString &name)
     }
 
     qDebug() << "Simulator: loaded preset" << name;
+}
+
+// --- Routes ---
+
+void SimulatorService::loadTestRoute(int index)
+{
+    QString path = QStringLiteral(":/ScootUI/assets/routes/route") + QString::number(index) + QStringLiteral(".json");
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << "Simulator: Failed to open route file" << path;
+        return;
+    }
+
+    QByteArray data = file.readAll();
+    Route route = RouteHelpers::parseRouteResponse(data);
+    if (route.isValid()) {
+        qDebug() << "Simulator: Loaded route" << index << "with" << route.waypoints.size() << "waypoints";
+        
+        // Move vehicle to route start
+        const auto &start = route.waypoints.first();
+        setGpsPosition(start.latitude, start.longitude);
+        setGpsState(QStringLiteral("fix-established"));
+        
+        // Push route to NavigationService
+        QMetaObject::invokeMethod(m_nav, "onRouteCalculated", Q_ARG(Route, route));
+    } else {
+        qWarning() << "Simulator: Failed to parse route" << index;
+    }
 }
 
 // --- Auto-drive ---

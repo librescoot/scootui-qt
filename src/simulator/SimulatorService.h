@@ -4,6 +4,7 @@
 #include <QTimer>
 
 class MdbRepository;
+class NavigationService;
 
 class SimulatorService : public QObject
 {
@@ -13,7 +14,7 @@ class SimulatorService : public QObject
     Q_PROPERTY(bool simulatorMode READ simulatorMode CONSTANT)
 
 public:
-    explicit SimulatorService(MdbRepository *repo, QObject *parent = nullptr);
+    explicit SimulatorService(MdbRepository *repo, NavigationService *nav, QObject *parent = nullptr);
 
     bool autoDriveActive() const { return m_autoDriveActive; }
     double autoDriveSpeed() const { return m_autoDriveSpeed; }
@@ -67,6 +68,9 @@ public:
     // Presets
     Q_INVOKABLE void loadPreset(const QString &name);
 
+    // Routes
+    Q_INVOKABLE void loadTestRoute(int index);
+
     // Auto-drive
     Q_INVOKABLE void startAutoDrive(double targetSpeed);
     Q_INVOKABLE void stopAutoDrive();
@@ -81,6 +85,7 @@ private:
     void setBatteryField(int slot, const QString &field, const QString &value);
 
     MdbRepository *m_repo;
+    NavigationService *m_nav;
     QTimer *m_autoDriveTimer = nullptr;
     bool m_autoDriveActive = false;
     double m_autoDriveSpeed = 0;

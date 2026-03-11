@@ -253,6 +253,8 @@ qt_add_qml_module(scootui
         assets/icons/speedlimit_unknown.svg
         assets/icons/speedlimit_blank.svg
         assets/icons/librescoot-logo.png
+        assets/routes/route1.json
+        assets/routes/route2.json
         assets/fonts/Roboto-Regular.ttf
         assets/fonts/Roboto-Bold.ttf
         assets/fonts/Roboto-Medium.ttf

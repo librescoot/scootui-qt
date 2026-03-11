@@ -265,7 +265,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Simulator service (created in sim mode, null otherwise)
     if (m_simulatorMode) {
-        m_simulatorService = new SimulatorService(repo, this);
+        m_simulatorService = new SimulatorService(repo, m_navigationService, this);
         ctx->setContextProperty(QStringLiteral("simulator"), m_simulatorService);
         ctx->setContextProperty(QStringLiteral("simulatorMode"), true);
     } else {

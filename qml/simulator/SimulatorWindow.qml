@@ -75,6 +75,35 @@ ApplicationWindow {
                 SimButton { text: "1 Battery"; onClicked: simulator.loadPreset("single-battery") }
             }
 
+            // ---- Routes ----
+            SectionHeader { text: "Routes (Polyline Test)" }
+            GridLayout {
+                Layout.fillWidth: true
+                columns: 2
+                columnSpacing: 4
+                rowSpacing: 4
+                SimButton {
+                    text: "Load Route 1"
+                    Layout.fillWidth: true
+                    onClicked: simulator.loadTestRoute(1)
+                }
+                SimButton {
+                    text: "Load Route 2"
+                    Layout.fillWidth: true
+                    onClicked: simulator.loadTestRoute(2)
+                }
+                SimButton {
+                    text: "Clear Route"
+                    Layout.fillWidth: true
+                    color: "#f44336"
+                    onClicked: {
+                        if (typeof navigationService !== "undefined") {
+                            navigationService.clearNavigation()
+                        }
+                    }
+                }
+            }
+
             // ---- Vehicle ----
             SectionHeader { text: "Vehicle" }
 
