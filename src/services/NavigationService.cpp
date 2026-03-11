@@ -228,6 +228,8 @@ void NavigationService::onGpsChanged()
 
 void NavigationService::onNavigationDataChanged()
 {
+    if (!m_nav) return;
+
     // Parse destination from Redis store fields
     double lat = m_nav->latitude().toDouble();
     double lng = m_nav->longitude().toDouble();
@@ -250,8 +252,9 @@ void NavigationService::onNavigationDataChanged()
     }
 
     LatLng newDest{lat, lng};
-    if (newDest == m_destination && m_status == NavigationStatus::Navigating) {
-        return; // Same destination, already navigating
+    // Don't recalculate if same destination and we are already Navigating or Calculating
+    if (newDest == m_destination && (m_status == NavigationStatus::Navigating || m_status == NavigationStatus::Calculating)) {
+        return; 
     }
 
     m_destination = newDest;
@@ -401,11 +404,13 @@ void NavigationService::setStatus(NavigationStatus status)
 
 LatLng NavigationService::currentGpsPosition() const
 {
+    if (!m_gps) return {};
     return {m_gps->latitude(), m_gps->longitude()};
 }
 
 bool NavigationService::hasValidGps() const
 {
+    if (!m_gps) return false;
     return m_gps->gpsState() == static_cast<int>(ScootEnums::GpsState::FixEstablished) &&
            (m_gps->latitude() != 0 || m_gps->longitude() != 0);
 }

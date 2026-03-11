@@ -611,7 +611,7 @@ void MapService::updateDynamicZoom(double dt)
         m_currentZoom += step;
         m_currentZoom = std::clamp(m_currentZoom, MinZoom, MaxZoom);
 
-        if (m_currentZoom != m_mapZoom) {
+        if (m_currentZoom != m_mapZoom && std::isfinite(m_currentZoom)) {
             m_mapZoom = m_currentZoom;
             emit mapZoomChanged();
         }
@@ -744,7 +744,7 @@ void MapService::updateBearing(double dt)
     }
     m_displayBearing = std::fmod(m_displayBearing + 360.0, 360.0);
 
-    if (m_displayBearing != m_mapBearing) {
+    if (m_displayBearing != m_mapBearing && std::isfinite(m_displayBearing)) {
         m_mapBearing = m_displayBearing;
         emit mapBearingChanged();
     }
