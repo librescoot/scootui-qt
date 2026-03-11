@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QTimer>
+#include "routing/RouteModels.h"
 
 class MdbRepository;
 class NavigationService;
@@ -93,6 +94,8 @@ private:
     double m_autoDriveLat = 52.520008;
     double m_autoDriveLng = 13.404954;
     double m_autoDriveBearing = 0;
+    Route m_route;
+    int m_routeWaypointIndex = 0;
     double m_batteryCharge0 = 80;
     double m_batteryCharge1 = 80;
     double m_odometer = 1234.5;

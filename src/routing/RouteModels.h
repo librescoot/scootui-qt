@@ -25,6 +25,17 @@ struct LatLng {
         return R * c;
     }
 
+    double bearingTo(const LatLng &other) const {
+        double lat1 = latitude * M_PI / 180.0;
+        double lat2 = other.latitude * M_PI / 180.0;
+        double dLon = (other.longitude - longitude) * M_PI / 180.0;
+        double y = std::sin(dLon) * std::cos(lat2);
+        double x = std::cos(lat1) * std::sin(lat2) -
+                   std::sin(lat1) * std::cos(lat2) * std::cos(dLon);
+        double bearing = std::atan2(y, x) * 180.0 / M_PI;
+        return std::fmod(bearing + 360.0, 360.0);
+    }
+
     bool operator==(const LatLng &o) const {
         return latitude == o.latitude && longitude == o.longitude;
     }

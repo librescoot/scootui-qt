@@ -324,12 +324,23 @@ void SimulatorService::loadTestRoute(int index)
     Route route = RouteHelpers::parseRouteResponse(data);
     if (route.isValid()) {
         qDebug() << "Simulator: Loaded route" << index << "with" << route.waypoints.size() << "waypoints";
-        
+
+        // Store route for auto-drive waypoint following
+        m_route = route;
+        m_routeWaypointIndex = 0;
+
         // Move vehicle to route start
         const auto &start = route.waypoints.first();
         setGpsPosition(start.latitude, start.longitude);
         setGpsState(QStringLiteral("fix-established"));
-        
+
+        // Calculate initial bearing toward second waypoint
+        if (route.waypoints.size() > 1) {
+            const auto &next = route.waypoints[1];
+            m_autoDriveBearing = start.bearingTo(next);
+            setGpsCourse(m_autoDriveBearing);
+        }
+
         // Push route to NavigationService
         m_nav->setRoute(route);
     } else {
@@ -361,6 +372,8 @@ void SimulatorService::stopAutoDrive()
         emit autoDriveActiveChanged();
     }
     m_autoDriveSpeed = 0;
+    m_route = Route();
+    m_routeWaypointIndex = 0;
     emit autoDriveSpeedChanged();
     setSpeed(0);
     setGpsSpeed(0);
@@ -380,22 +393,54 @@ void SimulatorService::autoDriveTick()
     setSpeed(m_autoDriveSpeed);
     setGpsSpeed(m_autoDriveSpeed);
 
-    // Move GPS position along bearing
     const double dt = 0.1; // seconds per tick
     const double speedMs = m_autoDriveSpeed / 3.6;
-    const double distKm = speedMs * dt / 1000.0;
-    const double bearingRad = qDegreesToRadians(m_autoDriveBearing);
+    double distRemaining = speedMs * dt; // meters to travel this tick
 
-    m_autoDriveLat += (distKm * qCos(bearingRad)) / 111.32;
-    m_autoDriveLng += (distKm * qSin(bearingRad)) / (111.32 * qCos(qDegreesToRadians(m_autoDriveLat)));
+    // Follow route waypoints if a route is loaded
+    if (m_route.isValid() && m_routeWaypointIndex < m_route.waypoints.size() - 1) {
+        while (distRemaining > 0 && m_routeWaypointIndex < m_route.waypoints.size() - 1) {
+            const LatLng current = {m_autoDriveLat, m_autoDriveLng};
+            const LatLng &target = m_route.waypoints[m_routeWaypointIndex + 1];
+            double distToTarget = current.distanceTo(target);
 
-    // Gently curve the path (1 degree per second)
-    m_autoDriveBearing = fmod(m_autoDriveBearing + 0.1, 360.0);
+            // Update bearing toward next waypoint
+            m_autoDriveBearing = current.bearingTo(target);
+
+            if (distRemaining >= distToTarget) {
+                // Reached this waypoint, advance to next
+                m_autoDriveLat = target.latitude;
+                m_autoDriveLng = target.longitude;
+                distRemaining -= distToTarget;
+                m_routeWaypointIndex++;
+            } else {
+                // Move partially toward the next waypoint
+                double fraction = distRemaining / distToTarget;
+                m_autoDriveLat += (target.latitude - current.latitude) * fraction;
+                m_autoDriveLng += (target.longitude - current.longitude) * fraction;
+                distRemaining = 0;
+            }
+        }
+
+        // Stop when we reach the end of the route
+        if (m_routeWaypointIndex >= m_route.waypoints.size() - 1) {
+            qDebug() << "Simulator: reached end of route";
+            m_autoDriveTargetSpeed = 0;
+        }
+    } else {
+        // No route: move along bearing with gentle curve (fallback)
+        const double distKm = speedMs * dt / 1000.0;
+        const double bearingRad = qDegreesToRadians(m_autoDriveBearing);
+        m_autoDriveLat += (distKm * qCos(bearingRad)) / 111.32;
+        m_autoDriveLng += (distKm * qSin(bearingRad)) / (111.32 * qCos(qDegreesToRadians(m_autoDriveLat)));
+        m_autoDriveBearing = fmod(m_autoDriveBearing + 0.1, 360.0);
+    }
 
     setGpsPosition(m_autoDriveLat, m_autoDriveLng);
     setGpsCourse(m_autoDriveBearing);
 
     // Slowly drain battery
+    const double distKm = speedMs * dt / 1000.0;
     m_batteryCharge0 = qMax(0.0, m_batteryCharge0 - 0.001);
     m_batteryCharge1 = qMax(0.0, m_batteryCharge1 - 0.001);
     if (static_cast<int>(m_batteryCharge0 * 10) % 10 == 0) {
