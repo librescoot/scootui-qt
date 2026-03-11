@@ -25,7 +25,7 @@ jobs:
   build-dbc-rpm:
     name: Build ScootUI-Qt RPM for DBC
     needs: [generate-timestamp]
-    runs-on: dbc
+    runs-on: rpi5
     steps:
       - name: Checkout librescoot repository
         uses: actions/checkout@v4
