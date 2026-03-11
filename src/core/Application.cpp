@@ -211,9 +211,10 @@ void Application::createStores(QQmlApplicationEngine &engine)
                                     tripStore, m_translations, m_settingsService,
                                     repo, this);
 
-    // Wire saved locations and screen store into menu
+    // Wire saved locations, screen store, and navigation into menu
     menuStore->setSavedLocationsStore(savedLocationsStore);
     menuStore->setScreenStore(screenStore);
+    menuStore->setNavigationService(m_navigationService);
 
     // M5: ShortcutMenuStore
     auto *shortcutMenuStore = new ShortcutMenuStore(themeStore, m_settingsService, this);

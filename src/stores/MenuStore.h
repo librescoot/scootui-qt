@@ -13,6 +13,7 @@ class TripStore;
 class Translations;
 class SettingsService;
 class MdbRepository;
+class NavigationService;
 class SavedLocationsStore;
 class ScreenStore;
 
@@ -33,6 +34,7 @@ public:
                        Translations *translations, SettingsService *settingsService,
                        MdbRepository *repo, QObject *parent = nullptr);
 
+    void setNavigationService(NavigationService *svc);
     void setSavedLocationsStore(SavedLocationsStore *store);
     void setScreenStore(ScreenStore *store);
     ~MenuStore() override;
@@ -69,6 +71,7 @@ private:
     Translations *m_translations;
     SettingsService *m_settingsService;
     MdbRepository *m_repo;
+    NavigationService *m_navigationService = nullptr;
     SavedLocationsStore *m_savedLocations = nullptr;
     ScreenStore *m_screenStore = nullptr;
 

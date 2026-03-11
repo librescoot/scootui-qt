@@ -8,6 +8,7 @@
 #include "SavedLocationsStore.h"
 #include "l10n/Translations.h"
 #include "services/SettingsService.h"
+#include "services/NavigationService.h"
 #include "repositories/MdbRepository.h"
 #include "core/AppConfig.h"
 
@@ -51,6 +52,11 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
 }
 
 MenuStore::~MenuStore() = default;
+
+void MenuStore::setNavigationService(NavigationService *svc)
+{
+    m_navigationService = svc;
+}
 
 void MenuStore::setSavedLocationsStore(SavedLocationsStore *store)
 {
@@ -158,6 +164,7 @@ void MenuStore::rebuildMenuTree()
     // Stop navigation
     navNode->addChild(MenuNode::action(QStringLiteral("nav_stop"),
         tr->menuStopNavigation(), [this]() {
+            if (m_navigationService) m_navigationService->clearNavigation();
             close();
         }));
 
