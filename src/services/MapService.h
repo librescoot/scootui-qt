@@ -100,9 +100,9 @@ private:
     static constexpr double LargeErrorThreshold = 15.0;
 
     // Dynamic zoom
-    static constexpr double DefaultZoom = 17.0;
-    static constexpr double MinZoom = 8.0;
-    static constexpr double MaxZoom = 18.0;
+    static constexpr double DefaultZoom = 16.0;
+    static constexpr double MinZoom = 15.0;
+    static constexpr double MaxZoom = 17.5;
     static constexpr double ZoomHysteresis = 0.3;
     static constexpr double ZoomSmoothRate = 1.0;
     static constexpr double ZoomSmoothRateOverview = 2.0;
