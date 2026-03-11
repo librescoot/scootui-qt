@@ -515,8 +515,11 @@ void MenuStore::selectItem()
         m_selectedIndex = 0;
         emitMenuChanged();
     } else {
-        // Execute action or setting
-        selected->executeAction();
+        // Copy the action before executing — the action may trigger
+        // rebuildMenuTree() (e.g. via locationsChanged signal), which
+        // destroys this MenuNode and its m_onAction while we're inside it.
+        auto action = selected->action();
+        if (action) action();
         // Rebuild to reflect changes (settings may have changed)
         rebuildMenuTree();
     }

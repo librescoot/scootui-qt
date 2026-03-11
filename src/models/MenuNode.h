@@ -50,6 +50,8 @@ public:
         if (m_onAction) m_onAction();
     }
 
+    std::function<void()> action() const { return m_onAction; }
+
     bool hasChildren() const { return !m_children.isEmpty(); }
 
     // Factory helpers
