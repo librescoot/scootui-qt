@@ -11,14 +11,12 @@ Rectangle {
     readonly property color textPrimary: isDark ? "#FFFFFF" : "#000000"
     readonly property color textSecondary: isDark ? "#99FFFFFF" : "#8A000000"
 
-    // Right brake returns to map
+    // Right brake returns to map (centralized via InputHandler)
     Connections {
-        target: typeof vehicleStore !== "undefined" ? vehicleStore : null
-        function onBrakeRightChanged() {
-            if (typeof vehicleStore !== "undefined" && vehicleStore.brakeRight === 1) {
-                if (typeof screenStore !== "undefined") {
-                    screenStore.setScreen(1) // Back to map
-                }
+        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        function onRightTap() {
+            if (typeof screenStore !== "undefined") {
+                screenStore.setScreen(1) // Back to map
             }
         }
     }

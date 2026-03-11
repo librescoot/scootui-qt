@@ -18,14 +18,12 @@ Rectangle {
     readonly property bool routingOk: typeof navAvailabilityService !== "undefined"
                                        ? navAvailabilityService.routingAvailable : false
 
-    // Right brake returns to cluster
+    // Right brake returns to cluster (centralized via InputHandler)
     Connections {
-        target: typeof vehicleStore !== "undefined" ? vehicleStore : null
-        function onBrakeRightChanged() {
-            if (typeof vehicleStore !== "undefined" && vehicleStore.brakeRight === 1) {
-                if (typeof screenStore !== "undefined") {
-                    screenStore.setScreen(0)
-                }
+        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        function onRightTap() {
+            if (typeof screenStore !== "undefined") {
+                screenStore.setScreen(0)
             }
         }
     }

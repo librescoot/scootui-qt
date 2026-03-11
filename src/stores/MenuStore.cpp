@@ -384,16 +384,16 @@ QVariantList MenuStore::currentItems() const
 
     QVariantList list;
 
-    // Prepend back/exit item (like Flutter's programmatic back button)
-    QVariantMap backItem;
-    backItem[QStringLiteral("id")] = QStringLiteral("__back");
-    backItem[QStringLiteral("title")] = m_pathStack.isEmpty()
-        ? (QStringLiteral("\u2190 ") + m_translations->controlExit())
-        : (QStringLiteral("\u2190 ") + m_translations->controlBack());
-    backItem[QStringLiteral("type")] = QStringLiteral("action");
-    backItem[QStringLiteral("currentValue")] = 0;
-    backItem[QStringLiteral("hasChildren")] = false;
-    list.append(backItem);
+    // Prepend back item only in submenus (Flutter doesn't have back/exit at root)
+    if (!m_pathStack.isEmpty()) {
+        QVariantMap backItem;
+        backItem[QStringLiteral("id")] = QStringLiteral("__back");
+        backItem[QStringLiteral("title")] = QStringLiteral("\u2190 ") + m_translations->controlBack();
+        backItem[QStringLiteral("type")] = QStringLiteral("action");
+        backItem[QStringLiteral("currentValue")] = 0;
+        backItem[QStringLiteral("hasChildren")] = false;
+        list.append(backItem);
+    }
 
     for (auto *child : node->visibleChildren()) {
         QVariantMap item;
@@ -413,7 +413,8 @@ bool MenuStore::canScrollUp() const
 {
     auto *node = findCurrentNode();
     if (!node) return false;
-    int totalCount = node->visibleChildren().size() + 1; // +1 for back/exit item
+    int backOffset = m_pathStack.isEmpty() ? 0 : 1;
+    int totalCount = node->visibleChildren().size() + backOffset;
     return totalCount > 1;
 }
 
@@ -421,7 +422,8 @@ bool MenuStore::canScrollDown() const
 {
     auto *node = findCurrentNode();
     if (!node) return false;
-    int totalCount = node->visibleChildren().size() + 1; // +1 for back/exit item
+    int backOffset = m_pathStack.isEmpty() ? 0 : 1;
+    int totalCount = node->visibleChildren().size() + backOffset;
     return totalCount > 1;
 }
 
@@ -462,7 +464,8 @@ void MenuStore::navigateUp()
 {
     auto *node = findCurrentNode();
     if (!node) return;
-    int totalCount = node->visibleChildren().size() + 1; // +1 for back/exit item
+    int backOffset = m_pathStack.isEmpty() ? 0 : 1;
+    int totalCount = node->visibleChildren().size() + backOffset;
     if (totalCount <= 1) return;
     m_selectedIndex = (m_selectedIndex - 1 + totalCount) % totalCount;
     emitMenuChanged();
@@ -472,7 +475,8 @@ void MenuStore::navigateDown()
 {
     auto *node = findCurrentNode();
     if (!node) return;
-    int totalCount = node->visibleChildren().size() + 1; // +1 for back/exit item
+    int backOffset = m_pathStack.isEmpty() ? 0 : 1;
+    int totalCount = node->visibleChildren().size() + backOffset;
     if (totalCount <= 1) return;
     m_selectedIndex = (m_selectedIndex + 1) % totalCount;
     emitMenuChanged();
@@ -480,8 +484,10 @@ void MenuStore::navigateDown()
 
 void MenuStore::selectItem()
 {
-    // Index 0 is the back/exit item
-    if (m_selectedIndex == 0) {
+    int backOffset = m_pathStack.isEmpty() ? 0 : 1;
+
+    // In submenus, index 0 is the back item
+    if (backOffset > 0 && m_selectedIndex == 0) {
         goBack();
         return;
     }
@@ -490,7 +496,7 @@ void MenuStore::selectItem()
     if (!node) return;
 
     auto children = node->visibleChildren();
-    int childIndex = m_selectedIndex - 1; // Adjust for prepended back/exit item
+    int childIndex = m_selectedIndex - backOffset;
     if (childIndex < 0 || childIndex >= children.size()) return;
 
     auto *selected = children[childIndex];

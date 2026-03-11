@@ -267,6 +267,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("dashboardStore"), dashboardStore);
     ctx->setContextProperty(QStringLiteral("toastService"), m_toastService);
     ctx->setContextProperty(QStringLiteral("mapService"), m_mapService);
+    ctx->setContextProperty(QStringLiteral("inputHandler"), m_inputHandler);
     ctx->setContextProperty(QStringLiteral("navAvailabilityService"), m_navAvailability);
     ctx->setContextProperty(QStringLiteral("savedLocationsStore"), savedLocationsStore);
     ctx->setContextProperty(QStringLiteral("serialNumberService"), m_serialNumberService);

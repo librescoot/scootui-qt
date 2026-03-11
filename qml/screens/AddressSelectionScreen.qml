@@ -46,23 +46,19 @@ Rectangle {
         }
     }
 
-    // Brake input handling
+    // Brake input handling (centralized via InputHandler)
     Connections {
-        target: typeof vehicleStore !== "undefined" ? vehicleStore : null
-        function onBrakeLeftChanged() {
-            if (vehicleStore.brakeLeft === 1) {
-                if (addressScreen.state === 0) {
-                    addressScreen.advanceDigit()
-                } else if (addressScreen.state === 1) {
-                    // Back to editing
-                    addressScreen.state = 0
-                }
+        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        function onLeftTap() {
+            if (addressScreen.state === 0) {
+                addressScreen.advanceDigit()
+            } else if (addressScreen.state === 1) {
+                // Back to editing
+                addressScreen.state = 0
             }
         }
-        function onBrakeRightChanged() {
-            if (vehicleStore.brakeRight === 1) {
-                addressScreen.selectDigit()
-            }
+        function onRightTap() {
+            addressScreen.selectDigit()
         }
     }
 

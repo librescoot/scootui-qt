@@ -38,87 +38,53 @@ Rectangle {
     property var easterEggProgress: []
     property bool holdActive: false
 
-    Timer {
-        id: holdTimer
-        interval: 500
-        onTriggered: aboutScreen.holdActive = true
+    function scrollDown() {
+        flickable.contentY = Math.min(
+            flickable.contentY + 80,
+            flickable.contentHeight - flickable.height
+        )
+        easterEggProgress.push("d")
+        checkEasterEgg()
     }
 
-    function handleLeftAction(isDown) {
-        if (isDown) {
-            holdTimer.start()
-        } else {
-            holdTimer.stop()
-            if (holdActive) {
-                // Hold = scroll up
-                flickable.contentY = Math.max(flickable.contentY - 80, 0)
-                easterEggProgress.push("u")
-            } else {
-                // Tap = scroll down
-                flickable.contentY = Math.min(
-                    flickable.contentY + 80,
-                    flickable.contentHeight - flickable.height
-                )
-                easterEggProgress.push("d")
-            }
-            holdActive = false
-
-            // Check sequence
-            if (easterEggProgress.length > easterEggSequence.length)
-                easterEggProgress = easterEggProgress.slice(-easterEggSequence.length)
-
-            if (easterEggProgress.length === easterEggSequence.length) {
-                var match = true
-                for (var i = 0; i < easterEggSequence.length; i++) {
-                    if (easterEggProgress[i] !== easterEggSequence[i]) {
-                        match = false
-                        break
-                    }
-                }
-                if (match) {
-                    // Check right brake is held
-                    if (typeof vehicleStore !== "undefined" && vehicleStore.brakeRight === 0) {
-                        easterEggProgress = []
-                        if (typeof settingsService !== "undefined") {
-                            settingsService.togglePlymouthTheme()
-                        }
-                    }
-                }
-            }
-        }
+    function scrollUp() {
+        flickable.contentY = Math.max(flickable.contentY - 80, 0)
+        easterEggProgress.push("u")
+        checkEasterEgg()
     }
 
-    // Scroll handling via brake inputs
-    Connections {
-        target: typeof vehicleStore !== "undefined" ? vehicleStore : null
-        function onBrakeLeftChanged() {
-            if (typeof vehicleStore !== "undefined") {
-                // Toggle::On = 0, Toggle::Off = 1
-                if (vehicleStore.brakeLeft === 0) {
-                    aboutScreen.handleLeftAction(true)
-                } else {
-                    aboutScreen.handleLeftAction(false)
+    function checkEasterEgg() {
+        if (easterEggProgress.length > easterEggSequence.length)
+            easterEggProgress = easterEggProgress.slice(-easterEggSequence.length)
+
+        if (easterEggProgress.length === easterEggSequence.length) {
+            var match = true
+            for (var i = 0; i < easterEggSequence.length; i++) {
+                if (easterEggProgress[i] !== easterEggSequence[i]) {
+                    match = false
+                    break
                 }
             }
-        }
-        function onBrakeRightChanged() {
-            if (typeof vehicleStore !== "undefined" && vehicleStore.brakeRight === 1) {
-                // Easter egg check on close
-                if (easterEggProgress.length === easterEggSequence.length) {
-                    var match = true
-                    for (var i = 0; i < easterEggSequence.length; i++) {
-                        if (easterEggProgress[i] !== easterEggSequence[i]) {
-                            match = false
-                            break
-                        }
-                    }
-                    if (match && typeof settingsService !== "undefined") {
+            if (match) {
+                // Check right brake is held
+                if (typeof vehicleStore !== "undefined" && vehicleStore.brakeRight === 0) {
+                    easterEggProgress = []
+                    if (typeof settingsService !== "undefined") {
                         settingsService.togglePlymouthTheme()
                     }
                 }
-                if (typeof screenStore !== "undefined") {
-                    screenStore.setScreen(0);
-                }
+            }
+        }
+    }
+
+    // Centralized brake gesture handling via InputHandler
+    Connections {
+        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        function onLeftTap() { aboutScreen.scrollDown() }
+        function onLeftHold() { aboutScreen.scrollUp() }
+        function onRightTap() {
+            if (typeof screenStore !== "undefined") {
+                screenStore.setScreen(0)
             }
         }
     }
