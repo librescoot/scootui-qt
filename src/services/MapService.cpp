@@ -467,31 +467,16 @@ void MapService::onDeadReckoningTick()
     updateBearing(dt);
     updateDynamicZoom(dt);
 
-    // ----- Apply vehicle offset to map center -----
-    // The vehicle marker is drawn VehicleOffsetPx below the map center on screen.
-    // To make the map rotate around the vehicle (not the center), we shift the
-    // map center away from the vehicle by the offset, rotated by the current bearing.
-    // This matches Flutter's camera offset calculation.
-    double vehicleLat = compensatedLat;
-    double vehicleLng = compensatedLng;
-
-    // Mercator: meters per pixel at current zoom and latitude
-    double latRad = vehicleLat * M_PI / 180.0;
-    double metersPerPx = 156543.03 * std::cos(latRad) / std::pow(2.0, m_mapZoom);
-    double offsetMeters = VehicleOffsetPx * metersPerPx;
-
-    // Shift map center in the bearing direction (up on screen = bearing direction)
-    double bearingRad = m_displayBearing * M_PI / 180.0;
-    double centerLat = vehicleLat + (offsetMeters * std::cos(bearingRad)) / 111320.0;
-    double centerLng = vehicleLng + (offsetMeters * std::sin(bearingRad)) / (111320.0 * std::cos(latRad));
-
     // ----- Update camera position -----
-    if (std::isfinite(centerLat) && std::isfinite(centerLng)) {
-        bool latChanged = (centerLat != m_mapLatitude);
-        bool lngChanged = (centerLng != m_mapLongitude);
+    // Expose the vehicle position directly; the QML layer uses
+    // alignCoordinateToPoint to place the vehicle at the correct screen
+    // offset and let Qt handle the bearing-aware pivot calculation.
+    if (std::isfinite(compensatedLat) && std::isfinite(compensatedLng)) {
+        bool latChanged = (compensatedLat != m_mapLatitude);
+        bool lngChanged = (compensatedLng != m_mapLongitude);
 
-        m_mapLatitude = centerLat;
-        m_mapLongitude = centerLng;
+        m_mapLatitude = compensatedLat;
+        m_mapLongitude = compensatedLng;
 
         if (latChanged) emit mapLatitudeChanged();
         if (lngChanged) emit mapLongitudeChanged();

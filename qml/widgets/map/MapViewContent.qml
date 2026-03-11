@@ -6,10 +6,33 @@ MapView {
     id: mapView
 
     map.plugin: Plugin {
+        id: mapPlugin
         name: "maplibre"
+        
+        // Enable tile caching for offline zoomed-out views
+        PluginParameter {
+            name: "renderMode"
+            value: "gpu"
+        }
+        
+        PluginParameter {
+            name: "cache.mode"
+            value: "CacheOnlineMode"
+        }
+        
+        PluginParameter {
+            name: "cache.diskPath"
+            value: "/tmp/qt-map-cache"
+        }
+        
         PluginParameter {
             name: "maplibre.map.styles"
             value: typeof mapService !== "undefined" ? mapService.styleUrl : ""
+        }
+        
+        PluginParameter {
+            name: "maptile.loading.lazy"
+            value: true
         }
     }
 
@@ -26,11 +49,6 @@ MapView {
         return QtPositioning.coordinate(52.520008, 13.404954)
     }
 
-    function vehicleScreenPoint() {
-        var offsetY = typeof mapService !== "undefined" ? mapService.vehicleOffsetY : 0
-        return Qt.point(map.width / 2, map.height / 2 + offsetY)
-    }
-
     function updateCamera() {
         if (!map || map.width <= 0 || map.height <= 0) return
 
@@ -38,24 +56,26 @@ MapView {
         if (!vehicleCoord || !vehicleCoord.isValid) return
 
         if (typeof mapService !== "undefined" && mapService.isReady) {
-            var pt = vehicleScreenPoint()
+            // mapLatitude/mapLongitude is the vehicle position.
+            // Place it at the vehicle screen point (offset below center);
+            // Qt handles the bearing-aware pivot so the map rotates around the marker.
+            var offsetY = mapService.vehicleOffsetY
+            var pt = Qt.point(map.width / 2, map.height / 2 + offsetY)
 
-            // Prefer QtLocation's built-in helper when available.
             if (typeof map.alignCoordinateToPoint === "function") {
                 map.alignCoordinateToPoint(vehicleCoord, pt)
                 return
             }
 
-            // Fallback: center on vehicle, then offset the center upward in screen pixels.
+            // Fallback: set center then shift by offset in screen space
             map.center = vehicleCoord
-            var offsetY = typeof mapService !== "undefined" ? mapService.vehicleOffsetY : 0
-            if (offsetY === 0 || typeof map.toCoordinate !== "function") return
-
-            Qt.callLater(function () {
-                if (!map || map.width <= 0 || map.height <= 0) return
-                var newCenter = map.toCoordinate(Qt.point(map.width / 2, map.height / 2 - offsetY))
-                if (newCenter && newCenter.isValid) map.center = newCenter
-            })
+            if (offsetY !== 0 && typeof map.toCoordinate === "function") {
+                Qt.callLater(function () {
+                    if (!map || map.width <= 0 || map.height <= 0) return
+                    var shifted = map.toCoordinate(Qt.point(map.width / 2, map.height / 2 - offsetY))
+                    if (shifted && shifted.isValid) map.center = shifted
+                })
+            }
             return
         }
 
@@ -88,8 +108,8 @@ MapView {
         id: routeBorder
         parent: mapView.map
         visible: typeof mapService !== "undefined" && mapService.routeCoordinates.length > 0
-        line.width: 10 // Make it even wider for testing
-        line.color: "red" // Contrasting color
+        line.width: 6
+        line.color: "#ECEFF1"
 
         function updatePath() {
             var p = []
@@ -126,28 +146,11 @@ MapView {
         id: routeFill
         parent: mapView.map
         visible: routeBorder.visible
-        line.width: 6
+        z: routeBorder.z + 1
+        line.width: 4
         line.color: "#42A5F5"
 
         path: routeBorder.path
     }
 
-    // DEBUG: Test marker at first coordinate of route
-    MapQuickItem {
-        id: debugMarker
-        parent: mapView.map
-        visible: routeBorder.visible && routeBorder.path.length > 0
-        coordinate: routeBorder.path.length > 0 ? routeBorder.path[0] : QtPositioning.coordinate(0,0)
-        anchorPoint.x: 10
-        anchorPoint.y: 10
-        sourceItem: Rectangle {
-            width: 20; height: 20
-            radius: 10
-            color: "yellow"
-            border.color: "black"
-            border.width: 2
-        }
-        
-        onVisibleChanged: console.log("MapViewContent: Debug marker visible: " + visible)
-    }
 }
