@@ -2,8 +2,12 @@
 
 #include <QObject>
 #include <QTimer>
+#include <QDateTime>
 
 class ThemeStore;
+class VehicleStore;
+class ScreenStore;
+class MdbRepository;
 class SettingsService;
 
 class ShortcutMenuStore : public QObject
@@ -14,7 +18,9 @@ class ShortcutMenuStore : public QObject
     Q_PROPERTY(bool confirming READ confirming NOTIFY confirmingChanged)
 
 public:
-    explicit ShortcutMenuStore(ThemeStore *theme, SettingsService *settingsService,
+    explicit ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
+                               ScreenStore *screen, MdbRepository *repo,
+                               SettingsService *settingsService,
                                QObject *parent = nullptr);
 
     bool visible() const { return m_visible; }
@@ -31,14 +37,39 @@ signals:
     void selectionChanged();
     void confirmingChanged();
 
+private slots:
+    void handleButtonEvent(const QString &channel, const QString &message);
+    void onLongPressTimeout();
+    void onCycleTimeout();
+
 private:
-    void resetConfirmation();
+    void executeAction(int index);
+    void toggleHazards();
+    void toggleView();
+    void cycleTheme();
+    void resetState();
 
     ThemeStore *m_theme;
+    VehicleStore *m_vehicle;
+    ScreenStore *m_screenStore;
+    MdbRepository *m_repo;
     SettingsService *m_settingsService;
+
     QTimer *m_confirmTimer;
+    QTimer *m_longPressTimer;
+    QTimer *m_cycleTimer;
+
     bool m_visible = false;
     int m_selectedIndex = 0;
     bool m_confirming = false;
+
+    // Button tracking
+    QDateTime m_buttonPressStartTime;
+    QDateTime m_lastTapTime;
+
     static constexpr int ITEM_COUNT = 3;
+    static constexpr int DOUBLE_PRESS_MS = 500;
+    static constexpr int LONG_PRESS_MS = 500;
+    static constexpr int ITEM_CYCLE_MS = 750;
+    static constexpr int CONFIRM_TIMEOUT_MS = 1000;
 };
