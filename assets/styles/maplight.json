@@ -414,34 +414,6 @@
 				}
 			},
 			"minzoom": 6
-		},
-		{
-			"id": "labels-roads",
-			"type": "symbol",
-			"source": "versatiles-shortbread",
-			"source-layer": "street_labels",
-			"filter": [
-				"in",
-				"kind",
-				"motorway",
-				"trunk",
-				"primary",
-				"secondary"
-			],
-			"layout": {
-				"text-field": "{name}",
-				"text-font": [
-					"noto_sans_regular"
-				],
-				"symbol-placement": "line",
-				"text-size": 12
-			},
-			"paint": {
-				"text-color": "#333344",
-				"text-halo-color": "rgba(255,255,255,0.8)",
-				"text-halo-width": 1.5
-			},
-			"minzoom": 12
 		}
 	]
 }
