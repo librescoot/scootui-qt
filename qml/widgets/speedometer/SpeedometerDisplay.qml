@@ -35,10 +35,22 @@ Item {
     // Fixed size matching Flutter (no scaling)
     readonly property real displayScale: 1.0
 
-    // Exponential smoothing via FrameAnimation
+    // Imperative flag — avoids circular binding (animatedSpeed ↔ running)
+    property bool _animationActive: false
+
+    // Start animation when speed target changes
+    onTargetSpeedChanged: _animationActive = true
+
+    // Start animation when acceleration/pulse state changes
+    onIsAcceleratingChanged: if (isAccelerating) _animationActive = true
+
+    // Repaint on theme change
+    onIsDarkChanged: canvas.requestPaint()
+
+    // Exponential smoothing via FrameAnimation — only runs when animating
     FrameAnimation {
         id: frameAnim
-        running: true
+        running: speedometer._animationActive
         onTriggered: {
             var dtMs = frameTime * 1000
             if (dtMs <= 0 || dtMs > 500) dtMs = 16
@@ -67,6 +79,13 @@ Item {
             }
 
             canvas.requestPaint()
+
+            // Auto-stop when fully converged and no pulse effects active
+            var converged = (animatedSpeed === targetSpeed)
+            var noPulse = animatedSpeed <= maxArcSpeed && !isAccelerating
+            if (converged && noPulse) {
+                speedometer._animationActive = false
+            }
         }
     }
 
@@ -75,6 +94,7 @@ Item {
         NumberAnimation { duration: 1000; easing.type: Easing.InOutQuad }
     }
     onIsRegeneratingChanged: regenTransition = isRegenerating ? 1.0 : 0.0
+    onRegenTransitionChanged: canvas.requestPaint()
 
     Canvas {
         id: canvas
