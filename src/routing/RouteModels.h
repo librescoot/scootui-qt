@@ -100,7 +100,10 @@ Q_DECLARE_METATYPE(Route)
 // Decode Google Polyline Algorithm (precision 6 for Valhalla)
 inline QList<LatLng> decodePolyline(const QString &encoded, int precision = 6) {
     QList<LatLng> points;
-    if (encoded.isEmpty()) return points;
+    if (encoded.isEmpty()) {
+        qDebug() << "decodePolyline: encoded string is empty";
+        return points;
+    }
 
     double factor = std::pow(10, precision);
     int index = 0;
@@ -112,7 +115,10 @@ inline QList<LatLng> decodePolyline(const QString &encoded, int precision = 6) {
         int shift = 0, result = 0;
         int b;
         do {
-            if (index >= len) return points; // Truncated
+            if (index >= len) {
+                qWarning() << "decodePolyline: truncated lat at index" << index;
+                return points;
+            }
             b = bytes[index++] - 63;
             result |= (b & 0x1F) << shift;
             shift += 5;
@@ -121,7 +127,10 @@ inline QList<LatLng> decodePolyline(const QString &encoded, int precision = 6) {
 
         shift = 0; result = 0;
         do {
-            if (index >= len) return points; // Truncated
+            if (index >= len) {
+                qWarning() << "decodePolyline: truncated lng at index" << index;
+                return points;
+            }
             b = bytes[index++] - 63;
             result |= (b & 0x1F) << shift;
             shift += 5;
@@ -130,6 +139,7 @@ inline QList<LatLng> decodePolyline(const QString &encoded, int precision = 6) {
 
         points.append({static_cast<double>(lat) / factor, static_cast<double>(lng) / factor});
     }
+    qDebug() << "decodePolyline: decoded" << points.size() << "points from string of length" << len;
     return points;
 }
 

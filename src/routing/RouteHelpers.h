@@ -102,14 +102,17 @@ inline Route parseRouteResponse(const QByteArray &data)
     QJsonParseError err;
     QJsonDocument doc = QJsonDocument::fromJson(data, &err);
     if (err.error != QJsonParseError::NoError) {
-        qWarning() << "Valhalla JSON parse error:" << err.errorString();
+        qWarning() << "parseRouteResponse: JSON parse error:" << err.errorString();
         return route;
     }
 
     QJsonObject root = doc.object();
     QJsonObject trip = root[QStringLiteral("trip")].toObject();
     QJsonArray legs = trip[QStringLiteral("legs")].toArray();
-    if (legs.isEmpty()) return route;
+    if (legs.isEmpty()) {
+        qWarning() << "parseRouteResponse: no legs in JSON";
+        return route;
+    }
 
     QJsonObject leg = legs[0].toObject();
     QJsonObject summary = leg[QStringLiteral("summary")].toObject();
@@ -117,6 +120,7 @@ inline Route parseRouteResponse(const QByteArray &data)
     // Decode shape (polyline, precision 6)
     QString shape = leg[QStringLiteral("shape")].toString();
     route.waypoints = decodePolyline(shape, 6);
+    qDebug() << "parseRouteResponse: decoded waypoints:" << route.waypoints.size();
 
     // Total distance/duration
     route.distance = summary[QStringLiteral("length")].toDouble() * 1000.0; // km → m
@@ -124,6 +128,7 @@ inline Route parseRouteResponse(const QByteArray &data)
 
     // Parse maneuvers
     QJsonArray maneuvers = leg[QStringLiteral("maneuvers")].toArray();
+    qDebug() << "parseRouteResponse: parsing" << maneuvers.size() << "maneuvers";
     for (const auto &m : maneuvers) {
         QJsonObject obj = m.toObject();
         RouteInstruction instr;

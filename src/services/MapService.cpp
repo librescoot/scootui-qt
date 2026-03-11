@@ -122,6 +122,7 @@ MapService::~MapService()
 
 void MapService::setRouteWaypoints(const QVariantList &waypoints)
 {
+    qDebug() << "MapService: incoming waypoints:" << waypoints.size();
     m_routeShape.clear();
     m_routeShape.reserve(waypoints.size());
 
@@ -149,6 +150,7 @@ void MapService::setRouteWaypoints(const QVariantList &waypoints)
     }
 
     m_routeCoordinates = coords;
+    qDebug() << "MapService: stored waypoints:" << m_routeCoordinates.size();
     emit routeCoordinatesChanged();
 
     // Reset segment tracking
@@ -158,6 +160,7 @@ void MapService::setRouteWaypoints(const QVariantList &waypoints)
 void MapService::updateRouteFromNavigation()
 {
     auto waypoints = m_navigation->routeWaypoints();
+    qDebug() << "MapService: updating route from NavigationService - points:" << waypoints.size();
     QVariantList varList;
     varList.reserve(waypoints.size());
     for (const auto &wp : waypoints) {
