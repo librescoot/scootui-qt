@@ -88,14 +88,8 @@ void SyncableStore::doHgetall()
         const auto it = values.constFind(field.variable);
         if (it != values.constEnd()) {
             applyFieldUpdate(field.variable, *it);
-        } else {
-            // Handle nullable clearable fields
-            static const QSet<QString> nullableClearableFields = {
-                QStringLiteral("destination")
-            };
-            if (nullableClearableFields.contains(field.variable)) {
-                applyFieldUpdate(field.variable, QString());
-            }
+        } else if (field.clearable) {
+            applyFieldUpdate(field.variable, QString());
         }
     }
 }

@@ -10,11 +10,11 @@ SyncSettings NavigationStore::syncSettings() const
     return SyncSettings{
         QStringLiteral("navigation"), 5000,
         {
-            {QStringLiteral("latitude"), QStringLiteral("latitude")},
-            {QStringLiteral("longitude"), QStringLiteral("longitude")},
-            {QStringLiteral("address"), QStringLiteral("address")},
-            {QStringLiteral("timestamp"), QStringLiteral("timestamp")},
-            {QStringLiteral("destination"), QStringLiteral("destination")},
+            {QStringLiteral("latitude"), QStringLiteral("latitude"), true},
+            {QStringLiteral("longitude"), QStringLiteral("longitude"), true},
+            {QStringLiteral("address"), QStringLiteral("address"), true},
+            {QStringLiteral("timestamp"), QStringLiteral("timestamp"), true},
+            {QStringLiteral("destination"), QStringLiteral("destination"), true},
         },
         {}, {}
     };

@@ -12,6 +12,7 @@
 struct SyncFieldDef {
     QString name;       // property name in the store
     QString variable;   // Redis hash field name (may differ from property name)
+    bool clearable = false; // if true, field is cleared when missing from Redis
 };
 
 // Describes a set field to sync via SMEMBERS
