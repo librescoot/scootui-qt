@@ -139,15 +139,48 @@ void MapService::setRouteWaypoints(const QVariantList &waypoints)
 void MapService::updateRouteFromNavigation()
 {
     auto waypoints = m_navigation->routeWaypoints();
-    QVariantList varList;
-    varList.reserve(waypoints.size());
+
+    // Full route shape for dead reckoning
+    m_routeShape.clear();
+    m_routeShape.reserve(waypoints.size());
     for (const auto &wp : waypoints) {
-        QVariantMap m;
-        m[QStringLiteral("lat")] = wp.latitude;
-        m[QStringLiteral("lng")] = wp.longitude;
-        varList.append(m);
+        m_routeShape.append({wp.latitude, wp.longitude});
     }
-    setRouteWaypoints(varList);
+    m_currentRouteSegment = 0;
+
+    // Simplified coordinates for QML display (reduce GPU load on Vivante GC880)
+    // Keep points that are at least MinDisplaySpacingMeters apart
+    static constexpr double MinDisplaySpacingMeters = 100.0;
+
+    QVariantList displayCoords;
+    if (!waypoints.isEmpty()) {
+        auto appendCoord = [&](const LatLng &wp) {
+            QVariantMap m;
+            m[QStringLiteral("lat")] = wp.latitude;
+            m[QStringLiteral("lng")] = wp.longitude;
+            displayCoords.append(m);
+        };
+
+        appendCoord(waypoints.first());
+        LatLng lastKept = waypoints.first();
+
+        for (int i = 1; i < waypoints.size() - 1; ++i) {
+            if (lastKept.distanceTo(waypoints[i]) >= MinDisplaySpacingMeters) {
+                appendCoord(waypoints[i]);
+                lastKept = waypoints[i];
+            }
+        }
+
+        if (waypoints.size() > 1) {
+            appendCoord(waypoints.last());
+        }
+    }
+
+    qDebug() << "MapService: route display -" << waypoints.size()
+             << "waypoints simplified to" << displayCoords.size();
+
+    m_routeCoordinates = displayCoords;
+    emit routeCoordinatesChanged();
 }
 
 void MapService::clearRoute()
@@ -192,6 +225,12 @@ void MapService::onGpsPositionChanged()
         if (!m_isReady) {
             m_isReady = true;
             emit isReadyChanged();
+
+            // Re-emit route coordinates in case they were set before the map
+            // GL context was ready (MapPolyline may ignore pre-init geometry)
+            if (!m_routeCoordinates.isEmpty()) {
+                emit routeCoordinatesChanged();
+            }
         }
         emit mapLatitudeChanged();
         emit mapLongitudeChanged();

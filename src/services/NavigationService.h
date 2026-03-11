@@ -146,4 +146,6 @@ private:
 
     QElapsedTimer m_lastRerouteTime;
     bool m_wasArrived = false;
+
+    QTimer *m_navDataDebounce = nullptr;
 };

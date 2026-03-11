@@ -43,9 +43,17 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
     connect(gps, &GpsStore::longitudeChanged, this, &NavigationService::onGpsChanged);
 
     // Listen to navigation store (destination set externally via Redis)
-    connect(nav, &NavigationStore::latitudeChanged, this, &NavigationService::onNavigationDataChanged);
-    connect(nav, &NavigationStore::longitudeChanged, this, &NavigationService::onNavigationDataChanged);
-    connect(nav, &NavigationStore::destinationChanged, this, &NavigationService::onNavigationDataChanged);
+    // Debounce: lat/lng/destination signals may fire individually from doHgetall,
+    // so coalesce into a single handler call to avoid partial-data route requests
+    m_navDataDebounce = new QTimer(this);
+    m_navDataDebounce->setSingleShot(true);
+    m_navDataDebounce->setInterval(100);
+    connect(m_navDataDebounce, &QTimer::timeout, this, &NavigationService::onNavigationDataChanged);
+
+    auto debounceNav = [this]() { m_navDataDebounce->start(); };
+    connect(nav, &NavigationStore::latitudeChanged, this, debounceNav);
+    connect(nav, &NavigationStore::longitudeChanged, this, debounceNav);
+    connect(nav, &NavigationStore::destinationChanged, this, debounceNav);
 
     // Listen to vehicle state (for shutdown-based navigation clearing)
     connect(vehicle, &VehicleStore::stateChanged,
