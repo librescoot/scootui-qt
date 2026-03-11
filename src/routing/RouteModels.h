@@ -21,7 +21,7 @@ struct LatLng {
         double a = std::sin(dLat / 2) * std::sin(dLat / 2) +
                    std::cos(lat1) * std::cos(lat2) *
                    std::sin(dLon / 2) * std::sin(dLon / 2);
-        double c = 2 * std::atan2(std::sqrt(a), std::sqrt(1 - a));
+        double c = 2 * std::atan2(std::sqrt(std::max(0.0, a)), std::sqrt(std::max(0.0, 1.0 - a)));
         return R * c;
     }
 

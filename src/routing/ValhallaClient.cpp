@@ -162,7 +162,7 @@ Route ValhallaClient::parseRouteResponse(const QByteArray &data)
         instr.bearingAfter = obj[QStringLiteral("end_heading")].toDouble();
 
         // Set location from route waypoints
-        if (instr.originalShapeIndex < route.waypoints.size()) {
+        if (instr.originalShapeIndex >= 0 && instr.originalShapeIndex < route.waypoints.size()) {
             instr.location = route.waypoints[instr.originalShapeIndex];
         }
 

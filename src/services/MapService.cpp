@@ -32,7 +32,8 @@ static double haversineDistance(double lat1, double lon1, double lat2, double lo
     double a = std::sin(dLat / 2) * std::sin(dLat / 2) +
                std::cos(lat1 * DegToRad) * std::cos(lat2 * DegToRad) *
                std::sin(dLon / 2) * std::sin(dLon / 2);
-    return EarthRadius * 2.0 * std::atan2(std::sqrt(a), std::sqrt(1.0 - a));
+    // Clamp to [0, 1] to prevent NaN from sqrt of negative due to precision
+    return EarthRadius * 2.0 * std::atan2(std::sqrt(std::max(0.0, a)), std::sqrt(std::max(0.0, 1.0 - a)));
 }
 
 static double bearingBetween(double lat1, double lon1, double lat2, double lon2)
@@ -41,6 +42,10 @@ static double bearingBetween(double lat1, double lon1, double lat2, double lon2)
     double y = std::sin(dLon) * std::cos(lat2 * DegToRad);
     double x = std::cos(lat1 * DegToRad) * std::sin(lat2 * DegToRad) -
                std::sin(lat1 * DegToRad) * std::cos(lat2 * DegToRad) * std::cos(dLon);
+    
+    // Avoid atan2(0, 0)
+    if (std::abs(x) < 1e-10 && std::abs(y) < 1e-10) return 0.0;
+    
     double brng = std::atan2(y, x) * RadToDeg;
     return std::fmod(brng + 360.0, 360.0);
 }
@@ -59,7 +64,9 @@ static void projectForward(double lat, double lng, double bearing, double distan
     double sinD = std::sin(angDist);
     double cosD = std::cos(angDist);
 
-    outLat = std::asin(sinLat * cosD + cosLat * sinD * std::cos(bearRad)) * RadToDeg;
+    // Clamp input to asin to [-1, 1] to prevent NaNs
+    double val = sinLat * cosD + cosLat * sinD * std::cos(bearRad);
+    outLat = std::asin(std::clamp(val, -1.0, 1.0)) * RadToDeg;
     outLng = (lngRad + std::atan2(std::sin(bearRad) * sinD * cosLat,
                                    cosD - sinLat * std::sin(outLat * DegToRad))) * RadToDeg;
 }
@@ -125,6 +132,14 @@ void MapService::setRouteWaypoints(const QVariantList &waypoints)
         const QVariantMap m = v.toMap();
         double lat = m.value(QStringLiteral("lat")).toDouble();
         double lng = m.value(QStringLiteral("lng")).toDouble();
+        
+        // Filter out duplicate points to prevent division by zero/NaN in bearing logic
+        if (!m_routeShape.isEmpty()) {
+            const auto &last = m_routeShape.last();
+            if (std::abs(lat - last.first) < 1e-9 && std::abs(lng - last.second) < 1e-9)
+                continue;
+        }
+
         m_routeShape.append({lat, lng});
         coords.append(v);
     }
@@ -142,6 +157,8 @@ void MapService::updateRouteFromNavigation()
     QVariantList varList;
     varList.reserve(waypoints.size());
     for (const auto &wp : waypoints) {
+        if (!std::isfinite(wp.latitude) || !std::isfinite(wp.longitude))
+            continue;
         QVariantMap m;
         m[QStringLiteral("lat")] = wp.latitude;
         m[QStringLiteral("lng")] = wp.longitude;
@@ -462,14 +479,16 @@ void MapService::onDeadReckoningTick()
     double centerLng = vehicleLng + (offsetMeters * std::sin(bearingRad)) / (111320.0 * std::cos(latRad));
 
     // ----- Update camera position -----
-    bool latChanged = (centerLat != m_mapLatitude);
-    bool lngChanged = (centerLng != m_mapLongitude);
+    if (std::isfinite(centerLat) && std::isfinite(centerLng)) {
+        bool latChanged = (centerLat != m_mapLatitude);
+        bool lngChanged = (centerLng != m_mapLongitude);
 
-    m_mapLatitude = centerLat;
-    m_mapLongitude = centerLng;
+        m_mapLatitude = centerLat;
+        m_mapLongitude = centerLng;
 
-    if (latChanged) emit mapLatitudeChanged();
-    if (lngChanged) emit mapLongitudeChanged();
+        if (latChanged) emit mapLatitudeChanged();
+        if (lngChanged) emit mapLongitudeChanged();
+    }
 
     // ----- isReady -----
     if (!m_isReady && m_hasInitialPosition) {
