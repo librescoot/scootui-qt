@@ -330,8 +330,9 @@ QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString
     out.write(json);
     out.close();
 
-    qDebug() << "MapService: wrote offline style to" << outPath << "(" << json.size() << "bytes)";
-    return outPath;
+    QString fileUrl = QStringLiteral("file://") + outPath;
+    qDebug() << "MapService: wrote offline style to" << fileUrl << "(" << json.size() << "bytes)";
+    return fileUrl;
 }
 
 // ---------------------------------------------------------------------------
