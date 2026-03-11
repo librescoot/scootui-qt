@@ -13,19 +13,75 @@ MapView {
         }
     }
 
-    map.center: QtPositioning.coordinate(
-        typeof mapService !== "undefined" && mapService.isReady
-            ? mapService.mapLatitude
-            : (typeof gpsStore !== "undefined" && gpsStore.latitude !== 0
-                ? gpsStore.latitude : 52.520008),
-        typeof mapService !== "undefined" && mapService.isReady
-            ? mapService.mapLongitude
-            : (typeof gpsStore !== "undefined" && gpsStore.longitude !== 0
-                ? gpsStore.longitude : 13.404954)
-    )
-
     map.zoomLevel: typeof mapService !== "undefined" ? mapService.mapZoom : 17
     map.bearing: typeof mapService !== "undefined" ? mapService.mapBearing : 0
+
+    function vehicleCoordinate() {
+        if (typeof mapService !== "undefined" && mapService.isReady) {
+            return QtPositioning.coordinate(mapService.mapLatitude, mapService.mapLongitude)
+        }
+        if (typeof gpsStore !== "undefined" && gpsStore.latitude !== 0) {
+            return QtPositioning.coordinate(gpsStore.latitude, gpsStore.longitude)
+        }
+        return QtPositioning.coordinate(52.520008, 13.404954)
+    }
+
+    function vehicleScreenPoint() {
+        var offsetY = typeof mapService !== "undefined" ? mapService.vehicleOffsetY : 0
+        return Qt.point(map.width / 2, map.height / 2 + offsetY)
+    }
+
+    function updateCamera() {
+        if (!map || map.width <= 0 || map.height <= 0) return
+
+        var vehicleCoord = vehicleCoordinate()
+        if (!vehicleCoord || !vehicleCoord.isValid) return
+
+        if (typeof mapService !== "undefined" && mapService.isReady) {
+            var pt = vehicleScreenPoint()
+
+            // Prefer QtLocation's built-in helper when available.
+            if (typeof map.alignCoordinateToPoint === "function") {
+                map.alignCoordinateToPoint(vehicleCoord, pt)
+                return
+            }
+
+            // Fallback: center on vehicle, then offset the center upward in screen pixels.
+            map.center = vehicleCoord
+            var offsetY = typeof mapService !== "undefined" ? mapService.vehicleOffsetY : 0
+            if (offsetY === 0 || typeof map.toCoordinate !== "function") return
+
+            Qt.callLater(function () {
+                if (!map || map.width <= 0 || map.height <= 0) return
+                var newCenter = map.toCoordinate(Qt.point(map.width / 2, map.height / 2 - offsetY))
+                if (newCenter && newCenter.isValid) map.center = newCenter
+            })
+            return
+        }
+
+        map.center = vehicleCoord
+    }
+
+    Component.onCompleted: updateCamera()
+
+    onWidthChanged: updateCamera()
+    onHeightChanged: updateCamera()
+
+    Connections {
+        target: typeof mapService !== "undefined" ? mapService : null
+        function onIsReadyChanged() { mapView.updateCamera() }
+        function onMapLatitudeChanged() { mapView.updateCamera() }
+        function onMapLongitudeChanged() { mapView.updateCamera() }
+        function onMapZoomChanged() { mapView.updateCamera() }
+        function onMapBearingChanged() { mapView.updateCamera() }
+        function onVehicleOffsetYChanged() { mapView.updateCamera() }
+    }
+
+    Connections {
+        target: typeof gpsStore !== "undefined" ? gpsStore : null
+        function onLatitudeChanged() { mapView.updateCamera() }
+        function onLongitudeChanged() { mapView.updateCamera() }
+    }
 
     // Route polyline - Add to map
     MapPolyline {
