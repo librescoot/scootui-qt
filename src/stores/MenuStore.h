@@ -80,4 +80,5 @@ private:
     int m_selectedIndex = 0;
     QStringList m_pathStack;      // node IDs for navigation depth
     QList<int> m_indexStack;      // selected index at each depth
+    bool m_executingAction = false; // guard against reentrant rebuilds
 };

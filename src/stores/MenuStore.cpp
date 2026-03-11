@@ -75,6 +75,10 @@ void MenuStore::setScreenStore(ScreenStore *store)
 
 void MenuStore::rebuildMenuTree()
 {
+    // Skip signal-triggered rebuilds while an action is executing.
+    // selectItem() will call rebuildMenuTree() once after the action completes.
+    if (m_executingAction) return;
+
     m_rootNode.reset(MenuNode::submenu(QStringLiteral("root"),
                                        m_translations->menuTitle(),
                                        m_translations->menuTitle()));
@@ -187,11 +191,11 @@ void MenuStore::rebuildMenuTree()
     settingsNode->addChild(themeNode);
 
     themeNode->addChild(MenuNode::setting(QStringLiteral("theme_auto"), tr->menuThemeAuto(),
-        isAutoTheme ? 1 : 0, [svc]() { svc->updateAutoTheme(true); }));
+        isAutoTheme ? 1 : 0, [this, svc]() { svc->updateAutoTheme(true); close(); }));
     themeNode->addChild(MenuNode::setting(QStringLiteral("theme_dark"), tr->menuThemeDark(),
-        (!isAutoTheme && isDark) ? 1 : 0, [svc]() { svc->updateTheme(QStringLiteral("dark")); }));
+        (!isAutoTheme && isDark) ? 1 : 0, [this, svc]() { svc->updateTheme(QStringLiteral("dark")); close(); }));
     themeNode->addChild(MenuNode::setting(QStringLiteral("theme_light"), tr->menuThemeLight(),
-        (!isAutoTheme && !isDark) ? 1 : 0, [svc]() { svc->updateTheme(QStringLiteral("light")); }));
+        (!isAutoTheme && !isDark) ? 1 : 0, [this, svc]() { svc->updateTheme(QStringLiteral("light")); close(); }));
 
     // Language
     auto *langNode = MenuNode::submenu(QStringLiteral("settings_language"),
@@ -515,12 +519,15 @@ void MenuStore::selectItem()
         m_selectedIndex = 0;
         emitMenuChanged();
     } else {
-        // Copy the action before executing — the action may trigger
-        // rebuildMenuTree() (e.g. via locationsChanged signal), which
-        // destroys this MenuNode and its m_onAction while we're inside it.
+        // Guard: prevent signal-triggered rebuildMenuTree() during action
+        // execution. Actions like navigateToLocation() trigger load() →
+        // locationsChanged → rebuildMenuTree(), which would destroy the
+        // menu tree out from under us. The guard defers rebuilds until
+        // after the action completes.
         auto action = selected->action();
+        m_executingAction = true;
         if (action) action();
-        // Rebuild to reflect changes (settings may have changed)
+        m_executingAction = false;
         rebuildMenuTree();
     }
 }
