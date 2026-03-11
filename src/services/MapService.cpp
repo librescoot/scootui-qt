@@ -311,6 +311,8 @@ QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString
         src.remove(QStringLiteral("tiles"));
         QString mbtilesUrl = QStringLiteral("mbtiles://") + mbtilesPath;
         src[QStringLiteral("url")] = mbtilesUrl;
+        // Cap maxzoom to actual tile data so MapLibre overzooms correctly
+        src[QStringLiteral("maxzoom")] = 14;
         sources[it.key()] = src;
         qDebug() << "MapService: source" << it.key() << "-> " << mbtilesUrl;
     }
