@@ -5,13 +5,6 @@
 	"metadata": {
 		"license": "https://creativecommons.org/publicdomain/zero/1.0/"
 	},
-	"glyphs": "https://tiles.versatiles.org/assets/glyphs/{fontstack}/{range}.pbf",
-	"sprite": [
-		{
-			"id": "basics",
-			"url": "https://tiles.versatiles.org/assets/sprites/basics/sprites"
-		}
-	],
 	"sources": {
 		"versatiles-shortbread": {
 			"attribution": "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors",
@@ -414,34 +407,6 @@
 				}
 			},
 			"minzoom": 6
-		},
-		{
-			"id": "labels-roads",
-			"type": "symbol",
-			"source": "versatiles-shortbread",
-			"source-layer": "street_labels",
-			"filter": [
-				"in",
-				"kind",
-				"motorway",
-				"trunk",
-				"primary",
-				"secondary"
-			],
-			"layout": {
-				"text-field": "{name}",
-				"text-font": [
-					"noto_sans_regular"
-				],
-				"symbol-placement": "line",
-				"text-size": 12
-			},
-			"paint": {
-				"text-color": "hsl(240,14%,77%)",
-				"text-halo-color": "hsla(0,0%,0%,0.8)",
-				"text-halo-width": 1.5
-			},
-			"minzoom": 12
 		}
 	]
 }
