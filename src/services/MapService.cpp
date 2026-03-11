@@ -158,7 +158,9 @@ void MapService::clearRoute()
     m_routeCoordinates.clear();
     emit routeCoordinatesChanged();
 
-    // Reset zoom to default
+    // Reset zoom and overview state
+    m_inRouteOverview = false;
+    if (m_overviewTimer) m_overviewTimer->stop();
     m_targetZoom = DefaultZoom;
 }
 
@@ -239,9 +241,24 @@ void MapService::onGpsPositionChanged()
 void MapService::onRouteChanged()
 {
     if (!m_navigation->hasRoute()) {
+        m_inRouteOverview = false;
+        if (m_overviewTimer) m_overviewTimer->stop();
         clearRoute();
+        return;
     }
-    // Note: Application.cpp wiring pushes waypoints via setRouteWaypoints()
+
+    // Zoom out to show the full route, then animate back
+    m_inRouteOverview = true;
+    m_targetZoom = computeRouteOverviewZoom();
+
+    if (!m_overviewTimer) {
+        m_overviewTimer = new QTimer(this);
+        m_overviewTimer->setSingleShot(true);
+        connect(m_overviewTimer, &QTimer::timeout, this, [this]() {
+            m_inRouteOverview = false;
+        });
+    }
+    m_overviewTimer->start(static_cast<int>(RouteOverviewDurationMs));
 }
 
 // ---------------------------------------------------------------------------
@@ -553,16 +570,20 @@ void MapService::applyLatencyCompensation(double /*speedMs*/, double /*headingDe
 
 void MapService::updateDynamicZoom(double dt)
 {
-    double newTarget = computeTargetZoom();
-
-    // Hysteresis: only update target if delta exceeds threshold
-    if (std::abs(newTarget - m_targetZoom) > ZoomHysteresis) {
-        m_targetZoom = newTarget;
+    // During route overview, keep the overview zoom; otherwise compute normally
+    if (!m_inRouteOverview) {
+        double newTarget = computeTargetZoom();
+        if (std::abs(newTarget - m_targetZoom) > ZoomHysteresis) {
+            m_targetZoom = newTarget;
+        }
     }
 
-    // Smooth towards target at ZoomSmoothRate per second
+    // Use faster smooth rate during/after overview for snappy animation
+    double smoothRate = m_inRouteOverview ? ZoomSmoothRateOverview : ZoomSmoothRate;
+
+    // Smooth towards target
     if (std::abs(m_currentZoom - m_targetZoom) > 0.001) {
-        double maxStep = ZoomSmoothRate * dt;
+        double maxStep = smoothRate * dt;
         double diff = m_targetZoom - m_currentZoom;
         double step = std::clamp(diff, -maxStep, maxStep);
         m_currentZoom += step;
@@ -605,6 +626,43 @@ double MapService::computeTargetZoom() const
     double ratio = std::log2(dist / NearDist) / LogRange;
     double zoom = MaxZoom - (MaxZoom - MinZoom) * ratio;
     return std::clamp(zoom, MinZoom, MaxZoom);
+}
+
+double MapService::computeRouteOverviewZoom() const
+{
+    if (m_routeShape.size() < 2) return DefaultZoom;
+
+    // Compute bounding box of the route
+    double minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+    for (const auto &pt : m_routeShape) {
+        minLat = std::min(minLat, pt.first);
+        maxLat = std::max(maxLat, pt.first);
+        minLng = std::min(minLng, pt.second);
+        maxLng = std::max(maxLng, pt.second);
+    }
+
+    // Include current position in bounding box
+    if (m_hasInitialPosition) {
+        minLat = std::min(minLat, m_drLatitude);
+        maxLat = std::max(maxLat, m_drLatitude);
+        minLng = std::min(minLng, m_drLongitude);
+        maxLng = std::max(maxLng, m_drLongitude);
+    }
+
+    double latSpan = maxLat - minLat;
+    double lngSpan = maxLng - minLng;
+
+    // Use the larger span to determine zoom
+    // At zoom 0, the world is 360 degrees wide / 170 degrees tall
+    // Each zoom level halves the span
+    // For a 480px display with some padding (70% usable)
+    double span = std::max(latSpan, lngSpan);
+    if (span < 0.001) return DefaultZoom;
+
+    // zoom = log2(360 / span) - adjustment for screen size
+    // For a ~480px display showing 70% of the world tile at zoom 0:
+    double zoom = std::log2(360.0 / span) - 1.0;
+    return std::clamp(zoom, MinZoom, MaxZoom - 2.0);
 }
 
 double MapService::distanceToNextManeuver() const

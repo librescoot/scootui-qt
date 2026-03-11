@@ -73,6 +73,7 @@ private:
     double computeTargetZoom() const;
     double distanceToNextManeuver() const;
     double distanceToSecondManeuver() const;
+    double computeRouteOverviewZoom() const;
 
     // Rotation smoothing
     void updateBearing(double dt);
@@ -104,7 +105,9 @@ private:
     static constexpr double MaxZoom = 18.0;
     static constexpr double ZoomHysteresis = 0.3;
     static constexpr double ZoomSmoothRate = 1.0;
+    static constexpr double ZoomSmoothRateOverview = 2.0;
     static constexpr double MultiTurnLookAheadMeters = 150.0;
+    static constexpr double RouteOverviewDurationMs = 3000.0;
 
     // Rotation smoothing
     static constexpr double HeadingFreezeSpeed = 1.0;    // km/h
@@ -163,6 +166,10 @@ private:
     // --- Dynamic zoom state ---
     double m_targetZoom = DefaultZoom;
     double m_currentZoom = DefaultZoom;
+
+    // --- Route overview state ---
+    QTimer *m_overviewTimer = nullptr;
+    bool m_inRouteOverview = false;
 
     // --- Rotation smoothing state ---
     double m_smoothedTarget = 0;
