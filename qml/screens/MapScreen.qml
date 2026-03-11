@@ -76,26 +76,12 @@ Rectangle {
             // Navigation status overlay (calculating, rerouting, arrived, error)
             NavigationStatusOverlay {}
 
-            // Road name (bottom center)
-            Rectangle {
+            // Road name (bottom center, German road sign styling)
+            RoadNameDisplay {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 8
-                width: roadNameText.width + 16
-                height: roadNameText.height + 8
-                radius: 4
-                color: typeof themeStore !== "undefined" && themeStore.isDark
-                       ? Qt.rgba(0, 0, 0, 0.6) : Qt.rgba(1, 1, 1, 0.8)
-                visible: roadNameText.text.length > 0
-
-                Text {
-                    id: roadNameText
-                    anchors.centerIn: parent
-                    text: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadName : ""
-                    font.pixelSize: 14
-                    color: typeof themeStore !== "undefined" && themeStore.isDark
-                           ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
-                }
+                fontSize: 14
             }
 
             // North indicator (bottom-right, fixed position)

@@ -269,14 +269,6 @@ void MenuStore::rebuildMenuTree()
     auto *mapNavNode = MenuNode::submenu(QStringLiteral("settings_map"), tr->menuMapNav());
     settingsNode->addChild(mapNavNode);
 
-    auto *renderNode = MenuNode::submenu(QStringLiteral("map_render_mode"), tr->menuRenderMode());
-    mapNavNode->addChild(renderNode);
-    int renderMode = settings->mapRenderMode();
-    renderNode->addChild(MenuNode::setting(QStringLiteral("render_vector"), tr->menuVector(),
-        renderMode == 0 ? 1 : 0, [svc]() { svc->updateMapRenderMode(QStringLiteral("vector")); }));
-    renderNode->addChild(MenuNode::setting(QStringLiteral("render_raster"), tr->menuRaster(),
-        renderMode == 1 ? 1 : 0, [svc]() { svc->updateMapRenderMode(QStringLiteral("raster")); }));
-
     auto *mapTypeNode = MenuNode::submenu(QStringLiteral("map_type"), tr->menuMapType());
     mapNavNode->addChild(mapTypeNode);
     int mapType = settings->mapType();

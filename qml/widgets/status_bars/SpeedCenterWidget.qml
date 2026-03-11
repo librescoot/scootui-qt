@@ -1,14 +1,13 @@
 import QtQuick
 import QtQuick.Layouts
+import "../indicators"
 
 Item {
     id: speedCenter
     implicitWidth: 120
     implicitHeight: 75
 
-    // Horizontal alignment to match Flutter's Positional(right: 0) behavior
     anchors.horizontalCenter: parent.horizontalCenter
-    anchors.bottomMargin: 40
 
     readonly property real speed: {
         if (typeof settingsStore !== "undefined" && typeof engineStore !== "undefined") {
@@ -18,39 +17,35 @@ Item {
         return typeof engineStore !== "undefined" ? engineStore.speed : 0
     }
 
-    // Horizontal layout matching Flutter's Row with Expanded widgets
-    RowLayout {
-        anchors.fill: parent
-        spacing: 20
+    // Speed display (centered)
+    Column {
+        anchors.centerIn: parent
+        spacing: 0
 
-        Item { Layout.fillWidth: true; Layout.preferredWidth: 20 }
-
-        ColumnLayout {
-            Layout.alignment: Qt.AlignHCenter
-            spacing: 0
-
-            Text {
-                Layout.alignment: Qt.AlignHCenter
-                horizontalAlignment: Text.AlignHCenter
-                text: Math.floor(speed).toString()
-                font.pixelSize: 48
-                font.bold: true
-                color: themeStore.textColor
-                lineHeight: 1.0
-                lineHeightMode: Text.FixedHeight
-            }
-
-            Text {
-                Layout.alignment: Qt.AlignHCenter
-                horizontalAlignment: Text.AlignHCenter
-                text: "km/h"
-                font.pixelSize: 16
-                color: themeStore.textSecondary
-                lineHeight: 0.8
-                lineHeightMode: Text.FixedHeight
-            }
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: Math.floor(speed).toString()
+            font.pixelSize: 48
+            font.bold: true
+            color: themeStore.textColor
+            lineHeight: 1.0
+            lineHeightMode: Text.FixedHeight
         }
 
-        Item { Layout.fillWidth: true; Layout.preferredWidth: 20 }
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "km/h"
+            font.pixelSize: 16
+            color: themeStore.textSecondary
+            lineHeight: 0.8
+            lineHeightMode: Text.FixedHeight
+        }
+    }
+
+    // Speed limit indicator (right side, matching Flutter's Positioned(right: 0))
+    SpeedLimitIndicator {
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        iconSize: 31
     }
 }

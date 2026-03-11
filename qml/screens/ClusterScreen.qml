@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import "../widgets/speedometer"
 import "../widgets/status_bars"
 import "../widgets/cluster"
+import "../widgets/indicators"
 
 Rectangle {
     id: clusterScreen
@@ -24,6 +25,24 @@ Rectangle {
             SpeedometerDisplay {
                 id: speedometer
                 anchors.fill: parent
+            }
+
+            // Speed limit + road name below speedometer center
+            Row {
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 68
+                spacing: 4
+
+                SpeedLimitIndicator {
+                    iconSize: 27
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                RoadNameDisplay {
+                    anchors.verticalCenter: parent.verticalCenter
+                    fontSize: 13
+                }
             }
 
             ColumnLayout {

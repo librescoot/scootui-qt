@@ -61,6 +61,11 @@ public:
     // Bluetooth
     Q_INVOKABLE void setBluetoothStatus(const QString &state);
 
+    // Speed limit
+    Q_INVOKABLE void setSpeedLimit(const QString &limit);
+    Q_INVOKABLE void setRoadName(const QString &name);
+    Q_INVOKABLE void setRoadType(const QString &type);
+
     // Settings
     Q_INVOKABLE void setTheme(const QString &theme);
     Q_INVOKABLE void setLanguage(const QString &lang);
@@ -82,8 +87,11 @@ signals:
 
 private:
     void autoDriveTick();
+    void updateRoadInfo();
     void applyDefaults();
     void setBatteryField(int slot, const QString &field, const QString &value);
+
+    int m_currentInstructionIndex = 0;
 
     MdbRepository *m_repo;
     NavigationService *m_nav;

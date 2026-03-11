@@ -212,6 +212,23 @@ void SimulatorService::setBluetoothStatus(const QString &state)
     m_repo->set(QStringLiteral("ble"), QStringLiteral("service-health"), QStringLiteral("ok"));
 }
 
+// --- Speed limit ---
+
+void SimulatorService::setSpeedLimit(const QString &limit)
+{
+    m_repo->set(QStringLiteral("speed-limit"), QStringLiteral("speed-limit"), limit);
+}
+
+void SimulatorService::setRoadName(const QString &name)
+{
+    m_repo->set(QStringLiteral("speed-limit"), QStringLiteral("road-name"), name);
+}
+
+void SimulatorService::setRoadType(const QString &type)
+{
+    m_repo->set(QStringLiteral("speed-limit"), QStringLiteral("road-type"), type);
+}
+
 // --- Settings ---
 
 void SimulatorService::setTheme(const QString &theme)
@@ -259,6 +276,9 @@ void SimulatorService::loadPreset(const QString &name)
         setAccessTech(QStringLiteral("LTE"));
         setCloudConnection(QStringLiteral("connected"));
         setBluetoothStatus(QStringLiteral("connected"));
+        setSpeedLimit(QStringLiteral("30"));
+        setRoadName(QStringLiteral("Alexanderplatz"));
+        setRoadType(QStringLiteral("secondary"));
         setBlinkerState(QStringLiteral("off"));
         setBrakeLeft(false);
         setBrakeRight(false);
@@ -328,6 +348,7 @@ void SimulatorService::loadTestRoute(int index)
         // Store route for auto-drive waypoint following
         m_route = route;
         m_routeWaypointIndex = 0;
+        m_currentInstructionIndex = 0;
 
         // Move vehicle to route start
         const auto &start = route.waypoints.first();
@@ -339,6 +360,15 @@ void SimulatorService::loadTestRoute(int index)
             const auto &next = route.waypoints[1];
             m_autoDriveBearing = start.bearingTo(next);
             setGpsCourse(m_autoDriveBearing);
+        }
+
+        // Set initial road info from first instruction
+        if (!route.instructions.isEmpty()) {
+            const auto &first = route.instructions.first();
+            if (!first.streetName.isEmpty())
+                setRoadName(first.streetName);
+            setSpeedLimit(QStringLiteral("50"));
+            setRoadType(QStringLiteral("secondary"));
         }
 
         // Push route to NavigationService
@@ -374,6 +404,7 @@ void SimulatorService::stopAutoDrive()
     m_autoDriveSpeed = 0;
     m_route = Route();
     m_routeWaypointIndex = 0;
+    m_currentInstructionIndex = 0;
     emit autoDriveSpeedChanged();
     setSpeed(0);
     setGpsSpeed(0);
@@ -439,6 +470,11 @@ void SimulatorService::autoDriveTick()
     setGpsPosition(m_autoDriveLat, m_autoDriveLng);
     setGpsCourse(m_autoDriveBearing);
 
+    // Update road name / speed limit from route instructions
+    if (m_route.isValid()) {
+        updateRoadInfo();
+    }
+
     // Slowly drain battery
     const double distKm = speedMs * dt / 1000.0;
     m_batteryCharge0 = qMax(0.0, m_batteryCharge0 - 0.001);
@@ -456,6 +492,61 @@ void SimulatorService::autoDriveTick()
     int current = static_cast<int>(m_autoDriveSpeed * 200); // rough mA
     setBatteryCurrent(0, -current / 2);
     setBatteryCurrent(1, -current / 2);
+}
+
+void SimulatorService::updateRoadInfo()
+{
+    // Find the current instruction based on waypoint index
+    int newIdx = m_currentInstructionIndex;
+    for (int i = m_currentInstructionIndex + 1; i < m_route.instructions.size(); ++i) {
+        if (m_route.instructions[i].originalShapeIndex <= m_routeWaypointIndex) {
+            newIdx = i;
+        } else {
+            break;
+        }
+    }
+
+    if (newIdx != m_currentInstructionIndex) {
+        m_currentInstructionIndex = newIdx;
+        const auto &instr = m_route.instructions[newIdx];
+        if (!instr.streetName.isEmpty()) {
+            setRoadName(instr.streetName);
+        }
+        // Derive a plausible speed limit from the maneuver type
+        switch (instr.type) {
+            case ManeuverType::RoundaboutEnter:
+            case ManeuverType::RoundaboutExit:
+            case ManeuverType::TurnSharpLeft:
+            case ManeuverType::TurnSharpRight:
+            case ManeuverType::UTurn:
+            case ManeuverType::UTurnRight:
+                setSpeedLimit(QStringLiteral("30"));
+                setRoadType(QStringLiteral("residential"));
+                break;
+            case ManeuverType::TurnLeft:
+            case ManeuverType::TurnRight:
+            case ManeuverType::TurnSlightLeft:
+            case ManeuverType::TurnSlightRight:
+                setSpeedLimit(QStringLiteral("30"));
+                setRoadType(QStringLiteral("secondary"));
+                break;
+            case ManeuverType::ExitLeft:
+            case ManeuverType::ExitRight:
+            case ManeuverType::MergeStraight:
+            case ManeuverType::MergeLeft:
+            case ManeuverType::MergeRight:
+                setSpeedLimit(QStringLiteral("60"));
+                setRoadType(QStringLiteral("primary"));
+                break;
+            case ManeuverType::KeepStraight:
+            case ManeuverType::KeepLeft:
+            case ManeuverType::KeepRight:
+            default:
+                setSpeedLimit(QStringLiteral("50"));
+                setRoadType(QStringLiteral("secondary"));
+                break;
+        }
+    }
 }
 
 void SimulatorService::applyDefaults()
