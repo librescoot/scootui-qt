@@ -10,6 +10,11 @@
 #include <QDebug>
 #include <QVariantMap>
 #include <QtMath>
+#include <QFile>
+#include <QDir>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 #include <algorithm>
 
 // ---------------------------------------------------------------------------
@@ -249,19 +254,77 @@ void MapService::onMapTypeChanged()
 
 void MapService::rebuildStyleUrl()
 {
-    bool isDark = m_theme->isDark();
-    bool isOffline = (m_settings->mapType() == static_cast<int>(ScootEnums::MapType::Offline));
+    static const QString MbtilesPath = QStringLiteral("/data/maps/map.mbtiles");
 
-    // Always use embedded style JSONs (both online and offline modes)
-    Q_UNUSED(isOffline)
-    QString url = isDark
+    bool isDark = m_theme->isDark();
+    bool useLocal = QFile::exists(MbtilesPath);
+
+    QString qrcPath = isDark
         ? QStringLiteral("qrc:/ScootUI/assets/styles/mapdark.json")
         : QStringLiteral("qrc:/ScootUI/assets/styles/maplight.json");
+
+    QString url;
+    if (useLocal) {
+        // Rewrite the embedded style to use local MBTiles source
+        url = rewriteStyleForMbtiles(qrcPath, MbtilesPath);
+    } else {
+        url = qrcPath;
+    }
 
     if (url != m_styleUrl) {
         m_styleUrl = url;
         emit styleUrlChanged();
     }
+}
+
+QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString &mbtilesPath)
+{
+    // Determine output path
+    QString baseName = qrcPath.section(QLatin1Char('/'), -1);  // "mapdark.json" or "maplight.json"
+    QString outPath = QStringLiteral("/tmp/") + baseName;
+
+    // Read embedded style from QRC
+    QString qrcFile = qrcPath;
+    qrcFile.replace(QStringLiteral("qrc:/"), QStringLiteral(":/"));
+    QFile f(qrcFile);
+    if (!f.open(QIODevice::ReadOnly)) {
+        qWarning() << "MapService: cannot open embedded style" << qrcFile;
+        return qrcPath;
+    }
+    QJsonDocument doc = QJsonDocument::fromJson(f.readAll());
+    f.close();
+    if (!doc.isObject()) {
+        qWarning() << "MapService: invalid style JSON";
+        return qrcPath;
+    }
+
+    QJsonObject root = doc.object();
+
+    // Rewrite sources to use mbtiles://
+    QJsonObject sources = root.value(QStringLiteral("sources")).toObject();
+    for (auto it = sources.begin(); it != sources.end(); ++it) {
+        QJsonObject src = it.value().toObject();
+        // Remove "tiles" array and set "url" to mbtiles path
+        src.remove(QStringLiteral("tiles"));
+        src[QStringLiteral("url")] = QStringLiteral("mbtiles://") + mbtilesPath;
+        sources[it.key()] = src;
+    }
+    root[QStringLiteral("sources")] = sources;
+
+    // Remove glyphs/sprite URLs (not available offline)
+    root.remove(QStringLiteral("glyphs"));
+    root.remove(QStringLiteral("sprite"));
+
+    // Write to /tmp
+    QFile out(outPath);
+    if (!out.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        qWarning() << "MapService: cannot write" << outPath;
+        return qrcPath;
+    }
+    out.write(QJsonDocument(root).toJson(QJsonDocument::Compact));
+    out.close();
+
+    return outPath;
 }
 
 // ---------------------------------------------------------------------------

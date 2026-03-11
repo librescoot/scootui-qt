@@ -80,6 +80,7 @@ private:
 
     // Style
     void rebuildStyleUrl();
+    QString rewriteStyleForMbtiles(const QString &qrcPath, const QString &mbtilesPath);
 
     // Snap to closest route segment and return index, or -1 if off route
     int findClosestSegment(double lat, double lng) const;
