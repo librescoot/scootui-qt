@@ -139,48 +139,15 @@ void MapService::setRouteWaypoints(const QVariantList &waypoints)
 void MapService::updateRouteFromNavigation()
 {
     auto waypoints = m_navigation->routeWaypoints();
-
-    // Full route shape for dead reckoning
-    m_routeShape.clear();
-    m_routeShape.reserve(waypoints.size());
+    QVariantList varList;
+    varList.reserve(waypoints.size());
     for (const auto &wp : waypoints) {
-        m_routeShape.append({wp.latitude, wp.longitude});
+        QVariantMap m;
+        m[QStringLiteral("lat")] = wp.latitude;
+        m[QStringLiteral("lng")] = wp.longitude;
+        varList.append(m);
     }
-    m_currentRouteSegment = 0;
-
-    // Simplified coordinates for QML display (reduce GPU load on Vivante GC880)
-    // Keep points that are at least MinDisplaySpacingMeters apart
-    static constexpr double MinDisplaySpacingMeters = 100.0;
-
-    QVariantList displayCoords;
-    if (!waypoints.isEmpty()) {
-        auto appendCoord = [&](const LatLng &wp) {
-            QVariantMap m;
-            m[QStringLiteral("lat")] = wp.latitude;
-            m[QStringLiteral("lng")] = wp.longitude;
-            displayCoords.append(m);
-        };
-
-        appendCoord(waypoints.first());
-        LatLng lastKept = waypoints.first();
-
-        for (int i = 1; i < waypoints.size() - 1; ++i) {
-            if (lastKept.distanceTo(waypoints[i]) >= MinDisplaySpacingMeters) {
-                appendCoord(waypoints[i]);
-                lastKept = waypoints[i];
-            }
-        }
-
-        if (waypoints.size() > 1) {
-            appendCoord(waypoints.last());
-        }
-    }
-
-    qDebug() << "MapService: route display -" << waypoints.size()
-             << "waypoints simplified to" << displayCoords.size();
-
-    m_routeCoordinates = displayCoords;
-    emit routeCoordinatesChanged();
+    setRouteWaypoints(varList);
 }
 
 void MapService::clearRoute()
