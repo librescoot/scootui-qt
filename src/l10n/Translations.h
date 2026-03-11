@@ -139,6 +139,8 @@ class Translations : public QObject
     Q_PROPERTY(QString aboutBootThemeRestored READ aboutBootThemeRestored NOTIFY languageChanged)
     Q_PROPERTY(QString aboutGenuineAdvantage READ aboutGenuineAdvantage NOTIFY languageChanged)
     Q_PROPERTY(QString nonCommercialLicense READ nonCommercialLicense NOTIFY languageChanged)
+    Q_PROPERTY(QString aboutCommercialProhibited READ aboutCommercialProhibited NOTIFY languageChanged)
+    Q_PROPERTY(QString aboutScamWarning READ aboutScamWarning NOTIFY languageChanged)
 
     // Toast / monitoring
     Q_PROPERTY(QString lowTempWarning READ lowTempWarning NOTIFY languageChanged)
@@ -442,6 +444,8 @@ public:
     QString aboutBootThemeRestored() const { return lookup("aboutBootThemeRestored"); }
     QString aboutGenuineAdvantage() const { return lookup("aboutGenuineAdvantage"); }
     QString nonCommercialLicense() const { return lookup("nonCommercialLicense"); }
+    QString aboutCommercialProhibited() const { return lookup("aboutCommercialProhibited"); }
+    QString aboutScamWarning() const { return lookup("aboutScamWarning"); }
 
     QString lowTempWarning() const { return lookup("lowTempWarning"); }
     QString lowTempMotor() const { return lookup("lowTempMotor"); }

@@ -3,8 +3,11 @@ import QtQuick.Layouts
 
 Rectangle {
     id: bottomBar
-    color: "transparent"
-    implicitHeight: 48
+    color: typeof themeStore !== "undefined" ? themeStore.backgroundColor : "black"
+    implicitHeight: Math.max(48, centerItem.childrenRect.height + 16)
+
+    // Allow injecting a center widget (like Flutter's centerWidget parameter)
+    default property alias centerContent: centerItem.data
 
     readonly property real tripDistance: typeof tripStore !== "undefined" ? tripStore.distance : 0
     readonly property int tripDuration: typeof tripStore !== "undefined" ? tripStore.duration : 0
@@ -20,111 +23,137 @@ Rectangle {
     }
 
     RowLayout {
+        id: contentRow
         anchors.fill: parent
         anchors.leftMargin: 8
         anchors.rightMargin: 8
         anchors.topMargin: 8
         anchors.bottomMargin: 8
-        spacing: 4
+        spacing: 0
 
-        // Left: Duration + Avg Speed
-        Column {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            spacing: 2
-
-            Row {
-                spacing: 4
-                Text {
-                    text: "Duration"
-                    font.pixelSize: 10
-                    font.weight: Font.Medium
-                    font.letterSpacing: 0.5
-                    color: themeStore.textHint
-                }
-                Text {
-                    text: formatDuration(tripDuration)
-                    font.pixelSize: 16
-                    font.bold: true
-                    color: themeStore.textColor
-                }
-            }
-            Row {
-                spacing: 4
-                Text {
-                    text: "Avg"
-                    font.pixelSize: 10
-                    font.weight: Font.Medium
-                    font.letterSpacing: 0.5
-                    color: themeStore.textHint
-                }
-                Text {
-                    text: Math.round(avgSpeed).toString()
-                    font.pixelSize: 16
-                    font.bold: true
-                    color: themeStore.textColor
-                }
-                Text {
-                    text: "km/h"
-                    font.pixelSize: 12
-                    color: themeStore.textHint
-                    anchors.baseline: parent.children[1] ? parent.children[1].baseline : undefined
-                }
-            }
-        }
-
-        // Center: configurable widget (empty for now)
+        // Left: Duration + Avg Speed (label above value, columns side by side)
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-        }
-
-        // Right: Trip + Total distances
-        Column {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            spacing: 2
 
             Row {
-                anchors.right: parent.right
-                spacing: 4
-                Text {
-                    text: "Trip"
-                    font.pixelSize: 10
-                    font.weight: Font.Medium
-                    color: themeStore.textHint
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 16
+
+                // Duration column
+                Column {
+                    spacing: 0
+                    Text {
+                        text: "Duration"
+                        font.pixelSize: 10
+                        font.weight: Font.Medium
+                        font.letterSpacing: 0.5
+                        color: themeStore.textHint
+                    }
+                    Text {
+                        text: formatDuration(tripDuration)
+                        font.pixelSize: 16
+                        font.bold: true
+                        color: themeStore.textColor
+                    }
                 }
-                Text {
-                    text: (tripDistance).toFixed(1)
-                    font.pixelSize: 16
-                    font.bold: true
-                    color: themeStore.textColor
-                }
-                Text {
-                    text: "km"
-                    font.pixelSize: 12
-                    color: themeStore.textHint
+
+                // Avg Speed column
+                Column {
+                    spacing: 0
+                    Text {
+                        text: "Avg"
+                        font.pixelSize: 10
+                        font.weight: Font.Medium
+                        font.letterSpacing: 0.5
+                        color: themeStore.textHint
+                    }
+                    Row {
+                        spacing: 2
+                        Text {
+                            id: avgValue
+                            text: avgSpeed.toFixed(1)
+                            font.pixelSize: 16
+                            font.bold: true
+                            color: themeStore.textColor
+                        }
+                        Text {
+                            text: "km/h"
+                            font.pixelSize: 12
+                            color: themeStore.textHint
+                            anchors.baseline: avgValue.baseline
+                        }
+                    }
                 }
             }
+        }
+
+        // Center: configurable widget
+        Item {
+            id: centerItem
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+        }
+
+        // Right: Trip + Total distances (label above value, columns side by side)
+        Item {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+
             Row {
                 anchors.right: parent.right
-                spacing: 4
-                Text {
-                    text: "Total"
-                    font.pixelSize: 10
-                    font.weight: Font.Medium
-                    color: themeStore.textHint
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 16
+
+                // Trip column
+                Column {
+                    spacing: 0
+                    Text {
+                        anchors.right: parent.right
+                        text: "Trip"
+                        font.pixelSize: 10
+                        font.weight: Font.Medium
+                        font.letterSpacing: 0.5
+                        color: themeStore.textHint
+                    }
+                    Text {
+                        anchors.right: parent.right
+                        text: (tripDistance).toFixed(1)
+                        font.pixelSize: 16
+                        font.bold: true
+                        color: themeStore.textColor
+                    }
                 }
-                Text {
-                    text: (odometer / 1000).toFixed(1)
-                    font.pixelSize: 16
-                    font.bold: true
-                    color: themeStore.textColor
-                }
-                Text {
-                    text: "km"
-                    font.pixelSize: 12
-                    color: themeStore.textHint
+
+                // Total column
+                Column {
+                    spacing: 0
+                    Text {
+                        anchors.right: parent.right
+                        text: "Total"
+                        font.pixelSize: 10
+                        font.weight: Font.Medium
+                        font.letterSpacing: 0.5
+                        color: themeStore.textHint
+                    }
+                    Row {
+                        anchors.right: parent.right
+                        spacing: 2
+                        Text {
+                            id: totalValue
+                            text: (odometer / 1000).toFixed(1)
+                            font.pixelSize: 16
+                            font.bold: true
+                            color: themeStore.textColor
+                        }
+                        Text {
+                            text: "km"
+                            font.pixelSize: 12
+                            color: themeStore.textHint
+                            anchors.baseline: totalValue.baseline
+                        }
+                    }
                 }
             }
         }

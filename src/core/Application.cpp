@@ -137,7 +137,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
                                    settingsStore, themeStore, this);
 
     // Navigation availability (B6)
-    m_navAvailability = new NavigationAvailabilityService(settingsStore, internetStore, this);
+    m_navAvailability = new NavigationAvailabilityService(settingsStore, internetStore, repo, this);
 
     // Saved locations (B7)
     m_savedLocationsService = new SavedLocationsService(repo, this);

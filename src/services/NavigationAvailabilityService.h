@@ -6,6 +6,7 @@
 
 class SettingsStore;
 class InternetStore;
+class MdbRepository;
 
 class NavigationAvailabilityService : public QObject
 {
@@ -15,7 +16,7 @@ class NavigationAvailabilityService : public QObject
 
 public:
     explicit NavigationAvailabilityService(SettingsStore *settings, InternetStore *internet,
-                                            QObject *parent = nullptr);
+                                            MdbRepository *repo, QObject *parent = nullptr);
 
     bool localDisplayMapsAvailable() const { return m_mapsAvailable; }
     bool routingAvailable() const { return m_routingAvailable; }
@@ -28,9 +29,11 @@ signals:
 private:
     void checkMaps();
     void checkRouting();
+    void publishToRedis();
 
     SettingsStore *m_settings;
     InternetStore *m_internet;
+    MdbRepository *m_repo;
     QNetworkAccessManager *m_nam;
     bool m_mapsAvailable = false;
     bool m_routingAvailable = false;

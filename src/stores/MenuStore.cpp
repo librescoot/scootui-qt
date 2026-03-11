@@ -83,6 +83,90 @@ void MenuStore::rebuildMenuTree()
     bool isDark = m_theme->isDark();
     QString currentLang = settings->language();
 
+    // === Toggle Hazard Lights (top-level, like Flutter) ===
+    m_rootNode->addChild(MenuNode::action(QStringLiteral("hazard_lights"),
+        tr->menuToggleHazardLights(), [this, repo]() {
+            // Toggle hazard lights via MDB
+            repo->set(QStringLiteral("vehicle"), QStringLiteral("blinker"),
+                      QStringLiteral("both"));
+            close();
+        }));
+
+    // === Switch to Cluster View (only on map screen) ===
+    m_rootNode->addChild(MenuNode::action(QStringLiteral("switch_cluster"),
+        tr->menuSwitchToCluster(), [this]() {
+            if (m_screenStore) m_screenStore->setScreen(0);
+            close();
+        }, [this]() {
+            return m_screenStore && m_screenStore->currentScreen() == 1;
+        }));
+
+    // === Switch to Map View (only on cluster screen) ===
+    m_rootNode->addChild(MenuNode::action(QStringLiteral("switch_map"),
+        tr->menuSwitchToMap(), [this]() {
+            if (m_screenStore) m_screenStore->setScreen(1);
+            close();
+        }, [this]() {
+            return m_screenStore && m_screenStore->currentScreen() == 0;
+        }));
+
+    // === Navigation submenu ===
+    // Use header for display title; the submenu list title is just "Navigation"
+    auto *navNode = MenuNode::submenu(QStringLiteral("navigation"),
+                                       QStringLiteral("Navigation"),
+                                       tr->menuNavigationHeader());
+    m_rootNode->addChild(navNode);
+
+    // Enter destination code
+    navNode->addChild(MenuNode::action(QStringLiteral("nav_enter_code"),
+        tr->menuEnterDestinationCode(), [this]() {
+            close();
+            if (m_screenStore) m_screenStore->setScreen(7); // AddressSelection
+        }));
+
+    // Saved locations submenu (nested under Navigation)
+    if (m_savedLocations) {
+        auto *savedLocsNode = MenuNode::submenu(QStringLiteral("saved_locations"),
+                                                 tr->menuSavedLocations());
+        navNode->addChild(savedLocsNode);
+
+        savedLocsNode->addChild(MenuNode::action(QStringLiteral("save_current_loc"),
+            tr->menuSaveLocation(), [this]() {
+                m_savedLocations->saveCurrentLocation();
+                close();
+            }));
+
+        auto locs = m_savedLocations->locations();
+        for (const auto &locVar : locs) {
+            auto loc = locVar.toMap();
+            int locId = loc[QStringLiteral("id")].toInt();
+            QString label = loc[QStringLiteral("label")].toString();
+            if (label.isEmpty())
+                label = QStringLiteral("%1, %2").arg(
+                    loc[QStringLiteral("latitude")].toDouble(), 0, 'f', 5).arg(
+                    loc[QStringLiteral("longitude")].toDouble(), 0, 'f', 5);
+
+            savedLocsNode->addChild(MenuNode::action(
+                QStringLiteral("saved_loc_%1").arg(locId), label,
+                [this, locId]() {
+                    m_savedLocations->navigateToLocation(locId);
+                    close();
+                }));
+        }
+    }
+
+    // Stop navigation
+    navNode->addChild(MenuNode::action(QStringLiteral("nav_stop"),
+        tr->menuStopNavigation(), [this]() {
+            close();
+        }));
+
+    // Navigation setup info
+    navNode->addChild(MenuNode::action(QStringLiteral("nav_setup"), tr->menuNavSetup(), [this]() {
+        close();
+        if (m_screenStore) m_screenStore->setScreen(9);
+    }));
+
     // === Settings submenu ===
     auto *settingsNode = MenuNode::submenu(QStringLiteral("settings"),
                                            tr->menuSettings(),
@@ -246,47 +330,6 @@ void MenuStore::rebuildMenuTree()
     systemNode->addChild(MenuNode::action(QStringLiteral("enter_ums"), tr->menuEnterUms(), [this, repo]() {
         repo->set(QStringLiteral("usb"), QStringLiteral("mode"), QStringLiteral("ums-by-dbc"));
         close();
-    }));
-
-    // === Saved Locations submenu (B7) ===
-    if (m_savedLocations) {
-        auto *savedLocsNode = MenuNode::submenu(QStringLiteral("saved_locations"),
-                                                 tr->menuSavedLocations());
-        m_rootNode->addChild(savedLocsNode);
-
-        // "Save Current Location" action
-        savedLocsNode->addChild(MenuNode::action(QStringLiteral("save_current_loc"),
-            tr->menuSaveLocation(), [this]() {
-                m_savedLocations->saveCurrentLocation();
-                close();
-            }));
-
-        // Dynamic entries for each saved location
-        auto locs = m_savedLocations->locations();
-        for (const auto &locVar : locs) {
-            auto loc = locVar.toMap();
-            int locId = loc[QStringLiteral("id")].toInt();
-            QString label = loc[QStringLiteral("label")].toString();
-            if (label.isEmpty())
-                label = QStringLiteral("%1, %2").arg(
-                    loc[QStringLiteral("latitude")].toDouble(), 0, 'f', 5).arg(
-                    loc[QStringLiteral("longitude")].toDouble(), 0, 'f', 5);
-
-            savedLocsNode->addChild(MenuNode::action(
-                QStringLiteral("saved_loc_%1").arg(locId), label,
-                [this, locId]() {
-                    m_savedLocations->navigateToLocation(locId);
-                    close();
-                }));
-        }
-    }
-
-    // === Navigation Setup entry (B6) ===
-    m_rootNode->addChild(MenuNode::action(QStringLiteral("nav_setup"), tr->menuNavSetup(), [this]() {
-        close();
-        if (m_screenStore) {
-            m_screenStore->setScreen(9); // NavigationSetup screen
-        }
     }));
 
     // === Top-level actions ===

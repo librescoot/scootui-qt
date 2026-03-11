@@ -32,10 +32,8 @@ Item {
     // Speed labels to show
     readonly property var speedLabels: [0, 30, 50, 60, 70, 80, 90, 100, 120]
 
-    // Scale to fit container
-    readonly property real scaleX: width / canvasWidth
-    readonly property real scaleY: height / (canvasHeight + 40) // extra space for labels
-    readonly property real displayScale: Math.min(scaleX, scaleY)
+    // Fixed size matching Flutter (no scaling)
+    readonly property real displayScale: 1.0
 
     // Exponential smoothing via FrameAnimation
     FrameAnimation {
@@ -115,8 +113,8 @@ Item {
 
             // === Speed fill arc ===
             if (animatedSpeed > 0) {
-                var clampedSpeed = Math.min(animatedSpeed, 120)
-                var progress = clampedSpeed / 120
+                var clampedSpeed = Math.min(animatedSpeed, maxArcSpeed)
+                var progress = clampedSpeed / maxArcSpeed
                 var fillSweep = sweepRad * progress
 
                 ctx.beginPath()
@@ -150,8 +148,8 @@ Item {
 
             // === Tick marks ===
             var tickInward = 26
-            for (var speed = 0; speed <= 120; speed += 5) {
-                var tickAngle = startRad + sweepRad * (speed / 120)
+            for (var speed = 0; speed <= maxArcSpeed; speed += 5) {
+                var tickAngle = startRad + sweepRad * (speed / maxArcSpeed)
                 var isMajor = (speed % 10 === 0)
                 var tickLen = isMajor ? 8 : 4
                 var tickWidth = isMajor ? 1.5 : 1.0
@@ -180,8 +178,8 @@ Item {
 
             for (var i = 0; i < speedLabels.length; i++) {
                 var spd = speedLabels[i]
-                if (spd > 120) continue
-                var labelAngle = startRad + sweepRad * (spd / 120)
+                if (spd > maxArcSpeed) continue
+                var labelAngle = startRad + sweepRad * (spd / maxArcSpeed)
                 var labelR = r - labelInward
                 var lx = cx + labelR * Math.cos(labelAngle)
                 var ly = cy + labelR * Math.sin(labelAngle)

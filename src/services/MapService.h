@@ -98,9 +98,9 @@ private:
     static constexpr double LargeErrorThreshold = 15.0;
 
     // Dynamic zoom
-    static constexpr double DefaultZoom = 16.0;
-    static constexpr double MinZoom = 15.0;
-    static constexpr double MaxZoom = 17.5;
+    static constexpr double DefaultZoom = 17.0;
+    static constexpr double MinZoom = 8.0;
+    static constexpr double MaxZoom = 18.0;
     static constexpr double ZoomHysteresis = 0.3;
     static constexpr double ZoomSmoothRate = 1.0;
     static constexpr double MultiTurnLookAheadMeters = 150.0;
@@ -108,8 +108,9 @@ private:
     // Rotation smoothing
     static constexpr double HeadingFreezeSpeed = 1.0;    // km/h
     static constexpr double HeadingFullSpeed = 10.0;     // km/h
-    static constexpr double TargetSmoothRate = 8.0;      // deg/sec for target smoothing
+    static constexpr double TargetSmoothRate = 8.0;      // exponential blend rate per second
     static constexpr double MaxBearingRate = 110.0;       // deg/sec max approach speed
+    static constexpr double RotationAnimDuration = 1.0;   // seconds to complete rotation
 
     // Vehicle offset
     static constexpr double VehicleOffsetPx = 120.0;

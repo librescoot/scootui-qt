@@ -9,10 +9,20 @@ Item {
 
     property bool mapReady: typeof mapService !== "undefined" ? mapService.isReady : false
 
+    // Reload map when style URL changes (e.g. theme switch)
+    // PluginParameter is only read at creation time, so we must recreate the MapView
+    Connections {
+        target: typeof mapService !== "undefined" ? mapService : null
+        function onStyleUrlChanged() {
+            mapLoader.active = false
+            mapLoader.active = true
+        }
+    }
+
     Loader {
         id: mapLoader
         anchors.fill: parent
-        active: mapReady
+        active: true
         source: Qt.resolvedUrl("MapViewContent.qml")
     }
 

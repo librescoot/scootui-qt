@@ -1,6 +1,7 @@
 #include "NavigationAvailabilityService.h"
 #include "stores/SettingsStore.h"
 #include "stores/InternetStore.h"
+#include "repositories/MdbRepository.h"
 #include "core/AppConfig.h"
 
 #include <QFile>
@@ -9,10 +10,12 @@
 
 NavigationAvailabilityService::NavigationAvailabilityService(SettingsStore *settings,
                                                                InternetStore *internet,
+                                                               MdbRepository *repo,
                                                                QObject *parent)
     : QObject(parent)
     , m_settings(settings)
     , m_internet(internet)
+    , m_repo(repo)
     , m_nam(new QNetworkAccessManager(this))
 {
     connect(m_settings, &SettingsStore::valhallaUrlChanged, this, &NavigationAvailabilityService::recheck);
@@ -29,9 +32,10 @@ void NavigationAvailabilityService::recheck()
 
 void NavigationAvailabilityService::checkMaps()
 {
-    bool available = QFile::exists(QStringLiteral("/data/scootui/maps/map.mbtiles"));
+    bool available = QFile::exists(QStringLiteral("/data/maps/map.mbtiles"));
     if (available != m_mapsAvailable) {
         m_mapsAvailable = available;
+        publishToRedis();
         emit availabilityChanged();
     }
 }
@@ -51,7 +55,20 @@ void NavigationAvailabilityService::checkRouting()
         reply->deleteLater();
         if (available != m_routingAvailable) {
             m_routingAvailable = available;
+            publishToRedis();
             emit availabilityChanged();
         }
     });
+}
+
+void NavigationAvailabilityService::publishToRedis()
+{
+    if (!m_repo)
+        return;
+
+    const auto cluster = QStringLiteral("settings");
+    m_repo->set(cluster, QStringLiteral("maps-available"),
+                m_mapsAvailable ? QStringLiteral("true") : QStringLiteral("false"));
+    m_repo->set(cluster, QStringLiteral("navigation-available"),
+                m_routingAvailable ? QStringLiteral("true") : QStringLiteral("false"));
 }

@@ -252,17 +252,11 @@ void MapService::rebuildStyleUrl()
     bool isDark = m_theme->isDark();
     bool isOffline = (m_settings->mapType() == static_cast<int>(ScootEnums::MapType::Offline));
 
-    QString url;
-    if (isOffline) {
-        // Offline: point to mbtiles-based style with file:// scheme
-        url = isDark
-            ? QStringLiteral("file:///data/scootui/maps/mapdark.json")
-            : QStringLiteral("file:///data/scootui/maps/maplight.json");
-    } else {
-        url = isDark
-            ? QStringLiteral("qrc:/ScootUI/assets/styles/mapdark.json")
-            : QStringLiteral("qrc:/ScootUI/assets/styles/maplight.json");
-    }
+    // Always use embedded style JSONs (both online and offline modes)
+    Q_UNUSED(isOffline)
+    QString url = isDark
+        ? QStringLiteral("qrc:/ScootUI/assets/styles/mapdark.json")
+        : QStringLiteral("qrc:/ScootUI/assets/styles/maplight.json");
 
     if (url != m_styleUrl) {
         m_styleUrl = url;
@@ -333,21 +327,37 @@ void MapService::onDeadReckoningTick()
                        compensatedLat, compensatedLng);
     }
 
-    // ----- Update camera position -----
-    bool latChanged = (compensatedLat != m_mapLatitude);
-    bool lngChanged = (compensatedLng != m_mapLongitude);
+    // ----- Update bearing & zoom first (needed for offset calculation) -----
+    updateBearing(dt);
+    updateDynamicZoom(dt);
 
-    m_mapLatitude = compensatedLat;
-    m_mapLongitude = compensatedLng;
+    // ----- Apply vehicle offset to map center -----
+    // The vehicle marker is drawn VehicleOffsetPx below the map center on screen.
+    // To make the map rotate around the vehicle (not the center), we shift the
+    // map center away from the vehicle by the offset, rotated by the current bearing.
+    // This matches Flutter's camera offset calculation.
+    double vehicleLat = compensatedLat;
+    double vehicleLng = compensatedLng;
+
+    // Mercator: meters per pixel at current zoom and latitude
+    double latRad = vehicleLat * M_PI / 180.0;
+    double metersPerPx = 156543.03 * std::cos(latRad) / std::pow(2.0, m_mapZoom);
+    double offsetMeters = VehicleOffsetPx * metersPerPx;
+
+    // Shift map center in the bearing direction (up on screen = bearing direction)
+    double bearingRad = m_displayBearing * M_PI / 180.0;
+    double centerLat = vehicleLat + (offsetMeters * std::cos(bearingRad)) / 111320.0;
+    double centerLng = vehicleLng + (offsetMeters * std::sin(bearingRad)) / (111320.0 * std::cos(latRad));
+
+    // ----- Update camera position -----
+    bool latChanged = (centerLat != m_mapLatitude);
+    bool lngChanged = (centerLng != m_mapLongitude);
+
+    m_mapLatitude = centerLat;
+    m_mapLongitude = centerLng;
 
     if (latChanged) emit mapLatitudeChanged();
     if (lngChanged) emit mapLongitudeChanged();
-
-    // ----- Update bearing -----
-    updateBearing(dt);
-
-    // ----- Update zoom -----
-    updateDynamicZoom(dt);
 
     // ----- isReady -----
     if (!m_isReady && m_hasInitialPosition) {
@@ -539,23 +549,26 @@ void MapService::updateBearing(double dt)
         return;
     }
 
-    // Stage 1: smooth the target heading
+    // Stage 1: exponential blend toward target (matches Flutter)
+    // Each frame moves a proportion of remaining distance, not a fixed step
     double targetDelta = normalizeAngle(rawHeading - m_smoothedTarget);
-    double targetStep = TargetSmoothRate * dt * dampFactor;
-    if (std::abs(targetDelta) <= targetStep) {
-        m_smoothedTarget = rawHeading;
-    } else {
-        m_smoothedTarget += std::copysign(targetStep, targetDelta);
-    }
+    double targetBlend = std::min(1.0, TargetSmoothRate * dt * dampFactor);
+    m_smoothedTarget += targetDelta * targetBlend;
     m_smoothedTarget = std::fmod(m_smoothedTarget + 360.0, 360.0);
 
-    // Stage 2: approach the smoothed target with speed limit
+    // Stage 2: duration-based interpolation (matches Flutter)
+    // Tries to complete rotation in RotationAnimDuration seconds, capped at MaxBearingRate
     double displayDelta = normalizeAngle(m_smoothedTarget - m_displayBearing);
-    double maxStep = MaxBearingRate * dt;
-    if (std::abs(displayDelta) <= maxStep) {
+    double absDelta = std::abs(displayDelta);
+    double rotationRate = (absDelta <= MaxBearingRate)
+        ? absDelta / RotationAnimDuration
+        : MaxBearingRate;
+
+    double rotationStep = rotationRate * dt;
+    if (absDelta <= rotationStep || rotationRate == 0) {
         m_displayBearing = m_smoothedTarget;
     } else {
-        m_displayBearing += std::copysign(maxStep, displayDelta);
+        m_displayBearing += std::copysign(rotationStep, displayDelta);
     }
     m_displayBearing = std::fmod(m_displayBearing + 360.0, 360.0);
 

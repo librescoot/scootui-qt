@@ -8,45 +8,35 @@ Item {
     property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
     property bool isNavigating: typeof navigationService !== "undefined" ? navigationService.isNavigating : false
 
-    // Circle with border
+    // Circle with border - matching Flutter's grey background style
     Rectangle {
         anchors.centerIn: parent
         width: 37
         height: 37
         radius: 18.5
-        color: isDark ? "#40C8F0" : "#0090B8"
-        border.width: 3
-        border.color: "white"
+        color: isDark ? Qt.rgba(0.26, 0.26, 0.26, 0.7) : Qt.rgba(0.88, 0.88, 0.88, 0.7)
+        border.width: 1
+        border.color: isDark ? Qt.rgba(0.46, 0.46, 0.46, 0.9) : Qt.rgba(0.62, 0.62, 0.62, 0.9)
 
-        // Navigation arrow (triangle pointing up)
+        // Navigation arrow (blue, matching Flutter Icons.navigation)
         Canvas {
             anchors.centerIn: parent
-            width: 16
-            height: 16
-            visible: vehicleMarker.isNavigating
+            width: 24
+            height: 24
 
             onPaint: {
                 var ctx = getContext("2d")
                 ctx.clearRect(0, 0, width, height)
-                ctx.fillStyle = "white"
+                ctx.fillStyle = "#2196F3"
                 ctx.beginPath()
-                ctx.moveTo(8, 2)
-                ctx.lineTo(14, 14)
-                ctx.lineTo(8, 10)
-                ctx.lineTo(2, 14)
+                // Navigation arrow icon shape
+                ctx.moveTo(12, 2)
+                ctx.lineTo(20, 20)
+                ctx.lineTo(12, 15)
+                ctx.lineTo(4, 20)
                 ctx.closePath()
                 ctx.fill()
             }
-        }
-
-        // Simple dot when not navigating
-        Rectangle {
-            anchors.centerIn: parent
-            width: 8
-            height: 8
-            radius: 4
-            color: "white"
-            visible: !vehicleMarker.isNavigating
         }
     }
 }

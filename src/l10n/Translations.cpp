@@ -422,6 +422,12 @@ void Translations::initStrings()
     en[QStringLiteral("nonCommercialLicense")] = QStringLiteral("This software is licensed for non-commercial use only.");
     de[QStringLiteral("nonCommercialLicense")] = QStringLiteral("Diese Software ist nur f\u00FCr nicht-kommerzielle Nutzung lizenziert.");
 
+    en[QStringLiteral("aboutCommercialProhibited")] = QStringLiteral("Commercial distribution, resale, or preinstallation on devices for sale is prohibited under CC BY-NC-SA 4.0.");
+    de[QStringLiteral("aboutCommercialProhibited")] = QStringLiteral("Kommerzieller Vertrieb, Weiterverkauf oder Vorinstallation auf Ger\u00E4ten zum Verkauf ist unter CC BY-NC-SA 4.0 untersagt.");
+
+    en[QStringLiteral("aboutScamWarning")] = QStringLiteral("If you paid money for this software, or if you purchased a new scooter from a shop or vendor with this software preinstalled, you may have been the victim of a scam. Please report it at https://librescoot.org.");
+    de[QStringLiteral("aboutScamWarning")] = QStringLiteral("Falls du f\u00FCr diese Software bezahlt hast, oder wenn du einen neuen Roller von einem H\u00E4ndler oder Verk\u00E4ufer mit vorinstallierter Software erworben hast, bist du m\u00F6glicherweise Opfer eines Betrugs geworden. Bitte melde es auf https://librescoot.org.");
+
     // -----------------------------------------------------------------------
     // Toast / monitoring
     // -----------------------------------------------------------------------

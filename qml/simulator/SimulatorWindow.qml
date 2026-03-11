@@ -23,6 +23,38 @@ ApplicationWindow {
             width: parent.width
             spacing: 8
 
+            // ---- Screen ----
+            SectionHeader { text: "Screen" }
+
+            RowLayout {
+                Layout.fillWidth: true
+                ButtonGroup { id: screenGroup; exclusive: true }
+                SimButton {
+                    text: "Cluster"; small: true
+                    ButtonGroup.group: screenGroup
+                    checkable: true; checked: true
+                    onClicked: screenStore.setScreen(0)
+                }
+                SimButton {
+                    text: "Map"; small: true
+                    ButtonGroup.group: screenGroup
+                    checkable: true
+                    onClicked: screenStore.setScreen(1)
+                }
+                SimButton {
+                    text: "Debug"; small: true
+                    ButtonGroup.group: screenGroup
+                    checkable: true
+                    onClicked: screenStore.setScreen(3)
+                }
+                SimButton {
+                    text: "About"; small: true
+                    ButtonGroup.group: screenGroup
+                    checkable: true
+                    onClicked: screenStore.setScreen(4)
+                }
+            }
+
             // ---- Presets ----
             SectionHeader { text: "Presets" }
 

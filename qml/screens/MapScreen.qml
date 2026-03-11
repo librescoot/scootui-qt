@@ -7,7 +7,7 @@ import "../widgets/map"
 
 Rectangle {
     id: mapScreen
-    color: "black"
+    color: typeof themeStore !== "undefined" ? themeStore.backgroundColor : "black"
 
     // Navigation status enum values
     readonly property int statusNavigating: 2
@@ -70,65 +70,6 @@ Rectangle {
             // Navigation status overlay (calculating, rerouting, arrived, error)
             NavigationStatusOverlay {}
 
-            // Speed indicator (bottom-left)
-            Rectangle {
-                anchors.left: parent.left
-                anchors.bottom: parent.bottom
-                anchors.leftMargin: 8
-                anchors.bottomMargin: 8
-                width: speedCol.width + 16
-                height: speedCol.height + 12
-                radius: 8
-                color: Qt.rgba(0, 0, 0, 0.7)
-
-                ColumnLayout {
-                    id: speedCol
-                    anchors.centerIn: parent
-                    spacing: 0
-
-                    Text {
-                        text: typeof engineStore !== "undefined"
-                              ? Math.floor(engineStore.speed) : "0"
-                        font.pixelSize: 32
-                        font.bold: true
-                        color: "white"
-                        Layout.alignment: Qt.AlignHCenter
-                    }
-
-                    Text {
-                        text: "km/h"
-                        font.pixelSize: 10
-                        color: Qt.rgba(1, 1, 1, 0.6)
-                        Layout.alignment: Qt.AlignHCenter
-                    }
-                }
-            }
-
-            // Speed limit indicator (bottom-left, above speed)
-            Rectangle {
-                anchors.left: parent.left
-                anchors.bottom: parent.bottom
-                anchors.leftMargin: 8
-                anchors.bottomMargin: 72
-                width: 40
-                height: 40
-                radius: 20
-                color: "white"
-                border.color: "red"
-                border.width: 3
-                visible: typeof speedLimitStore !== "undefined" &&
-                         speedLimitStore.speedLimit.length > 0 &&
-                         speedLimitStore.speedLimit !== "none"
-
-                Text {
-                    anchors.centerIn: parent
-                    text: typeof speedLimitStore !== "undefined" ? speedLimitStore.speedLimit : ""
-                    font.pixelSize: 14
-                    font.bold: true
-                    color: "black"
-                }
-            }
-
             // Road name (bottom center)
             Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -137,7 +78,8 @@ Rectangle {
                 width: roadNameText.width + 16
                 height: roadNameText.height + 8
                 radius: 4
-                color: Qt.rgba(0, 0, 0, 0.6)
+                color: typeof themeStore !== "undefined" && themeStore.isDark
+                       ? Qt.rgba(0, 0, 0, 0.6) : Qt.rgba(1, 1, 1, 0.8)
                 visible: roadNameText.text.length > 0
 
                 Text {
@@ -145,7 +87,8 @@ Rectangle {
                     anchors.centerIn: parent
                     text: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadName : ""
                     font.pixelSize: 14
-                    color: "white"
+                    color: typeof themeStore !== "undefined" && themeStore.isDark
+                           ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                 }
             }
 
@@ -154,7 +97,7 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 anchors.rightMargin: 8
-                anchors.bottomMargin: 48
+                anchors.bottomMargin: 8
                 spacing: 4
                 visible: typeof mapService !== "undefined" && mapService.isReady
 
@@ -162,12 +105,79 @@ Rectangle {
                 ScaleBar {}
             }
 
-            // Warning indicators (bottom right)
-            StatusIndicators {
-                anchors.right: parent.right
+            // Warning telltales (bottom left) - engine warning, hazards, parking brake
+            Row {
+                anchors.left: parent.left
                 anchors.bottom: parent.bottom
-                anchors.rightMargin: 8
+                anchors.leftMargin: 8
                 anchors.bottomMargin: 8
+                spacing: 8
+                visible: showWarnings
+
+                property bool showWarnings: {
+                    if (typeof vehicleStore === "undefined") return false
+                    return vehicleStore.isUnableToDrive === 0  // Toggle::On = 0
+                           || vehicleStore.blinkerState === 3
+                           || vehicleStore.state === 4  // Parked
+                }
+
+                Rectangle {
+                    width: warningRow.width + 16
+                    height: warningRow.height + 16
+                    radius: 8
+                    color: typeof themeStore !== "undefined" && themeStore.isDark
+                           ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.9)
+                    border.width: 1
+                    border.color: typeof themeStore !== "undefined" && themeStore.isDark
+                                  ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.12)
+
+                    Row {
+                        id: warningRow
+                        anchors.centerIn: parent
+                        spacing: 8
+
+                        // Engine warning
+                        IndicatorLight {
+                            visible: typeof vehicleStore !== "undefined" && vehicleStore.isUnableToDrive === 0  // Toggle::On = 0
+                            source: "qrc:/ScootUI/assets/icons/librescoot-engine-warning.svg"
+                            active: true
+                            blinking: false
+                            tintColor: "#FFC107"
+                            width: 32; height: 32
+                        }
+
+                        // Hazards
+                        IndicatorLight {
+                            visible: typeof vehicleStore !== "undefined" && vehicleStore.blinkerState === 3
+                            source: "qrc:/ScootUI/assets/icons/librescoot-hazards.svg"
+                            active: true
+                            blinking: true
+                            tintColor: "#F44336"
+                            width: 32; height: 32
+                        }
+
+                        // Parking brake
+                        IndicatorLight {
+                            visible: typeof vehicleStore !== "undefined" && vehicleStore.state === 4
+                            source: "qrc:/ScootUI/assets/icons/librescoot-parking-brake.svg"
+                            active: true
+                            blinking: false
+                            tintColor: "#F44336"
+                            width: 32; height: 32
+                        }
+                    }
+                }
+            }
+        }
+
+        // Bottom status bar with speed center widget (matches Flutter layout)
+        UnifiedBottomStatusBar {
+            Layout.fillWidth: true
+
+            SpeedCenterWidget {
+                // Placed as center widget in the bottom bar
+                // Note: UnifiedBottomStatusBar currently has empty center;
+                // speed is shown here matching Flutter's MapScreen layout
             }
         }
     }

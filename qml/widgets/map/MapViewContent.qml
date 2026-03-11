@@ -14,14 +14,18 @@ MapView {
     }
 
     map.center: QtPositioning.coordinate(
-        typeof mapService !== "undefined" ? mapService.mapLatitude : 0,
-        typeof mapService !== "undefined" ? mapService.mapLongitude : 0
+        typeof mapService !== "undefined" && mapService.isReady
+            ? mapService.mapLatitude
+            : (typeof gpsStore !== "undefined" && gpsStore.latitude !== 0
+                ? gpsStore.latitude : 52.520008),
+        typeof mapService !== "undefined" && mapService.isReady
+            ? mapService.mapLongitude
+            : (typeof gpsStore !== "undefined" && gpsStore.longitude !== 0
+                ? gpsStore.longitude : 13.404954)
     )
 
-    map.zoomLevel: typeof mapService !== "undefined" ? mapService.mapZoom : 16
+    map.zoomLevel: typeof mapService !== "undefined" ? mapService.mapZoom : 17
     map.bearing: typeof mapService !== "undefined" ? mapService.mapBearing : 0
-
-    map.activeMapType: map.supportedMapTypes[0]
 
     // Route polyline
     MapPolyline {

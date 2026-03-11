@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import "../widgets/components"
 
 Rectangle {
     id: aboutScreen
@@ -14,11 +15,19 @@ Rectangle {
     // Warning box colors
     readonly property color warningBg: isDark ? "#1A1200" : "#FFF8E1"
     readonly property color warningBorder: isDark ? "#5C4400" : "#FFB300"
-    readonly property color warningText: isDark ? "#FFB300" : "#5C4400"
+    readonly property color warningText: isDark ? "#FFB300" : "#E65100"
+
+    readonly property string licenseId: "CC BY-NC-SA 4.0"
+    readonly property string websiteUrl: "https://librescoot.org"
+    readonly property string copyrightYear: {
+        var year = new Date().getFullYear()
+        return year > 2025 ? "2025\u2013" + year : "2025"
+    }
 
     // FOSS component data
     readonly property var fossComponents: [
         { name: "Qt", license: "LGPL-3.0" },
+        { name: "QMapLibre", license: "BSD-2-Clause" },
         { name: "hiredis", license: "BSD-3-Clause" },
         { name: "redis-plus-plus", license: "Apache-2.0" }
     ]
@@ -42,12 +51,12 @@ Rectangle {
             holdTimer.stop()
             if (holdActive) {
                 // Hold = scroll up
-                flickable.contentY = Math.max(flickable.contentY - 60, 0)
+                flickable.contentY = Math.max(flickable.contentY - 80, 0)
                 easterEggProgress.push("u")
             } else {
                 // Tap = scroll down
                 flickable.contentY = Math.min(
-                    flickable.contentY + 60,
+                    flickable.contentY + 80,
                     flickable.contentHeight - flickable.height
                 )
                 easterEggProgress.push("d")
@@ -94,6 +103,19 @@ Rectangle {
         }
         function onBrakeRightChanged() {
             if (typeof vehicleStore !== "undefined" && vehicleStore.brakeRight === 1) {
+                // Easter egg check on close
+                if (easterEggProgress.length === easterEggSequence.length) {
+                    var match = true
+                    for (var i = 0; i < easterEggSequence.length; i++) {
+                        if (easterEggProgress[i] !== easterEggSequence[i]) {
+                            match = false
+                            break
+                        }
+                    }
+                    if (match && typeof settingsService !== "undefined") {
+                        settingsService.togglePlymouthTheme()
+                    }
+                }
                 if (typeof screenStore !== "undefined") {
                     screenStore.setScreen(0);
                 }
@@ -101,199 +123,278 @@ Rectangle {
         }
     }
 
-    ColumnLayout {
+    Column {
         anchors.fill: parent
-        spacing: 0
 
-        // ---- Header (non-scrolling) ----
-        ColumnLayout {
-            Layout.fillWidth: true
-            Layout.leftMargin: 24
-            Layout.rightMargin: 24
-            Layout.topMargin: 24
-            spacing: 4
-
-            Text {
-                text: "LibreScoot"
-                color: aboutScreen.textPrimary
-                font.pixelSize: 28
-                font.bold: true
-                font.letterSpacing: 0.5
-            }
-
-            Text {
-                text: "ScootUI"
-                color: aboutScreen.textSecondary
-                font.pixelSize: 14
-                font.letterSpacing: 1.0
-            }
-
-            Item { Layout.preferredHeight: 4 }
-
-            Text {
-                text: "https://librescoot.org"
-                color: aboutScreen.accentColor
-                font.pixelSize: 13
-            }
-
-            Text {
-                text: "CC BY-NC-SA 4.0 \u00A9 2025 LibreScoot contributors"
-                color: aboutScreen.textSecondary
-                font.pixelSize: 12
-            }
-
-            Item { Layout.preferredHeight: 8 }
-        }
-
-        // Divider
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 1
-            color: aboutScreen.dividerColor
-        }
-
-        // ---- Scrollable content ----
+        // ---- Scrollable content (everything scrolls like Flutter) ----
         Flickable {
             id: flickable
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+            width: parent.width
+            height: parent.height - controlBar.height
             contentHeight: scrollContent.height
             clip: true
             boundsBehavior: Flickable.StopAtBounds
 
-            ColumnLayout {
+            Column {
                 id: scrollContent
                 width: flickable.width
                 spacing: 0
 
-                Item { Layout.preferredHeight: 16 }
+                Item { width: 1; height: 40 }
 
-                // Non-Commercial Warning Box
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.leftMargin: 24
-                    Layout.rightMargin: 24
-                    Layout.preferredHeight: warningCol.height + 20
-                    color: aboutScreen.warningBg
-                    border.color: aboutScreen.warningBorder
-                    border.width: 1
-                    radius: 6
+                // Logo + title row
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 16
 
-                    ColumnLayout {
-                        id: warningCol
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        anchors.margins: 10
-                        spacing: 4
+                    Image {
+                        source: "qrc:/ScootUI/assets/icons/librescoot-logo.png"
+                        width: 64
+                        height: 64
+                        fillMode: Image.PreserveAspectFit
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Column {
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 2
 
                         Text {
-                            text: "Non-Commercial License"
-                            color: aboutScreen.warningText
-                            font.pixelSize: 11
+                            text: "LibreScoot"
+                            color: aboutScreen.textPrimary
+                            font.pixelSize: 28
                             font.bold: true
+                            font.letterSpacing: 0.5
                         }
 
                         Text {
-                            Layout.fillWidth: true
-                            text: "This software is licensed for non-commercial use only."
-                            color: aboutScreen.warningText
-                            font.pixelSize: 11
+                            text: "ScootUI"
+                            color: aboutScreen.textSecondary
+                            font.pixelSize: 14
+                            font.letterSpacing: 1.0
+                        }
+                    }
+                }
+
+                Item { width: 1; height: 8 }
+
+                // FOSS description
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: typeof translations !== "undefined" ? translations.aboutFossDescription
+                          : "FOSS firmware for unu Scooter Pro e-mopeds"
+                    color: aboutScreen.textSecondary
+                    font.pixelSize: 13
+                    font.italic: true
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                Item { width: 1; height: 6 }
+
+                // Website URL
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: websiteUrl
+                    color: aboutScreen.accentColor
+                    font.pixelSize: 13
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                Item { width: 1; height: 12 }
+
+                // Copyright
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: licenseId + "  \u00A9\u00A0" + copyrightYear + " LibreScoot contributors"
+                    color: aboutScreen.textSecondary
+                    font.pixelSize: 12
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                Item { width: 1; height: 20 }
+
+                // Divider
+                Rectangle {
+                    width: parent.width - 80
+                    height: 1
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    color: aboutScreen.dividerColor
+                }
+
+                Item { width: 1; height: 8 }
+
+                // Non-commercial warning box
+                Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: parent.width - 80
+                    height: warningContent.height + 28
+                    color: aboutScreen.warningBg
+                    border.color: aboutScreen.warningBorder
+                    border.width: 1.5
+                    radius: 8
+
+                    Column {
+                        id: warningContent
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: 14
+                        spacing: 6
+
+                        // Warning title with icon
+                        Row {
+                            spacing: 6
+
+                            Text {
+                                text: "\u26A0"
+                                font.pixelSize: 14
+                                color: aboutScreen.warningText
+                            }
+
+                            Text {
+                                text: typeof translations !== "undefined"
+                                      ? translations.aboutNonCommercialTitle
+                                      : "NON-COMMERCIAL SOFTWARE"
+                                color: aboutScreen.warningText
+                                font.pixelSize: 11
+                                font.bold: true
+                                font.letterSpacing: 1.0
+                            }
+                        }
+
+                        // Commercial prohibited text
+                        Text {
+                            width: parent.width
+                            text: typeof translations !== "undefined"
+                                  ? translations.aboutCommercialProhibited
+                                  : "Commercial distribution, resale, or preinstallation on devices for sale is prohibited under CC BY-NC-SA 4.0."
+                            color: aboutScreen.textPrimary
+                            font.pixelSize: 12
+                            lineHeight: 1.5
+                            lineHeightMode: Text.ProportionalHeight
+                            wrapMode: Text.WordWrap
+                        }
+
+                        Item { width: 1; height: 2 }
+
+                        // Scam warning
+                        Text {
+                            width: parent.width
+                            text: typeof translations !== "undefined"
+                                  ? translations.aboutScamWarning
+                                  : "If you paid money for this software, or if you purchased a new scooter from a shop or vendor with this software preinstalled, you may have been the victim of a scam. Please report it at https://librescoot.org."
+                            color: aboutScreen.textPrimary
+                            font.pixelSize: 12
+                            font.weight: Font.DemiBold
+                            lineHeight: 1.5
+                            lineHeightMode: Text.ProportionalHeight
                             wrapMode: Text.WordWrap
                         }
                     }
                 }
 
-                Item { Layout.preferredHeight: 16 }
+                Item { width: 1; height: 20 }
 
                 // Divider
                 Rectangle {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 1
+                    width: parent.width - 80
+                    height: 1
+                    anchors.horizontalCenter: parent.horizontalCenter
                     color: aboutScreen.dividerColor
                 }
 
-                Item { Layout.preferredHeight: 12 }
+                Item { width: 1; height: 8 }
 
                 // FOSS Components header
                 Text {
-                    Layout.leftMargin: 24
-                    text: "Open Source Components"
+                    x: 40
+                    text: typeof translations !== "undefined"
+                          ? translations.aboutOpenSourceComponents
+                          : "OPEN SOURCE COMPONENTS"
                     color: aboutScreen.textSecondary
-                    font.pixelSize: 12
+                    font.pixelSize: 11
                     font.bold: true
+                    font.letterSpacing: 1.5
                 }
 
-                Item { Layout.preferredHeight: 8 }
+                Item { width: 1; height: 8 }
 
                 // FOSS component list
                 Repeater {
                     model: aboutScreen.fossComponents
 
-                    delegate: ColumnLayout {
-                        Layout.fillWidth: true
+                    delegate: Column {
+                        width: scrollContent.width
                         spacing: 0
 
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Layout.leftMargin: 24
-                            Layout.rightMargin: 24
-                            Layout.topMargin: 6
-                            Layout.bottomMargin: 6
+                        Item {
+                            width: parent.width
+                            height: fossRow.height + 14
 
-                            Text {
-                                text: modelData.name
-                                color: aboutScreen.textPrimary
-                                font.pixelSize: 13
-                            }
+                            Row {
+                                id: fossRow
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.leftMargin: 40
+                                anchors.rightMargin: 40
+                                anchors.verticalCenter: parent.verticalCenter
 
-                            Item { Layout.fillWidth: true }
+                                Text {
+                                    width: parent.width - licenseText.width
+                                    text: modelData.name
+                                    color: aboutScreen.textPrimary
+                                    font.pixelSize: 13
+                                }
 
-                            Text {
-                                text: modelData.license
-                                color: aboutScreen.textSecondary
-                                font.pixelSize: 12
+                                Text {
+                                    id: licenseText
+                                    text: modelData.license
+                                    color: aboutScreen.textSecondary
+                                    font.pixelSize: 11
+                                    font.family: "monospace"
+                                }
                             }
                         }
 
                         Rectangle {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 1
+                            width: parent.width - 80
+                            x: 40
+                            height: 1
                             color: aboutScreen.dividerColor
                         }
                     }
                 }
 
-                // Bottom padding for scroll
-                Item { Layout.preferredHeight: 60 }
+                // Bottom padding
+                Item { width: 1; height: 24 }
             }
         }
 
-        // ---- Footer (non-scrolling) ----
+        // ---- Footer: Control hints (non-scrolling) ----
         Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 1
-            color: aboutScreen.dividerColor
-        }
+            id: controlBar
+            width: parent.width
+            height: controlHints.height + 16
+            color: aboutScreen.isDark ? "black" : "white"
 
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 40
-            Layout.leftMargin: 24
-            Layout.rightMargin: 24
-
-            Text {
-                text: "Scroll"
-                color: aboutScreen.textSecondary
-                font.pixelSize: 12
+            Rectangle {
+                anchors.top: parent.top
+                width: parent.width
+                height: 1
+                color: aboutScreen.dividerColor
             }
 
-            Item { Layout.fillWidth: true }
-
-            Text {
-                text: "Back"
-                color: aboutScreen.textSecondary
-                font.pixelSize: 12
+            ControlHints {
+                id: controlHints
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: 8
+                anchors.rightMargin: 8
+                leftAction: typeof translations !== "undefined"
+                            ? translations.aboutScrollAction : "Scroll"
+                rightAction: typeof translations !== "undefined"
+                             ? translations.aboutBackAction : "Back"
             }
         }
     }

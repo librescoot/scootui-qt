@@ -31,7 +31,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             text: "km/h"
             font.pixelSize: 16
-            color: themeStore.textColor
+            color: themeStore.textSecondary
             lineHeight: 0.8
             lineHeightMode: Text.ProportionalHeight
         }
