@@ -28,8 +28,17 @@ public:
     Q_INVOKABLE void setBrakeLeft(bool pressed);
     Q_INVOKABLE void setBrakeRight(bool pressed);
     Q_INVOKABLE void setSeatboxLock(const QString &state);
+    Q_INVOKABLE void setSeatboxButton(bool pressed);
     Q_INVOKABLE void setHandlebarLock(const QString &state);
     Q_INVOKABLE void setHornButton(bool pressed);
+
+    // Gestures
+    Q_INVOKABLE void simulateBrakeTap(const QString &side);
+    Q_INVOKABLE void simulateBrakeHold(const QString &side, int durationMs = 3000);
+    Q_INVOKABLE void simulateBrakeDoubleTap(const QString &side);
+    Q_INVOKABLE void simulateSeatboxTap();
+    Q_INVOKABLE void simulateSeatboxHold(int durationMs = 2000);
+    Q_INVOKABLE void simulateSeatboxDoubleTap();
 
     // Engine
     Q_INVOKABLE void setSpeed(double speed);

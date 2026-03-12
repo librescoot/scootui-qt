@@ -169,27 +169,43 @@ ApplicationWindow {
                 }
             }
 
+            // ---- Controls ----
+            SectionHeader { text: "Controls" }
+
             RowLayout {
                 Layout.fillWidth: true
-                SimLabel { text: "Brakes" }
+                SimLabel { text: "L-Brake" }
+                SimButton { text: "Tap"; small: true; onClicked: simulator.simulateBrakeTap("left") }
+                SimButton { text: "Hold (3s)"; small: true; onClicked: simulator.simulateBrakeHold("left", 3000) }
+                SimButton { text: "Dbl-Tap"; small: true; onClicked: simulator.simulateBrakeDoubleTap("left") }
                 SimButton {
-                    text: "Left"
-                    small: true
-                    checkable: true
+                    text: "Toggle"; small: true; checkable: true
                     color: checked ? "#f44336" : "#555"
                     onToggled: simulator.setBrakeLeft(checked)
                 }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                SimLabel { text: "R-Brake" }
+                SimButton { text: "Tap"; small: true; onClicked: simulator.simulateBrakeTap("right") }
+                SimButton { text: "Hold (3s)"; small: true; onClicked: simulator.simulateBrakeHold("right", 3000) }
+                SimButton { text: "Dbl-Tap"; small: true; onClicked: simulator.simulateBrakeDoubleTap("right") }
                 SimButton {
-                    text: "Right"
-                    small: true
-                    checkable: true
+                    text: "Toggle"; small: true; checkable: true
                     color: checked ? "#f44336" : "#555"
                     onToggled: simulator.setBrakeRight(checked)
                 }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                SimLabel { text: "Seatbox" }
+                SimButton { text: "Tap"; small: true; onClicked: simulator.simulateSeatboxTap() }
+                SimButton { text: "Hold (2s)"; small: true; onClicked: simulator.simulateSeatboxHold(2000) }
+                SimButton { text: "Dbl-Tap"; small: true; onClicked: simulator.simulateSeatboxDoubleTap() }
                 SimButton {
-                    text: "Horn"
-                    small: true
-                    color: "#ff9800"
+                    text: "Horn"; small: true; color: "#ff9800"
                     onPressed: simulator.setHornButton(true)
                     onReleased: simulator.setHornButton(false)
                 }
@@ -197,27 +213,18 @@ ApplicationWindow {
 
             RowLayout {
                 Layout.fillWidth: true
-                SimLabel { text: "Seatbox" }
+                SimLabel { text: "Locks" }
                 SimButton {
-                    text: "Open"
-                    small: true
-                    onClicked: simulator.setSeatboxLock("open")
+                    text: "S-Box Open"; small: true; onClicked: simulator.setSeatboxLock("open")
                 }
                 SimButton {
-                    text: "Closed"
-                    small: true
-                    onClicked: simulator.setSeatboxLock("closed")
-                }
-                SimLabel { text: "HBar" }
-                SimButton {
-                    text: "Lock"
-                    small: true
-                    onClicked: simulator.setHandlebarLock("locked")
+                    text: "S-Box Close"; small: true; onClicked: simulator.setSeatboxLock("closed")
                 }
                 SimButton {
-                    text: "Unlock"
-                    small: true
-                    onClicked: simulator.setHandlebarLock("unlocked")
+                    text: "H-Bar Lock"; small: true; onClicked: simulator.setHandlebarLock("locked")
+                }
+                SimButton {
+                    text: "H-Bar Unlock"; small: true; onClicked: simulator.setHandlebarLock("unlocked")
                 }
             }
 

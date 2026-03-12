@@ -44,12 +44,65 @@ void SimulatorService::setBrakeLeft(bool pressed)
 {
     m_repo->set(QStringLiteral("vehicle"), QStringLiteral("brake:left"),
                 pressed ? QStringLiteral("on") : QStringLiteral("off"));
+    m_repo->publishButtonEvent(QStringLiteral("brake:left:") + (pressed ? QStringLiteral("on") : QStringLiteral("off")));
 }
 
 void SimulatorService::setBrakeRight(bool pressed)
 {
     m_repo->set(QStringLiteral("vehicle"), QStringLiteral("brake:right"),
                 pressed ? QStringLiteral("on") : QStringLiteral("off"));
+    m_repo->publishButtonEvent(QStringLiteral("brake:right:") + (pressed ? QStringLiteral("on") : QStringLiteral("off")));
+}
+
+void SimulatorService::setSeatboxButton(bool pressed)
+{
+    m_repo->publishButtonEvent(QStringLiteral("seatbox:") + (pressed ? QStringLiteral("on") : QStringLiteral("off")));
+}
+
+void SimulatorService::simulateBrakeTap(const QString &side)
+{
+    if (side == QLatin1String("left")) {
+        setBrakeLeft(true);
+        QTimer::singleShot(200, this, [this]() { setBrakeLeft(false); });
+    } else {
+        setBrakeRight(true);
+        QTimer::singleShot(200, this, [this]() { setBrakeRight(false); });
+    }
+}
+
+void SimulatorService::simulateBrakeHold(const QString &side, int durationMs)
+{
+    if (side == QLatin1String("left")) {
+        setBrakeLeft(true);
+        QTimer::singleShot(durationMs, this, [this]() { setBrakeLeft(false); });
+    } else {
+        setBrakeRight(true);
+        QTimer::singleShot(durationMs, this, [this]() { setBrakeRight(false); });
+    }
+}
+
+void SimulatorService::simulateBrakeDoubleTap(const QString &side)
+{
+    simulateBrakeTap(side);
+    QTimer::singleShot(400, this, [this, side]() { simulateBrakeTap(side); });
+}
+
+void SimulatorService::simulateSeatboxTap()
+{
+    setSeatboxButton(true);
+    QTimer::singleShot(200, this, [this]() { setSeatboxButton(false); });
+}
+
+void SimulatorService::simulateSeatboxHold(int durationMs)
+{
+    setSeatboxButton(true);
+    QTimer::singleShot(durationMs, this, [this]() { setSeatboxButton(false); });
+}
+
+void SimulatorService::simulateSeatboxDoubleTap()
+{
+    simulateSeatboxTap();
+    QTimer::singleShot(400, this, [this]() { simulateSeatboxTap(); });
 }
 
 void SimulatorService::setSeatboxLock(const QString &state)
