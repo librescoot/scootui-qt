@@ -8,79 +8,79 @@ Item {
 
     property bool isDark: themeStore.isDark
 
-    // Container positioned at bottom center
-    Item {
+    // Main bottom container
+    Rectangle {
+        id: containerBg
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 60
-        width: containerBg.width
+        
+        // Flutter uses left/right 40, here we center and use implicit width
+        width: contentRow.width + 40
         height: 120
-
-        // Container background with border
-        Rectangle {
-            id: containerBg
-            anchors.centerIn: parent
-            width: containerRow.width + 40
-            height: 120
-            radius: 20
-            color: isDark ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.9)
-            border.width: 2
-            border.color: isDark ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(0, 0, 0, 0.3)
-        }
+        radius: 20
+        
+        color: isDark ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.9)
+        border.width: 2
+        border.color: isDark ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(0, 0, 0, 0.3)
 
         Row {
-            id: containerRow
+            id: contentRow
             anchors.centerIn: parent
-            spacing: 16
+            spacing: 20 // Space between items
 
             Repeater {
-                model: [
-                    { icon: "\u263C", label: "Theme" },
-                    { icon: "\u25A3", label: "View" },
-                    { icon: "\u26A0", label: "Hazards" }
-                ]
-
+                model: 4 // Themes, View, Hazards, Debug
+                
                 Rectangle {
                     id: menuItemRect
                     property bool isSelected: index === shortcutMenuStore.selectedIndex
+                    property color itemColor: isSelected ? "#FF9800" : (isDark ? "#FFFFFF" : "#212121")
 
                     width: isSelected ? 80 : 60
                     height: isSelected ? 80 : 60
                     radius: 16
                     color: isSelected ? Qt.rgba(1, 0.6, 0, 0.15) : "transparent"
                     border.width: isSelected ? 4 : 2
-                    border.color: isSelected ? "#FF9800"
-                                  : (isDark ? "#FFFFFF" : "#000000")
+                    border.color: itemColor
 
-                    Behavior on width {
-                        NumberAnimation { duration: 200 }
-                    }
-                    Behavior on height {
-                        NumberAnimation { duration: 200 }
-                    }
+                    Behavior on width { NumberAnimation { duration: 200 } }
+                    Behavior on height { NumberAnimation { duration: 200 } }
 
                     Text {
                         anchors.centerIn: parent
-                        text: modelData.icon
                         font.pixelSize: menuItemRect.isSelected ? 36 : 28
-                        color: menuItemRect.isSelected ? "#FF9800"
-                               : (isDark ? "#FFFFFF" : "#000000")
-
-                        Behavior on font.pixelSize {
-                            NumberAnimation { duration: 200 }
+                        color: menuItemRect.itemColor
+                        text: {
+                            switch(index) {
+                                case 0: // Theme
+                                    if (themeStore.isAutoMode) return "\u23FE" // Moon (going to Dark)
+                                    if (themeStore.isDark) return "\u263C"    // Sun (going to Light)
+                                    return "\u25D1"                          // Contrast (going to Auto)
+                                case 1: // View
+                                    return screenStore.currentScreen === 0 ? "\uD83D\uDDFA" : "\u23F2"
+                                case 2: // Hazards
+                                    return "\u26A0"
+                                case 3: // Debug
+                                    return "\uD83D\uDC1E"
+                                default: return ""
+                            }
                         }
+
+                        Behavior on font.pixelSize { NumberAnimation { duration: 200 } }
                     }
                 }
             }
         }
     }
 
-    // Confirmation UI
+    // Confirmation UI (Bottom-most bar)
     Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 20
-        width: parent.width - 120
+        // Matching Flutter's left/right 60
+        width: Math.min(parent.width - 120, 360)
         height: confirmCol.height + 32
         radius: 12
         color: isDark ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.95)
@@ -101,6 +101,7 @@ Item {
                 color: isDark ? "#FFFFFF" : "#000000"
             }
 
+            // Progress bar container
             Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: 200
@@ -108,6 +109,7 @@ Item {
                 radius: 2
                 color: isDark ? "#3DFFFFFF" : "#1F000000"
 
+                // Active progress bar (shrinks from 1.0 to 0.0 over 1s)
                 Rectangle {
                     anchors.left: parent.left
                     height: parent.height
@@ -118,7 +120,7 @@ Item {
             }
         }
 
-        // Confirmation timer animation
+        // Confirmation timer (1s duration matching CONFIRM_TIMEOUT_MS)
         Timer {
             id: confirmTimer
             property real progress: 0

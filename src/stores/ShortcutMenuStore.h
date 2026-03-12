@@ -7,6 +7,7 @@
 class ThemeStore;
 class VehicleStore;
 class ScreenStore;
+class DashboardStore;
 class MdbRepository;
 class SettingsService;
 
@@ -19,8 +20,8 @@ class ShortcutMenuStore : public QObject
 
 public:
     explicit ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
-                               ScreenStore *screen, MdbRepository *repo,
-                               SettingsService *settingsService,
+                               ScreenStore *screen, DashboardStore *dashboard,
+                               MdbRepository *repo, SettingsService *settingsService,
                                QObject *parent = nullptr);
 
     bool visible() const { return m_visible; }
@@ -46,12 +47,14 @@ private:
     void executeAction(int index);
     void toggleHazards();
     void toggleView();
+    void toggleDebugOverlay();
     void cycleTheme();
     void resetState();
 
     ThemeStore *m_theme;
     VehicleStore *m_vehicle;
     ScreenStore *m_screenStore;
+    DashboardStore *m_dashboardStore;
     MdbRepository *m_repo;
     SettingsService *m_settingsService;
 
@@ -67,7 +70,7 @@ private:
     QDateTime m_buttonPressStartTime;
     QDateTime m_lastTapTime;
 
-    static constexpr int ITEM_COUNT = 3;
+    static constexpr int ITEM_COUNT = 4;
     static constexpr int DOUBLE_PRESS_MS = 500;
     static constexpr int LONG_PRESS_MS = 500;
     static constexpr int ITEM_CYCLE_MS = 750;

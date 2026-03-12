@@ -207,7 +207,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     menuStore->setNavigationService(m_navigationService);
 
     // M5: ShortcutMenuStore
-    auto *shortcutMenuStore = new ShortcutMenuStore(themeStore, vehicleStore, screenStore, repo, m_settingsService, this);
+    auto *shortcutMenuStore = new ShortcutMenuStore(themeStore, vehicleStore, screenStore, dashboardStore, repo, m_settingsService, this);
 
     // Input handler: brake gesture detection → menu control
     m_inputHandler = new InputHandler(vehicleStore, menuStore, this);

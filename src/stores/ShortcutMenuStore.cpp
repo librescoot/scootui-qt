@@ -2,19 +2,21 @@
 #include "ThemeStore.h"
 #include "VehicleStore.h"
 #include "ScreenStore.h"
+#include "DashboardStore.h"
 #include "../repositories/MdbRepository.h"
 #include "../services/SettingsService.h"
 #include "../models/Enums.h"
 #include <QDebug>
 
 ShortcutMenuStore::ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
-                                     ScreenStore *screen, MdbRepository *repo,
-                                     SettingsService *settingsService,
+                                     ScreenStore *screen, DashboardStore *dashboard,
+                                     MdbRepository *repo, SettingsService *settingsService,
                                      QObject *parent)
     : QObject(parent)
     , m_theme(theme)
     , m_vehicle(vehicle)
     , m_screenStore(screen)
+    , m_dashboardStore(dashboard)
     , m_repo(repo)
     , m_settingsService(settingsService)
     , m_confirmTimer(new QTimer(this))
@@ -160,7 +162,17 @@ void ShortcutMenuStore::executeAction(int index)
     case 0: cycleTheme(); break;
     case 1: toggleView(); break;
     case 2: toggleHazards(); break;
+    case 3: toggleDebugOverlay(); break;
     }
+}
+
+void ShortcutMenuStore::toggleDebugOverlay()
+{
+    if (!m_repo || !m_dashboardStore) return;
+
+    bool isOverlay = (m_dashboardStore->debugMode() == QLatin1String("overlay"));
+    m_repo->set(QStringLiteral("dashboard"), QStringLiteral("debug-mode"),
+                isOverlay ? QStringLiteral("off") : QStringLiteral("overlay"));
 }
 
 void ShortcutMenuStore::toggleHazards()
