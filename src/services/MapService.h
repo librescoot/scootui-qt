@@ -63,6 +63,7 @@ private slots:
     void onRouteChanged();
     void onThemeChanged();
     void onMapTypeChanged();
+    void onOverviewTimeout();
 
 private:
     // Dead reckoning
@@ -112,6 +113,11 @@ private:
     static constexpr double ZoomHysteresis = 0.3;
     static constexpr double ZoomSmoothRate = 1.0;
     static constexpr double MultiTurnLookAheadMeters = 150.0;
+
+    // Route overview (zoom out briefly after route calculation)
+    static constexpr double OverviewZoom = 14.0;
+    static constexpr double OverviewZoomRate = 2.0;
+    static constexpr int OverviewHoldMs = 3000;
 
     // Rotation smoothing
     static constexpr double HeadingFreezeSpeed = 1.0;    // km/h
@@ -178,6 +184,10 @@ private:
     // --- Dynamic zoom state ---
     double m_targetZoom = DefaultZoom;
     double m_currentZoom = DefaultZoom;
+
+    // --- Route overview state ---
+    QTimer *m_overviewTimer = nullptr;
+    bool m_routeOverviewActive = false;
 
     // --- Rotation smoothing state ---
     double m_smoothedTarget = 0;

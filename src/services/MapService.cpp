@@ -108,6 +108,12 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
     // --- Map type changes (online / offline) ---
     connect(m_settings, &SettingsStore::mapTypeChanged, this, &MapService::onMapTypeChanged);
 
+    // --- Route overview timer (single-shot) ---
+    m_overviewTimer = new QTimer(this);
+    m_overviewTimer->setSingleShot(true);
+    m_overviewTimer->setInterval(OverviewHoldMs);
+    connect(m_overviewTimer, &QTimer::timeout, this, &MapService::onOverviewTimeout);
+
     // --- Dead reckoning timer at 15 Hz ---
     m_tickTimer->setTimerType(Qt::PreciseTimer);
     m_tickTimer->setInterval(static_cast<int>(TickIntervalMs));
@@ -189,6 +195,10 @@ void MapService::clearRoute()
     emit routeCoordinatesChanged();
 
     m_targetZoom = DefaultZoom;
+
+    // Cancel any active overview
+    m_routeOverviewActive = false;
+    m_overviewTimer->stop();
 }
 
 // ---------------------------------------------------------------------------
@@ -276,6 +286,15 @@ void MapService::onRouteChanged()
     }
 
     updateRouteFromNavigation();
+
+    // Brief zoom-out to give the rider route context
+    m_routeOverviewActive = true;
+    m_overviewTimer->start();
+}
+
+void MapService::onOverviewTimeout()
+{
+    m_routeOverviewActive = false;
 }
 
 // ---------------------------------------------------------------------------
@@ -574,20 +593,36 @@ void MapService::applyLatencyCompensation(double /*speedMs*/, double /*headingDe
 
 void MapService::updateDynamicZoom(double dt)
 {
-    double newTarget = computeTargetZoom();
-    if (std::abs(newTarget - m_targetZoom) > ZoomHysteresis) {
-        m_targetZoom = newTarget;
+    double effectiveTarget;
+    double smoothRate;
+    double minClamp;
+
+    if (m_routeOverviewActive) {
+        // During overview: zoom out to OverviewZoom at a faster rate
+        effectiveTarget = OverviewZoom;
+        smoothRate = OverviewZoomRate;
+        minClamp = OverviewZoom;
+    } else {
+        double newTarget = computeTargetZoom();
+        if (std::abs(newTarget - m_targetZoom) > ZoomHysteresis) {
+            m_targetZoom = newTarget;
+        }
+        effectiveTarget = m_targetZoom;
+        smoothRate = ZoomSmoothRate;
+        minClamp = MinZoom;
+
+        // Use faster rate when zooming back in from overview
+        if (m_currentZoom < MinZoom)
+            smoothRate = OverviewZoomRate;
     }
 
-    double smoothRate = ZoomSmoothRate;
-
     // Smooth towards target
-    if (std::abs(m_currentZoom - m_targetZoom) > 0.001) {
+    if (std::abs(m_currentZoom - effectiveTarget) > 0.001) {
         double maxStep = smoothRate * dt;
-        double diff = m_targetZoom - m_currentZoom;
+        double diff = effectiveTarget - m_currentZoom;
         double step = std::clamp(diff, -maxStep, maxStep);
         m_currentZoom += step;
-        m_currentZoom = std::clamp(m_currentZoom, MinZoom, MaxZoom);
+        m_currentZoom = std::clamp(m_currentZoom, minClamp, MaxZoom);
 
         if (m_currentZoom != m_mapZoom && std::isfinite(m_currentZoom)) {
             m_mapZoom = m_currentZoom;
