@@ -51,16 +51,18 @@ Item {
     }
 
     // Material Icons codepoints for navigation
-    readonly property string miTurnLeft:        "\uf058f"
-    readonly property string miTurnRight:       "\uf0590"
-    readonly property string miTurnSharpLeft:   "\uf0591"
-    readonly property string miTurnSharpRight:  "\uf0592"
-    readonly property string miTurnSlightLeft:  "\uf0593"
-    readonly property string miTurnSlightRight: "\uf0594"
-    readonly property string miUTurnLeft:       "\uf0595"
-    readonly property string miUTurnRight:      "\uf0596"
-    readonly property string miStraight:        "\uf0574"
-    readonly property string miMerge:           "\uf053b"
+    // Note: These icons are in the Unicode supplementary plane (U+F0XXX).
+    // QML's \uXXXX escape only handles 4 hex digits, so we use String.fromCodePoint().
+    readonly property string miTurnLeft:        String.fromCodePoint(0xf058f)
+    readonly property string miTurnRight:       String.fromCodePoint(0xf0590)
+    readonly property string miTurnSharpLeft:   String.fromCodePoint(0xf0591)
+    readonly property string miTurnSharpRight:  String.fromCodePoint(0xf0592)
+    readonly property string miTurnSlightLeft:  String.fromCodePoint(0xf0593)
+    readonly property string miTurnSlightRight: String.fromCodePoint(0xf0594)
+    readonly property string miUTurnLeft:       String.fromCodePoint(0xf0595)
+    readonly property string miUTurnRight:      String.fromCodePoint(0xf0596)
+    readonly property string miStraight:        String.fromCodePoint(0xf0574)
+    readonly property string miMerge:           String.fromCodePoint(0xf053b)
     readonly property string miNavigation:      "\ue41e"
     readonly property string miTimer:           "\ue662"
     readonly property string miFlag:            "\ue28e"

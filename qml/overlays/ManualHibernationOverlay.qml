@@ -245,7 +245,7 @@ Item {
         // Warning icon (Flutter: Icons.warning_amber_rounded, size: 64)
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "\uf02a0" // warning_amber_rounded
+            text: String.fromCodePoint(0xf02a0) // warning_amber_rounded
             font.family: "Material Icons"
             font.pixelSize: 64
             color: "#FFFFFF"

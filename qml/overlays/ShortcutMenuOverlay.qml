@@ -11,7 +11,7 @@ Item {
     // Material Icons codepoints
     readonly property string miDarkMode:    "\ue1b0"
     readonly property string miLightMode:   "\ue37a"
-    readonly property string miContrast:    "\uf04d8"
+    readonly property string miContrast:    String.fromCodePoint(0xf04d8)
     readonly property string miMap:         "\uf1ae"
     readonly property string miTimer:       "\ue662"
     readonly property string miWarning:     "\ue6cc"
