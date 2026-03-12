@@ -267,6 +267,7 @@ void MapService::onGpsPositionChanged()
 void MapService::onRouteChanged()
 {
     if (!m_navigation->hasRoute()) {
+        qDebug() << "MapService::onRouteChanged - no route, clearing";
         m_inRouteOverview = false;
         if (m_overviewTimer) m_overviewTimer->stop();
         clearRoute();
@@ -281,11 +282,15 @@ void MapService::onRouteChanged()
     m_navZoomAtOverview = m_currentZoom;
     m_targetZoom = computeRouteOverviewZoom();
     m_overviewTargetZoom = m_targetZoom;
+    qDebug() << "MapService::onRouteChanged - routeShape:" << m_routeShape.size()
+             << "currentZoom:" << m_currentZoom << "targetZoom:" << m_targetZoom
+             << "navZoomAtOverview:" << m_navZoomAtOverview;
 
     if (!m_overviewTimer) {
         m_overviewTimer = new QTimer(this);
         m_overviewTimer->setSingleShot(true);
         connect(m_overviewTimer, &QTimer::timeout, this, [this]() {
+            qDebug() << "MapService: overview timer expired, currentZoom:" << m_currentZoom;
             m_inRouteOverview = false;
         });
     }
@@ -702,7 +707,12 @@ double MapService::computeRouteOverviewZoom() const
 
     // zoom = log2(360 / span) - screen size adjustment
     double zoom = std::log2(360.0 / span) - 1.0;
-    return std::clamp(zoom, OverviewMinZoom, MaxZoom - 2.0);
+    double result = std::clamp(zoom, OverviewMinZoom, MaxZoom - 2.0);
+    qDebug() << "MapService::computeRouteOverviewZoom - points:" << m_routeShape.size()
+             << "bbox:(" << minLat << "," << minLng << ")-(" << maxLat << "," << maxLng << ")"
+             << "latSpan:" << latSpan << "lngSpan:" << lngSpan
+             << "span:" << span << "rawZoom:" << zoom << "result:" << result;
+    return result;
 }
 
 double MapService::computeOverviewBlend() const
