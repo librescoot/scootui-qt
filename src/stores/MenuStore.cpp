@@ -469,18 +469,18 @@ void MenuStore::toggle()
     else
         open();
 }
-
 void MenuStore::open()
 {
     if (!m_vehicle->isParked()) return;
     if (m_isOpen) return;
 
-    rebuildMenuTree();
-    m_selectedIndex = 0;
+    m_isOpen = true;
     m_pathStack.clear();
     m_indexStack.clear();
-    m_isOpen = true;
+    m_selectedIndex = 0;
+    rebuildMenuTree();
     emit isOpenChanged();
+}
     emitMenuChanged();
 }
 
