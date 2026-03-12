@@ -20,6 +20,7 @@ class MapService : public QObject
     Q_PROPERTY(double mapLongitude READ mapLongitude NOTIFY mapLongitudeChanged)
     Q_PROPERTY(double mapZoom READ mapZoom NOTIFY mapZoomChanged)
     Q_PROPERTY(double mapBearing READ mapBearing NOTIFY mapBearingChanged)
+    Q_PROPERTY(double mapTilt READ mapTilt NOTIFY mapTiltChanged)
     Q_PROPERTY(bool isReady READ isReady NOTIFY isReadyChanged)
     Q_PROPERTY(QString styleUrl READ styleUrl NOTIFY styleUrlChanged)
     Q_PROPERTY(QVariantList routeCoordinates READ routeCoordinates NOTIFY routeCoordinatesChanged)
@@ -35,6 +36,7 @@ public:
     double mapLongitude() const { return m_mapLongitude; }
     double mapZoom() const { return m_mapZoom; }
     double mapBearing() const { return m_mapBearing; }
+    double mapTilt() const { return m_mapTilt; }
     bool isReady() const { return m_isReady; }
     QString styleUrl() const { return m_styleUrl; }
     QVariantList routeCoordinates() const { return m_routeCoordinates; }
@@ -49,6 +51,7 @@ signals:
     void mapLongitudeChanged();
     void mapZoomChanged();
     void mapBearingChanged();
+    void mapTiltChanged();
     void isReadyChanged();
     void styleUrlChanged();
     void routeCoordinatesChanged();
@@ -79,6 +82,9 @@ private:
     void updateBearing(double dt);
     static double normalizeAngle(double angle);
 
+    // Overview blend (0 = normal nav, 1 = full overview)
+    double computeOverviewBlend() const;
+
     // Style
     void rebuildStyleUrl();
     QString rewriteStyleForMbtiles(const QString &qrcPath, const QString &mbtilesPath);
@@ -103,11 +109,13 @@ private:
     static constexpr double DefaultZoom = 16.0;
     static constexpr double MinZoom = 15.0;
     static constexpr double MaxZoom = 17.5;
+    static constexpr double OverviewMinZoom = 5.0;
     static constexpr double ZoomHysteresis = 0.3;
     static constexpr double ZoomSmoothRate = 1.0;
-    static constexpr double ZoomSmoothRateOverview = 2.0;
+    static constexpr double ZoomSmoothRateOverview = 3.0;
     static constexpr double MultiTurnLookAheadMeters = 150.0;
-    static constexpr double RouteOverviewDurationMs = 3000.0;
+    static constexpr double RouteOverviewDurationMs = 5000.0;
+    static constexpr double NavigationTilt = 85.0;
 
     // Rotation smoothing
     static constexpr double HeadingFreezeSpeed = 1.0;    // km/h
@@ -135,6 +143,7 @@ private:
     double m_mapLongitude = 0;
     double m_mapZoom = DefaultZoom;
     double m_mapBearing = 0;
+    double m_mapTilt = NavigationTilt;
     bool m_isReady = false;
     QString m_styleUrl;
     QVariantList m_routeCoordinates;
@@ -170,6 +179,8 @@ private:
     // --- Route overview state ---
     QTimer *m_overviewTimer = nullptr;
     bool m_inRouteOverview = false;
+    double m_navZoomAtOverview = DefaultZoom;
+    double m_overviewTargetZoom = DefaultZoom;
 
     // --- Rotation smoothing state ---
     double m_smoothedTarget = 0;

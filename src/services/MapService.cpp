@@ -186,6 +186,8 @@ void MapService::clearRoute()
     m_inRouteOverview = false;
     if (m_overviewTimer) m_overviewTimer->stop();
     m_targetZoom = DefaultZoom;
+    m_navZoomAtOverview = DefaultZoom;
+    m_overviewTargetZoom = DefaultZoom;
 }
 
 // ---------------------------------------------------------------------------
@@ -276,7 +278,9 @@ void MapService::onRouteChanged()
 
     // Zoom out to show the full route, then animate back
     m_inRouteOverview = true;
+    m_navZoomAtOverview = m_currentZoom;
     m_targetZoom = computeRouteOverviewZoom();
+    m_overviewTargetZoom = m_targetZoom;
 
     if (!m_overviewTimer) {
         m_overviewTimer = new QTimer(this);
@@ -592,8 +596,14 @@ void MapService::updateDynamicZoom(double dt)
         }
     }
 
-    // Use faster smooth rate during/after overview for snappy animation
+    // Use faster smooth rate during overview for snappy animation
     double smoothRate = m_inRouteOverview ? ZoomSmoothRateOverview : ZoomSmoothRate;
+
+    // Allow zoom to reach overview levels when in overview mode
+    double zoomMin = m_inRouteOverview ? OverviewMinZoom : MinZoom;
+    // Also allow low zoom while animating back from overview
+    if (m_currentZoom < MinZoom)
+        zoomMin = OverviewMinZoom;
 
     // Smooth towards target
     if (std::abs(m_currentZoom - m_targetZoom) > 0.001) {
@@ -601,12 +611,27 @@ void MapService::updateDynamicZoom(double dt)
         double diff = m_targetZoom - m_currentZoom;
         double step = std::clamp(diff, -maxStep, maxStep);
         m_currentZoom += step;
-        m_currentZoom = std::clamp(m_currentZoom, MinZoom, MaxZoom);
+        m_currentZoom = std::clamp(m_currentZoom, zoomMin, MaxZoom);
 
         if (m_currentZoom != m_mapZoom && std::isfinite(m_currentZoom)) {
             m_mapZoom = m_currentZoom;
             emit mapZoomChanged();
         }
+    }
+
+    // Update tilt and vehicle offset based on overview blend
+    double blend = computeOverviewBlend();
+
+    double newTilt = NavigationTilt * (1.0 - blend);
+    if (std::abs(newTilt - m_mapTilt) > 0.01) {
+        m_mapTilt = newTilt;
+        emit mapTiltChanged();
+    }
+
+    double newOffset = VehicleOffsetPx * (1.0 - blend);
+    if (std::abs(newOffset - m_vehicleOffsetY) > 0.5) {
+        m_vehicleOffsetY = newOffset;
+        emit vehicleOffsetYChanged();
     }
 }
 
@@ -666,17 +691,27 @@ double MapService::computeRouteOverviewZoom() const
     double latSpan = maxLat - minLat;
     double lngSpan = maxLng - minLng;
 
-    // Use the larger span to determine zoom
-    // At zoom 0, the world is 360 degrees wide / 170 degrees tall
-    // Each zoom level halves the span
-    // For a 480px display with some padding (70% usable)
+    // Add 30% padding around the route
+    latSpan *= 1.3;
+    lngSpan *= 1.3;
+
+    // Use the larger span to determine zoom, accounting for the display
+    // being portrait (~480x800). latitude maps to the taller axis.
     double span = std::max(latSpan, lngSpan);
     if (span < 0.001) return DefaultZoom;
 
-    // zoom = log2(360 / span) - adjustment for screen size
-    // For a ~480px display showing 70% of the world tile at zoom 0:
+    // zoom = log2(360 / span) - screen size adjustment
     double zoom = std::log2(360.0 / span) - 1.0;
-    return std::clamp(zoom, MinZoom, MaxZoom - 2.0);
+    return std::clamp(zoom, OverviewMinZoom, MaxZoom - 2.0);
+}
+
+double MapService::computeOverviewBlend() const
+{
+    double range = m_navZoomAtOverview - m_overviewTargetZoom;
+    if (range < 0.5)
+        return 0.0;
+    double blend = (m_navZoomAtOverview - m_currentZoom) / range;
+    return std::clamp(blend, 0.0, 1.0);
 }
 
 double MapService::distanceToNextManeuver() const
@@ -706,6 +741,15 @@ void MapService::updateBearing(double dt)
         dampFactor = 1.0;
     } else if (speedKmh > HeadingFreezeSpeed) {
         dampFactor = (speedKmh - HeadingFreezeSpeed) / (HeadingFullSpeed - HeadingFreezeSpeed);
+    }
+
+    // During overview, blend heading target toward north (0) and
+    // ensure we can rotate even when the vehicle is stopped
+    double overviewBlend = computeOverviewBlend();
+    if (overviewBlend > 0.001) {
+        double northDelta = normalizeAngle(0.0 - rawHeading);
+        rawHeading = std::fmod(rawHeading + northDelta * overviewBlend + 360.0, 360.0);
+        dampFactor = std::max(dampFactor, overviewBlend);
     }
 
     if (dampFactor < 0.001) {

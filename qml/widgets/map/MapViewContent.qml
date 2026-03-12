@@ -38,7 +38,7 @@ MapView {
 
     map.zoomLevel: typeof mapService !== "undefined" ? mapService.mapZoom : 17
     map.bearing: typeof mapService !== "undefined" ? mapService.mapBearing : 0
-    map.tilt: 85
+    map.tilt: typeof mapService !== "undefined" ? mapService.mapTilt : 85
 
     function vehicleCoordinate() {
         if (typeof mapService !== "undefined" && mapService.isReady) {
@@ -95,6 +95,7 @@ MapView {
         function onMapLongitudeChanged() { mapView.updateCamera() }
         function onMapZoomChanged() { mapView.updateCamera() }
         function onMapBearingChanged() { mapView.updateCamera() }
+        function onMapTiltChanged() { mapView.updateCamera() }
         function onVehicleOffsetYChanged() { mapView.updateCamera() }
     }
 
