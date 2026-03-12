@@ -8,6 +8,7 @@ set(CMAKE_AUTOMOC ON)
 option(DESKTOP_MODE "Build for desktop development with simulator panel (QMapLibre optional)" OFF)
 
 find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Qml Svg Network Sql Concurrent)
+find_package(ZLIB REQUIRED)
 
 if(DESKTOP_MODE)
     find_package(QMapLibre QUIET)
@@ -76,6 +77,8 @@ set(CPP_SOURCES
     src/services/SavedLocationsService.cpp
     src/services/ReverseGeocodingService.cpp
     src/services/SerialNumberService.cpp
+    src/services/AddressDatabaseService.cpp
+    src/services/VectorTileDecoder.cpp
     src/routing/ValhallaClient.cpp
     src/l10n/Translations.cpp
     src/utils/FaultFormatter.cpp
@@ -128,6 +131,8 @@ set(CPP_HEADERS
     src/services/SavedLocationsService.h
     src/services/ReverseGeocodingService.h
     src/services/SerialNumberService.h
+    src/services/AddressDatabaseService.h
+    src/services/VectorTileDecoder.h
     src/routing/RouteModels.h
     src/routing/RouteHelpers.h
     src/routing/ValhallaClient.h
@@ -275,6 +280,7 @@ target_link_libraries(scootui PRIVATE
     Qt6::Network
     Qt6::Sql
     Qt6::Concurrent
+    ZLIB::ZLIB
 )
 
 if(HAS_QMAPLIBRE)

@@ -40,6 +40,7 @@
 #include "services/SavedLocationsService.h"
 #include "services/ReverseGeocodingService.h"
 #include "services/SerialNumberService.h"
+#include "services/AddressDatabaseService.h"
 #include "l10n/Translations.h"
 #include "utils/FaultFormatter.h"
 #include "simulator/SimulatorService.h"
@@ -127,6 +128,10 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_autoThemeService = new AutoThemeService(repo, themeStore, this);
     m_toastService = new ToastService(this);
     m_serialNumberService = new SerialNumberService(this);
+
+    // Address database (for destination code lookup)
+    m_addressDatabaseService = new AddressDatabaseService(this);
+    m_addressDatabaseService->initialize();
 
     // M7: Navigation service
     m_navigationService = new NavigationService(gpsStore, navigationStore, vehicleStore,
@@ -262,6 +267,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("navAvailabilityService"), m_navAvailability);
     ctx->setContextProperty(QStringLiteral("savedLocationsStore"), savedLocationsStore);
     ctx->setContextProperty(QStringLiteral("serialNumberService"), m_serialNumberService);
+    ctx->setContextProperty(QStringLiteral("addressDatabase"), m_addressDatabaseService);
 
     // Simulator service (created in sim mode, null otherwise)
     if (m_simulatorMode) {
