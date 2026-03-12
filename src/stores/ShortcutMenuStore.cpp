@@ -171,7 +171,7 @@ void ShortcutMenuStore::toggleDebugOverlay()
     if (!m_repo || !m_dashboardStore) return;
 
     bool isOverlay = (m_dashboardStore->debugMode() == QLatin1String("overlay"));
-    m_repo->set(QStringLiteral("dashboard"), QStringLiteral("debug-mode"),
+    m_repo->set(QStringLiteral("dashboard"), QStringLiteral("debug"),
                 isOverlay ? QStringLiteral("off") : QStringLiteral("overlay"));
 }
 
