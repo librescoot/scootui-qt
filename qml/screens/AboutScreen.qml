@@ -26,10 +26,10 @@ Rectangle {
 
     // FOSS component data
     readonly property var fossComponents: [
-        { name: "Qt", license: "LGPL-3.0" },
+        { name: "Qt 6", license: "LGPL-3.0" },
         { name: "QMapLibre", license: "BSD-2-Clause" },
-        { name: "hiredis", license: "BSD-3-Clause" },
-        { name: "redis-plus-plus", license: "Apache-2.0" }
+        { name: "Roboto", license: "Apache-2.0" },
+        { name: "Material Icons", license: "Apache-2.0" }
     ]
 
     // Easter egg state machine (matches Flutter's _trackEgg step counter)
