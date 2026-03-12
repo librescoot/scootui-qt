@@ -27,24 +27,6 @@ Rectangle {
                 anchors.fill: parent
             }
 
-            // Speed limit + road name below speedometer center
-            Row {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 68
-                spacing: 4
-
-                SpeedLimitIndicator {
-                    iconSize: 27
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-
-                RoadNameDisplay {
-                    anchors.verticalCenter: parent.verticalCenter
-                    fontSize: 13
-                }
-            }
-
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 8

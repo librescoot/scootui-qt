@@ -10,6 +10,12 @@ Item {
     readonly property bool showLeft: blinkerState === 1 || blinkerState === 3
     readonly property bool showRight: blinkerState === 2 || blinkerState === 3
 
+    readonly property bool overlayEnabled: typeof settingsStore !== "undefined"
+                                           ? settingsStore.blinkerStyle === "overlay" : false
+
+    // Hide small blinkers if large overlay is showing (state 1 or 2 with overlay enabled)
+    visible: !overlayEnabled || (blinkerState !== 1 && blinkerState !== 2)
+
     Row {
         anchors.fill: parent
 

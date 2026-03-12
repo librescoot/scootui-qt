@@ -1,4 +1,5 @@
 import QtQuick
+import "../indicators"
 
 Item {
     id: speedometer
@@ -205,18 +206,47 @@ Item {
                 var ly = cy + labelR * Math.sin(labelAngle)
                 ctx.fillText(spd.toString(), lx, ly)
             }
+        }
+    }
 
-            // === Central speed text ===
-            ctx.font = "bold 96px sans-serif"
-            ctx.fillStyle = isDark ? "#FFFFFF" : "#000000"
-            ctx.textAlign = "center"
-            ctx.textBaseline = "middle"
-            ctx.fillText(Math.floor(animatedSpeed).toString(), cx, cy + 40)
+    // Central speed, km/h and road info matching Flutter's Stack + Transform + Column
+    Column {
+        anchors.centerIn: parent
+        transform: Translate { y: 40 }
+        spacing: 0
 
-            // km/h label
-            ctx.font = "22px sans-serif"
-            ctx.fillStyle = isDark ? "#99FFFFFF" : "#8A000000"
-            ctx.fillText("km/h", cx, cy + 80)
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: Math.floor(speedometer.animatedSpeed).toString()
+            font.pixelSize: 96
+            font.bold: true
+            color: speedometer.isDark ? "#FFFFFF" : "#000000"
+            lineHeight: 1.0
+        }
+
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "km/h"
+            font.pixelSize: 22
+            color: speedometer.isDark ? "#99FFFFFF" : "#8A000000"
+            lineHeight: 0.9
+        }
+
+        Item { width: 1; height: 12 } // SizedBox(height: 12)
+
+        Row {
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 4
+
+            SpeedLimitIndicator {
+                iconSize: 27
+                anchors.verticalCenter: parent.verticalCenter
+            }
+
+            RoadNameDisplay {
+                anchors.verticalCenter: parent.verticalCenter
+                fontSize: 12
+            }
         }
     }
 
