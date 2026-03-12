@@ -169,11 +169,8 @@ void ShortcutMenuStore::toggleHazards()
 
     bool isBoth = (m_vehicle->blinkerState() == static_cast<int>(ScootEnums::BlinkerState::Both));
     
-    if (isBoth) {
-        m_repo->set(QStringLiteral("vehicle"), QStringLiteral("blinker"), QStringLiteral("off"));
-    } else {
-        m_repo->set(QStringLiteral("vehicle"), QStringLiteral("blinker"), QStringLiteral("both"));
-    }
+    m_repo->push(QStringLiteral("scooter:blinker"),
+                 isBoth ? QStringLiteral("off") : QStringLiteral("both"));
 }
 
 void ShortcutMenuStore::toggleView()
