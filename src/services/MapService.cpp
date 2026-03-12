@@ -182,12 +182,7 @@ void MapService::clearRoute()
     m_routeCoordinates.clear();
     emit routeCoordinatesChanged();
 
-    // Reset zoom and overview state
-    m_inRouteOverview = false;
-    if (m_overviewTimer) m_overviewTimer->stop();
     m_targetZoom = DefaultZoom;
-    m_navZoomAtOverview = DefaultZoom;
-    m_overviewTargetZoom = DefaultZoom;
 }
 
 // ---------------------------------------------------------------------------
@@ -267,34 +262,11 @@ void MapService::onGpsPositionChanged()
 void MapService::onRouteChanged()
 {
     if (!m_navigation->hasRoute()) {
-        qDebug() << "MapService::onRouteChanged - no route, clearing";
-        m_inRouteOverview = false;
-        if (m_overviewTimer) m_overviewTimer->stop();
         clearRoute();
         return;
     }
 
-    // Update waypoints before computing overview zoom
     updateRouteFromNavigation();
-
-    // Zoom out to show the full route, then animate back
-    m_inRouteOverview = true;
-    m_navZoomAtOverview = m_currentZoom;
-    m_targetZoom = computeRouteOverviewZoom();
-    m_overviewTargetZoom = m_targetZoom;
-    qDebug() << "MapService::onRouteChanged - routeShape:" << m_routeShape.size()
-             << "currentZoom:" << m_currentZoom << "targetZoom:" << m_targetZoom
-             << "navZoomAtOverview:" << m_navZoomAtOverview;
-
-    if (!m_overviewTimer) {
-        m_overviewTimer = new QTimer(this);
-        m_overviewTimer->setSingleShot(true);
-        connect(m_overviewTimer, &QTimer::timeout, this, [this]() {
-            qDebug() << "MapService: overview timer expired, currentZoom:" << m_currentZoom;
-            m_inRouteOverview = false;
-        });
-    }
-    m_overviewTimer->start(static_cast<int>(RouteOverviewDurationMs));
 }
 
 // ---------------------------------------------------------------------------
@@ -593,22 +565,12 @@ void MapService::applyLatencyCompensation(double /*speedMs*/, double /*headingDe
 
 void MapService::updateDynamicZoom(double dt)
 {
-    // During route overview, keep the overview zoom; otherwise compute normally
-    if (!m_inRouteOverview) {
-        double newTarget = computeTargetZoom();
-        if (std::abs(newTarget - m_targetZoom) > ZoomHysteresis) {
-            m_targetZoom = newTarget;
-        }
+    double newTarget = computeTargetZoom();
+    if (std::abs(newTarget - m_targetZoom) > ZoomHysteresis) {
+        m_targetZoom = newTarget;
     }
 
-    // Use faster smooth rate during overview for snappy animation
-    double smoothRate = m_inRouteOverview ? ZoomSmoothRateOverview : ZoomSmoothRate;
-
-    // Allow zoom to reach overview levels when in overview mode
-    double zoomMin = m_inRouteOverview ? OverviewMinZoom : MinZoom;
-    // Also allow low zoom while animating back from overview
-    if (m_currentZoom < MinZoom)
-        zoomMin = OverviewMinZoom;
+    double smoothRate = ZoomSmoothRate;
 
     // Smooth towards target
     if (std::abs(m_currentZoom - m_targetZoom) > 0.001) {
@@ -616,27 +578,12 @@ void MapService::updateDynamicZoom(double dt)
         double diff = m_targetZoom - m_currentZoom;
         double step = std::clamp(diff, -maxStep, maxStep);
         m_currentZoom += step;
-        m_currentZoom = std::clamp(m_currentZoom, zoomMin, MaxZoom);
+        m_currentZoom = std::clamp(m_currentZoom, MinZoom, MaxZoom);
 
         if (m_currentZoom != m_mapZoom && std::isfinite(m_currentZoom)) {
             m_mapZoom = m_currentZoom;
             emit mapZoomChanged();
         }
-    }
-
-    // Update tilt and vehicle offset based on overview blend
-    double blend = computeOverviewBlend();
-
-    double newTilt = NavigationTilt * (1.0 - blend);
-    if (std::abs(newTilt - m_mapTilt) > 0.01) {
-        m_mapTilt = newTilt;
-        emit mapTiltChanged();
-    }
-
-    double newOffset = VehicleOffsetPx * (1.0 - blend);
-    if (std::abs(newOffset - m_vehicleOffsetY) > 0.5) {
-        m_vehicleOffsetY = newOffset;
-        emit vehicleOffsetYChanged();
     }
 }
 
@@ -672,58 +619,6 @@ double MapService::computeTargetZoom() const
     return std::clamp(zoom, MinZoom, MaxZoom);
 }
 
-double MapService::computeRouteOverviewZoom() const
-{
-    if (m_routeShape.size() < 2) return DefaultZoom;
-
-    // Compute bounding box of the route
-    double minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
-    for (const auto &pt : m_routeShape) {
-        minLat = std::min(minLat, pt.first);
-        maxLat = std::max(maxLat, pt.first);
-        minLng = std::min(minLng, pt.second);
-        maxLng = std::max(maxLng, pt.second);
-    }
-
-    // Include current position in bounding box
-    if (m_hasInitialPosition) {
-        minLat = std::min(minLat, m_drLatitude);
-        maxLat = std::max(maxLat, m_drLatitude);
-        minLng = std::min(minLng, m_drLongitude);
-        maxLng = std::max(maxLng, m_drLongitude);
-    }
-
-    double latSpan = maxLat - minLat;
-    double lngSpan = maxLng - minLng;
-
-    // Add 30% padding around the route
-    latSpan *= 1.3;
-    lngSpan *= 1.3;
-
-    // Use the larger span to determine zoom, accounting for the display
-    // being portrait (~480x800). latitude maps to the taller axis.
-    double span = std::max(latSpan, lngSpan);
-    if (span < 0.001) return DefaultZoom;
-
-    // zoom = log2(360 / span) - screen size adjustment
-    double zoom = std::log2(360.0 / span) - 1.0;
-    double result = std::clamp(zoom, OverviewMinZoom, MaxZoom - 2.0);
-    qDebug() << "MapService::computeRouteOverviewZoom - points:" << m_routeShape.size()
-             << "bbox:(" << minLat << "," << minLng << ")-(" << maxLat << "," << maxLng << ")"
-             << "latSpan:" << latSpan << "lngSpan:" << lngSpan
-             << "span:" << span << "rawZoom:" << zoom << "result:" << result;
-    return result;
-}
-
-double MapService::computeOverviewBlend() const
-{
-    double range = m_navZoomAtOverview - m_overviewTargetZoom;
-    if (range < 0.5)
-        return 0.0;
-    double blend = (m_navZoomAtOverview - m_currentZoom) / range;
-    return std::clamp(blend, 0.0, 1.0);
-}
-
 double MapService::distanceToNextManeuver() const
 {
     return m_navigation->currentManeuverDistance();
@@ -751,15 +646,6 @@ void MapService::updateBearing(double dt)
         dampFactor = 1.0;
     } else if (speedKmh > HeadingFreezeSpeed) {
         dampFactor = (speedKmh - HeadingFreezeSpeed) / (HeadingFullSpeed - HeadingFreezeSpeed);
-    }
-
-    // During overview, blend heading target toward north (0) and
-    // ensure we can rotate even when the vehicle is stopped
-    double overviewBlend = computeOverviewBlend();
-    if (overviewBlend > 0.001) {
-        double northDelta = normalizeAngle(0.0 - rawHeading);
-        rawHeading = std::fmod(rawHeading + northDelta * overviewBlend + 360.0, 360.0);
-        dampFactor = std::max(dampFactor, overviewBlend);
     }
 
     if (dampFactor < 0.001) {
