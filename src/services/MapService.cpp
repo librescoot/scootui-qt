@@ -15,6 +15,9 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
 #include <algorithm>
 
 // ---------------------------------------------------------------------------
@@ -88,6 +91,9 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
 {
     // Build initial style URL
     rebuildStyleUrl();
+
+    // Load mbtiles bounds for out-of-coverage detection
+    loadMbtilesBounds();
 
     // --- GPS position updates ---
     connect(m_gps, &GpsStore::latitudeChanged, this, &MapService::onGpsPositionChanged);
@@ -253,6 +259,9 @@ void MapService::onGpsPositionChanged()
 
     m_lastGpsLatitude = gpsLat;
     m_lastGpsLongitude = gpsLng;
+
+    // Check if GPS position is outside mbtiles bounds
+    checkOutOfCoverage();
 }
 
 // ---------------------------------------------------------------------------
@@ -715,4 +724,71 @@ int MapService::findClosestSegment(double lat, double lng) const
     }
 
     return bestIdx;
+}
+
+// ---------------------------------------------------------------------------
+// Out-of-coverage detection (mbtiles bounds)
+// ---------------------------------------------------------------------------
+
+void MapService::loadMbtilesBounds()
+{
+    static const QString MbtilesPath = QStringLiteral("/data/maps/map.mbtiles");
+
+    if (!QFile::exists(MbtilesPath)) {
+        qDebug() << "MapService: no mbtiles file, skipping bounds load";
+        return;
+    }
+
+    // Use a unique connection name to avoid conflicts
+    const QString connName = QStringLiteral("mapservice_bounds");
+    {
+        QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connName);
+        db.setDatabaseName(MbtilesPath);
+        if (!db.open()) {
+            qWarning() << "MapService: cannot open mbtiles for bounds:" << db.lastError().text();
+            QSqlDatabase::removeDatabase(connName);
+            return;
+        }
+
+        QSqlQuery query(db);
+        if (query.exec(QStringLiteral("SELECT value FROM metadata WHERE name='bounds'"))) {
+            if (query.next()) {
+                // bounds format: "minLng,minLat,maxLng,maxLat"
+                QString boundsStr = query.value(0).toString();
+                QStringList parts = boundsStr.split(QLatin1Char(','));
+                if (parts.size() == 4) {
+                    m_boundsMinLng = parts[0].toDouble();
+                    m_boundsMinLat = parts[1].toDouble();
+                    m_boundsMaxLng = parts[2].toDouble();
+                    m_boundsMaxLat = parts[3].toDouble();
+                    m_hasBounds = true;
+                    qDebug() << "MapService: mbtiles bounds loaded:"
+                             << m_boundsMinLat << m_boundsMinLng
+                             << m_boundsMaxLat << m_boundsMaxLng;
+                }
+            }
+        } else {
+            qWarning() << "MapService: bounds query failed:" << query.lastError().text();
+        }
+
+        db.close();
+    }
+    QSqlDatabase::removeDatabase(connName);
+}
+
+void MapService::checkOutOfCoverage()
+{
+    if (!m_hasBounds || !m_hasInitialPosition)
+        return;
+
+    double lat = m_lastGpsLatitude;
+    double lng = m_lastGpsLongitude;
+
+    bool outOfCoverage = lng < m_boundsMinLng || lng > m_boundsMaxLng ||
+                         lat < m_boundsMinLat || lat > m_boundsMaxLat;
+
+    if (outOfCoverage != m_isOutOfCoverage) {
+        m_isOutOfCoverage = outOfCoverage;
+        emit isOutOfCoverageChanged();
+    }
 }

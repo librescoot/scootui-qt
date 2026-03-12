@@ -17,6 +17,19 @@ Rectangle {
                             ? navigationService.status : 0
     property bool hasNav: navStatus === statusNavigating || navStatus === statusArrived
 
+    // GPS state enum values (must match GpsState in C++)
+    readonly property int gpsOff: 0
+    readonly property int gpsSearching: 1
+    readonly property int gpsFixEstablished: 2
+    readonly property int gpsError: 3
+
+    property int currentGpsState: typeof gpsStore !== "undefined" ? gpsStore.gpsState : 0
+    property bool hasGpsFix: currentGpsState === gpsFixEstablished
+    property bool mapReady: typeof mapService !== "undefined" && mapService.isReady
+
+    // Show GPS waiting screen when no fix and map not ready (Flutter: MapOffline + !fixEstablished)
+    property bool showWaitingForGps: !hasGpsFix && !mapReady
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -27,10 +40,43 @@ Rectangle {
             Layout.preferredHeight: 40
         }
 
+        // GPS waiting state (Flutter: _buildWaitingForGps)
+        Item {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: mapScreen.showWaitingForGps
+
+            Column {
+                anchors.centerIn: parent
+                spacing: 16
+
+                // gps_not_fixed icon (Flutter: Icons.gps_not_fixed, size: 48, color: fgDim)
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "\ue2dd" // gps_not_fixed
+                    font.family: "Material Icons"
+                    font.pixelSize: 48
+                    color: typeof themeStore !== "undefined" && themeStore.isDark
+                           ? "#99FFFFFF" : "#8A000000"  // white60 / black54
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: typeof translations !== "undefined"
+                          ? translations.mapWaitingForGps : "Waiting for GPS fix"
+                    font.pixelSize: 18
+                    color: typeof themeStore !== "undefined" && themeStore.isDark
+                           ? "#FFFFFF" : "#000000"
+                    horizontalAlignment: Text.AlignHCenter
+                }
+            }
+        }
+
         // Map area
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            visible: !mapScreen.showWaitingForGps
 
             // Map view (QMapLibre wrapper)
             MapViewWidget {
@@ -47,6 +93,47 @@ Rectangle {
                     origin.y: 18.5
                     axis { x: 1; y: 0; z: 0 }
                     angle: 55
+                }
+            }
+
+            // Out of coverage overlay (Flutter: _buildOutOfCoverageOverlay)
+            // Floating pill at top when GPS is outside mbtiles bounds
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: parent.top
+                anchors.topMargin: 8
+                width: outOfCoverageRow.width + 24  // padding h:12
+                height: outOfCoverageRow.height + 16  // padding v:8
+                radius: 8
+                color: typeof themeStore !== "undefined" && themeStore.isDark
+                       ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.9)
+                border.width: 1.5
+                border.color: Qt.rgba(1, 0.647, 0, 0.6)  // orange with 60% opacity
+                visible: typeof mapService !== "undefined" && mapService.isOutOfCoverage
+                z: 10
+
+                Row {
+                    id: outOfCoverageRow
+                    anchors.centerIn: parent
+                    spacing: 8
+
+                    // map_outlined icon (Flutter: Icons.map_outlined, color: orange, size: 16)
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "\uf1ae" // map_outlined
+                        font.family: "Material Icons"
+                        font.pixelSize: 16
+                        color: "#FF9800"  // Colors.orange
+                    }
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: typeof translations !== "undefined"
+                              ? translations.mapOutOfCoverage : "No map data for current location"
+                        font.pixelSize: 14
+                        font.weight: Font.Medium
+                        color: "#FF9800"  // Colors.orange
+                    }
                 }
             }
 

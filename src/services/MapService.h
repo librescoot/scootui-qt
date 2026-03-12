@@ -24,6 +24,7 @@ class MapService : public QObject
     Q_PROPERTY(QString styleUrl READ styleUrl NOTIFY styleUrlChanged)
     Q_PROPERTY(QVariantList routeCoordinates READ routeCoordinates NOTIFY routeCoordinatesChanged)
     Q_PROPERTY(double vehicleOffsetY READ vehicleOffsetY NOTIFY vehicleOffsetYChanged)
+    Q_PROPERTY(bool isOutOfCoverage READ isOutOfCoverage NOTIFY isOutOfCoverageChanged)
 
 public:
     explicit MapService(GpsStore *gps, EngineStore *engine,
@@ -39,6 +40,7 @@ public:
     QString styleUrl() const { return m_styleUrl; }
     QVariantList routeCoordinates() const { return m_routeCoordinates; }
     double vehicleOffsetY() const { return m_vehicleOffsetY; }
+    bool isOutOfCoverage() const { return m_isOutOfCoverage; }
 
     void setRouteWaypoints(const QVariantList &waypoints);
     void clearRoute();
@@ -53,6 +55,7 @@ signals:
     void styleUrlChanged();
     void routeCoordinatesChanged();
     void vehicleOffsetYChanged();
+    void isOutOfCoverageChanged();
 
 private slots:
     void onDeadReckoningTick();
@@ -81,6 +84,10 @@ private:
     // Style
     void rebuildStyleUrl();
     QString rewriteStyleForMbtiles(const QString &qrcPath, const QString &mbtilesPath);
+
+    // Coverage bounds checking
+    void loadMbtilesBounds();
+    void checkOutOfCoverage();
 
     // Snap to closest route segment and return index, or -1 if off route
     int findClosestSegment(double lat, double lng) const;
@@ -136,6 +143,14 @@ private:
     QString m_styleUrl;
     QVariantList m_routeCoordinates;
     double m_vehicleOffsetY = VehicleOffsetPx;
+
+    // --- Out-of-coverage state ---
+    bool m_isOutOfCoverage = false;
+    bool m_hasBounds = false;
+    double m_boundsMinLat = 0;
+    double m_boundsMaxLat = 0;
+    double m_boundsMinLng = 0;
+    double m_boundsMaxLng = 0;
 
     // --- Dead reckoning state ---
     double m_drLatitude = 0;
