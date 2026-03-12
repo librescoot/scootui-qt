@@ -14,6 +14,7 @@
 #include "stores/SettingsStore.h"
 #include "stores/OtaStore.h"
 #include "stores/UsbStore.h"
+#include "stores/UmsLogStore.h"
 #include "stores/SpeedLimitStore.h"
 #include "stores/AutoStandbyStore.h"
 #include "stores/CbBatteryStore.h"
@@ -41,6 +42,7 @@
 #include "services/ReverseGeocodingService.h"
 #include "services/SerialNumberService.h"
 #include "services/AddressDatabaseService.h"
+#include "services/SystemInfoService.h"
 #include "l10n/Translations.h"
 #include "utils/FaultFormatter.h"
 #include "simulator/SimulatorService.h"
@@ -107,6 +109,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     auto *settingsStore = new SettingsStore(repo, this);
     auto *otaStore = new OtaStore(repo, this);
     auto *usbStore = new UsbStore(repo, this);
+    auto *umsLogStore = new UmsLogStore(repo, this);
     auto *speedLimitStore = new SpeedLimitStore(repo, this);
     auto *autoStandbyStore = new AutoStandbyStore(repo, this);
     auto *cbBatteryStore = new CbBatteryStore(repo, this);
@@ -128,6 +131,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_autoThemeService = new AutoThemeService(repo, themeStore, this);
     m_toastService = new ToastService(this);
     m_serialNumberService = new SerialNumberService(this);
+    m_systemInfoService = new SystemInfoService(repo, this);
 
     // Address database (for destination code lookup)
     m_addressDatabaseService = new AddressDatabaseService(this);
@@ -186,6 +190,19 @@ void Application::createStores(QQmlApplicationEngine &engine)
     };
     connectFaultMonitor(battery0Store);
     connectFaultMonitor(battery1Store);
+
+    // Wire UMS log polling to USB status
+    connect(usbStore, &UsbStore::statusChanged, this, [usbStore, umsLogStore]() {
+        const QString &status = usbStore->status();
+        if (status == QLatin1String("processing")) {
+            umsLogStore->startPolling();
+        } else if (status == QLatin1String("idle")) {
+            umsLogStore->stopPolling();
+            umsLogStore->clear();
+        } else {
+            umsLogStore->stopPolling();
+        }
+    });
 
     // M5: Wire translations to locale
     connect(localeStore, &LocaleStore::languageChanged, m_translations, [this, localeStore]() {
@@ -268,6 +285,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("savedLocationsStore"), savedLocationsStore);
     ctx->setContextProperty(QStringLiteral("serialNumberService"), m_serialNumberService);
     ctx->setContextProperty(QStringLiteral("addressDatabase"), m_addressDatabaseService);
+    ctx->setContextProperty(QStringLiteral("umsLogStore"), umsLogStore);
+    ctx->setContextProperty(QStringLiteral("systemInfoService"), m_systemInfoService);
 
     // Simulator service (created in sim mode, null otherwise)
     if (m_simulatorMode) {

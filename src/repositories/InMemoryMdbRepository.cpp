@@ -112,6 +112,12 @@ void InMemoryMdbRepository::hdel(const QString &key, const QString &field)
     }
 }
 
+QStringList InMemoryMdbRepository::lrange(const QString &key, int start, int stop)
+{
+    Q_UNUSED(key) Q_UNUSED(start) Q_UNUSED(stop)
+    return {};
+}
+
 void InMemoryMdbRepository::notifySubscribers(const QString &channel, const QString &variable)
 {
     const auto it = m_subscribers.constFind(channel);

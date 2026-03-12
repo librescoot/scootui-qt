@@ -33,6 +33,7 @@ public:
     virtual void addToSet(const QString &setKey, const QString &member) = 0;
     virtual void removeFromSet(const QString &setKey, const QString &member) = 0;
     virtual void hdel(const QString &key, const QString &field) = 0;
+    virtual QStringList lrange(const QString &key, int start, int stop) = 0;
 
 signals:
     void connectionStateChanged(bool connected);

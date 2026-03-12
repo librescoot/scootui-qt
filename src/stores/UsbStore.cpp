@@ -12,6 +12,7 @@ SyncSettings UsbStore::syncSettings() const
         {
             {QStringLiteral("status"), QStringLiteral("status")},
             {QStringLiteral("mode"), QStringLiteral("mode")},
+            {QStringLiteral("step"), QStringLiteral("step")},
         },
         {}, {}
     };
@@ -23,5 +24,7 @@ void UsbStore::applyFieldUpdate(const QString &variable, const QString &value)
         if (value != m_status) { m_status = value; emit statusChanged(); }
     } else if (variable == QLatin1String("mode")) {
         if (value != m_mode) { m_mode = value; emit modeChanged(); }
+    } else if (variable == QLatin1String("step")) {
+        if (value != m_step) { m_step = value; emit stepChanged(); }
     }
 }

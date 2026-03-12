@@ -4,6 +4,7 @@
 #include <QVariantMap>
 #include <QVector>
 #include <QPair>
+#include <atomic>
 
 class AddressDatabaseService : public QObject
 {
@@ -30,6 +31,12 @@ public:
     // Start loading/building the database
     void initialize();
 
+    // Cancel an in-progress build
+    Q_INVOKABLE void cancelBuild();
+
+    // Called from build thread to check for cancellation
+    bool isCancelled() const { return m_cancelRequested.load(); }
+
 signals:
     void statusChanged();
     void buildProgressChanged();
@@ -50,6 +57,7 @@ private:
     Status m_status = Idle;
     double m_buildProgress = 0;
     QString m_statusMessage;
+    std::atomic<bool> m_cancelRequested{false};
 
     // Ordered list: index = base32-decoded code value
     QVector<QPair<double, double>> m_addresses; // (lat, lng)

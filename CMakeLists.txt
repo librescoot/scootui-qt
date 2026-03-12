@@ -51,6 +51,7 @@ set(CPP_SOURCES
     src/stores/SettingsStore.cpp
     src/stores/OtaStore.cpp
     src/stores/UsbStore.cpp
+    src/stores/UmsLogStore.cpp
     src/stores/SpeedLimitStore.cpp
     src/stores/AutoStandbyStore.cpp
     src/stores/CbBatteryStore.cpp
@@ -78,6 +79,7 @@ set(CPP_SOURCES
     src/services/ReverseGeocodingService.cpp
     src/services/SerialNumberService.cpp
     src/services/AddressDatabaseService.cpp
+    src/services/SystemInfoService.cpp
     src/services/VectorTileDecoder.cpp
     src/routing/ValhallaClient.cpp
     src/l10n/Translations.cpp
@@ -105,6 +107,7 @@ set(CPP_HEADERS
     src/stores/SettingsStore.h
     src/stores/OtaStore.h
     src/stores/UsbStore.h
+    src/stores/UmsLogStore.h
     src/stores/SpeedLimitStore.h
     src/stores/AutoStandbyStore.h
     src/stores/CbBatteryStore.h
@@ -132,6 +135,7 @@ set(CPP_HEADERS
     src/services/ReverseGeocodingService.h
     src/services/SerialNumberService.h
     src/services/AddressDatabaseService.h
+    src/services/SystemInfoService.h
     src/services/VectorTileDecoder.h
     src/routing/RouteModels.h
     src/routing/RouteHelpers.h
