@@ -63,6 +63,8 @@ protected:
     void applyFieldUpdate(const QString &variable, const QString &value) override;
 
 private:
+    void onButtonEvent(const QString &channel, const QString &message);
+
     ScootEnums::BlinkerState m_blinkerState = ScootEnums::BlinkerState::Off;
     ScootEnums::BlinkerSwitch m_blinkerSwitch = ScootEnums::BlinkerSwitch::Off;
     ScootEnums::Toggle m_brakeLeft = ScootEnums::Toggle::Off;

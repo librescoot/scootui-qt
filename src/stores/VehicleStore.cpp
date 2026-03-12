@@ -1,8 +1,14 @@
 #include "VehicleStore.h"
+#include <QDebug>
 
 VehicleStore::VehicleStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
+    if (m_repo) {
+        m_repo->subscribe(QStringLiteral("buttons"), [this](const QString &ch, const QString &msg) {
+            onButtonEvent(ch, msg);
+        });
+    }
 }
 
 SyncSettings VehicleStore::syncSettings() const
@@ -68,5 +74,28 @@ void VehicleStore::applyFieldUpdate(const QString &variable, const QString &valu
     } else if (variable == QLatin1String("unable-to-drive")) {
         auto v = ScootEnums::parseToggle(value);
         if (v != m_isUnableToDrive) { m_isUnableToDrive = v; emit isUnableToDriveChanged(); }
+    }
+}
+
+void VehicleStore::onButtonEvent(const QString &, const QString &message)
+{
+    // Format: "brake:left/right:on/off"
+    QStringList parts = message.split(':');
+    if (parts.size() < 3 || parts[0] != QLatin1String("brake")) return;
+
+    QString position = parts[1];
+    QString state = parts[2];
+    auto v = ScootEnums::parseToggle(state);
+
+    if (position == QLatin1String("left")) {
+        if (v != m_brakeLeft) {
+            m_brakeLeft = v;
+            emit brakeLeftChanged();
+        }
+    } else if (position == QLatin1String("right")) {
+        if (v != m_brakeRight) {
+            m_brakeRight = v;
+            emit brakeRightChanged();
+        }
     }
 }
