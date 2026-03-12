@@ -13,3 +13,14 @@ void ScreenStore::setScreen(int screen)
         emit currentScreenChanged();
     }
 }
+
+void ScreenStore::showAbout()
+{
+    m_screenBeforeAbout = m_currentScreen;
+    setScreen(static_cast<int>(ScootEnums::ScreenMode::About));
+}
+
+void ScreenStore::closeAbout()
+{
+    setScreen(static_cast<int>(m_screenBeforeAbout));
+}

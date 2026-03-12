@@ -357,7 +357,7 @@ void MenuStore::rebuildMenuTree()
     m_rootNode->addChild(MenuNode::action(QStringLiteral("about"), tr->menuAbout(), [this]() {
         close();
         if (m_screenStore) {
-            m_screenStore->setScreen(4); // About screen
+            m_screenStore->showAbout();
         }
     }));
 

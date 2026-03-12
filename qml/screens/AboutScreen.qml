@@ -32,48 +32,47 @@ Rectangle {
         { name: "redis-plus-plus", license: "Apache-2.0" }
     ]
 
-    // Easter egg state machine
-    // Sequence: [down×4, up×3, down×2, up×1] = [d,d,d,d,u,u,u,d,d,u]
-    readonly property var easterEggSequence: ["d","d","d","d","u","u","u","d","d","u"]
-    property var easterEggProgress: []
-    property bool holdActive: false
+    // Easter egg state machine (matches Flutter's _trackEgg step counter)
+    // Sequence: down×4, up×3, down×2, up×1 — true=down, false=up
+    readonly property var eggSeq: [true, true, true, true, false, false, false, true, true, false]
+    property int eggStep: 0
+
+    function trackEgg(isDown) {
+        if (isDown === eggSeq[eggStep]) {
+            eggStep++
+        } else {
+            // Reset: if current input matches the first step, start at 1
+            eggStep = (isDown === eggSeq[0]) ? 1 : 0
+        }
+    }
+
+    // Animated scroll target (Flutter: animateTo with 200ms easeOut)
+    property real scrollTarget: 0
 
     function scrollDown() {
-        flickable.contentY = Math.min(
-            flickable.contentY + 80,
-            flickable.contentHeight - flickable.height
-        )
-        easterEggProgress.push("d")
-        checkEasterEgg()
+        var maxY = Math.max(0, flickable.contentHeight - flickable.height)
+        scrollTarget = Math.min(flickable.contentY + 80, maxY)
+        scrollAnimation.to = scrollTarget
+        scrollAnimation.restart()
+        trackEgg(true)
     }
 
     function scrollUp() {
-        flickable.contentY = Math.max(flickable.contentY - 80, 0)
-        easterEggProgress.push("u")
-        checkEasterEgg()
+        scrollTarget = Math.max(flickable.contentY - 80, 0)
+        scrollAnimation.to = scrollTarget
+        scrollAnimation.restart()
+        trackEgg(false)
     }
 
-    function checkEasterEgg() {
-        if (easterEggProgress.length > easterEggSequence.length)
-            easterEggProgress = easterEggProgress.slice(-easterEggSequence.length)
-
-        if (easterEggProgress.length === easterEggSequence.length) {
-            var match = true
-            for (var i = 0; i < easterEggSequence.length; i++) {
-                if (easterEggProgress[i] !== easterEggSequence[i]) {
-                    match = false
-                    break
-                }
+    function closeScreen() {
+        // Easter egg triggers on exit, matching Flutter's _close()
+        if (eggStep === eggSeq.length) {
+            if (typeof settingsService !== "undefined") {
+                settingsService.togglePlymouthTheme()
             }
-            if (match) {
-                // Check right brake is held
-                if (typeof vehicleStore !== "undefined" && vehicleStore.brakeRight === 0) {
-                    easterEggProgress = []
-                    if (typeof settingsService !== "undefined") {
-                        settingsService.togglePlymouthTheme()
-                    }
-                }
-            }
+        }
+        if (typeof screenStore !== "undefined") {
+            screenStore.closeAbout()
         }
     }
 
@@ -82,11 +81,7 @@ Rectangle {
         target: typeof inputHandler !== "undefined" ? inputHandler : null
         function onLeftTap() { aboutScreen.scrollDown() }
         function onLeftHold() { aboutScreen.scrollUp() }
-        function onRightTap() {
-            if (typeof screenStore !== "undefined") {
-                screenStore.setScreen(0)
-            }
-        }
+        function onRightTap() { aboutScreen.closeScreen() }
     }
 
     Column {
@@ -100,6 +95,15 @@ Rectangle {
             contentHeight: scrollContent.height
             clip: true
             boundsBehavior: Flickable.StopAtBounds
+
+            // Scroll animation (Flutter: animateTo with 200ms easeOut)
+            NumberAnimation {
+                id: scrollAnimation
+                target: flickable
+                property: "contentY"
+                duration: 200
+                easing.type: Easing.OutCubic
+            }
 
             Column {
                 id: scrollContent
@@ -214,7 +218,7 @@ Rectangle {
                             Text {
                                 text: "\ue6cc" // warning_amber
                                 font.family: "Material Icons"
-                                font.pixelSize: 14
+                                font.pixelSize: 16
                                 color: aboutScreen.warningText
                             }
 

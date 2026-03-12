@@ -15,10 +15,13 @@ public:
     ScootEnums::ScreenMode currentScreenMode() const { return m_currentScreen; }
 
     Q_INVOKABLE void setScreen(int screen);
+    Q_INVOKABLE void showAbout();
+    Q_INVOKABLE void closeAbout();
 
 signals:
     void currentScreenChanged();
 
 private:
     ScootEnums::ScreenMode m_currentScreen = ScootEnums::ScreenMode::Cluster;
+    ScootEnums::ScreenMode m_screenBeforeAbout = ScootEnums::ScreenMode::Cluster;
 };
