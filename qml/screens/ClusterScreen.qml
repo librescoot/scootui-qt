@@ -4,6 +4,7 @@ import "../widgets/speedometer"
 import "../widgets/status_bars"
 import "../widgets/cluster"
 import "../widgets/indicators"
+import "../widgets/navigation"
 
 Rectangle {
     id: clusterScreen
@@ -27,10 +28,25 @@ Rectangle {
                 anchors.fill: parent
             }
 
+            TurnByTurnWidget {
+                id: tbtWidget
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.margins: 4
+                z: 10
+            }
+
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 8
                 spacing: 0
+
+                // Spacer to avoid overlap with TurnByTurnWidget if it's visible
+                Item {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: tbtWidget.visible ? tbtWidget.height : 0
+                }
 
                 BlinkerRow {
                     Layout.fillWidth: true
