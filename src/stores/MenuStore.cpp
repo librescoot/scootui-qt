@@ -75,9 +75,17 @@ void MenuStore::setScreenStore(ScreenStore *store)
 
 void MenuStore::rebuildMenuTree()
 {
+    // Skip rebuilds if the menu is closed. We'll rebuild when it opens.
+    if (!m_isOpen) return;
+
     // Skip signal-triggered rebuilds while an action is executing.
     // selectItem() will call rebuildMenuTree() once after the action completes.
     if (m_executingAction) return;
+
+    // Store the current path to restore it if possible
+    auto savedPath = m_pathStack;
+    auto savedIndex = m_selectedIndex;
+    auto savedIndexStack = m_indexStack;
 
     m_rootNode.reset(MenuNode::submenu(QStringLiteral("root"),
                                        m_translations->menuTitle(),
@@ -210,12 +218,14 @@ void MenuStore::rebuildMenuTree()
 
     // Status Bar
     auto *statusBarNode = MenuNode::submenu(QStringLiteral("settings_status_bar"),
-                                            tr->menuStatusBar());
+                                            tr->menuStatusBar(),
+                                            QStringLiteral("STATUS BAR"));
     settingsNode->addChild(statusBarNode);
 
     // Battery Display
     auto *battDispNode = MenuNode::submenu(QStringLiteral("status_battery"),
-                                           tr->menuBatteryDisplay());
+                                           tr->menuBatteryDisplay(),
+                                           QStringLiteral("BATTERY"));
     statusBarNode->addChild(battDispNode);
     QString battMode = settings->batteryDisplayMode();
     battDispNode->addChild(MenuNode::setting(QStringLiteral("battery_percentage"), tr->menuBatteryPercentage(),
@@ -266,7 +276,9 @@ void MenuStore::rebuildMenuTree()
         clkVal == QLatin1String("never") ? 1 : 0, [svc]() { svc->updateShowClock(QStringLiteral("never")); }));
 
     // Map & Navigation
-    auto *mapNavNode = MenuNode::submenu(QStringLiteral("settings_map"), tr->menuMapNav());
+    auto *mapNavNode = MenuNode::submenu(QStringLiteral("settings_map"),
+                                         tr->menuMapNav(),
+                                         QStringLiteral("MAP"));
     settingsNode->addChild(mapNavNode);
 
     auto *mapTypeNode = MenuNode::submenu(QStringLiteral("map_type"), tr->menuMapType());
@@ -351,6 +363,26 @@ void MenuStore::rebuildMenuTree()
     m_rootNode->addChild(MenuNode::action(QStringLiteral("exit"), tr->menuExit(), [this]() {
         close();
     }));
+
+    // Restore path if possible
+    m_pathStack.clear();
+    m_indexStack.clear();
+    MenuNode *current = m_rootNode.get();
+    for (int i = 0; i < savedPath.size(); ++i) {
+        bool found = false;
+        for (auto *child : current->visibleChildren()) {
+            if (child->id() == savedPath[i]) {
+                m_pathStack.append(savedPath[i]);
+                m_indexStack.append(savedIndexStack[i]);
+                current = child;
+                found = true;
+                break;
+            }
+        }
+        if (!found) break;
+    }
+    int backOffset = m_pathStack.isEmpty() ? 0 : 1;
+    m_selectedIndex = qMin(savedIndex, backOffset + (int)current->visibleChildren().size() - 1);
 
     emitMenuChanged();
 }
