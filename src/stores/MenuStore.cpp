@@ -424,10 +424,11 @@ QVariantList MenuStore::currentItems() const
     if (!m_pathStack.isEmpty()) {
         QVariantMap backItem;
         backItem[QStringLiteral("id")] = QStringLiteral("__back");
-        backItem[QStringLiteral("title")] = QStringLiteral("\u2190 ") + m_translations->controlBack();
+        backItem[QStringLiteral("title")] = m_translations->controlBack();
         backItem[QStringLiteral("type")] = QStringLiteral("action");
         backItem[QStringLiteral("currentValue")] = 0;
         backItem[QStringLiteral("hasChildren")] = false;
+        backItem[QStringLiteral("leadingIcon")] = QStringLiteral("\ue15e"); // chevron_left
         list.append(backItem);
     }
 

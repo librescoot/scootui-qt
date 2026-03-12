@@ -34,11 +34,12 @@ Item {
             visible: usbStatus === "active"
             spacing: 24
 
+            // Flutter: Icons.usb, size: 64
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: "USB"
+                text: "\ue697" // usb
+                font.family: "Material Icons"
                 font.pixelSize: 64
-                font.bold: true
                 color: "#FFFFFF"
             }
 

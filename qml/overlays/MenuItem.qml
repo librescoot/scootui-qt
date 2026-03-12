@@ -8,8 +8,11 @@ Rectangle {
     property bool isSelected: false
     property int currentValue: 0
     property bool hasChildren: false
+    property string leadingIcon: ""
 
-    height: 54
+    // Flutter: Container is 50px (54 total slot - 4px from Padding(vertical:2))
+    // ListView spacing: 4 handles the inter-item gap
+    height: 50
     color: isSelected
            ? (themeStore.isDark ? "#3DFFFFFF" : "#1F000000")
            : "transparent"
@@ -17,23 +20,41 @@ Rectangle {
 
     Row {
         anchors.fill: parent
+        // Flutter: Container padding symmetric(horizontal: 16, vertical: 8)
         anchors.leftMargin: 16
         anchors.rightMargin: 16
+        anchors.topMargin: 8
+        anchors.bottomMargin: 8
         spacing: 8
+
+        // Leading icon (Flutter: optional Icon before title, size 20, white70/black54)
+        Text {
+            id: leadingIconText
+            anchors.verticalCenter: parent.verticalCenter
+            visible: menuItem.leadingIcon !== ""
+            text: menuItem.leadingIcon
+            font.family: "Material Icons"
+            font.pixelSize: 20
+            color: themeStore.isDark ? "#B3FFFFFF" : "#8A000000"
+        }
 
         // Title
         Text {
             anchors.verticalCenter: parent.verticalCenter
-            width: parent.width - 40
+            width: parent.width - trailingIcon.width - parent.spacing
+                   - (leadingIconText.visible ? leadingIconText.width + parent.spacing : 0)
             text: menuItem.title
             font.pixelSize: 20
             font.bold: isSelected
             color: themeStore.isDark ? "#FFFFFF" : "#000000"
-            elide: Text.ElideRight
+            elide: isSelected ? Text.ElideNone : Text.ElideRight
+            wrapMode: isSelected ? Text.WordWrap : Text.NoWrap
+            maximumLineCount: isSelected ? 100 : 1
         }
 
         // Trailing icon
         Text {
+            id: trailingIcon
             anchors.verticalCenter: parent.verticalCenter
             width: 24
             horizontalAlignment: Text.AlignRight
@@ -45,11 +66,13 @@ Rectangle {
                 return ""
             }
             font.family: "Material Icons"
-            font.pixelSize: 24
+            // Flutter: check icon size 20, chevron_right default size 24
+            font.pixelSize: (itemType === "setting" && currentValue === 1) ? 20 : 24
             color: {
+                // Flutter: check uses text color, chevron uses white70/black54
                 if (itemType === "setting" && currentValue === 1)
-                    return "#4CAF50"
-                return themeStore.isDark ? "#99FFFFFF" : "#99000000"
+                    return themeStore.isDark ? "#FFFFFF" : "#000000"
+                return themeStore.isDark ? "#B3FFFFFF" : "#8A000000"
             }
         }
     }

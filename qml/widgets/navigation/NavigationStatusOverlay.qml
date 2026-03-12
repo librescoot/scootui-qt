@@ -79,45 +79,22 @@ Item {
                 }
             }
 
-            // Arrived icon (checkmark)
-            Canvas {
-                width: 16; height: 16
+            // Arrived icon (Flutter: Icons.place, green, size 24)
+            Text {
                 visible: navStatusOverlay.navStatus === statusArrived
-                onPaint: {
-                    var ctx = getContext("2d")
-                    ctx.clearRect(0, 0, width, height)
-                    ctx.strokeStyle = "white"
-                    ctx.lineWidth = 2.5
-                    ctx.lineCap = "round"
-                    ctx.lineJoin = "round"
-                    ctx.beginPath()
-                    ctx.moveTo(2, 9)
-                    ctx.lineTo(6, 13)
-                    ctx.lineTo(14, 3)
-                    ctx.stroke()
-                }
+                text: "\ue4c9" // place
+                font.family: "Material Icons"
+                font.pixelSize: 24
+                color: "#4CAF50"
             }
 
-            // Error icon (warning triangle)
-            Canvas {
-                width: 16; height: 16
+            // Error icon (Flutter: warning_amber)
+            Text {
                 visible: navStatusOverlay.navStatus === statusError
-                onPaint: {
-                    var ctx = getContext("2d")
-                    ctx.clearRect(0, 0, width, height)
-                    // Triangle
-                    ctx.fillStyle = "white"
-                    ctx.beginPath()
-                    ctx.moveTo(8, 1)
-                    ctx.lineTo(15, 15)
-                    ctx.lineTo(1, 15)
-                    ctx.closePath()
-                    ctx.fill()
-                    // Exclamation mark
-                    ctx.fillStyle = "#C62828"
-                    ctx.fillRect(7, 5, 2, 5)
-                    ctx.fillRect(7, 12, 2, 2)
-                }
+                text: "\ue6cc" // warning_amber
+                font.family: "Material Icons"
+                font.pixelSize: 18
+                color: "white"
             }
 
             Text {
@@ -157,22 +134,11 @@ Item {
             anchors.centerIn: parent
             spacing: 6
 
-            Canvas {
-                width: 14; height: 14
-                onPaint: {
-                    var ctx = getContext("2d")
-                    ctx.clearRect(0, 0, width, height)
-                    ctx.fillStyle = "white"
-                    ctx.beginPath()
-                    ctx.moveTo(7, 1)
-                    ctx.lineTo(13, 13)
-                    ctx.lineTo(1, 13)
-                    ctx.closePath()
-                    ctx.fill()
-                    ctx.fillStyle = "#E65100"
-                    ctx.fillRect(6, 4, 2, 4.5)
-                    ctx.fillRect(6, 10, 2, 2)
-                }
+            Text {
+                text: "\ue6cc" // warning_amber
+                font.family: "Material Icons"
+                font.pixelSize: 16
+                color: "white"
             }
 
             Text {
