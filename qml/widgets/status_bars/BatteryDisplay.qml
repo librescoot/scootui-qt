@@ -97,8 +97,58 @@ Row {
             && vehicleStore.seatboxLock === slClosed
     }
 
-    readonly property bool showCbWarning: cbWarningCondition
-    readonly property bool showAuxWarning: auxLowChargeCondition || auxLowVoltageCondition || auxCriticalCondition
+    // --- 3-second debounce for warning indicators (matching Flutter) ---
+    property bool showCbWarning: false
+    property bool showAuxWarning: false
+
+    property bool _cbDebounceActive: false
+    property bool _auxDebounceActive: false
+
+    readonly property bool _anyAuxCondition: auxLowChargeCondition || auxLowVoltageCondition || auxCriticalCondition
+
+    onCbWarningConditionChanged: {
+        if (cbWarningCondition) {
+            if (!_cbDebounceActive) {
+                _cbDebounceActive = true
+                cbDebounceTimer.restart()
+            }
+        } else {
+            _cbDebounceActive = false
+            cbDebounceTimer.stop()
+            showCbWarning = false
+        }
+    }
+
+    on_AnyAuxConditionChanged: {
+        if (_anyAuxCondition) {
+            if (!_auxDebounceActive) {
+                _auxDebounceActive = true
+                auxDebounceTimer.restart()
+            }
+        } else {
+            _auxDebounceActive = false
+            auxDebounceTimer.stop()
+            showAuxWarning = false
+        }
+    }
+
+    Timer {
+        id: cbDebounceTimer
+        interval: 3000
+        onTriggered: {
+            if (batteryDisplay.cbWarningCondition)
+                batteryDisplay.showCbWarning = true
+        }
+    }
+
+    Timer {
+        id: auxDebounceTimer
+        interval: 3000
+        onTriggered: {
+            if (batteryDisplay._anyAuxCondition)
+                batteryDisplay.showAuxWarning = true
+        }
+    }
 
     // --- Charge bar dimensions (scaled from 144x144 to 24x24) ---
     readonly property real chargeX: 23.0 * (24.0 / 144.0)   // ~3.83
