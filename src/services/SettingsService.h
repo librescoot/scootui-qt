@@ -12,6 +12,7 @@ class SettingsService : public QObject
 public:
     explicit SettingsService(MdbRepository *repo, QObject *parent = nullptr);
 
+    Q_INVOKABLE void updateMode(const QString &mode);
     Q_INVOKABLE void updateTheme(const QString &theme);
     Q_INVOKABLE void updateAutoTheme(bool enabled);
     Q_INVOKABLE void updateLanguage(const QString &lang);

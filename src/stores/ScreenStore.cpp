@@ -1,8 +1,27 @@
 #include "ScreenStore.h"
+#include "SettingsStore.h"
 
-ScreenStore::ScreenStore(QObject *parent)
+ScreenStore::ScreenStore(SettingsStore *settings, QObject *parent)
     : QObject(parent)
 {
+    applyMode(settings->mode());
+    connect(settings, &SettingsStore::modeChanged, this, [this, settings]() {
+        applyMode(settings->mode());
+    });
+}
+
+void ScreenStore::applyMode(const QString &mode)
+{
+    ScootEnums::ScreenMode target = ScootEnums::ScreenMode::Cluster;
+    if (mode == QLatin1String("navigation"))
+        target = ScootEnums::ScreenMode::Map;
+    else if (mode == QLatin1String("debug"))
+        target = ScootEnums::ScreenMode::Debug;
+
+    if (target != m_currentScreen) {
+        m_currentScreen = target;
+        emit currentScreenChanged();
+    }
 }
 
 void ScreenStore::setScreen(int screen)

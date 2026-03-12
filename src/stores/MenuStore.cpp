@@ -115,6 +115,7 @@ void MenuStore::rebuildMenuTree()
     m_rootNode->addChild(MenuNode::action(QStringLiteral("switch_cluster"),
         tr->menuSwitchToCluster(), [this]() {
             if (m_screenStore) m_screenStore->setScreen(0);
+            m_settingsService->updateMode(QStringLiteral("speedometer"));
             close();
         }, [this]() {
             return m_screenStore && m_screenStore->currentScreen() == 1;
@@ -124,6 +125,7 @@ void MenuStore::rebuildMenuTree()
     m_rootNode->addChild(MenuNode::action(QStringLiteral("switch_map"),
         tr->menuSwitchToMap(), [this]() {
             if (m_screenStore) m_screenStore->setScreen(1);
+            m_settingsService->updateMode(QStringLiteral("navigation"));
             close();
         }, [this]() {
             return m_screenStore && m_screenStore->currentScreen() == 0;

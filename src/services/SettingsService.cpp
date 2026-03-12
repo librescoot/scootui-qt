@@ -17,6 +17,11 @@ void SettingsService::writeSetting(const QString &key, const QString &value)
     m_repo->set(QStringLiteral("settings"), key, value);
 }
 
+void SettingsService::updateMode(const QString &mode)
+{
+    writeSetting(QStringLiteral("dashboard.mode"), mode);
+}
+
 void SettingsService::updateTheme(const QString &theme)
 {
     writeSetting(QStringLiteral("dashboard.theme"), theme);

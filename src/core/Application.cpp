@@ -111,7 +111,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     auto *cbBatteryStore = new CbBatteryStore(repo, this);
     auto *auxBatteryStore = new AuxBatteryStore(repo, this);
     auto *themeStore = new ThemeStore(settingsStore, this);
-    auto *screenStore = new ScreenStore(this);
+    auto *screenStore = new ScreenStore(settingsStore, this);
     auto *tripStore = new TripStore(engineStore, vehicleStore, this);
     m_shutdownStore = new ShutdownStore(this);
     auto *shutdownStore = m_shutdownStore;

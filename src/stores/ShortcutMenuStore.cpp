@@ -193,8 +193,10 @@ void ShortcutMenuStore::toggleView()
     int current = m_screenStore->currentScreen();
     if (current == 0) {
         m_screenStore->setScreen(1);
+        m_settingsService->updateMode(QStringLiteral("navigation"));
     } else if (current == 1) {
         m_screenStore->setScreen(0);
+        m_settingsService->updateMode(QStringLiteral("speedometer"));
     }
 }
 
