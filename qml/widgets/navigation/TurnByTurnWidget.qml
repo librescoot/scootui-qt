@@ -1,14 +1,11 @@
 import QtQuick
 import QtQuick.Layouts
 
-Rectangle {
+Item {
     id: tbtWidget
-    color: Qt.rgba(0, 0, 0, 0.85)
-    radius: 8
+    height: visible ? contentCol.height + 16 : 0
     visible: typeof navigationService !== "undefined" && navigationService.isNavigating
              && navigationService.currentManeuverDistance > 0
-
-    implicitHeight: contentCol.height + 16
 
     // Maneuver type enum values (must match ManeuverType in C++)
     readonly property int mtOther: 0
@@ -32,7 +29,6 @@ Rectangle {
     readonly property int mtRoundaboutExit: 18
     readonly property int mtFerry: 19
 
-    // Distance threshold for showing maneuver icon vs straight arrow
     function iconThreshold(maneuverType) {
         switch (maneuverType) {
             case mtUTurn: case mtUTurnRight: return 600
@@ -71,25 +67,28 @@ Rectangle {
         }
     }
 
-    ColumnLayout {
-        id: contentCol
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.margins: 8
-        spacing: 4
+    // Main background container
+    Rectangle {
+        anchors.fill: parent
+        color: Qt.rgba(0, 0, 0, 0.8) // Matching Flutter's 0.8 opacity
 
-        // Main instruction row
+        // Bottom border matching Flutter
+        Rectangle {
+            anchors.bottom: parent.bottom
+            width: parent.width
+            height: 1
+            color: Qt.rgba(1, 1, 1, 0.1)
+        }
+
         RowLayout {
-            Layout.fillWidth: true
-            spacing: 12
+            id: contentRow
+            anchors.fill: parent
+            spacing: 0
 
-            // Maneuver icon — use RoundaboutIcon canvas for roundabout types,
-            // otherwise fall back to the Unicode arrow text.
+            // Icon box (left-aligned)
             Item {
-                id: maneuverIconContainer
-                Layout.preferredWidth: 56
-                Layout.preferredHeight: 56
+                Layout.preferredWidth: 80
+                Layout.fillHeight: true
 
                 property int mType: typeof navigationService !== "undefined"
                                     ? navigationService.currentManeuverType : 0
@@ -99,143 +98,135 @@ Rectangle {
                                             && mDist <= iconThreshold(mType)
 
                 Loader {
-                    id: roundaboutLoader
                     anchors.centerIn: parent
-                    active: maneuverIconContainer.isRoundabout
+                    active: parent.isRoundabout
                     sourceComponent: RoundaboutIcon {
                         exitNumber: typeof navigationService !== "undefined"
                                     ? Math.max(1, navigationService.roundaboutExitCount) : 1
                         isDark: true
-                        size: 48
+                        size: 64
                     }
                 }
 
                 Text {
-                    id: maneuverIcon
                     anchors.centerIn: parent
-                    visible: !maneuverIconContainer.isRoundabout
-                    text: maneuverIconContainer.mDist <= iconThreshold(maneuverIconContainer.mType)
-                          ? maneuverArrow(maneuverIconContainer.mType) : "\u2191"
-                    font.pixelSize: 48
+                    visible: !parent.isRoundabout
+                    text: parent.mDist <= iconThreshold(parent.mType)
+                          ? maneuverArrow(parent.mType) : "\u2191"
+                    font.pixelSize: 64
                     font.bold: true
                     color: "white"
                 }
             }
 
-            // Distance + street
+            // Text Column (center-expanded)
             ColumnLayout {
+                id: contentCol
                 Layout.fillWidth: true
-                spacing: 2
+                Layout.fillHeight: true
+                Layout.margins: 8
+                Layout.topMargin: 12
+                spacing: 4
 
+                // Distance indicator
                 Text {
                     text: typeof navigationService !== "undefined"
                           ? formatDistance(navigationService.currentManeuverDistance) : ""
-                    font.pixelSize: 28
+                    font.pixelSize: 18
                     font.bold: true
                     color: "white"
+                    lineHeight: 1.0
                 }
 
+                // Main instruction text (verbal)
                 Text {
                     Layout.fillWidth: true
                     text: typeof navigationService !== "undefined"
-                          ? navigationService.currentStreetName : ""
-                    font.pixelSize: 14
+                          ? navigationService.currentVerbalInstruction : ""
+                    font.pixelSize: 18
+                    font.weight: Font.Normal
                     color: Qt.rgba(1, 1, 1, 0.7)
+                    wrapMode: Text.WordWrap
+                    maximumLineCount: 3
                     elide: Text.ElideRight
-                    visible: text.length > 0
+                    lineHeight: 1.2
                 }
+
+                // Next instruction preview
+                Text {
+                    Layout.fillWidth: true
+                    visible: typeof navigationService !== "undefined" && navigationService.showNextPreview
+                    text: {
+                        if (typeof navigationService === "undefined") return ""
+                        var arrow = maneuverArrow(navigationService.nextManeuverType)
+                        return "Then " + arrow + " " + navigationService.nextStreetName
+                    }
+                    font.pixelSize: 14
+                    color: Qt.rgba(1, 1, 1, 0.38)
+                    elide: Text.ElideRight
+                    lineHeight: 1.2
+                }
+            }
+
+            // Right spacer for Time Info Bar
+            Item {
+                Layout.preferredWidth: 140
+                Layout.fillHeight: true
             }
         }
 
-        // Verbal instruction
-        Text {
-            Layout.fillWidth: true
-            text: typeof navigationService !== "undefined"
-                  ? navigationService.currentVerbalInstruction : ""
-            font.pixelSize: 13
-            color: Qt.rgba(1, 1, 1, 0.6)
-            wrapMode: Text.WordWrap
-            maximumLineCount: 2
-            elide: Text.ElideRight
-            visible: text.length > 0
-        }
-
-        // Next instruction preview
+        // Compact Time Info Bar (top-right corner)
         Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: nextRow.height + 8
-            color: Qt.rgba(1, 1, 1, 0.1)
-            radius: 4
-            visible: typeof navigationService !== "undefined" && navigationService.showNextPreview
+            anchors.top: parent.top
+            anchors.right: parent.right
+            implicitWidth: timeRow.width + 16
+            implicitHeight: timeRow.height + 8
+            color: Qt.rgba(0, 0, 0, 0.95)
+            radius: 8 // Corner radius for the floating bar
+            // Only rounded on bottom-left to match Flutter's style if preferred,
+            // but here we match the "box in corner" look.
 
-            RowLayout {
-                id: nextRow
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.margins: 6
+            // Left and Bottom borders
+            Rectangle { anchors.left: parent.left; width: 1; height: parent.height; color: Qt.rgba(1, 1, 1, 0.1) }
+            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Qt.rgba(1, 1, 1, 0.1) }
+
+            Row {
+                id: timeRow
+                anchors.centerIn: parent
                 spacing: 8
 
-                Text {
-                    text: "Then"
-                    font.pixelSize: 12
-                    color: Qt.rgba(1, 1, 1, 0.5)
+                // Distance remaining
+                Row {
+                    spacing: 4
+                    Text { text: "\u219D"; font.pixelSize: 12; color: Qt.rgba(1, 1, 1, 0.54) } // Straighten icon approx
+                    Text {
+                        text: typeof navigationService !== "undefined"
+                              ? formatDistance(navigationService.distanceToDestination) : ""
+                        font.pixelSize: 12; color: Qt.rgba(1, 1, 1, 0.7)
+                    }
                 }
 
-                Text {
-                    text: typeof navigationService !== "undefined"
-                          ? maneuverArrow(navigationService.nextManeuverType) : ""
-                    font.pixelSize: 20
-                    font.bold: true
-                    color: Qt.rgba(1, 1, 1, 0.8)
+                // Time remaining
+                Row {
+                    spacing: 4
+                    Text { text: "\u23F2"; font.pixelSize: 12; color: Qt.rgba(1, 1, 1, 0.54) } // Timer icon
+                    Text {
+                        text: typeof navigationService !== "undefined" && navigationService.totalDuration > 0
+                              ? Math.ceil(navigationService.totalDuration / 60) + "m"
+                              : ""
+                        font.pixelSize: 12; color: Qt.rgba(1, 1, 1, 0.7)
+                    }
                 }
 
-                Text {
-                    Layout.fillWidth: true
-                    text: typeof navigationService !== "undefined"
-                          ? navigationService.nextStreetName : ""
-                    font.pixelSize: 12
-                    color: Qt.rgba(1, 1, 1, 0.6)
-                    elide: Text.ElideRight
+                // ETA
+                Row {
+                    spacing: 4
+                    Text { text: "\u2691"; font.pixelSize: 12; color: Qt.rgba(1, 1, 1, 0.54) } // Flag icon
+                    Text {
+                        text: typeof navigationService !== "undefined" ? navigationService.eta : ""
+                        font.pixelSize: 12; color: Qt.rgba(1, 1, 1, 0.7)
+                    }
                 }
-
-                Text {
-                    text: typeof navigationService !== "undefined"
-                          ? formatDistance(navigationService.nextManeuverDistance) : ""
-                    font.pixelSize: 12
-                    color: Qt.rgba(1, 1, 1, 0.5)
-                }
-            }
-        }
-
-        // Time info bar (distance remaining, time remaining, ETA)
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 0
-
-            Text {
-                Layout.fillWidth: true
-                text: typeof navigationService !== "undefined"
-                      ? formatDistance(navigationService.distanceToDestination) : ""
-                font.pixelSize: 11
-                color: Qt.rgba(1, 1, 1, 0.5)
-            }
-
-            Text {
-                text: typeof navigationService !== "undefined" && navigationService.totalDuration > 0
-                      ? Math.ceil(navigationService.totalDuration / 60) + " min"
-                      : ""
-                font.pixelSize: 11
-                color: Qt.rgba(1, 1, 1, 0.5)
-            }
-
-            Text {
-                Layout.leftMargin: 12
-                text: typeof navigationService !== "undefined"
-                      ? "ETA " + navigationService.eta : ""
-                font.pixelSize: 11
-                color: Qt.rgba(1, 1, 1, 0.5)
-                visible: text.length > 4
             }
         }
     }

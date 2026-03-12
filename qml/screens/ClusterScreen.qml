@@ -33,7 +33,6 @@ Rectangle {
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.margins: 4
                 z: 10
             }
 
