@@ -481,8 +481,6 @@ void MenuStore::open()
     rebuildMenuTree();
     emit isOpenChanged();
 }
-    emitMenuChanged();
-}
 
 void MenuStore::close()
 {
