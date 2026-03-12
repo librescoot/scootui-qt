@@ -39,13 +39,13 @@ Rectangle {
             horizontalAlignment: Text.AlignRight
             text: {
                 if (itemType === "submenu" || hasChildren)
-                    return "\u203A"
+                    return "\ue15f" // chevron_right
                 if (itemType === "setting" && currentValue === 1)
-                    return "\u2713"
+                    return "\ue156" // check
                 return ""
             }
-            font.pixelSize: itemType === "submenu" || hasChildren ? 24 : 20
-            font.bold: itemType === "setting" && currentValue === 1
+            font.family: "Material Icons"
+            font.pixelSize: 24
             color: {
                 if (itemType === "setting" && currentValue === 1)
                     return "#4CAF50"

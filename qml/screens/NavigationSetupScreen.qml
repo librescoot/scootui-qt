@@ -63,10 +63,10 @@ Rectangle {
                     color: navSetupScreen.mapsOk ? navSetupScreen.checkColor : navSetupScreen.crossColor
                     Text {
                         anchors.centerIn: parent
-                        text: navSetupScreen.mapsOk ? "\u2713" : "\u2717"
+                        text: navSetupScreen.mapsOk ? "\ue156" : "\ue16a" // check / close
+                        font.family: "Material Icons"
                         color: "white"
                         font.pixelSize: 16
-                        font.bold: true
                     }
                 }
                 Text {
@@ -84,10 +84,10 @@ Rectangle {
                     color: navSetupScreen.routingOk ? navSetupScreen.checkColor : navSetupScreen.crossColor
                     Text {
                         anchors.centerIn: parent
-                        text: navSetupScreen.routingOk ? "\u2713" : "\u2717"
+                        text: navSetupScreen.routingOk ? "\ue156" : "\ue16a" // check / close
+                        font.family: "Material Icons"
                         color: "white"
                         font.pixelSize: 16
-                        font.bold: true
                     }
                 }
                 Text {

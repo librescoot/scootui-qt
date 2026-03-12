@@ -212,7 +212,8 @@ Rectangle {
                             spacing: 6
 
                             Text {
-                                text: "\u26A0"
+                                text: "\ue6cc" // warning_amber
+                                font.family: "Material Icons"
                                 font.pixelSize: 14
                                 color: aboutScreen.warningText
                             }

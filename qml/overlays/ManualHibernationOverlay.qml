@@ -90,7 +90,8 @@ Item {
                 // Power icon
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "\u23FB" // ⏻ power icon
+                    text: "\ue4e3" // power_settings_new
+                    font.family: "Material Icons"
                     font.pixelSize: 64
                     color: "#FFFFFF"
                 }

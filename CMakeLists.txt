@@ -176,6 +176,7 @@ set(QML_FILES
     qml/widgets/shutdown/ShutdownOverlay.qml
     qml/widgets/components/SvgIcon.qml
     qml/widgets/components/ControlHints.qml
+    qml/widgets/components/MaterialIcon.qml
     qml/widgets/map/MapViewWidget.qml
     qml/widgets/map/MapViewContent.qml
     qml/widgets/map/VehicleMarker.qml
@@ -263,6 +264,7 @@ qt_add_qml_module(scootui
         assets/fonts/Roboto-Light.ttf
         assets/fonts/RobotoCondensed-Bold.ttf
         assets/fonts/RobotoCondensed-Regular.ttf
+        assets/fonts/MaterialIcons-Regular.otf
         assets/styles/mapdark.json
         assets/styles/maplight.json
 )

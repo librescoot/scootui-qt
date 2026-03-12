@@ -50,20 +50,38 @@ Item {
         return Math.round(meters) + " m"
     }
 
-    function maneuverArrow(maneuverType) {
+    // Material Icons codepoints for navigation
+    readonly property string miTurnLeft:        "\uf058f"
+    readonly property string miTurnRight:       "\uf0590"
+    readonly property string miTurnSharpLeft:   "\uf0591"
+    readonly property string miTurnSharpRight:  "\uf0592"
+    readonly property string miTurnSlightLeft:  "\uf0593"
+    readonly property string miTurnSlightRight: "\uf0594"
+    readonly property string miUTurnLeft:       "\uf0595"
+    readonly property string miUTurnRight:      "\uf0596"
+    readonly property string miStraight:        "\uf0574"
+    readonly property string miMerge:           "\uf053b"
+    readonly property string miNavigation:      "\ue41e"
+    readonly property string miTimer:           "\ue662"
+    readonly property string miFlag:            "\ue28e"
+    readonly property string miSpeed:           "\ue5e0"
+
+    function maneuverIcon(maneuverType) {
         switch (maneuverType) {
-            case mtTurnLeft: case mtTurnSharpLeft: return "\u2190"      // ←
-            case mtTurnRight: case mtTurnSharpRight: return "\u2192"    // →
-            case mtTurnSlightLeft: case mtKeepLeft: return "\u2196"     // ↖
-            case mtTurnSlightRight: case mtKeepRight: return "\u2197"   // ↗
-            case mtUTurn: case mtUTurnRight: return "\u21B6"            // ↶
-            case mtRoundaboutEnter: case mtRoundaboutExit: return "\u21BB" // ↻
-            case mtExitLeft: return "\u21B0"                             // ↰
-            case mtExitRight: return "\u21B1"                            // ↱
+            case mtTurnLeft:                          return miTurnLeft
+            case mtTurnSharpLeft:                     return miTurnSharpLeft
+            case mtTurnRight:                         return miTurnRight
+            case mtTurnSharpRight:                    return miTurnSharpRight
+            case mtTurnSlightLeft: case mtKeepLeft:   return miTurnSlightLeft
+            case mtTurnSlightRight: case mtKeepRight: return miTurnSlightRight
+            case mtUTurn:                             return miUTurnLeft
+            case mtUTurnRight:                        return miUTurnRight
+            case mtExitLeft:                          return miTurnSlightLeft
+            case mtExitRight:                         return miTurnSlightRight
             case mtMergeStraight: case mtMergeLeft: case mtMergeRight:
-            case mtKeepStraight: return "\u2191"                        // ↑
-            case mtFerry: return "\u26F4"                                // ⛴
-            default: return "\u2191"                                     // ↑
+                                                      return miMerge
+            case mtKeepStraight: case mtFerry:        return miStraight
+            default:                                  return miStraight
         }
     }
 
@@ -112,9 +130,9 @@ Item {
                     anchors.centerIn: parent
                     visible: !parent.isRoundabout
                     text: parent.mDist <= iconThreshold(parent.mType)
-                          ? maneuverArrow(parent.mType) : "\u2191"
+                          ? maneuverIcon(parent.mType) : miStraight
+                    font.family: "Material Icons"
                     font.pixelSize: 64
-                    font.bold: true
                     color: "white"
                 }
             }
@@ -153,18 +171,30 @@ Item {
                 }
 
                 // Next instruction preview
-                Text {
+                Row {
                     Layout.fillWidth: true
                     visible: typeof navigationService !== "undefined" && navigationService.showNextPreview
-                    text: {
-                        if (typeof navigationService === "undefined") return ""
-                        var arrow = maneuverArrow(navigationService.nextManeuverType)
-                        return "Then " + arrow + " " + navigationService.nextStreetName
+                    spacing: 4
+
+                    Text {
+                        text: "Then"
+                        font.pixelSize: 14
+                        color: Qt.rgba(1, 1, 1, 0.38)
                     }
-                    font.pixelSize: 14
-                    color: Qt.rgba(1, 1, 1, 0.38)
-                    elide: Text.ElideRight
-                    lineHeight: 1.2
+                    Text {
+                        text: typeof navigationService !== "undefined"
+                              ? maneuverIcon(navigationService.nextManeuverType) : ""
+                        font.family: "Material Icons"
+                        font.pixelSize: 14
+                        color: Qt.rgba(1, 1, 1, 0.38)
+                    }
+                    Text {
+                        text: typeof navigationService !== "undefined"
+                              ? navigationService.nextStreetName : ""
+                        font.pixelSize: 14
+                        color: Qt.rgba(1, 1, 1, 0.38)
+                        elide: Text.ElideRight
+                    }
                 }
             }
 
@@ -198,7 +228,7 @@ Item {
                 // Distance remaining
                 Row {
                     spacing: 4
-                    Text { text: "\u219D"; font.pixelSize: 12; color: Qt.rgba(1, 1, 1, 0.54) } // Straighten icon approx
+                    Text { text: miSpeed; font.family: "Material Icons"; font.pixelSize: 12; color: Qt.rgba(1, 1, 1, 0.54) }
                     Text {
                         text: typeof navigationService !== "undefined"
                               ? formatDistance(navigationService.distanceToDestination) : ""
@@ -209,7 +239,7 @@ Item {
                 // Time remaining
                 Row {
                     spacing: 4
-                    Text { text: "\u23F2"; font.pixelSize: 12; color: Qt.rgba(1, 1, 1, 0.54) } // Timer icon
+                    Text { text: miTimer; font.family: "Material Icons"; font.pixelSize: 12; color: Qt.rgba(1, 1, 1, 0.54) }
                     Text {
                         text: typeof navigationService !== "undefined" && navigationService.totalDuration > 0
                               ? Math.ceil(navigationService.totalDuration / 60) + "m"
@@ -221,7 +251,7 @@ Item {
                 // ETA
                 Row {
                     spacing: 4
-                    Text { text: "\u2691"; font.pixelSize: 12; color: Qt.rgba(1, 1, 1, 0.54) } // Flag icon
+                    Text { text: miFlag; font.family: "Material Icons"; font.pixelSize: 12; color: Qt.rgba(1, 1, 1, 0.54) }
                     Text {
                         text: typeof navigationService !== "undefined" ? navigationService.eta : ""
                         font.pixelSize: 12; color: Qt.rgba(1, 1, 1, 0.7)

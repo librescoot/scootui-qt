@@ -23,6 +23,7 @@ int main(int argc, char *argv[])
     QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/Roboto-Light.ttf"));
     QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/RobotoCondensed-Bold.ttf"));
     QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/RobotoCondensed-Regular.ttf"));
+    QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/MaterialIcons-Regular.otf"));
 
     // Set Roboto as default application font
     QFont defaultFont(QStringLiteral("Roboto"));

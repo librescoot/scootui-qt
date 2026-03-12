@@ -86,18 +86,40 @@ Item {
                 anchors.leftMargin: 24
                 anchors.rightMargin: 24
 
-                Text {
-                    text: "\u2190 " + (typeof translations !== "undefined" ? translations.controlBack : "Next")
-                    font.pixelSize: 16
-                    color: themeStore.isDark ? "#99FFFFFF" : "#99000000"
+                Row {
+                    spacing: 4
+                    Text {
+                        text: "\ue092" // arrow_back
+                        font.family: "Material Icons"
+                        font.pixelSize: 18
+                        color: themeStore.isDark ? "#99FFFFFF" : "#99000000"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Text {
+                        text: typeof translations !== "undefined" ? translations.controlBack : "Next"
+                        font.pixelSize: 16
+                        color: themeStore.isDark ? "#99FFFFFF" : "#99000000"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
                 }
 
                 Item { Layout.fillWidth: true }
 
-                Text {
-                    text: (typeof translations !== "undefined" ? translations.controlSelect : "Select") + " \u2192"
-                    font.pixelSize: 16
-                    color: themeStore.isDark ? "#99FFFFFF" : "#99000000"
+                Row {
+                    spacing: 4
+                    Text {
+                        text: typeof translations !== "undefined" ? translations.controlSelect : "Select"
+                        font.pixelSize: 16
+                        color: themeStore.isDark ? "#99FFFFFF" : "#99000000"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Text {
+                        text: "\ue09b" // arrow_forward
+                        font.family: "Material Icons"
+                        font.pixelSize: 18
+                        color: themeStore.isDark ? "#99FFFFFF" : "#99000000"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
                 }
             }
         }

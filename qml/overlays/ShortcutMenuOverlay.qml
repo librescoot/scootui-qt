@@ -8,6 +8,15 @@ Item {
 
     property bool isDark: themeStore.isDark
 
+    // Material Icons codepoints
+    readonly property string miDarkMode:    "\ue1b0"
+    readonly property string miLightMode:   "\ue37a"
+    readonly property string miContrast:    "\uf04d8"
+    readonly property string miMap:         "\uf1ae"
+    readonly property string miTimer:       "\ue662"
+    readonly property string miWarning:     "\ue6cc"
+    readonly property string miBugReport:   "\ue115"
+
     // Main bottom container
     Rectangle {
         id: containerBg
@@ -49,20 +58,21 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
+                        font.family: "Material Icons"
                         font.pixelSize: menuItemRect.isSelected ? 36 : 28
                         color: menuItemRect.itemColor
                         text: {
                             switch(index) {
                                 case 0: // Theme
-                                    if (themeStore.isAutoMode) return "\u23FE" // Moon (going to Dark)
-                                    if (themeStore.isDark) return "\u263C"    // Sun (going to Light)
-                                    return "\u25D1"                          // Contrast (going to Auto)
+                                    if (themeStore.isAutoMode) return miDarkMode
+                                    if (themeStore.isDark) return miLightMode
+                                    return miContrast
                                 case 1: // View
-                                    return screenStore.currentScreen === 0 ? "\uD83D\uDDFA" : "\u23F2"
+                                    return screenStore.currentScreen === 0 ? miMap : miTimer
                                 case 2: // Hazards
-                                    return "\u26A0"
+                                    return miWarning
                                 case 3: // Debug
-                                    return "\uD83D\uDC1E"
+                                    return miBugReport
                                 default: return ""
                             }
                         }
