@@ -7,6 +7,8 @@ Item {
     visible: typeof navigationService !== "undefined" && navigationService.isNavigating
              && navigationService.currentManeuverDistance > 0
 
+    property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+
     // Maneuver type enum values (must match ManeuverType in C++)
     readonly property int mtOther: 0
     readonly property int mtKeepStraight: 1
@@ -90,14 +92,14 @@ Item {
     // Main background container
     Rectangle {
         anchors.fill: parent
-        color: Qt.rgba(0, 0, 0, 0.8) // Matching Flutter's 0.8 opacity
+        color: isDark ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.8)
 
-        // Bottom border matching Flutter
+        // Bottom border
         Rectangle {
             anchors.bottom: parent.bottom
             width: parent.width
             height: 1
-            color: Qt.rgba(1, 1, 1, 0.1)
+            color: isDark ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.12)
         }
 
         RowLayout {
@@ -123,7 +125,7 @@ Item {
                     sourceComponent: RoundaboutIcon {
                         exitNumber: typeof navigationService !== "undefined"
                                     ? Math.max(1, navigationService.roundaboutExitCount) : 1
-                        isDark: true
+                        isDark: tbtWidget.isDark
                         size: 64
                     }
                 }
@@ -135,7 +137,7 @@ Item {
                           ? maneuverIcon(parent.mType) : miStraight
                     font.family: "Material Icons"
                     font.pixelSize: 64
-                    color: "white"
+                    color: isDark ? "white" : "#212121"
                 }
             }
 
@@ -154,7 +156,7 @@ Item {
                           ? formatDistance(navigationService.currentManeuverDistance) : ""
                     font.pixelSize: 18
                     font.bold: true
-                    color: "white"
+                    color: isDark ? "white" : "#212121"
                     lineHeight: 1.0
                 }
 
@@ -164,8 +166,8 @@ Item {
                     text: typeof navigationService !== "undefined"
                           ? navigationService.currentVerbalInstruction : ""
                     font.pixelSize: 18
-                    font.weight: Font.Normal
-                    color: Qt.rgba(1, 1, 1, 0.7)
+                    font.weight: isDark ? Font.Normal : Font.Medium
+                    color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     wrapMode: Text.WordWrap
                     maximumLineCount: 3
                     elide: Text.ElideRight
@@ -181,20 +183,20 @@ Item {
                     Text {
                         text: "Then"
                         font.pixelSize: 14
-                        color: Qt.rgba(1, 1, 1, 0.38)
+                        color: isDark ? Qt.rgba(1, 1, 1, 0.38) : Qt.rgba(0, 0, 0, 0.45)
                     }
                     Text {
                         text: typeof navigationService !== "undefined"
                               ? maneuverIcon(navigationService.nextManeuverType) : ""
                         font.family: "Material Icons"
                         font.pixelSize: 14
-                        color: Qt.rgba(1, 1, 1, 0.38)
+                        color: isDark ? Qt.rgba(1, 1, 1, 0.38) : Qt.rgba(0, 0, 0, 0.45)
                     }
                     Text {
                         text: typeof navigationService !== "undefined"
                               ? navigationService.nextStreetName : ""
                         font.pixelSize: 14
-                        color: Qt.rgba(1, 1, 1, 0.38)
+                        color: isDark ? Qt.rgba(1, 1, 1, 0.38) : Qt.rgba(0, 0, 0, 0.45)
                         elide: Text.ElideRight
                     }
                 }
@@ -213,14 +215,12 @@ Item {
             anchors.right: parent.right
             implicitWidth: timeRow.width + 16
             implicitHeight: timeRow.height + 8
-            color: Qt.rgba(0, 0, 0, 0.95)
-            radius: 8 // Corner radius for the floating bar
-            // Only rounded on bottom-left to match Flutter's style if preferred,
-            // but here we match the "box in corner" look.
+            color: isDark ? Qt.rgba(0, 0, 0, 0.95) : Qt.rgba(1, 1, 1, 0.98)
+            radius: 8
 
             // Left and Bottom borders
-            Rectangle { anchors.left: parent.left; width: 1; height: parent.height; color: Qt.rgba(1, 1, 1, 0.1) }
-            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Qt.rgba(1, 1, 1, 0.1) }
+            Rectangle { anchors.left: parent.left; width: 1; height: parent.height; color: isDark ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.12) }
+            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: isDark ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.12) }
 
             Row {
                 id: timeRow
@@ -230,33 +230,33 @@ Item {
                 // Distance remaining
                 Row {
                     spacing: 4
-                    Text { text: miSpeed; font.family: "Material Icons"; font.pixelSize: 12; color: Qt.rgba(1, 1, 1, 0.54) }
+                    Text { text: miSpeed; font.family: "Material Icons"; font.pixelSize: 12; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
                         text: typeof navigationService !== "undefined"
                               ? formatDistance(navigationService.distanceToDestination) : ""
-                        font.pixelSize: 12; color: Qt.rgba(1, 1, 1, 0.7)
+                        font.pixelSize: 12; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
                 }
 
                 // Time remaining
                 Row {
                     spacing: 4
-                    Text { text: miTimer; font.family: "Material Icons"; font.pixelSize: 12; color: Qt.rgba(1, 1, 1, 0.54) }
+                    Text { text: miTimer; font.family: "Material Icons"; font.pixelSize: 12; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
                         text: typeof navigationService !== "undefined" && navigationService.totalDuration > 0
                               ? Math.ceil(navigationService.totalDuration / 60) + "m"
                               : ""
-                        font.pixelSize: 12; color: Qt.rgba(1, 1, 1, 0.7)
+                        font.pixelSize: 12; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
                 }
 
                 // ETA
                 Row {
                     spacing: 4
-                    Text { text: miFlag; font.family: "Material Icons"; font.pixelSize: 12; color: Qt.rgba(1, 1, 1, 0.54) }
+                    Text { text: miFlag; font.family: "Material Icons"; font.pixelSize: 12; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
                         text: typeof navigationService !== "undefined" ? navigationService.eta : ""
-                        font.pixelSize: 12; color: Qt.rgba(1, 1, 1, 0.7)
+                        font.pixelSize: 12; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
                 }
             }
