@@ -161,24 +161,24 @@ inline ManeuverType mapValhallaType(int type) {
     case 9:   return ManeuverType::TurnSlightRight;
     case 10:  return ManeuverType::TurnRight;
     case 11:  return ManeuverType::TurnSharpRight;
-    case 12:  return ManeuverType::UTurn;
-    case 13:  return ManeuverType::UTurnRight;
+    case 12:  return ManeuverType::UTurnRight;
+    case 13:  return ManeuverType::UTurn;
     case 14:  return ManeuverType::TurnSharpLeft;
-    case 15:  return ManeuverType::TurnSlightLeft;
-    case 16:  return ManeuverType::TurnLeft;
+    case 15:  return ManeuverType::TurnLeft;
+    case 16:  return ManeuverType::TurnSlightLeft;
     case 18:  return ManeuverType::TurnRight;
     case 19:  return ManeuverType::TurnLeft;
     case 20:  return ManeuverType::ExitRight;
     case 21:  return ManeuverType::ExitLeft;
     case 22:  return ManeuverType::KeepStraight;
-    case 23:  return ManeuverType::KeepLeft;
-    case 24:  return ManeuverType::KeepRight;
+    case 23:  return ManeuverType::KeepRight;
+    case 24:  return ManeuverType::KeepLeft;
     case 25:  return ManeuverType::MergeStraight;
     case 26:  return ManeuverType::RoundaboutEnter;
     case 27:  return ManeuverType::RoundaboutExit;
     case 28: case 29: return ManeuverType::Ferry;
-    case 37:  return ManeuverType::MergeLeft;
-    case 38:  return ManeuverType::MergeRight;
+    case 37:  return ManeuverType::MergeRight;
+    case 38:  return ManeuverType::MergeLeft;
     default:  return ManeuverType::Other;
     }
 }
