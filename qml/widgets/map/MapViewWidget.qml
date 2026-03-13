@@ -24,6 +24,14 @@ Item {
         anchors.fill: parent
         active: true
         source: Qt.resolvedUrl("MapViewContent.qml")
+
+        // MapViewContent uses "import MapLibre.Location" (v4.x).
+        // If unavailable, fall back to MapViewContentLegacy which uses "import MapLibre" (v3.x).
+        onStatusChanged: {
+            if (status === Loader.Error && source.toString().indexOf("Legacy") === -1) {
+                source = Qt.resolvedUrl("MapViewContentLegacy.qml")
+            }
+        }
     }
 
     // Fallback background when map not ready or plugin unavailable

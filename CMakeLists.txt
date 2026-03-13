@@ -195,6 +195,7 @@ set(QML_FILES
     qml/widgets/components/FrostedGlass.qml
     qml/widgets/map/MapViewWidget.qml
     qml/widgets/map/MapViewContent.qml
+    qml/widgets/map/MapViewContentLegacy.qml
     qml/widgets/map/VehicleMarker.qml
     qml/widgets/map/NorthIndicator.qml
     qml/widgets/map/ScaleBar.qml
