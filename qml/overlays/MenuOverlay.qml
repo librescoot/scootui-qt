@@ -8,15 +8,20 @@ Item {
     visible: opacity > 0
     opacity: menuStore.isOpen ? 1.0 : 0.0
 
+    property Item blurSource
+
     Behavior on opacity {
         NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
     }
 
-    // Background (covers full screen including status bar area)
-    Rectangle {
+    // Frosted glass background
+    FrostedGlass {
         anchors.fill: parent
-        color: themeStore.isDark ? "#000000" : "#FFFFFF"
-        opacity: 0.9
+        sourceItem: menuOverlay.blurSource
+        blurAmount: 0.6
+        tintColor: themeStore.isDark
+            ? Qt.rgba(0, 0, 0, 0.65)
+            : Qt.rgba(1, 1, 1, 0.65)
     }
 
     ColumnLayout {
@@ -81,7 +86,7 @@ Item {
                 height: 40
                 visible: menuList.contentY > 5
                 gradient: Gradient {
-                    GradientStop { position: 0.0; color: themeStore.isDark ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.9) }
+                    GradientStop { position: 0.0; color: themeStore.isDark ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.8) }
                     GradientStop { position: 1.0; color: themeStore.isDark ? Qt.rgba(0, 0, 0, 0.0) : Qt.rgba(1, 1, 1, 0.0) }
                 }
 
@@ -103,7 +108,7 @@ Item {
                 visible: menuList.contentY < (menuList.contentHeight - menuList.height - 5)
                 gradient: Gradient {
                     GradientStop { position: 0.0; color: themeStore.isDark ? Qt.rgba(0, 0, 0, 0.0) : Qt.rgba(1, 1, 1, 0.0) }
-                    GradientStop { position: 1.0; color: themeStore.isDark ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.9) }
+                    GradientStop { position: 1.0; color: themeStore.isDark ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.8) }
                 }
 
                 Text {

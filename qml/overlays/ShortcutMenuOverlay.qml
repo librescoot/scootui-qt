@@ -1,11 +1,13 @@
 import QtQuick
 import QtQuick.Layouts
+import "../widgets/components"
 
 Item {
     id: shortcutOverlay
     anchors.fill: parent
     visible: shortcutMenuStore.visible
 
+    property Item blurSource
     property bool isDark: themeStore.isDark
 
     // Material Icons codepoints
@@ -18,20 +20,34 @@ Item {
     readonly property string miBugReport:   "\ue115"
 
     // Main bottom container
-    Rectangle {
-        id: containerBg
+    Item {
+        id: containerWrapper
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 60
-        
-        // Flutter uses left/right 40, here we center and use implicit width
+
         width: contentRow.width + 40
         height: 120
-        radius: 20
-        
-        color: isDark ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.9)
-        border.width: 2
-        border.color: isDark ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(0, 0, 0, 0.3)
+        clip: true
+
+        FrostedGlass {
+            anchors.fill: parent
+            sourceItem: shortcutOverlay.blurSource
+            sourceOffset: Qt.point(containerWrapper.x, containerWrapper.y)
+            blurAmount: 0.5
+            tintColor: isDark
+                ? Qt.rgba(0, 0, 0, 0.5)
+                : Qt.rgba(1, 1, 1, 0.55)
+        }
+
+        Rectangle {
+            id: containerBg
+            anchors.fill: parent
+            radius: 20
+            color: "transparent"
+            border.width: 2
+            border.color: isDark ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(0, 0, 0, 0.3)
+        }
 
         Row {
             id: contentRow

@@ -192,6 +192,7 @@ set(QML_FILES
     qml/widgets/components/ControlHints.qml
     qml/widgets/components/MaterialIcon.qml
     qml/widgets/components/TintedImage.qml
+    qml/widgets/components/FrostedGlass.qml
     qml/widgets/map/MapViewWidget.qml
     qml/widgets/map/MapViewContent.qml
     qml/widgets/map/VehicleMarker.qml

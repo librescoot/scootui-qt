@@ -115,11 +115,13 @@ Window {
     MenuOverlay {
         anchors.fill: parent
         z: 200
+        blurSource: screenLoader
     }
 
     ShortcutMenuOverlay {
         anchors.fill: parent
         z: 300
+        blurSource: screenLoader
     }
 
     // Toast notifications
