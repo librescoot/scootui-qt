@@ -115,7 +115,7 @@ private:
     static constexpr double MultiTurnLookAheadMeters = 150.0;
 
     // Route overview (zoom out briefly after route calculation)
-    static constexpr double OverviewZoom = 14.0;
+    static constexpr double OverviewZoom = 15.0;
     static constexpr double OverviewZoomRate = 2.0;
     static constexpr int OverviewHoldMs = 3000;
 
