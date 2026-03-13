@@ -30,8 +30,8 @@ Rectangle {
     readonly property string dlRegion: hasDownloadService ? mapDownloadService.regionName : ""
     readonly property string dlError: hasDownloadService ? mapDownloadService.errorMessage : ""
     readonly property bool dlUpdateAvailable: hasDownloadService ? mapDownloadService.updateAvailable : false
-    readonly property qint64 dlDownloaded: hasDownloadService ? mapDownloadService.downloadedBytes : 0
-    readonly property qint64 dlTotal: hasDownloadService ? mapDownloadService.totalBytes : 0
+    readonly property real dlDownloaded: hasDownloadService ? mapDownloadService.downloadedBytes : 0
+    readonly property real dlTotal: hasDownloadService ? mapDownloadService.totalBytes : 0
 
     // Status enum values (matching MapDownloadStatus)
     readonly property int statusIdle: 0
