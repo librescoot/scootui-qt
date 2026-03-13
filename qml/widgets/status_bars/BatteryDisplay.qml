@@ -1,9 +1,15 @@
 import QtQuick
+import QtQuick.Effects
 
 Row {
     id: batteryDisplay
     spacing: 8
     height: 24
+
+    // Theme-aware icon color (matches Flutter's ColorFilter.mode srcIn)
+    readonly property color iconColor: typeof themeStore !== "undefined" && !themeStore.isDark
+                                        ? "#000000" : "#FFFFFF"
+    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
 
     // --- Enum int values ---
     // BatteryState: Unknown=0, Asleep=1, Idle=2, Active=3
@@ -162,7 +168,7 @@ Row {
     Item {
         width: 24; height: 24
 
-        // Base battery icon
+        // Base battery icon (tinted for theme)
         Image {
             id: b0base
             anchors.fill: parent
@@ -174,6 +180,13 @@ Row {
             }
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
+            visible: false
+        }
+        MultiEffect {
+            source: b0base
+            anchors.fill: parent
+            colorization: 1.0
+            colorizationColor: batteryDisplay.iconColor
         }
 
         // Charge bar (shown for blank icon states)
@@ -188,38 +201,70 @@ Row {
 
         // Asleep mask (renders in background color to "cut out" areas)
         Image {
+            id: b0asleepMask
             anchors.fill: parent
-            visible: present0 && battState0 === bsAsleep
+            visible: false
             source: "qrc:/ScootUI/assets/icons/librescoot-main-battery-asleep-mask.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
         }
+        MultiEffect {
+            source: b0asleepMask
+            anchors.fill: parent
+            visible: present0 && battState0 === bsAsleep
+            colorization: 1.0
+            colorizationColor: batteryDisplay.isDark ? "#000000" : "#FFFFFF"
+        }
 
         // Asleep overlay
         Image {
+            id: b0asleepOverlay
             anchors.fill: parent
-            visible: present0 && battState0 === bsAsleep
+            visible: false
             source: "qrc:/ScootUI/assets/icons/librescoot-main-battery-asleep-overlay.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
         }
+        MultiEffect {
+            source: b0asleepOverlay
+            anchors.fill: parent
+            visible: present0 && battState0 === bsAsleep
+            colorization: 1.0
+            colorizationColor: batteryDisplay.iconColor
+        }
 
         // Idle overlay
         Image {
+            id: b0idleOverlay
             anchors.fill: parent
-            visible: present0 && battState0 === bsIdle
+            visible: false
             source: "qrc:/ScootUI/assets/icons/librescoot-overlay-idle.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
         }
+        MultiEffect {
+            source: b0idleOverlay
+            anchors.fill: parent
+            visible: present0 && battState0 === bsIdle
+            colorization: 1.0
+            colorizationColor: batteryDisplay.iconColor
+        }
 
         // Fault overlay (error X)
         Image {
+            id: b0faultOverlay
             anchors.fill: parent
-            visible: hasFault0
+            visible: false
             source: "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
+        }
+        MultiEffect {
+            source: b0faultOverlay
+            anchors.fill: parent
+            visible: hasFault0
+            colorization: 1.0
+            colorizationColor: batteryDisplay.iconColor
         }
     }
 
@@ -241,6 +286,7 @@ Row {
         visible: batteryDisplay.showDual
 
         Image {
+            id: b1base
             anchors.fill: parent
             source: {
                 if (!present1) return "qrc:/ScootUI/assets/icons/librescoot-main-battery-absent.svg"
@@ -250,6 +296,13 @@ Row {
             }
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
+            visible: false
+        }
+        MultiEffect {
+            source: b1base
+            anchors.fill: parent
+            colorization: 1.0
+            colorizationColor: batteryDisplay.iconColor
         }
 
         // Charge bar
@@ -264,38 +317,70 @@ Row {
 
         // Asleep mask
         Image {
+            id: b1asleepMask
             anchors.fill: parent
-            visible: present1 && battState1 === bsAsleep
+            visible: false
             source: "qrc:/ScootUI/assets/icons/librescoot-main-battery-asleep-mask.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
         }
+        MultiEffect {
+            source: b1asleepMask
+            anchors.fill: parent
+            visible: present1 && battState1 === bsAsleep
+            colorization: 1.0
+            colorizationColor: batteryDisplay.isDark ? "#000000" : "#FFFFFF"
+        }
 
         // Asleep overlay
         Image {
+            id: b1asleepOverlay
             anchors.fill: parent
-            visible: present1 && battState1 === bsAsleep
+            visible: false
             source: "qrc:/ScootUI/assets/icons/librescoot-main-battery-asleep-overlay.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
         }
+        MultiEffect {
+            source: b1asleepOverlay
+            anchors.fill: parent
+            visible: present1 && battState1 === bsAsleep
+            colorization: 1.0
+            colorizationColor: batteryDisplay.iconColor
+        }
 
         // Idle overlay
         Image {
+            id: b1idleOverlay
             anchors.fill: parent
-            visible: present1 && battState1 === bsIdle
+            visible: false
             source: "qrc:/ScootUI/assets/icons/librescoot-overlay-idle.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
         }
+        MultiEffect {
+            source: b1idleOverlay
+            anchors.fill: parent
+            visible: present1 && battState1 === bsIdle
+            colorization: 1.0
+            colorizationColor: batteryDisplay.iconColor
+        }
 
         // Fault overlay
         Image {
+            id: b1faultOverlay
             anchors.fill: parent
-            visible: hasFault1
+            visible: false
             source: "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
+        }
+        MultiEffect {
+            source: b1faultOverlay
+            anchors.fill: parent
+            visible: hasFault1
+            colorization: 1.0
+            colorizationColor: batteryDisplay.iconColor
         }
     }
 
@@ -319,25 +404,18 @@ Row {
         anchors.verticalCenter: parent.verticalCenter
 
         Image {
+            id: seatboxIcon
             anchors.fill: parent
             source: "qrc:/ScootUI/assets/icons/librescoot-seatbox-open.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
-            visible: typeof themeStore !== "undefined" && themeStore.isDark
+            visible: false
         }
-
-        // Light mode: dark background with white icon
-        Rectangle {
+        MultiEffect {
+            source: seatboxIcon
             anchors.fill: parent
-            radius: 4; color: "#333333"
-            visible: typeof themeStore !== "undefined" && !themeStore.isDark
-
-            Image {
-                anchors.fill: parent; anchors.margins: 2
-                source: "qrc:/ScootUI/assets/icons/librescoot-seatbox-open.svg"
-                sourceSize: Qt.size(20, 20)
-                fillMode: Image.PreserveAspectFit
-            }
+            colorization: 1.0
+            colorizationColor: batteryDisplay.iconColor
         }
     }
 
@@ -350,16 +428,32 @@ Row {
         anchors.verticalCenter: parent.verticalCenter
 
         Image {
+            id: cbIcon
             anchors.fill: parent
             source: "qrc:/ScootUI/assets/icons/librescoot-cb-battery-blank.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
+            visible: false
+        }
+        MultiEffect {
+            source: cbIcon
+            anchors.fill: parent
+            colorization: 1.0
+            colorizationColor: batteryDisplay.iconColor
         }
         Image {
+            id: cbErrorOverlay
             anchors.fill: parent
             source: "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
+            visible: false
+        }
+        MultiEffect {
+            source: cbErrorOverlay
+            anchors.fill: parent
+            colorization: 1.0
+            colorizationColor: batteryDisplay.iconColor
         }
     }
 
@@ -369,28 +463,56 @@ Row {
         anchors.verticalCenter: parent.verticalCenter
 
         Image {
+            id: auxIcon
             anchors.fill: parent
             source: "qrc:/ScootUI/assets/icons/librescoot-aux-battery-blank.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
+            visible: false
+        }
+        MultiEffect {
+            source: auxIcon
+            anchors.fill: parent
+            colorization: 1.0
+            colorizationColor: batteryDisplay.iconColor
         }
         Image {
+            id: auxErrorOverlay
             anchors.fill: parent
             source: "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
+            visible: false
+        }
+        MultiEffect {
+            source: auxErrorOverlay
+            anchors.fill: parent
+            colorization: 1.0
+            colorizationColor: batteryDisplay.iconColor
         }
     }
 
     // =====================================================================
     // Turtle mode icon (shown when battery ≤ 20%)
     // =====================================================================
-    Image {
+    Item {
         visible: batteryDisplay.showTurtle
         width: 20; height: 20
         anchors.verticalCenter: parent.verticalCenter
-        source: "qrc:/ScootUI/assets/icons/librescoot-turtle-mode.svg"
-        sourceSize: Qt.size(20, 20)
-        fillMode: Image.PreserveAspectFit
+
+        Image {
+            id: turtleIcon
+            anchors.fill: parent
+            source: "qrc:/ScootUI/assets/icons/librescoot-turtle-mode.svg"
+            sourceSize: Qt.size(20, 20)
+            fillMode: Image.PreserveAspectFit
+            visible: false
+        }
+        MultiEffect {
+            source: turtleIcon
+            anchors.fill: parent
+            colorization: 1.0
+            colorizationColor: batteryDisplay.iconColor
+        }
     }
 }

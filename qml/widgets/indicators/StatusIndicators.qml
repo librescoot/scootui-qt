@@ -1,9 +1,14 @@
 import QtQuick
+import QtQuick.Effects
 
 Row {
     id: statusIndicators
     spacing: 4
     layoutDirection: Qt.RightToLeft
+
+    // Theme-aware icon color (matches Flutter's ColorFilter.mode srcIn)
+    readonly property color iconColor: typeof themeStore !== "undefined" && !themeStore.isDark
+                                        ? "#000000" : "#FFFFFF"
 
     readonly property int gpsState: typeof gpsStore !== "undefined" ? gpsStore.gpsState : 0
     readonly property int btStatus: typeof bluetoothStore !== "undefined" ? bluetoothStore.status : 1
@@ -44,6 +49,7 @@ Row {
             id: otaIcon
             anchors.fill: parent
             sourceSize: Qt.size(20, 20)
+            visible: false
             source: {
                 switch (otaDbcStatus) {
                     case "downloading":
@@ -61,13 +67,27 @@ Row {
                 }
             }
         }
+        MultiEffect {
+            source: otaIcon
+            anchors.fill: parent
+            colorization: 1.0
+            colorizationColor: statusIndicators.iconColor
+        }
 
         // Error overlay
         Image {
+            id: otaErrorOverlay
             anchors.fill: parent
             sourceSize: Qt.size(20, 20)
             source: "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
+            visible: false
+        }
+        MultiEffect {
+            source: otaErrorOverlay
+            anchors.fill: parent
             visible: otaDbcStatus === "error" || otaDbcStatus === "error-failed"
+            colorization: 1.0
+            colorizationColor: statusIndicators.iconColor
         }
 
         // Progress text
@@ -76,7 +96,7 @@ Row {
             anchors.bottom: parent.bottom
             font.pixelSize: 7
             font.bold: true
-            color: "white"
+            color: statusIndicators.iconColor
             visible: otaDbcStatus === "downloading" || otaDbcStatus === "installing"
             text: {
                 if (otaDbcStatus === "downloading")
@@ -89,13 +109,24 @@ Row {
     }
 
     // Cloud status icon
-    Image {
+    Item {
         width: 20; height: 20
-        sourceSize: Qt.size(20, 20)
-        source: cloudStatus === 0
-            ? "qrc:/ScootUI/assets/icons/librescoot-internet-cloud-connected.svg"
-            : "qrc:/ScootUI/assets/icons/librescoot-internet-cloud-disconnected.svg"
-        visible: true
+
+        Image {
+            id: cloudIcon
+            anchors.fill: parent
+            sourceSize: Qt.size(20, 20)
+            visible: false
+            source: cloudStatus === 0
+                ? "qrc:/ScootUI/assets/icons/librescoot-internet-cloud-connected.svg"
+                : "qrc:/ScootUI/assets/icons/librescoot-internet-cloud-disconnected.svg"
+        }
+        MultiEffect {
+            source: cloudIcon
+            anchors.fill: parent
+            colorization: 1.0
+            colorizationColor: statusIndicators.iconColor
+        }
     }
 
     // Internet/modem icon with access tech overlay
@@ -103,8 +134,10 @@ Row {
         width: 20; height: 20
 
         Image {
+            id: modemIcon
             anchors.fill: parent
             sourceSize: Qt.size(20, 20)
+            visible: false
             source: {
                 if (modemState === 0) return "qrc:/ScootUI/assets/icons/librescoot-internet-modem-off.svg"
                 if (modemState === 1) return "qrc:/ScootUI/assets/icons/librescoot-internet-modem-disconnected.svg"
@@ -113,40 +146,70 @@ Row {
                 return "qrc:/ScootUI/assets/icons/librescoot-internet-modem-connected-" + bars + ".svg"
             }
         }
+        MultiEffect {
+            source: modemIcon
+            anchors.fill: parent
+            colorization: 1.0
+            colorizationColor: statusIndicators.iconColor
+        }
 
         Text {
             anchors.left: parent.left
             anchors.top: parent.top
             font.pixelSize: 7
             font.bold: true
-            color: "white"
+            color: statusIndicators.iconColor
             visible: modemState >= 2 && accessTech !== ""
             text: accessTechLabel(accessTech)
         }
     }
 
     // Bluetooth icon
-    Image {
+    Item {
         width: 20; height: 20
-        sourceSize: Qt.size(20, 20)
-        source: btStatus === 0
-            ? "qrc:/ScootUI/assets/icons/librescoot-bluetooth-connected.svg"
-            : "qrc:/ScootUI/assets/icons/librescoot-bluetooth-disconnected.svg"
+
+        Image {
+            id: btIcon
+            anchors.fill: parent
+            sourceSize: Qt.size(20, 20)
+            visible: false
+            source: btStatus === 0
+                ? "qrc:/ScootUI/assets/icons/librescoot-bluetooth-connected.svg"
+                : "qrc:/ScootUI/assets/icons/librescoot-bluetooth-disconnected.svg"
+        }
+        MultiEffect {
+            source: btIcon
+            anchors.fill: parent
+            colorization: 1.0
+            colorizationColor: statusIndicators.iconColor
+        }
     }
 
     // GPS icon
-    Image {
+    Item {
         width: 20; height: 20
-        sourceSize: Qt.size(20, 20)
-        source: {
-            // GpsState: 0=Off, 1=Searching, 2=FixEstablished, 3=Error
-            switch (gpsState) {
-                case 0: return "qrc:/ScootUI/assets/icons/librescoot-gps-off.svg"
-                case 1: return "qrc:/ScootUI/assets/icons/librescoot-gps-searching.svg"
-                case 2: return "qrc:/ScootUI/assets/icons/librescoot-gps-fix-established.svg"
-                case 3: return "qrc:/ScootUI/assets/icons/librescoot-gps-error.svg"
-                default: return "qrc:/ScootUI/assets/icons/librescoot-gps-off.svg"
+
+        Image {
+            id: gpsIcon
+            anchors.fill: parent
+            sourceSize: Qt.size(20, 20)
+            visible: false
+            source: {
+                // GpsState: 0=Off, 1=Searching, 2=FixEstablished, 3=Error
+                switch (gpsState) {
+                    case 0: return "qrc:/ScootUI/assets/icons/librescoot-gps-off.svg"
+                    case 1: return "qrc:/ScootUI/assets/icons/librescoot-gps-searching.svg"
+                    case 2: return "qrc:/ScootUI/assets/icons/librescoot-gps-fix-established.svg"
+                    case 3: return "qrc:/ScootUI/assets/icons/librescoot-gps-error.svg"
+                    default: return "qrc:/ScootUI/assets/icons/librescoot-gps-off.svg"
+                }
             }
+        }
+        MultiEffect {
+            source: gpsIcon
+            anchors.fill: parent
+            colorization: 1.0
+            colorizationColor: statusIndicators.iconColor
         }
     }
 }

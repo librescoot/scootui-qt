@@ -185,6 +185,7 @@ set(QML_FILES
     qml/widgets/components/SvgIcon.qml
     qml/widgets/components/ControlHints.qml
     qml/widgets/components/MaterialIcon.qml
+    qml/widgets/components/TintedImage.qml
     qml/widgets/map/MapViewWidget.qml
     qml/widgets/map/MapViewContent.qml
     qml/widgets/map/VehicleMarker.qml
