@@ -621,6 +621,60 @@ void Translations::initStrings()
     en[QStringLiteral("navSetupScanForInstructions")] = QStringLiteral("Scan for setup instructions");
     de[QStringLiteral("navSetupScanForInstructions")] = QStringLiteral("F\u00FCr Anleitung scannen");
 
+    en[QStringLiteral("navSetupDisplayMapsBody")] = QStringLiteral("Download offline display maps for your region. These are used to render the map on screen without an internet connection.");
+    de[QStringLiteral("navSetupDisplayMapsBody")] = QStringLiteral("Offline-Kartenkacheln f\u00FCr Ihre Region herunterladen. Diese werden verwendet, um die Karte ohne Internetverbindung anzuzeigen.");
+
+    en[QStringLiteral("navSetupRoutingBody")] = QStringLiteral("Download routing maps for your region. These are used by the on-device Valhalla routing engine to calculate routes offline.");
+    de[QStringLiteral("navSetupRoutingBody")] = QStringLiteral("Routing-Karten f\u00FCr Ihre Region herunterladen. Diese werden von der Valhalla-Routing-Engine auf dem Ger\u00E4t verwendet, um Routen offline zu berechnen.");
+
+    en[QStringLiteral("navSetupCheckingUpdates")] = QStringLiteral("Checking for updates...");
+    de[QStringLiteral("navSetupCheckingUpdates")] = QStringLiteral("Suche nach Updates...");
+
+    en[QStringLiteral("navSetupDownloadLocating")] = QStringLiteral("Detecting your region...");
+    de[QStringLiteral("navSetupDownloadLocating")] = QStringLiteral("Region wird erkannt...");
+
+    en[QStringLiteral("navSetupDownloadInstalling")] = QStringLiteral("Installing maps...");
+    de[QStringLiteral("navSetupDownloadInstalling")] = QStringLiteral("Karten werden installiert...");
+
+    en[QStringLiteral("navSetupDownloadDone")] = QStringLiteral("Maps installed successfully");
+    de[QStringLiteral("navSetupDownloadDone")] = QStringLiteral("Karten erfolgreich installiert");
+
+    en[QStringLiteral("navSetupDownloadButton")] = QStringLiteral("Download");
+    de[QStringLiteral("navSetupDownloadButton")] = QStringLiteral("Herunterladen");
+
+    en[QStringLiteral("navSetupUpdateButton")] = QStringLiteral("Update");
+    de[QStringLiteral("navSetupUpdateButton")] = QStringLiteral("Aktualisieren");
+
+    en[QStringLiteral("navSetupResumeButton")] = QStringLiteral("Resume");
+    de[QStringLiteral("navSetupResumeButton")] = QStringLiteral("Fortsetzen");
+
+    en[QStringLiteral("navSetupDownloadError")] = QStringLiteral("Download failed");
+    de[QStringLiteral("navSetupDownloadError")] = QStringLiteral("Download fehlgeschlagen");
+
+    en[QStringLiteral("navSetupDownloadUnsupported")] = QStringLiteral("Region not supported");
+    de[QStringLiteral("navSetupDownloadUnsupported")] = QStringLiteral("Region nicht unterst\u00FCtzt");
+
+    en[QStringLiteral("navSetupInsufficientSpace")] = QStringLiteral("Insufficient disk space");
+    de[QStringLiteral("navSetupInsufficientSpace")] = QStringLiteral("Nicht gen\u00FCgend Speicherplatz");
+
+    en[QStringLiteral("navSetupDownloadNoInternet")] = QStringLiteral("No internet connection");
+    de[QStringLiteral("navSetupDownloadNoInternet")] = QStringLiteral("Keine Internetverbindung");
+
+    en[QStringLiteral("navSetupDownloadWaitingGps")] = QStringLiteral("Waiting for GPS fix...");
+    de[QStringLiteral("navSetupDownloadWaitingGps")] = QStringLiteral("Warte auf GPS-Signal...");
+
+    en[QStringLiteral("navSetupDownloadProgress")] = QStringLiteral("Downloading... %1%");
+    de[QStringLiteral("navSetupDownloadProgress")] = QStringLiteral("Lade herunter... %1%");
+
+    en[QStringLiteral("navSetupDownloadProgressBytes")] = QStringLiteral("%1 / %2 MB");
+    de[QStringLiteral("navSetupDownloadProgressBytes")] = QStringLiteral("%1 / %2 MB");
+
+    en[QStringLiteral("menuSetupMapMode")] = QStringLiteral("Set up Map Mode");
+    de[QStringLiteral("menuSetupMapMode")] = QStringLiteral("Kartenmodus einrichten");
+
+    en[QStringLiteral("menuSetupNavigation")] = QStringLiteral("Set up Navigation");
+    de[QStringLiteral("menuSetupNavigation")] = QStringLiteral("Navigation einrichten");
+
     // -----------------------------------------------------------------------
     // OTA
     // -----------------------------------------------------------------------

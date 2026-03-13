@@ -6,9 +6,11 @@
 #include "TripStore.h"
 #include "ScreenStore.h"
 #include "SavedLocationsStore.h"
+#include "InternetStore.h"
 #include "l10n/Translations.h"
 #include "services/SettingsService.h"
 #include "services/NavigationService.h"
+#include "services/NavigationAvailabilityService.h"
 #include "repositories/MdbRepository.h"
 #include "core/AppConfig.h"
 
@@ -73,6 +75,20 @@ void MenuStore::setScreenStore(ScreenStore *store)
     m_screenStore = store;
 }
 
+void MenuStore::setNavigationAvailabilityService(NavigationAvailabilityService *svc)
+{
+    m_navAvailability = svc;
+    if (m_navAvailability) {
+        connect(m_navAvailability, &NavigationAvailabilityService::availabilityChanged,
+                this, &MenuStore::rebuildMenuTree);
+    }
+}
+
+void MenuStore::setInternetStore(InternetStore *store)
+{
+    m_internet = store;
+}
+
 void MenuStore::rebuildMenuTree()
 {
     // Skip rebuilds if the menu is closed. We'll rebuild when it opens.
@@ -121,22 +137,52 @@ void MenuStore::rebuildMenuTree()
             return m_screenStore && m_screenStore->currentScreen() == 1;
         }));
 
-    // === Switch to Map View (only on cluster screen) ===
+    // === Switch to Map View (only on cluster screen, requires local maps or online map type) ===
     m_rootNode->addChild(MenuNode::action(QStringLiteral("switch_map"),
         tr->menuSwitchToMap(), [this]() {
             if (m_screenStore) m_screenStore->setScreen(1);
             m_settingsService->updateMode(QStringLiteral("navigation"));
             close();
         }, [this]() {
-            return m_screenStore && m_screenStore->currentScreen() == 0;
+            if (!m_screenStore || m_screenStore->currentScreen() != 0) return false;
+            bool hasLocalMaps = m_navAvailability && m_navAvailability->localDisplayMapsAvailable();
+            bool isOnlineMap = m_settings->mapType() == static_cast<int>(ScootEnums::MapType::Online);
+            return hasLocalMaps || isOnlineMap;
         }));
 
-    // === Navigation submenu ===
-    // Use header for display title; the submenu list title is just "Navigation"
+    // === Set up Map Mode (only on cluster screen, when no local maps and not online) ===
+    m_rootNode->addChild(MenuNode::action(QStringLiteral("setup_map_mode"),
+        tr->menuSetupMapMode(), [this]() {
+            close();
+            if (m_screenStore) m_screenStore->showNavigationSetup(0); // DisplayMaps
+        }, [this]() {
+            if (!m_screenStore || m_screenStore->currentScreen() != 0) return false;
+            bool hasLocalMaps = m_navAvailability && m_navAvailability->localDisplayMapsAvailable();
+            bool isOnlineMap = m_settings->mapType() == static_cast<int>(ScootEnums::MapType::Online);
+            return !hasLocalMaps && !isOnlineMap;
+        }));
+
+    // === Navigation submenu (visible when display maps and routing are available) ===
     auto *navNode = MenuNode::submenu(QStringLiteral("navigation"),
                                        QStringLiteral("Navigation"),
-                                       tr->menuNavigationHeader());
+                                       tr->menuNavigationHeader(),
+                                       [this]() {
+            bool hasLocalMaps = m_navAvailability && m_navAvailability->localDisplayMapsAvailable();
+            bool isOnlineMap = m_settings->mapType() == static_cast<int>(ScootEnums::MapType::Online);
+            bool hasRouting = m_navAvailability && m_navAvailability->routingAvailable();
+            return (hasLocalMaps || isOnlineMap) && hasRouting;
+        });
     m_rootNode->addChild(navNode);
+
+    // === Set up Navigation (visible when routing is not available) ===
+    m_rootNode->addChild(MenuNode::action(QStringLiteral("setup_navigation"),
+        tr->menuSetupNavigation(), [this]() {
+            close();
+            if (m_screenStore) m_screenStore->showNavigationSetup(1); // Routing
+        }, [this]() {
+            bool hasRouting = m_navAvailability && m_navAvailability->routingAvailable();
+            return !hasRouting;
+        }));
 
     // Enter destination code
     navNode->addChild(MenuNode::action(QStringLiteral("nav_enter_code"),

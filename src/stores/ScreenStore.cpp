@@ -43,3 +43,18 @@ void ScreenStore::closeAbout()
 {
     setScreen(static_cast<int>(m_screenBeforeAbout));
 }
+
+void ScreenStore::showNavigationSetup(int setupMode)
+{
+    m_screenBeforeNavSetup = m_currentScreen;
+    if (setupMode != m_setupMode) {
+        m_setupMode = setupMode;
+        emit setupModeChanged();
+    }
+    setScreen(static_cast<int>(ScootEnums::ScreenMode::NavigationSetup));
+}
+
+void ScreenStore::closeNavigationSetup()
+{
+    setScreen(static_cast<int>(m_screenBeforeNavSetup));
+}

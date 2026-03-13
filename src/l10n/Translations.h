@@ -209,6 +209,24 @@ class Translations : public QObject
     Q_PROPERTY(QString navSetupRoutingEngine READ navSetupRoutingEngine NOTIFY languageChanged)
     Q_PROPERTY(QString navSetupNoRoutingBody READ navSetupNoRoutingBody NOTIFY languageChanged)
     Q_PROPERTY(QString navSetupScanForInstructions READ navSetupScanForInstructions NOTIFY languageChanged)
+    Q_PROPERTY(QString navSetupDisplayMapsBody READ navSetupDisplayMapsBody NOTIFY languageChanged)
+    Q_PROPERTY(QString navSetupRoutingBody READ navSetupRoutingBody NOTIFY languageChanged)
+    Q_PROPERTY(QString navSetupCheckingUpdates READ navSetupCheckingUpdates NOTIFY languageChanged)
+    Q_PROPERTY(QString navSetupDownloadLocating READ navSetupDownloadLocating NOTIFY languageChanged)
+    Q_PROPERTY(QString navSetupDownloadInstalling READ navSetupDownloadInstalling NOTIFY languageChanged)
+    Q_PROPERTY(QString navSetupDownloadDone READ navSetupDownloadDone NOTIFY languageChanged)
+    Q_PROPERTY(QString navSetupDownloadButton READ navSetupDownloadButton NOTIFY languageChanged)
+    Q_PROPERTY(QString navSetupUpdateButton READ navSetupUpdateButton NOTIFY languageChanged)
+    Q_PROPERTY(QString navSetupResumeButton READ navSetupResumeButton NOTIFY languageChanged)
+    Q_PROPERTY(QString navSetupDownloadError READ navSetupDownloadError NOTIFY languageChanged)
+    Q_PROPERTY(QString navSetupDownloadUnsupported READ navSetupDownloadUnsupported NOTIFY languageChanged)
+    Q_PROPERTY(QString navSetupInsufficientSpace READ navSetupInsufficientSpace NOTIFY languageChanged)
+    Q_PROPERTY(QString navSetupDownloadNoInternet READ navSetupDownloadNoInternet NOTIFY languageChanged)
+    Q_PROPERTY(QString navSetupDownloadWaitingGps READ navSetupDownloadWaitingGps NOTIFY languageChanged)
+    Q_PROPERTY(QString navSetupDownloadProgress READ navSetupDownloadProgress NOTIFY languageChanged)
+    Q_PROPERTY(QString navSetupDownloadProgressBytes READ navSetupDownloadProgressBytes NOTIFY languageChanged)
+    Q_PROPERTY(QString menuSetupMapMode READ menuSetupMapMode NOTIFY languageChanged)
+    Q_PROPERTY(QString menuSetupNavigation READ menuSetupNavigation NOTIFY languageChanged)
 
     // OTA
     Q_PROPERTY(QString otaDownloading READ otaDownloading NOTIFY languageChanged)
@@ -512,6 +530,24 @@ public:
     QString navSetupRoutingEngine() const { return lookup("navSetupRoutingEngine"); }
     QString navSetupNoRoutingBody() const { return lookup("navSetupNoRoutingBody"); }
     QString navSetupScanForInstructions() const { return lookup("navSetupScanForInstructions"); }
+    QString navSetupDisplayMapsBody() const { return lookup("navSetupDisplayMapsBody"); }
+    QString navSetupRoutingBody() const { return lookup("navSetupRoutingBody"); }
+    QString navSetupCheckingUpdates() const { return lookup("navSetupCheckingUpdates"); }
+    QString navSetupDownloadLocating() const { return lookup("navSetupDownloadLocating"); }
+    QString navSetupDownloadInstalling() const { return lookup("navSetupDownloadInstalling"); }
+    QString navSetupDownloadDone() const { return lookup("navSetupDownloadDone"); }
+    QString navSetupDownloadButton() const { return lookup("navSetupDownloadButton"); }
+    QString navSetupUpdateButton() const { return lookup("navSetupUpdateButton"); }
+    QString navSetupResumeButton() const { return lookup("navSetupResumeButton"); }
+    QString navSetupDownloadError() const { return lookup("navSetupDownloadError"); }
+    QString navSetupDownloadUnsupported() const { return lookup("navSetupDownloadUnsupported"); }
+    QString navSetupInsufficientSpace() const { return lookup("navSetupInsufficientSpace"); }
+    QString navSetupDownloadNoInternet() const { return lookup("navSetupDownloadNoInternet"); }
+    QString navSetupDownloadWaitingGps() const { return lookup("navSetupDownloadWaitingGps"); }
+    QString navSetupDownloadProgress() const { return lookup("navSetupDownloadProgress"); }
+    QString navSetupDownloadProgressBytes() const { return lookup("navSetupDownloadProgressBytes"); }
+    QString menuSetupMapMode() const { return lookup("menuSetupMapMode"); }
+    QString menuSetupNavigation() const { return lookup("menuSetupNavigation"); }
 
     // OTA
     QString otaDownloading() const { return lookup("otaDownloading"); }

@@ -41,6 +41,7 @@
 #include "services/ReverseGeocodingService.h"
 #include "services/SerialNumberService.h"
 #include "services/AddressDatabaseService.h"
+#include "services/MapDownloadService.h"
 #include "l10n/Translations.h"
 #include "utils/FaultFormatter.h"
 #include "simulator/SimulatorService.h"
@@ -144,6 +145,9 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // Navigation availability (B6)
     m_navAvailability = new NavigationAvailabilityService(settingsStore, internetStore, repo, this);
 
+    // Map download service
+    m_mapDownloadService = new MapDownloadService(m_simulatorMode, this);
+
     // Saved locations (B7)
     m_savedLocationsService = new SavedLocationsService(repo, this);
     m_reverseGeocoding = new ReverseGeocodingService(this);
@@ -206,10 +210,12 @@ void Application::createStores(QQmlApplicationEngine &engine)
                                     tripStore, m_translations, m_settingsService,
                                     repo, this);
 
-    // Wire saved locations, screen store, and navigation into menu
+    // Wire saved locations, screen store, navigation, and availability into menu
     menuStore->setSavedLocationsStore(savedLocationsStore);
     menuStore->setScreenStore(screenStore);
     menuStore->setNavigationService(m_navigationService);
+    menuStore->setNavigationAvailabilityService(m_navAvailability);
+    menuStore->setInternetStore(internetStore);
 
     // M5: ShortcutMenuStore
     auto *shortcutMenuStore = new ShortcutMenuStore(themeStore, vehicleStore, screenStore, dashboardStore, repo, m_settingsService, this);
@@ -268,6 +274,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("savedLocationsStore"), savedLocationsStore);
     ctx->setContextProperty(QStringLiteral("serialNumberService"), m_serialNumberService);
     ctx->setContextProperty(QStringLiteral("addressDatabase"), m_addressDatabaseService);
+    ctx->setContextProperty(QStringLiteral("mapDownloadService"), m_mapDownloadService);
 
     // Simulator service (created in sim mode, null otherwise)
     if (m_simulatorMode) {

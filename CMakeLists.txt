@@ -79,6 +79,7 @@ set(CPP_SOURCES
     src/services/SerialNumberService.cpp
     src/services/AddressDatabaseService.cpp
     src/services/VectorTileDecoder.cpp
+    src/services/MapDownloadService.cpp
     src/routing/ValhallaClient.cpp
     src/l10n/Translations.cpp
     src/utils/FaultFormatter.cpp
@@ -133,6 +134,8 @@ set(CPP_HEADERS
     src/services/SerialNumberService.h
     src/services/AddressDatabaseService.h
     src/services/VectorTileDecoder.h
+    src/services/MapDownloadService.h
+    src/models/MapMetadata.h
     src/routing/RouteModels.h
     src/routing/RouteHelpers.h
     src/routing/ValhallaClient.h
@@ -261,6 +264,7 @@ qt_add_qml_module(scootui
         assets/icons/speedlimit_unknown.svg
         assets/icons/speedlimit_blank.svg
         assets/icons/librescoot-logo.png
+        assets/icons/nav-setup-qr.png
         assets/routes/route1.json
         assets/routes/route2.json
         assets/fonts/Roboto-Regular.ttf

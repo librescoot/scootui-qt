@@ -67,6 +67,12 @@ Q_ENUM_NS(AuxChargeStatus)
 enum class ScreenMode { Cluster, Map, CarPlay, Debug, About, Maintenance, Ota, AddressSelection, Simulator, NavigationSetup, Destination };
 Q_ENUM_NS(ScreenMode)
 
+enum class SetupMode { DisplayMaps, Routing, Both };
+Q_ENUM_NS(SetupMode)
+
+enum class MapDownloadStatus { Idle, CheckingUpdates, Locating, Downloading, Installing, Done, Error };
+Q_ENUM_NS(MapDownloadStatus)
+
 // --- String-to-enum parsing helpers ---
 
 inline Toggle parseToggle(const QString &s) {

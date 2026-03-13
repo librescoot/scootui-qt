@@ -22,6 +22,7 @@ class ReverseGeocodingService;
 class SerialNumberService;
 class AddressDatabaseService;
 class SimulatorService;
+class MapDownloadService;
 
 class Application : public QObject
 {
@@ -58,6 +59,7 @@ private:
     SerialNumberService *m_serialNumberService = nullptr;
     AddressDatabaseService *m_addressDatabaseService = nullptr;
     SimulatorService *m_simulatorService = nullptr;
+    MapDownloadService *m_mapDownloadService = nullptr;
     bool m_simulatorMode = false;
     QList<QObject*> m_stores;
 };

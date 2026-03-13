@@ -16,6 +16,8 @@ class MdbRepository;
 class NavigationService;
 class SavedLocationsStore;
 class ScreenStore;
+class NavigationAvailabilityService;
+class InternetStore;
 
 class MenuStore : public QObject
 {
@@ -37,6 +39,8 @@ public:
     void setNavigationService(NavigationService *svc);
     void setSavedLocationsStore(SavedLocationsStore *store);
     void setScreenStore(ScreenStore *store);
+    void setNavigationAvailabilityService(NavigationAvailabilityService *svc);
+    void setInternetStore(InternetStore *store);
     ~MenuStore() override;
 
     bool isOpen() const { return m_isOpen; }
@@ -74,6 +78,8 @@ private:
     NavigationService *m_navigationService = nullptr;
     SavedLocationsStore *m_savedLocations = nullptr;
     ScreenStore *m_screenStore = nullptr;
+    NavigationAvailabilityService *m_navAvailability = nullptr;
+    InternetStore *m_internet = nullptr;
 
     std::unique_ptr<MenuNode> m_rootNode;
     bool m_isOpen = false;
