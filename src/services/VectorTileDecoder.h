@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QByteArray>
+#include <QHash>
 #include <QPointF>
 #include <QString>
 #include <QVector>
@@ -10,6 +11,7 @@ namespace VectorTile {
 struct Feature {
     int type = 0; // 1=POINT, 2=LINESTRING, 3=POLYGON
     QVector<uint32_t> geometry;
+    QHash<QString, QString> properties;
 };
 
 struct Layer {
@@ -30,5 +32,8 @@ Tile parse(const QByteArray &data);
 
 // Decode a POINT geometry command stream to tile-local coordinates
 QPointF decodePoint(const QVector<uint32_t> &geometry);
+
+// Decode a LINESTRING geometry command stream to tile-local coordinates
+QVector<QPointF> decodeLineString(const QVector<uint32_t> &geometry);
 
 } // namespace VectorTile

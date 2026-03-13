@@ -23,6 +23,7 @@ class SerialNumberService;
 class AddressDatabaseService;
 class SimulatorService;
 class MapDownloadService;
+class RoadInfoService;
 
 class Application : public QObject
 {
@@ -60,6 +61,7 @@ private:
     AddressDatabaseService *m_addressDatabaseService = nullptr;
     SimulatorService *m_simulatorService = nullptr;
     MapDownloadService *m_mapDownloadService = nullptr;
+    RoadInfoService *m_roadInfoService = nullptr;
     bool m_simulatorMode = false;
     QList<QObject*> m_stores;
 };

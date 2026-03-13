@@ -80,6 +80,7 @@ set(CPP_SOURCES
     src/services/AddressDatabaseService.cpp
     src/services/VectorTileDecoder.cpp
     src/services/MapDownloadService.cpp
+    src/services/RoadInfoService.cpp
     src/routing/ValhallaClient.cpp
     src/l10n/Translations.cpp
     src/utils/FaultFormatter.cpp
@@ -135,6 +136,7 @@ set(CPP_HEADERS
     src/services/AddressDatabaseService.h
     src/services/VectorTileDecoder.h
     src/services/MapDownloadService.h
+    src/services/RoadInfoService.h
     src/models/MapMetadata.h
     src/routing/RouteModels.h
     src/routing/RouteHelpers.h

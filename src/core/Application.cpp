@@ -42,6 +42,7 @@
 #include "services/SerialNumberService.h"
 #include "services/AddressDatabaseService.h"
 #include "services/MapDownloadService.h"
+#include "services/RoadInfoService.h"
 #include "l10n/Translations.h"
 #include "utils/FaultFormatter.h"
 #include "simulator/SimulatorService.h"
@@ -137,6 +138,9 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // M7: Navigation service
     m_navigationService = new NavigationService(gpsStore, navigationStore, vehicleStore,
                                                  settingsStore, speedLimitStore, repo, this);
+
+    // Road info service (extracts street name + speed limit from vector tiles)
+    m_roadInfoService = new RoadInfoService(gpsStore, speedLimitStore, this);
 
     // Map service (A2)
     m_mapService = new MapService(gpsStore, engineStore, m_navigationService,

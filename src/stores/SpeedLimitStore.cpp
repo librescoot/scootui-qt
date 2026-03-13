@@ -28,3 +28,18 @@ void SpeedLimitStore::applyFieldUpdate(const QString &variable, const QString &v
         if (value != m_roadType) { m_roadType = value; emit roadTypeChanged(); }
     }
 }
+
+void SpeedLimitStore::setSpeedLimitDirect(const QString &value)
+{
+    if (value != m_speedLimit) { m_speedLimit = value; emit speedLimitChanged(); }
+}
+
+void SpeedLimitStore::setRoadNameDirect(const QString &value)
+{
+    if (value != m_roadName) { m_roadName = value; emit roadNameChanged(); }
+}
+
+void SpeedLimitStore::setRoadTypeDirect(const QString &value)
+{
+    if (value != m_roadType) { m_roadType = value; emit roadTypeChanged(); }
+}

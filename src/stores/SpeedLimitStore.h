@@ -16,6 +16,11 @@ public:
     QString roadName() const { return m_roadName; }
     QString roadType() const { return m_roadType; }
 
+    // Direct setters (used by RoadInfoService for tile-derived data)
+    void setSpeedLimitDirect(const QString &value);
+    void setRoadNameDirect(const QString &value);
+    void setRoadTypeDirect(const QString &value);
+
 signals:
     void speedLimitChanged();
     void roadNameChanged();
