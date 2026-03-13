@@ -3,7 +3,7 @@ import QtQuick.Layouts
 
 Item {
     id: tbtWidget
-    height: visible ? contentCol.height + 16 : 0
+    height: visible ? Math.max(contentCol.height + 16, 96) : 0
     visible: typeof navigationService !== "undefined" && navigationService.isNavigating
              && navigationService.currentManeuverDistance > 0
 
