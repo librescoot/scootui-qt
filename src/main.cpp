@@ -36,6 +36,7 @@ int main(int argc, char *argv[])
 
     // Ensure QMapLibre QML modules (MapLibre.Location) are found
     engine.addImportPath(QStringLiteral("/usr/local/qml"));
+    engine.addImportPath(QStringLiteral("/usr/qml"));
 
     Application application;
     if (!application.initialize(engine)) {

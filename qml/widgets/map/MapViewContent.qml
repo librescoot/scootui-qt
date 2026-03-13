@@ -1,7 +1,7 @@
 import QtQuick
 import QtLocation
 import QtPositioning
-import MapLibre.Location 4.0
+import MapLibre.Location
 
 MapView {
     id: mapView
