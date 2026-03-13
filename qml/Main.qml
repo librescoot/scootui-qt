@@ -73,19 +73,28 @@ Window {
         id: screenLoader
         anchors.fill: parent
         sourceComponent: {
-            if (root.showMaintenance) return maintenanceComponent
-            switch (root.currentScreen) {
-                case 0: return clusterComponent      // Cluster
-                case 1: return mapComponent           // Map
-                case 3: return debugComponent         // Debug
-                case 4: return aboutComponent         // About
-                case 5: return maintenanceComponent   // Maintenance
-                case 6: return otaBgComponent         // OTA Background
-                case 7: return addressComponent       // Address Selection
-                case 9: return navSetupComponent      // Navigation Setup
-                case 10: return destinationComponent  // Destination
-                default: return clusterComponent
+            var maint = root.showMaintenance
+            var screen = root.currentScreen
+            if (maint) {
+                console.log("SCREEN: maintenance (showMaintenance=true, vehicleState=" + root.vehicleState + ")")
+                return maintenanceComponent
             }
+            var name = "unknown"
+            var comp = clusterComponent
+            switch (screen) {
+                case 0: comp = clusterComponent; name = "cluster"; break
+                case 1: comp = mapComponent; name = "map"; break
+                case 3: comp = debugComponent; name = "debug"; break
+                case 4: comp = aboutComponent; name = "about"; break
+                case 5: comp = maintenanceComponent; name = "maintenance"; break
+                case 6: comp = otaBgComponent; name = "otaBg"; break
+                case 7: comp = addressComponent; name = "address"; break
+                case 9: comp = navSetupComponent; name = "navSetup"; break
+                case 10: comp = destinationComponent; name = "destination"; break
+                default: comp = clusterComponent; name = "cluster(default)"; break
+            }
+            console.log("SCREEN: " + name + " (screen=" + screen + ")")
+            return comp
         }
     }
 
