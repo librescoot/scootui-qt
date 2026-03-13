@@ -573,7 +573,8 @@ void RedisMdbRepository::push(const QString &channel, const QString &command)
 
 void RedisMdbRepository::dashboardReady()
 {
-    publish(QStringLiteral("dashboard"), QStringLiteral("ready"));
+    if (!ensureConnected()) return;
+    set(QStringLiteral("dashboard"), QStringLiteral("ready"), QStringLiteral("true"));
 }
 
 void RedisMdbRepository::publishButtonEvent(const QString &event)

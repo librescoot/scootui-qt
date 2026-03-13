@@ -322,6 +322,20 @@ void Application::createStores(QQmlApplicationEngine &engine)
         }
     }
 
+    // Notify other services that the dashboard is ready (on startup and every reconnect)
+    auto publishReady = [repo, this]() {
+        if (m_serialNumberService->available()) {
+            repo->set(QStringLiteral("dashboard"), QStringLiteral("serial-number"),
+                      m_serialNumberService->serialNumber());
+        }
+        repo->dashboardReady();
+    };
+    connect(repo, &MdbRepository::connectionStateChanged, this, [publishReady](bool connected) {
+        if (connected)
+            publishReady();
+    });
+    publishReady();
+
     qDebug() << "All stores created and started (M5: menu, settings, translations, auto-theme, toast, map, nav-availability, saved-locations, serial-number)";
 }
 
