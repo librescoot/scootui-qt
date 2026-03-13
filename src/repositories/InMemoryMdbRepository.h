@@ -30,6 +30,7 @@ public:
     void addToSet(const QString &setKey, const QString &member) override;
     void removeFromSet(const QString &setKey, const QString &member) override;
     void hdel(const QString &key, const QString &field) override;
+    QStringList lrange(const QString &key, int start, int stop) override;
 
 private:
     void startBrightnessSimulation();

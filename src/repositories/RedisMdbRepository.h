@@ -31,6 +31,7 @@ public:
     void publish(const QString &channel, const QString &message);
     void lpush(const QString &key, const QString &value);
     QStringList smembers(const QString &key);
+    QStringList lrange(const QString &key, int start, int stop);
     void sadd(const QString &key, const QString &member);
     void srem(const QString &key, const QString &member);
 
@@ -110,6 +111,7 @@ public:
     void addToSet(const QString &setKey, const QString &member) override;
     void removeFromSet(const QString &setKey, const QString &member) override;
     void hdel(const QString &key, const QString &field) override;
+    QStringList lrange(const QString &key, int start, int stop) override;
 
 private slots:
     void onPubsubMessage(const QString &channel, const QString &message);

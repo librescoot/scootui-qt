@@ -154,11 +154,19 @@ void AddressDatabaseService::onBuildProgress(double progress, int count)
     emit addressCountChanged();
 }
 
+void AddressDatabaseService::cancelBuild()
+{
+    m_cancelRequested.store(true);
+}
+
 void AddressDatabaseService::onBuildFinished(bool success, const QString &error)
 {
+    m_cancelRequested.store(false);
     if (success) {
         setStatus(Ready, QStringLiteral("Ready"));
         emit addressCountChanged();
+    } else if (error == QLatin1String("Cancelled")) {
+        setStatus(Idle, {});
     } else {
         setStatus(Error, error);
     }
@@ -268,6 +276,12 @@ static BuildResult buildFromTiles(AddressDatabaseService *service)
             "SELECT tile_data FROM tiles WHERE zoom_level=14 AND tile_column=? AND tile_row=?"));
 
         for (int x = minTileX; x <= maxTileX; ++x) {
+            if (service->isCancelled()) {
+                db.close();
+                QSqlDatabase::removeDatabase(connName);
+                return BuildResult{false, QStringLiteral("Cancelled"), {}, {}};
+            }
+
             for (int y = minTileY; y <= maxTileY; ++y) {
                 processed++;
 
@@ -335,6 +349,7 @@ void AddressDatabaseService::initialize()
         return;
     }
 
+    m_cancelRequested.store(false);
     setStatus(Loading, QStringLiteral("Loading address database..."));
 
     // Try loading from cache first — need map hash to validate
@@ -345,8 +360,12 @@ void AddressDatabaseService::initialize()
         BuildResult result = watcher->result();
         watcher->deleteLater();
 
+        m_cancelRequested.store(false);
         if (!result.success) {
-            setStatus(Error, result.error);
+            if (result.error == QLatin1String("Cancelled"))
+                setStatus(Idle, {});
+            else
+                setStatus(Error, result.error);
             return;
         }
 

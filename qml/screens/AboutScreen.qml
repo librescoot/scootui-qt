@@ -32,6 +32,11 @@ Rectangle {
         { name: "Material Icons", license: "Apache-2.0" }
     ]
 
+    Component.onCompleted: {
+        if (typeof systemInfoService !== "undefined")
+            systemInfoService.loadVersions()
+    }
+
     // Easter egg state machine (matches Flutter's _trackEgg step counter)
     // Sequence: down×4, up×3, down×2, up×1 — true=down, false=up
     readonly property var eggSeq: [true, true, true, true, false, false, false, true, true, false]
@@ -179,6 +184,47 @@ Rectangle {
                     color: aboutScreen.textSecondary
                     font.pixelSize: 12
                     horizontalAlignment: Text.AlignHCenter
+                }
+
+                // Firmware version rows
+                Loader {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    active: typeof systemInfoService !== "undefined" &&
+                            systemInfoService.versionRows.length > 0
+                    sourceComponent: Column {
+                        spacing: 0
+                        topPadding: 16
+
+                        Repeater {
+                            model: typeof systemInfoService !== "undefined"
+                                   ? systemInfoService.versionRows : []
+
+                            Row {
+                                spacing: 6
+                                anchors.horizontalCenter: parent.horizontalCenter
+
+                                Text {
+                                    width: 36
+                                    text: modelData.label
+                                    color: aboutScreen.textSecondary
+                                    font.pixelSize: 12
+                                    font.weight: Font.DemiBold
+                                    horizontalAlignment: Text.AlignRight
+                                    topPadding: 2
+                                    bottomPadding: 2
+                                }
+
+                                Text {
+                                    text: modelData.value
+                                    color: aboutScreen.textSecondary
+                                    font.pixelSize: 12
+                                    font.family: "monospace"
+                                    topPadding: 2
+                                    bottomPadding: 2
+                                }
+                            }
+                        }
+                    }
                 }
 
                 Item { width: 1; height: 20 }

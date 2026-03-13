@@ -21,6 +21,7 @@ class SavedLocationsService;
 class ReverseGeocodingService;
 class SerialNumberService;
 class AddressDatabaseService;
+class SystemInfoService;
 class SimulatorService;
 class MapDownloadService;
 class RoadInfoService;
@@ -59,6 +60,7 @@ private:
     ReverseGeocodingService *m_reverseGeocoding = nullptr;
     SerialNumberService *m_serialNumberService = nullptr;
     AddressDatabaseService *m_addressDatabaseService = nullptr;
+    SystemInfoService *m_systemInfoService = nullptr;
     SimulatorService *m_simulatorService = nullptr;
     MapDownloadService *m_mapDownloadService = nullptr;
     RoadInfoService *m_roadInfoService = nullptr;

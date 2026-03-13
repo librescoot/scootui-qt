@@ -81,6 +81,11 @@ Rectangle {
             }
         }
         function onRightTap() {
+            if (dbStatus === statusBuilding) {
+                if (typeof addressDatabase !== "undefined")
+                    addressDatabase.cancelBuild()
+                return
+            }
             if (dbStatus !== statusReady) {
                 // Allow closing the screen even when not ready
                 if (typeof screenStore !== "undefined")
@@ -149,6 +154,16 @@ Rectangle {
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
+                    visible: dbStatus === statusBuilding
+                    text: typeof addressDatabase !== "undefined"
+                          ? Math.round(addressDatabase.buildProgress * 100) + "%"
+                          : "0%"
+                    color: Qt.rgba(1, 1, 1, 0.7)
+                    font.pixelSize: 13
+                }
+
+                Text {
+                    Layout.alignment: Qt.AlignHCenter
                     visible: dbStatus === statusBuilding && typeof addressDatabase !== "undefined" && addressDatabase.addressCount > 0
                     text: typeof addressDatabase !== "undefined" ? addressDatabase.addressCount + " addresses found" : ""
                     color: Qt.rgba(1, 1, 1, 0.6)
@@ -207,6 +222,7 @@ Rectangle {
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: {
+                if (dbStatus === statusBuilding) return "Right brake: Cancel"
                 if (dbStatus !== statusReady) return "Right brake: Close"
                 if (addressScreen.inputState === 1) return "Right brake: Confirm | Left brake: Edit"
                 return "Left brake: Scroll | Right brake: Next"
@@ -236,6 +252,7 @@ Rectangle {
                 Item { Layout.fillWidth: true }
                 Text {
                     text: {
+                        if (dbStatus === statusBuilding) return "R: Cancel"
                         if (dbStatus !== statusReady) return "R: Close"
                         return "R: " + (addressScreen.inputState === 1 ? "Submit" : "Next")
                     }

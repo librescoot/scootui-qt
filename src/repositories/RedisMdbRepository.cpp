@@ -187,6 +187,16 @@ QStringList RedisConnection::smembers(const QString &key)
     return result;
 }
 
+QStringList RedisConnection::lrange(const QString &key, int start, int stop)
+{
+    QStringList result;
+    QVariant reply = command({QStringLiteral("LRANGE"), key,
+                              QString::number(start), QString::number(stop)});
+    for (const auto &v : reply.toList())
+        result.append(v.toString());
+    return result;
+}
+
 void RedisConnection::sadd(const QString &key, const QString &member)
 {
     command({QStringLiteral("SADD"), key, member});
@@ -593,4 +603,10 @@ void RedisMdbRepository::hdel(const QString &key, const QString &field)
 {
     if (!ensureConnected()) return;
     m_conn->hdel(key, field);
+}
+
+QStringList RedisMdbRepository::lrange(const QString &key, int start, int stop)
+{
+    if (!ensureConnected()) return {};
+    return m_conn->lrange(key, start, stop);
 }
