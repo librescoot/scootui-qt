@@ -79,8 +79,10 @@ int RoadInfoService::latToTileY(double lat, int zoom)
 {
     double latRad = lat * M_PI / 180.0;
     double n = std::pow(2.0, zoom);
-    return static_cast<int>(std::floor(
+    int slippyY = static_cast<int>(std::floor(
         (1.0 - std::log(std::tan(latRad) + 1.0 / std::cos(latRad)) / M_PI) / 2.0 * n));
+    // MBTiles uses 1-indexed TMS (Y=0 at bottom), convert from slippy (Y=0 at top)
+    return static_cast<int>(n) - 1 - slippyY + 1;
 }
 
 void RoadInfoService::updateRoadInfo(double lat, double lon)
@@ -157,13 +159,13 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
         QVector<QPointF> tilePoints = VectorTile::decodeLineString(feature.geometry);
 
         for (int i = 0; i < tilePoints.size() - 1; ++i) {
-            // Convert tile coordinates to geographic
+            // Convert tile coordinates to geographic (TMS: Y flipped within tile)
             double lon1 = (tileX + tilePoints[i].x() / extent) / n * 360.0 - 180.0;
-            double yMerc1 = 1.0 - (tileY + tilePoints[i].y() / extent) / n;
+            double yMerc1 = 1.0 - (tileY + 1.0 - tilePoints[i].y() / extent) / n;
             double lat1 = std::atan(std::sinh(M_PI * (1.0 - 2.0 * yMerc1))) * 180.0 / M_PI;
 
             double lon2 = (tileX + tilePoints[i + 1].x() / extent) / n * 360.0 - 180.0;
-            double yMerc2 = 1.0 - (tileY + tilePoints[i + 1].y() / extent) / n;
+            double yMerc2 = 1.0 - (tileY + 1.0 - tilePoints[i + 1].y() / extent) / n;
             double lat2 = std::atan(std::sinh(M_PI * (1.0 - 2.0 * yMerc2))) * 180.0 / M_PI;
 
             // Point-to-segment distance (Euclidean in lat/lon, sufficient for nearest)
