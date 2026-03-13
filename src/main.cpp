@@ -34,6 +34,9 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
 
+    // Ensure QMapLibre QML modules (MapLibre.Location) are found
+    engine.addImportPath(QStringLiteral("/usr/local/qml"));
+
     Application application;
     if (!application.initialize(engine)) {
         qCritical() << "Failed to initialize application";

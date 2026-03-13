@@ -23,6 +23,7 @@ class MapService : public QObject
     Q_PROPERTY(bool isReady READ isReady NOTIFY isReadyChanged)
     Q_PROPERTY(QString styleUrl READ styleUrl NOTIFY styleUrlChanged)
     Q_PROPERTY(QVariantList routeCoordinates READ routeCoordinates NOTIFY routeCoordinatesChanged)
+    Q_PROPERTY(QString routeGeoJson READ routeGeoJson NOTIFY routeGeoJsonChanged)
     Q_PROPERTY(double vehicleOffsetY READ vehicleOffsetY NOTIFY vehicleOffsetYChanged)
     Q_PROPERTY(bool isOutOfCoverage READ isOutOfCoverage NOTIFY isOutOfCoverageChanged)
 
@@ -39,6 +40,7 @@ public:
     bool isReady() const { return m_isReady; }
     QString styleUrl() const { return m_styleUrl; }
     QVariantList routeCoordinates() const { return m_routeCoordinates; }
+    QString routeGeoJson() const { return m_routeGeoJson; }
     double vehicleOffsetY() const { return m_vehicleOffsetY; }
     bool isOutOfCoverage() const { return m_isOutOfCoverage; }
 
@@ -54,6 +56,7 @@ signals:
     void isReadyChanged();
     void styleUrlChanged();
     void routeCoordinatesChanged();
+    void routeGeoJsonChanged();
     void vehicleOffsetYChanged();
     void isOutOfCoverageChanged();
 
@@ -85,6 +88,9 @@ private:
     // Style
     void rebuildStyleUrl();
     QString rewriteStyleForMbtiles(const QString &qrcPath, const QString &mbtilesPath);
+
+    // Route GeoJSON for native MapLibre layer
+    void updateRouteGeoJson();
 
     // Coverage bounds checking
     void loadMbtilesBounds();
@@ -148,6 +154,7 @@ private:
     bool m_isReady = false;
     QString m_styleUrl;
     QVariantList m_routeCoordinates;
+    QString m_routeGeoJson;
     double m_vehicleOffsetY = VehicleOffsetPx;
 
     // --- Out-of-coverage state ---

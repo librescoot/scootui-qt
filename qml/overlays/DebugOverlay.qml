@@ -483,7 +483,7 @@ Item {
                         color: parent.parent.present ? batteryChargeColor(parent.parent.charge) : "#9E9E9E"
                     }
                     Row {
-                        visible: parent.parent.parent.present
+                        visible: parent.parent.present
                         spacing: 0
                         Text {
                             text: enumName(b0("batteryState"), batteryStateNames)
@@ -526,7 +526,7 @@ Item {
                         color: parent.parent.present ? batteryChargeColor(parent.parent.charge) : "#9E9E9E"
                     }
                     Row {
-                        visible: parent.parent.parent.present
+                        visible: parent.parent.present
                         spacing: 0
                         Text {
                             text: enumName(b1("batteryState"), batteryStateNames)

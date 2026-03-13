@@ -167,6 +167,8 @@ void MapService::setRouteWaypoints(const QVariantList &waypoints)
 
     // Reset segment tracking
     m_currentRouteSegment = 0;
+
+    updateRouteGeoJson();
 }
 
 void MapService::updateRouteFromNavigation()
@@ -194,11 +196,40 @@ void MapService::clearRoute()
     m_routeCoordinates.clear();
     emit routeCoordinatesChanged();
 
+    updateRouteGeoJson();
+
     m_targetZoom = DefaultZoom;
 
     // Cancel any active overview
     m_routeOverviewActive = false;
     m_overviewTimer->stop();
+}
+
+// ---------------------------------------------------------------------------
+// Route GeoJSON for native MapLibre layer
+// ---------------------------------------------------------------------------
+
+void MapService::updateRouteGeoJson()
+{
+    QString json;
+    if (m_routeShape.isEmpty()) {
+        json = QStringLiteral("{\"type\":\"FeatureCollection\",\"features\":[]}");
+    } else {
+        QStringList coordParts;
+        coordParts.reserve(m_routeShape.size());
+        for (const auto &pt : m_routeShape) {
+            coordParts.append(QStringLiteral("[%1,%2]")
+                .arg(pt.second, 0, 'f', 6)   // longitude first (GeoJSON order)
+                .arg(pt.first, 0, 'f', 6));   // latitude second
+        }
+        json = QStringLiteral("{\"type\":\"Feature\",\"geometry\":{\"type\":\"LineString\",\"coordinates\":[%1]}}")
+            .arg(coordParts.join(QLatin1Char(',')));
+    }
+
+    if (json != m_routeGeoJson) {
+        m_routeGeoJson = json;
+        emit routeGeoJsonChanged();
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -232,10 +263,10 @@ void MapService::onGpsPositionChanged()
             m_isReady = true;
             emit isReadyChanged();
 
-            // Re-emit route coordinates in case they were set before the map
-            // GL context was ready (MapPolyline may ignore pre-init geometry)
-            if (!m_routeCoordinates.isEmpty()) {
-                emit routeCoordinatesChanged();
+            // Re-emit route GeoJSON in case it was set before the map
+            // GL context was ready (native layers may ignore pre-init data)
+            if (!m_routeGeoJson.isEmpty()) {
+                emit routeGeoJsonChanged();
             }
         }
         emit mapLatitudeChanged();

@@ -1,6 +1,7 @@
 import QtQuick
 import QtLocation
 import QtPositioning
+import MapLibre.Location 4.0
 
 MapView {
     id: mapView
@@ -33,6 +34,11 @@ MapView {
         PluginParameter {
             name: "maptile.loading.lazy"
             value: true
+        }
+
+        PluginParameter {
+            name: "maplibre.items.insert_before"
+            value: "building"
         }
     }
 
@@ -104,54 +110,34 @@ MapView {
         function onLongitudeChanged() { mapView.updateCamera() }
     }
 
-    // Route polyline - Add to map
-    MapPolyline {
-        id: routeBorder
-        parent: mapView.map
-        visible: typeof mapService !== "undefined" && mapService.routeCoordinates.length > 0
-        line.width: 6
-        line.color: "#ECEFF1"
+    // Route rendered as native MapLibre layers (inserted before "building" layer
+    // so that 3D building extrusions properly occlude the route line)
+    MapLibre.style: Style {
+        id: routeStyle
 
-        function updatePath() {
-            var p = []
-            if (typeof mapService !== "undefined") {
-                var coords = mapService.routeCoordinates
-                for (var i = 0; i < coords.length; i++) {
-                    p.push(QtPositioning.coordinate(coords[i].latitude, coords[i].longitude))
-                }
-            }
-            path = p
-            console.log("MapViewContent: updated route path with " + path.length + " points, visible: " + visible)
+        SourceParameter {
+            id: routeSource
+            styleId: "route"
+            type: "geojson"
+            property string data: typeof mapService !== "undefined" ? mapService.routeGeoJson : ""
+            onDataChanged: updateNotify()
         }
 
-        onVisibleChanged: {
-            console.log("MapViewContent: routeBorder visible changed to: " + visible + ", coords length: " + (typeof mapService !== "undefined" ? mapService.routeCoordinates.length : "N/A"))
+        LayerParameter {
+            styleId: "route-border"
+            type: "line"
+            property string source: "route"
+            layout: { "line-cap": "round", "line-join": "round" }
+            paint: { "line-color": "#ECEFF1", "line-width": 6 }
         }
 
-        onPathChanged: {
-            console.log("MapViewContent: routeBorder path changed, new length: " + path.length)
+        LayerParameter {
+            styleId: "route-fill"
+            type: "line"
+            property string source: "route"
+            layout: { "line-cap": "round", "line-join": "round" }
+            paint: { "line-color": "#42A5F5", "line-width": 4 }
         }
-
-        Component.onCompleted: updatePath()
-
-        Connections {
-            target: typeof mapService !== "undefined" ? mapService : null
-            function onRouteCoordinatesChanged() {
-                console.log("MapViewContent: onRouteCoordinatesChanged signal received, coords length: " + mapService.routeCoordinates.length)
-                routeBorder.updatePath()
-            }
-        }
-    }
-
-    MapPolyline {
-        id: routeFill
-        parent: mapView.map
-        visible: routeBorder.visible
-        z: routeBorder.z + 1
-        line.width: 4
-        line.color: "#42A5F5"
-
-        path: routeBorder.path
     }
 
 }
