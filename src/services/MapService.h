@@ -142,6 +142,9 @@ private:
     SettingsStore *m_settings;
     ThemeStore *m_theme;
 
+    // --- Mbtiles path (resolved at construction) ---
+    QString m_mbtilesPath;
+
     // --- Timers ---
     QTimer *m_tickTimer;
     QElapsedTimer m_elapsed;

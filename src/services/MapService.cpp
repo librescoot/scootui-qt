@@ -89,6 +89,17 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
     , m_theme(theme)
     , m_tickTimer(new QTimer(this))
 {
+    // Resolve mbtiles path: prefer ./map.mbtiles (desktop/simulator), fall back to device path
+    if (QFile::exists(QStringLiteral("map.mbtiles"))) {
+        m_mbtilesPath = QDir::currentPath() + QStringLiteral("/map.mbtiles");
+        qDebug() << "MapService: using local mbtiles:" << m_mbtilesPath;
+    } else if (QFile::exists(QStringLiteral("/data/maps/map.mbtiles"))) {
+        m_mbtilesPath = QStringLiteral("/data/maps/map.mbtiles");
+        qDebug() << "MapService: using device mbtiles:" << m_mbtilesPath;
+    } else {
+        qDebug() << "MapService: no mbtiles found, using online tiles";
+    }
+
     // Build initial style URL
     rebuildStyleUrl();
 
@@ -344,13 +355,11 @@ void MapService::onMapTypeChanged()
 
 void MapService::rebuildStyleUrl()
 {
-    static const QString MbtilesPath = QStringLiteral("/data/maps/map.mbtiles");
-
     bool isDark = m_theme->isDark();
-    bool useLocal = QFile::exists(MbtilesPath);
+    bool useLocal = !m_mbtilesPath.isEmpty();
 
     qDebug() << "MapService: rebuildStyleUrl - dark:" << isDark
-             << "mbtiles exists:" << useLocal << "path:" << MbtilesPath;
+             << "mbtiles:" << (useLocal ? m_mbtilesPath : QStringLiteral("none"));
 
     QString qrcPath = isDark
         ? QStringLiteral("qrc:/ScootUI/assets/styles/mapdark.json")
@@ -358,7 +367,7 @@ void MapService::rebuildStyleUrl()
 
     QString url;
     if (useLocal) {
-        url = rewriteStyleForMbtiles(qrcPath, MbtilesPath);
+        url = rewriteStyleForMbtiles(qrcPath, m_mbtilesPath);
     } else {
         url = qrcPath;
         qDebug() << "MapService: using online style:" << url;
@@ -798,9 +807,7 @@ int MapService::findClosestSegment(double lat, double lng) const
 
 void MapService::loadMbtilesBounds()
 {
-    static const QString MbtilesPath = QStringLiteral("/data/maps/map.mbtiles");
-
-    if (!QFile::exists(MbtilesPath)) {
+    if (m_mbtilesPath.isEmpty()) {
         qDebug() << "MapService: no mbtiles file, skipping bounds load";
         return;
     }
@@ -809,7 +816,7 @@ void MapService::loadMbtilesBounds()
     const QString connName = QStringLiteral("mapservice_bounds");
     {
         QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connName);
-        db.setDatabaseName(MbtilesPath);
+        db.setDatabaseName(m_mbtilesPath);
         if (!db.open()) {
             qWarning() << "MapService: cannot open mbtiles for bounds:" << db.lastError().text();
             QSqlDatabase::removeDatabase(connName);
