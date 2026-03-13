@@ -154,9 +154,9 @@ bool NavigationService::showNextPreview() const
 
 QString NavigationService::eta() const
 {
-    if (!m_route.isValid()) return {};
-    QDateTime now = QDateTime::currentDateTime();
-    QDateTime arrival = now.addSecs(static_cast<qint64>(m_route.duration));
+    if (!m_route.isValid() || m_remainingDuration <= 0) return {};
+    QDateTime arrival = QDateTime::currentDateTime().addSecs(
+        static_cast<qint64>(m_remainingDuration));
     return arrival.toString(QStringLiteral("HH:mm"));
 }
 
@@ -193,6 +193,7 @@ void NavigationService::clearNavigation()
     m_destAddress.clear();
     m_upcomingInstructions.clear();
     m_distanceToDestination = 0;
+    m_remainingDuration = 0;
     m_distanceFromRoute = 0;
     m_isOffRoute = false;
     m_wasArrived = false;
@@ -291,6 +292,7 @@ void NavigationService::onVehicleStateChanged()
 void NavigationService::onRouteCalculated(const Route &route)
 {
     m_route = route;
+    m_remainingDuration = route.duration;
     m_currentSegmentIndex = 0;
     m_wasArrived = false;
 
@@ -394,6 +396,37 @@ void NavigationService::updateNavigationState()
     if (upcoming != m_upcomingInstructions) {
         m_upcomingInstructions = upcoming;
         emit instructionChanged();
+    }
+
+    // Calculate remaining duration from upcoming instructions (matching Flutter logic)
+    if (!upcoming.isEmpty()) {
+        // Find the index of the first upcoming instruction in the full route
+        int firstIdx = -1;
+        for (int i = 0; i < m_route.instructions.size(); ++i) {
+            if (m_route.instructions[i].originalShapeIndex ==
+                upcoming.first().originalShapeIndex) {
+                firstIdx = i;
+                break;
+            }
+        }
+        if (firstIdx >= 0) {
+            const auto &original = m_route.instructions[firstIdx];
+            double remaining = 0;
+
+            // Sum durations of all instructions after the first upcoming
+            for (int i = firstIdx + 1; i < m_route.instructions.size(); ++i)
+                remaining += m_route.instructions[i].duration;
+
+            // Estimate time to reach the first upcoming maneuver proportionally
+            if (original.distance > 0) {
+                double speed = original.duration / original.distance; // s/m
+                remaining += upcoming.first().distance * speed;
+            }
+            // Add the full duration of the first upcoming instruction's segment
+            remaining += original.duration;
+
+            m_remainingDuration = remaining;
+        }
     }
 
     emit positionChanged();

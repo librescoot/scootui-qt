@@ -48,7 +48,8 @@ class NavigationService : public QObject
     Q_PROPERTY(bool isOffRoute READ isOffRoute NOTIFY positionChanged)
     Q_PROPERTY(double totalDistance READ totalDistance NOTIFY routeChanged)
     Q_PROPERTY(double totalDuration READ totalDuration NOTIFY routeChanged)
-    Q_PROPERTY(QString eta READ eta NOTIFY routeChanged)
+    Q_PROPERTY(double remainingDuration READ remainingDuration NOTIFY positionChanged)
+    Q_PROPERTY(QString eta READ eta NOTIFY positionChanged)
 
     // Roundabout
     Q_PROPERTY(int roundaboutExitCount READ roundaboutExitCount NOTIFY instructionChanged)
@@ -86,6 +87,7 @@ public:
     bool isOffRoute() const { return m_isOffRoute; }
     double totalDistance() const { return m_route.distance; }
     double totalDuration() const { return m_route.duration; }
+    double remainingDuration() const { return m_remainingDuration; }
     QString eta() const;
 
     Q_INVOKABLE void setDestination(double lat, double lng, const QString &address = {});
@@ -140,6 +142,7 @@ private:
 
     QList<RouteInstruction> m_upcomingInstructions;
     double m_distanceToDestination = 0;
+    double m_remainingDuration = 0;
     double m_distanceFromRoute = 0;
     bool m_isOffRoute = false;
     LatLng m_snappedPosition;

@@ -243,8 +243,8 @@ Item {
                     spacing: 4
                     Text { text: miTimer; font.family: "Material Icons"; font.pixelSize: 12; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
-                        text: typeof navigationService !== "undefined" && navigationService.totalDuration > 0
-                              ? Math.ceil(navigationService.totalDuration / 60) + "m"
+                        text: typeof navigationService !== "undefined" && navigationService.remainingDuration > 0
+                              ? Math.ceil(navigationService.remainingDuration / 60) + "m"
                               : ""
                         font.pixelSize: 12; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
