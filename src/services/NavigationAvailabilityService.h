@@ -30,11 +30,13 @@ private:
     void checkMaps();
     void checkRouting();
     void publishToRedis();
+    void scheduleRetry();
 
     SettingsStore *m_settings;
     InternetStore *m_internet;
     MdbRepository *m_repo;
     QNetworkAccessManager *m_nam;
+    QTimer m_retryTimer;
     bool m_mapsAvailable = false;
     bool m_routingAvailable = false;
 };

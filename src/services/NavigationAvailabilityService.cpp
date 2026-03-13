@@ -18,6 +18,9 @@ NavigationAvailabilityService::NavigationAvailabilityService(SettingsStore *sett
     , m_repo(repo)
     , m_nam(new QNetworkAccessManager(this))
 {
+    m_retryTimer.setSingleShot(true);
+    connect(&m_retryTimer, &QTimer::timeout, this, &NavigationAvailabilityService::checkRouting);
+
     connect(m_settings, &SettingsStore::valhallaUrlChanged, this, &NavigationAvailabilityService::recheck);
     connect(m_internet, &InternetStore::modemStateChanged, this, &NavigationAvailabilityService::recheck);
 
@@ -58,7 +61,17 @@ void NavigationAvailabilityService::checkRouting()
             publishToRedis();
             emit availabilityChanged();
         }
+        if (!available)
+            scheduleRetry();
+        else
+            m_retryTimer.stop();
     });
+}
+
+void NavigationAvailabilityService::scheduleRetry()
+{
+    if (!m_retryTimer.isActive())
+        m_retryTimer.start(5000);
 }
 
 void NavigationAvailabilityService::publishToRedis()
