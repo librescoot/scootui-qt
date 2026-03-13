@@ -230,33 +230,33 @@ Item {
                 // Distance remaining
                 Row {
                     spacing: 4
-                    Text { text: miSpeed; font.family: "Material Icons"; font.pixelSize: 14; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
+                    Text { text: miSpeed; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
                         text: typeof navigationService !== "undefined"
                               ? formatDistance(navigationService.distanceToDestination) : ""
-                        font.pixelSize: 14; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
+                        font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
                 }
 
                 // Time remaining
                 Row {
                     spacing: 4
-                    Text { text: miTimer; font.family: "Material Icons"; font.pixelSize: 14; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
+                    Text { text: miTimer; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
                         text: typeof navigationService !== "undefined" && navigationService.remainingDuration > 0
                               ? Math.ceil(navigationService.remainingDuration / 60) + "m"
                               : ""
-                        font.pixelSize: 14; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
+                        font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
                 }
 
                 // ETA
                 Row {
                     spacing: 4
-                    Text { text: miFlag; font.family: "Material Icons"; font.pixelSize: 14; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
+                    Text { text: miFlag; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
                         text: typeof navigationService !== "undefined" ? navigationService.eta : ""
-                        font.pixelSize: 14; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
+                        font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
                 }
             }
