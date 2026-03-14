@@ -85,7 +85,7 @@ bool Application::initialize(QQmlApplicationEngine &engine)
         m_simulatorMode = true;
     } else {
         qDebug() << "Connecting to Redis at" << redisHost;
-        m_repository = std::make_unique<RedisMdbRepository>(redisHost, 6379);
+        m_repository = std::make_unique<RedisMdbRepository>(redisHost, 6379, QStringLiteral("192.168.8.1"));
     }
 
     createStores(engine);

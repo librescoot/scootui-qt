@@ -202,6 +202,7 @@ Rectangle {
                 property bool showWarnings: {
                     if (typeof vehicleStore === "undefined") return false
                     return vehicleStore.isUnableToDrive === 0  // Toggle::On = 0
+                           || (typeof connectionStore !== "undefined" && connectionStore.usingBackupConnection)
                            || vehicleStore.blinkerState === 3
                            || vehicleStore.state === 4  // Parked
                 }
@@ -223,7 +224,8 @@ Rectangle {
 
                         // Engine warning
                         IndicatorLight {
-                            visible: typeof vehicleStore !== "undefined" && vehicleStore.isUnableToDrive === 0  // Toggle::On = 0
+                            visible: (typeof vehicleStore !== "undefined" && vehicleStore.isUnableToDrive === 0)
+                                     || (typeof connectionStore !== "undefined" && connectionStore.usingBackupConnection)
                             source: "qrc:/ScootUI/assets/icons/librescoot-engine-warning.svg"
                             active: true
                             blinking: false

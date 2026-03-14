@@ -66,6 +66,20 @@ Window {
                 }
             }
         }
+        function onUsingBackupConnectionChanged() {
+            if (typeof connectionStore !== "undefined" && typeof toastService !== "undefined") {
+                if (connectionStore.usingBackupConnection) {
+                    toastService.showPermanentError(
+                        typeof translations !== "undefined"
+                            ? translations.usbDisconnected
+                            : "USB connection interrupted",
+                        "usb-disconnect"
+                    )
+                } else {
+                    toastService.dismiss("usb-disconnect")
+                }
+            }
+        }
     }
 
     // Screen switcher

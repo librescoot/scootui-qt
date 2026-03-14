@@ -447,6 +447,9 @@ void Translations::initStrings()
     en[QStringLiteral("redisDisconnected")] = QStringLiteral("System connection lost");
     de[QStringLiteral("redisDisconnected")] = QStringLiteral("Systemverbindung verloren");
 
+    en[QStringLiteral("usbDisconnected")] = QStringLiteral("USB connection interrupted");
+    de[QStringLiteral("usbDisconnected")] = QStringLiteral("USB-Verbindung unterbrochen");
+
     en[QStringLiteral("locationSaved")] = QStringLiteral("Location saved");
     de[QStringLiteral("locationSaved")] = QStringLiteral("Standort gespeichert");
 

@@ -38,4 +38,5 @@ public:
 signals:
     void connectionStateChanged(bool connected);
     void prolongedDisconnect(bool disconnected);
+    void usingBackupConnection(bool usingBackup);
 };

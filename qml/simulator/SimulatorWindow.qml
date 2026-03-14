@@ -55,6 +55,24 @@ ApplicationWindow {
                 }
             }
 
+            // ---- Connection ----
+            SectionHeader { text: "Connection" }
+
+            RowLayout {
+                Layout.fillWidth: true
+                SimLabel { text: "USB" }
+                SimButton {
+                    text: "Disconnect"
+                    color: "#f44336"
+                    onClicked: connectionStore.simulateUsbDisconnect(true)
+                }
+                SimButton {
+                    text: "Reconnect"
+                    color: "#4caf50"
+                    onClicked: connectionStore.simulateUsbDisconnect(false)
+                }
+            }
+
             // ---- Presets ----
             SectionHeader { text: "Presets" }
 

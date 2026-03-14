@@ -17,6 +17,7 @@ public:
     ~RedisConnection() override;
 
     bool connectToServer(int timeoutMs = 2000);
+    bool connectToServer(const QString &host, quint16 port, int timeoutMs = 2000);
     void disconnect();
     bool isConnected() const;
 
@@ -54,7 +55,8 @@ class RedisPubsubWorker : public QObject
     Q_OBJECT
 
 public:
-    explicit RedisPubsubWorker(const QString &host, quint16 port);
+    explicit RedisPubsubWorker(const QString &host, quint16 port,
+                               const QString &backupHost = QString());
     ~RedisPubsubWorker() override;
 
 public slots:
@@ -62,6 +64,7 @@ public slots:
     void stop();
     void subscribe(const QString &channel);
     void unsubscribe(const QString &channel);
+    void reconnectToPrimary();
 
 signals:
     void messageReceived(const QString &channel, const QString &message);
@@ -80,6 +83,7 @@ private:
     QTcpSocket *m_socket = nullptr;
     QString m_host;
     quint16 m_port;
+    QString m_backupHost;
     QStringList m_channels;
     QByteArray m_buffer;
     QTimer *m_reconnectTimer = nullptr;
@@ -93,6 +97,7 @@ class RedisMdbRepository : public MdbRepository
 public:
     explicit RedisMdbRepository(const QString &host = QStringLiteral("192.168.7.1"),
                                  quint16 port = 6379,
+                                 const QString &backupHost = QStringLiteral("192.168.8.1"),
                                  QObject *parent = nullptr);
     ~RedisMdbRepository() override;
 
@@ -121,6 +126,7 @@ private slots:
 private:
     bool ensureConnected();
     void startReconnectTimer();
+    void tryReconnectPrimary();
 
     RedisConnection *m_conn;
     QThread *m_pubsubThread;
@@ -129,7 +135,10 @@ private:
     QTimer *m_reconnectTimer;
     QString m_host;
     quint16 m_port;
+    QString m_backupHost;
     bool m_connected = false;
+    bool m_usingBackup = false;
     bool m_prolongedDisconnect = false;
     QTimer *m_prolongedTimer;
+    QTimer *m_primaryReconnectTimer;
 };

@@ -8,9 +8,10 @@ Item {
     readonly property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : 0
     readonly property int blinkerState: typeof vehicleStore !== "undefined" ? vehicleStore.blinkerState : 0
     readonly property int unableToDrive: typeof vehicleStore !== "undefined" ? vehicleStore.isUnableToDrive : 0
+    readonly property bool usbDisconnected: typeof connectionStore !== "undefined" && connectionStore.usingBackupConnection
 
     // ScooterState.Parked = 4, BlinkerState.Both = 3, Toggle.On = 0
-    readonly property bool hasTelltales: unableToDrive === 0 || blinkerState === 3 || vehicleState === 4
+    readonly property bool hasTelltales: unableToDrive === 0 || usbDisconnected || blinkerState === 3 || vehicleState === 4
 
     // AnimatedSwitcher equivalent
     Item {
@@ -33,7 +34,7 @@ Item {
                 width: 32; height: 32
                 source: "qrc:/ScootUI/assets/icons/librescoot-engine-warning.svg"
                 sourceSize: Qt.size(32, 32)
-                visible: unableToDrive === 0 // Toggle.On
+                visible: unableToDrive === 0 || usbDisconnected // Toggle.On or USB fallback
             }
 
             // Hazards

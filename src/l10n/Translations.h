@@ -149,6 +149,7 @@ class Translations : public QObject
     Q_PROPERTY(QString lowTemp12vBattery READ lowTemp12vBattery NOTIFY languageChanged)
     Q_PROPERTY(QString bleCommError READ bleCommError NOTIFY languageChanged)
     Q_PROPERTY(QString redisDisconnected READ redisDisconnected NOTIFY languageChanged)
+    Q_PROPERTY(QString usbDisconnected READ usbDisconnected NOTIFY languageChanged)
     Q_PROPERTY(QString locationSaved READ locationSaved NOTIFY languageChanged)
     Q_PROPERTY(QString locationDeleted READ locationDeleted NOTIFY languageChanged)
     Q_PROPERTY(QString maxLocationsReached READ maxLocationsReached NOTIFY languageChanged)
@@ -471,6 +472,7 @@ public:
     QString lowTemp12vBattery() const { return lookup("lowTemp12vBattery"); }
     QString bleCommError() const { return lookup("bleCommError"); }
     QString redisDisconnected() const { return lookup("redisDisconnected"); }
+    QString usbDisconnected() const { return lookup("usbDisconnected"); }
     QString locationSaved() const { return lookup("locationSaved"); }
     QString locationDeleted() const { return lookup("locationDeleted"); }
     QString maxLocationsReached() const { return lookup("maxLocationsReached"); }

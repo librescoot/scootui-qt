@@ -18,4 +18,19 @@ ConnectionStore::ConnectionStore(MdbRepository *repo, QObject *parent)
             emit prolongedDisconnectChanged();
         }
     });
+
+    connect(m_repo, &MdbRepository::usingBackupConnection, this, [this](bool usingBackup) {
+        if (usingBackup != m_usingBackupConnection) {
+            m_usingBackupConnection = usingBackup;
+            emit usingBackupConnectionChanged();
+        }
+    });
+}
+
+void ConnectionStore::simulateUsbDisconnect(bool disconnected)
+{
+    if (disconnected != m_usingBackupConnection) {
+        m_usingBackupConnection = disconnected;
+        emit usingBackupConnectionChanged();
+    }
 }
