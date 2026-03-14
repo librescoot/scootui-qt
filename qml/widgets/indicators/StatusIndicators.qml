@@ -11,6 +11,8 @@ Row {
                                         ? "#000000" : "#FFFFFF"
 
     readonly property int gpsState: typeof gpsStore !== "undefined" ? gpsStore.gpsState : 0
+    readonly property bool gpsRecentFix: typeof gpsStore !== "undefined" ? gpsStore.hasRecentFix : false
+    readonly property bool gpsHasTimestamp: typeof gpsStore !== "undefined" ? gpsStore.hasTimestamp : false
     readonly property int btStatus: typeof bluetoothStore !== "undefined" ? bluetoothStore.status : 1
     readonly property int modemState: typeof internetStore !== "undefined" ? internetStore.modemState : 0
     readonly property int cloudStatus: typeof internetStore !== "undefined" ? internetStore.unuCloud : 1
@@ -185,31 +187,82 @@ Row {
         }
     }
 
-    // GPS icon
+    // GPS icon with pulsing center dot animation when searching
     Item {
         width: 20; height: 20
 
+        readonly property bool isSearching: {
+            if (gpsState === 0) return !gpsRecentFix && gpsHasTimestamp
+            return gpsState === 1 || (gpsState === 2 && !gpsRecentFix)
+        }
+
+        readonly property string gpsIconSource: {
+            if (gpsState === 0) {
+                if (gpsRecentFix) return "qrc:/ScootUI/assets/icons/librescoot-gps-fix-established.svg"
+                if (gpsHasTimestamp) return "qrc:/ScootUI/assets/icons/librescoot-gps-searching.svg"
+                return "qrc:/ScootUI/assets/icons/librescoot-gps-off.svg"
+            }
+            switch (gpsState) {
+                case 1: return "qrc:/ScootUI/assets/icons/librescoot-gps-searching.svg"
+                case 2: return "qrc:/ScootUI/assets/icons/librescoot-gps-fix-established.svg"
+                case 3: return "qrc:/ScootUI/assets/icons/librescoot-gps-error.svg"
+                default: return "qrc:/ScootUI/assets/icons/librescoot-gps-off.svg"
+            }
+        }
+
+        // Base GPS icon (always visible)
         Image {
             id: gpsIcon
             anchors.fill: parent
             sourceSize: Qt.size(20, 20)
             visible: false
-            source: {
-                // GpsState: 0=Off, 1=Searching, 2=FixEstablished, 3=Error
-                switch (gpsState) {
-                    case 0: return "qrc:/ScootUI/assets/icons/librescoot-gps-off.svg"
-                    case 1: return "qrc:/ScootUI/assets/icons/librescoot-gps-searching.svg"
-                    case 2: return "qrc:/ScootUI/assets/icons/librescoot-gps-fix-established.svg"
-                    case 3: return "qrc:/ScootUI/assets/icons/librescoot-gps-error.svg"
-                    default: return "qrc:/ScootUI/assets/icons/librescoot-gps-off.svg"
-                }
-            }
+            source: parent.isSearching
+                ? "qrc:/ScootUI/assets/icons/librescoot-gps-searching.svg"
+                : parent.gpsIconSource
         }
         MultiEffect {
             source: gpsIcon
             anchors.fill: parent
             colorization: 1.0
             colorizationColor: statusIndicators.iconColor
+        }
+
+        // Pulsing center dot overlay (only when searching)
+        Image {
+            id: gpsCenterDot
+            anchors.fill: parent
+            sourceSize: Qt.size(20, 20)
+            visible: false
+            source: "qrc:/ScootUI/assets/icons/librescoot-gps-center-dot.svg"
+        }
+        MultiEffect {
+            id: gpsCenterDotEffect
+            source: gpsCenterDot
+            anchors.fill: parent
+            visible: parent.isSearching
+            colorization: 1.0
+            colorizationColor: statusIndicators.iconColor
+            opacity: pulseAnimation.running ? pulseAnimation.pulseValue : 0
+        }
+
+        SequentialAnimation {
+            id: pulseAnimation
+            running: parent.isSearching
+            loops: Animation.Infinite
+
+            property real pulseValue: 0
+
+            NumberAnimation {
+                target: pulseAnimation; property: "pulseValue"
+                from: 0.0; to: 1.0; duration: 600
+                easing.type: Easing.InOutQuad
+            }
+            NumberAnimation {
+                target: pulseAnimation; property: "pulseValue"
+                from: 1.0; to: 0.0; duration: 600
+                easing.type: Easing.InOutQuad
+            }
+            PauseAnimation { duration: 300 }
         }
     }
 }

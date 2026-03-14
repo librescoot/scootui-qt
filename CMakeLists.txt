@@ -255,6 +255,7 @@ qt_add_qml_module(scootui
         assets/icons/librescoot-bluetooth-error.svg
         assets/icons/librescoot-gps-off.svg
         assets/icons/librescoot-gps-searching.svg
+        assets/icons/librescoot-gps-center-dot.svg
         assets/icons/librescoot-gps-fix-established.svg
         assets/icons/librescoot-gps-error.svg
         assets/icons/librescoot-internet-cloud-connected.svg

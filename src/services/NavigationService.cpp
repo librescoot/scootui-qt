@@ -223,7 +223,12 @@ void NavigationService::setRoute(const Route &route)
 
 void NavigationService::onGpsChanged()
 {
-    if (!hasValidGps()) return;
+    // Update position when GPS fix is recent; keep last known position when stale
+    // so navigation and dead reckoning can continue through brief GPS gaps
+    if (!m_gps) return;
+
+    bool hasPosition = (m_gps->latitude() != 0 || m_gps->longitude() != 0);
+    if (!hasPosition) return;
 
     if (m_status == NavigationStatus::Navigating ||
         m_status == NavigationStatus::Rerouting ||
@@ -449,6 +454,6 @@ LatLng NavigationService::currentGpsPosition() const
 bool NavigationService::hasValidGps() const
 {
     if (!m_gps) return false;
-    return m_gps->gpsState() == static_cast<int>(ScootEnums::GpsState::FixEstablished) &&
+    return m_gps->hasRecentFix() &&
            (m_gps->latitude() != 0 || m_gps->longitude() != 0);
 }

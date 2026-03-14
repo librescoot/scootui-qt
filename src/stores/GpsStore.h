@@ -2,6 +2,7 @@
 
 #include "SyncableStore.h"
 #include "models/Enums.h"
+#include <QDateTime>
 
 class GpsStore : public SyncableStore
 {
@@ -14,6 +15,8 @@ class GpsStore : public SyncableStore
     Q_PROPERTY(QString updated READ updated NOTIFY updatedChanged)
     Q_PROPERTY(QString timestamp READ timestamp NOTIFY timestampChanged)
     Q_PROPERTY(int gpsState READ gpsState NOTIFY gpsStateChanged)
+    Q_PROPERTY(bool hasRecentFix READ hasRecentFix NOTIFY timestampChanged)
+    Q_PROPERTY(bool hasTimestamp READ hasTimestamp NOTIFY timestampChanged)
 
 public:
     explicit GpsStore(MdbRepository *repo, QObject *parent = nullptr);
@@ -26,6 +29,16 @@ public:
     QString updated() const { return m_updated; }
     QString timestamp() const { return m_timestamp; }
     int gpsState() const { return static_cast<int>(m_gpsState); }
+
+    bool hasTimestamp() const { return !m_timestamp.isEmpty(); }
+    bool hasRecentFix() const {
+        if (m_timestamp.isEmpty()) return false;
+        QDateTime gpsTime = QDateTime::fromString(m_timestamp, Qt::ISODate);
+        if (!gpsTime.isValid()) return false;
+        return gpsTime.secsTo(QDateTime::currentDateTime()) <= RecentFixThresholdSec;
+    }
+
+    static constexpr int RecentFixThresholdSec = 20;
 
 signals:
     void latitudeChanged();

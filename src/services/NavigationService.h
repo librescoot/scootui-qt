@@ -122,9 +122,9 @@ private:
 
     // Thresholds (meters)
     static constexpr double ArrivalProximity = 50.0;
-    static constexpr double OffRouteTolerance = 40.0;
+    static constexpr double OffRouteTolerance = 60.0;
     static constexpr double ShutdownProximity = 250.0;
-    static constexpr int RerouteCooldownMs = 5000;
+    static constexpr int RerouteCooldownMs = 15000;
 
     GpsStore *m_gps;
     NavigationStore *m_nav;

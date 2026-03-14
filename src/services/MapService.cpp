@@ -496,8 +496,10 @@ void MapService::onDeadReckoningTick()
             projectPositionStraight(distMeters, heading);
         }
 
-        // ----- GPS correction blending -----
-        blendGpsCorrection(dt);
+        // ----- GPS correction blending (only when GPS fix is recent) -----
+        if (m_gps->hasRecentFix()) {
+            blendGpsCorrection(dt);
+        }
     }
 
     // ----- Latency compensation -----
