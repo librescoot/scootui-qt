@@ -64,6 +64,7 @@ private:
     QTimer *m_pollTimer = nullptr;
     QTimer *m_pubsubDebounce = nullptr;
     QHash<QString, QTimer*> m_setTimers;
+    QString m_channel;  // cached from syncSettings() to avoid virtual call in destructor
     bool m_isPaused = false;
     bool m_isClosing = false;
     bool m_hasLoggedError = false;

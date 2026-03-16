@@ -19,6 +19,7 @@ void SyncableStore::start()
     m_started = true;
 
     const auto settings = syncSettings();
+    m_channel = settings.channel;
 
     // Listen for connection state changes
     connect(m_repo, &MdbRepository::connectionStateChanged,
@@ -67,8 +68,9 @@ void SyncableStore::stop()
     }
     m_setTimers.clear();
 
-    const auto settings = syncSettings();
-    m_repo->unsubscribe(settings.channel);
+    if (!m_channel.isEmpty()) {
+        m_repo->unsubscribe(m_channel);
+    }
 }
 
 void SyncableStore::doHgetall()
