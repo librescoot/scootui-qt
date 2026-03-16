@@ -114,7 +114,7 @@ Rectangle {
                     return "ENTER DESTINATION CODE"
                 }
                 color: "white"
-                font.pixelSize: 14
+                font.pixelSize: 24
                 font.bold: true
             }
         }
@@ -207,7 +207,7 @@ Rectangle {
                         Text {
                             anchors.centerIn: parent
                             text: addressScreen.charset[addressScreen.digits[index]]
-                            font.pixelSize: 40
+                            font.pixelSize: 24
                             font.bold: true
                             color: "white"
                         }
@@ -246,7 +246,7 @@ Rectangle {
 
                 Text {
                     text: dbStatus === statusReady ? "L: Scroll" : ""
-                    color: Qt.rgba(1, 1, 1, 0.4)
+                    color: Qt.rgba(1, 1, 1, 0.6)
                     font.pixelSize: 11
                 }
                 Item { Layout.fillWidth: true }
@@ -256,7 +256,7 @@ Rectangle {
                         if (dbStatus !== statusReady) return "R: Close"
                         return "R: " + (addressScreen.inputState === 1 ? "Submit" : "Next")
                     }
-                    color: Qt.rgba(1, 1, 1, 0.4)
+                    color: Qt.rgba(1, 1, 1, 0.6)
                     font.pixelSize: 11
                 }
             }

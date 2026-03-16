@@ -85,7 +85,7 @@ Item {
                 text: "\ue4c9" // place
                 font.family: "Material Icons"
                 font.pixelSize: 24
-                color: "#4CAF50"
+                color: "#FFFFFF"
             }
 
             // Error icon (Flutter: warning_amber)
@@ -109,7 +109,7 @@ Item {
                         default: return ""
                     }
                 }
-                font.pixelSize: 14
+                font.pixelSize: 16
                 font.bold: true
                 color: "white"
             }
@@ -143,7 +143,7 @@ Item {
 
             Text {
                 text: "Off route"
-                font.pixelSize: 13
+                font.pixelSize: 14
                 font.bold: true
                 color: "white"
             }

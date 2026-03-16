@@ -9,13 +9,13 @@ Rectangle {
     readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
     readonly property color textPrimary: isDark ? "#FFFFFF" : "#000000"
     readonly property color textSecondary: isDark ? "#99FFFFFF" : "#8A000000"
-    readonly property color accentColor: isDark ? "#40C8F0" : "#0090B8"
+    readonly property color accentColor: isDark ? "#40C8F0" : "#007A99"
     readonly property color dividerColor: isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.12)
 
     // Warning box colors
     readonly property color warningBg: isDark ? "#1A1200" : "#FFF8E1"
     readonly property color warningBorder: isDark ? "#5C4400" : "#FFB300"
-    readonly property color warningText: isDark ? "#FFB300" : "#E65100"
+    readonly property color warningText: isDark ? "#FFB300" : "#BF360C"
 
     readonly property string licenseId: "CC BY-NC-SA 4.0"
     readonly property string websiteUrl: "https://librescoot.org"
@@ -391,7 +391,7 @@ Rectangle {
         Rectangle {
             id: controlBar
             width: parent.width
-            height: controlHints.height + 16
+            height: controlHints.height
             color: aboutScreen.isDark ? "black" : "white"
 
             Rectangle {
@@ -405,9 +405,7 @@ Rectangle {
                 id: controlHints
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: 8
-                anchors.rightMargin: 8
+                anchors.bottom: parent.bottom
                 leftAction: typeof translations !== "undefined"
                             ? translations.aboutScrollAction : "Scroll"
                 rightAction: typeof translations !== "undefined"

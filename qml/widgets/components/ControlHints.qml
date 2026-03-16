@@ -9,36 +9,27 @@ Item {
     readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
     readonly property color secondaryColor: isDark ? "#99FFFFFF" : "#8A000000"
     readonly property color primaryColor: isDark ? "#FFFFFF" : "#000000"
-    readonly property color borderColor: isDark ? "#33FFFFFF" : "#1F000000"
+    readonly property color hintBg: isDark ? "#1AFFFFFF" : "#0F000000"
 
-    height: 32
-    implicitHeight: 32
+    height: 40
+    implicitHeight: 40
 
     // Left brake hint
     Rectangle {
-        id: leftHintBg
         anchors.left: parent.left
-        anchors.leftMargin: 8
         anchors.verticalCenter: parent.verticalCenter
         visible: controlHints.leftAction !== ""
-        width: leftHint.width + 16
-        height: leftHint.height + 8
-        color: "transparent"
-        border.width: 1
-        border.color: controlHints.borderColor
-        radius: 4
-        // Open left edge (extends past screen)
-        Rectangle {
-            anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: 2
-            color: controlHints.isDark ? "#000000" : "#FFFFFF"
-        }
+        width: leftHint.width + 24
+        height: leftHint.height + 12
+        color: controlHints.hintBg
+        radius: 6
+        // Extend past left screen edge
+        anchors.leftMargin: -6
 
         Column {
             id: leftHint
             anchors.centerIn: parent
+            anchors.horizontalCenterOffset: 3
             spacing: 2
 
             Text {
@@ -60,33 +51,24 @@ Item {
 
     // Right brake hint
     Rectangle {
-        id: rightHintBg
         anchors.right: parent.right
-        anchors.rightMargin: 8
         anchors.verticalCenter: parent.verticalCenter
         visible: controlHints.rightAction !== ""
-        width: rightHint.width + 16
-        height: rightHint.height + 8
-        color: "transparent"
-        border.width: 1
-        border.color: controlHints.borderColor
-        radius: 4
-        // Open right edge (extends past screen)
-        Rectangle {
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: 2
-            color: controlHints.isDark ? "#000000" : "#FFFFFF"
-        }
+        width: rightHint.width + 24
+        height: rightHint.height + 12
+        color: controlHints.hintBg
+        radius: 6
+        // Extend past right screen edge
+        anchors.rightMargin: -6
 
         Column {
             id: rightHint
             anchors.centerIn: parent
+            anchors.horizontalCenterOffset: -3
             spacing: 2
 
             Text {
-                horizontalAlignment: Text.AlignRight
+                anchors.right: parent.right
                 text: typeof translations !== "undefined" ? translations.controlRightBrake : "Right Brake"
                 color: controlHints.secondaryColor
                 font.pixelSize: 10
@@ -95,7 +77,7 @@ Item {
             }
 
             Text {
-                horizontalAlignment: Text.AlignRight
+                anchors.right: parent.right
                 text: controlHints.rightAction
                 color: controlHints.primaryColor
                 font.pixelSize: 14

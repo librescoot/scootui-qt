@@ -134,7 +134,7 @@ Rectangle {
                           ? mapService.mapLatitude.toFixed(5) + ", " + mapService.mapLongitude.toFixed(5)
                           : "N/A"
                     color: "white"
-                    font.pixelSize: 13
+                    font.pixelSize: 36
                 }
             }
         }

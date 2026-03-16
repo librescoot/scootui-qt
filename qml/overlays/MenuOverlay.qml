@@ -26,11 +26,8 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.topMargin: 40   // Leave space for top status bar (Flutter: padding top: 40)
+        anchors.topMargin: 40   // Leave space for top status bar
         spacing: 0
-
-        // 8px gap above title (Flutter: SizedBox(height: 8))
-        Item { Layout.preferredHeight: 8 }
 
         // Title
         Text {
@@ -41,8 +38,7 @@ Item {
             color: themeStore.isDark ? "#FFFFFF" : "#000000"
         }
 
-        // 16px gap below title (Flutter: SizedBox(height: 16))
-        Item { Layout.preferredHeight: 16 }
+        Item { Layout.preferredHeight: 8 }
 
         // Menu items list with scroll indicators (Flutter: Stack with ListView + gradient overlays)
         Item {
@@ -54,9 +50,9 @@ Item {
                 anchors.fill: parent
                 anchors.leftMargin: 40   // Flutter: ListView padding left: 40
                 anchors.rightMargin: 40  // Flutter: ListView padding right: 40
-                topMargin: 12           // Flutter: ListView padding top: 12
-                bottomMargin: 12        // Flutter: ListView padding bottom: 12
-                spacing: 4              // Flutter: Padding(vertical: 2) per item = 4px between
+                topMargin: 4
+                bottomMargin: 8
+                spacing: 2
                 clip: true
                 model: menuStore.currentItems
                 currentIndex: menuStore.selectedIndex
@@ -121,13 +117,13 @@ Item {
             }
         }
 
-        // Bottom control hints (Flutter: Container with padding h:8 v:8, semi-transparent bg)
+        // Bottom control hints
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: controlHints.height + 16  // 8px padding top + bottom
+            Layout.preferredHeight: controlHints.height
             color: themeStore.isDark ? Qt.rgba(0, 0, 0, 0.3) : Qt.rgba(1, 1, 1, 0.3)
 
-            // Top border (Flutter: Colors.white10 / Colors.black12)
+            // Top border
             Rectangle {
                 anchors.top: parent.top
                 width: parent.width
@@ -139,9 +135,7 @@ Item {
                 id: controlHints
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: 8
-                anchors.rightMargin: 8
+                anchors.bottom: parent.bottom
                 leftAction: typeof translations !== "undefined"
                             ? translations.controlNextItem : "Next Item"
                 rightAction: typeof translations !== "undefined"
