@@ -503,6 +503,13 @@ RedisMdbRepository::~RedisMdbRepository()
 
 bool RedisMdbRepository::ensureConnected()
 {
+    // If we've been flagged as disconnected (e.g. by pubsub) but the TCP socket
+    // still appears connected (stale state), force-close it so we do a clean reconnect
+    if (!m_connected && m_conn->isConnected()) {
+        qDebug() << "Redis: forcing stale main connection closed";
+        m_conn->disconnect();
+    }
+
     if (m_conn->isConnected())
         return true;
 
@@ -604,8 +611,16 @@ void RedisMdbRepository::onPubsubDisconnected()
 {
     if (m_connected) {
         m_connected = false;
+        // Force-close main connection too — if pubsub lost the server, main is stale
+        m_conn->disconnect();
+        if (m_usingBackup) {
+            m_usingBackup = false;
+            m_primaryReconnectTimer->stop();
+            emit usingBackupConnection(false);
+        }
         emit connectionStateChanged(false);
         m_prolongedTimer->start();
+        startReconnectTimer();
     }
 }
 

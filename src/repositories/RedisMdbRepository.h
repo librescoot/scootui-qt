@@ -118,6 +118,9 @@ public:
     void hdel(const QString &key, const QString &field) override;
     QStringList lrange(const QString &key, int start, int stop) override;
 
+    bool isConnected() const override { return m_connected; }
+    bool isUsingBackupConnection() const override { return m_usingBackup; }
+
 private slots:
     void onPubsubMessage(const QString &channel, const QString &message);
     void onPubsubConnected();

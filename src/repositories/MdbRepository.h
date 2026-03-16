@@ -35,6 +35,10 @@ public:
     virtual void hdel(const QString &key, const QString &field) = 0;
     virtual QStringList lrange(const QString &key, int start, int stop) = 0;
 
+    // Connection state queries (for stores that need initial state)
+    virtual bool isConnected() const { return false; }
+    virtual bool isUsingBackupConnection() const { return false; }
+
 signals:
     void connectionStateChanged(bool connected);
     void prolongedDisconnect(bool disconnected);

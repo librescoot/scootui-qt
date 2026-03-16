@@ -1,9 +1,12 @@
 #include "ConnectionStore.h"
 #include "repositories/MdbRepository.h"
+#include <QTimer>
 
 ConnectionStore::ConnectionStore(MdbRepository *repo, QObject *parent)
     : QObject(parent)
     , m_repo(repo)
+    , m_hasEverConnected(repo->isConnected() || repo->isUsingBackupConnection())
+    , m_usingBackupConnection(repo->isUsingBackupConnection())
 {
     connect(m_repo, &MdbRepository::connectionStateChanged, this, [this](bool connected) {
         if (connected && !m_hasEverConnected) {
@@ -25,6 +28,14 @@ ConnectionStore::ConnectionStore(MdbRepository *repo, QObject *parent)
             emit usingBackupConnectionChanged();
         }
     });
+
+    // If the repo already connected on backup before we were created,
+    // defer signal emission so QML has time to bind before the toast fires
+    if (m_usingBackupConnection) {
+        QTimer::singleShot(0, this, [this]() {
+            emit usingBackupConnectionChanged();
+        });
+    }
 }
 
 void ConnectionStore::simulateUsbDisconnect(bool disconnected)

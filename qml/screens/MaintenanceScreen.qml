@@ -72,9 +72,10 @@ Rectangle {
         id: connectionInfoMode
         anchors.fill: parent
         visible: showConnectionInfo
+        clip: true
 
         ColumnLayout {
-            anchors.centerIn: parent
+            anchors.verticalCenter: parent.verticalCenter
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: 32
@@ -91,7 +92,7 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter
             }
 
-            Item { Layout.preferredHeight: 20 }
+            Item { Layout.preferredHeight: 16 }
 
             // Divider
             Rectangle {
@@ -100,7 +101,7 @@ Rectangle {
                 color: Qt.rgba(1, 1, 1, 0.24)
             }
 
-            Item { Layout.preferredHeight: 20 }
+            Item { Layout.preferredHeight: 16 }
 
             Text {
                 Layout.fillWidth: true
@@ -113,7 +114,7 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter
             }
 
-            Item { Layout.preferredHeight: 20 }
+            Item { Layout.preferredHeight: 16 }
 
             // Divider
             Rectangle {
@@ -122,7 +123,7 @@ Rectangle {
                 color: Qt.rgba(1, 1, 1, 0.24)
             }
 
-            Item { Layout.preferredHeight: 20 }
+            Item { Layout.preferredHeight: 16 }
 
             Text {
                 Layout.fillWidth: true
