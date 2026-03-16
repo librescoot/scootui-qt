@@ -56,9 +56,10 @@ Item {
 
         // Power display
         PowerDisplay {
-            anchors.centerIn: parent
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
             width: 200
-            height: 60
+            height: 56
             visible: !hasTelltales
             opacity: !hasTelltales ? 1 : 0
 

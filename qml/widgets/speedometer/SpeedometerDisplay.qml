@@ -99,7 +99,9 @@ Item {
 
     Canvas {
         id: canvas
-        anchors.centerIn: parent
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.verticalCenterOffset: -20
         width: canvasWidth * displayScale
         height: canvasHeight * displayScale
 
@@ -210,45 +212,43 @@ Item {
     }
 
     // Central speed, km/h and road info matching Flutter's Stack + Transform + Column
-    Column {
-        anchors.centerIn: parent
-        transform: Translate { y: 50 }
-        spacing: 0
+    // Speed number — anchored to arc center (centerY=150 in 240px canvas = parent.center + 30)
+    Text {
+        id: speedText
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: parent.height / 2 - height / 2
+        text: Math.floor(speedometer.animatedSpeed).toString()
+        font.pixelSize: 96
+        font.bold: true
+        color: speedometer.isDark ? "#FFFFFF" : "#000000"
+    }
 
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: Math.floor(speedometer.animatedSpeed).toString()
-            font.pixelSize: 96
-            font.bold: true
-            color: speedometer.isDark ? "#FFFFFF" : "#000000"
-            lineHeight: 1.0
-            lineHeightMode: Text.FixedHeight
+    // km/h — tight below speed number
+    Text {
+        id: unitText
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: speedText.bottom
+        anchors.topMargin: -12
+        text: "km/h"
+        font.pixelSize: 22
+        color: speedometer.isDark ? "#99FFFFFF" : "#8A000000"
+    }
+
+    // Road name + speed limit — below km/h
+    Row {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: unitText.bottom
+        anchors.topMargin: 4
+        spacing: 4
+
+        SpeedLimitIndicator {
+            iconSize: 27
+            anchors.verticalCenter: parent.verticalCenter
         }
 
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: "km/h"
-            font.pixelSize: 22
-            color: speedometer.isDark ? "#99FFFFFF" : "#8A000000"
-            lineHeight: 0.9
-            lineHeightMode: Text.FixedHeight
-        }
-
-        Item { width: 1; height: 12 }
-
-        Row {
-            anchors.horizontalCenter: parent.horizontalCenter
-            spacing: 4
-
-            SpeedLimitIndicator {
-                iconSize: 27
-                anchors.verticalCenter: parent.verticalCenter
-            }
-
-            RoadNameDisplay {
-                anchors.verticalCenter: parent.verticalCenter
-                fontSize: 12
-            }
+        RoadNameDisplay {
+            anchors.verticalCenter: parent.verticalCenter
+            fontSize: 12
         }
     }
 

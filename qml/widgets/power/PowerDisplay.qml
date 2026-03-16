@@ -30,17 +30,19 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 4
+        spacing: 0
 
         // Labels
         RowLayout {
             Layout.fillWidth: true
+            Layout.topMargin: 8
 
             Text {
                 text: qsTr("Regen")
                 font.pixelSize: 10
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
+                font.capitalization: Font.AllUppercase
                 color: themeStore.textHint
             }
             Item { Layout.fillWidth: true }
@@ -49,6 +51,7 @@ Item {
                 font.pixelSize: 10
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
+                font.capitalization: Font.AllUppercase
                 color: themeStore.textHint
             }
         }
@@ -57,6 +60,7 @@ Item {
         Item {
             Layout.fillWidth: true
             Layout.preferredHeight: 24
+            Layout.topMargin: 2
 
             // Background bar
             Rectangle {
@@ -103,6 +107,7 @@ Item {
         // Value text
         Text {
             Layout.alignment: Qt.AlignHCenter
+            Layout.topMargin: -2
             font.pixelSize: 12
             color: themeStore.textHint
             text: {

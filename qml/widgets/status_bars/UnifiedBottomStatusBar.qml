@@ -49,6 +49,7 @@ Rectangle {
                         font.pixelSize: 10
                         font.weight: Font.Medium
                         font.letterSpacing: 0.5
+                        font.capitalization: Font.AllUppercase
                         color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
                     }
                     Text {
@@ -67,6 +68,7 @@ Rectangle {
                         font.pixelSize: 10
                         font.weight: Font.Medium
                         font.letterSpacing: 0.5
+                        font.capitalization: Font.AllUppercase
                         color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
                     }
                     Row {
@@ -115,6 +117,7 @@ Rectangle {
                         font.pixelSize: 10
                         font.weight: Font.Medium
                         font.letterSpacing: 0.5
+                        font.capitalization: Font.AllUppercase
                         color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
                     }
                     Text {
@@ -135,6 +138,7 @@ Rectangle {
                         font.pixelSize: 10
                         font.weight: Font.Medium
                         font.letterSpacing: 0.5
+                        font.capitalization: Font.AllUppercase
                         color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
                     }
                     Row {
