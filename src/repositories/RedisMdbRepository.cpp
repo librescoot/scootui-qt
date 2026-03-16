@@ -32,8 +32,8 @@ bool RedisConnection::connectToServer(int timeoutMs)
 
 bool RedisConnection::connectToServer(const QString &host, quint16 port, int timeoutMs)
 {
-    if (m_socket->state() == QAbstractSocket::ConnectedState)
-        m_socket->disconnectFromHost();
+    if (m_socket->state() != QAbstractSocket::UnconnectedState)
+        m_socket->abort();
 
     m_socket->connectToHost(host, port);
     if (!m_socket->waitForConnected(timeoutMs)) {
@@ -45,7 +45,7 @@ bool RedisConnection::connectToServer(const QString &host, quint16 port, int tim
 
 void RedisConnection::disconnect()
 {
-    m_socket->disconnectFromHost();
+    m_socket->abort();
 }
 
 bool RedisConnection::isConnected() const
@@ -494,7 +494,7 @@ RedisMdbRepository::RedisMdbRepository(const QString &host, quint16 port,
 
     // Primary reconnect timer — when on backup, periodically try primary
     m_primaryReconnectTimer = new QTimer(this);
-    m_primaryReconnectTimer->setInterval(5000);
+    m_primaryReconnectTimer->setInterval(2000);
     connect(m_primaryReconnectTimer, &QTimer::timeout, this, [this]() {
         tryReconnectPrimary();
     });
@@ -639,7 +639,8 @@ void RedisMdbRepository::switchToPrimary()
     m_reconnectTimer->start(3000); 
 
     m_conn->disconnect();
-    if (m_conn->connectToServer(m_host, m_port, 1000)) {
+    // USB connection is very fast, use a shorter timeout
+    if (m_conn->connectToServer(m_host, m_port, 200)) {
         m_usingBackup = false;
         m_primaryReconnectTimer->stop();
         m_reconnectTimer->stop(); // Switch successful
@@ -700,11 +701,11 @@ void RedisMdbRepository::onPubsubConnected()
 void RedisMdbRepository::onPubsubDisconnected()
 {
     // Pubsub handles its own reconnection independently.
-    // If pubsub is gone, the network is likely dead. Abort the main connection
-    // immediately to avoid blocking for 2s on the next command call.
-    if (m_connected) {
-        qDebug() << "Redis: Pubsub disconnected, aborting main connection to avoid UI lag";
-        m_conn->disconnect();
+    // Only abort the main connection if it's already reported as disconnected
+    // by the socket itself. If it's still alive, leave it alone;
+    // reactive detection in command() will handle dead links.
+    if (m_connected && !m_conn->isConnected()) {
+        qDebug() << "Redis: Pubsub and Main both disconnected, starting cleanup";
         m_connected = false;
         if (m_usingBackup) {
             m_usingBackup = false;

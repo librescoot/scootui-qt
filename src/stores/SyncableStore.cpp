@@ -177,6 +177,8 @@ void SyncableStore::pausePolling()
     qDebug() << "SyncableStore (" << settings.channel << "): Polling paused";
 }
 
+#include <QRandomGenerator>
+
 void SyncableStore::resumePolling()
 {
     if (!m_isPaused) return;
@@ -184,18 +186,26 @@ void SyncableStore::resumePolling()
     m_hasLoggedError = false;
 
     const auto settings = syncSettings();
-    qDebug() << "SyncableStore (" << settings.channel << "): Polling resumed";
+    qDebug() << "SyncableStore (" << settings.channel << "): Polling resumed (staggered)";
 
-    doHgetall();
-    startPollTimer();
+    // Stagger resume to avoid thundering herd on the main thread and network.
+    // This is especially important on slow PPP backup connections.
+    int delay = 10 + QRandomGenerator::global()->bounded(500);
+    QTimer::singleShot(delay, this, [this]() {
+        if (m_isPaused || m_isClosing) return;
 
-    for (const auto &field : settings.setFields) {
-        doRefreshSet(field);
-        scheduleSetTimer(field);
-    }
+        const auto settings = syncSettings();
+        doHgetall();
+        startPollTimer();
 
-    m_repo->subscribe(settings.channel, [this](const QString &ch, const QString &msg) {
-        onPubsubMessage(ch, msg);
+        for (const auto &field : settings.setFields) {
+            doRefreshSet(field);
+            scheduleSetTimer(field);
+        }
+
+        m_repo->subscribe(settings.channel, [this](const QString &ch, const QString &msg) {
+            onPubsubMessage(ch, msg);
+        });
     });
 }
 
