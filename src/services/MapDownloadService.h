@@ -59,6 +59,7 @@ private:
 
     // Pipeline stages
     void doResolveSlug(double lat, double lng);
+    void fetchEstimates();
     void doFetchReleases(bool needsDisplay, bool needsRouting);
     void doDownloadFile(const QString &url, const QString &destPath, const QString &digest,
                         qint64 expectedSize, bool isDisplay);
