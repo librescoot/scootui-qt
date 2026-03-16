@@ -12,16 +12,29 @@ find_package(ZLIB REQUIRED)
 
 if(DESKTOP_MODE)
     find_package(QMapLibre QUIET COMPONENTS Core)
+    if(NOT QMapLibre_FOUND)
+        find_package(QMapLibre QUIET)  # Try legacy (no components)
+    endif()
     find_package(Qt6 COMPONENTS QuickControls2 REQUIRED)
 else()
-    find_package(QMapLibre REQUIRED COMPONENTS Core)
+    find_package(QMapLibre QUIET COMPONENTS Core)
+    if(NOT QMapLibre_FOUND)
+        find_package(QMapLibre REQUIRED)  # Legacy fallback
+    endif()
 endif()
 
-if(QMapLibre_FOUND AND TARGET QMapLibre::Core)
+# Support both old (QMapLibre::QMapLibre) and new (QMapLibre::Core) target names
+if(TARGET QMapLibre::Core)
+    set(QMAPLIBRE_TARGET QMapLibre::Core)
+elseif(TARGET QMapLibre::QMapLibre)
+    set(QMAPLIBRE_TARGET QMapLibre::QMapLibre)
+endif()
+
+if(QMapLibre_FOUND AND QMAPLIBRE_TARGET)
     find_package(Qt6 COMPONENTS OpenGL REQUIRED)
     set(HAS_QMAPLIBRE TRUE)
     add_definitions(-DHAS_QMAPLIBRE)
-    message(STATUS "QMapLibre found - map rendering enabled")
+    message(STATUS "QMapLibre found - map rendering enabled (target: ${QMAPLIBRE_TARGET})")
 else()
     set(HAS_QMAPLIBRE FALSE)
     message(STATUS "QMapLibre not found - map rendering disabled (placeholder will be shown)")
@@ -298,7 +311,7 @@ target_link_libraries(scootui PRIVATE
 )
 
 if(HAS_QMAPLIBRE)
-    target_link_libraries(scootui PRIVATE Qt6::OpenGL QMapLibre::Core)
+    target_link_libraries(scootui PRIVATE Qt6::OpenGL ${QMAPLIBRE_TARGET})
 endif()
 
 if(DESKTOP_MODE)

@@ -7,6 +7,7 @@ cmake --build build-desktop -j$(nproc)
 
 export LD_LIBRARY_PATH="$QT_DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export QT_PLUGIN_PATH="$QT_DIR/plugins"
-export QML_IMPORT_PATH="$QT_DIR/qml"
+QMAPLIBRE_DIR="${QMAPLIBRE_DIR:-/tmp/qmaplibre-install}"
+export QML_IMPORT_PATH="$QT_DIR/qml${QMAPLIBRE_DIR:+:$QMAPLIBRE_DIR/qml}"
 
 SCOOTUI_REDIS_HOST="${SCOOTUI_REDIS_HOST:-none}" ./build-desktop/bin/scootui "$@"
