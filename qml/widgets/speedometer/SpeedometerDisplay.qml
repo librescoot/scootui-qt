@@ -188,14 +188,14 @@ Item {
                 ctx.lineTo(cx + innerR * cosA, cy + innerR * sinA)
                 ctx.lineWidth = tickWidth
                 ctx.lineCap = "butt"
-                ctx.strokeStyle = isDark ? "#4DFFFFFF" : "#1F000000"
+                ctx.strokeStyle = isDark ? "#80FFFFFF" : "#1F000000"
                 ctx.stroke()
             }
 
             // === Speed labels ===
             var labelInward = 44
             ctx.font = "500 11px sans-serif"
-            ctx.fillStyle = isDark ? "#4DFFFFFF" : "#1F000000"
+            ctx.fillStyle = isDark ? "#80FFFFFF" : "#1F000000"
             ctx.textAlign = "center"
             ctx.textBaseline = "middle"
 

@@ -27,7 +27,7 @@ Item {
                     switch (modelData.type) {
                         case "error": return "#D32F2F"
                         case "warning": return "#F57C00"
-                        case "success": return "#388E3C"
+                        case "success": return "#2E7D32"
                         default: return "#1976D2"   // info
                     }
                 }
@@ -37,7 +37,7 @@ Item {
                     anchors.centerIn: parent
                     width: Math.min(implicitWidth, toastOverlay.width - 72)
                     text: modelData.message
-                    color: "white"
+                    color: modelData.type === "warning" ? "#000000" : "white"
                     font.pixelSize: 14
                     font.weight: Font.Medium
                     wrapMode: Text.WordWrap

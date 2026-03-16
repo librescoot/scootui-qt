@@ -256,14 +256,14 @@ Item {
             text: "Seatbox Open"
             font.pixelSize: 28
             font.bold: true
-            color: "#FFFFFF"
+            color: "#000000"
         }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: "Close Seatbox"
             font.pixelSize: 18
-            color: "#FFFFFF"
+            color: "#000000"
         }
     }
 

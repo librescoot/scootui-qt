@@ -13,7 +13,7 @@ QtObject {
     // Tertiary text (30% / 12%)
     readonly property color textTertiary: isDark ? "#4DFFFFFF" : "#1F000000"
     // Hint text (54% / 38%)
-    readonly property color textHint: isDark ? "#8AFFFFFF" : "#61000000"
+    readonly property color textHint: isDark ? "#8AFFFFFF" : "#8A000000"
 
     // Backgrounds
     readonly property color backgroundColor: isDark ? "#000000" : "#FFFFFF"
