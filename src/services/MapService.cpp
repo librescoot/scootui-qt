@@ -369,7 +369,9 @@ void MapService::rebuildStyleUrl()
     if (useLocal) {
         url = rewriteStyleForMbtiles(qrcPath, m_mbtilesPath);
     } else {
-        url = qrcPath;
+        // Extract embedded style to temp file so MapLibre plugin can read it
+        // (qrc:// paths aren't supported by the geoservices plugin)
+        url = extractStyleToFile(qrcPath);
         qDebug() << "MapService: using online style:" << url;
     }
 
@@ -446,6 +448,34 @@ QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString
 
     QString fileUrl = QStringLiteral("file://") + outPath;
     qDebug() << "MapService: wrote offline style to" << fileUrl << "(" << json.size() << "bytes)";
+    return fileUrl;
+}
+
+QString MapService::extractStyleToFile(const QString &qrcPath)
+{
+    QString baseName = qrcPath.section(QLatin1Char('/'), -1);
+    QString outPath = QStringLiteral("/tmp/") + baseName;
+
+    QString qrcFile = qrcPath;
+    qrcFile.replace(QStringLiteral("qrc:/"), QStringLiteral(":/"));
+    QFile f(qrcFile);
+    if (!f.open(QIODevice::ReadOnly)) {
+        qWarning() << "MapService: cannot open embedded style" << qrcFile;
+        return qrcPath;
+    }
+
+    QFile out(outPath);
+    if (!out.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        qWarning() << "MapService: cannot write" << outPath;
+        f.close();
+        return qrcPath;
+    }
+    out.write(f.readAll());
+    f.close();
+    out.close();
+
+    QString fileUrl = QStringLiteral("file://") + outPath;
+    qDebug() << "MapService: extracted style to" << fileUrl;
     return fileUrl;
 }
 
