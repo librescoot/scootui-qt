@@ -659,6 +659,7 @@ QString MapDownloadService::routingDestPath() const
 
 bool MapDownloadService::hasEnoughDiskSpace(qint64 needed) const
 {
+    QDir().mkpath(mapsDir());
     QStorageInfo storage(mapsDir());
     return storage.bytesAvailable() > needed;
 }

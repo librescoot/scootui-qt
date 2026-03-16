@@ -253,10 +253,21 @@ ApplicationWindow {
                 onMoved: function(v) { simulator.setEngineTemperature(v) }
             }
 
-            SimSliderRow {
-                label: "Odometer"
-                from: 0; to: 99999; value: 1234; unit: "km"; decimals: 1
-                onMoved: function(v) { simulator.setOdometer(v) }
+            RowLayout {
+                Layout.fillWidth: true
+                Text { text: "Odometer"; Layout.preferredWidth: 100; color: "#CCC"; font.pixelSize: 12 }
+                TextField {
+                    Layout.fillWidth: true
+                    text: "1234.0"
+                    placeholderText: "km"
+                    font.pixelSize: 12
+                    onEditingFinished: {
+                        var v = parseFloat(text)
+                        if (!isNaN(v)) simulator.setOdometer(v)
+                    }
+                    Component.onCompleted: simulator.setOdometer(1234)
+                }
+                Text { text: "km"; color: "#999"; font.pixelSize: 12 }
             }
 
             SimSliderRow {

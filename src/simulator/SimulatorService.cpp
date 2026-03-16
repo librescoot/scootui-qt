@@ -2,6 +2,7 @@
 #include "repositories/MdbRepository.h"
 #include "services/NavigationService.h"
 #include "routing/RouteHelpers.h"
+#include "core/AppConfig.h"
 
 #include <QtMath>
 #include <QDateTime>
@@ -349,6 +350,9 @@ void SimulatorService::loadPreset(const QString &name)
         setBrakeLeft(false);
         setBrakeRight(false);
         stopAutoDrive();
+        // Use online routing in simulator (no local valhalla)
+        m_repo->set(QStringLiteral("dashboard"), QStringLiteral("dashboard.valhalla-url"),
+                    QLatin1String(AppConfig::valhallaOnlineEndpoint));
     } else if (name == QLatin1String("ready")) {
         loadPreset(QStringLiteral("parked"));
         setVehicleState(QStringLiteral("ready-to-drive"));
