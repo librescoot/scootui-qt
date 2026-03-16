@@ -65,6 +65,7 @@ public slots:
     void subscribe(const QString &channel);
     void unsubscribe(const QString &channel);
     void reconnectToPrimary();
+    void setPreferredHost(const QString &host);
 
 signals:
     void messageReceived(const QString &channel, const QString &message);
@@ -84,6 +85,7 @@ private:
     QString m_host;
     quint16 m_port;
     QString m_backupHost;
+    QString m_preferredHost;
     QStringList m_channels;
     QByteArray m_buffer;
     QTimer *m_reconnectTimer = nullptr;
@@ -125,11 +127,13 @@ private slots:
     void onPubsubMessage(const QString &channel, const QString &message);
     void onPubsubConnected();
     void onPubsubDisconnected();
+    void switchToPrimary();
 
 private:
     bool ensureConnected();
     void startReconnectTimer();
     void tryReconnectPrimary();
+    void tellPubsubPreferHost(const QString &host);
 
     RedisConnection *m_conn;
     QThread *m_pubsubThread;
