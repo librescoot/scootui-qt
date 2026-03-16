@@ -4,6 +4,7 @@
 #include "repositories/MdbRepository.h"
 #include "core/AppConfig.h"
 
+#include <QDir>
 #include <QFile>
 #include <QNetworkReply>
 #include <QDebug>
@@ -35,7 +36,11 @@ void NavigationAvailabilityService::recheck()
 
 void NavigationAvailabilityService::checkMaps()
 {
+#ifdef Q_OS_LINUX
     bool available = QFile::exists(QStringLiteral("/data/maps/map.mbtiles"));
+#else
+    bool available = QFile::exists(QDir::homePath() + QStringLiteral("/.local/share/scootui/maps/map.mbtiles"));
+#endif
     if (available != m_mapsAvailable) {
         m_mapsAvailable = available;
         publishToRedis();

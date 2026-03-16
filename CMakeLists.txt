@@ -11,13 +11,13 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Qml Svg Network Sql Concurrent)
 find_package(ZLIB REQUIRED)
 
 if(DESKTOP_MODE)
-    find_package(QMapLibre QUIET)
+    find_package(QMapLibre QUIET COMPONENTS Core)
     find_package(Qt6 COMPONENTS QuickControls2 REQUIRED)
 else()
-    find_package(QMapLibre REQUIRED)
+    find_package(QMapLibre REQUIRED COMPONENTS Core)
 endif()
 
-if(QMapLibre_FOUND AND TARGET QMapLibre::QMapLibre)
+if(QMapLibre_FOUND AND TARGET QMapLibre::Core)
     find_package(Qt6 COMPONENTS OpenGL REQUIRED)
     set(HAS_QMAPLIBRE TRUE)
     add_definitions(-DHAS_QMAPLIBRE)
@@ -298,7 +298,7 @@ target_link_libraries(scootui PRIVATE
 )
 
 if(HAS_QMAPLIBRE)
-    target_link_libraries(scootui PRIVATE Qt6::OpenGL QMapLibre::QMapLibre)
+    target_link_libraries(scootui PRIVATE Qt6::OpenGL QMapLibre::Core)
 endif()
 
 if(DESKTOP_MODE)
