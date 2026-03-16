@@ -144,7 +144,7 @@ jobs:
           mkdir -p artifacts/dbc-rpm
 
           # Find and copy scootui-qt RPM from the DBC build (exclude dbg and dev variants)
-          SCOOTUI_QT_RPM=$(find librescoot/yocto/build/tmp/deploy/rpm -name "*scootui-qt*.rpm" | grep -v -E -- "-(dbg|dev)-" | head -1)
+          SCOOTUI_QT_RPM=$(find librescoot/yocto/build/tmp/deploy/rpm -name "*scootui-qt*.rpm" | grep -v -E -- "-(dbg|dev|src)-" | head -1)
           if [ -n "$SCOOTUI_QT_RPM" ]; then
             cp "$SCOOTUI_QT_RPM" artifacts/dbc-rpm/scootui-qt-dbc-${{ steps.sanitize.outputs.branch }}-${{ needs.generate-timestamp.outputs.timestamp }}.rpm
             echo "Found ScootUI-Qt RPM: $SCOOTUI_QT_RPM"
