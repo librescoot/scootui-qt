@@ -88,7 +88,6 @@ private:
     // Style
     void rebuildStyleUrl();
     QString rewriteStyleForMbtiles(const QString &qrcPath, const QString &mbtilesPath);
-    QString extractStyleToFile(const QString &qrcPath);
 
     // Route GeoJSON for native MapLibre layer
     void updateRouteGeoJson();
