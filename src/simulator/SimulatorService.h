@@ -45,6 +45,8 @@ public:
     Q_INVOKABLE void setOdometer(double km);
     Q_INVOKABLE void setEngineTemperature(double temp);
     Q_INVOKABLE void setMotorPower(bool on);
+    Q_INVOKABLE void setMotorCurrent(double milliamps);
+    Q_INVOKABLE void setMotorVoltage(double millivolts);
     Q_INVOKABLE void setThrottle(bool on);
 
     // Battery (slot 0 or 1)

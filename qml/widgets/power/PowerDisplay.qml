@@ -7,31 +7,42 @@ Item {
     readonly property real motorCurrent: typeof engineStore !== "undefined" ? engineStore.motorCurrent : 0
     readonly property real motorVoltage: typeof engineStore !== "undefined" ? engineStore.motorVoltage : 0
 
-    // Power in kW
-    readonly property real powerKw: (motorVoltage * motorCurrent) / 1000000000
-    // Current in A
+    // 0 = kW (default), 1 = Amps
+    readonly property int displayMode: typeof settingsStore !== "undefined" ? settingsStore.powerDisplayMode : 0
+    readonly property bool isAmpsMode: displayMode === 1
+
+    // Current in A, Power in kW (voltage in mV × current in mA → W, /1e6 → kW)
     readonly property real currentA: motorCurrent / 1000
+    readonly property real powerKw: (motorVoltage * motorCurrent) / 1000000000
 
     // Display values
     readonly property real maxRegenA: 10
     readonly property real maxDischargeA: 80
     readonly property real boostThresholdA: 50
+    readonly property real maxRegenKw: 0.54
+    readonly property real maxDischargeKw: 4.0
+
+    readonly property real rawValue: isAmpsMode ? currentA : powerKw
+    readonly property real maxRegen: isAmpsMode ? maxRegenA : maxRegenKw
+    readonly property real maxDischarge: isAmpsMode ? maxDischargeA : maxDischargeKw
+    readonly property string unit: isAmpsMode ? "A" : "kW"
 
     // Animated value
     property real displayValue: 0
     Behavior on displayValue {
         NumberAnimation { duration: 500; easing.type: Easing.OutCubic }
     }
-    onCurrentAChanged: {
-        if (Math.abs(currentA - displayValue) > 0.01) {
-            displayValue = currentA
+    onRawValueChanged: {
+        if (Math.abs(rawValue - displayValue) > 0.01) {
+            displayValue = rawValue
         }
     }
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.topMargin: 2
         spacing: 0
+
+        Item { Layout.fillHeight: true }
 
         // Labels
         RowLayout {
@@ -44,6 +55,7 @@ Item {
                 font.letterSpacing: 0.5
                 font.capitalization: Font.AllUppercase
                 color: themeStore.textHint
+                bottomPadding: -2
             }
             Item { Layout.fillWidth: true }
             Text {
@@ -53,14 +65,15 @@ Item {
                 font.letterSpacing: 0.5
                 font.capitalization: Font.AllUppercase
                 color: themeStore.textHint
+                bottomPadding: -2
             }
         }
 
         // Bar
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: 24
-            Layout.topMargin: 1
+            Layout.preferredHeight: 10
+            Layout.topMargin: 2
 
             // Background bar
             Rectangle {
@@ -82,25 +95,24 @@ Item {
 
             // Regen bar (grows left from center)
             Rectangle {
-                visible: displayValue < -0.1
-                anchors.right: parent.horizontalCenter > 0 ? undefined : parent.right
+                visible: displayValue < -0.01
                 anchors.verticalCenter: parent.verticalCenter
                 height: 4
                 radius: 2
-                width: Math.min(Math.abs(displayValue) / maxRegenA, 1.0) * (parent.width / 2)
+                width: Math.min(Math.abs(displayValue) / maxRegen, 1.0) * (parent.width / 2)
                 x: parent.width / 2 - width
                 color: "#43A047"
             }
 
             // Discharge bar (grows right from center)
             Rectangle {
-                visible: displayValue > 0.1
+                visible: displayValue > 0.01
                 x: parent.width / 2
                 anchors.verticalCenter: parent.verticalCenter
                 height: 4
                 radius: 2
-                width: Math.min(displayValue / maxDischargeA, 1.0) * (parent.width / 2)
-                color: displayValue > boostThresholdA ? "#FB8C00" : "#1E88E5"
+                width: Math.min(displayValue / maxDischarge, 1.0) * (parent.width / 2)
+                color: isAmpsMode && displayValue > boostThresholdA ? "#FB8C00" : "#1E88E5"
             }
         }
 
@@ -111,9 +123,13 @@ Item {
             font.pixelSize: 12
             color: themeStore.textHint
             text: {
-                if (Math.abs(displayValue) < 0.1) return "0 A"
-                return displayValue.toFixed(0) + " A"
+                var absVal = Math.abs(displayValue)
+                if (absVal < 0.01) return "0 " + unit
+                if (isAmpsMode) return displayValue.toFixed(0) + " " + unit
+                return displayValue.toFixed(1) + " " + unit
             }
         }
+
+        Item { Layout.fillHeight: true }
     }
 }

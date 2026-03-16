@@ -259,6 +259,18 @@ ApplicationWindow {
                 onMoved: function(v) { simulator.setOdometer(v) }
             }
 
+            SimSliderRow {
+                label: "Motor Current"
+                from: -10000; to: 80000; value: 0; unit: "mA"; decimals: 0
+                onMoved: function(v) { simulator.setMotorCurrent(v) }
+            }
+
+            SimSliderRow {
+                label: "Motor Voltage"
+                from: 0; to: 60000; value: 54000; unit: "mV"; decimals: 0
+                onMoved: function(v) { simulator.setMotorVoltage(v) }
+            }
+
             // ---- Auto-drive ----
             SectionHeader { text: "Auto-Drive" }
 

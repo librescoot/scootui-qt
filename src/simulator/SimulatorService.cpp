@@ -149,6 +149,18 @@ void SimulatorService::setMotorPower(bool on)
                 on ? QStringLiteral("on") : QStringLiteral("off"));
 }
 
+void SimulatorService::setMotorCurrent(double milliamps)
+{
+    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("motor:current"),
+                QString::number(milliamps, 'f', 0));
+}
+
+void SimulatorService::setMotorVoltage(double millivolts)
+{
+    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("motor:voltage"),
+                QString::number(millivolts, 'f', 0));
+}
+
 void SimulatorService::setThrottle(bool on)
 {
     m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("throttle"),
