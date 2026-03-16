@@ -131,11 +131,11 @@ Item {
     function cb(prop) { return typeof cbBatteryStore !== "undefined" ? cbBatteryStore[prop] : 0 }
 
     // =====================================================================
-    // 1. Vehicle State — centered, top: 120
+    // 1. Vehicle State — centered, below status bar
     // =====================================================================
     Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
-        y: 120
+        y: 160
         width: vehStateText.width + 20
         height: vehStateText.height + 10
         radius: 4
@@ -154,10 +154,10 @@ Item {
     }
 
     // =====================================================================
-    // 2. Left Blinker/Brake — top: 10, left: 60
+    // 2. Left Blinker/Brake — below status bar
     // =====================================================================
     Rectangle {
-        x: 60; y: 10
+        x: 60; y: 50
         width: leftBlinkCol.width + 20
         height: leftBlinkCol.height + 10
         radius: 4; color: panelBg
@@ -188,12 +188,12 @@ Item {
     }
 
     // =====================================================================
-    // 3. Right Blinker/Brake — top: 10, right: 60
+    // 3. Right Blinker/Brake — below status bar
     // =====================================================================
     Rectangle {
         anchors.right: parent.right
         anchors.rightMargin: 60
-        y: 10
+        y: 50
         width: rightBlinkCol.width + 20
         height: rightBlinkCol.height + 10
         radius: 4; color: panelBg
@@ -224,10 +224,10 @@ Item {
     }
 
     // =====================================================================
-    // 4. GPS — top: 60, left: 10
+    // 4. GPS — below blinker/brake panels
     // =====================================================================
     Rectangle {
-        x: 10; y: 60
+        x: 10; y: 100
         width: gpsCol.width + 20
         height: gpsCol.height + 10
         radius: 4; color: panelBg
@@ -273,12 +273,12 @@ Item {
     }
 
     // =====================================================================
-    // 5. Internet — top: 60, right: 10
+    // 5. Internet — below blinker/brake panels
     // =====================================================================
     Rectangle {
         anchors.right: parent.right
         anchors.rightMargin: 10
-        y: 60
+        y: 100
         width: inetCol.width + 20
         height: inetCol.height + 10
         radius: 4; color: panelBg
@@ -325,10 +325,10 @@ Item {
     }
 
     // =====================================================================
-    // 6. Dashboard Info — top: 180, left: 10
+    // 6. Dashboard Info — left column, below GPS
     // =====================================================================
     Rectangle {
-        x: 10; y: 180
+        x: 10; y: 220
         width: dashCol.width + 20
         height: dashCol.height + 10
         radius: 4; color: panelBg
@@ -350,7 +350,7 @@ Item {
     }
 
     // =====================================================================
-    // 7. Engine — top: 260, left: 10
+    // 7. Engine — left column, below dashboard info
     // =====================================================================
     Rectangle {
         x: 10; y: 260

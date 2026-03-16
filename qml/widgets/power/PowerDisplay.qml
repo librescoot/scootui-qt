@@ -20,7 +20,7 @@ Item {
     // Animated value
     property real displayValue: 0
     Behavior on displayValue {
-        NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
+        NumberAnimation { duration: 500; easing.type: Easing.OutCubic }
     }
     onCurrentAChanged: {
         if (Math.abs(currentA - displayValue) > 0.01) {
@@ -30,7 +30,7 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 2
+        spacing: 4
 
         // Labels
         RowLayout {
@@ -39,12 +39,16 @@ Item {
             Text {
                 text: qsTr("Regen")
                 font.pixelSize: 10
+                font.weight: Font.Medium
+                font.letterSpacing: 0.5
                 color: themeStore.textHint
             }
             Item { Layout.fillWidth: true }
             Text {
                 text: qsTr("Discharge")
                 font.pixelSize: 10
+                font.weight: Font.Medium
+                font.letterSpacing: 0.5
                 color: themeStore.textHint
             }
         }

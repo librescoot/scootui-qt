@@ -132,8 +132,9 @@ void SimulatorService::setSpeed(double speed)
 void SimulatorService::setOdometer(double km)
 {
     m_odometer = km;
+    // Store in meters (matching real ECU which reports meters)
     m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("odometer"),
-                QString::number(km, 'f', 1));
+                QString::number(km * 1000, 'f', 0));
 }
 
 void SimulatorService::setEngineTemperature(double temp)

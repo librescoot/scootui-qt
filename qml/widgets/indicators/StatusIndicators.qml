@@ -3,7 +3,7 @@ import QtQuick.Effects
 
 Row {
     id: statusIndicators
-    spacing: 4
+    spacing: 6
     layoutDirection: Qt.RightToLeft
 
     // Theme-aware icon color (matches Flutter's ColorFilter.mode srcIn)
@@ -44,13 +44,13 @@ Row {
 
     // OTA status indicator (appears to the right of cloud icon in RTL layout)
     Item {
-        width: 20; height: 20
+        width: 24; height: 24
         visible: otaActive && (vehicleState === 2 || vehicleState === 4)
 
         Image {
             id: otaIcon
             anchors.fill: parent
-            sourceSize: Qt.size(20, 20)
+            sourceSize: Qt.size(24, 24)
             visible: false
             source: {
                 switch (otaDbcStatus) {
@@ -80,7 +80,7 @@ Row {
         Image {
             id: otaErrorOverlay
             anchors.fill: parent
-            sourceSize: Qt.size(20, 20)
+            sourceSize: Qt.size(24, 24)
             source: "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
             visible: false
         }
@@ -112,12 +112,12 @@ Row {
 
     // Cloud status icon
     Item {
-        width: 20; height: 20
+        width: 24; height: 24
 
         Image {
             id: cloudIcon
             anchors.fill: parent
-            sourceSize: Qt.size(20, 20)
+            sourceSize: Qt.size(24, 24)
             visible: false
             source: cloudStatus === 0
                 ? "qrc:/ScootUI/assets/icons/librescoot-internet-cloud-connected.svg"
@@ -133,12 +133,12 @@ Row {
 
     // Internet/modem icon with access tech overlay
     Item {
-        width: 20; height: 20
+        width: 24; height: 24
 
         Image {
             id: modemIcon
             anchors.fill: parent
-            sourceSize: Qt.size(20, 20)
+            sourceSize: Qt.size(24, 24)
             visible: false
             source: {
                 if (modemState === 0) return "qrc:/ScootUI/assets/icons/librescoot-internet-modem-off.svg"
@@ -158,7 +158,8 @@ Row {
         Text {
             anchors.left: parent.left
             anchors.top: parent.top
-            font.pixelSize: 7
+            anchors.topMargin: 1
+            font.pixelSize: 9
             font.bold: true
             color: statusIndicators.iconColor
             visible: modemState >= 2 && accessTech !== ""
@@ -168,12 +169,12 @@ Row {
 
     // Bluetooth icon
     Item {
-        width: 20; height: 20
+        width: 24; height: 24
 
         Image {
             id: btIcon
             anchors.fill: parent
-            sourceSize: Qt.size(20, 20)
+            sourceSize: Qt.size(24, 24)
             visible: false
             source: btStatus === 0
                 ? "qrc:/ScootUI/assets/icons/librescoot-bluetooth-connected.svg"
@@ -189,7 +190,7 @@ Row {
 
     // GPS icon with pulsing center dot animation when searching
     Item {
-        width: 20; height: 20
+        width: 24; height: 24
 
         readonly property bool isSearching: {
             if (gpsState === 0) return !gpsRecentFix && gpsHasTimestamp
@@ -214,7 +215,7 @@ Row {
         Image {
             id: gpsIcon
             anchors.fill: parent
-            sourceSize: Qt.size(20, 20)
+            sourceSize: Qt.size(24, 24)
             visible: false
             source: parent.isSearching
                 ? "qrc:/ScootUI/assets/icons/librescoot-gps-searching.svg"
@@ -231,7 +232,7 @@ Row {
         Image {
             id: gpsCenterDot
             anchors.fill: parent
-            sourceSize: Qt.size(20, 20)
+            sourceSize: Qt.size(24, 24)
             visible: false
             source: "qrc:/ScootUI/assets/icons/librescoot-gps-center-dot.svg"
         }
@@ -254,15 +255,15 @@ Row {
 
             NumberAnimation {
                 target: pulseAnimation; property: "pulseValue"
-                from: 0.0; to: 1.0; duration: 600
-                easing.type: Easing.InOutQuad
+                from: 0.0; to: 1.0; duration: 250
+                easing.type: Easing.InOutExpo
             }
             NumberAnimation {
                 target: pulseAnimation; property: "pulseValue"
-                from: 1.0; to: 0.0; duration: 600
-                easing.type: Easing.InOutQuad
+                from: 1.0; to: 0.0; duration: 250
+                easing.type: Easing.InOutExpo
             }
-            PauseAnimation { duration: 300 }
+            PauseAnimation { duration: 228 }
         }
     }
 }

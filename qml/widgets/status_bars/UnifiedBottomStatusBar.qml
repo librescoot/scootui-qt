@@ -49,7 +49,7 @@ Rectangle {
                         font.pixelSize: 10
                         font.weight: Font.Medium
                         font.letterSpacing: 0.5
-                        color: themeStore.textHint
+                        color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
                     }
                     Text {
                         text: formatDuration(tripDuration)
@@ -67,7 +67,7 @@ Rectangle {
                         font.pixelSize: 10
                         font.weight: Font.Medium
                         font.letterSpacing: 0.5
-                        color: themeStore.textHint
+                        color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
                     }
                     Row {
                         spacing: 2
@@ -81,7 +81,7 @@ Rectangle {
                         Text {
                             text: "km/h"
                             font.pixelSize: 12
-                            color: themeStore.textHint
+                            color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
                             anchors.baseline: avgValue.baseline
                         }
                     }
@@ -115,7 +115,7 @@ Rectangle {
                         font.pixelSize: 10
                         font.weight: Font.Medium
                         font.letterSpacing: 0.5
-                        color: themeStore.textHint
+                        color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
                     }
                     Text {
                         anchors.right: parent.right
@@ -135,7 +135,7 @@ Rectangle {
                         font.pixelSize: 10
                         font.weight: Font.Medium
                         font.letterSpacing: 0.5
-                        color: themeStore.textHint
+                        color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
                     }
                     Row {
                         anchors.right: parent.right
@@ -150,7 +150,7 @@ Rectangle {
                         Text {
                             text: "km"
                             font.pixelSize: 12
-                            color: themeStore.textHint
+                            color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
                             anchors.baseline: totalValue.baseline
                         }
                     }

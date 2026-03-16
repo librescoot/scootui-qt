@@ -15,7 +15,7 @@ Item {
     readonly property string miLightMode:   "\ue37a"
     readonly property string miContrast:    String.fromCodePoint(0xf04d8)
     readonly property string miMap:         "\uf1ae"
-    readonly property string miTimer:       "\ue662"
+    readonly property string miSpeed:        "\ue5e0"
     readonly property string miWarning:     "\ue6cc"
     readonly property string miBugReport:   "\ue115"
 
@@ -84,7 +84,7 @@ Item {
                                     if (themeStore.isDark) return miLightMode
                                     return miContrast
                                 case 1: // View
-                                    return screenStore.currentScreen === 0 ? miMap : miTimer
+                                    return screenStore.currentScreen === 0 ? miMap : miSpeed
                                 case 2: // Hazards
                                     return miWarning
                                 case 3: // Debug

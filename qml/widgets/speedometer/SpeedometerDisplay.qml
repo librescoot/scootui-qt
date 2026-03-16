@@ -101,7 +101,7 @@ Item {
         id: canvas
         anchors.centerIn: parent
         width: canvasWidth * displayScale
-        height: (canvasHeight + 40) * displayScale
+        height: canvasHeight * displayScale
 
         property real s: displayScale
 
@@ -212,7 +212,7 @@ Item {
     // Central speed, km/h and road info matching Flutter's Stack + Transform + Column
     Column {
         anchors.centerIn: parent
-        transform: Translate { y: 40 }
+        transform: Translate { y: 50 }
         spacing: 0
 
         Text {
@@ -222,6 +222,7 @@ Item {
             font.bold: true
             color: speedometer.isDark ? "#FFFFFF" : "#000000"
             lineHeight: 1.0
+            lineHeightMode: Text.FixedHeight
         }
 
         Text {
@@ -230,9 +231,10 @@ Item {
             font.pixelSize: 22
             color: speedometer.isDark ? "#99FFFFFF" : "#8A000000"
             lineHeight: 0.9
+            lineHeightMode: Text.FixedHeight
         }
 
-        Item { width: 1; height: 12 } // SizedBox(height: 12)
+        Item { width: 1; height: 12 }
 
         Row {
             anchors.horizontalCenter: parent.horizontalCenter

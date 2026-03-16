@@ -3,7 +3,7 @@ import QtQuick.Effects
 
 Row {
     id: batteryDisplay
-    spacing: 8
+    spacing: 3
     height: 24
 
     // Theme-aware icon color (matches Flutter's ColorFilter.mode srcIn)
@@ -278,6 +278,9 @@ Row {
         color: fillColor(charge0, true)
     }
 
+    // Group separator before Battery 1
+    Item { width: 5; height: 1; visible: batteryDisplay.showDual }
+
     // =====================================================================
     // Battery 1 icon (dual mode)
     // =====================================================================
@@ -394,6 +397,9 @@ Row {
         font.letterSpacing: -1.1
         color: fillColor(charge1, false)
     }
+
+    // Group separator before warning icons
+    Item { width: 5; height: 1; visible: batteryDisplay.seatboxOpen || showCbWarning || showAuxWarning || showTurtle }
 
     // =====================================================================
     // Seatbox open indicator

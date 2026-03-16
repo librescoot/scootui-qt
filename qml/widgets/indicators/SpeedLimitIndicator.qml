@@ -25,6 +25,7 @@ Item {
         anchors.centerIn: parent
         visible: root.speedLimit !== "none" && root.speedLimit !== "unknown"
         text: root.speedLimit
+        font.family: "Roboto Condensed"
         font.pixelSize: root.iconSize * (72 / 144)
         font.bold: true
         color: "black"
