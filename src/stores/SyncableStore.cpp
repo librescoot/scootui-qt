@@ -49,6 +49,7 @@ void SyncableStore::start()
 
 void SyncableStore::stop()
 {
+    if (!m_started && m_channel.isEmpty()) return;
     m_isClosing = true;
     m_started = false;
 
