@@ -42,96 +42,7 @@ Row {
         }
     }
 
-    // OTA status indicator (appears to the right of cloud icon in RTL layout)
-    Item {
-        width: 24; height: 24
-        visible: otaActive && (vehicleState === 2 || vehicleState === 4)
-
-        Image {
-            id: otaIcon
-            anchors.fill: parent
-            sourceSize: Qt.size(24, 24)
-            visible: false
-            source: {
-                switch (otaDbcStatus) {
-                    case "downloading":
-                        return "qrc:/ScootUI/assets/icons/librescoot-ota-status-downloading.svg"
-                    case "installing":
-                        return "qrc:/ScootUI/assets/icons/librescoot-ota-status-installing.svg"
-                    case "rebooting":
-                    case "reboot-failed":
-                        return "qrc:/ScootUI/assets/icons/librescoot-ota-status-waiting-for-reboot.svg"
-                    case "error":
-                    case "error-failed":
-                        return "qrc:/ScootUI/assets/icons/librescoot-ota-status-downloading.svg"
-                    default:
-                        return ""
-                }
-            }
-        }
-        MultiEffect {
-            source: otaIcon
-            anchors.fill: parent
-            colorization: 1.0
-            colorizationColor: statusIndicators.iconColor
-        }
-
-        // Error overlay
-        Image {
-            id: otaErrorOverlay
-            anchors.fill: parent
-            sourceSize: Qt.size(24, 24)
-            source: "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
-            visible: false
-        }
-        MultiEffect {
-            source: otaErrorOverlay
-            anchors.fill: parent
-            visible: otaDbcStatus === "error" || otaDbcStatus === "error-failed"
-            colorization: 1.0
-            colorizationColor: statusIndicators.iconColor
-        }
-
-        // Progress text
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.bottom: parent.bottom
-            font.pixelSize: 7
-            font.bold: true
-            color: statusIndicators.iconColor
-            visible: otaDbcStatus === "downloading" || otaDbcStatus === "installing"
-            text: {
-                if (otaDbcStatus === "downloading")
-                    return otaDbcDownloadProgress + "%"
-                if (otaDbcStatus === "installing")
-                    return otaDbcInstallProgress + "%"
-                return ""
-            }
-        }
-    }
-
-    // Cloud status icon
-    Item {
-        width: 24; height: 24
-
-        Image {
-            id: cloudIcon
-            anchors.fill: parent
-            sourceSize: Qt.size(24, 24)
-            visible: false
-            source: cloudStatus === 0
-                ? "qrc:/ScootUI/assets/icons/librescoot-internet-cloud-connected.svg"
-                : "qrc:/ScootUI/assets/icons/librescoot-internet-cloud-disconnected.svg"
-        }
-        MultiEffect {
-            source: cloudIcon
-            anchors.fill: parent
-            colorization: 1.0
-            colorizationColor: statusIndicators.iconColor
-        }
-    }
-
-    // Internet/modem icon with access tech overlay
+    // Internet/modem icon with access tech overlay (rightmost in RTL)
     Item {
         width: 24; height: 24
 
@@ -164,6 +75,27 @@ Row {
             color: statusIndicators.iconColor
             visible: modemState >= 2 && accessTech !== ""
             text: accessTechLabel(accessTech)
+        }
+    }
+
+    // Cloud status icon
+    Item {
+        width: 24; height: 24
+
+        Image {
+            id: cloudIcon
+            anchors.fill: parent
+            sourceSize: Qt.size(24, 24)
+            visible: false
+            source: cloudStatus === 0
+                ? "qrc:/ScootUI/assets/icons/librescoot-internet-cloud-connected.svg"
+                : "qrc:/ScootUI/assets/icons/librescoot-internet-cloud-disconnected.svg"
+        }
+        MultiEffect {
+            source: cloudIcon
+            anchors.fill: parent
+            colorization: 1.0
+            colorizationColor: statusIndicators.iconColor
         }
     }
 
@@ -264,6 +196,79 @@ Row {
                 easing.type: Easing.InOutExpo
             }
             PauseAnimation { duration: 228 }
+        }
+    }
+
+    // OTA status indicator (leftmost in RTL = last item)
+    Row {
+        spacing: 2
+        visible: otaActive && (vehicleState === 2 || vehicleState === 4)
+        layoutDirection: Qt.LeftToRight
+
+        Item {
+            width: 24; height: 24
+
+            Image {
+                id: otaIcon
+                anchors.fill: parent
+                sourceSize: Qt.size(24, 24)
+                visible: false
+                source: {
+                    switch (otaDbcStatus) {
+                        case "downloading":
+                            return "qrc:/ScootUI/assets/icons/librescoot-ota-status-downloading.svg"
+                        case "installing":
+                            return "qrc:/ScootUI/assets/icons/librescoot-ota-status-installing.svg"
+                        case "rebooting":
+                        case "reboot-failed":
+                            return "qrc:/ScootUI/assets/icons/librescoot-ota-status-waiting-for-reboot.svg"
+                        case "error":
+                        case "error-failed":
+                            return "qrc:/ScootUI/assets/icons/librescoot-ota-status-downloading.svg"
+                        default:
+                            return ""
+                    }
+                }
+            }
+            MultiEffect {
+                source: otaIcon
+                anchors.fill: parent
+                colorization: 1.0
+                colorizationColor: statusIndicators.iconColor
+            }
+
+            // Error overlay
+            Image {
+                id: otaErrorOverlay
+                anchors.fill: parent
+                sourceSize: Qt.size(24, 24)
+                source: "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
+                visible: false
+            }
+            MultiEffect {
+                source: otaErrorOverlay
+                anchors.fill: parent
+                visible: otaDbcStatus === "error" || otaDbcStatus === "error-failed"
+                colorization: 1.0
+                colorizationColor: statusIndicators.iconColor
+            }
+        }
+
+        // Progress text beside icon
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            font.pixelSize: 12
+            font.weight: Font.DemiBold
+            font.features: {"tnum": 1}
+            color: statusIndicators.iconColor
+            visible: otaDbcStatus === "downloading" || otaDbcStatus === "installing"
+            text: {
+                if (otaDbcStatus === "downloading")
+                    return otaDbcDownloadProgress
+                if (otaDbcStatus === "installing")
+                    return otaDbcInstallProgress
+                return ""
+            }
         }
     }
 }
