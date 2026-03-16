@@ -67,6 +67,7 @@ private:
     void rebuildMenuTree();
     MenuNode *findCurrentNode() const;
     void emitMenuChanged();
+    bool isRoutingReady() const;
 
     SettingsStore *m_settings;
     VehicleStore *m_vehicle;

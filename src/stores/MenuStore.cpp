@@ -162,26 +162,25 @@ void MenuStore::rebuildMenuTree()
             return !hasLocalMaps && !isOnlineMap;
         }));
 
-    // === Navigation submenu (visible when display maps and routing are available) ===
+    // === Navigation submenu (visible when display maps and routing are ready) ===
     auto *navNode = MenuNode::submenu(QStringLiteral("navigation"),
                                        QStringLiteral("Navigation"),
                                        tr->menuNavigationHeader(),
                                        [this]() {
             bool hasLocalMaps = m_navAvailability && m_navAvailability->localDisplayMapsAvailable();
             bool isOnlineMap = m_settings->mapType() == static_cast<int>(ScootEnums::MapType::Online);
-            bool hasRouting = m_navAvailability && m_navAvailability->routingAvailable();
-            return (hasLocalMaps || isOnlineMap) && hasRouting;
+            bool routingReady = isRoutingReady();
+            return (hasLocalMaps || isOnlineMap) && routingReady;
         });
     m_rootNode->addChild(navNode);
 
-    // === Set up Navigation (visible when routing is not available) ===
+    // === Set up Navigation (visible when routing is not ready) ===
     m_rootNode->addChild(MenuNode::action(QStringLiteral("setup_navigation"),
         tr->menuSetupNavigation(), [this]() {
             close();
             if (m_screenStore) m_screenStore->showNavigationSetup(1); // Routing
         }, [this]() {
-            bool hasRouting = m_navAvailability && m_navAvailability->routingAvailable();
-            return !hasRouting;
+            return !isRoutingReady();
         }));
 
     // Enter destination code
@@ -229,10 +228,10 @@ void MenuStore::rebuildMenuTree()
             close();
         }));
 
-    // Navigation setup info
+    // Navigation setup info (always available for proactive offline downloads)
     navNode->addChild(MenuNode::action(QStringLiteral("nav_setup"), tr->menuNavSetup(), [this]() {
         close();
-        if (m_screenStore) m_screenStore->setScreen(9);
+        if (m_screenStore) m_screenStore->showNavigationSetup(2); // Both
     }));
 
     // === Settings submenu ===
@@ -618,4 +617,16 @@ void MenuStore::goBack()
 void MenuStore::emitMenuChanged()
 {
     emit menuChanged();
+}
+
+bool MenuStore::isRoutingReady() const
+{
+    // Routing is ready if local valhalla responds OR scooter is online with online routing configured
+    if (m_navAvailability && m_navAvailability->routingAvailable())
+        return true;
+    bool isOnline = m_internet &&
+        m_internet->modemState() == static_cast<int>(ScootEnums::ModemState::Connected);
+    bool isOnlineRouting = m_settings &&
+        m_settings->valhallaUrl() == QLatin1String(AppConfig::valhallaOnlineEndpoint);
+    return isOnline && isOnlineRouting;
 }
