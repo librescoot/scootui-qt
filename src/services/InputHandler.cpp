@@ -99,8 +99,10 @@ void InputHandler::handleRelease(bool isLeft)
             } else {
                 emit leftTap();
 
-                // Double-tap detection for opening menu
-                if (!m_menu->isOpen()) {
+                // Double-tap detection: if leftTap has receivers, a screen is
+                // consuming taps (e.g. About scrolling), so don't intercept.
+                // Only detect double-tap when taps are unclaimed (Cluster, Map).
+                if (!m_menu->isOpen() && receivers(SIGNAL(leftTap())) == 0) {
                     if (m_left.waitingSecondTap) {
                         m_left.doubleTapTimer->stop();
                         m_left.waitingSecondTap = false;
