@@ -254,18 +254,15 @@ Item {
 
     // Helper: linear interpolation between two colors
     function lerpColor(c1, c2, t) {
-        // Parse hex colors
-        var r1 = parseInt(c1.substring(1, 3), 16) || parseInt(c1.substring(3, 5), 16)
-        var g1 = parseInt(c1.substring(3, 5), 16) || parseInt(c1.substring(5, 7), 16)
-        var b1 = parseInt(c1.substring(5, 7), 16) || parseInt(c1.substring(7, 9), 16)
-
-        // Handle colors that might have alpha prefix (#AARRGGBB)
+        // Parse #RRGGBB or #AARRGGBB
         var offset1 = c1.length > 7 ? 2 : 0
-        r1 = parseInt(c1.substring(1 + offset1, 3 + offset1), 16)
-        g1 = parseInt(c1.substring(3 + offset1, 5 + offset1), 16)
-        b1 = parseInt(c1.substring(5 + offset1, 7 + offset1), 16)
+        var a1 = offset1 ? parseInt(c1.substring(1, 3), 16) / 255 : 1.0
+        var r1 = parseInt(c1.substring(1 + offset1, 3 + offset1), 16)
+        var g1 = parseInt(c1.substring(3 + offset1, 5 + offset1), 16)
+        var b1 = parseInt(c1.substring(5 + offset1, 7 + offset1), 16)
 
         var offset2 = c2.length > 7 ? 2 : 0
+        var a2 = offset2 ? parseInt(c2.substring(1, 3), 16) / 255 : 1.0
         var r2 = parseInt(c2.substring(1 + offset2, 3 + offset2), 16)
         var g2 = parseInt(c2.substring(3 + offset2, 5 + offset2), 16)
         var b2 = parseInt(c2.substring(5 + offset2, 7 + offset2), 16)
@@ -273,7 +270,8 @@ Item {
         var r = Math.round(r1 + (r2 - r1) * t)
         var g = Math.round(g1 + (g2 - g1) * t)
         var b = Math.round(b1 + (b2 - b1) * t)
+        var a = a1 + (a2 - a1) * t
 
-        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)
+        return "rgba(" + r + "," + g + "," + b + "," + a.toFixed(3) + ")"
     }
 }
