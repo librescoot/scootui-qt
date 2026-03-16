@@ -149,10 +149,18 @@ QVariant RedisConnection::command(const QStringList &args, int timeoutMs)
 
     QByteArray cmd = buildCommand(args);
     m_socket->write(cmd);
-    if (!m_socket->waitForBytesWritten(timeoutMs))
+    if (!m_socket->waitForBytesWritten(timeoutMs)) {
+        qWarning() << "Redis command: waitForBytesWritten timed out";
+        m_socket->abort();
         return QVariant();
+    }
 
-    return parseReply();
+    QVariant reply = parseReply();
+    if (reply.isNull()) {
+        // parseReply returns null on timeout or parse error
+        m_socket->abort();
+    }
+    return reply;
 }
 
 QString RedisConnection::hget(const QString &key, const QString &field)
@@ -513,15 +521,33 @@ RedisMdbRepository::~RedisMdbRepository()
 
 bool RedisMdbRepository::ensureConnected()
 {
-    // If we've been flagged as disconnected (e.g. by pubsub) but the TCP socket
+    // If we've been flagged as disconnected but the TCP socket
     // still appears connected (stale state), force-close it so we do a clean reconnect
     if (!m_connected && m_conn->isConnected()) {
         qDebug() << "Redis: forcing stale main connection closed";
         m_conn->disconnect();
     }
 
-    if (m_conn->isConnected())
+    if (m_conn->isConnected()) {
+        if (!m_connected) {
+            // Re-sync m_connected flag if it was false but socket is now connected
+            m_connected = true;
+            m_reconnectTimer->stop();
+            m_prolongedTimer->stop();
+            if (m_prolongedDisconnect) {
+                m_prolongedDisconnect = false;
+                emit prolongedDisconnect(false);
+            }
+            emit connectionStateChanged(true);
+        }
         return true;
+    }
+
+    // If reconnect timer is active, don't block the UI with another attempt yet.
+    // The timer will call ensureConnected() when it expires.
+    if (m_reconnectTimer->isActive()) {
+        return m_conn->isConnected();
+    }
 
     // Try primary first (short timeout — USB responds in <10ms)
     bool ok = m_conn->connectToServer(m_host, m_port, 200);
@@ -545,25 +571,27 @@ bool RedisMdbRepository::ensureConnected()
         qDebug() << "Redis: back on primary connection" << m_host;
     }
 
-    if (ok && !m_connected) {
+    if (ok) {
         m_connected = true;
         m_reconnectTimer->stop();
+        m_prolongedTimer->stop();
         if (m_prolongedDisconnect) {
             m_prolongedDisconnect = false;
             emit prolongedDisconnect(false);
         }
         emit connectionStateChanged(true);
-    } else if (!ok && m_connected) {
-        m_connected = false;
-        if (m_usingBackup) {
-            m_usingBackup = false;
-            m_primaryReconnectTimer->stop();
-            emit usingBackupConnection(false);
+    } else {
+        if (m_connected) {
+            m_connected = false;
+            if (m_usingBackup) {
+                m_usingBackup = false;
+                m_primaryReconnectTimer->stop();
+                emit usingBackupConnection(false);
+            }
+            emit connectionStateChanged(false);
+            m_prolongedTimer->start();
         }
-        emit connectionStateChanged(false);
-        m_prolongedTimer->start();
-        m_reconnectTimer->start(1000);
-    } else if (!ok) {
+        // Start/restart reconnect timer to pace attempts and avoid UI lockup
         m_reconnectTimer->start(2000);
     }
     return ok;
@@ -574,13 +602,23 @@ void RedisMdbRepository::tryReconnectPrimary()
     if (!m_usingBackup || !m_connected)
         return;
 
-    // Probe primary on a temporary thread so we don't block the UI
+    // Probe primary on a temporary thread so we don't block the UI.
+    // We send a PING command to ensure Redis is actually responsive, not just accepting TCP.
     auto host = m_host;
     auto port = m_port;
     auto *probeThread = QThread::create([this, host, port]() {
         QTcpSocket testSocket;
         testSocket.connectToHost(host, port);
-        bool reachable = testSocket.waitForConnected(1000);
+        bool reachable = false;
+        if (testSocket.waitForConnected(1000)) {
+            testSocket.write("*1\r\n$4\r\nPING\r\n");
+            if (testSocket.waitForReadyRead(1000)) {
+                QByteArray reply = testSocket.readAll();
+                if (reply.startsWith("+PONG") || reply.contains("PONG")) {
+                    reachable = true;
+                }
+            }
+        }
         testSocket.disconnectFromHost();
         if (reachable) {
             QMetaObject::invokeMethod(this, &RedisMdbRepository::switchToPrimary,
@@ -596,10 +634,15 @@ void RedisMdbRepository::switchToPrimary()
     if (!m_usingBackup || !m_connected)
         return;
 
+    // Use reconnect timer to prevent stores from starting their own reconnection attempts
+    // while we are busy switching hosts.
+    m_reconnectTimer->start(3000); 
+
     m_conn->disconnect();
     if (m_conn->connectToServer(m_host, m_port, 1000)) {
         m_usingBackup = false;
         m_primaryReconnectTimer->stop();
+        m_reconnectTimer->stop(); // Switch successful
         emit usingBackupConnection(false);
         qDebug() << "Redis: switched back to primary" << m_host;
 
@@ -608,8 +651,9 @@ void RedisMdbRepository::switchToPrimary()
                                   Qt::QueuedConnection);
     } else {
         // Race: primary went away between probe and connect. Reconnect to backup.
-        qDebug() << "Redis: primary switch failed, reconnecting to backup";
+        qWarning() << "Redis: primary switch failed, reconnecting to backup";
         if (m_conn->connectToServer(m_backupHost, m_port, 1000)) {
+            m_reconnectTimer->stop(); // Back on backup, success (fallback)
             // Back on backup, timer will retry primary later
         } else {
             // Both down
@@ -619,7 +663,7 @@ void RedisMdbRepository::switchToPrimary()
             emit usingBackupConnection(false);
             emit connectionStateChanged(false);
             m_prolongedTimer->start();
-            startReconnectTimer();
+            m_reconnectTimer->start(2000);
         }
     }
 }
@@ -656,11 +700,11 @@ void RedisMdbRepository::onPubsubConnected()
 void RedisMdbRepository::onPubsubDisconnected()
 {
     // Pubsub handles its own reconnection independently.
-    // Only mark the main connection as dead if it actually is —
-    // pubsub and main can be on different hosts after failover.
-    if (!m_connected) return;
-
-    if (!m_conn->isConnected()) {
+    // If pubsub is gone, the network is likely dead. Abort the main connection
+    // immediately to avoid blocking for 2s on the next command call.
+    if (m_connected) {
+        qDebug() << "Redis: Pubsub disconnected, aborting main connection to avoid UI lag";
+        m_conn->disconnect();
         m_connected = false;
         if (m_usingBackup) {
             m_usingBackup = false;
@@ -669,10 +713,8 @@ void RedisMdbRepository::onPubsubDisconnected()
         }
         emit connectionStateChanged(false);
         m_prolongedTimer->start();
-        startReconnectTimer();
+        m_reconnectTimer->start(2000);
     }
-    // If main connection is still up, leave it alone.
-    // Failed commands will detect a dead connection reactively.
 }
 
 QString RedisMdbRepository::get(const QString &channel, const QString &variable)
