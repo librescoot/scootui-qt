@@ -123,6 +123,7 @@ private:
     // Thresholds (meters)
     static constexpr double ArrivalProximity = 50.0;
     static constexpr double OffRouteTolerance = 60.0;
+    static constexpr double OnRouteTolerance = 35.0;
     static constexpr double ShutdownProximity = 250.0;
     static constexpr int RerouteCooldownMs = 15000;
 
@@ -149,6 +150,7 @@ private:
     int m_currentSegmentIndex = 0;
 
     QElapsedTimer m_lastRerouteTime;
+    int m_rateLimitBackoffMs = 0;
     bool m_wasArrived = false;
 
     QTimer *m_navDataDebounce = nullptr;

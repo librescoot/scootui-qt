@@ -37,6 +37,12 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
             this, &NavigationService::onRouteCalculated);
     connect(m_valhalla, &ValhallaClient::routeError,
             this, &NavigationService::onRouteError);
+    connect(m_valhalla, &ValhallaClient::rateLimited, this, [this]() {
+        // Back off for 60s on 429 to avoid hammering the server
+        m_lastRerouteTime.restart();
+        m_rateLimitBackoffMs = qMin(m_rateLimitBackoffMs * 2, 120000);
+        qDebug() << "Rate limited, backing off for" << m_rateLimitBackoffMs << "ms";
+    });
 
     // Listen to GPS updates
     connect(gps, &GpsStore::latitudeChanged, this, &NavigationService::onGpsChanged);
@@ -341,8 +347,10 @@ void NavigationService::calculateRoute()
 
 void NavigationService::reroute()
 {
-    if (m_lastRerouteTime.elapsed() < RerouteCooldownMs) return;
+    int cooldown = qMax(RerouteCooldownMs, m_rateLimitBackoffMs);
+    if (m_lastRerouteTime.elapsed() < cooldown) return;
     m_lastRerouteTime.restart();
+    m_rateLimitBackoffMs = 0;
 
     qDebug() << "NavigationService: rerouting (off-route)";
     setStatus(NavigationStatus::Rerouting);
@@ -386,9 +394,13 @@ void NavigationService::updateNavigationState()
         }
     }
 
-    // Off-route detection
+    // Off-route detection with hysteresis to prevent boundary oscillation
     bool wasOffRoute = m_isOffRoute;
-    m_isOffRoute = distFromRoute > OffRouteTolerance;
+    if (m_isOffRoute) {
+        m_isOffRoute = distFromRoute > OnRouteTolerance;
+    } else {
+        m_isOffRoute = distFromRoute > OffRouteTolerance;
+    }
 
     if (m_isOffRoute && !wasOffRoute) {
         reroute();

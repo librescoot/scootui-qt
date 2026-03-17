@@ -5,6 +5,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QSslConfiguration>
 #include <QDebug>
 
 ValhallaClient::ValhallaClient(QObject *parent)
@@ -42,6 +43,13 @@ void ValhallaClient::calculateRoute(const LatLng &from, const LatLng &to)
     req.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
     req.setTransferTimeout(5000);
 
+    // On embedded systems the clock may be wrong at boot, causing
+    // "certificate not yet valid" errors. Disable peer verification
+    // for the routing request (localhost or trusted public endpoint).
+    QSslConfiguration ssl = req.sslConfiguration();
+    ssl.setPeerVerifyMode(QSslSocket::VerifyNone);
+    req.setSslConfiguration(ssl);
+
     auto *reply = m_nam.post(req, QJsonDocument(request).toJson(QJsonDocument::Compact));
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         handleRouteReply(reply);
@@ -52,6 +60,9 @@ void ValhallaClient::checkStatus()
 {
     QNetworkRequest req(QUrl(m_endpoint + QStringLiteral("status")));
     req.setTransferTimeout(3000);
+    QSslConfiguration ssl = req.sslConfiguration();
+    ssl.setPeerVerifyMode(QSslSocket::VerifyNone);
+    req.setSslConfiguration(ssl);
 
     auto *reply = m_nam.get(req);
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
@@ -77,6 +88,7 @@ void ValhallaClient::handleRouteReply(QNetworkReply *reply)
         } else if (status == 400) {
             msg = QStringLiteral("Invalid route request. Destination may be unreachable.");
         } else if (status == 429) {
+            emit rateLimited();
             msg = QStringLiteral("Too many routing requests. Please wait a moment.");
         } else if (status >= 500) {
             msg = QStringLiteral("Routing server error. Please try again later.");

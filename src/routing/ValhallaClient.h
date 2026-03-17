@@ -18,6 +18,7 @@ public:
 signals:
     void routeCalculated(const Route &route);
     void routeError(const QString &error);
+    void rateLimited();
     void statusChecked(bool available);
 
 private:
