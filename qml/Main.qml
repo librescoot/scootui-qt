@@ -30,6 +30,15 @@ Window {
         return false
     }
 
+    // Show connection info only for genuine connection failures, not for locked/transitional states
+    readonly property bool maintenanceShowConnectionInfo: {
+        if (typeof connectionStore !== "undefined"
+            && connectionStore.prolongedDisconnect
+            && !connectionStore.hasEverConnected) return true
+        if (vehicleState === 0 && startupGraceElapsed) return true
+        return false
+    }
+
     property bool startupGraceElapsed: false
 
     Timer {
@@ -78,6 +87,18 @@ Window {
                 } else {
                     toastService.dismiss("usb-disconnect")
                 }
+            }
+        }
+    }
+
+    // Wire maintenanceShowConnectionInfo into loaded MaintenanceScreen
+    Connections {
+        target: screenLoader
+        function onLoaded() {
+            if (screenLoader.item && "showConnectionInfo" in screenLoader.item) {
+                screenLoader.item.showConnectionInfo = Qt.binding(function() {
+                    return root.maintenanceShowConnectionInfo
+                })
             }
         }
     }

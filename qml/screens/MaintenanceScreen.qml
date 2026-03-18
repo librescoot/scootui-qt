@@ -8,61 +8,40 @@ Rectangle {
     property bool showConnectionInfo: false
     property string stateRaw: typeof vehicleStore !== "undefined" ? vehicleStore.stateRaw : ""
 
-    // After 5 seconds, switch to connection info mode
-    Timer {
-        interval: 5000
-        running: !maintenanceScreen.showConnectionInfo
-        onTriggered: maintenanceScreen.showConnectionInfo = true
-    }
-
-    // --- Loading mode (default) ---
+    // --- Loading mode (default): silent spinner ---
     Item {
         id: loadingMode
         anchors.fill: parent
         visible: !showConnectionInfo
 
-        ColumnLayout {
+        Item {
             anchors.centerIn: parent
-            spacing: 16
+            width: 32
+            height: 32
 
-            // Rotating spinner
-            Item {
-                Layout.alignment: Qt.AlignHCenter
-                width: 32
-                height: 32
+            Rectangle {
+                id: spinner
+                anchors.fill: parent
+                color: "transparent"
+                border.color: "white"
+                border.width: 3
+                radius: 16
 
                 Rectangle {
-                    id: spinner
-                    anchors.fill: parent
-                    color: "transparent"
-                    border.color: "white"
-                    border.width: 3
-                    radius: 16
-
-                    // Mask out part of the circle to look like a spinner arc
-                    Rectangle {
-                        width: 18
-                        height: 18
-                        color: "black"
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                    }
-
-                    RotationAnimation on rotation {
-                        from: 0
-                        to: 360
-                        duration: 1000
-                        loops: Animation.Infinite
-                        running: loadingMode.visible
-                    }
+                    width: 18
+                    height: 18
+                    color: "black"
+                    anchors.right: parent.right
+                    anchors.top: parent.top
                 }
-            }
 
-            Text {
-                Layout.alignment: Qt.AlignHCenter
-                text: "Connecting..."
-                color: "white"
-                font.pixelSize: 16
+                RotationAnimation on rotation {
+                    from: 0
+                    to: 360
+                    duration: 1000
+                    loops: Animation.Infinite
+                    running: loadingMode.visible
+                }
             }
         }
     }
