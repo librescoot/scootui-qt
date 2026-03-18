@@ -146,6 +146,7 @@ private:
     bool m_connected = false;
     bool m_usingBackup = false;
     bool m_prolongedDisconnect = false;
+    bool m_isSwitchingHosts = false;
     QTimer *m_prolongedTimer;
     QTimer *m_primaryReconnectTimer;
 };

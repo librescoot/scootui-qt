@@ -521,16 +521,9 @@ RedisMdbRepository::~RedisMdbRepository()
 
 bool RedisMdbRepository::ensureConnected()
 {
-    // If we've been flagged as disconnected but the TCP socket
-    // still appears connected (stale state), force-close it so we do a clean reconnect
-    if (!m_connected && m_conn->isConnected()) {
-        qDebug() << "Redis: forcing stale main connection closed";
-        m_conn->disconnect();
-    }
-
     if (m_conn->isConnected()) {
         if (!m_connected) {
-            // Re-sync m_connected flag if it was false but socket is now connected
+            // Socket is live but our flag is out of sync — re-sync without force-closing
             m_connected = true;
             m_reconnectTimer->stop();
             m_prolongedTimer->stop();
@@ -634,16 +627,17 @@ void RedisMdbRepository::switchToPrimary()
     if (!m_usingBackup || !m_connected)
         return;
 
-    // Use reconnect timer to prevent stores from starting their own reconnection attempts
-    // while we are busy switching hosts.
-    m_reconnectTimer->start(3000); 
+    // Suppress onPubsubDisconnected() during the brief reconnect window so the
+    // host switch doesn't race with the pubsub disconnect signal and set m_connected=false.
+    m_isSwitchingHosts = true;
 
     m_conn->disconnect();
     // USB connection is very fast, use a shorter timeout
     if (m_conn->connectToServer(m_host, m_port, 200)) {
+        m_isSwitchingHosts = false;
         m_usingBackup = false;
         m_primaryReconnectTimer->stop();
-        m_reconnectTimer->stop(); // Switch successful
+        m_reconnectTimer->stop();
         emit usingBackupConnection(false);
         qDebug() << "Redis: switched back to primary" << m_host;
 
@@ -654,9 +648,10 @@ void RedisMdbRepository::switchToPrimary()
         // Race: primary went away between probe and connect. Reconnect to backup.
         qWarning() << "Redis: primary switch failed, reconnecting to backup";
         if (m_conn->connectToServer(m_backupHost, m_port, 1000)) {
-            m_reconnectTimer->stop(); // Back on backup, success (fallback)
-            // Back on backup, timer will retry primary later
+            m_isSwitchingHosts = false;
+            m_reconnectTimer->stop();
         } else {
+            m_isSwitchingHosts = false;
             // Both down
             m_connected = false;
             m_usingBackup = false;
@@ -700,6 +695,9 @@ void RedisMdbRepository::onPubsubConnected()
 
 void RedisMdbRepository::onPubsubDisconnected()
 {
+    // Ignore pubsub disconnects while we're intentionally switching hosts.
+    if (m_isSwitchingHosts) return;
+
     // Pubsub handles its own reconnection independently.
     // Only abort the main connection if it's already reported as disconnected
     // by the socket itself. If it's still alive, leave it alone;
