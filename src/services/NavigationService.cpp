@@ -401,8 +401,8 @@ void NavigationService::updateNavigationState()
         m_isOffRoute = distFromRoute > OffRouteTolerance;
     }
 
-    // Reroute while off-route (cooldown in reroute() prevents spam)
-    if (m_isOffRoute && m_status != NavigationStatus::Rerouting) {
+    // Reroute while off-route — reroute() enforces cooldown and handles hung requests
+    if (m_isOffRoute) {
         reroute();
     } else if (!m_isOffRoute && m_status == NavigationStatus::Error) {
         setStatus(NavigationStatus::Navigating);
