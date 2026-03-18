@@ -1,6 +1,7 @@
 #include "TripStore.h"
 #include "EngineStore.h"
 #include "VehicleStore.h"
+#include "models/Enums.h"
 
 TripStore::TripStore(EngineStore *engine, VehicleStore *vehicle, QObject *parent)
     : QObject(parent)
@@ -17,40 +18,52 @@ TripStore::TripStore(EngineStore *engine, VehicleStore *vehicle, QObject *parent
 
 void TripStore::onVehicleStateChanged()
 {
-    if (m_vehicle->isReadyToDrive()) {
+    using S = ScootEnums::ScooterState;
+    auto state = static_cast<S>(m_vehicle->state());
+
+    if (state == S::ReadyToDrive) {
         startTracking();
+    } else if (state == S::Parked) {
+        // Pause within a session — keep metrics, will resume on next ReadyToDrive
+        pauseTracking();
     } else {
-        stopTracking();
+        // StandBy, Hibernating, Off, ShuttingDown etc — end of session
+        pauseTracking();
+        m_resetPending = true;
     }
 }
 
 void TripStore::startTracking()
 {
+    if (m_resetPending) {
+        m_distance = 0;
+        m_accumulatedMs = 0;
+        m_averageSpeed = 0;
+        m_speedSum = 0;
+        m_speedSamples = 0;
+        m_resetPending = false;
+        emit distanceChanged();
+        emit durationChanged();
+        emit averageSpeedChanged();
+    }
     if (m_tracking) return;
     m_tracking = true;
-    m_distance = 0;
-    m_duration = 0;
-    m_averageSpeed = 0;
-    m_speedSum = 0;
-    m_speedSamples = 0;
     m_elapsed.start();
     m_tickTimer->start();
-    emit distanceChanged();
-    emit durationChanged();
-    emit averageSpeedChanged();
 }
 
-void TripStore::stopTracking()
+void TripStore::pauseTracking()
 {
     if (!m_tracking) return;
     m_tracking = false;
+    m_accumulatedMs += m_elapsed.elapsed();
     m_tickTimer->stop();
 }
 
 void TripStore::reset()
 {
     m_distance = 0;
-    m_duration = 0;
+    m_accumulatedMs = 0;
     m_averageSpeed = 0;
     m_speedSum = 0;
     m_speedSamples = 0;
@@ -72,7 +85,7 @@ void TripStore::onTick()
     m_distance += speed / 3600.0;
     emit distanceChanged();
 
-    m_duration = static_cast<int>(m_elapsed.elapsed() / 1000);
+    m_duration = static_cast<int>((m_accumulatedMs + m_elapsed.elapsed()) / 1000);
     emit durationChanged();
 
     if (speed > 0) {
