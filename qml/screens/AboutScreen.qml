@@ -73,7 +73,7 @@ Rectangle {
         // Easter egg triggers on exit, matching Flutter's _close()
         if (eggStep === eggSeq.length) {
             if (typeof settingsService !== "undefined") {
-                settingsService.togglePlymouthTheme()
+                settingsService.toggleBootAnimation()
             }
         }
         if (typeof screenStore !== "undefined") {

@@ -2,9 +2,8 @@
 #include "repositories/MdbRepository.h"
 #include "core/AppConfig.h"
 
-#include <QFile>
-#include <QTextStream>
 #include <QDebug>
+#include <QProcess>
 
 SettingsService::SettingsService(MdbRepository *repo, QObject *parent)
     : QObject(parent)
@@ -112,44 +111,26 @@ void SettingsService::updatePowerDisplayMode(const QString &mode)
     writeSetting(QStringLiteral("dashboard.power-display-mode"), mode);
 }
 
-void SettingsService::togglePlymouthTheme()
+void SettingsService::toggleBootAnimation()
 {
 #ifdef Q_OS_LINUX
-    // Read current theme from plymouth config
-    QString currentTheme = QStringLiteral("librescoot");
-    QFile confFile(QStringLiteral("/etc/plymouth/plymouthd.conf"));
-    if (confFile.open(QIODevice::ReadOnly)) {
-        QTextStream in(&confFile);
-        while (!in.atEnd()) {
-            QString line = in.readLine().trimmed();
-            if (line.startsWith(QLatin1String("Theme="))) {
-                currentTheme = line.mid(6);
-                break;
-            }
-        }
-        confFile.close();
-    }
+    // Read current boot_animation from U-Boot env
+    QProcess readProc;
+    readProc.start(QStringLiteral("fw_printenv"), {QStringLiteral("-n"), QStringLiteral("boot_animation")});
+    readProc.waitForFinished(2000);
+    QString current = QString::fromUtf8(readProc.readAllStandardOutput()).trimmed();
+    if (current.isEmpty())
+        current = QStringLiteral("librescoot");
 
-    // Toggle between librescoot and windowsxp
-    QString newTheme = (currentTheme == QLatin1String("windowsxp"))
+    QString next = (current == QLatin1String("windowsxp"))
         ? QStringLiteral("librescoot") : QStringLiteral("windowsxp");
 
-    // Write updated plymouth config
-    if (confFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        QTextStream out(&confFile);
-        out << "[Daemon]\n";
-        out << "Theme=" << newTheme << "\n";
-        confFile.close();
-    }
-
-    // Write marker file for boot-animation service
-    QFile markerFile(QStringLiteral("/data/plymouth-theme"));
-    if (markerFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        QTextStream out(&markerFile);
-        out << newTheme;
-        markerFile.close();
-    }
-
-    qDebug() << "Plymouth theme toggled to:" << newTheme;
+    QProcess writeProc;
+    writeProc.start(QStringLiteral("fw_setenv"), {QStringLiteral("boot_animation"), next});
+    writeProc.waitForFinished(2000);
+    if (writeProc.exitCode() != 0)
+        qWarning() << "fw_setenv boot_animation failed:" << writeProc.readAllStandardError();
+    else
+        qDebug() << "boot_animation toggled to:" << next;
 #endif
 }
