@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import "../widgets/status_bars"
 import "../widgets/navigation"
+import "../widgets/cluster"
 import "../widgets/indicators"
 import "../widgets/map"
 
@@ -94,6 +95,14 @@ Rectangle {
                     axis { x: 1; y: 0; z: 0 }
                     angle: 55
                 }
+            }
+
+            // Blinker icons (icon mode) — overlaid on map, below turn-by-turn
+            BlinkerRow {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                z: 5
             }
 
             // Out of coverage overlay (Flutter: _buildOutOfCoverageOverlay)
