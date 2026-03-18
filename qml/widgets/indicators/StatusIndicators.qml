@@ -122,6 +122,7 @@ Row {
 
     // GPS icon with pulsing center dot animation when searching
     Item {
+        id: gpsItem
         width: 24; height: 24
 
         readonly property bool isSearching: {
@@ -149,9 +150,9 @@ Row {
             anchors.fill: parent
             sourceSize: Qt.size(24, 24)
             visible: false
-            source: parent.isSearching
+            source: gpsItem.isSearching
                 ? "qrc:/ScootUI/assets/icons/librescoot-gps-searching.svg"
-                : parent.gpsIconSource
+                : gpsItem.gpsIconSource
         }
         MultiEffect {
             source: gpsIcon
@@ -172,7 +173,7 @@ Row {
             id: gpsCenterDotEffect
             source: gpsCenterDot
             anchors.fill: parent
-            visible: parent.isSearching
+            visible: gpsItem.isSearching
             colorization: 1.0
             colorizationColor: statusIndicators.iconColor
             opacity: pulseAnimation.running ? pulseAnimation.pulseValue : 0
@@ -180,7 +181,7 @@ Row {
 
         SequentialAnimation {
             id: pulseAnimation
-            running: parent.isSearching
+            running: gpsItem.isSearching
             loops: Animation.Infinite
 
             property real pulseValue: 0
