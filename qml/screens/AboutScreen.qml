@@ -70,10 +70,17 @@ Rectangle {
     }
 
     function closeScreen() {
-        // Easter egg triggers on exit, matching Flutter's _close()
         if (eggStep === eggSeq.length) {
             if (typeof settingsService !== "undefined") {
-                settingsService.toggleBootAnimation()
+                var next = settingsService.toggleBootAnimation()
+                if (typeof toastService !== "undefined" && next !== "") {
+                    if (next === "windowsxp")
+                        toastService.showSuccess(typeof translations !== "undefined"
+                            ? translations.aboutGenuineAdvantage : "Genuine Advantage activated.")
+                    else
+                        toastService.showInfo(typeof translations !== "undefined"
+                            ? translations.aboutBootThemeRestored : "Boot theme: LibreScoot restored.")
+                }
             }
         }
         if (typeof screenStore !== "undefined") {

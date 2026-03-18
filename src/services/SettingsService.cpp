@@ -111,10 +111,9 @@ void SettingsService::updatePowerDisplayMode(const QString &mode)
     writeSetting(QStringLiteral("dashboard.power-display-mode"), mode);
 }
 
-void SettingsService::toggleBootAnimation()
+QString SettingsService::toggleBootAnimation()
 {
 #ifdef Q_OS_LINUX
-    // Read current boot_animation from U-Boot env
     QProcess readProc;
     readProc.start(QStringLiteral("fw_printenv"), {QStringLiteral("-n"), QStringLiteral("boot_animation")});
     readProc.waitForFinished(2000);
@@ -132,5 +131,9 @@ void SettingsService::toggleBootAnimation()
         qWarning() << "fw_setenv boot_animation failed:" << writeProc.readAllStandardError();
     else
         qDebug() << "boot_animation toggled to:" << next;
+
+    return next;
+#else
+    return {};
 #endif
 }

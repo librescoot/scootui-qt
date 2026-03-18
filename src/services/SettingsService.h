@@ -31,7 +31,7 @@ public:
     Q_INVOKABLE void updateMapRenderMode(const QString &mode);
     Q_INVOKABLE void updateValhallaEndpoint(const QString &url);
     Q_INVOKABLE void updatePowerDisplayMode(const QString &mode);
-    Q_INVOKABLE void toggleBootAnimation();
+    Q_INVOKABLE QString toggleBootAnimation();
 
 private:
     void writeSetting(const QString &key, const QString &value);
