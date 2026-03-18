@@ -73,6 +73,34 @@ ApplicationWindow {
                 }
             }
 
+            RowLayout {
+                Layout.fillWidth: true
+                SimLabel { text: "UMS" }
+                SimButton {
+                    text: "Activate"
+                    color: "#2196F3"
+                    onClicked: {
+                        simulator.setUsbStatus("active")
+                        simulator.setUsbMode("ums")
+                    }
+                }
+                SimButton {
+                    text: "Processing"
+                    color: "#ff9800"
+                    onClicked: {
+                        simulator.setUsbStatus("processing")
+                    }
+                }
+                SimButton {
+                    text: "Exit"
+                    color: "#f44336"
+                    onClicked: {
+                        simulator.setUsbStatus("idle")
+                        simulator.setUsbMode("normal")
+                    }
+                }
+            }
+
             // ---- Presets ----
             SectionHeader { text: "Presets" }
 

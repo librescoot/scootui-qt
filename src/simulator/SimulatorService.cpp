@@ -279,6 +279,18 @@ void SimulatorService::setBluetoothStatus(const QString &state)
     m_repo->set(QStringLiteral("ble"), QStringLiteral("service-health"), QStringLiteral("ok"));
 }
 
+// --- USB / UMS ---
+
+void SimulatorService::setUsbStatus(const QString &status)
+{
+    m_repo->set(QStringLiteral("usb"), QStringLiteral("status"), status);
+}
+
+void SimulatorService::setUsbMode(const QString &mode)
+{
+    m_repo->set(QStringLiteral("usb"), QStringLiteral("mode"), mode);
+}
+
 // --- Speed limit ---
 
 void SimulatorService::setSpeedLimit(const QString &limit)

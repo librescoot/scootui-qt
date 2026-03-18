@@ -72,6 +72,10 @@ public:
     // Bluetooth
     Q_INVOKABLE void setBluetoothStatus(const QString &state);
 
+    // USB / UMS
+    Q_INVOKABLE void setUsbStatus(const QString &status);
+    Q_INVOKABLE void setUsbMode(const QString &mode);
+
     // Speed limit
     Q_INVOKABLE void setSpeedLimit(const QString &limit);
     Q_INVOKABLE void setRoadName(const QString &name);

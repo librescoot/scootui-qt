@@ -16,6 +16,8 @@ public:
     QString mode() const { return m_mode; }
     QString step() const { return m_step; }
 
+    Q_INVOKABLE void exitUmsMode();
+
 signals:
     void statusChanged();
     void modeChanged();

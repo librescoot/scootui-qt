@@ -18,6 +18,11 @@ SyncSettings UsbStore::syncSettings() const
     };
 }
 
+void UsbStore::exitUmsMode()
+{
+    m_repo->set(QStringLiteral("usb"), QStringLiteral("mode"), QStringLiteral("normal"));
+}
+
 void UsbStore::applyFieldUpdate(const QString &variable, const QString &value)
 {
     if (variable == QLatin1String("status")) {
