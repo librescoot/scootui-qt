@@ -84,10 +84,6 @@ Item {
         property: "opacity"
         from: 0.8; to: 1.0
         duration: 1500
-        onFinished: {
-            if (typeof shutdownStore !== "undefined")
-                shutdownStore.animationComplete()
-        }
     }
 
     // SIGTERM blackout: fast fade 0 -> 1.0 over 600ms
@@ -97,9 +93,5 @@ Item {
         property: "opacity"
         to: 1.0
         duration: 600
-        onFinished: {
-            if (typeof shutdownStore !== "undefined")
-                shutdownStore.animationComplete()
-        }
     }
 }

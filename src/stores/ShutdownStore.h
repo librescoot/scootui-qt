@@ -19,13 +19,11 @@ public:
     void connectToVehicle(VehicleStore *vehicle);
 
     Q_INVOKABLE void beginShutdown();
-    Q_INVOKABLE void animationComplete();
     void forceBlackout();
 
 signals:
     void shuttingDownChanged();
     void showBlackoutChanged();
-    void requestPoweroff();
 
 private:
     void onVehicleStateChanged();
@@ -33,6 +31,5 @@ private:
     VehicleStore *m_vehicle = nullptr;
     bool m_isShuttingDown = false;
     bool m_showBlackout = false;
-    bool m_poweroffScheduled = false;
     bool m_wasInDriveState = false;
 };

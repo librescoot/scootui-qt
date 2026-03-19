@@ -247,16 +247,6 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // M6: Wire shutdown to vehicle state monitoring
     m_shutdownStore->connectToVehicle(vehicleStore);
 
-    // M6: Handle poweroff request
-    connect(m_shutdownStore, &ShutdownStore::requestPoweroff, this, []() {
-#ifdef Q_OS_LINUX
-        qDebug() << "Executing poweroff...";
-        QProcess::startDetached(QStringLiteral("poweroff"), {});
-#else
-        qDebug() << "Poweroff requested (not on Linux, skipping)";
-#endif
-    });
-
     // Register context properties
     auto *ctx = engine.rootContext();
     ctx->setContextProperty(QStringLiteral("engineStore"), engineStore);

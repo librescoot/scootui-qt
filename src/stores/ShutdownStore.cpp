@@ -36,15 +36,6 @@ void ShutdownStore::beginShutdown()
     }
 }
 
-void ShutdownStore::animationComplete()
-{
-    if (!m_poweroffScheduled) {
-        m_poweroffScheduled = true;
-        qDebug() << "Shutdown animation complete, requesting poweroff";
-        emit requestPoweroff();
-    }
-}
-
 void ShutdownStore::forceBlackout()
 {
     if (!m_showBlackout) {
