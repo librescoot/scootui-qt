@@ -35,7 +35,7 @@ Item {
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             visible: usbStatus === "preparing"
-            text: "Preparing Storage"
+            text: typeof translations !== "undefined" ? translations.umsPreparing : "Preparing Storage"
             font.pixelSize: 20
             font.bold: true
             color: "#FFFFFF"
@@ -62,7 +62,7 @@ Item {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "USB Mass Storage"
+                    text: typeof translations !== "undefined" ? translations.umsActive : "Update Mode"
                     font.pixelSize: 24
                     font.bold: true
                     color: "#FFFFFF"
@@ -70,7 +70,7 @@ Item {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "Connect to Computer"
+                    text: typeof translations !== "undefined" ? translations.umsConnect : "Connect to Computer"
                     font.pixelSize: 16
                     color: "#B3FFFFFF" // white 70% opacity
                 }
@@ -120,7 +120,7 @@ Item {
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: "Processing Files"
+                text: typeof translations !== "undefined" ? translations.umsProcessing : "Processing Files"
                 font.pixelSize: 20
                 font.bold: true
                 color: "#FFFFFF"

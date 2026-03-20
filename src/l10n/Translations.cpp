@@ -130,8 +130,8 @@ void Translations::initStrings()
     en[QStringLiteral("menuSystem")] = QStringLiteral("System");
     de[QStringLiteral("menuSystem")] = QStringLiteral("System");
 
-    en[QStringLiteral("menuEnterUms")] = QStringLiteral("Enter UMS mode");
-    de[QStringLiteral("menuEnterUms")] = QStringLiteral("UMS-Modus starten");
+    en[QStringLiteral("menuEnterUms")] = QStringLiteral("Enter Update mode");
+    de[QStringLiteral("menuEnterUms")] = QStringLiteral("Update-Modus starten");
 
     en[QStringLiteral("menuResetTrip")] = QStringLiteral("Reset Trip Statistics");
     de[QStringLiteral("menuResetTrip")] = QStringLiteral("Reisestatistik zur\u00FCcksetzen");
@@ -320,8 +320,8 @@ void Translations::initStrings()
     en[QStringLiteral("umsPreparing")] = QStringLiteral("Preparing Storage");
     de[QStringLiteral("umsPreparing")] = QStringLiteral("Speicher wird vorbereitet");
 
-    en[QStringLiteral("umsActive")] = QStringLiteral("USB Mass Storage");
-    de[QStringLiteral("umsActive")] = QStringLiteral("USB-Massenspeicher");
+    en[QStringLiteral("umsActive")] = QStringLiteral("Update Mode");
+    de[QStringLiteral("umsActive")] = QStringLiteral("Update-Modus");
 
     en[QStringLiteral("umsConnect")] = QStringLiteral("Connect to Computer");
     de[QStringLiteral("umsConnect")] = QStringLiteral("Mit Computer verbinden");
@@ -329,8 +329,8 @@ void Translations::initStrings()
     en[QStringLiteral("umsProcessing")] = QStringLiteral("Processing Files");
     de[QStringLiteral("umsProcessing")] = QStringLiteral("Dateien werden verarbeitet");
 
-    en[QStringLiteral("umsTitle")] = QStringLiteral("USB Mass Storage Mode");
-    de[QStringLiteral("umsTitle")] = QStringLiteral("USB-Massenspeichermodus");
+    en[QStringLiteral("umsTitle")] = QStringLiteral("Update Mode");
+    de[QStringLiteral("umsTitle")] = QStringLiteral("Update-Modus");
 
     en[QStringLiteral("umsConnectToComputer")] = QStringLiteral("Connect to a computer to transfer files.");
     de[QStringLiteral("umsConnectToComputer")] = QStringLiteral("Zum Dateitransfer mit Computer verbinden.");
