@@ -37,6 +37,7 @@
 #include "services/MapService.h"
 #include "services/LowTemperatureMonitor.h"
 #include "services/BluetoothHealthMonitor.h"
+#include "services/HandlebarLockMonitor.h"
 #include "services/NavigationAvailabilityService.h"
 #include "services/SavedLocationsService.h"
 #include "services/ReverseGeocodingService.h"
@@ -167,6 +168,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_lowTempMonitor = new LowTemperatureMonitor(engineStore, battery0Store,
                                                    cbBatteryStore, m_toastService, this);
     m_bleHealthMonitor = new BluetoothHealthMonitor(bluetoothStore, m_toastService, this);
+    m_handlebarLockMonitor = new HandlebarLockMonitor(vehicleStore, m_toastService, this);
 
     // Battery fault monitoring
     auto connectFaultMonitor = [this](BatteryStore *batteryStore) {

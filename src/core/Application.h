@@ -16,6 +16,7 @@ class ToastService;
 class MapService;
 class LowTemperatureMonitor;
 class BluetoothHealthMonitor;
+class HandlebarLockMonitor;
 class NavigationAvailabilityService;
 class SavedLocationsService;
 class ReverseGeocodingService;
@@ -55,6 +56,7 @@ private:
     MapService *m_mapService = nullptr;
     LowTemperatureMonitor *m_lowTempMonitor = nullptr;
     BluetoothHealthMonitor *m_bleHealthMonitor = nullptr;
+    HandlebarLockMonitor *m_handlebarLockMonitor = nullptr;
     NavigationAvailabilityService *m_navAvailability = nullptr;
     SavedLocationsService *m_savedLocationsService = nullptr;
     ReverseGeocodingService *m_reverseGeocoding = nullptr;

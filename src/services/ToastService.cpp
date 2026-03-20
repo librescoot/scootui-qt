@@ -50,6 +50,11 @@ QString ToastService::showPermanentError(const QString &message, const QString &
     return addToast(message, QStringLiteral("error"), true, id);
 }
 
+QString ToastService::showPermanentWarning(const QString &message, const QString &id)
+{
+    return addToast(message, QStringLiteral("warning"), true, id);
+}
+
 void ToastService::dismiss(const QString &id)
 {
     for (int i = 0; i < m_toasts.size(); ++i) {

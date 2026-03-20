@@ -28,6 +28,7 @@ public:
     Q_INVOKABLE void showSuccess(const QString &message);
     Q_INVOKABLE QString showPermanentInfo(const QString &message, const QString &id = {});
     Q_INVOKABLE QString showPermanentError(const QString &message, const QString &id = {});
+    Q_INVOKABLE QString showPermanentWarning(const QString &message, const QString &id = {});
     Q_INVOKABLE void dismiss(const QString &id);
 
 signals:
