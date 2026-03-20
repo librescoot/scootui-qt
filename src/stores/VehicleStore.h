@@ -42,6 +42,7 @@ public:
     Q_INVOKABLE bool isReadyToDrive() const { return m_state == ScootEnums::ScooterState::ReadyToDrive; }
     Q_INVOKABLE bool isOff() const { return m_state == ScootEnums::ScooterState::Off; }
     Q_INVOKABLE bool isShuttingDown() const { return m_state == ScootEnums::ScooterState::ShuttingDown; }
+    Q_INVOKABLE bool isStandBy() const { return m_state == ScootEnums::ScooterState::StandBy; }
 
 signals:
     void blinkerStateChanged();

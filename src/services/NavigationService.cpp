@@ -241,6 +241,20 @@ void NavigationService::onGpsChanged()
         m_status == NavigationStatus::Arrived) {
         updateNavigationState();
     }
+
+    // Recovery: destination loaded but route not yet calculated (GPS wasn't ready)
+    if (m_destination.isValid() && !m_route.isValid() &&
+        (m_status == NavigationStatus::Idle || m_status == NavigationStatus::Error)) {
+        if (hasValidGps()) {
+            LatLng pos = currentGpsPosition();
+            double dist = pos.distanceTo(m_destination);
+            if (dist < ArrivalProximity) {
+                clearNavigation();
+            } else {
+                calculateRoute();
+            }
+        }
+    }
 }
 
 void NavigationService::onNavigationDataChanged()
@@ -289,12 +303,13 @@ void NavigationService::onVehicleStateChanged()
 {
     if (!m_vehicle) return;
 
-    // Clear navigation if shutting down near destination
-    if (m_vehicle->isShuttingDown() && m_destination.isValid()) {
+    // Clear navigation if shutting down or entering stand-by near destination
+    bool isLocking = m_vehicle->isShuttingDown() || m_vehicle->isStandBy();
+    if (isLocking && m_destination.isValid()) {
         LatLng pos = currentGpsPosition();
         double dist = pos.distanceTo(m_destination);
         if (dist < ShutdownProximity || m_wasArrived) {
-            qDebug() << "NavigationService: clearing navigation (shutdown near destination)";
+            qDebug() << "NavigationService: clearing navigation (lock near destination)";
             clearNavigation();
         }
     }
@@ -334,6 +349,11 @@ void NavigationService::onRouteError(const QString &error)
 void NavigationService::calculateRoute()
 {
     if (!m_destination.isValid()) return;
+
+    if (!hasValidGps()) {
+        qDebug() << "NavigationService: no recent GPS fix for route calculation";
+        return;
+    }
 
     LatLng from = currentGpsPosition();
     if (!from.isValid()) {
