@@ -84,7 +84,7 @@ void NavigationAvailabilityService::publishToRedis()
     if (!m_repo)
         return;
 
-    const auto cluster = QStringLiteral("settings");
+    const auto cluster = QStringLiteral("dashboard");
     m_repo->set(cluster, QStringLiteral("maps-available"),
                 m_mapsAvailable ? QStringLiteral("true") : QStringLiteral("false"));
     m_repo->set(cluster, QStringLiteral("navigation-available"),
