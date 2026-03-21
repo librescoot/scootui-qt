@@ -24,6 +24,11 @@ void SyncableStore::start()
     // Listen for connection state changes
     connect(m_repo, &MdbRepository::connectionStateChanged,
             this, [this](bool connected) {
+        const auto ch = syncSettings().channel;
+        if (ch.startsWith(QLatin1String("battery"))) {
+            qDebug() << "SyncableStore (" << ch << "): connectionStateChanged=" << connected
+                     << "paused=" << m_isPaused;
+        }
         if (connected) {
             if (m_isPaused)
                 resumePolling();
@@ -83,6 +88,10 @@ void SyncableStore::doHgetall()
 
     const auto settings = syncSettings();
     const FieldMap values = m_repo->getAll(settings.channel);
+
+    if (values.isEmpty() && settings.channel.startsWith(QLatin1String("battery"))) {
+        qDebug() << "SyncableStore (" << settings.channel << "): HGETALL returned EMPTY";
+    }
 
     if (m_hasLoggedError) {
         qDebug() << "SyncableStore (" << settings.channel << "): Connection recovered";

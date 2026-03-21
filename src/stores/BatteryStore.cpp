@@ -1,4 +1,5 @@
 #include "BatteryStore.h"
+#include <QDebug>
 
 BatteryStore::BatteryStore(MdbRepository *repo, const QString &id, QObject *parent)
     : SyncableStore(repo, parent)
@@ -39,10 +40,16 @@ void BatteryStore::applyFieldUpdate(const QString &variable, const QString &valu
 {
     if (variable == QLatin1String("present")) {
         bool v = (value == QLatin1String("true") || value == QLatin1String("1"));
-        if (v != m_present) { m_present = v; emit presentChanged(); }
+        if (v != m_present) {
+            qDebug() << "BatteryStore" << m_id << "present:" << m_present << "->" << v << "(raw:" << value << ")";
+            m_present = v; emit presentChanged();
+        }
     } else if (variable == QLatin1String("state")) {
         auto v = ScootEnums::parseBatteryState(value);
-        if (v != m_batteryState) { m_batteryState = v; emit batteryStateChanged(); }
+        if (v != m_batteryState) {
+            qDebug() << "BatteryStore" << m_id << "state:" << static_cast<int>(m_batteryState) << "->" << static_cast<int>(v) << "(raw:" << value << ")";
+            m_batteryState = v; emit batteryStateChanged();
+        }
     } else if (variable == QLatin1String("voltage")) {
         int v = value.toInt();
         if (v != m_voltage) { m_voltage = v; emit voltageChanged(); }

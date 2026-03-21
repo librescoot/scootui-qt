@@ -314,6 +314,14 @@ void Application::createStores(QQmlApplicationEngine &engine)
         }
     }
 
+    // Debug: log battery store state after initial sync
+    qDebug() << "Battery0 after start: present=" << battery0Store->present()
+             << "state=" << battery0Store->batteryState()
+             << "charge=" << battery0Store->charge();
+    qDebug() << "Battery1 after start: present=" << battery1Store->present()
+             << "state=" << battery1Store->batteryState()
+             << "charge=" << battery1Store->charge();
+
     // Notify other services that the dashboard is ready (on startup and every reconnect)
     auto publishReady = [repo, this]() {
         if (m_serialNumberService->available()) {
