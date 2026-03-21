@@ -28,6 +28,11 @@ Item {
         onTriggered: versionOverlay.showOverlay = true
     }
 
+    onShowOverlayChanged: {
+        if (showOverlay && typeof systemInfoService !== "undefined")
+            systemInfoService.loadVersions()
+    }
+
     onBothBrakesChanged: {
         if (!bothBrakes) {
             showOverlay = false
