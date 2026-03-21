@@ -80,67 +80,6 @@ void AddressDatabaseService::setStatus(Status s, const QString &message)
 }
 
 // ---------------------------------------------------------------------------
-// Cache load/save (JSON, matching Flutter v2 format)
-// ---------------------------------------------------------------------------
-
-bool AddressDatabaseService::loadCache(const QString &mapHash)
-{
-    QFile file(CachePath);
-    if (!file.open(QIODevice::ReadOnly))
-        return false;
-
-    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
-    file.close();
-
-    if (!doc.isObject())
-        return false;
-
-    QJsonObject root = doc.object();
-    if (root.value(QStringLiteral("mapHash")).toString() != mapHash)
-        return false;
-
-    QJsonArray arr = root.value(QStringLiteral("addresses")).toArray();
-    m_addresses.clear();
-    m_addresses.reserve(arr.size());
-
-    for (const QJsonValue &v : arr) {
-        QJsonArray coord = v.toArray();
-        if (coord.size() >= 2) {
-            m_addresses.append({coord[0].toDouble(), coord[1].toDouble()});
-        }
-    }
-
-    qDebug() << "AddressDatabase: loaded" << m_addresses.size() << "addresses from cache";
-    return true;
-}
-
-void AddressDatabaseService::saveCache(const QString &mapHash)
-{
-    QDir().mkpath(QFileInfo(CachePath).absolutePath());
-
-    QJsonArray arr;
-    for (const auto &addr : m_addresses) {
-        arr.append(QJsonArray{addr.first, addr.second});
-    }
-
-    QJsonObject root;
-    root[QStringLiteral("version")] = 2;
-    root[QStringLiteral("mapHash")] = mapHash;
-    root[QStringLiteral("addresses")] = arr;
-
-    // Write atomically via temp file
-    QString tmpPath = CachePath + QStringLiteral(".tmp");
-    QFile file(tmpPath);
-    if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        file.write(QJsonDocument(root).toJson(QJsonDocument::Compact));
-        file.close();
-        QFile::remove(CachePath);
-        QFile::rename(tmpPath, CachePath);
-        qDebug() << "AddressDatabase: saved cache with" << m_addresses.size() << "addresses";
-    }
-}
-
-// ---------------------------------------------------------------------------
 // Progress callback from background thread
 // ---------------------------------------------------------------------------
 
@@ -196,6 +135,7 @@ static int latToTileYTMS(double lat, int zoom)
 
 struct BuildResult {
     bool success = false;
+    bool fromCache = false;
     QString error;
     QString mapHash;
     QVector<QPair<double, double>> addresses;
@@ -279,7 +219,7 @@ static BuildResult buildFromTiles(AddressDatabaseService *service)
             if (service->isCancelled()) {
                 db.close();
                 QSqlDatabase::removeDatabase(connName);
-                return BuildResult{false, QStringLiteral("Cancelled"), {}, {}};
+                return BuildResult{false, false, QStringLiteral("Cancelled"), {}, {}};
             }
 
             for (int y = minTileY; y <= maxTileY; ++y) {
@@ -369,16 +309,38 @@ void AddressDatabaseService::initialize()
             return;
         }
 
-        // Try loading cached data first
-        if (loadCache(result.mapHash)) {
-            setStatus(Ready, QStringLiteral("Ready"));
-            emit addressCountChanged();
-            return;
+        // Addresses were loaded on the worker thread (from cache or tiles)
+        m_addresses = std::move(result.addresses);
+
+        // Save cache in background if we just built from tiles (not loaded from cache)
+        if (!result.fromCache) {
+            QString mapHash = result.mapHash;
+            QVector<QPair<double, double>> addrs = m_addresses;
+            QtConcurrent::run([mapHash, addrs]() {
+                QDir().mkpath(QFileInfo(AddressDatabaseService::CachePath).absolutePath());
+
+                QJsonArray arr;
+                for (const auto &addr : addrs) {
+                    arr.append(QJsonArray{addr.first, addr.second});
+                }
+
+                QJsonObject root;
+                root[QStringLiteral("version")] = 2;
+                root[QStringLiteral("mapHash")] = mapHash;
+                root[QStringLiteral("addresses")] = arr;
+
+                QString tmpPath = AddressDatabaseService::CachePath + QStringLiteral(".tmp");
+                QFile file(tmpPath);
+                if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+                    file.write(QJsonDocument(root).toJson(QJsonDocument::Compact));
+                    file.close();
+                    QFile::remove(AddressDatabaseService::CachePath);
+                    QFile::rename(tmpPath, AddressDatabaseService::CachePath);
+                    qDebug() << "AddressDatabase: saved cache with" << addrs.size() << "addresses";
+                }
+            });
         }
 
-        // Cache miss or stale — use the built data
-        m_addresses = std::move(result.addresses);
-        saveCache(result.mapHash);
         setStatus(Ready, QStringLiteral("Ready"));
         emit addressCountChanged();
     });
@@ -390,14 +352,14 @@ void AddressDatabaseService::initialize()
         // Quick hash check + cache load attempt
         QFile mapFile(MbtilesPath);
         if (!mapFile.open(QIODevice::ReadOnly)) {
-            return BuildResult{false, QStringLiteral("Cannot open map file"), {}, {}};
+            return BuildResult{false, false, QStringLiteral("Cannot open map file"), {}, {}};
         }
         QCryptographicHash hash(QCryptographicHash::Sha256);
         hash.addData(&mapFile);
         mapFile.close();
         QString mapHash = QString::fromLatin1(hash.result().toHex());
 
-        // Check if cache is valid (read-only check from worker thread)
+        // Try loading from cache on worker thread to avoid blocking main thread
         QFile cacheFile(CachePath);
         if (cacheFile.open(QIODevice::ReadOnly)) {
             QJsonDocument doc = QJsonDocument::fromJson(cacheFile.readAll());
@@ -405,9 +367,18 @@ void AddressDatabaseService::initialize()
             if (doc.isObject()) {
                 QJsonObject root = doc.object();
                 if (root.value(QStringLiteral("mapHash")).toString() == mapHash) {
-                    // Cache is valid — return success with empty addresses
-                    // The main thread will load from cache
-                    return BuildResult{true, {}, mapHash, {}};
+                    // Cache is valid — parse addresses here on the worker thread
+                    QJsonArray arr = root.value(QStringLiteral("addresses")).toArray();
+                    QVector<QPair<double, double>> addresses;
+                    addresses.reserve(arr.size());
+                    for (const QJsonValue &v : arr) {
+                        QJsonArray coord = v.toArray();
+                        if (coord.size() >= 2) {
+                            addresses.append({coord[0].toDouble(), coord[1].toDouble()});
+                        }
+                    }
+                    qDebug() << "AddressDatabase: loaded" << addresses.size() << "addresses from cache";
+                    return BuildResult{true, true, {}, mapHash, std::move(addresses)};
                 }
             }
         }

@@ -51,8 +51,6 @@ public slots:
 private:
     static int fromBase32(const QString &code);
     void setStatus(Status s, const QString &message = {});
-    bool loadCache(const QString &mapHash);
-    void saveCache(const QString &mapHash);
 
     Status m_status = Idle;
     double m_buildProgress = 0;
@@ -64,7 +62,6 @@ private:
 
 public:
     static const QString MbtilesPath;
-private:
     static const QString CachePath;
     static const QString Base32Chars;
 };
