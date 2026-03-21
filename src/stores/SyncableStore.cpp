@@ -25,7 +25,10 @@ void SyncableStore::start()
     connect(m_repo, &MdbRepository::connectionStateChanged,
             this, [this](bool connected) {
         if (connected) {
-            resumePolling();
+            if (m_isPaused)
+                resumePolling();
+            else
+                doHgetall(); // Re-fetch if initial fetch missed data
         } else {
             pausePolling();
         }
