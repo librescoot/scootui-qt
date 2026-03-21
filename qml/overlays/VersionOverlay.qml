@@ -61,25 +61,29 @@ Item {
             spacing: 4
 
             Text {
-                text: "MDB: N/A"
+                text: "MDB: " + (typeof systemInfoService !== "undefined"
+                      ? systemInfoService.mdbVersion : "unknown")
                 font.pixelSize: 12
                 color: parent.parent.textColor
             }
 
             Text {
-                text: "DBC: N/A"
+                text: "DBC: " + (typeof systemInfoService !== "undefined"
+                      ? systemInfoService.dbcVersion : "unknown")
                 font.pixelSize: 12
                 color: parent.parent.textColor
             }
 
             Text {
-                text: "nRF: N/A"
+                text: "nRF: " + (typeof systemInfoService !== "undefined"
+                      ? systemInfoService.nrfVersion : "unknown")
                 font.pixelSize: 12
                 color: parent.parent.textColor
             }
 
             Text {
-                text: "ECU: N/A"
+                text: "ECU: " + (typeof systemInfoService !== "undefined"
+                      ? systemInfoService.ecuVersion : "unknown")
                 font.pixelSize: 12
                 color: parent.parent.textColor
             }
@@ -95,7 +99,7 @@ Item {
             Text {
                 text: "AUX: " + (typeof auxBatteryStore !== "undefined"
                       ? auxBatteryStore.voltage + "mV " + auxBatteryStore.charge + "%"
-                      : "N/A")
+                      : "unknown")
                 font.pixelSize: 12
                 color: parent.parent.textColor
             }
@@ -103,7 +107,7 @@ Item {
             Text {
                 text: "CBB: " + (typeof cbBatteryStore !== "undefined"
                       ? cbBatteryStore.charge + "%"
-                      : "N/A")
+                      : "unknown")
                 font.pixelSize: 12
                 color: parent.parent.textColor
             }

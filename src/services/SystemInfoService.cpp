@@ -41,6 +41,22 @@ void SystemInfoService::loadVersions()
     const QString ecu = engineEcu.value(QStringLiteral("fw-version"));
     if (!ecu.isEmpty()) addRow(QStringLiteral("ECU"), ecu);
 
+    // Individual version strings for direct QML binding
+    auto ver = [](const QString &v) { return v.isEmpty() ? QStringLiteral("unknown") : v; };
+
+    if (!mdbVer.isEmpty())
+        m_mdbVersion = ver(mdbVer.value(QStringLiteral("version")));
+    else
+        m_mdbVersion = ver(system.value(QStringLiteral("mdb-version")));
+
+    if (!dbcVer.isEmpty())
+        m_dbcVersion = ver(dbcVer.value(QStringLiteral("version")));
+    else
+        m_dbcVersion = ver(system.value(QStringLiteral("dbc-version")));
+
+    m_nrfVersion = ver(nrf);
+    m_ecuVersion = ver(ecu);
+
     m_versionRows = rows;
     emit versionRowsChanged();
 }
