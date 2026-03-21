@@ -131,18 +131,30 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 visible: usbStep !== ""
                 width: parent.width
-                height: stepText.height + 12
+                height: stepRow.height + 12
 
-                Text {
-                    id: stepText
+                Row {
+                    id: stepRow
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.top: parent.top
                     anchors.topMargin: 12
-                    text: "\u2192 " + usbStep
-                    font.pixelSize: 15
-                    font.weight: Font.Medium
-                    color: "#E6FFFFFF" // white 90% opacity
-                    horizontalAlignment: Text.AlignHCenter
+                    spacing: 4
+
+                    Text {
+                        text: "\ue5c8" // arrow_forward
+                        font.family: "Material Icons"
+                        font.pixelSize: 15
+                        color: "#E6FFFFFF"
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    Text {
+                        id: stepText
+                        text: usbStep
+                        font.pixelSize: 15
+                        font.weight: Font.Medium
+                        color: "#E6FFFFFF" // white 90% opacity
+                    }
                 }
             }
 
