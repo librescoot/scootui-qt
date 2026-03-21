@@ -10,7 +10,7 @@
 
 ValhallaClient::ValhallaClient(QObject *parent)
     : QObject(parent)
-    , m_endpoint(QStringLiteral("http://localhost:8002/"))
+    , m_endpoint(QStringLiteral("http://127.0.0.1:8002/"))
 {
 }
 

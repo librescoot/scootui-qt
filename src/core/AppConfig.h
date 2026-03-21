@@ -16,9 +16,9 @@ struct AppConfig {
     static constexpr const char* redisSettingsPersistentCluster = "settings";
 
     // Valhalla routing
-    static constexpr const char* valhallaOnDeviceEndpoint = "http://localhost:8002/";
+    static constexpr const char* valhallaOnDeviceEndpoint = "http://127.0.0.1:8002/";
     static constexpr const char* valhallaOnlineEndpoint = "https://valhalla1.openstreetmap.de/";
-    static inline QString valhallaEndpoint = QStringLiteral("http://localhost:8002/");
+    static inline QString valhallaEndpoint = QStringLiteral("http://127.0.0.1:8002/");
     static constexpr const char* valhallaEndpointKey = "dashboard.valhalla-url";
 
     // Brightness / auto-theme
