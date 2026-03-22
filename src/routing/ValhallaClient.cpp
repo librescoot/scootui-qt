@@ -26,9 +26,11 @@ void ValhallaClient::calculateRoute(const LatLng &from, const LatLng &to)
     QJsonObject request;
     QJsonArray locations;
     locations.append(QJsonObject{{QStringLiteral("lat"), from.latitude},
-                                  {QStringLiteral("lon"), from.longitude}});
+                                  {QStringLiteral("lon"), from.longitude},
+                                  {QStringLiteral("radius"), 50}});
     locations.append(QJsonObject{{QStringLiteral("lat"), to.latitude},
-                                  {QStringLiteral("lon"), to.longitude}});
+                                  {QStringLiteral("lon"), to.longitude},
+                                  {QStringLiteral("radius"), 100}});
     request[QStringLiteral("locations")] = locations;
     request[QStringLiteral("costing")] = QStringLiteral("motor_scooter");
     request[QStringLiteral("units")] = QStringLiteral("kilometers");
@@ -50,7 +52,9 @@ void ValhallaClient::calculateRoute(const LatLng &from, const LatLng &to)
     ssl.setPeerVerifyMode(QSslSocket::VerifyNone);
     req.setSslConfiguration(ssl);
 
-    auto *reply = m_nam.post(req, QJsonDocument(request).toJson(QJsonDocument::Compact));
+    QByteArray body = QJsonDocument(request).toJson(QJsonDocument::Compact);
+    qDebug() << "ValhallaClient: POST" << req.url().toString() << body;
+    auto *reply = m_nam.post(req, body);
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         handleRouteReply(reply);
     });
