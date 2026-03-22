@@ -676,7 +676,7 @@ void SimulatorService::applyDefaults()
 
     // BLE
     m_repo->set(QStringLiteral("ble"), QStringLiteral("mac-address"), QStringLiteral("AA:BB:CC:DD:EE:FF"));
-    m_repo->set(QStringLiteral("ble"), QStringLiteral("pin-code"), QStringLiteral("123456"));
+    m_repo->set(QStringLiteral("ble"), QStringLiteral("pin-code"), QString());
 
     // Load the default parked preset after a short delay so stores have time to start
     QTimer::singleShot(200, this, [this]() {
