@@ -23,6 +23,7 @@ private slots:
 
 private:
     void updateRoadInfo(double lat, double lon);
+    void countMissAndMaybeClear();
     static int lonToTileX(double lon, int zoom);
     static int latToTileY(double lat, int zoom);
 
@@ -40,4 +41,7 @@ private:
     static constexpr int ThrottleMs = 3000;
     static constexpr int QueryZoom = 14;
     static constexpr int MaxCachedTiles = 50;
+    static constexpr int ClearAfterMisses = 3; // clear road name after N consecutive no-match results
+
+    int m_consecutiveMisses = 0;
 };

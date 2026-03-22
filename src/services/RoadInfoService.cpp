@@ -58,10 +58,24 @@ RoadInfoService::~RoadInfoService()
     }
 }
 
+void RoadInfoService::countMissAndMaybeClear()
+{
+    if (++m_consecutiveMisses >= ClearAfterMisses) {
+        m_speedLimit->setRoadNameDirect(QString());
+        m_speedLimit->setRoadTypeDirect(QString());
+        m_speedLimit->setSpeedLimitDirect(QString());
+    }
+}
+
 void RoadInfoService::onGpsChanged()
 {
-    if (!m_gps || m_gps->gpsState() != 2) // GpsState::FixEstablished
+    if (!m_gps || m_gps->gpsState() != 2) { // GpsState::FixEstablished
+        m_consecutiveMisses = ClearAfterMisses;
+        m_speedLimit->setRoadNameDirect(QString());
+        m_speedLimit->setRoadTypeDirect(QString());
+        m_speedLimit->setSpeedLimitDirect(QString());
         return;
+    }
 
     if (m_lastUpdate.elapsed() < ThrottleMs)
         return;
@@ -81,8 +95,8 @@ int RoadInfoService::latToTileY(double lat, int zoom)
     double n = std::pow(2.0, zoom);
     int slippyY = static_cast<int>(std::floor(
         (1.0 - std::log(std::tan(latRad) + 1.0 / std::cos(latRad)) / M_PI) / 2.0 * n));
-    // MBTiles uses 1-indexed TMS (Y=0 at bottom), convert from slippy (Y=0 at top)
-    return static_cast<int>(n) - 1 - slippyY + 1;
+    // MBTiles uses TMS (Y=0 at bottom), convert from slippy (Y=0 at top)
+    return static_cast<int>(n) - 1 - slippyY;
 }
 
 void RoadInfoService::updateRoadInfo(double lat, double lon)
@@ -110,13 +124,17 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
         query.addBindValue(tileX);
         query.addBindValue(tileY);
 
-        if (!query.exec() || !query.next())
+        if (!query.exec() || !query.next()) {
+            countMissAndMaybeClear();
             return;
+        }
 
         QByteArray tileData = query.value(0).toByteArray();
         QByteArray decompressed = VectorTile::gunzip(tileData);
-        if (decompressed.isEmpty())
+        if (decompressed.isEmpty()) {
+            countMissAndMaybeClear();
             return;
+        }
 
         // Evict oldest if cache full
         while (m_cacheOrder.size() >= MaxCachedTiles) {
@@ -137,8 +155,10 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
             break;
         }
     }
-    if (!streetsLayer || streetsLayer->features.isEmpty())
+    if (!streetsLayer || streetsLayer->features.isEmpty()) {
+        countMissAndMaybeClear();
         return;
+    }
 
     const double n = std::pow(2.0, QueryZoom);
     const double extent = streetsLayer->extent;
@@ -192,8 +212,12 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
         }
     }
 
-    if (!nearestFeature)
+    if (!nearestFeature) {
+        countMissAndMaybeClear();
         return;
+    }
+
+    m_consecutiveMisses = 0;
 
     QString name = nearestFeature->properties.value(QStringLiteral("name"));
     QString kind = nearestFeature->properties.value(QStringLiteral("kind"));
