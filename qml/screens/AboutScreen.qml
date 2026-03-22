@@ -153,7 +153,7 @@ Rectangle {
                         }
 
                         Text {
-                            text: "ScootUI"
+                            text: "sqtui"
                             color: aboutScreen.textSecondary
                             font.pixelSize: 14
                             font.letterSpacing: 1.0

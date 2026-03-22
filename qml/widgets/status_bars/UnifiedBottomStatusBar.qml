@@ -4,11 +4,7 @@ import QtQuick.Layouts
 Rectangle {
     id: bottomBar
     color: typeof themeStore !== "undefined" ? themeStore.backgroundColor : "black"
-    // Height driven by tallest content section (center widget on map, left/right text on cluster)
-    readonly property real leftHeight: contentRow.children[0] ? contentRow.children[0].childrenRect.height : 0
-    readonly property real centerHeight: centerItem.childrenRect.height
-    readonly property real rightHeight: contentRow.children[2] ? contentRow.children[2].childrenRect.height : 0
-    implicitHeight: Math.max(leftHeight, centerHeight, rightHeight) + 16
+    implicitHeight: contentRow.implicitHeight + 16
 
     // Allow injecting a center widget (like Flutter's centerWidget parameter)
     default property alias centerContent: centerItem.data
