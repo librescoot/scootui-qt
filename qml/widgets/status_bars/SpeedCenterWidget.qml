@@ -19,14 +19,11 @@ Item {
 
     // Speed display (centered)
     Column {
-        id: speedColumn
         anchors.centerIn: parent
         spacing: 2
 
         Text {
-            id: speedText
             anchors.horizontalCenter: parent.horizontalCenter
-            height: 48
             text: Math.floor(speed).toString()
             font.pixelSize: 48
             font.bold: true
@@ -34,9 +31,7 @@ Item {
         }
 
         Text {
-            id: unitText
             anchors.horizontalCenter: parent.horizontalCenter
-            height: 16
             text: "km/h"
             font.pixelSize: 16
             color: themeStore.textSecondary

@@ -4,7 +4,7 @@ import QtQuick.Layouts
 Rectangle {
     id: bottomBar
     color: typeof themeStore !== "undefined" ? themeStore.backgroundColor : "black"
-    implicitHeight: contentRow.implicitHeight + 16
+    implicitHeight: Math.max(48, centerItem.childrenRect.height + 16)
 
     // Allow injecting a center widget (like Flutter's centerWidget parameter)
     default property alias centerContent: centerItem.data
@@ -96,7 +96,6 @@ Rectangle {
             id: centerItem
             Layout.fillWidth: true
             Layout.fillHeight: true
-            implicitHeight: childrenRect.height
         }
 
         // Right: Trip + Total distances (label above value, columns side by side)
