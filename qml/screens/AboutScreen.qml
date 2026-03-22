@@ -28,6 +28,10 @@ Rectangle {
     readonly property var fossComponents: [
         { name: "Qt 6", license: "LGPL-3.0" },
         { name: "QMapLibre", license: "BSD-2-Clause" },
+        { name: "hiredis", license: "BSD-3-Clause" },
+        { name: "zlib", license: "Zlib" },
+        { name: "OpenStreetMap", license: "ODbL-1.0" },
+        { name: "Versatiles", license: "CC0-1.0" },
         { name: "Roboto", license: "Apache-2.0" },
         { name: "Material Icons", license: "Apache-2.0" }
     ]
@@ -124,7 +128,7 @@ Rectangle {
 
                 Item { width: 1; height: 40 }
 
-                // Logo + title row
+                // Logo + logotype
                 Row {
                     anchors.horizontalCenter: parent.horizontalCenter
                     spacing: 16
@@ -139,14 +143,13 @@ Rectangle {
 
                     Column {
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 2
+                        spacing: 4
 
-                        Text {
-                            text: "LibreScoot"
+                        TintedImage {
+                            source: "qrc:/ScootUI/assets/icons/librescoot-logotype.svg"
                             color: aboutScreen.textPrimary
-                            font.pixelSize: 28
-                            font.bold: true
-                            font.letterSpacing: 0.5
+                            width: 180
+                            height: 36
                         }
 
                         Text {
@@ -166,7 +169,7 @@ Rectangle {
                     text: typeof translations !== "undefined" ? translations.aboutFossDescription
                           : "FOSS firmware for unu Scooter Pro e-mopeds"
                     color: aboutScreen.textSecondary
-                    font.pixelSize: 13
+                    font.pixelSize: 15
                     font.italic: true
                     horizontalAlignment: Text.AlignHCenter
                 }
@@ -178,7 +181,7 @@ Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: websiteUrl
                     color: aboutScreen.accentColor
-                    font.pixelSize: 13
+                    font.pixelSize: 15
                     horizontalAlignment: Text.AlignHCenter
                 }
 
@@ -189,7 +192,7 @@ Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: licenseId + "  \u00A9\u00A0" + copyrightYear + " LibreScoot contributors"
                     color: aboutScreen.textSecondary
-                    font.pixelSize: 12
+                    font.pixelSize: 14
                     horizontalAlignment: Text.AlignHCenter
                 }
 
@@ -214,7 +217,7 @@ Rectangle {
                                     width: 36
                                     text: modelData.label
                                     color: aboutScreen.textSecondary
-                                    font.pixelSize: 12
+                                    font.pixelSize: 14
                                     font.weight: Font.DemiBold
                                     horizontalAlignment: Text.AlignRight
                                     topPadding: 2
@@ -224,7 +227,7 @@ Rectangle {
                                 Text {
                                     text: modelData.value
                                     color: aboutScreen.textSecondary
-                                    font.pixelSize: 12
+                                    font.pixelSize: 14
                                     font.family: "monospace"
                                     topPadding: 2
                                     bottomPadding: 2
@@ -280,7 +283,7 @@ Rectangle {
                                       ? translations.aboutNonCommercialTitle
                                       : "NON-COMMERCIAL SOFTWARE"
                                 color: aboutScreen.warningText
-                                font.pixelSize: 11
+                                font.pixelSize: 13
                                 font.bold: true
                                 font.letterSpacing: 1.0
                             }
@@ -293,7 +296,7 @@ Rectangle {
                                   ? translations.aboutCommercialProhibited
                                   : "Commercial distribution, resale, or preinstallation on devices for sale is prohibited under CC BY-NC-SA 4.0."
                             color: aboutScreen.textPrimary
-                            font.pixelSize: 12
+                            font.pixelSize: 14
                             lineHeight: 1.5
                             lineHeightMode: Text.ProportionalHeight
                             wrapMode: Text.WordWrap
@@ -308,7 +311,7 @@ Rectangle {
                                   ? translations.aboutScamWarning
                                   : "If you paid money for this software, or if you purchased a new scooter from a shop or vendor with this software preinstalled, you may have been the victim of a scam. Please report it at https://librescoot.org."
                             color: aboutScreen.textPrimary
-                            font.pixelSize: 12
+                            font.pixelSize: 14
                             font.weight: Font.DemiBold
                             lineHeight: 1.5
                             lineHeightMode: Text.ProportionalHeight
@@ -336,7 +339,7 @@ Rectangle {
                           ? translations.aboutOpenSourceComponents
                           : "OPEN SOURCE COMPONENTS"
                     color: aboutScreen.textSecondary
-                    font.pixelSize: 11
+                    font.pixelSize: 13
                     font.bold: true
                     font.letterSpacing: 1.5
                 }
@@ -367,14 +370,14 @@ Rectangle {
                                     width: parent.width - licenseText.width
                                     text: modelData.name
                                     color: aboutScreen.textPrimary
-                                    font.pixelSize: 13
+                                    font.pixelSize: 15
                                 }
 
                                 Text {
                                     id: licenseText
                                     text: modelData.license
                                     color: aboutScreen.textSecondary
-                                    font.pixelSize: 11
+                                    font.pixelSize: 13
                                     font.family: "monospace"
                                 }
                             }

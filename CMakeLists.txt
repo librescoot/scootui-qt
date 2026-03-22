@@ -294,6 +294,7 @@ qt_add_qml_module(scootui
         assets/icons/speedlimit_unknown.svg
         assets/icons/speedlimit_blank.svg
         assets/icons/librescoot-logo.png
+        assets/icons/librescoot-logotype.svg
         assets/icons/nav-setup-qr.png
         assets/routes/route1.json
         assets/routes/route2.json
