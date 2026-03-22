@@ -121,9 +121,11 @@ void MenuStore::rebuildMenuTree()
     m_rootNode->addChild(MenuNode::action(QStringLiteral("hazard_lights"),
         tr->menuToggleHazardLights(), [this, repo]() {
             // Toggle hazard lights via MDB (match Flutter logic using LPUSH)
-            bool isBoth = m_vehicle->blinkerState() == static_cast<int>(ScootEnums::BlinkerState::Both);
-            repo->push(QStringLiteral("scooter:blinker"),
-                       isBoth ? QStringLiteral("off") : QStringLiteral("both"));
+            int state = m_vehicle->blinkerState();
+            bool isBoth = state == static_cast<int>(ScootEnums::BlinkerState::Both);
+            QString cmd = isBoth ? QStringLiteral("off") : QStringLiteral("both");
+            qDebug() << "Toggle hazards: blinkerState=" << state << "isBoth=" << isBoth << "pushing=" << cmd;
+            repo->push(QStringLiteral("scooter:blinker"), cmd);
             close();
         }));
 
