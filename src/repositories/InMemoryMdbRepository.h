@@ -15,6 +15,8 @@ public:
     explicit InMemoryMdbRepository(QObject *parent = nullptr);
     ~InMemoryMdbRepository() override;
 
+    bool isConnected() const override { return true; }
+
     QString get(const QString &channel, const QString &variable) override;
     FieldMap getAll(const QString &channel) override;
     void set(const QString &channel, const QString &variable,

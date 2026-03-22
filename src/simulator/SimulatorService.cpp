@@ -21,6 +21,18 @@ SimulatorService::SimulatorService(MdbRepository *repo, NavigationService *nav, 
     m_autoDriveTimer->setInterval(100); // 10 Hz
     connect(m_autoDriveTimer, &QTimer::timeout, this, &SimulatorService::autoDriveTick);
 
+    // Keep GPS timestamp fresh so hasRecentFix stays true while parked
+    m_gpsTimestampTimer = new QTimer(this);
+    m_gpsTimestampTimer->setInterval(10000); // every 10s
+    connect(m_gpsTimestampTimer, &QTimer::timeout, this, [this]() {
+        if (!m_autoDriveActive) {
+            const QString now = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
+            m_repo->set(QStringLiteral("gps"), QStringLiteral("timestamp"), now);
+            m_repo->set(QStringLiteral("gps"), QStringLiteral("updated"), now);
+        }
+    });
+    m_gpsTimestampTimer->start();
+
     applyDefaults();
 }
 
@@ -221,12 +233,13 @@ void SimulatorService::setGpsPosition(double lat, double lng)
 {
     m_autoDriveLat = lat;
     m_autoDriveLng = lng;
+    const QString now = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
     m_repo->set(QStringLiteral("gps"), QStringLiteral("latitude"),
                 QString::number(lat, 'f', 8));
     m_repo->set(QStringLiteral("gps"), QStringLiteral("longitude"),
                 QString::number(lng, 'f', 8));
-    m_repo->set(QStringLiteral("gps"), QStringLiteral("updated"),
-                QDateTime::currentDateTimeUtc().toString(Qt::ISODate));
+    m_repo->set(QStringLiteral("gps"), QStringLiteral("updated"), now);
+    m_repo->set(QStringLiteral("gps"), QStringLiteral("timestamp"), now);
 }
 
 void SimulatorService::setGpsCourse(double course)

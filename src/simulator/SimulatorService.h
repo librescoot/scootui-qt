@@ -111,6 +111,7 @@ private:
     MdbRepository *m_repo;
     NavigationService *m_nav;
     QTimer *m_autoDriveTimer = nullptr;
+    QTimer *m_gpsTimestampTimer = nullptr;
     bool m_autoDriveActive = false;
     double m_autoDriveSpeed = 0;
     double m_autoDriveTargetSpeed = 25;
