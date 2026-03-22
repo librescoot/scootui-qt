@@ -62,7 +62,10 @@ Rectangle {
         }
 
         UnifiedBottomStatusBar {
+            id: bottomBar
             Layout.fillWidth: true
         }
     }
+
+    readonly property real bottomBarHeight: bottomBar.height
 }

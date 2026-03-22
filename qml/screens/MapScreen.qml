@@ -269,13 +269,12 @@ Rectangle {
 
         // Bottom status bar with speed center widget (matches Flutter layout)
         UnifiedBottomStatusBar {
+            id: bottomBar
             Layout.fillWidth: true
 
-            SpeedCenterWidget {
-                // Placed as center widget in the bottom bar
-                // Note: UnifiedBottomStatusBar currently has empty center;
-                // speed is shown here matching Flutter's MapScreen layout
-            }
+            SpeedCenterWidget {}
         }
     }
+
+    readonly property real bottomBarHeight: bottomBar.height
 }

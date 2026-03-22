@@ -11,11 +11,16 @@ Item {
     readonly property bool showRight: overlayEnabled && blinkerState === 2
     readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
 
+    // Insets to center the arrow on the content area between status bars
+    property real topInset: 0
+    property real bottomInset: 0
+
     visible: showLeft || showRight
 
-    // Large centered arrow icon matching Flutter's 360x360 layout
+    // Large arrow icon centered on the content area between status bars
     Item {
-        anchors.centerIn: parent
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: topInset + (parent.height - topInset - bottomInset - height) / 2
         width: 360
         height: 360
 

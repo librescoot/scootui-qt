@@ -154,6 +154,9 @@ Window {
     BlinkerOverlay {
         anchors.fill: parent
         z: 100
+        topInset: 40
+        bottomInset: screenLoader.item && typeof screenLoader.item.bottomBarHeight === "number"
+                     ? screenLoader.item.bottomBarHeight : 48
     }
 
     MenuOverlay {
