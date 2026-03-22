@@ -17,11 +17,11 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(int powerDisplayMode READ powerDisplayMode NOTIFY powerDisplayModeChanged)
     Q_PROPERTY(QString blinkerStyle READ blinkerStyle NOTIFY blinkerStyleChanged)
     Q_PROPERTY(bool dualBattery READ dualBattery NOTIFY dualBatteryChanged)
-    Q_PROPERTY(bool showGps READ showGps NOTIFY showGpsChanged)
-    Q_PROPERTY(bool showBluetooth READ showBluetooth NOTIFY showBluetoothChanged)
-    Q_PROPERTY(bool showCloud READ showCloud NOTIFY showCloudChanged)
-    Q_PROPERTY(bool showInternet READ showInternet NOTIFY showInternetChanged)
-    Q_PROPERTY(bool showClock READ showClock NOTIFY showClockChanged)
+    Q_PROPERTY(QString showGps READ showGps NOTIFY showGpsChanged)
+    Q_PROPERTY(QString showBluetooth READ showBluetooth NOTIFY showBluetoothChanged)
+    Q_PROPERTY(QString showCloud READ showCloud NOTIFY showCloudChanged)
+    Q_PROPERTY(QString showInternet READ showInternet NOTIFY showInternetChanged)
+    Q_PROPERTY(QString showClock READ showClock NOTIFY showClockChanged)
     Q_PROPERTY(bool alarmEnabled READ alarmEnabled NOTIFY alarmEnabledChanged)
     Q_PROPERTY(bool alarmHonk READ alarmHonk NOTIFY alarmHonkChanged)
     Q_PROPERTY(QString alarmDuration READ alarmDuration NOTIFY alarmDurationChanged)
@@ -40,11 +40,11 @@ public:
     int powerDisplayMode() const { return static_cast<int>(m_powerDisplayMode); }
     QString blinkerStyle() const { return m_blinkerStyle; }
     bool dualBattery() const { return m_dualBattery == QLatin1String("true"); }
-    bool showGps() const { return m_showGps == QLatin1String("true"); }
-    bool showBluetooth() const { return m_showBluetooth == QLatin1String("true"); }
-    bool showCloud() const { return m_showCloud == QLatin1String("true"); }
-    bool showInternet() const { return m_showInternet == QLatin1String("true"); }
-    bool showClock() const { return m_showClock == QLatin1String("true"); }
+    QString showGps() const { return m_showGps; }
+    QString showBluetooth() const { return m_showBluetooth; }
+    QString showCloud() const { return m_showCloud; }
+    QString showInternet() const { return m_showInternet; }
+    QString showClock() const { return m_showClock; }
     bool alarmEnabled() const { return m_alarmEnabled == QLatin1String("true"); }
     bool alarmHonk() const { return m_alarmHonk == QLatin1String("true"); }
     QString alarmDuration() const { return m_alarmDuration; }
@@ -90,11 +90,11 @@ private:
     ScootEnums::PowerDisplayMode m_powerDisplayMode = ScootEnums::PowerDisplayMode::Kw;
     QString m_blinkerStyle = QStringLiteral("icon");
     QString m_dualBattery = QStringLiteral("true");
-    QString m_showGps = QStringLiteral("true");
-    QString m_showBluetooth = QStringLiteral("true");
-    QString m_showCloud = QStringLiteral("true");
-    QString m_showInternet = QStringLiteral("true");
-    QString m_showClock = QStringLiteral("true");
+    QString m_showGps = QStringLiteral("error");
+    QString m_showBluetooth = QStringLiteral("active-or-error");
+    QString m_showCloud = QStringLiteral("error");
+    QString m_showInternet = QStringLiteral("always");
+    QString m_showClock = QStringLiteral("always");
     QString m_alarmEnabled = QStringLiteral("false");
     QString m_alarmHonk = QStringLiteral("false");
     QString m_alarmDuration;

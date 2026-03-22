@@ -24,6 +24,23 @@ Row {
     readonly property int otaDbcDownloadProgress: typeof otaStore !== "undefined" ? otaStore.dbcDownloadProgress : 0
     readonly property int otaDbcInstallProgress: typeof otaStore !== "undefined" ? otaStore.dbcInstallProgress : 0
 
+    // Visibility mode settings
+    readonly property string showInternetMode: typeof settingsStore !== "undefined" ? settingsStore.showInternet : "always"
+    readonly property string showCloudMode: typeof settingsStore !== "undefined" ? settingsStore.showCloud : "error"
+    readonly property string showBtMode: typeof settingsStore !== "undefined" ? settingsStore.showBluetooth : "active-or-error"
+    readonly property string showGpsMode: typeof settingsStore !== "undefined" ? settingsStore.showGps : "error"
+
+    // Visibility helper: mode × isActive × isError → visible
+    function iconVisible(mode, isActive, isError) {
+        switch (mode) {
+            case "always": return true
+            case "active-or-error": return isActive || isError
+            case "error": return isError
+            case "never": return false
+            default: return true
+        }
+    }
+
     function accessTechLabel(tech) {
         switch (tech) {
             case "5G": return "5G"
@@ -45,6 +62,7 @@ Row {
     // Internet/modem icon with access tech overlay (rightmost in RTL)
     Item {
         width: 24; height: 24
+        visible: iconVisible(showInternetMode, modemState >= 2, modemState < 2)
 
         Image {
             id: modemIcon
@@ -81,6 +99,7 @@ Row {
     // Cloud status icon
     Item {
         width: 24; height: 24
+        visible: iconVisible(showCloudMode, cloudStatus === 0, cloudStatus !== 0)
 
         Image {
             id: cloudIcon
@@ -102,6 +121,7 @@ Row {
     // Bluetooth icon
     Item {
         width: 24; height: 24
+        visible: iconVisible(showBtMode, btStatus === 0, btStatus !== 0)
 
         Image {
             id: btIcon
@@ -124,6 +144,7 @@ Row {
     Item {
         id: gpsItem
         width: 24; height: 24
+        visible: iconVisible(showGpsMode, gpsState === 2 && gpsRecentFix, gpsState !== 2 || !gpsRecentFix)
 
         readonly property bool isSearching: {
             if (gpsState === 0) return !gpsRecentFix && gpsHasTimestamp

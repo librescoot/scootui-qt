@@ -652,11 +652,11 @@ void SimulatorService::applyDefaults()
     m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.battery-display-mode"), QStringLiteral("percentage"));
     m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.map.type"), QStringLiteral("online"));
     m_repo->set(QStringLiteral("settings"), QStringLiteral("scooter.dual-battery"), QStringLiteral("true"));
-    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.show-gps"), QStringLiteral("true"));
-    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.show-bluetooth"), QStringLiteral("true"));
-    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.show-cloud"), QStringLiteral("true"));
-    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.show-internet"), QStringLiteral("true"));
-    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.show-clock"), QStringLiteral("true"));
+    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.show-gps"), QStringLiteral("always"));
+    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.show-bluetooth"), QStringLiteral("always"));
+    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.show-cloud"), QStringLiteral("always"));
+    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.show-internet"), QStringLiteral("always"));
+    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.show-clock"), QStringLiteral("always"));
 
     // Engine firmware
     m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("fw-version"), QStringLiteral("2.1.0-sim"));

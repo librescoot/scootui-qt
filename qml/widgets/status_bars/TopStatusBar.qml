@@ -38,6 +38,7 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.preferredWidth: 1
+            visible: typeof settingsStore === "undefined" || settingsStore.showClock !== "never"
 
             Text {
                 id: clockText
