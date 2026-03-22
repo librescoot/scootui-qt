@@ -27,10 +27,10 @@ void ValhallaClient::calculateRoute(const LatLng &from, const LatLng &to)
     QJsonArray locations;
     locations.append(QJsonObject{{QStringLiteral("lat"), from.latitude},
                                   {QStringLiteral("lon"), from.longitude},
-                                  {QStringLiteral("radius"), 50}});
+                                  {QStringLiteral("radius"), 150}});
     locations.append(QJsonObject{{QStringLiteral("lat"), to.latitude},
                                   {QStringLiteral("lon"), to.longitude},
-                                  {QStringLiteral("radius"), 100}});
+                                  {QStringLiteral("radius"), 150}});
     request[QStringLiteral("locations")] = locations;
     request[QStringLiteral("costing")] = QStringLiteral("motor_scooter");
     request[QStringLiteral("units")] = QStringLiteral("kilometers");
