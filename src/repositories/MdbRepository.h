@@ -39,6 +39,9 @@ public:
     virtual bool isConnected() const { return false; }
     virtual bool isUsingBackupConnection() const { return false; }
 
+    // Register a channel for periodic polling (only used by RedisMdbRepository)
+    virtual void registerPollChannel(const QString &, int) {}
+
     // Re-emit current connection state so late listeners can sync
     void notifyConnectionState() { emit connectionStateChanged(isConnected()); }
 
@@ -46,4 +49,7 @@ signals:
     void connectionStateChanged(bool connected);
     void prolongedDisconnect(bool disconnected);
     void usingBackupConnection(bool usingBackup);
+
+    // Emitted when the worker thread has fetched new data for a channel
+    void fieldsUpdated(const QString &channel, const FieldMap &fields);
 };

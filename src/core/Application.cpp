@@ -308,20 +308,22 @@ void Application::createStores(QQmlApplicationEngine &engine)
                 settingsStore, otaStore, usbStore, speedLimitStore,
                 autoStandbyStore, cbBatteryStore, auxBatteryStore, dashboardStore};
 
-    // Start all syncable stores
+    // Start all syncable stores (registers their channels with the repo)
     for (auto *store : m_stores) {
         if (auto *syncable = qobject_cast<SyncableStore*>(store)) {
             syncable->start();
         }
     }
 
-    // Re-emit connection state on next event loop tick so stores can refetch.
-    // The constructor emits connectionStateChanged(true) before stores exist,
-    // so they miss it. This deferred re-emission gives all stores a second
-    // chance to fetch data once the event loop is running.
-    QTimer::singleShot(0, this, [repo]() {
-        repo->notifyConnectionState();
-    });
+    // Register infrequently-polled channels not covered by any store
+    repo->registerPollChannel(QStringLiteral("system"), 30000);
+    repo->registerPollChannel(QStringLiteral("version:mdb"), 30000);
+    repo->registerPollChannel(QStringLiteral("version:dbc"), 30000);
+
+    // Start the Redis worker thread (after all channels are registered)
+    if (auto *redisRepo = qobject_cast<RedisMdbRepository*>(repo)) {
+        redisRepo->startWorker();
+    }
 
     // Debug: log battery store state after initial sync
     qDebug() << "Battery0 after start: present=" << battery0Store->present()

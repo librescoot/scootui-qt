@@ -1,487 +1,13 @@
 #include "RedisMdbRepository.h"
+#include "HiredisWorker.h"
+#include "HiredisAdapter.h"
 #include <QDebug>
 #include <QCoreApplication>
-
-// ============================================================
-// RedisConnection — synchronous RESP client over QTcpSocket
-// ============================================================
-
-RedisConnection::RedisConnection(const QString &host, quint16 port, QObject *parent)
-    : QObject(parent), m_host(host), m_port(port)
-{
-    m_socket = new QTcpSocket(this);
-}
-
-RedisConnection::~RedisConnection()
-{
-    disconnect();
-}
-
-bool RedisConnection::connectToServer(int timeoutMs)
-{
-    if (m_socket->state() == QAbstractSocket::ConnectedState)
-        return true;
-
-    m_socket->connectToHost(m_host, m_port);
-    if (!m_socket->waitForConnected(timeoutMs)) {
-        return false;
-    }
-    m_buffer.clear();
-    return true;
-}
-
-bool RedisConnection::connectToServer(const QString &host, quint16 port, int timeoutMs)
-{
-    if (m_socket->state() != QAbstractSocket::UnconnectedState)
-        m_socket->abort();
-
-    m_socket->connectToHost(host, port);
-    if (!m_socket->waitForConnected(timeoutMs)) {
-        return false;
-    }
-    m_buffer.clear();
-    return true;
-}
-
-void RedisConnection::disconnect()
-{
-    m_socket->abort();
-}
-
-bool RedisConnection::isConnected() const
-{
-    return m_socket->state() == QAbstractSocket::ConnectedState;
-}
-
-QByteArray RedisConnection::buildCommand(const QStringList &args)
-{
-    QByteArray cmd;
-    cmd.append('*');
-    cmd.append(QByteArray::number(args.size()));
-    cmd.append("\r\n");
-    for (const auto &arg : args) {
-        QByteArray utf8 = arg.toUtf8();
-        cmd.append('$');
-        cmd.append(QByteArray::number(utf8.size()));
-        cmd.append("\r\n");
-        cmd.append(utf8);
-        cmd.append("\r\n");
-    }
-    return cmd;
-}
-
-bool RedisConnection::readLine(QByteArray &line, int timeoutMs)
-{
-    while (true) {
-        int idx = m_buffer.indexOf("\r\n");
-        if (idx >= 0) {
-            line = m_buffer.left(idx);
-            m_buffer.remove(0, idx + 2);
-            return true;
-        }
-        if (!m_socket->waitForReadyRead(timeoutMs))
-            return false;
-        m_buffer.append(m_socket->readAll());
-    }
-}
-
-bool RedisConnection::readBytes(int count, QByteArray &data, int timeoutMs)
-{
-    // Need count + 2 bytes (data + \r\n)
-    int need = count + 2;
-    while (m_buffer.size() < need) {
-        if (!m_socket->waitForReadyRead(timeoutMs))
-            return false;
-        m_buffer.append(m_socket->readAll());
-    }
-    data = m_buffer.left(count);
-    m_buffer.remove(0, need);
-    return true;
-}
-
-QVariant RedisConnection::parseReply()
-{
-    QByteArray line;
-    if (!readLine(line, 2000))
-        return QVariant();
-
-    char type = line.at(0);
-    QByteArray payload = line.mid(1);
-
-    switch (type) {
-    case '+': // Simple string
-        return QString::fromUtf8(payload);
-    case '-': // Error
-        qWarning() << "Redis error:" << payload;
-        return QVariant();
-    case ':': // Integer
-        return payload.toLongLong();
-    case '$': { // Bulk string
-        int len = payload.toInt();
-        if (len == -1)
-            return QVariant(); // null
-        QByteArray data;
-        if (!readBytes(len, data, 2000))
-            return QVariant();
-        return QString::fromUtf8(data);
-    }
-    case '*': { // Array
-        int count = payload.toInt();
-        if (count == -1)
-            return QVariant();
-        QVariantList list;
-        list.reserve(count);
-        for (int i = 0; i < count; ++i) {
-            list.append(parseReply());
-        }
-        return list;
-    }
-    default:
-        qWarning() << "Unknown RESP type:" << type;
-        return QVariant();
-    }
-}
-
-QVariant RedisConnection::command(const QStringList &args, int timeoutMs)
-{
-    if (!isConnected())
-        return QVariant();
-
-    QByteArray cmd = buildCommand(args);
-    m_socket->write(cmd);
-    if (!m_socket->waitForBytesWritten(timeoutMs)) {
-        qWarning() << "Redis command: waitForBytesWritten timed out";
-        m_socket->abort();
-        return QVariant();
-    }
-
-    QVariant reply = parseReply();
-    if (reply.isNull()) {
-        // parseReply returns null on timeout or parse error
-        m_socket->abort();
-    }
-    return reply;
-}
-
-QString RedisConnection::hget(const QString &key, const QString &field)
-{
-    return command({QStringLiteral("HGET"), key, field}).toString();
-}
-
-FieldMap RedisConnection::hgetall(const QString &key)
-{
-    FieldMap result;
-    QVariant reply = command({QStringLiteral("HGETALL"), key});
-    QVariantList list = reply.toList();
-    for (int i = 0; i + 1 < list.size(); i += 2) {
-        result.insert(list[i].toString(), list[i + 1].toString());
-    }
-    return result;
-}
-
-void RedisConnection::hset(const QString &key, const QString &field, const QString &value)
-{
-    command({QStringLiteral("HSET"), key, field, value});
-}
-
-void RedisConnection::hdel(const QString &key, const QString &field)
-{
-    command({QStringLiteral("HDEL"), key, field});
-}
-
-void RedisConnection::publish(const QString &channel, const QString &message)
-{
-    command({QStringLiteral("PUBLISH"), channel, message});
-}
-
-void RedisConnection::lpush(const QString &key, const QString &value)
-{
-    command({QStringLiteral("LPUSH"), key, value});
-}
-
-QStringList RedisConnection::smembers(const QString &key)
-{
-    QStringList result;
-    QVariant reply = command({QStringLiteral("SMEMBERS"), key});
-    for (const auto &v : reply.toList())
-        result.append(v.toString());
-    return result;
-}
-
-QStringList RedisConnection::lrange(const QString &key, int start, int stop)
-{
-    QStringList result;
-    QVariant reply = command({QStringLiteral("LRANGE"), key,
-                              QString::number(start), QString::number(stop)});
-    for (const auto &v : reply.toList())
-        result.append(v.toString());
-    return result;
-}
-
-void RedisConnection::sadd(const QString &key, const QString &member)
-{
-    command({QStringLiteral("SADD"), key, member});
-}
-
-void RedisConnection::srem(const QString &key, const QString &member)
-{
-    command({QStringLiteral("SREM"), key, member});
-}
-
-// ============================================================
-// RedisPubsubWorker — dedicated thread for SUBSCRIBE
-// ============================================================
-
-RedisPubsubWorker::RedisPubsubWorker(const QString &host, quint16 port,
-                                       const QString &backupHost)
-    : m_host(host), m_port(port), m_backupHost(backupHost)
-{
-}
-
-RedisPubsubWorker::~RedisPubsubWorker()
-{
-    stop();
-}
-
-void RedisPubsubWorker::start()
-{
-    m_running = true;
-    m_socket = new QTcpSocket(this);
-    connect(m_socket, &QTcpSocket::readyRead, this, &RedisPubsubWorker::onReadyRead);
-    connect(m_socket, &QTcpSocket::disconnected, this, &RedisPubsubWorker::onDisconnected);
-
-    m_reconnectTimer = new QTimer(this);
-    m_reconnectTimer->setSingleShot(true);
-    connect(m_reconnectTimer, &QTimer::timeout, this, &RedisPubsubWorker::tryReconnect);
-
-    tryReconnect();
-}
-
-void RedisPubsubWorker::stop()
-{
-    m_running = false;
-    if (m_reconnectTimer)
-        m_reconnectTimer->stop();
-    if (m_socket) {
-        m_socket->disconnectFromHost();
-    }
-}
-
-void RedisPubsubWorker::subscribe(const QString &channel)
-{
-    if (!m_channels.contains(channel))
-        m_channels.append(channel);
-
-    if (m_socket && m_socket->state() == QAbstractSocket::ConnectedState) {
-        QByteArray cmd;
-        cmd.append("*2\r\n$9\r\nSUBSCRIBE\r\n$");
-        QByteArray ch = channel.toUtf8();
-        cmd.append(QByteArray::number(ch.size()));
-        cmd.append("\r\n");
-        cmd.append(ch);
-        cmd.append("\r\n");
-        m_socket->write(cmd);
-    }
-}
-
-void RedisPubsubWorker::unsubscribe(const QString &channel)
-{
-    m_channels.removeAll(channel);
-
-    if (m_socket && m_socket->state() == QAbstractSocket::ConnectedState) {
-        QByteArray cmd;
-        cmd.append("*2\r\n$11\r\nUNSUBSCRIBE\r\n$");
-        QByteArray ch = channel.toUtf8();
-        cmd.append(QByteArray::number(ch.size()));
-        cmd.append("\r\n");
-        cmd.append(ch);
-        cmd.append("\r\n");
-        m_socket->write(cmd);
-    }
-}
-
-void RedisPubsubWorker::setPreferredHost(const QString &host)
-{
-    m_preferredHost = host;
-}
-
-void RedisPubsubWorker::tryReconnect()
-{
-    if (!m_running) return;
-
-    auto resubscribeAll = [this]() {
-        m_buffer.clear();
-        for (const auto &ch : m_channels) {
-            QByteArray cmd;
-            cmd.append("*2\r\n$9\r\nSUBSCRIBE\r\n$");
-            QByteArray chUtf8 = ch.toUtf8();
-            cmd.append(QByteArray::number(chUtf8.size()));
-            cmd.append("\r\n");
-            cmd.append(chUtf8);
-            cmd.append("\r\n");
-            m_socket->write(cmd);
-        }
-    };
-
-    // Determine host order: prefer the host the main connection is using
-    QString firstHost = m_preferredHost.isEmpty() ? m_host : m_preferredHost;
-    QString secondHost = (firstHost == m_host) ? m_backupHost : m_host;
-
-    // Try preferred host first
-    m_socket->abort();
-    m_socket->connectToHost(firstHost, m_port);
-    if (m_socket->waitForConnected(1000)) {
-        resubscribeAll();
-        emit connected();
-        return;
-    }
-
-    // Try the other host
-    if (!secondHost.isEmpty()) {
-        m_socket->abort();
-        m_socket->connectToHost(secondHost, m_port);
-        if (m_socket->waitForConnected(1000)) {
-            resubscribeAll();
-            emit connected();
-            return;
-        }
-    }
-
-    emit disconnected();
-    if (m_running)
-        m_reconnectTimer->start(2000);
-}
-
-void RedisPubsubWorker::reconnectToPrimary()
-{
-    m_preferredHost = m_host; // Switch preference back to primary
-    m_reconnectTimer->stop();
-    if (m_socket)
-        m_socket->abort();
-    tryReconnect();
-}
-
-void RedisPubsubWorker::onDisconnected()
-{
-    emit disconnected();
-    if (m_running)
-        m_reconnectTimer->start(1000);
-}
-
-QVariant RedisPubsubWorker::parseReply()
-{
-    if (m_buffer.isEmpty()) return QVariant();
-
-    // Check we have a complete line for the type indicator
-    int idx = m_buffer.indexOf("\r\n");
-    if (idx < 0) return QVariant();
-
-    char type = m_buffer.at(0);
-    QByteArray payload = m_buffer.mid(1, idx - 1);
-
-    switch (type) {
-    case '+':
-        m_buffer.remove(0, idx + 2);
-        return QString::fromUtf8(payload);
-    case '-':
-        m_buffer.remove(0, idx + 2);
-        return QVariant();
-    case ':':
-        m_buffer.remove(0, idx + 2);
-        return payload.toLongLong();
-    case '$': {
-        int len = payload.toInt();
-        if (len == -1) {
-            m_buffer.remove(0, idx + 2);
-            return QVariant();
-        }
-        int dataStart = idx + 2;
-        int need = dataStart + len + 2;
-        if (m_buffer.size() < need)
-            return QVariant(); // incomplete
-        QString result = QString::fromUtf8(m_buffer.mid(dataStart, len));
-        m_buffer.remove(0, need);
-        return result;
-    }
-    case '*': {
-        int count = payload.toInt();
-        if (count == -1) {
-            m_buffer.remove(0, idx + 2);
-            return QVariant();
-        }
-        // Save buffer state in case array is incomplete
-        QByteArray saved = m_buffer;
-        m_buffer.remove(0, idx + 2);
-        QVariantList list;
-        for (int i = 0; i < count; ++i) {
-            QVariant elem = parseReply();
-            if (!elem.isValid()) {
-                // Incomplete — restore buffer
-                m_buffer = saved;
-                return QVariant();
-            }
-            list.append(elem);
-        }
-        return list;
-    }
-    default:
-        return QVariant();
-    }
-}
-
-void RedisPubsubWorker::onReadyRead()
-{
-    m_buffer.append(m_socket->readAll());
-
-    while (!m_buffer.isEmpty()) {
-        QByteArray saved = m_buffer;
-        QVariant reply = parseReply();
-        if (!reply.isValid()) {
-            m_buffer = saved;
-            break;
-        }
-
-        QVariantList list = reply.toList();
-        if (list.size() >= 3) {
-            QString type = list[0].toString();
-            if (type == QLatin1String("message")) {
-                emit messageReceived(list[1].toString(), list[2].toString());
-            }
-        }
-    }
-}
-
-// ============================================================
-// RedisMdbRepository — main repository implementation
-// ============================================================
 
 RedisMdbRepository::RedisMdbRepository(const QString &host, quint16 port,
                                          const QString &backupHost, QObject *parent)
     : MdbRepository(parent), m_host(host), m_port(port), m_backupHost(backupHost)
 {
-    m_conn = new RedisConnection(host, port, this);
-
-    // Pubsub worker on dedicated thread
-    m_pubsubThread = new QThread(this);
-    m_pubsubWorker = new RedisPubsubWorker(host, port, backupHost);
-    m_pubsubWorker->moveToThread(m_pubsubThread);
-
-    connect(m_pubsubThread, &QThread::started, m_pubsubWorker, &RedisPubsubWorker::start);
-    connect(m_pubsubWorker, &RedisPubsubWorker::messageReceived,
-            this, &RedisMdbRepository::onPubsubMessage, Qt::QueuedConnection);
-    connect(m_pubsubWorker, &RedisPubsubWorker::connected,
-            this, &RedisMdbRepository::onPubsubConnected, Qt::QueuedConnection);
-    connect(m_pubsubWorker, &RedisPubsubWorker::disconnected,
-            this, &RedisMdbRepository::onPubsubDisconnected, Qt::QueuedConnection);
-
-    // Reconnect timer for the main connection
-    m_reconnectTimer = new QTimer(this);
-    m_reconnectTimer->setSingleShot(true);
-    connect(m_reconnectTimer, &QTimer::timeout, this, [this]() {
-        ensureConnected();
-    });
-
-    // Prolonged disconnect timer (5 seconds)
     m_prolongedTimer = new QTimer(this);
     m_prolongedTimer->setSingleShot(true);
     m_prolongedTimer->setInterval(5000);
@@ -492,294 +18,128 @@ RedisMdbRepository::RedisMdbRepository(const QString &host, quint16 port,
         }
     });
 
-    // Primary reconnect timer — when on backup, periodically try primary
-    m_primaryReconnectTimer = new QTimer(this);
-    m_primaryReconnectTimer->setInterval(2000);
-    connect(m_primaryReconnectTimer, &QTimer::timeout, this, [this]() {
-        tryReconnectPrimary();
+    m_pubsubReconnectTimer = new QTimer(this);
+    m_pubsubReconnectTimer->setSingleShot(true);
+    m_pubsubReconnectTimer->setInterval(2000);
+    connect(m_pubsubReconnectTimer, &QTimer::timeout, this, [this]() {
+        setupPubsub();
     });
-
-    // Initial connection attempt
-    if (ensureConnected()) {
-        qDebug() << "Redis connected to" << (m_usingBackup ? m_backupHost : host) << ":" << port;
-    } else {
-        qWarning() << "Redis initial connection failed, will retry...";
-        m_prolongedTimer->start();
-        m_reconnectTimer->start(1000);
-    }
-
-    m_pubsubThread->start();
 }
 
 RedisMdbRepository::~RedisMdbRepository()
 {
-    QMetaObject::invokeMethod(m_pubsubWorker, &RedisPubsubWorker::stop, Qt::BlockingQueuedConnection);
-    m_pubsubThread->quit();
-    m_pubsubThread->wait(2000);
-    delete m_pubsubWorker;
-}
+    teardownPubsub();
 
-bool RedisMdbRepository::ensureConnected()
-{
-    if (m_conn->isConnected()) {
-        if (!m_connected) {
-            // Socket is live but our flag is out of sync — re-sync without force-closing
-            m_connected = true;
-            m_reconnectTimer->stop();
-            m_prolongedTimer->stop();
-            if (m_prolongedDisconnect) {
-                m_prolongedDisconnect = false;
-                emit prolongedDisconnect(false);
-            }
-            emit connectionStateChanged(true);
-        }
-        return true;
-    }
-
-    // If reconnect timer is active, don't block the UI with another attempt yet.
-    // The timer will call ensureConnected() when it expires.
-    if (m_reconnectTimer->isActive()) {
-        return m_conn->isConnected();
-    }
-
-    // Try primary first (short timeout — USB responds in <10ms)
-    bool ok = m_conn->connectToServer(m_host, m_port, 200);
-
-    if (!ok && !m_backupHost.isEmpty()) {
-        // Try backup
-        ok = m_conn->connectToServer(m_backupHost, m_port, 1000);
-        if (ok && !m_usingBackup) {
-            m_usingBackup = true;
-            m_primaryReconnectTimer->start();
-            tellPubsubPreferHost(m_backupHost);
-            emit usingBackupConnection(true);
-            qDebug() << "Redis: using backup connection" << m_backupHost;
-        }
-    } else if (ok && m_usingBackup) {
-        // Was on backup, now back on primary
-        m_usingBackup = false;
-        m_primaryReconnectTimer->stop();
-        tellPubsubPreferHost(m_host);
-        emit usingBackupConnection(false);
-        qDebug() << "Redis: back on primary connection" << m_host;
-    }
-
-    if (ok) {
-        m_connected = true;
-        m_reconnectTimer->stop();
-        m_prolongedTimer->stop();
-        if (m_prolongedDisconnect) {
-            m_prolongedDisconnect = false;
-            emit prolongedDisconnect(false);
-        }
-        emit connectionStateChanged(true);
-    } else {
-        if (m_connected) {
-            m_connected = false;
-            if (m_usingBackup) {
-                m_usingBackup = false;
-                m_primaryReconnectTimer->stop();
-                emit usingBackupConnection(false);
-            }
-            emit connectionStateChanged(false);
-            m_prolongedTimer->start();
-        }
-        // Start/restart reconnect timer to pace attempts and avoid UI lockup
-        m_reconnectTimer->start(2000);
-    }
-    return ok;
-}
-
-void RedisMdbRepository::tryReconnectPrimary()
-{
-    if (!m_usingBackup || !m_connected)
-        return;
-
-    // Probe primary on a temporary thread so we don't block the UI.
-    // We send a PING command to ensure Redis is actually responsive, not just accepting TCP.
-    auto host = m_host;
-    auto port = m_port;
-    auto *probeThread = QThread::create([this, host, port]() {
-        QTcpSocket testSocket;
-        testSocket.connectToHost(host, port);
-        bool reachable = false;
-        if (testSocket.waitForConnected(1000)) {
-            testSocket.write("*1\r\n$4\r\nPING\r\n");
-            if (testSocket.waitForReadyRead(1000)) {
-                QByteArray reply = testSocket.readAll();
-                if (reply.startsWith("+PONG") || reply.contains("PONG")) {
-                    reachable = true;
-                }
-            }
-        }
-        testSocket.disconnectFromHost();
-        if (reachable) {
-            QMetaObject::invokeMethod(this, &RedisMdbRepository::switchToPrimary,
-                                      Qt::QueuedConnection);
-        }
-    });
-    connect(probeThread, &QThread::finished, probeThread, &QThread::deleteLater);
-    probeThread->start();
-}
-
-void RedisMdbRepository::switchToPrimary()
-{
-    if (!m_usingBackup || !m_connected)
-        return;
-
-    // Suppress onPubsubDisconnected() during the brief reconnect window so the
-    // host switch doesn't race with the pubsub disconnect signal and set m_connected=false.
-    m_isSwitchingHosts = true;
-
-    m_conn->disconnect();
-    // USB connection is very fast, use a shorter timeout
-    if (m_conn->connectToServer(m_host, m_port, 200)) {
-        m_isSwitchingHosts = false;
-        m_usingBackup = false;
-        m_primaryReconnectTimer->stop();
-        m_reconnectTimer->stop();
-        emit usingBackupConnection(false);
-        qDebug() << "Redis: switched back to primary" << m_host;
-
-        // Tell pubsub worker to reconnect to primary too
-        QMetaObject::invokeMethod(m_pubsubWorker, &RedisPubsubWorker::reconnectToPrimary,
-                                  Qt::QueuedConnection);
-    } else {
-        // Race: primary went away between probe and connect. Reconnect to backup.
-        qWarning() << "Redis: primary switch failed, reconnecting to backup";
-        if (m_conn->connectToServer(m_backupHost, m_port, 1000)) {
-            m_isSwitchingHosts = false;
-            m_reconnectTimer->stop();
-        } else {
-            m_isSwitchingHosts = false;
-            // Both down
-            m_connected = false;
-            m_usingBackup = false;
-            m_primaryReconnectTimer->stop();
-            emit usingBackupConnection(false);
-            emit connectionStateChanged(false);
-            m_prolongedTimer->start();
-            m_reconnectTimer->start(2000);
-        }
+    if (m_workerThread) {
+        QMetaObject::invokeMethod(m_worker, &HiredisWorker::stop, Qt::QueuedConnection);
+        m_workerThread->quit();
+        m_workerThread->wait(3000);
+        delete m_worker;
     }
 }
 
-void RedisMdbRepository::startReconnectTimer()
+void RedisMdbRepository::registerPollChannel(const QString &channel, int intervalMs)
 {
-    if (!m_reconnectTimer->isActive())
-        m_reconnectTimer->start(1000);
+    if (!m_worker) {
+        m_worker = new HiredisWorker(m_host, m_port, m_backupHost);
+    }
+    m_worker->registerChannel(channel, intervalMs);
 }
 
-void RedisMdbRepository::tellPubsubPreferHost(const QString &host)
+void RedisMdbRepository::startWorker()
 {
-    QMetaObject::invokeMethod(m_pubsubWorker, [this, host]() {
-        m_pubsubWorker->setPreferredHost(host);
+    if (!m_worker) return;
+
+    m_workerThread = new QThread(this);
+    m_worker->moveToThread(m_workerThread);
+
+    connect(m_workerThread, &QThread::started, m_worker, &HiredisWorker::start);
+
+    // Field updates from worker -> main thread cache + dispatch
+    connect(m_worker, &HiredisWorker::fieldsUpdated,
+            this, &RedisMdbRepository::onFieldsUpdated, Qt::QueuedConnection);
+
+    // Connection state from worker
+    connect(m_worker, &HiredisWorker::connectionChanged,
+            this, &RedisMdbRepository::onWorkerConnectionChanged, Qt::QueuedConnection);
+
+    // Set/lrange results
+    connect(m_worker, &HiredisWorker::setMembersResult,
+            this, [this](const QString &key, const QStringList &members) {
+        QMutexLocker lock(&m_resultMutex);
+        m_setResults[key] = members;
     }, Qt::QueuedConnection);
+
+    connect(m_worker, &HiredisWorker::lrangeResult,
+            this, [this](const QString &key, const QStringList &values) {
+        QMutexLocker lock(&m_resultMutex);
+        m_lrangeResults[key] = values;
+    }, Qt::QueuedConnection);
+
+    m_workerThread->start();
+
+    // Set up pub/sub on main thread
+    setupPubsub();
 }
 
-void RedisMdbRepository::onPubsubMessage(const QString &channel, const QString &message)
-{
-    auto it = m_subscribers.find(channel);
-    if (it != m_subscribers.end()) {
-        for (const auto &cb : *it)
-            cb(channel, message);
-    }
-}
-
-void RedisMdbRepository::onPubsubConnected()
-{
-    if (!m_connected) {
-        ensureConnected();
-    }
-}
-
-void RedisMdbRepository::onPubsubDisconnected()
-{
-    // Ignore pubsub disconnects while we're intentionally switching hosts.
-    if (m_isSwitchingHosts) return;
-
-    // Pubsub handles its own reconnection independently.
-    // Only abort the main connection if it's already reported as disconnected
-    // by the socket itself. If it's still alive, leave it alone;
-    // reactive detection in command() will handle dead links.
-    if (m_connected && !m_conn->isConnected()) {
-        qDebug() << "Redis: Pubsub and Main both disconnected, starting cleanup";
-        m_connected = false;
-        if (m_usingBackup) {
-            m_usingBackup = false;
-            m_primaryReconnectTimer->stop();
-            emit usingBackupConnection(false);
-        }
-        emit connectionStateChanged(false);
-        m_prolongedTimer->start();
-        m_reconnectTimer->start(2000);
-    }
-}
+// Cache reads (non-blocking, main thread)
 
 QString RedisMdbRepository::get(const QString &channel, const QString &variable)
 {
-    if (!ensureConnected()) return {};
-    QString result = m_conn->hget(channel, variable);
-    if (!m_conn->isConnected()) {
-        m_connected = false;
-        emit connectionStateChanged(false);
-        startReconnectTimer();
-    }
-    return result;
+    QMutexLocker lock(&m_cacheMutex);
+    return m_cache.value(channel).value(variable);
 }
 
 FieldMap RedisMdbRepository::getAll(const QString &channel)
 {
-    if (!ensureConnected()) return {};
-    FieldMap result = m_conn->hgetall(channel);
-    if (!m_conn->isConnected()) {
-        m_connected = false;
-        emit connectionStateChanged(false);
-        startReconnectTimer();
-    }
-    return result;
+    QMutexLocker lock(&m_cacheMutex);
+    return m_cache.value(channel);
 }
+
+// Write operations (fire-and-forget to worker thread)
 
 void RedisMdbRepository::set(const QString &channel, const QString &variable,
                               const QString &value, bool doPublish)
 {
-    if (!ensureConnected()) return;
-    m_conn->hset(channel, variable, value);
-    if (doPublish)
-        m_conn->publish(channel, variable);
-}
+    // Update local cache immediately for responsive reads
+    {
+        QMutexLocker lock(&m_cacheMutex);
+        m_cache[channel][variable] = value;
+    }
 
-void RedisMdbRepository::publish(const QString &channel, const QString &message)
-{
-    if (!ensureConnected()) return;
-    m_conn->publish(channel, message);
-}
-
-void RedisMdbRepository::subscribe(const QString &channel, SubscriptionCallback callback)
-{
-    m_subscribers[channel].append(callback);
-    QMetaObject::invokeMethod(m_pubsubWorker, [this, channel]() {
-        m_pubsubWorker->subscribe(channel);
-    }, Qt::QueuedConnection);
-}
-
-void RedisMdbRepository::unsubscribe(const QString &channel)
-{
-    m_subscribers.remove(channel);
-    QMetaObject::invokeMethod(m_pubsubWorker, [this, channel]() {
-        m_pubsubWorker->unsubscribe(channel);
-    }, Qt::QueuedConnection);
+    if (m_worker) {
+        auto *w = m_worker;
+        QMetaObject::invokeMethod(w, [w, channel, variable, value, doPublish]() {
+            w->doSet(channel, variable, value, doPublish);
+        }, Qt::QueuedConnection);
+    }
 }
 
 void RedisMdbRepository::push(const QString &channel, const QString &command)
 {
-    if (!ensureConnected()) return;
-    m_conn->lpush(channel, command);
+    if (m_worker) {
+        auto *w = m_worker;
+        QMetaObject::invokeMethod(w, [w, channel, command]() {
+            w->doPush(channel, command);
+        }, Qt::QueuedConnection);
+    } else {
+        qWarning() << "RedisMdbRepository::push: worker not started, dropping"
+                    << channel << command;
+    }
+}
+
+void RedisMdbRepository::publish(const QString &channel, const QString &message)
+{
+    if (m_worker) {
+        auto *w = m_worker;
+        QMetaObject::invokeMethod(w, [w, channel, message]() {
+            w->doPublish(channel, message);
+        }, Qt::QueuedConnection);
+    }
 }
 
 void RedisMdbRepository::dashboardReady()
 {
-    if (!ensureConnected()) return;
     set(QStringLiteral("dashboard"), QStringLiteral("ready"), QStringLiteral("true"));
 }
 
@@ -788,32 +148,225 @@ void RedisMdbRepository::publishButtonEvent(const QString &event)
     publish(QStringLiteral("dashboard"), event);
 }
 
-QStringList RedisMdbRepository::getSetMembers(const QString &setKey)
+void RedisMdbRepository::hdel(const QString &key, const QString &field)
 {
-    if (!ensureConnected()) return {};
-    return m_conn->smembers(setKey);
+    {
+        QMutexLocker lock(&m_cacheMutex);
+        if (m_cache.contains(key))
+            m_cache[key].remove(field);
+    }
+
+    if (m_worker) {
+        auto *w = m_worker;
+        QMetaObject::invokeMethod(w, [w, key, field]() {
+            w->doHdel(key, field);
+        }, Qt::QueuedConnection);
+    }
 }
 
 void RedisMdbRepository::addToSet(const QString &setKey, const QString &member)
 {
-    if (!ensureConnected()) return;
-    m_conn->sadd(setKey, member);
+    if (m_worker) {
+        auto *w = m_worker;
+        QMetaObject::invokeMethod(w, [w, setKey, member]() {
+            w->doAddToSet(setKey, member);
+        }, Qt::QueuedConnection);
+    }
 }
 
 void RedisMdbRepository::removeFromSet(const QString &setKey, const QString &member)
 {
-    if (!ensureConnected()) return;
-    m_conn->srem(setKey, member);
+    if (m_worker) {
+        auto *w = m_worker;
+        QMetaObject::invokeMethod(w, [w, setKey, member]() {
+            w->doRemoveFromSet(setKey, member);
+        }, Qt::QueuedConnection);
+    }
 }
 
-void RedisMdbRepository::hdel(const QString &key, const QString &field)
+// These are still synchronous reads for now (rare callers).
+// They return the last cached result from the worker.
+QStringList RedisMdbRepository::getSetMembers(const QString &setKey)
 {
-    if (!ensureConnected()) return;
-    m_conn->hdel(key, field);
+    // Trigger a fetch and return cached result
+    if (m_worker) {
+        auto *w = m_worker;
+        QMetaObject::invokeMethod(w, [w, setKey]() {
+            w->doGetSetMembers(setKey);
+        }, Qt::QueuedConnection);
+    }
+    QMutexLocker lock(&m_resultMutex);
+    return m_setResults.value(setKey);
 }
 
 QStringList RedisMdbRepository::lrange(const QString &key, int start, int stop)
 {
-    if (!ensureConnected()) return {};
-    return m_conn->lrange(key, start, stop);
+    if (m_worker) {
+        auto *w = m_worker;
+        QMetaObject::invokeMethod(w, [w, key, start, stop]() {
+            w->doLrange(key, start, stop);
+        }, Qt::QueuedConnection);
+    }
+    QMutexLocker lock(&m_resultMutex);
+    return m_lrangeResults.value(key);
+}
+
+// Pub/sub (subscribe/unsubscribe)
+
+void RedisMdbRepository::subscribe(const QString &channel, SubscriptionCallback callback)
+{
+    m_subscribers[channel].append(callback);
+
+    if (m_pubsubCtx) {
+        redisAsyncCommand(m_pubsubCtx, onPubsubReply, this,
+                          "SUBSCRIBE %s", channel.toUtf8().constData());
+    }
+}
+
+void RedisMdbRepository::unsubscribe(const QString &channel)
+{
+    m_subscribers.remove(channel);
+
+    if (m_pubsubCtx) {
+        redisAsyncCommand(m_pubsubCtx, nullptr, nullptr,
+                          "UNSUBSCRIBE %s", channel.toUtf8().constData());
+    }
+}
+
+// Worker signals -> main thread
+
+void RedisMdbRepository::onFieldsUpdated(const QString &channel, const FieldMap &fields)
+{
+    // Update cache
+    {
+        QMutexLocker lock(&m_cacheMutex);
+        m_cache[channel] = fields;
+    }
+
+    // Dispatch to subscribers as a "something changed" notification
+    auto it = m_subscribers.find(channel);
+    if (it != m_subscribers.end()) {
+        for (const auto &cb : *it)
+            cb(channel, QStringLiteral("*"));
+    }
+
+    // Also emit the generic fieldsUpdated for SyncableStore
+    emit fieldsUpdated(channel, fields);
+}
+
+void RedisMdbRepository::onWorkerConnectionChanged(bool connected)
+{
+    bool wasConnected = m_connected;
+    m_connected = connected;
+
+    if (connected && !wasConnected) {
+        m_prolongedTimer->stop();
+        if (m_prolongedDisconnect) {
+            m_prolongedDisconnect = false;
+            emit prolongedDisconnect(false);
+        }
+        emit connectionStateChanged(true);
+    } else if (!connected && wasConnected) {
+        emit connectionStateChanged(false);
+        m_prolongedTimer->start();
+    }
+}
+
+// Pub/sub async context (main thread)
+
+void RedisMdbRepository::setupPubsub()
+{
+    teardownPubsub();
+
+    m_pubsubCtx = redisAsyncConnect(m_host.toUtf8().constData(), m_port);
+    if (!m_pubsubCtx || m_pubsubCtx->err) {
+        // Try backup
+        if (!m_backupHost.isEmpty()) {
+            if (m_pubsubCtx) redisAsyncFree(m_pubsubCtx);
+            m_pubsubCtx = redisAsyncConnect(m_backupHost.toUtf8().constData(), m_port);
+        }
+        if (!m_pubsubCtx || m_pubsubCtx->err) {
+            qWarning() << "RedisMdbRepository: pubsub connection failed";
+            if (m_pubsubCtx) {
+                redisAsyncFree(m_pubsubCtx);
+                m_pubsubCtx = nullptr;
+            }
+            m_pubsubReconnectTimer->start();
+            return;
+        }
+    }
+
+    m_pubsubCtx->data = this;
+    redisAsyncSetConnectCallback(m_pubsubCtx, onPubsubConnected);
+    redisAsyncSetDisconnectCallback(m_pubsubCtx, onPubsubDisconnected);
+
+    m_pubsubAdapter = new HiredisAdapter(this);
+    m_pubsubAdapter->attach(m_pubsubCtx);
+
+    resubscribeAll();
+}
+
+void RedisMdbRepository::teardownPubsub()
+{
+    if (m_pubsubCtx) {
+        // redisAsyncDisconnect triggers the disconnect callback which
+        // fires ev.cleanup, cleaning up the adapter's notifiers.
+        // The adapter itself is parented to us and cleaned up by Qt.
+        redisAsyncDisconnect(m_pubsubCtx);
+        m_pubsubCtx = nullptr;
+        m_pubsubAdapter = nullptr;
+    }
+}
+
+void RedisMdbRepository::resubscribeAll()
+{
+    if (!m_pubsubCtx) return;
+
+    for (auto it = m_subscribers.cbegin(); it != m_subscribers.cend(); ++it) {
+        redisAsyncCommand(m_pubsubCtx, onPubsubReply, this,
+                          "SUBSCRIBE %s", it.key().toUtf8().constData());
+    }
+}
+
+void RedisMdbRepository::onPubsubConnected(const redisAsyncContext *ctx, int status)
+{
+    if (status != REDIS_OK) {
+        qWarning() << "RedisMdbRepository: pubsub connect failed";
+        return;
+    }
+    qDebug() << "RedisMdbRepository: pubsub connected";
+}
+
+void RedisMdbRepository::onPubsubDisconnected(const redisAsyncContext *ctx, int status)
+{
+    auto *self = static_cast<RedisMdbRepository *>(ctx->data);
+    if (!self) return;
+
+    qDebug() << "RedisMdbRepository: pubsub disconnected, scheduling reconnect";
+    self->m_pubsubCtx = nullptr;
+    // Adapter is cleaned up by hiredis cleanup callback
+    self->m_pubsubAdapter = nullptr;
+    self->m_pubsubReconnectTimer->start();
+}
+
+void RedisMdbRepository::onPubsubReply(redisAsyncContext *ctx, void *reply, void *privdata)
+{
+    auto *self = static_cast<RedisMdbRepository *>(privdata);
+    if (!self || !reply) return;
+
+    auto *r = static_cast<redisReply *>(reply);
+    if (r->type != REDIS_REPLY_ARRAY || r->elements < 3) return;
+
+    QString type = QString::fromUtf8(r->element[0]->str, r->element[0]->len);
+    if (type != QLatin1String("message")) return;
+
+    QString channel = QString::fromUtf8(r->element[1]->str, r->element[1]->len);
+    QString message = QString::fromUtf8(r->element[2]->str, r->element[2]->len);
+
+    // Dispatch to subscribers
+    auto it = self->m_subscribers.find(channel);
+    if (it != self->m_subscribers.end()) {
+        for (const auto &cb : *it)
+            cb(channel, message);
+    }
 }

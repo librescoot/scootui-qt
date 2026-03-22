@@ -47,6 +47,7 @@ void InMemoryMdbRepository::set(const QString &channel, const QString &variable,
     m_storage[channel][variable] = value;
     if (publish) {
         notifySubscribers(channel, variable);
+        emit fieldsUpdated(channel, m_storage.value(channel));
     }
 }
 
