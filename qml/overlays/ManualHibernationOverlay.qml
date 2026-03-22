@@ -5,6 +5,8 @@ Item {
     anchors.fill: parent
 
     // ScooterState enum values from Enums.h
+    readonly property int stateHibernating: 7
+    readonly property int stateHibernatingImminent: 8
     readonly property int stateWaitingHibernation: 13
     readonly property int stateWaitingHibernationAdvanced: 14
     readonly property int stateWaitingHibernationSeatbox: 15
@@ -19,11 +21,15 @@ Item {
                                  || vehicleState === stateWaitingHibernationAdvanced
                                  || vehicleState === stateWaitingHibernationSeatbox
                                  || vehicleState === stateWaitingHibernationConfirm
+                                 || vehicleState === stateHibernating
+                                 || vehicleState === stateHibernatingImminent
 
     property bool isPromptMode: vehicleState === stateWaitingHibernation
                                 || vehicleState === stateWaitingHibernationAdvanced
     property bool isSeatboxMode: vehicleState === stateWaitingHibernationSeatbox
     property bool isConfirmMode: vehicleState === stateWaitingHibernationConfirm
+                                 || vehicleState === stateHibernating
+                                 || vehicleState === stateHibernatingImminent
 
     // Countdown logic
     property int countdown: 15
@@ -74,9 +80,9 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             width: Math.min(parent.parent.width - 48, 420)
             height: promptContent.height + 48
-            color: "#CC000000" // black 0.8 opacity
+            color: "#CC000000"
             border.width: 1
-            border.color: "#4DFFFFFF" // white 0.3 opacity
+            border.color: "#4DFFFFFF"
             radius: 16
 
             Column {
@@ -99,7 +105,7 @@ Item {
                 // Title
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "Hold Both Brakes to Hibernate"
+                    text: typeof translations !== "undefined" ? translations.hibernatePrompt : ""
                     font.pixelSize: 28
                     font.bold: true
                     color: "#FFFFFF"
@@ -111,7 +117,7 @@ Item {
                 // Subtitle
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "Or Tap Keycard"
+                    text: typeof translations !== "undefined" ? translations.hibernateTapKeycard : ""
                     font.pixelSize: 18
                     color: "#FFFFFF"
                 }
@@ -120,26 +126,26 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     visible: countdownActive && countdown > 0
-                    text: "Hold Brakes for " + countdown + " seconds"
+                    text: countdown + "s"
                     font.pixelSize: 18
                     font.bold: true
-                    color: "#FF9800" // orange
+                    color: "#FF9800"
                 }
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     visible: !countdownActive && !bothBrakesHeld
-                    text: "Or Hold Both Brakes"
+                    text: typeof translations !== "undefined" ? translations.hibernationOrHoldBrakes : ""
                     font.pixelSize: 18
-                    color: "#B3FFFFFF" // white 70% opacity
+                    color: "#B3FFFFFF"
                 }
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     visible: countdown === 0 && !countdownActive
-                    text: "Keep Holding Brakes"
+                    text: typeof translations !== "undefined" ? translations.hibernationKeepHoldingBrakes : ""
                     font.pixelSize: 18
-                    color: "#B3FFFFFF" // white 70% opacity
+                    color: "#B3FFFFFF"
                 }
 
                 // Action boxes
@@ -147,14 +153,14 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     spacing: 16
 
-                    // Kickstand box (red themed, Flutter: Icons.close + cancel/kickstand)
+                    // Cancel / kickstand box
                     Rectangle {
                         width: 160
                         height: kickstandCol.height + 32
                         radius: 12
-                        color: "#33F44336" // red 20% opacity
+                        color: "#33F44336"
                         border.width: 1
-                        border.color: "#80F44336" // red 50% opacity
+                        border.color: "#80F44336"
 
                         Column {
                             id: kickstandCol
@@ -171,7 +177,7 @@ Item {
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "Cancel"
+                                text: typeof translations !== "undefined" ? translations.hibernationCancel : ""
                                 font.pixelSize: 16
                                 font.bold: true
                                 color: "#FFFFFF"
@@ -179,21 +185,21 @@ Item {
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "Flip Kickstand"
+                                text: typeof translations !== "undefined" ? translations.hibernationKickstand : ""
                                 font.pixelSize: 12
-                                color: "#B3FFFFFF" // white 70%
+                                color: "#B3FFFFFF"
                             }
                         }
                     }
 
-                    // Keycard box (green themed, Flutter: Icons.check + confirm/tap keycard)
+                    // Confirm / keycard box
                     Rectangle {
                         width: 160
                         height: keycardCol.height + 32
                         radius: 12
-                        color: "#334CAF50" // green 20% opacity
+                        color: "#334CAF50"
                         border.width: 1
-                        border.color: "#804CAF50" // green 50% opacity
+                        border.color: "#804CAF50"
 
                         Column {
                             id: keycardCol
@@ -210,7 +216,7 @@ Item {
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "Confirm"
+                                text: typeof translations !== "undefined" ? translations.hibernationConfirm : ""
                                 font.pixelSize: 16
                                 font.bold: true
                                 color: "#FFFFFF"
@@ -218,9 +224,9 @@ Item {
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "Tap Keycard"
+                                text: typeof translations !== "undefined" ? translations.hibernationTapKeycardToConfirm : ""
                                 font.pixelSize: 12
-                                color: "#B3FFFFFF" // white 70%
+                                color: "#B3FFFFFF"
                             }
                         }
                     }
@@ -232,7 +238,7 @@ Item {
     // Mode 2: Seatbox warning (state 15)
     Rectangle {
         anchors.fill: parent
-        color: "#FF9800" // orange
+        color: "#FF9800"
         opacity: 0.9
         visible: isSeatboxMode
     }
@@ -242,7 +248,6 @@ Item {
         visible: isSeatboxMode
         spacing: 16
 
-        // Warning icon (Flutter: Icons.warning_amber_rounded, size: 64)
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: String.fromCodePoint(0xf02a0) // warning_amber_rounded
@@ -253,7 +258,7 @@ Item {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "Seatbox Open"
+            text: typeof translations !== "undefined" ? translations.hibernateSeatboxOpen : ""
             font.pixelSize: 28
             font.bold: true
             color: "#000000"
@@ -261,13 +266,13 @@ Item {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "Close Seatbox"
+            text: typeof translations !== "undefined" ? translations.hibernateCloseSeatbox : ""
             font.pixelSize: 18
             color: "#000000"
         }
     }
 
-    // Mode 3: Confirming (state 16)
+    // Mode 3: Confirming (states 7, 8, 16)
     Rectangle {
         anchors.fill: parent
         color: "#000000"
@@ -280,7 +285,6 @@ Item {
         visible: isConfirmMode
         spacing: 16
 
-        // Flutter: Icons.power_settings_new, color: Colors.red, size: 64
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: "\ue4e3" // power_settings_new
@@ -291,13 +295,12 @@ Item {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "Hibernating..."
+            text: typeof translations !== "undefined" ? translations.hibernating : ""
             font.pixelSize: 28
             font.bold: true
             color: "#FFFFFF"
         }
 
-        // Spinner (Flutter: CircularProgressIndicator)
         Rectangle {
             id: confirmSpinner
             anchors.horizontalCenter: parent.horizontalCenter
