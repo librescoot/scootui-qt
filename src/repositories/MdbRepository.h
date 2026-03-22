@@ -39,6 +39,9 @@ public:
     virtual bool isConnected() const { return false; }
     virtual bool isUsingBackupConnection() const { return false; }
 
+    // Re-emit current connection state so late listeners can sync
+    void notifyConnectionState() { emit connectionStateChanged(isConnected()); }
+
 signals:
     void connectionStateChanged(bool connected);
     void prolongedDisconnect(bool disconnected);

@@ -54,6 +54,7 @@
 #include <QDebug>
 #include <QProcess>
 #include <QFile>
+#include <QTimer>
 
 #ifdef Q_OS_LINUX
 #include <QSocketNotifier>
@@ -313,6 +314,14 @@ void Application::createStores(QQmlApplicationEngine &engine)
             syncable->start();
         }
     }
+
+    // Re-emit connection state on next event loop tick so stores can refetch.
+    // The constructor emits connectionStateChanged(true) before stores exist,
+    // so they miss it. This deferred re-emission gives all stores a second
+    // chance to fetch data once the event loop is running.
+    QTimer::singleShot(0, this, [repo]() {
+        repo->notifyConnectionState();
+    });
 
     // Debug: log battery store state after initial sync
     qDebug() << "Battery0 after start: present=" << battery0Store->present()
