@@ -315,6 +315,11 @@ void Application::createStores(QQmlApplicationEngine &engine)
         }
     }
 
+    // Register infrequently-polled channels not covered by any store
+    repo->registerPollChannel(QStringLiteral("system"), 30000);
+    repo->registerPollChannel(QStringLiteral("version:mdb"), 30000);
+    repo->registerPollChannel(QStringLiteral("version:dbc"), 30000);
+
     // Start the Redis worker thread (after all channels are registered)
     if (auto *redisRepo = qobject_cast<RedisMdbRepository*>(repo)) {
         redisRepo->startWorker();
