@@ -5,7 +5,7 @@ import "../indicators"
 Item {
     id: speedCenter
     implicitWidth: 120
-    implicitHeight: 75
+    implicitHeight: speedColumn.implicitHeight
 
     anchors.horizontalCenter: parent.horizontalCenter
 
@@ -22,6 +22,7 @@ Item {
 
     // Speed display (centered)
     Column {
+        id: speedColumn
         anchors.centerIn: parent
         spacing: 2
 
