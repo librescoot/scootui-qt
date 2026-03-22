@@ -38,7 +38,8 @@ Item {
 
         Column {
             anchors.centerIn: parent
-            spacing: 16
+            anchors.margins: 16
+            spacing: 4
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
