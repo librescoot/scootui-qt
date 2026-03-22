@@ -4,7 +4,7 @@ import QtQuick.Layouts
 Rectangle {
     id: bottomBar
     color: typeof themeStore !== "undefined" ? themeStore.backgroundColor : "black"
-    implicitHeight: Math.max(48, centerItem.childrenRect.height + 16)
+    implicitHeight: centerItem.childrenRect.height + 16
 
     // Allow injecting a center widget (like Flutter's centerWidget parameter)
     default property alias centerContent: centerItem.data
@@ -38,7 +38,7 @@ Rectangle {
 
             Row {
                 anchors.left: parent.left
-                anchors.verticalCenter: parent.verticalCenter
+                anchors.bottom: parent.bottom
                 spacing: 16
 
                 // Duration column
@@ -105,7 +105,7 @@ Rectangle {
 
             Row {
                 anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
+                anchors.bottom: parent.bottom
                 spacing: 16
 
                 // Trip column
