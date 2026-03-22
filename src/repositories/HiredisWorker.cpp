@@ -36,36 +36,12 @@ void HiredisWorker::start()
         return;
     }
 
-    m_gcdInterval = m_channels.first().intervalMs;
-    for (int i = 1; i < m_channels.size(); ++i)
-        m_gcdInterval = computeGcd(m_gcdInterval, m_channels[i].intervalMs);
-
-    // Clamp to at least 100ms
-    m_gcdInterval = qMax(m_gcdInterval, 100);
-
-    for (auto &ch : m_channels)
-        ch.tickModulo = ch.intervalMs / m_gcdInterval;
-
-    qDebug() << "HiredisWorker: GCD interval" << m_gcdInterval << "ms,"
-             << m_channels.size() << "channels";
-
-    // Connect to Redis
-    if (!ensureConnected()) {
-        qWarning() << "HiredisWorker: initial connection failed, will retry";
-    }
-
-    // Poll timer
+    // Create timers first (ensureConnected may need them)
     m_pollTimer = new QTimer(this);
-    m_pollTimer->setInterval(m_gcdInterval);
-    connect(m_pollTimer, &QTimer::timeout, this, &HiredisWorker::onPollTimer);
-
-    // Reconnect timer
     m_reconnectTimer = new QTimer(this);
     m_reconnectTimer->setSingleShot(true);
     m_reconnectTimer->setInterval(2000);
     connect(m_reconnectTimer, &QTimer::timeout, this, &HiredisWorker::tryReconnect);
-
-    // Primary probe timer (when on backup)
     m_primaryProbeTimer = new QTimer(this);
     m_primaryProbeTimer->setInterval(2000);
     connect(m_primaryProbeTimer, &QTimer::timeout, this, [this]() {
@@ -86,6 +62,26 @@ void HiredisWorker::start()
             if (probe) redisFree(probe);
         }
     });
+
+    // Compute GCD-based poll interval (clamp first, then compute modulos)
+    m_gcdInterval = m_channels.first().intervalMs;
+    for (int i = 1; i < m_channels.size(); ++i)
+        m_gcdInterval = computeGcd(m_gcdInterval, m_channels[i].intervalMs);
+    m_gcdInterval = qMax(m_gcdInterval, 100);
+
+    for (auto &ch : m_channels)
+        ch.tickModulo = qMax(1, ch.intervalMs / m_gcdInterval);
+
+    m_pollTimer->setInterval(m_gcdInterval);
+    connect(m_pollTimer, &QTimer::timeout, this, &HiredisWorker::onPollTimer);
+
+    qDebug() << "HiredisWorker: GCD interval" << m_gcdInterval << "ms,"
+             << m_channels.size() << "channels";
+
+    // Connect to Redis
+    if (!ensureConnected()) {
+        qWarning() << "HiredisWorker: initial connection failed, will retry";
+    }
 
     // Initial full fetch + start polling
     if (m_connected) {

@@ -108,8 +108,9 @@ void RedisMdbRepository::set(const QString &channel, const QString &variable,
     }
 
     if (m_worker) {
-        QMetaObject::invokeMethod(m_worker, [this, channel, variable, value, doPublish]() {
-            m_worker->doSet(channel, variable, value, doPublish);
+        auto *w = m_worker;
+        QMetaObject::invokeMethod(w, [w, channel, variable, value, doPublish]() {
+            w->doSet(channel, variable, value, doPublish);
         }, Qt::QueuedConnection);
     }
 }
@@ -117,8 +118,9 @@ void RedisMdbRepository::set(const QString &channel, const QString &variable,
 void RedisMdbRepository::push(const QString &channel, const QString &command)
 {
     if (m_worker) {
-        QMetaObject::invokeMethod(m_worker, [this, channel, command]() {
-            m_worker->doPush(channel, command);
+        auto *w = m_worker;
+        QMetaObject::invokeMethod(w, [w, channel, command]() {
+            w->doPush(channel, command);
         }, Qt::QueuedConnection);
     } else {
         qWarning() << "RedisMdbRepository::push: worker not started, dropping"
@@ -129,8 +131,9 @@ void RedisMdbRepository::push(const QString &channel, const QString &command)
 void RedisMdbRepository::publish(const QString &channel, const QString &message)
 {
     if (m_worker) {
-        QMetaObject::invokeMethod(m_worker, [this, channel, message]() {
-            m_worker->doPublish(channel, message);
+        auto *w = m_worker;
+        QMetaObject::invokeMethod(w, [w, channel, message]() {
+            w->doPublish(channel, message);
         }, Qt::QueuedConnection);
     }
 }
@@ -154,8 +157,9 @@ void RedisMdbRepository::hdel(const QString &key, const QString &field)
     }
 
     if (m_worker) {
-        QMetaObject::invokeMethod(m_worker, [this, key, field]() {
-            m_worker->doHdel(key, field);
+        auto *w = m_worker;
+        QMetaObject::invokeMethod(w, [w, key, field]() {
+            w->doHdel(key, field);
         }, Qt::QueuedConnection);
     }
 }
@@ -163,8 +167,9 @@ void RedisMdbRepository::hdel(const QString &key, const QString &field)
 void RedisMdbRepository::addToSet(const QString &setKey, const QString &member)
 {
     if (m_worker) {
-        QMetaObject::invokeMethod(m_worker, [this, setKey, member]() {
-            m_worker->doAddToSet(setKey, member);
+        auto *w = m_worker;
+        QMetaObject::invokeMethod(w, [w, setKey, member]() {
+            w->doAddToSet(setKey, member);
         }, Qt::QueuedConnection);
     }
 }
@@ -172,8 +177,9 @@ void RedisMdbRepository::addToSet(const QString &setKey, const QString &member)
 void RedisMdbRepository::removeFromSet(const QString &setKey, const QString &member)
 {
     if (m_worker) {
-        QMetaObject::invokeMethod(m_worker, [this, setKey, member]() {
-            m_worker->doRemoveFromSet(setKey, member);
+        auto *w = m_worker;
+        QMetaObject::invokeMethod(w, [w, setKey, member]() {
+            w->doRemoveFromSet(setKey, member);
         }, Qt::QueuedConnection);
     }
 }
@@ -184,8 +190,9 @@ QStringList RedisMdbRepository::getSetMembers(const QString &setKey)
 {
     // Trigger a fetch and return cached result
     if (m_worker) {
-        QMetaObject::invokeMethod(m_worker, [this, setKey]() {
-            m_worker->doGetSetMembers(setKey);
+        auto *w = m_worker;
+        QMetaObject::invokeMethod(w, [w, setKey]() {
+            w->doGetSetMembers(setKey);
         }, Qt::QueuedConnection);
     }
     QMutexLocker lock(&m_resultMutex);
@@ -195,8 +202,9 @@ QStringList RedisMdbRepository::getSetMembers(const QString &setKey)
 QStringList RedisMdbRepository::lrange(const QString &key, int start, int stop)
 {
     if (m_worker) {
-        QMetaObject::invokeMethod(m_worker, [this, key, start, stop]() {
-            m_worker->doLrange(key, start, stop);
+        auto *w = m_worker;
+        QMetaObject::invokeMethod(w, [w, key, start, stop]() {
+            w->doLrange(key, start, stop);
         }, Qt::QueuedConnection);
     }
     QMutexLocker lock(&m_resultMutex);
@@ -301,11 +309,11 @@ void RedisMdbRepository::setupPubsub()
 void RedisMdbRepository::teardownPubsub()
 {
     if (m_pubsubCtx) {
+        // redisAsyncDisconnect triggers the disconnect callback which
+        // fires ev.cleanup, cleaning up the adapter's notifiers.
+        // The adapter itself is parented to us and cleaned up by Qt.
         redisAsyncDisconnect(m_pubsubCtx);
         m_pubsubCtx = nullptr;
-    }
-    if (m_pubsubAdapter) {
-        delete m_pubsubAdapter;
         m_pubsubAdapter = nullptr;
     }
 }
