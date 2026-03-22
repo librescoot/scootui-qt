@@ -17,9 +17,6 @@ Item {
         return typeof engineStore !== "undefined" ? engineStore.speed : 0
     }
 
-    FontMetrics { id: speedFm; font: speedText.font }
-    FontMetrics { id: unitFm; font: unitText.font }
-
     // Speed display (centered)
     Column {
         id: speedColumn
@@ -29,22 +26,20 @@ Item {
         Text {
             id: speedText
             anchors.horizontalCenter: parent.horizontalCenter
+            height: 48
             text: Math.floor(speed).toString()
             font.pixelSize: 48
             font.bold: true
             color: themeStore.textColor
-            lineHeight: speedFm.ascent
-            lineHeightMode: Text.FixedHeight
         }
 
         Text {
             id: unitText
             anchors.horizontalCenter: parent.horizontalCenter
+            height: 16
             text: "km/h"
             font.pixelSize: 16
             color: themeStore.textSecondary
-            lineHeight: unitFm.ascent
-            lineHeightMode: Text.FixedHeight
         }
     }
 
