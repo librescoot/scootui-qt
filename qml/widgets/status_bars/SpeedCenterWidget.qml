@@ -29,7 +29,7 @@ Item {
             font.bold: true
             color: themeStore.textColor
             lineHeight: 1.0
-            lineHeightMode: Text.FixedHeight
+            lineHeightMode: Text.ProportionalHeight
         }
 
         Text {
@@ -38,7 +38,7 @@ Item {
             font.pixelSize: 16
             color: themeStore.textSecondary
             lineHeight: 0.8
-            lineHeightMode: Text.FixedHeight
+            lineHeightMode: Text.ProportionalHeight
         }
     }
 
