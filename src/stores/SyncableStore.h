@@ -52,21 +52,13 @@ protected:
     MdbRepository *m_repo;
 
 private:
-    void doHgetall();
+    void onFieldsReceived(const QString &channel, const FieldMap &fields);
     void onPubsubMessage(const QString &channel, const QString &message);
-    void startPollTimer();
     void doRefreshSet(const SyncSetFieldDef &field);
     void scheduleSetTimer(const SyncSetFieldDef &field);
-    void pausePolling();
-    void resumePolling();
     QString interpolateKey(const QString &key) const;
 
-    QTimer *m_pollTimer = nullptr;
-    QTimer *m_pubsubDebounce = nullptr;
     QHash<QString, QTimer*> m_setTimers;
-    QString m_channel;  // cached from syncSettings() to avoid virtual call in destructor
-    bool m_isPaused = false;
-    bool m_isClosing = false;
-    bool m_hasLoggedError = false;
+    QString m_channel;
     bool m_started = false;
 };

@@ -1,96 +1,13 @@
 #pragma once
 
 #include "MdbRepository.h"
-#include <QTcpSocket>
-#include <QTimer>
 #include <QThread>
+#include <QTimer>
 #include <QMutex>
-#include <QByteArray>
 
-// Synchronous Redis connection using RESP protocol over QTcpSocket
-class RedisConnection : public QObject
-{
-    Q_OBJECT
-
-public:
-    explicit RedisConnection(const QString &host, quint16 port, QObject *parent = nullptr);
-    ~RedisConnection() override;
-
-    bool connectToServer(int timeoutMs = 2000);
-    bool connectToServer(const QString &host, quint16 port, int timeoutMs = 2000);
-    void disconnect();
-    bool isConnected() const;
-
-    // Send RESP command and get reply
-    QVariant command(const QStringList &args, int timeoutMs = 2000);
-
-    // Convenience wrappers
-    QString hget(const QString &key, const QString &field);
-    FieldMap hgetall(const QString &key);
-    void hset(const QString &key, const QString &field, const QString &value);
-    void hdel(const QString &key, const QString &field);
-    void publish(const QString &channel, const QString &message);
-    void lpush(const QString &key, const QString &value);
-    QStringList smembers(const QString &key);
-    QStringList lrange(const QString &key, int start, int stop);
-    void sadd(const QString &key, const QString &member);
-    void srem(const QString &key, const QString &member);
-
-private:
-    QByteArray buildCommand(const QStringList &args);
-    QVariant readReply(int timeoutMs);
-    QVariant parseReply();
-    bool readLine(QByteArray &line, int timeoutMs);
-    bool readBytes(int count, QByteArray &data, int timeoutMs);
-
-    QTcpSocket *m_socket;
-    QString m_host;
-    quint16 m_port;
-    QByteArray m_buffer;
-};
-
-// Pub/sub listener running in a dedicated thread
-class RedisPubsubWorker : public QObject
-{
-    Q_OBJECT
-
-public:
-    explicit RedisPubsubWorker(const QString &host, quint16 port,
-                               const QString &backupHost = QString());
-    ~RedisPubsubWorker() override;
-
-public slots:
-    void start();
-    void stop();
-    void subscribe(const QString &channel);
-    void unsubscribe(const QString &channel);
-    void reconnectToPrimary();
-    void setPreferredHost(const QString &host);
-
-signals:
-    void messageReceived(const QString &channel, const QString &message);
-    void connected();
-    void disconnected();
-
-private slots:
-    void onReadyRead();
-    void onDisconnected();
-    void tryReconnect();
-
-private:
-    QVariant parseReply();
-
-    RedisConnection *m_conn = nullptr;
-    QTcpSocket *m_socket = nullptr;
-    QString m_host;
-    quint16 m_port;
-    QString m_backupHost;
-    QString m_preferredHost;
-    QStringList m_channels;
-    QByteArray m_buffer;
-    QTimer *m_reconnectTimer = nullptr;
-    bool m_running = false;
-};
+class HiredisWorker;
+class HiredisAdapter;
+struct redisAsyncContext;
 
 class RedisMdbRepository : public MdbRepository
 {
@@ -103,6 +20,7 @@ public:
                                  QObject *parent = nullptr);
     ~RedisMdbRepository() override;
 
+    // MdbRepository interface (sync reads become cache reads, writes are fire-and-forget)
     QString get(const QString &channel, const QString &variable) override;
     FieldMap getAll(const QString &channel) override;
     void set(const QString &channel, const QString &variable,
@@ -123,30 +41,54 @@ public:
     bool isConnected() const override { return m_connected; }
     bool isUsingBackupConnection() const override { return m_usingBackup; }
 
+    // Register a channel for periodic polling by the worker.
+    // Call before start(). SyncableStore calls this during construction.
+    void registerPollChannel(const QString &channel, int intervalMs);
+
+    // Start the worker thread and pub/sub. Call after all channels are registered.
+    void startWorker();
+
 private slots:
-    void onPubsubMessage(const QString &channel, const QString &message);
-    void onPubsubConnected();
-    void onPubsubDisconnected();
-    void switchToPrimary();
+    void onFieldsUpdated(const QString &channel, const FieldMap &fields);
+    void onWorkerConnectionChanged(bool connected);
 
 private:
-    bool ensureConnected();
-    void startReconnectTimer();
-    void tryReconnectPrimary();
-    void tellPubsubPreferHost(const QString &host);
+    void setupPubsub();
+    void teardownPubsub();
+    void resubscribeAll();
+    static void onPubsubConnected(const redisAsyncContext *ctx, int status);
+    static void onPubsubDisconnected(const redisAsyncContext *ctx, int status);
+    static void onPubsubReply(redisAsyncContext *ctx, void *reply, void *privdata);
 
-    RedisConnection *m_conn;
-    QThread *m_pubsubThread;
-    RedisPubsubWorker *m_pubsubWorker;
+    // Worker thread
+    QThread *m_workerThread = nullptr;
+    HiredisWorker *m_worker = nullptr;
+
+    // Pub/sub (main thread, async)
+    redisAsyncContext *m_pubsubCtx = nullptr;
+    HiredisAdapter *m_pubsubAdapter = nullptr;
+    QTimer *m_pubsubReconnectTimer = nullptr;
+
+    // Cached data from worker (updated via signal, read from main thread)
+    mutable QMutex m_cacheMutex;
+    QHash<QString, FieldMap> m_cache;
+
+    // Subscriptions
     QHash<QString, QList<SubscriptionCallback>> m_subscribers;
-    QTimer *m_reconnectTimer;
+
+    // Connection state
     QString m_host;
     quint16 m_port;
     QString m_backupHost;
     bool m_connected = false;
     bool m_usingBackup = false;
+
+    // Prolonged disconnect tracking
+    QTimer *m_prolongedTimer = nullptr;
     bool m_prolongedDisconnect = false;
-    bool m_isSwitchingHosts = false;
-    QTimer *m_prolongedTimer;
-    QTimer *m_primaryReconnectTimer;
+
+    // Set/lrange results (for the few sync callers that need them)
+    QMutex m_resultMutex;
+    QHash<QString, QStringList> m_setResults;
+    QHash<QString, QStringList> m_lrangeResults;
 };

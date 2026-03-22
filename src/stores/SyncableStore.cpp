@@ -21,87 +21,51 @@ void SyncableStore::start()
     const auto settings = syncSettings();
     m_channel = settings.channel;
 
-    // Listen for connection state changes
-    connect(m_repo, &MdbRepository::connectionStateChanged,
-            this, [this](bool connected) {
-        const auto ch = syncSettings().channel;
-        if (ch.startsWith(QLatin1String("battery"))) {
-            qDebug() << "SyncableStore (" << ch << "): connectionStateChanged=" << connected
-                     << "paused=" << m_isPaused;
-        }
-        if (connected) {
-            if (m_isPaused)
-                resumePolling();
-            else
-                doHgetall(); // Re-fetch if initial fetch missed data
-        } else {
-            pausePolling();
-        }
-    });
+    // Register this channel for polling by the worker thread
+    m_repo->registerPollChannel(settings.channel, settings.intervalMs);
 
-    // Initial fetch
-    doHgetall();
-    startPollTimer();
+    // Listen for pushed field updates from the worker
+    connect(m_repo, &MdbRepository::fieldsUpdated,
+            this, &SyncableStore::onFieldsReceived);
+
+    // Subscribe to pubsub for this channel (triggers immediate re-poll in worker)
+    m_repo->subscribe(settings.channel, [this](const QString &ch, const QString &msg) {
+        onPubsubMessage(ch, msg);
+    });
 
     // Set up set field timers
     for (const auto &field : settings.setFields) {
         doRefreshSet(field);
         scheduleSetTimer(field);
     }
-
-    // Subscribe to pubsub
-    m_repo->subscribe(settings.channel, [this](const QString &ch, const QString &msg) {
-        onPubsubMessage(ch, msg);
-    });
 }
 
 void SyncableStore::stop()
 {
-    if (!m_started && m_channel.isEmpty()) return;
-    m_isClosing = true;
+    if (!m_started) return;
     m_started = false;
 
-    if (m_pollTimer) {
-        m_pollTimer->stop();
-        delete m_pollTimer;
-        m_pollTimer = nullptr;
-    }
-    if (m_pubsubDebounce) {
-        m_pubsubDebounce->stop();
-        delete m_pubsubDebounce;
-        m_pubsubDebounce = nullptr;
-    }
+    disconnect(m_repo, &MdbRepository::fieldsUpdated,
+               this, &SyncableStore::onFieldsReceived);
+
+    if (!m_channel.isEmpty())
+        m_repo->unsubscribe(m_channel);
+
     for (auto *timer : m_setTimers) {
         timer->stop();
         delete timer;
     }
     m_setTimers.clear();
-
-    if (!m_channel.isEmpty()) {
-        m_repo->unsubscribe(m_channel);
-    }
 }
 
-void SyncableStore::doHgetall()
+void SyncableStore::onFieldsReceived(const QString &channel, const FieldMap &fields)
 {
-    if (m_isPaused || m_isClosing) return;
-
     const auto settings = syncSettings();
-    const FieldMap values = m_repo->getAll(settings.channel);
+    if (channel != settings.channel) return;
 
-    if (values.isEmpty() && settings.channel.startsWith(QLatin1String("battery"))) {
-        qDebug() << "SyncableStore (" << settings.channel << "): HGETALL returned EMPTY";
-    }
-
-    if (m_hasLoggedError) {
-        qDebug() << "SyncableStore (" << settings.channel << "): Connection recovered";
-        m_hasLoggedError = false;
-    }
-
-    // Apply each known field
     for (const auto &field : settings.fields) {
-        const auto it = values.constFind(field.variable);
-        if (it != values.constEnd()) {
+        const auto it = fields.constFind(field.variable);
+        if (it != fields.constEnd()) {
             applyFieldUpdate(field.variable, *it);
         } else if (field.clearable) {
             applyFieldUpdate(field.variable, QString());
@@ -111,7 +75,7 @@ void SyncableStore::doHgetall()
 
 void SyncableStore::onPubsubMessage(const QString &channel, const QString &message)
 {
-    if (m_isPaused || m_isClosing) return;
+    if (!m_started) return;
 
     const auto settings = syncSettings();
 
@@ -123,32 +87,26 @@ void SyncableStore::onPubsubMessage(const QString &channel, const QString &messa
         }
     }
 
-    // Debounce: coalesce rapid pubsub messages into single HGETALL
-    if (!m_pubsubDebounce) {
-        m_pubsubDebounce = new QTimer(this);
-        m_pubsubDebounce->setSingleShot(true);
-        connect(m_pubsubDebounce, &QTimer::timeout, this, [this]() {
-            doHgetall();
-            startPollTimer(); // Reset periodic timer
-        });
-    }
-    m_pubsubDebounce->start(50);
+    // For regular field notifications, the worker will re-poll and push
+    // updated fields via fieldsUpdated signal. If the message is "*"
+    // (from worker's own poll), we already processed the fields in
+    // onFieldsReceived, so nothing to do here.
 }
 
-void SyncableStore::startPollTimer()
+void SyncableStore::refreshAllFields()
 {
+    // Read from cache (non-blocking)
     const auto settings = syncSettings();
+    FieldMap fields = m_repo->getAll(settings.channel);
+    onFieldsReceived(settings.channel, fields);
 
-    if (!m_pollTimer) {
-        m_pollTimer = new QTimer(this);
-        connect(m_pollTimer, &QTimer::timeout, this, &SyncableStore::doHgetall);
-    }
-    m_pollTimer->start(settings.intervalMs);
+    for (const auto &field : settings.setFields)
+        doRefreshSet(field);
 }
 
 void SyncableStore::doRefreshSet(const SyncSetFieldDef &field)
 {
-    if (m_isPaused || m_isClosing) return;
+    if (!m_started) return;
 
     const QString key = interpolateKey(field.setKey);
     const QStringList members = m_repo->getSetMembers(key);
@@ -166,7 +124,6 @@ void SyncableStore::scheduleSetTimer(const SyncSetFieldDef &field)
     });
     timer->start(interval);
 
-    // Clean up any existing timer
     if (m_setTimers.contains(field.name)) {
         m_setTimers[field.name]->stop();
         delete m_setTimers[field.name];
@@ -174,68 +131,8 @@ void SyncableStore::scheduleSetTimer(const SyncSetFieldDef &field)
     m_setTimers[field.name] = timer;
 }
 
-void SyncableStore::pausePolling()
-{
-    if (m_isPaused) return;
-    m_isPaused = true;
-
-    if (m_pollTimer) m_pollTimer->stop();
-    if (m_pubsubDebounce) m_pubsubDebounce->stop();
-
-    for (auto *timer : m_setTimers) {
-        timer->stop();
-    }
-
-    const auto settings = syncSettings();
-    m_repo->unsubscribe(settings.channel);
-
-    qDebug() << "SyncableStore (" << settings.channel << "): Polling paused";
-}
-
-#include <QRandomGenerator>
-
-void SyncableStore::resumePolling()
-{
-    if (!m_isPaused) return;
-    m_isPaused = false;
-    m_hasLoggedError = false;
-
-    const auto settings = syncSettings();
-    qDebug() << "SyncableStore (" << settings.channel << "): Polling resumed (staggered)";
-
-    // Stagger resume to avoid thundering herd on the main thread and network.
-    // This is especially important on slow PPP backup connections.
-    int delay = 10 + QRandomGenerator::global()->bounded(500);
-    QTimer::singleShot(delay, this, [this]() {
-        if (m_isPaused || m_isClosing) return;
-
-        const auto settings = syncSettings();
-        doHgetall();
-        startPollTimer();
-
-        for (const auto &field : settings.setFields) {
-            doRefreshSet(field);
-            scheduleSetTimer(field);
-        }
-
-        m_repo->subscribe(settings.channel, [this](const QString &ch, const QString &msg) {
-            onPubsubMessage(ch, msg);
-        });
-    });
-}
-
-void SyncableStore::refreshAllFields()
-{
-    doHgetall();
-    const auto settings = syncSettings();
-    for (const auto &field : settings.setFields) {
-        doRefreshSet(field);
-    }
-}
-
 void SyncableStore::applySetUpdate(const QString &, const QStringList &)
 {
-    // Default: no-op. Override in stores that have set fields.
 }
 
 QString SyncableStore::interpolateKey(const QString &key) const

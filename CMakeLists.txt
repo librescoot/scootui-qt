@@ -9,6 +9,8 @@ option(DESKTOP_MODE "Build for desktop development with simulator panel (QMapLib
 
 find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Qml Svg Network Sql Concurrent)
 find_package(ZLIB REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(HIREDIS REQUIRED hiredis)
 
 if(DESKTOP_MODE)
     find_package(QMapLibre QUIET COMPONENTS Core)
@@ -53,6 +55,7 @@ set(CPP_SOURCES
     src/core/Application.cpp
     src/repositories/InMemoryMdbRepository.cpp
     src/repositories/RedisMdbRepository.cpp
+    src/repositories/HiredisWorker.cpp
     src/stores/SyncableStore.cpp
     src/stores/EngineStore.cpp
     src/stores/VehicleStore.cpp
@@ -112,6 +115,8 @@ set(CPP_HEADERS
     src/repositories/MdbRepository.h
     src/repositories/InMemoryMdbRepository.h
     src/repositories/RedisMdbRepository.h
+    src/repositories/HiredisAdapter.h
+    src/repositories/HiredisWorker.h
     src/stores/SyncableStore.h
     src/stores/EngineStore.h
     src/stores/VehicleStore.h
@@ -303,6 +308,8 @@ qt_add_qml_module(scootui
         assets/styles/maplight.json
 )
 
+target_include_directories(scootui PRIVATE ${HIREDIS_INCLUDE_DIRS})
+
 target_link_libraries(scootui PRIVATE
     Qt6::Quick
     Qt6::Svg
@@ -310,6 +317,7 @@ target_link_libraries(scootui PRIVATE
     Qt6::Sql
     Qt6::Concurrent
     ZLIB::ZLIB
+    ${HIREDIS_LIBRARIES}
 )
 
 if(HAS_QMAPLIBRE)

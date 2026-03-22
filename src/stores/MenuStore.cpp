@@ -300,12 +300,12 @@ void MenuStore::rebuildMenuTree()
             val == QLatin1String("never") ? 1 : 0, [updateFn]() { updateFn(QStringLiteral("never")); }));
     };
 
-    // Read raw string values for visibility settings
-    auto gpsVal = repo->get(QStringLiteral("settings"), QStringLiteral("dashboard.show-gps"));
-    auto btVal = repo->get(QStringLiteral("settings"), QStringLiteral("dashboard.show-bluetooth"));
-    auto cloudVal = repo->get(QStringLiteral("settings"), QStringLiteral("dashboard.show-cloud"));
-    auto inetVal = repo->get(QStringLiteral("settings"), QStringLiteral("dashboard.show-internet"));
-    auto clockVal = repo->get(QStringLiteral("settings"), QStringLiteral("dashboard.show-clock"));
+    // Read visibility settings from SettingsStore (already synced from Redis)
+    auto gpsVal = settings->showGps();
+    auto btVal = settings->showBluetooth();
+    auto cloudVal = settings->showCloud();
+    auto inetVal = settings->showInternet();
+    auto clockVal = settings->showClock();
 
     addVisibilitySubmenu(QStringLiteral("status_gps"), tr->menuGpsIcon(), gpsVal, QStringLiteral("error"),
         [svc](const QString &v) { svc->updateShowGps(v); });
