@@ -50,7 +50,7 @@ Item {
 
             Text {
                 text: qsTr("Regen")
-                font.pixelSize: 10
+                font.pixelSize: 12
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
                 font.capitalization: Font.AllUppercase
@@ -60,7 +60,7 @@ Item {
             Item { Layout.fillWidth: true }
             Text {
                 text: qsTr("Discharge")
-                font.pixelSize: 10
+                font.pixelSize: 12
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
                 font.capitalization: Font.AllUppercase
@@ -120,7 +120,7 @@ Item {
         Text {
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: 1
-            font.pixelSize: 12
+            font.pixelSize: 16
             color: themeStore.textHint
             text: {
                 var absVal = Math.abs(displayValue)
