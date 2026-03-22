@@ -14,6 +14,7 @@ Row {
     readonly property bool gpsRecentFix: typeof gpsStore !== "undefined" ? gpsStore.hasRecentFix : false
     readonly property bool gpsHasTimestamp: typeof gpsStore !== "undefined" ? gpsStore.hasTimestamp : false
     readonly property int btStatus: typeof bluetoothStore !== "undefined" ? bluetoothStore.status : 1
+    readonly property string btServiceHealth: typeof bluetoothStore !== "undefined" ? bluetoothStore.serviceHealth : ""
     readonly property int modemState: typeof internetStore !== "undefined" ? internetStore.modemState : 0
     readonly property int cloudStatus: typeof internetStore !== "undefined" ? internetStore.unuCloud : 1
     readonly property int signalQuality: typeof internetStore !== "undefined" ? internetStore.signalQuality : 0
@@ -24,18 +25,26 @@ Row {
     readonly property int otaDbcDownloadProgress: typeof otaStore !== "undefined" ? otaStore.dbcDownloadProgress : 0
     readonly property int otaDbcInstallProgress: typeof otaStore !== "undefined" ? otaStore.dbcInstallProgress : 0
 
-    // Visibility mode settings
-    readonly property string showInternetMode: typeof settingsStore !== "undefined" ? settingsStore.showInternet : "always"
-    readonly property string showCloudMode: typeof settingsStore !== "undefined" ? settingsStore.showCloud : "error"
-    readonly property string showBtMode: typeof settingsStore !== "undefined" ? settingsStore.showBluetooth : "active-or-error"
-    readonly property string showGpsMode: typeof settingsStore !== "undefined" ? settingsStore.showGps : "error"
+    // Visibility settings from SettingsStore (values: "always", "active-or-error", "error", "never")
+    readonly property string showGpsSetting: typeof settingsStore !== "undefined" ? settingsStore.showGps : "error"
+    readonly property string showBtSetting: typeof settingsStore !== "undefined" ? settingsStore.showBluetooth : "active-or-error"
+    readonly property string showCloudSetting: typeof settingsStore !== "undefined" ? settingsStore.showCloud : "error"
+    readonly property string showInternetSetting: typeof settingsStore !== "undefined" ? settingsStore.showInternet : "always"
 
-    // Visibility helper: mode × isActive × isError → visible
-    function iconVisible(mode, isActive, isError) {
-        switch (mode) {
+    // Active/error state for each indicator (matches Flutter shouldShowIndicator logic)
+    readonly property bool gpsIsActive: (gpsState === 0 && gpsRecentFix) || (gpsState === 2 && gpsRecentFix)
+    readonly property bool gpsHasError: gpsState === 3
+    readonly property bool btIsActive: btStatus === 0
+    readonly property bool btHasError: btServiceHealth === "error"
+    readonly property bool cloudIsActive: cloudStatus === 0
+    readonly property bool cloudHasError: cloudStatus === 1
+    readonly property bool internetIsActive: modemState === 2
+
+    function shouldShowIndicator(setting, isActive, hasError) {
+        switch (setting) {
             case "always": return true
-            case "active-or-error": return isActive || isError
-            case "error": return isError
+            case "active-or-error": return isActive || hasError
+            case "error": return hasError
             case "never": return false
             default: return true
         }
@@ -62,7 +71,7 @@ Row {
     // Internet/modem icon with access tech overlay (rightmost in RTL)
     Item {
         width: 24; height: 24
-        visible: iconVisible(showInternetMode, modemState >= 2, modemState < 2)
+        visible: shouldShowIndicator(showInternetSetting, internetIsActive, false)
 
         Image {
             id: modemIcon
@@ -99,7 +108,7 @@ Row {
     // Cloud status icon
     Item {
         width: 24; height: 24
-        visible: iconVisible(showCloudMode, cloudStatus === 0, cloudStatus !== 0)
+        visible: shouldShowIndicator(showCloudSetting, cloudIsActive, cloudHasError)
 
         Image {
             id: cloudIcon
@@ -121,7 +130,7 @@ Row {
     // Bluetooth icon
     Item {
         width: 24; height: 24
-        visible: iconVisible(showBtMode, btStatus === 0, btStatus !== 0)
+        visible: shouldShowIndicator(showBtSetting, btIsActive, btHasError)
 
         Image {
             id: btIcon
@@ -144,7 +153,7 @@ Row {
     Item {
         id: gpsItem
         width: 24; height: 24
-        visible: iconVisible(showGpsMode, gpsState === 2 && gpsRecentFix, gpsState !== 2 || !gpsRecentFix)
+        visible: shouldShowIndicator(showGpsSetting, gpsIsActive, gpsHasError)
 
         readonly property bool isSearching: {
             if (gpsState === 0) return !gpsRecentFix && gpsHasTimestamp
