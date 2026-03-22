@@ -41,7 +41,7 @@ void ValhallaClient::calculateRoute(const LatLng &from, const LatLng &to)
 
     QNetworkRequest req(QUrl(m_endpoint + QStringLiteral("route")));
     req.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
-    req.setTransferTimeout(5000);
+    req.setTransferTimeout(30000);
 
     // On embedded systems the clock may be wrong at boot, causing
     // "certificate not yet valid" errors. Disable peer verification
