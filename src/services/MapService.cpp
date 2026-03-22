@@ -721,10 +721,45 @@ double MapService::distanceToSecondManeuver() const
 // Rotation smoothing
 // ---------------------------------------------------------------------------
 
+double MapService::routeSegmentBearing() const
+{
+    if (m_routeShape.size() < 2 || m_currentRouteSegment < 0
+        || m_currentRouteSegment >= m_routeShape.size() - 1)
+        return -1;
+
+    int seg = m_currentRouteSegment;
+    return bearingBetween(m_routeShape[seg].first, m_routeShape[seg].second,
+                          m_routeShape[seg + 1].first, m_routeShape[seg + 1].second);
+}
+
 void MapService::updateBearing(double dt)
 {
     double speedKmh = m_engine->speed();
-    double rawHeading = m_gps->course();
+
+    bool onRoute = !m_routeShape.isEmpty() && m_currentRouteSegment >= 0
+                   && m_navigation->isNavigating();
+    bool hasFix = m_gps->hasRecentFix();
+    double gpsCourse = m_gps->course();
+
+    double rawHeading;
+    if (onRoute && !hasFix) {
+        // DR on route: use route bearing only
+        double rb = routeSegmentBearing();
+        rawHeading = (rb >= 0) ? rb : gpsCourse;
+    } else if (onRoute && hasFix) {
+        // GPS on route: blend 70% GPS + 30% route to reduce jitter
+        double rb = routeSegmentBearing();
+        if (rb >= 0) {
+            double diff = normalizeAngle(rb - gpsCourse);
+            rawHeading = gpsCourse + diff * 0.3;
+        } else {
+            rawHeading = gpsCourse;
+        }
+    } else {
+        // No route (GPS or DR): use GPS course
+        // When stopped with no fix, dampFactor freezes bearing anyway
+        rawHeading = gpsCourse;
+    }
 
     // Speed-based damping factor: freeze below HeadingFreezeSpeed, ramp to full
     double dampFactor = 0;

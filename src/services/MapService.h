@@ -99,6 +99,9 @@ private:
     // Snap to closest route segment and return index, or -1 if off route
     int findClosestSegment(double lat, double lng) const;
 
+    // Bearing along the current route segment, or -1 if not on route
+    double routeSegmentBearing() const;
+
     // --- Constants ---
 
     // Dead reckoning
