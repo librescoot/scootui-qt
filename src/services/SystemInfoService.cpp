@@ -23,13 +23,13 @@ void SystemInfoService::loadVersions()
         rows.append(row);
     };
 
-    if (!mdbVer.isEmpty()) {
+    if (mdbVer.contains(QStringLiteral("version"))) {
         addRow(QStringLiteral("MDB"), mdbVer.value(QStringLiteral("version")));
     } else if (system.contains(QStringLiteral("mdb-version"))) {
         addRow(QStringLiteral("MDB"), system[QStringLiteral("mdb-version")]);
     }
 
-    if (!dbcVer.isEmpty()) {
+    if (dbcVer.contains(QStringLiteral("version"))) {
         addRow(QStringLiteral("DBC"), dbcVer.value(QStringLiteral("version")));
     } else if (system.contains(QStringLiteral("dbc-version"))) {
         addRow(QStringLiteral("DBC"), system[QStringLiteral("dbc-version")]);
@@ -44,12 +44,12 @@ void SystemInfoService::loadVersions()
     // Individual version strings for direct QML binding
     auto ver = [](const QString &v) { return v.isEmpty() ? QStringLiteral("unknown") : v; };
 
-    if (!mdbVer.isEmpty())
+    if (mdbVer.contains(QStringLiteral("version")))
         m_mdbVersion = ver(mdbVer.value(QStringLiteral("version")));
     else
         m_mdbVersion = ver(system.value(QStringLiteral("mdb-version")));
 
-    if (!dbcVer.isEmpty())
+    if (dbcVer.contains(QStringLiteral("version")))
         m_dbcVersion = ver(dbcVer.value(QStringLiteral("version")));
     else
         m_dbcVersion = ver(system.value(QStringLiteral("dbc-version")));

@@ -25,7 +25,7 @@ public:
     QString ecuVersion() const { return m_ecuVersion; }
 
     // Call once repository is ready to fetch version data
-    void loadVersions();
+    Q_INVOKABLE void loadVersions();
 
 signals:
     void versionRowsChanged();
