@@ -21,7 +21,7 @@ Item {
         visible: controlHints.leftAction !== ""
         width: leftHint.width + 24
         height: leftHint.height + 12
-        color: controlHints.hintBg
+        color: "transparent"
         radius: 6
         // Extend past left screen edge
         anchors.leftMargin: -6
@@ -56,7 +56,7 @@ Item {
         visible: controlHints.rightAction !== ""
         width: rightHint.width + 24
         height: rightHint.height + 12
-        color: controlHints.hintBg
+        color: "transparent"
         radius: 6
         // Extend past right screen edge
         anchors.rightMargin: -6
