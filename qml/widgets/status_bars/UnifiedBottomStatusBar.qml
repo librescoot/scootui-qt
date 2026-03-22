@@ -96,6 +96,7 @@ Rectangle {
             id: centerItem
             Layout.fillWidth: true
             Layout.fillHeight: true
+            implicitHeight: childrenRect.height
         }
 
         // Right: Trip + Total distances (label above value, columns side by side)
