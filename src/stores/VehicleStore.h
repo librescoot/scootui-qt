@@ -2,12 +2,16 @@
 
 #include "SyncableStore.h"
 #include "models/Enums.h"
+#include <QTimer>
+#include <QElapsedTimer>
+#include <QEasingCurve>
 
 class VehicleStore : public SyncableStore
 {
     Q_OBJECT
     Q_PROPERTY(int blinkerState READ blinkerState NOTIFY blinkerStateChanged)
     Q_PROPERTY(int blinkerSwitch READ blinkerSwitch NOTIFY blinkerSwitchChanged)
+    Q_PROPERTY(qreal blinkOpacity READ blinkOpacity NOTIFY blinkOpacityChanged)
     Q_PROPERTY(int brakeLeft READ brakeLeft NOTIFY brakeLeftChanged)
     Q_PROPERTY(int brakeRight READ brakeRight NOTIFY brakeRightChanged)
     Q_PROPERTY(int kickstand READ kickstand NOTIFY kickstandChanged)
@@ -25,6 +29,7 @@ public:
 
     int blinkerState() const { return static_cast<int>(m_blinkerState); }
     int blinkerSwitch() const { return static_cast<int>(m_blinkerSwitch); }
+    qreal blinkOpacity() const { return m_blinkOpacity; }
     int brakeLeft() const { return static_cast<int>(m_brakeLeft); }
     int brakeRight() const { return static_cast<int>(m_brakeRight); }
     int kickstand() const { return static_cast<int>(m_kickstand); }
@@ -47,6 +52,7 @@ public:
 signals:
     void blinkerStateChanged();
     void blinkerSwitchChanged();
+    void blinkOpacityChanged();
     void brakeLeftChanged();
     void brakeRightChanged();
     void kickstandChanged();
@@ -65,6 +71,12 @@ protected:
 
 private:
     void onButtonEvent(const QString &channel, const QString &message);
+    void updateBlinkClock();
+
+    QTimer m_blinkTimer;
+    QElapsedTimer m_blinkElapsed;
+    QEasingCurve m_blinkEasing{QEasingCurve::InOutExpo};
+    qreal m_blinkOpacity = 0.0;
 
     ScootEnums::BlinkerState m_blinkerState = ScootEnums::BlinkerState::Off;
     ScootEnums::BlinkerSwitch m_blinkerSwitch = ScootEnums::BlinkerSwitch::Off;

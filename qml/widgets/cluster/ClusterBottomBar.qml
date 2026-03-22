@@ -43,6 +43,7 @@ Item {
                 source: "qrc:/ScootUI/assets/icons/librescoot-hazards.svg"
                 sourceSize: Qt.size(32, 32)
                 visible: blinkerState === 3
+                opacity: typeof vehicleStore !== "undefined" ? vehicleStore.blinkOpacity : 1
             }
 
             // Parking brake

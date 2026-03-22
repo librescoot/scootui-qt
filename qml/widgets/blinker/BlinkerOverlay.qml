@@ -17,6 +17,10 @@ Item {
 
     visible: showLeft || showRight
 
+    // Shared blink clock from VehicleStore (scaled to 0.8 max)
+    readonly property real blinkOpacity: typeof vehicleStore !== "undefined"
+                                         ? vehicleStore.blinkOpacity * 0.8 : 0
+
     // Large arrow icon centered on the content area between status bars
     Item {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -44,24 +48,7 @@ Item {
                     : "qrc:/ScootUI/assets/icons/librescoot-turn-right.svg"
             sourceSize: Qt.size(360, 360)
             fillMode: Image.PreserveAspectFit
-            opacity: 0
-
-            SequentialAnimation {
-                id: blinkAnim
-                running: blinkerOverlay.visible
-                loops: Animation.Infinite
-                NumberAnimation {
-                    target: activeArrow; property: "opacity"
-                    from: 0; to: 0.8; duration: 250
-                    easing.type: Easing.InOutExpo
-                }
-                NumberAnimation {
-                    target: activeArrow; property: "opacity"
-                    from: 0.8; to: 0; duration: 250
-                    easing.type: Easing.InOutExpo
-                }
-                PauseAnimation { duration: 228 }
-            }
+            opacity: blinkerOverlay.blinkOpacity
         }
     }
 }

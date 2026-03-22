@@ -249,6 +249,7 @@ Rectangle {
                             source: "qrc:/ScootUI/assets/icons/librescoot-hazards.svg"
                             active: true
                             blinking: true
+                            blinkSource: typeof vehicleStore !== "undefined" ? vehicleStore.blinkOpacity : -1
                             tintColor: "#F44336"
                             width: 32; height: 32
                         }

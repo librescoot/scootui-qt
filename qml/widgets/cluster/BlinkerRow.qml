@@ -9,7 +9,6 @@ Item {
 
     readonly property bool showLeft: blinkerState === 1 || blinkerState === 3
     readonly property bool showRight: blinkerState === 2 || blinkerState === 3
-    readonly property bool anyActive: showLeft || showRight
 
     readonly property bool overlayEnabled: typeof settingsStore !== "undefined"
                                            ? settingsStore.blinkerStyle === "overlay" : false
@@ -17,23 +16,8 @@ Item {
     // Hide small blinkers if large overlay is showing (state 1 or 2 with overlay enabled)
     visible: !overlayEnabled || (blinkerState !== 1 && blinkerState !== 2)
 
-    // Shared blink clock — both sides always use this opacity
-    property real blinkOpacity: 0
-
-    SequentialAnimation {
-        id: sharedBlinkAnim
-        running: blinkerRow.anyActive
-        loops: Animation.Infinite
-        NumberAnimation {
-            target: blinkerRow; property: "blinkOpacity"
-            from: 0; to: 1; duration: 250; easing.type: Easing.InOutExpo
-        }
-        NumberAnimation {
-            target: blinkerRow; property: "blinkOpacity"
-            from: 1; to: 0; duration: 250; easing.type: Easing.InOutExpo
-        }
-        PauseAnimation { duration: 228 }
-    }
+    // Shared blink clock from VehicleStore
+    readonly property real blinkOpacity: typeof vehicleStore !== "undefined" ? vehicleStore.blinkOpacity : 0
 
     Row {
         anchors.fill: parent

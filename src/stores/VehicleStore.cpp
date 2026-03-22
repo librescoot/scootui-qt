@@ -9,6 +9,9 @@ VehicleStore::VehicleStore(MdbRepository *repo, QObject *parent)
             onButtonEvent(ch, msg);
         });
     }
+
+    m_blinkTimer.setInterval(16); // ~60fps
+    connect(&m_blinkTimer, &QTimer::timeout, this, &VehicleStore::updateBlinkClock);
 }
 
 SyncSettings VehicleStore::syncSettings() const
@@ -39,7 +42,20 @@ void VehicleStore::applyFieldUpdate(const QString &variable, const QString &valu
 {
     if (variable == QLatin1String("blinker:state")) {
         auto v = ScootEnums::parseBlinkerState(value);
-        if (v != m_blinkerState) { m_blinkerState = v; emit blinkerStateChanged(); }
+        if (v != m_blinkerState) {
+            m_blinkerState = v;
+            emit blinkerStateChanged();
+            if (v != ScootEnums::BlinkerState::Off) {
+                m_blinkElapsed.start();
+                m_blinkTimer.start();
+            } else {
+                m_blinkTimer.stop();
+                if (m_blinkOpacity != 0.0) {
+                    m_blinkOpacity = 0.0;
+                    emit blinkOpacityChanged();
+                }
+            }
+        }
     } else if (variable == QLatin1String("blinker:switch")) {
         auto v = ScootEnums::parseBlinkerSwitch(value);
         if (v != m_blinkerSwitch) { m_blinkerSwitch = v; emit blinkerSwitchChanged(); }
@@ -97,5 +113,29 @@ void VehicleStore::onButtonEvent(const QString &, const QString &message)
             m_brakeRight = v;
             emit brakeRightChanged();
         }
+    }
+}
+
+void VehicleStore::updateBlinkClock()
+{
+    constexpr int FADE_IN = 250;
+    constexpr int FADE_OUT = 250;
+    constexpr int PAUSE = 228;
+    constexpr int CYCLE = FADE_IN + FADE_OUT + PAUSE;
+
+    const int phase = static_cast<int>(m_blinkElapsed.elapsed() % CYCLE);
+    qreal opacity;
+
+    if (phase < FADE_IN) {
+        opacity = m_blinkEasing.valueForProgress(phase / qreal(FADE_IN));
+    } else if (phase < FADE_IN + FADE_OUT) {
+        opacity = 1.0 - m_blinkEasing.valueForProgress((phase - FADE_IN) / qreal(FADE_OUT));
+    } else {
+        opacity = 0.0;
+    }
+
+    if (!qFuzzyCompare(1.0 + opacity, 1.0 + m_blinkOpacity)) {
+        m_blinkOpacity = opacity;
+        emit blinkOpacityChanged();
     }
 }

@@ -7,6 +7,7 @@ Item {
     property bool blinking: false
     property bool active: false
     property color tintColor: "#FFFFFF"
+    property real blinkSource: -1 // External blink opacity; -1 means use internal animation
 
     width: 32
     height: 32
@@ -17,12 +18,14 @@ Item {
         anchors.fill: parent
         sourceSize: Qt.size(parent.width, parent.height)
         fillMode: Image.PreserveAspectFit
-        opacity: blinking ? blinkOpacity : 1.0
+        opacity: blinking ? (indicatorLight.blinkSource >= 0
+                             ? indicatorLight.blinkSource
+                             : blinkOpacity) : 1.0
 
         property real blinkOpacity: 0
 
         SequentialAnimation on blinkOpacity {
-            running: blinking && active
+            running: blinking && active && indicatorLight.blinkSource < 0
             loops: Animation.Infinite
             NumberAnimation { from: 0; to: 1; duration: 250; easing.type: Easing.InOutExpo }
             NumberAnimation { from: 1; to: 0; duration: 250; easing.type: Easing.InOutExpo }

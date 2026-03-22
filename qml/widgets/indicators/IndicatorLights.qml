@@ -12,6 +12,7 @@ Row {
         source: "qrc:/ScootUI/assets/icons/librescoot-turn-left.svg"
         active: blinkerState === 1 || blinkerState === 3
         blinking: true
+        blinkSource: typeof vehicleStore !== "undefined" ? vehicleStore.blinkOpacity : -1
         tintColor: "#4CAF50"
     }
 
@@ -19,6 +20,7 @@ Row {
         source: "qrc:/ScootUI/assets/icons/librescoot-turn-right.svg"
         active: blinkerState === 2 || blinkerState === 3
         blinking: true
+        blinkSource: typeof vehicleStore !== "undefined" ? vehicleStore.blinkOpacity : -1
         tintColor: "#4CAF50"
     }
 }
