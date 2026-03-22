@@ -92,6 +92,7 @@ Item {
     // Main background container
     Rectangle {
         anchors.fill: parent
+        clip: true
         color: isDark ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.8)
 
         // Bottom border
@@ -175,7 +176,7 @@ Item {
                 }
 
                 // Next instruction preview
-                Row {
+                RowLayout {
                     Layout.fillWidth: true
                     visible: typeof navigationService !== "undefined" && navigationService.showNextPreview
                     spacing: 4
@@ -193,6 +194,7 @@ Item {
                         color: isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
                     }
                     Text {
+                        Layout.fillWidth: true
                         text: typeof navigationService !== "undefined"
                               ? navigationService.nextStreetName : ""
                         font.pixelSize: 14
