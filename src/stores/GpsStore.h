@@ -15,6 +15,7 @@ class GpsStore : public SyncableStore
     Q_PROPERTY(QString updated READ updated NOTIFY updatedChanged)
     Q_PROPERTY(QString timestamp READ timestamp NOTIFY timestampChanged)
     Q_PROPERTY(int gpsState READ gpsState NOTIFY gpsStateChanged)
+    Q_PROPERTY(double eph READ eph NOTIFY ephChanged)
     Q_PROPERTY(bool hasRecentFix READ hasRecentFix NOTIFY timestampChanged)
     Q_PROPERTY(bool hasTimestamp READ hasTimestamp NOTIFY timestampChanged)
 
@@ -26,6 +27,7 @@ public:
     double course() const { return m_course; }
     double speed() const { return m_speed; }
     double altitude() const { return m_altitude; }
+    double eph() const { return m_eph; }
     QString updated() const { return m_updated; }
     QString timestamp() const { return m_timestamp; }
     int gpsState() const { return static_cast<int>(m_gpsState); }
@@ -49,6 +51,7 @@ signals:
     void updatedChanged();
     void timestampChanged();
     void gpsStateChanged();
+    void ephChanged();
 
 protected:
     SyncSettings syncSettings() const override;
@@ -60,6 +63,7 @@ private:
     double m_course = 0;
     double m_speed = 0;
     double m_altitude = 0;
+    double m_eph = 0;
     QString m_updated;
     QString m_timestamp;
     ScootEnums::GpsState m_gpsState = ScootEnums::GpsState::Off;

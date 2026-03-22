@@ -86,12 +86,13 @@ Rectangle {
 
             // Vehicle marker at fixed screen position, tilted to match 3D map
             VehicleMarker {
+                id: vehicleMarkerItem
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: parent.height / 2 + (typeof mapService !== "undefined" ? mapService.vehicleOffsetY : 0) - 18
+                y: parent.height / 2 + (typeof mapService !== "undefined" ? mapService.vehicleOffsetY : 0) - height / 2
                 visible: typeof mapService !== "undefined" && mapService.isReady
                 transform: Rotation {
-                    origin.x: 18.5
-                    origin.y: 18.5
+                    origin.x: vehicleMarkerItem.width / 2
+                    origin.y: vehicleMarkerItem.height / 2
                     axis { x: 1; y: 0; z: 0 }
                     angle: 55
                 }

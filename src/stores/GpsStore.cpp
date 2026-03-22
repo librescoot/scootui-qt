@@ -18,6 +18,7 @@ SyncSettings GpsStore::syncSettings() const
             {QStringLiteral("updated"), QStringLiteral("updated")},
             {QStringLiteral("timestamp"), QStringLiteral("timestamp")},
             {QStringLiteral("state"), QStringLiteral("state")},
+            {QStringLiteral("eph"), QStringLiteral("eph")},
         },
         {}, {}
     };
@@ -47,5 +48,8 @@ void GpsStore::applyFieldUpdate(const QString &variable, const QString &value)
     } else if (variable == QLatin1String("state")) {
         auto v = ScootEnums::parseGpsState(value);
         if (v != m_gpsState) { m_gpsState = v; emit gpsStateChanged(); }
+    } else if (variable == QLatin1String("eph")) {
+        auto v = value.toDouble();
+        if (v != m_eph) { m_eph = v; emit ephChanged(); }
     }
 }
