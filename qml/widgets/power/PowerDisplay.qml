@@ -79,8 +79,8 @@ Item {
             Rectangle {
                 anchors.centerIn: parent
                 width: parent.width
-                height: 4
-                radius: 2
+                height: 6
+                radius: 3
                 color: themeStore.isDark ? "#424242" : "#E0E0E0"
             }
 
@@ -97,8 +97,8 @@ Item {
             Rectangle {
                 visible: displayValue < -0.01
                 anchors.verticalCenter: parent.verticalCenter
-                height: 4
-                radius: 2
+                height: 6
+                radius: 3
                 width: Math.min(Math.abs(displayValue) / maxRegen, 1.0) * (parent.width / 2)
                 x: parent.width / 2 - width
                 color: "#43A047"
@@ -109,8 +109,8 @@ Item {
                 visible: displayValue > 0.01
                 x: parent.width / 2
                 anchors.verticalCenter: parent.verticalCenter
-                height: 4
-                radius: 2
+                height: 6
+                radius: 3
                 width: Math.min(displayValue / maxDischarge, 1.0) * (parent.width / 2)
                 color: isAmpsMode && displayValue > boostThresholdA ? "#FB8C00" : "#1E88E5"
             }
