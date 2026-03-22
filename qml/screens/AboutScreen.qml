@@ -147,7 +147,7 @@ Rectangle {
 
                         TintedImage {
                             source: "qrc:/ScootUI/assets/icons/librescoot-logotype.svg"
-                            color: aboutScreen.textPrimary
+                            tintColor: aboutScreen.textPrimary
                             width: 180
                             height: 36
                         }
