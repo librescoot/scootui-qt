@@ -83,7 +83,7 @@ private:
     QString m_mode = QStringLiteral("speedometer");
     QString m_showRawSpeed = QStringLiteral("false");
     QString m_batteryDisplayMode = QStringLiteral("percentage");
-    ScootEnums::MapType m_mapType = ScootEnums::MapType::Online;
+    ScootEnums::MapType m_mapType = ScootEnums::MapType::Offline;
     ScootEnums::MapRenderMode m_mapRenderMode = ScootEnums::MapRenderMode::Vector;
     QString m_valhallaUrl;
     QString m_language = QStringLiteral("en");
