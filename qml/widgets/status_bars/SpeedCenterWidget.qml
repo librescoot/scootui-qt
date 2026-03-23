@@ -5,7 +5,7 @@ import "../indicators"
 Item {
     id: speedCenter
     implicitWidth: 120
-    implicitHeight: 66
+    implicitHeight: 52
 
     anchors.horizontalCenter: parent.horizontalCenter
 
@@ -28,6 +28,7 @@ Item {
             font.pixelSize: 48
             font.bold: true
             color: themeStore.textColor
+            bottomPadding: -10
         }
 
         Text {
@@ -35,6 +36,7 @@ Item {
             text: "km/h"
             font.pixelSize: 16
             color: themeStore.textSecondary
+            topPadding: -4
         }
     }
 
