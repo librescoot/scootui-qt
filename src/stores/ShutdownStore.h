@@ -20,6 +20,7 @@ public:
 
     Q_INVOKABLE void beginShutdown();
     void forceBlackout();
+    void resetShutdown();
 
 signals:
     void shuttingDownChanged();

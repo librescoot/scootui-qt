@@ -66,6 +66,10 @@ Item {
         function onShuttingDownChanged() {
             if (shutdownStore.isShuttingDown && !shutdownStore.showBlackout) {
                 shutdownAnim.start()
+            } else if (!shutdownStore.isShuttingDown) {
+                shutdownAnim.stop()
+                blackoutAnim.stop()
+                overlay.opacity = 0
             }
         }
 
