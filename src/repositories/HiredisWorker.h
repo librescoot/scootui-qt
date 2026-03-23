@@ -59,7 +59,7 @@ public slots:
 signals:
     // Emitted on the worker thread; received on the main thread via queued connection
     void fieldsUpdated(const QString &channel, const FieldMap &fields);
-    void connectionChanged(bool connected);
+    void connectionChanged(bool connected, bool usingBackup);
     void setMembersResult(const QString &setKey, const QStringList &members);
     void lrangeResult(const QString &key, const QStringList &values);
 

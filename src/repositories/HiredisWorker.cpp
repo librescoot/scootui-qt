@@ -104,7 +104,7 @@ bool HiredisWorker::ensureConnected()
     if (m_ctx && !m_ctx->err) {
         if (!m_connected) {
             m_connected = true;
-            emit connectionChanged(true);
+            emit connectionChanged(true, m_usingBackup);
         }
         return true;
     }
@@ -117,7 +117,7 @@ bool HiredisWorker::ensureConnected()
     if (m_ctx && !m_ctx->err) {
         m_connected = true;
         m_usingBackup = false;
-        emit connectionChanged(true);
+        emit connectionChanged(true, false);
         return true;
     }
     if (m_ctx) { redisFree(m_ctx); m_ctx = nullptr; }
@@ -131,7 +131,7 @@ bool HiredisWorker::ensureConnected()
             m_usingBackup = true;
             m_primaryProbeTimer->start();
             qDebug() << "HiredisWorker: connected to backup" << m_backupHost;
-            emit connectionChanged(true);
+            emit connectionChanged(true, true);
             return true;
         }
         if (m_ctx) { redisFree(m_ctx); m_ctx = nullptr; }
@@ -139,7 +139,7 @@ bool HiredisWorker::ensureConnected()
 
     if (m_connected) {
         m_connected = false;
-        emit connectionChanged(false);
+        emit connectionChanged(false, m_usingBackup);
     }
 
     if (m_running && !m_reconnectTimer->isActive())
@@ -202,7 +202,7 @@ void HiredisWorker::pollChannel(const QString &channel)
         qWarning() << "HiredisWorker: HGETALL" << channel << "failed:" << m_ctx->errstr;
         disconnectRedis();
         m_connected = false;
-        emit connectionChanged(false);
+        emit connectionChanged(false, m_usingBackup);
         return;
     }
 
@@ -239,7 +239,7 @@ void HiredisWorker::doSet(const QString &channel, const QString &variable,
         qWarning() << "HiredisWorker: HSET" << channel << variable << "error:" << m_ctx->errstr;
         disconnectRedis();
         m_connected = false;
-        emit connectionChanged(false);
+        emit connectionChanged(false, m_usingBackup);
         return;
     }
     freeReplyObject(reply);
@@ -268,7 +268,7 @@ void HiredisWorker::doPush(const QString &channel, const QString &command)
         qWarning() << "HiredisWorker: LPUSH" << channel << command << "error:" << m_ctx->errstr;
         disconnectRedis();
         m_connected = false;
-        emit connectionChanged(false);
+        emit connectionChanged(false, m_usingBackup);
         return;
     }
     freeReplyObject(reply);

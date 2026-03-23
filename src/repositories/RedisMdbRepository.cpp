@@ -59,7 +59,7 @@ void RedisMdbRepository::startWorker()
     connect(m_worker, &HiredisWorker::fieldsUpdated,
             this, &RedisMdbRepository::onFieldsUpdated, Qt::QueuedConnection);
 
-    // Connection state from worker
+    // Connection state from worker (bool connected, bool usingBackup)
     connect(m_worker, &HiredisWorker::connectionChanged,
             this, &RedisMdbRepository::onWorkerConnectionChanged, Qt::QueuedConnection);
 
@@ -77,9 +77,8 @@ void RedisMdbRepository::startWorker()
     }, Qt::QueuedConnection);
 
     m_workerThread->start();
-
-    // Set up pub/sub on main thread
-    setupPubsub();
+    // Pub/sub is set up in onWorkerConnectionChanged when the worker first connects,
+    // so it connects to the same host the worker chose (primary or backup).
 }
 
 // Cache reads (non-blocking, main thread)
@@ -254,10 +253,12 @@ void RedisMdbRepository::onFieldsUpdated(const QString &channel, const FieldMap 
     emit fieldsUpdated(channel, fields);
 }
 
-void RedisMdbRepository::onWorkerConnectionChanged(bool connected)
+void RedisMdbRepository::onWorkerConnectionChanged(bool connected, bool usingBackup)
 {
     bool wasConnected = m_connected;
+    bool wasUsingBackup = m_usingBackup;
     m_connected = connected;
+    m_usingBackup = usingBackup;
 
     if (connected && !wasConnected) {
         m_prolongedTimer->stop();
@@ -265,7 +266,15 @@ void RedisMdbRepository::onWorkerConnectionChanged(bool connected)
             m_prolongedDisconnect = false;
             emit prolongedDisconnect(false);
         }
+        if (usingBackup != wasUsingBackup)
+            emit usingBackupConnection(usingBackup);
         emit connectionStateChanged(true);
+        // Set up pub/sub to the same host the worker connected to
+        setupPubsub();
+    } else if (connected && usingBackup != wasUsingBackup) {
+        // Worker switched hosts while staying connected (e.g. failback to primary)
+        emit usingBackupConnection(usingBackup);
+        setupPubsub();
     } else if (!connected && wasConnected) {
         emit connectionStateChanged(false);
         m_prolongedTimer->start();
@@ -276,24 +285,20 @@ void RedisMdbRepository::onWorkerConnectionChanged(bool connected)
 
 void RedisMdbRepository::setupPubsub()
 {
+    m_pubsubReconnectTimer->stop();
     teardownPubsub();
 
-    m_pubsubCtx = redisAsyncConnect(m_host.toUtf8().constData(), m_port);
+    // Connect pub/sub to the same host the worker is using
+    const QString &host = m_usingBackup ? m_backupHost : m_host;
+    m_pubsubCtx = redisAsyncConnect(host.toUtf8().constData(), m_port);
     if (!m_pubsubCtx || m_pubsubCtx->err) {
-        // Try backup
-        if (!m_backupHost.isEmpty()) {
-            if (m_pubsubCtx) redisAsyncFree(m_pubsubCtx);
-            m_pubsubCtx = redisAsyncConnect(m_backupHost.toUtf8().constData(), m_port);
+        qWarning() << "RedisMdbRepository: pubsub connection failed to" << host;
+        if (m_pubsubCtx) {
+            redisAsyncFree(m_pubsubCtx);
+            m_pubsubCtx = nullptr;
         }
-        if (!m_pubsubCtx || m_pubsubCtx->err) {
-            qWarning() << "RedisMdbRepository: pubsub connection failed";
-            if (m_pubsubCtx) {
-                redisAsyncFree(m_pubsubCtx);
-                m_pubsubCtx = nullptr;
-            }
-            m_pubsubReconnectTimer->start();
-            return;
-        }
+        m_pubsubReconnectTimer->start();
+        return;
     }
 
     m_pubsubCtx->data = this;

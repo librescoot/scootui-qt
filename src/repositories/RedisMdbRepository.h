@@ -50,7 +50,7 @@ public:
 
 private slots:
     void onFieldsUpdated(const QString &channel, const FieldMap &fields);
-    void onWorkerConnectionChanged(bool connected);
+    void onWorkerConnectionChanged(bool connected, bool usingBackup);
 
 private:
     void setupPubsub();
