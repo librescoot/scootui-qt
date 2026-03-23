@@ -111,10 +111,13 @@ bool HiredisWorker::ensureConnected()
 
     disconnectRedis();
 
-    // Try primary (200ms timeout for USB)
+    // Try primary (200ms connect timeout for USB)
     struct timeval tv = {0, 200000};
     m_ctx = redisConnectWithTimeout(m_host.toUtf8().constData(), m_port, tv);
     if (m_ctx && !m_ctx->err) {
+        // Set socket timeout so commands don't block forever on a half-open connection
+        struct timeval cmdTimeout = {2, 0};
+        redisSetTimeout(m_ctx, cmdTimeout);
         m_connected = true;
         m_usingBackup = false;
         emit connectionChanged(true, false);
@@ -122,11 +125,13 @@ bool HiredisWorker::ensureConnected()
     }
     if (m_ctx) { redisFree(m_ctx); m_ctx = nullptr; }
 
-    // Try backup (1s timeout)
+    // Try backup (1s connect timeout)
     if (!m_backupHost.isEmpty()) {
         tv = {1, 0};
         m_ctx = redisConnectWithTimeout(m_backupHost.toUtf8().constData(), m_port, tv);
         if (m_ctx && !m_ctx->err) {
+            struct timeval cmdTimeout = {2, 0};
+            redisSetTimeout(m_ctx, cmdTimeout);
             m_connected = true;
             m_usingBackup = true;
             m_primaryProbeTimer->start();
