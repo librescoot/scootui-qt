@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
         &app, []() { QCoreApplication::exit(1); },
         Qt::QueuedConnection);
 
-    // Boot animation: fade in overlay after QML loads
+    // Fade out the boot overlay after QML loads, revealing the Qt UI
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated,
         &application, [&application](QObject *obj, const QUrl &) {

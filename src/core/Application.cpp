@@ -365,11 +365,11 @@ void Application::fadeInOverlay()
     if (!QFile::exists(QStringLiteral("/sys/class/graphics/fb1/overlay_alpha")))
         return;
 
-    qDebug() << "Starting boot animation fade-in...";
+    qDebug() << "Fading out boot overlay...";
     auto *proc = new QProcess(this);
     proc->setProgram(QStringLiteral("/usr/bin/imx-overlay-alpha"));
-    proc->setArguments({QStringLiteral("fade"), QStringLiteral("0"),
-                        QStringLiteral("255"), QStringLiteral("1000")});
+    proc->setArguments({QStringLiteral("fade"), QStringLiteral("255"),
+                        QStringLiteral("0"), QStringLiteral("1000")});
 
     connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             this, [proc](int exitCode, QProcess::ExitStatus) {
