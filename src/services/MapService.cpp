@@ -356,22 +356,39 @@ void MapService::onMapTypeChanged()
 void MapService::rebuildStyleUrl()
 {
     bool isDark = m_theme->isDark();
-    bool useLocal = !m_mbtilesPath.isEmpty();
+    QString styleName = isDark ? QStringLiteral("mapdark.json") : QStringLiteral("maplight.json");
 
-    qDebug() << "MapService: rebuildStyleUrl - dark:" << isDark
-             << "mbtiles:" << (useLocal ? m_mbtilesPath : QStringLiteral("none"));
-
-    QString qrcPath = isDark
-        ? QStringLiteral("qrc:/ScootUI/assets/styles/mapdark.json")
-        : QStringLiteral("qrc:/ScootUI/assets/styles/maplight.json");
-
+    // Check for user override on disk, fall back to compiled-in QRC
+    QString diskPath = QStringLiteral("/data/maps/") + styleName;
     QString url;
-    if (useLocal) {
-        url = rewriteStyleForMbtiles(qrcPath, m_mbtilesPath);
+    if (QFile::exists(diskPath)) {
+        url = QStringLiteral("file://") + diskPath;
+        qDebug() << "MapService: using custom style:" << url;
     } else {
-        url = qrcPath;
-        qDebug() << "MapService: using online style:" << url;
+        url = QStringLiteral("qrc:/ScootUI/assets/styles/") + styleName;
+        qDebug() << "MapService: using built-in style:" << url;
     }
+
+    // Determine tile source URL
+    bool useLocal = !m_mbtilesPath.isEmpty();
+    int mapType = m_settings->mapType();
+    bool isOnlineMap = (mapType == static_cast<int>(ScootEnums::MapType::Online));
+
+    QString tileUrl;
+    if (useLocal && !isOnlineMap) {
+        tileUrl = QStringLiteral("mbtiles://") + m_mbtilesPath;
+    } else {
+        tileUrl = QStringLiteral("https://tiles.versatiles.org/tiles/osm/{z}/{x}/{y}");
+    }
+
+    if (tileUrl != m_tileSourceUrl) {
+        m_tileSourceUrl = tileUrl;
+        emit tileSourceUrlChanged();
+    }
+
+    // Parse route colors from style metadata
+    parseStyleMetadata(QFile::exists(diskPath) ? diskPath
+        : url.mid(url.indexOf(QLatin1String(":/")) + 1)); // strip qrc: prefix
 
     if (url != m_styleUrl) {
         qDebug() << "MapService: style URL changed:" << url;
@@ -380,73 +397,44 @@ void MapService::rebuildStyleUrl()
     }
 }
 
-QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString &mbtilesPath)
+void MapService::parseStyleMetadata(const QString &path)
 {
-    // Determine output path
-    QString baseName = qrcPath.section(QLatin1Char('/'), -1);  // "mapdark.json" or "maplight.json"
-    QString outPath = QStringLiteral("/tmp/") + baseName;
-
-    // Read embedded style from QRC
-    QString qrcFile = qrcPath;
-    qrcFile.replace(QStringLiteral("qrc:/"), QStringLiteral(":/"));
-    QFile f(qrcFile);
+    QFile f(path);
     if (!f.open(QIODevice::ReadOnly)) {
-        qWarning() << "MapService: cannot open embedded style" << qrcFile;
-        return qrcPath;
+        qDebug() << "MapService: cannot open style for metadata:" << path;
+        return;
     }
+
     QJsonDocument doc = QJsonDocument::fromJson(f.readAll());
     f.close();
-    if (!doc.isObject()) {
-        qWarning() << "MapService: invalid style JSON";
-        return qrcPath;
-    }
+    if (!doc.isObject()) return;
 
-    QJsonObject root = doc.object();
+    QJsonObject meta = doc.object().value(QStringLiteral("metadata")).toObject();
+    bool changed = false;
 
-    // Rewrite sources to use mbtiles://
-    QJsonObject sources = root.value(QStringLiteral("sources")).toObject();
-    for (auto it = sources.begin(); it != sources.end(); ++it) {
-        QJsonObject src = it.value().toObject();
-        src.remove(QStringLiteral("tiles"));
-        QString mbtilesUrl = QStringLiteral("mbtiles://") + mbtilesPath;
-        src[QStringLiteral("url")] = mbtilesUrl;
-        // Cap maxzoom to actual tile data so MapLibre overzooms correctly
-        src[QStringLiteral("maxzoom")] = 14;
-        sources[it.key()] = src;
-        qDebug() << "MapService: source" << it.key() << "-> " << mbtilesUrl;
-    }
-    root[QStringLiteral("sources")] = sources;
-
-    // Remove glyphs/sprite URLs (not available offline)
-    root.remove(QStringLiteral("glyphs"));
-    root.remove(QStringLiteral("sprite"));
-
-    // Remove symbol layers (require remote glyph PBFs)
-    QJsonArray layers = root.value(QStringLiteral("layers")).toArray();
-    QJsonArray filtered;
-    for (const QJsonValue &v : layers) {
-        QJsonObject layer = v.toObject();
-        if (layer.value(QStringLiteral("type")).toString() == QStringLiteral("symbol")) {
-            qDebug() << "MapService: stripping symbol layer" << layer.value(QStringLiteral("id")).toString();
-            continue;
+    auto readString = [&](const QString &key, QString &target) {
+        if (meta.contains(key)) {
+            QString val = meta.value(key).toString();
+            if (val != target) { target = val; changed = true; }
         }
-        filtered.append(v);
-    }
-    root[QStringLiteral("layers")] = filtered;
+    };
+    auto readInt = [&](const QString &key, int &target) {
+        if (meta.contains(key)) {
+            int val = meta.value(key).toInt();
+            if (val != target) { target = val; changed = true; }
+        }
+    };
 
-    // Write to /tmp
-    QFile out(outPath);
-    if (!out.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        qWarning() << "MapService: cannot write" << outPath;
-        return qrcPath;
-    }
-    QByteArray json = QJsonDocument(root).toJson(QJsonDocument::Compact);
-    out.write(json);
-    out.close();
+    readString(QStringLiteral("route-fill-color"), m_routeFillColor);
+    readInt(QStringLiteral("route-fill-width"), m_routeFillWidth);
+    readString(QStringLiteral("route-border-color"), m_routeBorderColor);
+    readInt(QStringLiteral("route-border-width"), m_routeBorderWidth);
 
-    QString fileUrl = QStringLiteral("file://") + outPath;
-    qDebug() << "MapService: wrote offline style to" << fileUrl << "(" << json.size() << "bytes)";
-    return fileUrl;
+    if (changed) {
+        qDebug() << "MapService: route colors - fill:" << m_routeFillColor
+                 << "border:" << m_routeBorderColor;
+        emit routeColorsChanged();
+    }
 }
 
 // ---------------------------------------------------------------------------

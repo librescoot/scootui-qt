@@ -110,10 +110,18 @@ MapView {
         function onLongitudeChanged() { mapView.updateCamera() }
     }
 
+    // Tile source (added programmatically since style JSON has empty sources)
     // Route rendered as native MapLibre layers (inserted before "building" layer
     // so that 3D building extrusions properly occlude the route line)
     MapLibre.style: Style {
-        id: routeStyle
+        id: mapStyle
+
+        SourceParameter {
+            styleId: "versatiles-shortbread"
+            type: "vector"
+            property string url: typeof mapService !== "undefined" ? mapService.tileSourceUrl : ""
+            property int maxzoom: 14
+        }
 
         SourceParameter {
             id: routeSource
@@ -128,7 +136,10 @@ MapView {
             type: "line"
             property string source: "route"
             layout: { "line-cap": "round", "line-join": "round" }
-            paint: { "line-color": "#ECEFF1", "line-width": 6 }
+            paint: {
+                "line-color": typeof mapService !== "undefined" ? mapService.routeBorderColor : "#ECEFF1",
+                "line-width": typeof mapService !== "undefined" ? mapService.routeBorderWidth : 6
+            }
         }
 
         LayerParameter {
@@ -136,7 +147,10 @@ MapView {
             type: "line"
             property string source: "route"
             layout: { "line-cap": "round", "line-join": "round" }
-            paint: { "line-color": "#42A5F5", "line-width": 4 }
+            paint: {
+                "line-color": typeof mapService !== "undefined" ? mapService.routeFillColor : "#42A5F5",
+                "line-width": typeof mapService !== "undefined" ? mapService.routeFillWidth : 4
+            }
         }
     }
 

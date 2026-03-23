@@ -22,8 +22,13 @@ class MapService : public QObject
     Q_PROPERTY(double mapBearing READ mapBearing NOTIFY mapBearingChanged)
     Q_PROPERTY(bool isReady READ isReady NOTIFY isReadyChanged)
     Q_PROPERTY(QString styleUrl READ styleUrl NOTIFY styleUrlChanged)
+    Q_PROPERTY(QString tileSourceUrl READ tileSourceUrl NOTIFY tileSourceUrlChanged)
     Q_PROPERTY(QVariantList routeCoordinates READ routeCoordinates NOTIFY routeCoordinatesChanged)
     Q_PROPERTY(QString routeGeoJson READ routeGeoJson NOTIFY routeGeoJsonChanged)
+    Q_PROPERTY(QString routeFillColor READ routeFillColor NOTIFY routeColorsChanged)
+    Q_PROPERTY(int routeFillWidth READ routeFillWidth NOTIFY routeColorsChanged)
+    Q_PROPERTY(QString routeBorderColor READ routeBorderColor NOTIFY routeColorsChanged)
+    Q_PROPERTY(int routeBorderWidth READ routeBorderWidth NOTIFY routeColorsChanged)
     Q_PROPERTY(double vehicleOffsetY READ vehicleOffsetY NOTIFY vehicleOffsetYChanged)
     Q_PROPERTY(bool isOutOfCoverage READ isOutOfCoverage NOTIFY isOutOfCoverageChanged)
 
@@ -39,7 +44,12 @@ public:
     double mapBearing() const { return m_mapBearing; }
     bool isReady() const { return m_isReady; }
     QString styleUrl() const { return m_styleUrl; }
+    QString tileSourceUrl() const { return m_tileSourceUrl; }
     QVariantList routeCoordinates() const { return m_routeCoordinates; }
+    QString routeFillColor() const { return m_routeFillColor; }
+    int routeFillWidth() const { return m_routeFillWidth; }
+    QString routeBorderColor() const { return m_routeBorderColor; }
+    int routeBorderWidth() const { return m_routeBorderWidth; }
     QString routeGeoJson() const { return m_routeGeoJson; }
     double vehicleOffsetY() const { return m_vehicleOffsetY; }
     bool isOutOfCoverage() const { return m_isOutOfCoverage; }
@@ -55,6 +65,8 @@ signals:
     void mapBearingChanged();
     void isReadyChanged();
     void styleUrlChanged();
+    void tileSourceUrlChanged();
+    void routeColorsChanged();
     void routeCoordinatesChanged();
     void routeGeoJsonChanged();
     void vehicleOffsetYChanged();
@@ -87,7 +99,7 @@ private:
 
     // Style
     void rebuildStyleUrl();
-    QString rewriteStyleForMbtiles(const QString &qrcPath, const QString &mbtilesPath);
+    void parseStyleMetadata(const QString &path);
 
     // Route GeoJSON for native MapLibre layer
     void updateRouteGeoJson();
@@ -159,6 +171,11 @@ private:
     double m_mapBearing = 0;
     bool m_isReady = false;
     QString m_styleUrl;
+    QString m_tileSourceUrl;
+    QString m_routeFillColor = QStringLiteral("#42A5F5");
+    int m_routeFillWidth = 4;
+    QString m_routeBorderColor = QStringLiteral("#37474F");
+    int m_routeBorderWidth = 6;
     QVariantList m_routeCoordinates;
     QString m_routeGeoJson;
     double m_vehicleOffsetY = VehicleOffsetPx;

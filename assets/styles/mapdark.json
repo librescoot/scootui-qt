@@ -3,26 +3,13 @@
 	"version": 8,
 	"name": "simplified-dark",
 	"metadata": {
-		"license": "https://creativecommons.org/publicdomain/zero/1.0/"
+		"license": "https://creativecommons.org/publicdomain/zero/1.0/",
+		"route-fill-color": "#42A5F5",
+		"route-fill-width": 4,
+		"route-border-color": "#37474F",
+		"route-border-width": 6
 	},
-	"sources": {
-		"versatiles-shortbread": {
-			"attribution": "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors",
-			"tiles": [
-				"https://tiles.versatiles.org/tiles/osm/{z}/{x}/{y}"
-			],
-			"type": "vector",
-			"scheme": "xyz",
-			"bounds": [
-				-180,
-				-85.0511287798066,
-				180,
-				85.0511287798066
-			],
-			"minzoom": 0,
-			"maxzoom": 14
-		}
-	},
+	"sources": {},
 	"layers": [
 		{
 			"id": "background",
