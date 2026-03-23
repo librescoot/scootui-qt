@@ -392,6 +392,78 @@ Rectangle {
                     }
                 }
 
+                Item { width: 1; height: 20 }
+
+                // Divider
+                Rectangle {
+                    width: parent.width - 80
+                    height: 1
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    color: aboutScreen.dividerColor
+                }
+
+                Item { width: 1; height: 8 }
+
+                // Special Thanks header
+                Text {
+                    x: 40
+                    text: typeof translations !== "undefined"
+                          ? translations.aboutSpecialThanks
+                          : "SPECIAL THANKS TO THE EARLY TESTERS"
+                    color: aboutScreen.textSecondary
+                    font.pixelSize: 13
+                    font.bold: true
+                    font.letterSpacing: 1.5
+                }
+
+                Item { width: 1; height: 8 }
+
+                // Early testers — two-column grid
+                Grid {
+                    x: 40
+                    width: parent.width - 80
+                    columns: 2
+                    columnSpacing: 12
+                    rowSpacing: 4
+
+                    Repeater {
+                        model: [
+                            "alex.aus.berlin", "DSIW",
+                            "EndOS", "Fa. Wilhelm Zweiradtechnik",
+                            "Felix", "Freal",
+                            "inpin", "jaibee1",
+                            "Jonas", "Julinho666",
+                            "leifbln", "Lena",
+                            "ligustah", "suat"
+                        ]
+
+                        Text {
+                            width: (parent.parent.width - 12) / 2
+                            text: modelData
+                            color: aboutScreen.textPrimary
+                            font.pixelSize: 14
+                            elide: Text.ElideRight
+                        }
+                    }
+                }
+
+                Item { width: 1; height: 12 }
+
+                // Patience note (Cin & Tabitha)
+                Text {
+                    x: 40
+                    width: parent.width - 80
+                    text: typeof translations !== "undefined"
+                          ? translations.aboutPatienceNote
+                          : "And Cin and Tabitha for their patience with the scooters in the hallway."
+                    color: aboutScreen.textSecondary
+                    font.pixelSize: 14
+                    font.italic: true
+                    lineHeight: 1.4
+                    lineHeightMode: Text.ProportionalHeight
+                    wrapMode: Text.WordWrap
+                }
+
                 // Bottom padding
                 Item { width: 1; height: 24 }
             }

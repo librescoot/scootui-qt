@@ -428,6 +428,12 @@ void Translations::initStrings()
     en[QStringLiteral("aboutScamWarning")] = QStringLiteral("If you paid money for this software, or if you purchased a new scooter from a shop or vendor with this software preinstalled, you may have been the victim of a scam. Please report it at https://librescoot.org.");
     de[QStringLiteral("aboutScamWarning")] = QStringLiteral("Falls du f\u00FCr diese Software bezahlt hast, oder wenn du einen neuen Roller von einem H\u00E4ndler oder Verk\u00E4ufer mit vorinstallierter Software erworben hast, bist du m\u00F6glicherweise Opfer eines Betrugs geworden. Bitte melde es auf https://librescoot.org.");
 
+    en[QStringLiteral("aboutSpecialThanks")] = QStringLiteral("SPECIAL THANKS TO THE EARLY TESTERS");
+    de[QStringLiteral("aboutSpecialThanks")] = QStringLiteral("BESONDERER DANK AN DIE EARLY TESTER");
+
+    en[QStringLiteral("aboutPatienceNote")] = QStringLiteral("And Cin and Tabitha for their patience with the scooters in the hallway.");
+    de[QStringLiteral("aboutPatienceNote")] = QStringLiteral("Und Cin und Tabitha f\u00FCr ihre Geduld f\u00FCr die Roller im Flur.");
+
     // -----------------------------------------------------------------------
     // Toast / monitoring
     // -----------------------------------------------------------------------
