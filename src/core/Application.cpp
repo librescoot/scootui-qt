@@ -162,7 +162,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_savedLocationsService = new SavedLocationsService(repo, this);
     m_reverseGeocoding = new ReverseGeocodingService(this);
     auto *savedLocationsStore = new SavedLocationsStore(
-        m_savedLocationsService, m_reverseGeocoding, gpsStore, m_navigationService,
+        repo, m_savedLocationsService, m_reverseGeocoding, gpsStore, m_navigationService,
         m_toastService, this);
 
     // Monitoring services (B3, B4)

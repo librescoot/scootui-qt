@@ -1,4 +1,5 @@
 #include "SavedLocationsStore.h"
+#include "repositories/MdbRepository.h"
 #include "services/SavedLocationsService.h"
 #include "services/ReverseGeocodingService.h"
 #include "services/NavigationService.h"
@@ -8,7 +9,8 @@
 
 #include <QDebug>
 
-SavedLocationsStore::SavedLocationsStore(SavedLocationsService *service,
+SavedLocationsStore::SavedLocationsStore(MdbRepository *repo,
+                                           SavedLocationsService *service,
                                            ReverseGeocodingService *geocoding,
                                            GpsStore *gps, NavigationService *nav,
                                            ToastService *toast, QObject *parent)
@@ -19,6 +21,15 @@ SavedLocationsStore::SavedLocationsStore(SavedLocationsService *service,
     , m_nav(nav)
     , m_toast(toast)
 {
+    // Reload when settings data arrives from the Redis worker thread.
+    // The initial load() in the constructor may run against an empty cache
+    // (worker not started yet), so this ensures we pick up the data once it arrives.
+    connect(repo, &MdbRepository::fieldsUpdated, this,
+            [this](const QString &channel, const FieldMap &) {
+        if (channel == QLatin1String("settings"))
+            load();
+    });
+
     load();
 }
 

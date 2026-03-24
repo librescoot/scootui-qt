@@ -4,6 +4,7 @@
 #include <QVariantList>
 #include "models/SavedLocation.h"
 
+class MdbRepository;
 class SavedLocationsService;
 class ReverseGeocodingService;
 class GpsStore;
@@ -18,7 +19,8 @@ class SavedLocationsStore : public QObject
     Q_PROPERTY(int count READ count NOTIFY locationsChanged)
 
 public:
-    explicit SavedLocationsStore(SavedLocationsService *service,
+    explicit SavedLocationsStore(MdbRepository *repo,
+                                  SavedLocationsService *service,
                                   ReverseGeocodingService *geocoding,
                                   GpsStore *gps, NavigationService *nav,
                                   ToastService *toast, QObject *parent = nullptr);
