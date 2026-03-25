@@ -195,7 +195,7 @@ Row {
                      && (battState0 === bsActive || battState0 === bsAsleep || battState0 === bsIdle || charge0 > 10)
             x: chargeX; y: chargeY
             height: chargeH
-            width: chargeMaxW * (charge0 / 100)
+            width: chargeMaxW * (charge0 / 100.0)
             color: fillColor(charge0, true)
         }
 
@@ -314,7 +314,7 @@ Row {
                      && (battState1 === bsActive || battState1 === bsAsleep || battState1 === bsIdle || charge1 > 10)
             x: chargeX; y: chargeY
             height: chargeH
-            width: chargeMaxW * (charge1 / 100)
+            width: chargeMaxW * (charge1 / 100.0)
             color: fillColor(charge1, false)
         }
 
