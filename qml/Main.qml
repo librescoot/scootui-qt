@@ -111,13 +111,13 @@ Window {
             var maint = root.showMaintenance
             var screen = root.currentScreen
             var ota = typeof otaStore !== "undefined" && otaStore.isActive
-            if (maint) {
-                console.log("SCREEN: maintenance (showMaintenance=true, vehicleState=" + root.vehicleState + ")")
-                return maintenanceComponent
-            }
             if (ota) {
                 console.log("SCREEN: otaBg (otaStore.isActive=true)")
                 return otaBgComponent
+            }
+            if (maint) {
+                console.log("SCREEN: maintenance (showMaintenance=true, vehicleState=" + root.vehicleState + ")")
+                return maintenanceComponent
             }
             var name = "unknown"
             var comp = clusterComponent
