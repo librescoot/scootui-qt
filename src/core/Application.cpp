@@ -361,9 +361,17 @@ void Application::registerContextProperties(QQmlApplicationEngine &engine)
 void Application::fadeInOverlay()
 {
 #ifdef Q_OS_LINUX
-    // Guard: only run if imx overlay alpha interface exists
-    if (!QFile::exists(QStringLiteral("/sys/class/graphics/fb1/overlay_alpha")))
+    auto stopBootAnimation = []() {
+        QProcess::startDetached(QStringLiteral("systemctl"),
+                                 {QStringLiteral("stop"), QStringLiteral("boot-animation.service")});
+        qDebug() << "Boot animation stopped";
+    };
+
+    if (!QFile::exists(QStringLiteral("/sys/class/graphics/fb1/overlay_alpha"))) {
+        // No overlay alpha (kernel 6.6 imx-drm) — stop boot-animation directly
+        stopBootAnimation();
         return;
+    }
 
     qDebug() << "Starting boot animation fade-in...";
     auto *proc = new QProcess(this);
@@ -372,12 +380,10 @@ void Application::fadeInOverlay()
                         QStringLiteral("255"), QStringLiteral("1000")});
 
     connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-            this, [proc](int exitCode, QProcess::ExitStatus) {
+            this, [proc, stopBootAnimation](int exitCode, QProcess::ExitStatus) {
         proc->deleteLater();
         if (exitCode == 0) {
-            QProcess::startDetached(QStringLiteral("systemctl"),
-                                     {QStringLiteral("stop"), QStringLiteral("boot-animation.service")});
-            qDebug() << "Boot animation stopped";
+            stopBootAnimation();
         }
     });
 
