@@ -44,13 +44,21 @@ Item {
             text: {
                 if (typeof otaStore === "undefined") return ""
                 if (otaStore.dbcStatus === "downloading")
-                    return "OTA Downloading " + otaStore.dbcUpdateVersion
+                    return "Downloading update " + otaStore.dbcUpdateVersion
+                if (otaStore.dbcStatus === "preparing")
+                    return "Preparing update " + otaStore.dbcUpdateVersion
                 if (otaStore.dbcStatus === "installing")
-                    return "OTA Installing " + otaStore.dbcUpdateVersion
+                    return "Installing update " + otaStore.dbcUpdateVersion
+                if (otaStore.dbcStatus === "pending-reboot")
+                    return "Update ready, will apply on next start"
                 if (otaStore.mdbStatus === "downloading")
-                    return "OTA Downloading " + otaStore.mdbUpdateVersion
+                    return "Downloading update " + otaStore.mdbUpdateVersion
+                if (otaStore.mdbStatus === "preparing")
+                    return "Preparing update " + otaStore.mdbUpdateVersion
                 if (otaStore.mdbStatus === "installing")
-                    return "OTA Installing " + otaStore.mdbUpdateVersion
+                    return "Installing update " + otaStore.mdbUpdateVersion
+                if (otaStore.mdbStatus === "pending-reboot")
+                    return "Update ready, will apply on next start"
                 return ""
             }
             color: "white"
