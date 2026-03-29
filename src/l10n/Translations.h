@@ -253,6 +253,9 @@ class Translations : public QObject
     Q_PROPERTY(QString otaInstallFailedShort READ otaInstallFailedShort NOTIFY languageChanged)
     Q_PROPERTY(QString otaRebootFailed READ otaRebootFailed NOTIFY languageChanged)
     Q_PROPERTY(QString otaUpdateError READ otaUpdateError NOTIFY languageChanged)
+    Q_PROPERTY(QString otaPreparingUpdate READ otaPreparingUpdate NOTIFY languageChanged)
+    Q_PROPERTY(QString otaPendingReboot READ otaPendingReboot NOTIFY languageChanged)
+    Q_PROPERTY(QString otaDoNotPowerOff READ otaDoNotPowerOff NOTIFY languageChanged)
 
     // Battery messages
     Q_PROPERTY(QString batteryKm READ batteryKm NOTIFY languageChanged)
@@ -577,6 +580,9 @@ public:
     QString otaInstallFailedShort() const { return lookup("otaInstallFailedShort"); }
     QString otaRebootFailed() const { return lookup("otaRebootFailed"); }
     QString otaUpdateError() const { return lookup("otaUpdateError"); }
+    QString otaPreparingUpdate() const { return lookup("otaPreparingUpdate"); }
+    QString otaPendingReboot() const { return lookup("otaPendingReboot"); }
+    QString otaDoNotPowerOff() const { return lookup("otaDoNotPowerOff"); }
 
     // Battery messages
     QString batteryKm() const { return lookup("batteryKm"); }

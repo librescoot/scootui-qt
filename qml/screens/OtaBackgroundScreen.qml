@@ -12,6 +12,7 @@ Rectangle {
 
     readonly property int currentProgress: {
         if (dbcStatus === "downloading") return downloadProgress
+        if (dbcStatus === "preparing") return installProgress
         if (dbcStatus === "installing") return installProgress
         return 0
     }
@@ -33,8 +34,10 @@ Rectangle {
                     switch (dbcStatus) {
                         case "downloading":
                             return "qrc:/ScootUI/assets/icons/librescoot-ota-status-downloading.svg"
+                        case "preparing":
                         case "installing":
                             return "qrc:/ScootUI/assets/icons/librescoot-ota-status-installing.svg"
+                        case "pending-reboot":
                         case "rebooting":
                         case "reboot-failed":
                             return "qrc:/ScootUI/assets/icons/librescoot-ota-status-waiting-for-reboot.svg"
@@ -64,8 +67,10 @@ Rectangle {
             text: {
                 var tr = typeof translations !== "undefined" ? translations : null
                 switch (dbcStatus) {
-                    case "downloading": return tr ? tr.otaDownloadingUpdates : "Downloading updates..."
-                    case "installing": return tr ? tr.otaInstallingUpdates : "Installing updates..."
+                    case "downloading": return tr ? tr.otaDownloadingUpdates : "Downloading update..."
+                    case "preparing": return tr ? tr.otaPreparingUpdate : "Preparing update..."
+                    case "installing": return tr ? tr.otaInstallingUpdates : "Installing update..."
+                    case "pending-reboot": return tr ? tr.otaPendingReboot : "Update ready, will apply next time the scooter is started"
                     case "rebooting": return tr ? tr.otaStatusWaitingForReboot : "Waiting for reboot..."
                     case "reboot-failed": return tr ? tr.otaRebootFailed : "Reboot failed"
                     case "error":
@@ -79,7 +84,7 @@ Rectangle {
         Item {
             width: 200; height: 4
             anchors.horizontalCenter: parent.horizontalCenter
-            visible: dbcStatus === "downloading" || dbcStatus === "installing"
+            visible: dbcStatus === "downloading" || dbcStatus === "preparing" || dbcStatus === "installing"
 
             Rectangle {
                 anchors.fill: parent
@@ -112,7 +117,16 @@ Rectangle {
         // Spacer for progress text below bar
         Item {
             width: 1; height: 16
-            visible: dbcStatus === "downloading" || dbcStatus === "installing"
+            visible: dbcStatus === "downloading" || dbcStatus === "preparing" || dbcStatus === "installing"
+        }
+
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            font.pixelSize: 11
+            color: "#ff8800"
+            visible: dbcStatus === "preparing" || dbcStatus === "installing"
+            text: typeof translations !== "undefined" ? translations.otaDoNotPowerOff : "Do not turn off the scooter!"
+            horizontalAlignment: Text.AlignHCenter
         }
 
         // Version text

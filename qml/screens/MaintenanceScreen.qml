@@ -8,39 +8,110 @@ Rectangle {
     property bool showConnectionInfo: false
     property string stateRaw: typeof vehicleStore !== "undefined" ? vehicleStore.stateRaw : ""
 
-    // --- Loading mode (default): silent spinner ---
+    // --- Loading mode (default): silent spinner + optional OTA progress ---
     Item {
         id: loadingMode
         anchors.fill: parent
         visible: !showConnectionInfo
 
-        Item {
-            anchors.centerIn: parent
-            width: 32
-            height: 32
+        readonly property bool otaActive: typeof otaStore !== "undefined" && otaStore.isActive
+        readonly property string otaStatus: typeof otaStore !== "undefined" ? otaStore.dbcStatus : "idle"
+        readonly property int otaDownloadProgress: typeof otaStore !== "undefined" ? otaStore.dbcDownloadProgress : 0
+        readonly property int otaInstallProgress: typeof otaStore !== "undefined" ? otaStore.dbcInstallProgress : 0
+        readonly property string otaVersion: typeof otaStore !== "undefined" ? otaStore.dbcUpdateVersion : ""
 
-            Rectangle {
-                id: spinner
-                anchors.fill: parent
-                color: "transparent"
-                border.color: "white"
-                border.width: 3
-                radius: 16
+        Column {
+            anchors.centerIn: parent
+            spacing: 16
+
+            // Spinner
+            Item {
+                width: 32
+                height: 32
+                anchors.horizontalCenter: parent.horizontalCenter
 
                 Rectangle {
-                    width: 18
-                    height: 18
-                    color: "black"
-                    anchors.right: parent.right
-                    anchors.top: parent.top
+                    id: spinner
+                    anchors.fill: parent
+                    color: "transparent"
+                    border.color: "white"
+                    border.width: 3
+                    radius: 16
+
+                    Rectangle {
+                        width: 18
+                        height: 18
+                        color: "black"
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                    }
+
+                    RotationAnimation on rotation {
+                        from: 0
+                        to: 360
+                        duration: 1000
+                        loops: Animation.Infinite
+                        running: loadingMode.visible
+                    }
+                }
+            }
+
+            // OTA progress (below spinner, only when update active)
+            Column {
+                spacing: 6
+                visible: loadingMode.otaActive && loadingMode.otaStatus !== "idle"
+                anchors.horizontalCenter: parent.horizontalCenter
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    font.pixelSize: 14
+                    color: Qt.rgba(1, 1, 1, 0.8)
+                    text: {
+                        switch (loadingMode.otaStatus) {
+                            case "downloading": return "Downloading update..."
+                            case "preparing": return "Preparing update..."
+                            case "installing": return "Installing update..."
+                            case "pending-reboot": return "Update ready"
+                            case "error": return "Update failed"
+                            default: return "Updating..."
+                        }
+                    }
                 }
 
-                RotationAnimation on rotation {
-                    from: 0
-                    to: 360
-                    duration: 1000
-                    loops: Animation.Infinite
-                    running: loadingMode.visible
+                // Progress bar
+                Item {
+                    width: 160
+                    height: 3
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: loadingMode.otaStatus === "downloading"
+                             || loadingMode.otaStatus === "preparing"
+                             || loadingMode.otaStatus === "installing"
+
+                    Rectangle {
+                        anchors.fill: parent
+                        color: Qt.rgba(1, 1, 1, 0.2)
+                        radius: 1
+                    }
+                    Rectangle {
+                        width: parent.width * (loadingMode.otaStatus === "downloading"
+                               ? loadingMode.otaDownloadProgress
+                               : loadingMode.otaInstallProgress) / 100
+                        height: parent.height
+                        color: Qt.rgba(1, 1, 1, 0.6)
+                        radius: 1
+                        Behavior on width {
+                            NumberAnimation { duration: 300; easing.type: Easing.OutQuad }
+                        }
+                    }
+                }
+
+                // Version
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    font.pixelSize: 11
+                    color: Qt.rgba(1, 1, 1, 0.5)
+                    visible: loadingMode.otaVersion !== ""
+                    text: loadingMode.otaVersion
                 }
             }
         }

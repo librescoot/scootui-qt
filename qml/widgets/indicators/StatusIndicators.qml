@@ -248,8 +248,10 @@ Row {
                     switch (otaDbcStatus) {
                         case "downloading":
                             return "qrc:/ScootUI/assets/icons/librescoot-ota-status-downloading.svg"
+                        case "preparing":
                         case "installing":
                             return "qrc:/ScootUI/assets/icons/librescoot-ota-status-installing.svg"
+                        case "pending-reboot":
                         case "rebooting":
                         case "reboot-failed":
                             return "qrc:/ScootUI/assets/icons/librescoot-ota-status-waiting-for-reboot.svg"
