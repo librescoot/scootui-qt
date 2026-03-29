@@ -110,11 +110,6 @@ Window {
         sourceComponent: {
             var maint = root.showMaintenance
             var screen = root.currentScreen
-            var ota = typeof otaStore !== "undefined" && otaStore.isActive
-            if (ota) {
-                console.log("SCREEN: otaBg (otaStore.isActive=true)")
-                return otaBgComponent
-            }
             if (maint) {
                 console.log("SCREEN: maintenance (showMaintenance=true, vehicleState=" + root.vehicleState + ")")
                 return maintenanceComponent
