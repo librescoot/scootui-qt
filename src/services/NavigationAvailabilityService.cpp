@@ -36,11 +36,9 @@ void NavigationAvailabilityService::recheck()
 
 void NavigationAvailabilityService::checkMaps()
 {
-#ifdef Q_OS_LINUX
-    bool available = QFile::exists(QStringLiteral("/data/maps/map.mbtiles"));
-#else
-    bool available = QFile::exists(QDir::homePath() + QStringLiteral("/.local/share/scootui/maps/map.mbtiles"));
-#endif
+    // Check local directory first (desktop/simulator), then device path
+    bool available = QFile::exists(QStringLiteral("map.mbtiles"))
+                  || QFile::exists(QStringLiteral("/data/maps/map.mbtiles"));
     if (available != m_mapsAvailable) {
         m_mapsAvailable = available;
         publishToRedis();
