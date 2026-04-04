@@ -234,30 +234,17 @@ QVariantList AddressDatabaseService::getMatchingStreets(const QString &city, con
     QStringList streetNames;
     collectDisplayNames(node, streetNames);
 
-    // Look up postcodes from m_streetData to detect disambiguation
+    // Look up postcodes from m_streetData
     auto cityDataIt = m_streetData.constFind(normCity);
-    QHash<QString, QSet<QString>> streetPostcodes;
-    if (cityDataIt != m_streetData.constEnd()) {
-        for (const QString &name : streetNames) {
-            QString normStreet = normalize(name);
-            auto streetIt = cityDataIt.value().constFind(normStreet);
-            if (streetIt != cityDataIt.value().constEnd()) {
-                for (const auto &h : streetIt.value().houses)
-                    streetPostcodes[name].insert(h.postcode);
-            }
-        }
-    }
-
-    // Build result — disambiguate streets with multiple postcodes
     QList<QPair<QString, QString>> pairs;
-    for (const QString &street : streetNames) {
-        const auto &pcs = streetPostcodes[street];
-        if (pcs.size() > 1) {
-            for (const QString &pc : pcs)
-                pairs.append({street, pc});
-        } else {
-            pairs.append({street, pcs.isEmpty() ? QString() : *pcs.constBegin()});
+    for (const QString &name : streetNames) {
+        QString postcode;
+        if (cityDataIt != m_streetData.constEnd()) {
+            auto streetIt = cityDataIt.value().constFind(normalize(name));
+            if (streetIt != cityDataIt.value().constEnd())
+                postcode = streetIt.value().postcode;
         }
+        pairs.append({name, postcode});
     }
     std::sort(pairs.begin(), pairs.end(), [](const auto &a, const auto &b) {
         int cmp = a.first.compare(b.first, Qt::CaseInsensitive);
@@ -292,31 +279,10 @@ QVariantList AddressDatabaseService::getHouseNumbers(const QString &city, const 
     if (streetIt == cityIt.value().constEnd())
         return {};
 
-    QVariantList result;
-    for (const auto &h : streetIt.value().houses) {
-        if (!postcode.isEmpty() && h.postcode != postcode)
-            continue;
-        if (h.housenumber.isEmpty())
-            continue;
-        QVariantMap map;
-        map[QStringLiteral("housenumber")] = h.housenumber;
-        map[QStringLiteral("latitude")] = h.latitude;
-        map[QStringLiteral("longitude")] = h.longitude;
-        result.append(map);
-    }
-
-    // Sort house numbers naturally (1, 2, 3, 10, 10a, 11, ...)
-    std::sort(result.begin(), result.end(), [](const QVariant &a, const QVariant &b) {
-        QString ha = a.toMap()[QStringLiteral("housenumber")].toString();
-        QString hb = b.toMap()[QStringLiteral("housenumber")].toString();
-        int numA = 0, numB = 0, posA = 0, posB = 0;
-        while (posA < ha.size() && ha[posA].isDigit()) { numA = numA * 10 + ha[posA].digitValue(); posA++; }
-        while (posB < hb.size() && hb[posB].isDigit()) { numB = numB * 10 + hb[posB].digitValue(); posB++; }
-        if (numA != numB) return numA < numB;
-        return ha.mid(posA) < hb.mid(posB);
-    });
-
-    return result;
+    // Query house numbers on demand from mbtiles
+    return queryHouseNumbersFromTiles(city, street, postcode,
+                                      streetIt.value().centroidLat,
+                                      streetIt.value().centroidLng);
 }
 
 QVariantMap AddressDatabaseService::getStreetCoordinates(const QString &city, const QString &street) const
@@ -333,19 +299,145 @@ QVariantMap AddressDatabaseService::getStreetCoordinates(const QString &city, co
     if (streetIt == cityIt.value().constEnd())
         return {};
 
-    double sumLat = 0, sumLng = 0;
-    int count = 0;
-    for (const auto &h : streetIt.value().houses) {
-        sumLat += h.latitude;
-        sumLng += h.longitude;
-        count++;
-    }
-
     QVariantMap result;
-    if (count > 0) {
-        result[QStringLiteral("latitude")] = sumLat / count;
-        result[QStringLiteral("longitude")] = sumLng / count;
+    result[QStringLiteral("latitude")] = streetIt.value().centroidLat;
+    result[QStringLiteral("longitude")] = streetIt.value().centroidLng;
+    return result;
+}
+
+// ---------------------------------------------------------------------------
+// On-demand house number lookup from mbtiles
+// ---------------------------------------------------------------------------
+
+static int lonToTileX_query(double lon, int zoom)
+{
+    return static_cast<int>(std::floor((lon + 180.0) / 360.0 * (1 << zoom)));
+}
+
+static int latToTileYTMS_query(double lat, int zoom)
+{
+    double latRad = lat * M_PI / 180.0;
+    double n = std::pow(2.0, zoom);
+    double y = (1.0 - std::log(std::tan(latRad) + 1.0 / std::cos(latRad)) / M_PI) / 2.0 * n;
+    return static_cast<int>(std::floor(n - 1 - y)) + 1;
+}
+
+QVariantList AddressDatabaseService::queryHouseNumbersFromTiles(
+    const QString &city, const QString &street, const QString &postcode,
+    double nearLat, double nearLng) const
+{
+    QString mbtilesPath = QFile::exists(QStringLiteral("map.mbtiles"))
+        ? QStringLiteral("map.mbtiles")
+        : MbtilesPath;
+
+    if (!QFile::exists(mbtilesPath))
+        return {};
+
+    // Open database (read-only, separate connection)
+    const QString connName = QStringLiteral("address_housenumber_query");
+    QVariantList result;
+    {
+        QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connName);
+        db.setDatabaseName(mbtilesPath);
+        db.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
+        if (!db.open()) {
+            QSqlDatabase::removeDatabase(connName);
+            return {};
+        }
+
+        constexpr int zoom = 14;
+        constexpr double n = 16384.0; // 2^14
+
+        // Scan tiles in a radius around the street centroid (~2km at zoom 14)
+        int centerX = lonToTileX_query(nearLng, zoom);
+        int centerY = latToTileYTMS_query(nearLat, zoom);
+        constexpr int radius = 3; // tiles in each direction
+
+        QString normStreet = normalize(street);
+        QSet<QString> seenNumbers;
+
+        QSqlQuery tileQuery(db);
+        tileQuery.prepare(QStringLiteral(
+            "SELECT tile_data FROM tiles WHERE zoom_level=14 AND tile_column=? AND tile_row=?"));
+
+        for (int x = centerX - radius; x <= centerX + radius; ++x) {
+            for (int y = centerY - radius; y <= centerY + radius; ++y) {
+                tileQuery.bindValue(0, x);
+                tileQuery.bindValue(1, y);
+                if (!tileQuery.exec() || !tileQuery.next())
+                    continue;
+
+                QByteArray tileData = tileQuery.value(0).toByteArray();
+                QByteArray decompressed = VectorTile::gunzip(tileData);
+                if (decompressed.isEmpty())
+                    continue;
+
+                VectorTile::Tile tile = VectorTile::parse(decompressed);
+
+                for (const auto &layer : tile.layers) {
+                    if (layer.name != QLatin1String("addresses"))
+                        continue;
+
+                    for (const auto &feature : layer.features) {
+                        if (feature.type != 1)
+                            continue;
+
+                        QString fStreet = feature.properties.value(QStringLiteral("street"));
+                        if (fStreet.isEmpty())
+                            fStreet = feature.properties.value(QStringLiteral("name"));
+                        if (normalize(fStreet) != normStreet)
+                            continue;
+
+                        QString fCity = cleanCityName(feature.properties.value(QStringLiteral("city")));
+                        if (normalize(fCity) != normalize(city))
+                            continue;
+
+                        QString fPostcode = feature.properties.value(QStringLiteral("postcode"));
+                        if (!postcode.isEmpty() && fPostcode != postcode)
+                            continue;
+
+                        QString hn = feature.properties.value(QStringLiteral("housenumber"));
+                        if (hn.isEmpty())
+                            continue;
+
+                        // Deduplicate
+                        if (seenNumbers.contains(hn))
+                            continue;
+                        seenNumbers.insert(hn);
+
+                        QPointF pt = VectorTile::decodePoint(feature.geometry);
+                        double lon = (x + pt.x() / layer.extent) / n * 360.0 - 180.0;
+                        double yMerc = 1.0 - (y + pt.y() / layer.extent) / n;
+                        double z = M_PI * (1.0 - 2.0 * yMerc);
+                        double lat = std::atan(std::sinh(z)) * 180.0 / M_PI;
+
+                        QVariantMap map;
+                        map[QStringLiteral("housenumber")] = hn;
+                        map[QStringLiteral("latitude")] = lat;
+                        map[QStringLiteral("longitude")] = lon;
+                        result.append(map);
+                    }
+                }
+            }
+        }
+
+        db.close();
     }
+    QSqlDatabase::removeDatabase(connName);
+
+    // Sort naturally
+    std::sort(result.begin(), result.end(), [](const QVariant &a, const QVariant &b) {
+        QString ha = a.toMap()[QStringLiteral("housenumber")].toString();
+        QString hb = b.toMap()[QStringLiteral("housenumber")].toString();
+        int numA = 0, numB = 0, posA = 0, posB = 0;
+        while (posA < ha.size() && ha[posA].isDigit()) { numA = numA * 10 + ha[posA].digitValue(); posA++; }
+        while (posB < hb.size() && hb[posB].isDigit()) { numB = numB * 10 + hb[posB].digitValue(); posB++; }
+        if (numA != numB) return numA < numB;
+        return ha.mid(posA) < hb.mid(posB);
+    });
+
+    qDebug() << "AddressDatabase: queried" << result.size() << "house numbers for"
+             << street << "in" << city;
     return result;
 }
 
@@ -455,9 +547,14 @@ static TrieData buildTriesFromAddresses(QVector<AddressEntry> &addresses)
         AddressDatabaseService::insertIntoTrie(data.streetTries[normCity], normStreet, entry.street);
 
         auto &streetRec = data.streetData[normCity][normStreet];
-        if (streetRec.displayStreet.isEmpty())
+        if (streetRec.displayStreet.isEmpty()) {
             streetRec.displayStreet = entry.street;
-        streetRec.houses.append({entry.housenumber, entry.postcode, entry.latitude, entry.longitude});
+            streetRec.postcode = entry.postcode;
+        }
+        // Running centroid
+        streetRec.count++;
+        streetRec.centroidLat += (entry.latitude - streetRec.centroidLat) / streetRec.count;
+        streetRec.centroidLng += (entry.longitude - streetRec.centroidLng) / streetRec.count;
     }
 
     // Precompute subtree unique counts (bottom-up)
@@ -658,7 +755,7 @@ static BuildResult buildFromTiles(AddressDatabaseService *service, const QString
     // Build tries from addresses
     result.tries = buildTriesFromAddresses(result.addresses);
 
-    // Save cache from deduplicated streetData (much smaller than raw addresses)
+    // Save compact cache (one entry per street with centroid, no house numbers)
     {
         QDir().mkpath(QFileInfo(AddressDatabaseService::CachePath).absolutePath());
         QJsonArray arr;
@@ -677,24 +774,20 @@ static BuildResult buildFromTiles(AddressDatabaseService *service, const QString
             for (auto streetIt = cityIt.value().constBegin();
                  streetIt != cityIt.value().constEnd(); ++streetIt) {
                 const auto &rec = streetIt.value();
-                for (const auto &h : rec.houses) {
-                    QJsonObject obj;
-                    obj[QStringLiteral("c")] = displayCity;
-                    obj[QStringLiteral("s")] = rec.displayStreet;
-                    if (!h.housenumber.isEmpty())
-                        obj[QStringLiteral("h")] = h.housenumber;
-                    if (!h.postcode.isEmpty())
-                        obj[QStringLiteral("p")] = h.postcode;
-                    obj[QStringLiteral("lat")] = h.latitude;
-                    obj[QStringLiteral("lng")] = h.longitude;
-                    arr.append(obj);
-                }
+                QJsonObject obj;
+                obj[QStringLiteral("c")] = displayCity;
+                obj[QStringLiteral("s")] = rec.displayStreet;
+                if (!rec.postcode.isEmpty())
+                    obj[QStringLiteral("p")] = rec.postcode;
+                obj[QStringLiteral("lat")] = rec.centroidLat;
+                obj[QStringLiteral("lng")] = rec.centroidLng;
+                arr.append(obj);
             }
         }
         QJsonObject root;
-        root[QStringLiteral("version")] = 3;
+        root[QStringLiteral("version")] = 4;
         root[QStringLiteral("mapHash")] = result.mapHash;
-        root[QStringLiteral("addresses")] = arr;
+        root[QStringLiteral("streets")] = arr;
 
         QString tmpPath = AddressDatabaseService::CachePath + QStringLiteral(".tmp");
         QFile file(tmpPath);
@@ -703,7 +796,7 @@ static BuildResult buildFromTiles(AddressDatabaseService *service, const QString
             file.close();
             QFile::remove(AddressDatabaseService::CachePath);
             QFile::rename(tmpPath, AddressDatabaseService::CachePath);
-            qDebug() << "AddressDatabase: saved cache with" << arr.size() << "entries";
+            qDebug() << "AddressDatabase: saved cache with" << arr.size() << "streets";
         }
     }
 
@@ -777,32 +870,66 @@ void AddressDatabaseService::initialize()
         mapFile.close();
         QString mapHash = QString::fromLatin1(hash.result().toHex());
 
-        // Try loading from cache
+        // Try loading from cache (v4: compact street records, no house numbers)
         QFile cacheFile(CachePath);
         if (cacheFile.open(QIODevice::ReadOnly)) {
             QJsonDocument doc = QJsonDocument::fromJson(cacheFile.readAll());
             cacheFile.close();
             if (doc.isObject()) {
                 QJsonObject root = doc.object();
-                if (root.value(QStringLiteral("version")).toInt() == 3 &&
+                if (root.value(QStringLiteral("version")).toInt() == 4 &&
                     root.value(QStringLiteral("mapHash")).toString() == mapHash) {
-                    QJsonArray arr = root.value(QStringLiteral("addresses")).toArray();
-                    QVector<AddressEntry> addresses;
-                    addresses.reserve(arr.size());
+                    QJsonArray arr = root.value(QStringLiteral("streets")).toArray();
+
+                    // Build tries directly from cached street records
+                    TrieData data;
+                    data.cityTrieRoot = new TrieNode();
+                    QSet<QString> seenCities;
+
                     for (const QJsonValue &v : arr) {
                         QJsonObject obj = v.toObject();
-                        addresses.append({
-                            AddressDatabaseService::cleanCityName(obj[QStringLiteral("c")].toString()),
-                            obj[QStringLiteral("s")].toString(),
-                            obj[QStringLiteral("h")].toString(),
-                            obj[QStringLiteral("p")].toString(),
-                            obj[QStringLiteral("lat")].toDouble(),
-                            obj[QStringLiteral("lng")].toDouble()
-                        });
+                        QString city = AddressDatabaseService::cleanCityName(obj[QStringLiteral("c")].toString());
+                        QString street = obj[QStringLiteral("s")].toString();
+                        QString postcode = obj[QStringLiteral("p")].toString();
+                        double lat = obj[QStringLiteral("lat")].toDouble();
+                        double lng = obj[QStringLiteral("lng")].toDouble();
+
+                        QString normCity = AddressDatabaseService::normalize(city);
+                        QString normStreet = AddressDatabaseService::normalize(street);
+
+                        if (!seenCities.contains(normCity)) {
+                            AddressDatabaseService::insertIntoTrie(data.cityTrieRoot, normCity, city);
+                            seenCities.insert(normCity);
+                        }
+                        if (!data.streetTries.contains(normCity))
+                            data.streetTries[normCity] = new TrieNode();
+                        AddressDatabaseService::insertIntoTrie(data.streetTries[normCity], normStreet, street);
+
+                        auto &rec = data.streetData[normCity][normStreet];
+                        if (rec.displayStreet.isEmpty()) {
+                            rec.displayStreet = street;
+                            rec.postcode = postcode;
+                        }
+                        rec.centroidLat = lat;
+                        rec.centroidLng = lng;
+                        rec.count = 1;
+                        data.addressCount++;
                     }
-                    qDebug() << "AddressDatabase: loaded" << addresses.size() << "addresses from cache";
-                    TrieData tries = buildTriesFromAddresses(addresses);
-                    return BuildResult{true, true, {}, mapHash, std::move(addresses), std::move(tries)};
+
+                    // Compute subtree counts
+                    std::function<int(TrieNode *)> computeCounts = [&](TrieNode *node) -> int {
+                        int count = node->displayName.isEmpty() ? 0 : 1;
+                        for (auto it = node->children.begin(); it != node->children.end(); ++it)
+                            count += computeCounts(it.value());
+                        node->subtreeUniqueCount = count;
+                        return count;
+                    };
+                    computeCounts(data.cityTrieRoot);
+                    for (auto it = data.streetTries.begin(); it != data.streetTries.end(); ++it)
+                        computeCounts(it.value());
+
+                    qDebug() << "AddressDatabase: loaded" << arr.size() << "streets from cache";
+                    return BuildResult{true, true, {}, mapHash, {}, std::move(data)};
                 }
             }
         }

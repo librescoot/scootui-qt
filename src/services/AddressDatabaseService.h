@@ -103,20 +103,20 @@ private:
     QHash<QString, TrieNode *> m_streetTries;
 
 public:
-    // Grouped address data: normCity → normStreet → list of {housenumber, postcode, lat, lng}
-    struct HouseEntry {
-        QString housenumber;
-        QString postcode;
-        double latitude;
-        double longitude;
-    };
     struct StreetRecord {
         QString displayStreet;
-        QVector<HouseEntry> houses;
+        QString postcode;     // most common postcode
+        double centroidLat = 0;
+        double centroidLng = 0;
+        int count = 0;        // number of address points (for running centroid)
     };
 
 private:
     QHash<QString, QHash<QString, StreetRecord>> m_streetData;
+
+    // On-demand house number lookup from mbtiles
+    QVariantList queryHouseNumbersFromTiles(const QString &city, const QString &street,
+                                            const QString &postcode, double nearLat, double nearLng) const;
 
 public:
     static const QString MbtilesPath;
