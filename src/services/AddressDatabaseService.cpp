@@ -439,10 +439,7 @@ static TrieData buildTriesFromAddresses(QVector<AddressEntry> &addresses)
     data.addressCount = addresses.size();
 
     QSet<QString> seenCities;
-    // Track seen house numbers per (normCity, normStreet) to deduplicate
-    QHash<QString, QSet<QString>> seenHouseNumbers; // "normCity\0normStreet" → set of housenumbers
 
-    int totalStored = 0;
     for (const auto &entry : addresses) {
         QString normCity = AddressDatabaseService::normalize(entry.city);
         QString normStreet = AddressDatabaseService::normalize(entry.street);
@@ -460,20 +457,8 @@ static TrieData buildTriesFromAddresses(QVector<AddressEntry> &addresses)
         auto &streetRec = data.streetData[normCity][normStreet];
         if (streetRec.displayStreet.isEmpty())
             streetRec.displayStreet = entry.street;
-
-        // Deduplicate: only store first occurrence of each house number per street
-        QString dedupeKey = normCity + QChar('\0') + normStreet;
-        auto &seen = seenHouseNumbers[dedupeKey];
-        QString hn = entry.housenumber;
-        if (hn.isEmpty()) hn = QStringLiteral("__empty__");
-        if (!seen.contains(hn)) {
-            seen.insert(hn);
-            streetRec.houses.append({entry.housenumber, entry.postcode, entry.latitude, entry.longitude});
-            totalStored++;
-        }
+        streetRec.houses.append({entry.housenumber, entry.postcode, entry.latitude, entry.longitude});
     }
-    qDebug() << "AddressDatabase: deduplicated" << addresses.size()
-             << "→" << totalStored << "unique address entries";
 
     // Precompute subtree unique counts (bottom-up)
     std::function<int(TrieNode *)> computeCounts = [&](TrieNode *node) -> int {
