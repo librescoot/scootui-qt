@@ -74,5 +74,5 @@ private:
     static constexpr int DOUBLE_PRESS_MS = 500;
     static constexpr int LONG_PRESS_MS = 500;
     static constexpr int ITEM_CYCLE_MS = 750;
-    static constexpr int CONFIRM_TIMEOUT_MS = 1000;
+    static constexpr int CONFIRM_TIMEOUT_MS = 3000;
 };
