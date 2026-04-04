@@ -233,38 +233,24 @@ Row {
             colorizationColor: batteryDisplay.iconColor
         }
 
-        // Idle overlay
+        // Idle overlay (uses original colors in dark mode, inverted in light)
         Image {
-            id: b0idleOverlay
-            anchors.fill: parent
-            visible: false
-            source: "qrc:/ScootUI/assets/icons/librescoot-overlay-idle.svg"
-            sourceSize: Qt.size(24, 24)
-            fillMode: Image.PreserveAspectFit
-        }
-        MultiEffect {
-            source: b0idleOverlay
             anchors.fill: parent
             visible: present0 && battState0 === bsIdle
-            colorization: 1.0
-            colorizationColor: batteryDisplay.iconColor
-        }
-
-        // Fault overlay (error X)
-        Image {
-            id: b0faultOverlay
-            anchors.fill: parent
-            visible: false
-            source: "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
+            source: isDark ? "qrc:/ScootUI/assets/icons/librescoot-overlay-idle.svg"
+                           : "qrc:/ScootUI/assets/icons/librescoot-overlay-idle-light.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
         }
-        MultiEffect {
-            source: b0faultOverlay
+
+        // Fault overlay (uses original colors in dark mode, inverted in light)
+        Image {
             anchors.fill: parent
             visible: hasFault0
-            colorization: 1.0
-            colorizationColor: batteryDisplay.iconColor
+            source: isDark ? "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
+                           : "qrc:/ScootUI/assets/icons/librescoot-overlay-error-light.svg"
+            sourceSize: Qt.size(24, 24)
+            fillMode: Image.PreserveAspectFit
         }
     }
 
@@ -352,38 +338,24 @@ Row {
             colorizationColor: batteryDisplay.iconColor
         }
 
-        // Idle overlay
+        // Idle overlay (uses original colors in dark mode, inverted in light)
         Image {
-            id: b1idleOverlay
-            anchors.fill: parent
-            visible: false
-            source: "qrc:/ScootUI/assets/icons/librescoot-overlay-idle.svg"
-            sourceSize: Qt.size(24, 24)
-            fillMode: Image.PreserveAspectFit
-        }
-        MultiEffect {
-            source: b1idleOverlay
             anchors.fill: parent
             visible: present1 && battState1 === bsIdle
-            colorization: 1.0
-            colorizationColor: batteryDisplay.iconColor
-        }
-
-        // Fault overlay
-        Image {
-            id: b1faultOverlay
-            anchors.fill: parent
-            visible: false
-            source: "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
+            source: isDark ? "qrc:/ScootUI/assets/icons/librescoot-overlay-idle.svg"
+                           : "qrc:/ScootUI/assets/icons/librescoot-overlay-idle-light.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
         }
-        MultiEffect {
-            source: b1faultOverlay
+
+        // Fault overlay (uses original colors in dark mode, inverted in light)
+        Image {
             anchors.fill: parent
             visible: hasFault1
-            colorization: 1.0
-            colorizationColor: batteryDisplay.iconColor
+            source: isDark ? "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
+                           : "qrc:/ScootUI/assets/icons/librescoot-overlay-error-light.svg"
+            sourceSize: Qt.size(24, 24)
+            fillMode: Image.PreserveAspectFit
         }
     }
 
@@ -448,18 +420,11 @@ Row {
             colorizationColor: batteryDisplay.iconColor
         }
         Image {
-            id: cbErrorOverlay
             anchors.fill: parent
-            source: "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
+            source: isDark ? "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
+                           : "qrc:/ScootUI/assets/icons/librescoot-overlay-error-light.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
-            visible: false
-        }
-        MultiEffect {
-            source: cbErrorOverlay
-            anchors.fill: parent
-            colorization: 1.0
-            colorizationColor: batteryDisplay.iconColor
         }
     }
 
@@ -483,18 +448,11 @@ Row {
             colorizationColor: batteryDisplay.iconColor
         }
         Image {
-            id: auxErrorOverlay
             anchors.fill: parent
-            source: "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
+            source: isDark ? "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
+                           : "qrc:/ScootUI/assets/icons/librescoot-overlay-error-light.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
-            visible: false
-        }
-        MultiEffect {
-            source: auxErrorOverlay
-            anchors.fill: parent
-            colorization: 1.0
-            colorizationColor: batteryDisplay.iconColor
         }
     }
 

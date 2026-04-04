@@ -265,11 +265,13 @@ qt_add_qml_module(scootui
         assets/icons/librescoot-aux-battery-level-75.svg
         assets/icons/librescoot-aux-battery-level-100.svg
         assets/icons/librescoot-overlay-error.svg
+        assets/icons/librescoot-overlay-error-light.svg
         assets/icons/librescoot-overlay-locked.svg
         assets/icons/librescoot-overlay-slashed.svg
         assets/icons/librescoot-overlay-charging.svg
         assets/icons/librescoot-overlay-asleep.svg
         assets/icons/librescoot-overlay-idle.svg
+        assets/icons/librescoot-overlay-idle-light.svg
         assets/icons/librescoot-bluetooth-connected.svg
         assets/icons/librescoot-bluetooth-disconnected.svg
         assets/icons/librescoot-bluetooth-error.svg
