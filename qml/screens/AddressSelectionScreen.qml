@@ -612,10 +612,11 @@ Rectangle {
                         anchors.rightMargin: 16
                         text: {
                             var item = modelData.item
+                            if (item === undefined || item === null) return ""
                             if (addressScreen.phase === addressScreen.phaseHouseNumbers) {
-                                return item.housenumber
+                                return item.housenumber || ""
                             } else if (addressScreen.phase === addressScreen.phaseStreetList) {
-                                var street = item.street
+                                var street = item.street || ""
                                 var postcode = item.postcode || ""
                                 var dupes = 0
                                 for (var j = 0; j < addressScreen.itemList.length; j++) {
@@ -625,7 +626,7 @@ Rectangle {
                                     return street + " [" + postcode + "]"
                                 return street
                             }
-                            return item // city name (string)
+                            return typeof item === "string" ? item : ""
                         }
                         color: modelData.selected ? "white" : textPrimary
                         font.pixelSize: 18

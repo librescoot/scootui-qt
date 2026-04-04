@@ -76,7 +76,7 @@ QString AddressDatabaseService::cleanCityName(const QString &raw)
 QString AddressDatabaseService::normalize(const QString &name)
 {
     QString result;
-    result.reserve(name.size() + 4); // may grow slightly from ä→ae etc.
+    result.reserve(name.size() + 8);
 
     for (int i = 0; i < name.size(); ++i) {
         ushort u = name[i].unicode();
@@ -88,14 +88,22 @@ QString AddressDatabaseService::normalize(const QString &name)
         default:
             if (name[i].isLetterOrNumber()) {
                 result += name[i].toLower();
-            } else if (name[i] == QLatin1Char(' ') || name[i] == QLatin1Char('-') ||
-                       name[i] == QLatin1Char('.')) {
+            } else if (name[i] == QLatin1Char(' ') || name[i] == QLatin1Char('-')) {
                 result += name[i];
             }
-            // drop other special characters
+            // drop dots and other special characters
             break;
         }
     }
+
+    // Expand common German street abbreviations so "Str" and "Straße" match
+    result.replace(QStringLiteral("str "), QStringLiteral("strasse "));
+    if (result.endsWith(QStringLiteral("str")))
+        result.replace(result.size() - 3, 3, QStringLiteral("strasse"));
+    result.replace(QStringLiteral("pl "), QStringLiteral("platz "));
+    if (result.endsWith(QStringLiteral("pl")))
+        result.replace(result.size() - 2, 2, QStringLiteral("platz"));
+
     return result;
 }
 
@@ -335,6 +343,9 @@ QVariantList AddressDatabaseService::queryHouseNumbersFromTiles(
     const QString &city, const QString &street, const QString &postcode,
     double nearLat, double nearLng) const
 {
+    qDebug() << "queryHouseNumbers: city=" << city << "street=" << street
+             << "postcode=" << postcode << "near=" << nearLat << nearLng;
+
     QString mbtilesPath = QFile::exists(QStringLiteral("map.mbtiles"))
         ? QStringLiteral("map.mbtiles")
         : MbtilesPath;
