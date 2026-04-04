@@ -92,8 +92,8 @@ private:
     QString m_dualBattery = QStringLiteral("true");
     QString m_showGps = QStringLiteral("error");
     QString m_showBluetooth = QStringLiteral("active-or-error");
-    QString m_showCloud = QStringLiteral("error");
-    QString m_showInternet = QStringLiteral("always");
+    QString m_showCloud = QStringLiteral("never");
+    QString m_showInternet = QStringLiteral("never");
     QString m_showClock = QStringLiteral("always");
     QString m_alarmEnabled = QStringLiteral("false");
     QString m_alarmHonk = QStringLiteral("false");

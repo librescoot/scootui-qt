@@ -28,8 +28,8 @@ Row {
     // Visibility settings from SettingsStore (values: "always", "active-or-error", "error", "never")
     readonly property string showGpsSetting: typeof settingsStore !== "undefined" ? settingsStore.showGps : "error"
     readonly property string showBtSetting: typeof settingsStore !== "undefined" ? settingsStore.showBluetooth : "active-or-error"
-    readonly property string showCloudSetting: typeof settingsStore !== "undefined" ? settingsStore.showCloud : "error"
-    readonly property string showInternetSetting: typeof settingsStore !== "undefined" ? settingsStore.showInternet : "always"
+    readonly property string showCloudSetting: typeof settingsStore !== "undefined" ? settingsStore.showCloud : "never"
+    readonly property string showInternetSetting: typeof settingsStore !== "undefined" ? settingsStore.showInternet : "never"
 
     // Active/error state for each indicator (matches Flutter shouldShowIndicator logic)
     readonly property bool gpsIsActive: (gpsState === 0 && gpsRecentFix) || (gpsState === 2 && gpsRecentFix)
