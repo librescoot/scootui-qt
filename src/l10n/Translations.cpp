@@ -254,6 +254,12 @@ void Translations::initStrings()
     en[QStringLiteral("controlScroll")] = QStringLiteral("Scroll");
     de[QStringLiteral("controlScroll")] = QStringLiteral("Scrollen");
 
+    en[QStringLiteral("controlCancel")] = QStringLiteral("Cancel");
+    de[QStringLiteral("controlCancel")] = QStringLiteral("Abbrechen");
+
+    en[QStringLiteral("navGo")] = QStringLiteral("Go!");
+    de[QStringLiteral("navGo")] = QStringLiteral("Los!");
+
     en[QStringLiteral("controlLeftBrake")] = QStringLiteral("Left Brake");
     de[QStringLiteral("controlLeftBrake")] = QStringLiteral("Linke Bremse");
 

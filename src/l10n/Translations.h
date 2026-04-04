@@ -82,6 +82,8 @@ class Translations : public QObject
     Q_PROPERTY(QString controlSelect READ controlSelect NOTIFY languageChanged)
     Q_PROPERTY(QString controlNext READ controlNext NOTIFY languageChanged)
     Q_PROPERTY(QString controlScroll READ controlScroll NOTIFY languageChanged)
+    Q_PROPERTY(QString controlCancel READ controlCancel NOTIFY languageChanged)
+    Q_PROPERTY(QString navGo READ navGo NOTIFY languageChanged)
     Q_PROPERTY(QString controlLeftBrake READ controlLeftBrake NOTIFY languageChanged)
     Q_PROPERTY(QString controlRightBrake READ controlRightBrake NOTIFY languageChanged)
     Q_PROPERTY(QString controlNextItem READ controlNextItem NOTIFY languageChanged)
@@ -418,6 +420,8 @@ public:
     QString controlSelect() const { return lookup("controlSelect"); }
     QString controlNext() const { return lookup("controlNext"); }
     QString controlScroll() const { return lookup("controlScroll"); }
+    QString controlCancel() const { return lookup("controlCancel"); }
+    QString navGo() const { return lookup("navGo"); }
     QString controlLeftBrake() const { return lookup("controlLeftBrake"); }
     QString controlRightBrake() const { return lookup("controlRightBrake"); }
     QString controlNextItem() const { return lookup("controlNextItem"); }
