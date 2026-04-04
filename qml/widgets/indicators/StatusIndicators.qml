@@ -270,20 +270,14 @@ Row {
                 colorizationColor: statusIndicators.iconColor
             }
 
-            // Error overlay
+            // Error overlay (original colors for dark, inverted for light)
             Image {
-                id: otaErrorOverlay
                 anchors.fill: parent
                 sourceSize: Qt.size(24, 24)
-                source: "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
-                visible: false
-            }
-            MultiEffect {
-                source: otaErrorOverlay
-                anchors.fill: parent
+                source: (typeof themeStore !== "undefined" && themeStore.isDark)
+                    ? "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
+                    : "qrc:/ScootUI/assets/icons/librescoot-overlay-error-light.svg"
                 visible: otaDbcStatus === "error" || otaDbcStatus === "error-failed"
-                colorization: 1.0
-                colorizationColor: statusIndicators.iconColor
             }
         }
 
