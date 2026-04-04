@@ -44,7 +44,7 @@ void GpsStore::applyFieldUpdate(const QString &variable, const QString &value)
     } else if (variable == QLatin1String("updated")) {
         if (value != m_updated) { m_updated = value; emit updatedChanged(); }
     } else if (variable == QLatin1String("timestamp")) {
-        if (value != m_timestamp) { m_timestamp = value; emit timestampChanged(); }
+        if (value != m_timestamp) { m_timestamp = value; m_timestampAge.restart(); emit timestampChanged(); }
     } else if (variable == QLatin1String("state")) {
         auto v = ScootEnums::parseGpsState(value);
         if (v != m_gpsState) { m_gpsState = v; emit gpsStateChanged(); }

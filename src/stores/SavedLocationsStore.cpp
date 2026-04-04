@@ -63,16 +63,12 @@ void SavedLocationsStore::load()
 
 void SavedLocationsStore::saveCurrentLocation()
 {
-    // Validate GPS
-    if (m_gps->gpsState() != static_cast<int>(ScootEnums::GpsState::FixEstablished)) {
-        m_toast->showError(QStringLiteral("No GPS fix available"));
-        return;
-    }
-
+    // Validate GPS — accept any non-zero position even without FixEstablished,
+    // as the GPS daemon may be slow to update state
     double lat = m_gps->latitude();
     double lng = m_gps->longitude();
     if (lat == 0 && lng == 0) {
-        m_toast->showError(QStringLiteral("Invalid GPS position"));
+        m_toast->showError(QStringLiteral("No GPS position available"));
         return;
     }
 

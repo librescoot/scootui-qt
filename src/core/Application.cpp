@@ -151,6 +151,13 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_navigationService = new NavigationService(gpsStore, navigationStore, vehicleStore,
                                                  settingsStore, speedLimitStore, repo, this);
 
+    // Show toast on navigation errors so the user knows what went wrong
+    connect(m_navigationService, &NavigationService::errorChanged, this, [this]() {
+        QString msg = m_navigationService->errorMessage();
+        if (!msg.isEmpty())
+            m_toastService->showError(msg);
+    });
+
     // Road info service (extracts street name + speed limit from vector tiles)
     m_roadInfoService = new RoadInfoService(gpsStore, speedLimitStore, this);
 

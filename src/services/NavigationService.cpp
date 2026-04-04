@@ -178,6 +178,15 @@ QString NavigationService::eta() const
 
 void NavigationService::setDestination(double lat, double lng, const QString &address)
 {
+    qDebug() << "NavigationService::setDestination:" << lat << lng << address;
+
+    if (lat == 0 && lng == 0) {
+        qWarning() << "NavigationService::setDestination: ignoring (0,0) destination";
+        m_errorMessage = QStringLiteral("Invalid destination coordinates");
+        emit errorChanged();
+        return;
+    }
+
     m_destination = {lat, lng};
     m_destAddress = address;
     emit destinationChanged();
@@ -356,19 +365,28 @@ void NavigationService::onRouteError(const QString &error)
 
 void NavigationService::calculateRoute()
 {
-    if (!m_destination.isValid()) return;
+    if (!m_destination.isValid()) {
+        qWarning() << "NavigationService::calculateRoute: invalid destination"
+                    << m_destination.latitude << m_destination.longitude;
+        return;
+    }
 
     if (!hasValidGps()) {
-        qDebug() << "NavigationService: no recent GPS fix for route calculation";
+        qDebug() << "NavigationService: no recent GPS fix — gpsState:" << m_gps->gpsState()
+                 << "lat:" << m_gps->latitude() << "lng:" << m_gps->longitude()
+                 << "timestamp:" << m_gps->timestamp();
         return;
     }
 
     LatLng from = currentGpsPosition();
     if (!from.isValid()) {
-        qDebug() << "NavigationService: no GPS position for route calculation";
+        qDebug() << "NavigationService: GPS position is (0,0)";
         return;
     }
 
+    qDebug() << "NavigationService: calculating route from"
+             << from.latitude << from.longitude << "to"
+             << m_destination.latitude << m_destination.longitude;
     setStatus(NavigationStatus::Calculating);
     m_valhalla->calculateRoute(from, m_destination);
 }
@@ -496,6 +514,8 @@ LatLng NavigationService::currentGpsPosition() const
 bool NavigationService::hasValidGps() const
 {
     if (!m_gps) return false;
-    return m_gps->hasRecentFix() &&
-           (m_gps->latitude() != 0 || m_gps->longitude() != 0);
+    // Accept any non-zero position — don't require FixEstablished or recent
+    // timestamp, as the GPS daemon may be slow to update state even though
+    // we already have usable coordinates (visible on the map).
+    return m_gps->latitude() != 0 || m_gps->longitude() != 0;
 }

@@ -2,7 +2,7 @@
 
 #include "SyncableStore.h"
 #include "models/Enums.h"
-#include <QDateTime>
+#include <QElapsedTimer>
 
 class GpsStore : public SyncableStore
 {
@@ -33,14 +33,17 @@ public:
     int gpsState() const { return static_cast<int>(m_gpsState); }
 
     bool hasTimestamp() const { return !m_timestamp.isEmpty(); }
+    bool hasGpsFix() const { return m_gpsState == ScootEnums::GpsState::FixEstablished; }
+
+    // True when the GPS daemon reports fix-established AND the timestamp
+    // field has been updated within the last 20 seconds (monotonic clock,
+    // immune to system clock skew).
     bool hasRecentFix() const {
-        if (m_timestamp.isEmpty()) return false;
-        QDateTime gpsTime = QDateTime::fromString(m_timestamp, Qt::ISODate);
-        if (!gpsTime.isValid()) return false;
-        return gpsTime.secsTo(QDateTime::currentDateTime()) <= RecentFixThresholdSec;
+        return hasGpsFix() && m_timestampAge.isValid()
+            && m_timestampAge.elapsed() <= RecentFixThresholdMs;
     }
 
-    static constexpr int RecentFixThresholdSec = 20;
+    static constexpr qint64 RecentFixThresholdMs = 20000;
 
 signals:
     void latitudeChanged();
@@ -66,5 +69,6 @@ private:
     double m_eph = 0;
     QString m_updated;
     QString m_timestamp;
+    QElapsedTimer m_timestampAge;
     ScootEnums::GpsState m_gpsState = ScootEnums::GpsState::Off;
 };
