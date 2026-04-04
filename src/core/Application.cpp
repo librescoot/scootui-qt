@@ -1,4 +1,5 @@
 #include "Application.h"
+#include "AppConfig.h"
 #include "EnvConfig.h"
 #include "repositories/MdbRepository.h"
 #include "repositories/InMemoryMdbRepository.h"
@@ -84,6 +85,10 @@ bool Application::initialize(QQmlApplicationEngine &engine)
         qDebug() << "Using InMemoryMdbRepository (simulator mode)";
         m_repository = std::make_unique<InMemoryMdbRepository>();
         m_simulatorMode = true;
+        // Use online routing in simulator (no local Valhalla server)
+        m_repository->set(QStringLiteral("settings"),
+                          QLatin1String(AppConfig::valhallaEndpointKey),
+                          QLatin1String(AppConfig::valhallaOnlineEndpoint));
     } else {
         qDebug() << "Connecting to Redis at" << redisHost;
         m_repository = std::make_unique<RedisMdbRepository>(redisHost, 6379, QStringLiteral("192.168.8.1"));
