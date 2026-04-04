@@ -58,7 +58,7 @@ public:
     Q_INVOKABLE QVariantList getMatchingStreets(const QString &city, const QString &prefix) const;
 
     // --- House number / coordinate queries ---
-    Q_INVOKABLE QVariantList getHouseNumbers(const QString &city, const QString &street, const QString &postcode) const;
+    Q_INVOKABLE void queryHouseNumbers(const QString &city, const QString &street, const QString &postcode);
     Q_INVOKABLE QVariantMap getStreetCoordinates(const QString &city, const QString &street) const;
 
     Q_INVOKABLE void initialize();
@@ -70,6 +70,7 @@ signals:
     void buildProgressChanged();
     void addressCountChanged();
     void statusMessageChanged();
+    void houseNumbersReady(const QVariantList &houses);
 
 public slots:
     void onBuildProgress(double progress, int count);

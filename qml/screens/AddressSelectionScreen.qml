@@ -51,6 +51,7 @@ Rectangle {
     property string selectedHouse: ""
     property double destLat: 0
     property double destLng: 0
+    property bool loadingHouseNumbers: false
 
     // When database becomes ready, start city letter input
     onDbStatusChanged: {
@@ -103,24 +104,34 @@ Rectangle {
     }
 
     function enterHouseNumbers() {
-        var houses = addressDatabase.getHouseNumbers(selectedCity, selectedStreet, selectedPostcode)
-        if (houses.length <= 1) {
-            if (houses.length === 1) {
-                selectedHouse = houses[0].housenumber
-                destLat = houses[0].latitude
-                destLng = houses[0].longitude
-            } else {
-                selectedHouse = ""
-                var coords = addressDatabase.getStreetCoordinates(selectedCity, selectedStreet)
-                destLat = coords.latitude || 0
-                destLng = coords.longitude || 0
+        loadingHouseNumbers = true
+        addressDatabase.queryHouseNumbers(selectedCity, selectedStreet, selectedPostcode)
+    }
+
+    Connections {
+        target: typeof addressDatabase !== "undefined" ? addressDatabase : null
+
+        function onHouseNumbersReady(houses) {
+            addressScreen.loadingHouseNumbers = false
+            if (houses.length <= 1) {
+                if (houses.length === 1) {
+                    addressScreen.selectedHouse = houses[0].housenumber
+                    addressScreen.destLat = houses[0].latitude
+                    addressScreen.destLng = houses[0].longitude
+                } else {
+                    addressScreen.selectedHouse = ""
+                    var coords = addressDatabase.getStreetCoordinates(
+                        addressScreen.selectedCity, addressScreen.selectedStreet)
+                    addressScreen.destLat = coords.latitude || 0
+                    addressScreen.destLng = coords.longitude || 0
+                }
+                addressScreen.phase = addressScreen.phaseConfirm
+                return
             }
-            phase = phaseConfirm
-            return
+            addressScreen.phase = addressScreen.phaseHouseNumbers
+            addressScreen.listIndex = 0
+            addressScreen.itemList = houses
         }
-        phase = phaseHouseNumbers
-        listIndex = 0
-        itemList = houses
     }
 
     function enterConfirm() {
@@ -256,6 +267,7 @@ Rectangle {
         target: typeof inputHandler !== "undefined" ? inputHandler : null
 
         function onLeftTap() {
+            if (addressScreen.loadingHouseNumbers) return
             if (addressScreen.phase === addressScreen.phaseCityLetters ||
                 addressScreen.phase === addressScreen.phaseStreetLetters) {
                 addressScreen.cycleChar()
@@ -267,6 +279,7 @@ Rectangle {
         }
 
         function onLeftHold() {
+            if (addressScreen.loadingHouseNumbers) return
             switch (addressScreen.phase) {
             case addressScreen.phaseCityLetters:
                 addressScreen.backspace()
@@ -290,6 +303,7 @@ Rectangle {
         }
 
         function onRightTap() {
+            if (addressScreen.loadingHouseNumbers) return
             if (addressScreen.dbStatus === addressScreen.statusBuilding) {
                 if (typeof addressDatabase !== "undefined")
                     addressDatabase.cancelBuild()
@@ -472,6 +486,15 @@ Rectangle {
                 color: textSecondary
                 font.pixelSize: 13
             }
+        }
+
+        // --- Loading house numbers ---
+        Text {
+            anchors.centerIn: parent
+            visible: loadingHouseNumbers
+            text: typeof translations !== "undefined" ? translations.navLoadingHouseNumbers : "Loading..."
+            color: textSecondary
+            font.pixelSize: 16
         }
 
         // --- Error state ---

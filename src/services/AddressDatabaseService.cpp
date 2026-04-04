@@ -282,19 +282,25 @@ QVariantList AddressDatabaseService::getMatchingStreets(const QString &city, con
 // House number and coordinate queries
 // ---------------------------------------------------------------------------
 
-QVariantList AddressDatabaseService::getHouseNumbers(const QString &city, const QString &street, const QString &postcode) const
+void AddressDatabaseService::queryHouseNumbers(const QString &city, const QString &street, const QString &postcode)
 {
-    if (m_status != Ready)
-        return {};
+    if (m_status != Ready) {
+        emit houseNumbersReady({});
+        return;
+    }
     QString normCity = normalize(city);
     QString normStreet = normalize(street);
 
     auto cityIt = m_streetData.constFind(normCity);
-    if (cityIt == m_streetData.constEnd())
-        return {};
+    if (cityIt == m_streetData.constEnd()) {
+        emit houseNumbersReady({});
+        return;
+    }
     auto streetIt = cityIt.value().constFind(normStreet);
-    if (streetIt == cityIt.value().constEnd())
-        return {};
+    if (streetIt == cityIt.value().constEnd()) {
+        emit houseNumbersReady({});
+        return;
+    }
 
     // Use postcode-specific centroid if available, otherwise overall
     const auto &rec = streetIt.value();
@@ -307,7 +313,16 @@ QVariantList AddressDatabaseService::getHouseNumbers(const QString &city, const 
             lng = pcIt.value().lng;
         }
     }
-    return queryHouseNumbersFromTiles(city, street, postcode, lat, lng);
+
+    // Run the tile query on a background thread to avoid blocking the UI
+    auto *watcher = new QFutureWatcher<QVariantList>(this);
+    connect(watcher, &QFutureWatcher<QVariantList>::finished, this, [this, watcher]() {
+        emit houseNumbersReady(watcher->result());
+        watcher->deleteLater();
+    });
+    watcher->setFuture(QtConcurrent::run([this, city, street, postcode, lat, lng]() {
+        return queryHouseNumbersFromTiles(city, street, postcode, lat, lng);
+    }));
 }
 
 QVariantMap AddressDatabaseService::getStreetCoordinates(const QString &city, const QString &street) const
