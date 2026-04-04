@@ -4,6 +4,7 @@
 #include "stores/EngineStore.h"
 #include "stores/SettingsStore.h"
 #include "stores/ThemeStore.h"
+#include "stores/SpeedLimitStore.h"
 #include "routing/RouteModels.h"
 #include "models/Enums.h"
 
@@ -80,13 +81,15 @@ static void projectForward(double lat, double lng, double bearing, double distan
 
 MapService::MapService(GpsStore *gps, EngineStore *engine,
                        NavigationService *navigation, SettingsStore *settings,
-                       ThemeStore *theme, QObject *parent)
+                       ThemeStore *theme, SpeedLimitStore *speedLimit,
+                       QObject *parent)
     : QObject(parent)
     , m_gps(gps)
     , m_engine(engine)
     , m_navigation(navigation)
     , m_settings(settings)
     , m_theme(theme)
+    , m_speedLimit(speedLimit)
     , m_tickTimer(new QTimer(this))
 {
     // Resolve mbtiles path: prefer ./map.mbtiles (desktop/simulator), fall back to device path
@@ -756,9 +759,18 @@ void MapService::updateBearing(double dt)
             rawHeading = gpsCourse;
         }
     } else {
-        // No route (GPS or DR): use GPS course
-        // When stopped with no fix, dampFactor freezes bearing anyway
-        rawHeading = gpsCourse;
+        // No route: blend GPS course with road bearing from vector tiles
+        double rb = m_speedLimit->roadBearing();
+        if (rb >= 0 && hasFix) {
+            // Road bearing is directionless — pick the direction closest to GPS course
+            double diff = normalizeAngle(rb - gpsCourse);
+            if (std::abs(diff) > 90.0)
+                rb = std::fmod(rb + 180.0, 360.0);
+            diff = normalizeAngle(rb - gpsCourse);
+            rawHeading = gpsCourse + diff * 0.3;
+        } else {
+            rawHeading = gpsCourse;
+        }
     }
 
     // Speed-based damping factor: freeze below HeadingFreezeSpeed, ramp to full

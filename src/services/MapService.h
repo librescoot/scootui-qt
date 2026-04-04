@@ -11,6 +11,7 @@ class EngineStore;
 class NavigationService;
 class SettingsStore;
 class ThemeStore;
+class SpeedLimitStore;
 
 class MapService : public QObject
 {
@@ -30,7 +31,8 @@ class MapService : public QObject
 public:
     explicit MapService(GpsStore *gps, EngineStore *engine,
                         NavigationService *navigation, SettingsStore *settings,
-                        ThemeStore *theme, QObject *parent = nullptr);
+                        ThemeStore *theme, SpeedLimitStore *speedLimit,
+                        QObject *parent = nullptr);
     ~MapService() override;
 
     double mapLatitude() const { return m_mapLatitude; }
@@ -144,6 +146,7 @@ private:
     NavigationService *m_navigation;
     SettingsStore *m_settings;
     ThemeStore *m_theme;
+    SpeedLimitStore *m_speedLimit;
 
     // --- Mbtiles path (resolved at construction) ---
     QString m_mbtilesPath;

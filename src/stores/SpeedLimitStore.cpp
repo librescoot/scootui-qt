@@ -43,3 +43,8 @@ void SpeedLimitStore::setRoadTypeDirect(const QString &value)
 {
     if (value != m_roadType) { m_roadType = value; emit roadTypeChanged(); }
 }
+
+void SpeedLimitStore::setRoadBearingDirect(double value)
+{
+    if (value != m_roadBearing) { m_roadBearing = value; emit roadBearingChanged(); }
+}

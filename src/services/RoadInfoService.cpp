@@ -64,6 +64,7 @@ void RoadInfoService::countMissAndMaybeClear()
         m_speedLimit->setRoadNameDirect(QString());
         m_speedLimit->setRoadTypeDirect(QString());
         m_speedLimit->setSpeedLimitDirect(QString());
+        m_speedLimit->setRoadBearingDirect(-1);
     }
 }
 
@@ -74,6 +75,7 @@ void RoadInfoService::onGpsChanged()
         m_speedLimit->setRoadNameDirect(QString());
         m_speedLimit->setRoadTypeDirect(QString());
         m_speedLimit->setSpeedLimitDirect(QString());
+        m_speedLimit->setRoadBearingDirect(-1);
         return;
     }
 
@@ -163,9 +165,10 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
     const double n = std::pow(2.0, QueryZoom);
     const double extent = streetsLayer->extent;
 
-    // Find nearest road feature
+    // Find nearest road feature and segment
     double minDist = std::numeric_limits<double>::max();
     const VectorTile::Feature *nearestFeature = nullptr;
+    double segLat1 = 0, segLon1 = 0, segLat2 = 0, segLon2 = 0;
 
     for (const auto &feature : streetsLayer->features) {
         if (feature.type != 2) // LINESTRING only
@@ -208,6 +211,8 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
             if (dist < minDist) {
                 minDist = dist;
                 nearestFeature = &feature;
+                segLat1 = lat1; segLon1 = lon1;
+                segLat2 = lat2; segLon2 = lon2;
             }
         }
     }
@@ -226,6 +231,16 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
     m_speedLimit->setSpeedLimitDirect(maxspeed);
     m_speedLimit->setRoadNameDirect(name);
     m_speedLimit->setRoadTypeDirect(kind);
+
+    // Compute bearing of nearest segment
+    double dLon = (segLon2 - segLon1) * M_PI / 180.0;
+    double y = std::sin(dLon) * std::cos(segLat2 * M_PI / 180.0);
+    double x = std::cos(segLat1 * M_PI / 180.0) * std::sin(segLat2 * M_PI / 180.0) -
+               std::sin(segLat1 * M_PI / 180.0) * std::cos(segLat2 * M_PI / 180.0) * std::cos(dLon);
+    double bearing = (std::abs(x) < 1e-10 && std::abs(y) < 1e-10)
+        ? -1.0
+        : std::fmod(std::atan2(y, x) * 180.0 / M_PI + 360.0, 360.0);
+    m_speedLimit->setRoadBearingDirect(bearing);
 }
 
 QString RoadInfoService::lookupNearestAddress(double lat, double lon)
