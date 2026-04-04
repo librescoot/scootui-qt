@@ -28,8 +28,10 @@ AddressDatabaseService::AddressDatabaseService(QObject *parent)
 AddressDatabaseService::~AddressDatabaseService()
 {
     delete m_cityTrieRoot;
+    m_cityTrieRoot = nullptr;
     qDeleteAll(m_streetTries);
 }
+
 
 // ---------------------------------------------------------------------------
 // City name cleanup: strip district suffixes, fix casing
@@ -101,17 +103,18 @@ QString AddressDatabaseService::normalize(const QString &name)
 // Trie operations
 // ---------------------------------------------------------------------------
 
-void AddressDatabaseService::insertIntoTrie(TrieNode *root, const QString &normalizedName, int addressIndex)
+void AddressDatabaseService::insertIntoTrie(TrieNode *root, const QString &normalizedName,
+                                             const QString &displayName)
 {
     TrieNode *node = root;
     for (const QChar &ch : normalizedName) {
         auto it = node->children.find(ch);
-        if (it == node->children.end()) {
+        if (it == node->children.end())
             it = node->children.insert(ch, new TrieNode());
-        }
         node = it.value();
     }
-    node->addressIndices.append(addressIndex);
+    if (node->displayName.isEmpty())
+        node->displayName = displayName;
 }
 
 const TrieNode *AddressDatabaseService::findNode(const TrieNode *root, const QString &prefix) const
@@ -126,28 +129,12 @@ const TrieNode *AddressDatabaseService::findNode(const TrieNode *root, const QSt
     return node;
 }
 
-void AddressDatabaseService::collectUniqueDisplayNames(const TrieNode *node,
-                                                        const QVector<AddressEntry> &entries,
-                                                        bool isCity,
-                                                        QSet<QString> &out) const
+void AddressDatabaseService::collectDisplayNames(const TrieNode *node, QStringList &out) const
 {
-    for (int idx : node->addressIndices) {
-        if (idx >= 0 && idx < entries.size()) {
-            out.insert(isCity ? entries[idx].city : entries[idx].street);
-        }
-    }
-    for (auto it = node->children.constBegin(); it != node->children.constEnd(); ++it) {
-        collectUniqueDisplayNames(it.value(), entries, isCity, out);
-    }
-}
-
-int AddressDatabaseService::countUniqueNames(const TrieNode *node,
-                                              const QVector<AddressEntry> &entries,
-                                              bool isCity) const
-{
-    QSet<QString> names;
-    collectUniqueDisplayNames(node, entries, isCity, names);
-    return names.size();
+    if (!node->displayName.isEmpty())
+        out.append(node->displayName);
+    for (auto it = node->children.constBegin(); it != node->children.constEnd(); ++it)
+        collectDisplayNames(it.value(), out);
 }
 
 // ---------------------------------------------------------------------------
@@ -177,7 +164,7 @@ int AddressDatabaseService::getCityCount(const QString &prefix) const
     const TrieNode *node = findNode(m_cityTrieRoot, normalize(prefix));
     if (!node)
         return 0;
-    return countUniqueNames(node, m_allAddresses, true);
+    return node->subtreeUniqueCount;
 }
 
 QStringList AddressDatabaseService::getMatchingCities(const QString &prefix) const
@@ -187,11 +174,9 @@ QStringList AddressDatabaseService::getMatchingCities(const QString &prefix) con
     const TrieNode *node = findNode(m_cityTrieRoot, normalize(prefix));
     if (!node)
         return {};
-    QSet<QString> names;
-    collectUniqueDisplayNames(node, m_allAddresses, true, names);
-    QStringList result(names.begin(), names.end());
+    QStringList result;
+    collectDisplayNames(node, result);
     result.sort(Qt::CaseInsensitive);
-    qDebug() << "getMatchingCities(" << prefix << ") →" << result;
     return result;
 }
 
@@ -230,7 +215,7 @@ int AddressDatabaseService::getStreetCount(const QString &city, const QString &p
     const TrieNode *node = findNode(trieIt.value(), normalize(prefix));
     if (!node)
         return 0;
-    return countUniqueNames(node, m_allAddresses, false);
+    return node->subtreeUniqueCount;
 }
 
 QVariantList AddressDatabaseService::getMatchingStreets(const QString &city, const QString &prefix) const
@@ -245,66 +230,47 @@ QVariantList AddressDatabaseService::getMatchingStreets(const QString &city, con
     if (!node)
         return {};
 
-    // Collect all address indices in subtree
-    QSet<QString> seenStreets;
-    QHash<QString, QSet<QString>> streetPostcodes; // display street → set of postcodes
-    std::function<void(const TrieNode *)> collect = [&](const TrieNode *n) {
-        for (int idx : n->addressIndices) {
-            if (idx >= 0 && idx < m_allAddresses.size()) {
-                const auto &entry = m_allAddresses[idx];
-                seenStreets.insert(entry.street);
-                streetPostcodes[entry.street].insert(entry.postcode);
+    // Collect display names from trie terminals
+    QStringList streetNames;
+    collectDisplayNames(node, streetNames);
+
+    // Look up postcodes from m_streetData to detect disambiguation
+    auto cityDataIt = m_streetData.constFind(normCity);
+    QHash<QString, QSet<QString>> streetPostcodes;
+    if (cityDataIt != m_streetData.constEnd()) {
+        for (const QString &name : streetNames) {
+            QString normStreet = normalize(name);
+            auto streetIt = cityDataIt.value().constFind(normStreet);
+            if (streetIt != cityDataIt.value().constEnd()) {
+                for (const auto &h : streetIt.value().houses)
+                    streetPostcodes[name].insert(h.postcode);
             }
         }
-        for (auto it = n->children.constBegin(); it != n->children.constEnd(); ++it) {
-            collect(it.value());
-        }
-    };
-    collect(node);
-
-    // Check which streets have multiple postcodes (need disambiguation)
-    QSet<QString> ambiguousStreets;
-    for (auto it = streetPostcodes.constBegin(); it != streetPostcodes.constEnd(); ++it) {
-        if (it.value().size() > 1)
-            ambiguousStreets.insert(it.key());
     }
 
-    // Build result list
+    // Build result — disambiguate streets with multiple postcodes
+    QList<QPair<QString, QString>> pairs;
+    for (const QString &street : streetNames) {
+        const auto &pcs = streetPostcodes[street];
+        if (pcs.size() > 1) {
+            for (const QString &pc : pcs)
+                pairs.append({street, pc});
+        } else {
+            pairs.append({street, pcs.isEmpty() ? QString() : *pcs.constBegin()});
+        }
+    }
+    std::sort(pairs.begin(), pairs.end(), [](const auto &a, const auto &b) {
+        int cmp = a.first.compare(b.first, Qt::CaseInsensitive);
+        return cmp != 0 ? cmp < 0 : a.second < b.second;
+    });
+
     QVariantList result;
-    if (ambiguousStreets.isEmpty()) {
-        // No disambiguation needed — just return unique street names
-        QStringList sorted(seenStreets.begin(), seenStreets.end());
-        sorted.sort(Qt::CaseInsensitive);
-        for (const QString &street : sorted) {
-            QVariantMap entry;
-            entry[QStringLiteral("street")] = street;
-            entry[QStringLiteral("postcode")] = streetPostcodes[street].values().first();
-            result.append(entry);
-        }
-    } else {
-        // Some streets are ambiguous — create entries per postcode for those
-        QList<QPair<QString, QString>> pairs; // (displayLabel, postcode)
-        for (const QString &street : seenStreets) {
-            if (ambiguousStreets.contains(street)) {
-                for (const QString &pc : streetPostcodes[street]) {
-                    pairs.append({street, pc});
-                }
-            } else {
-                pairs.append({street, streetPostcodes[street].values().first()});
-            }
-        }
-        std::sort(pairs.begin(), pairs.end(), [](const auto &a, const auto &b) {
-            int cmp = a.first.compare(b.first, Qt::CaseInsensitive);
-            return cmp != 0 ? cmp < 0 : a.second < b.second;
-        });
-        for (const auto &pair : pairs) {
-            QVariantMap entry;
-            entry[QStringLiteral("street")] = pair.first;
-            entry[QStringLiteral("postcode")] = pair.second;
-            result.append(entry);
-        }
+    for (const auto &pair : pairs) {
+        QVariantMap entry;
+        entry[QStringLiteral("street")] = pair.first;
+        entry[QStringLiteral("postcode")] = pair.second;
+        result.append(entry);
     }
-
     return result;
 }
 
@@ -319,27 +285,23 @@ QVariantList AddressDatabaseService::getHouseNumbers(const QString &city, const 
     QString normCity = normalize(city);
     QString normStreet = normalize(street);
 
-    auto cityIt = m_cityStreetIndex.constFind(normCity);
-    if (cityIt == m_cityStreetIndex.constEnd())
+    auto cityIt = m_streetData.constFind(normCity);
+    if (cityIt == m_streetData.constEnd())
         return {};
     auto streetIt = cityIt.value().constFind(normStreet);
     if (streetIt == cityIt.value().constEnd())
         return {};
 
     QVariantList result;
-    for (int idx : streetIt.value()) {
-        if (idx < 0 || idx >= m_allAddresses.size())
+    for (const auto &h : streetIt.value().houses) {
+        if (!postcode.isEmpty() && h.postcode != postcode)
             continue;
-        const auto &entry = m_allAddresses[idx];
-        // Filter by postcode if provided (for disambiguation)
-        if (!postcode.isEmpty() && entry.postcode != postcode)
-            continue;
-        if (entry.housenumber.isEmpty())
+        if (h.housenumber.isEmpty())
             continue;
         QVariantMap map;
-        map[QStringLiteral("housenumber")] = entry.housenumber;
-        map[QStringLiteral("latitude")] = entry.latitude;
-        map[QStringLiteral("longitude")] = entry.longitude;
+        map[QStringLiteral("housenumber")] = h.housenumber;
+        map[QStringLiteral("latitude")] = h.latitude;
+        map[QStringLiteral("longitude")] = h.longitude;
         result.append(map);
     }
 
@@ -347,9 +309,7 @@ QVariantList AddressDatabaseService::getHouseNumbers(const QString &city, const 
     std::sort(result.begin(), result.end(), [](const QVariant &a, const QVariant &b) {
         QString ha = a.toMap()[QStringLiteral("housenumber")].toString();
         QString hb = b.toMap()[QStringLiteral("housenumber")].toString();
-        // Extract leading digits for numeric comparison
-        int numA = 0, numB = 0;
-        int posA = 0, posB = 0;
+        int numA = 0, numB = 0, posA = 0, posB = 0;
         while (posA < ha.size() && ha[posA].isDigit()) { numA = numA * 10 + ha[posA].digitValue(); posA++; }
         while (posB < hb.size() && hb[posB].isDigit()) { numB = numB * 10 + hb[posB].digitValue(); posB++; }
         if (numA != numB) return numA < numB;
@@ -366,8 +326,8 @@ QVariantMap AddressDatabaseService::getStreetCoordinates(const QString &city, co
     QString normCity = normalize(city);
     QString normStreet = normalize(street);
 
-    auto cityIt = m_cityStreetIndex.constFind(normCity);
-    if (cityIt == m_cityStreetIndex.constEnd())
+    auto cityIt = m_streetData.constFind(normCity);
+    if (cityIt == m_streetData.constEnd())
         return {};
     auto streetIt = cityIt.value().constFind(normStreet);
     if (streetIt == cityIt.value().constEnd())
@@ -375,12 +335,10 @@ QVariantMap AddressDatabaseService::getStreetCoordinates(const QString &city, co
 
     double sumLat = 0, sumLng = 0;
     int count = 0;
-    for (int idx : streetIt.value()) {
-        if (idx >= 0 && idx < m_allAddresses.size()) {
-            sumLat += m_allAddresses[idx].latitude;
-            sumLng += m_allAddresses[idx].longitude;
-            count++;
-        }
+    for (const auto &h : streetIt.value().houses) {
+        sumLat += h.latitude;
+        sumLng += h.longitude;
+        count++;
     }
 
     QVariantMap result;
@@ -439,8 +397,8 @@ void AddressDatabaseService::onBuildFinished(bool success, const QString &error)
 struct TrieData {
     TrieNode *cityTrieRoot = nullptr;
     QHash<QString, TrieNode *> streetTries;
-    QHash<QString, QHash<QString, QVector<int>>> cityStreetIndex;
-    QHash<QString, QString> cityDisplayNames;
+    QHash<QString, QHash<QString, AddressDatabaseService::StreetRecord>> streetData;
+    int addressCount = 0;
 };
 
 struct BuildResult {
@@ -448,7 +406,7 @@ struct BuildResult {
     bool fromCache = false;
     QString error;
     QString mapHash;
-    QVector<AddressEntry> addresses;
+    QVector<AddressEntry> addresses; // temporary, used during build then discarded
     TrieData tries;
 };
 
@@ -478,41 +436,58 @@ static TrieData buildTriesFromAddresses(QVector<AddressEntry> &addresses)
 
     TrieData data;
     data.cityTrieRoot = new TrieNode();
+    data.addressCount = addresses.size();
 
-    for (int i = 0; i < addresses.size(); ++i) {
-        const auto &entry = addresses[i];
+    QSet<QString> seenCities; // track which normalized cities have been inserted into trie
+
+    for (const auto &entry : addresses) {
         QString normCity = AddressDatabaseService::normalize(entry.city);
         QString normStreet = AddressDatabaseService::normalize(entry.street);
 
-        AddressDatabaseService::insertIntoTrie(data.cityTrieRoot, normCity, i);
+        // Insert city into trie (only once per unique normalized name)
+        if (!seenCities.contains(normCity)) {
+            AddressDatabaseService::insertIntoTrie(data.cityTrieRoot, normCity, entry.city);
+            seenCities.insert(normCity);
+        }
 
-        if (!data.cityDisplayNames.contains(normCity))
-            data.cityDisplayNames[normCity] = entry.city;
-
+        // Create street trie for this city if needed
         if (!data.streetTries.contains(normCity))
             data.streetTries[normCity] = new TrieNode();
 
-        AddressDatabaseService::insertIntoTrie(data.streetTries[normCity], normStreet, i);
-        data.cityStreetIndex[normCity][normStreet].append(i);
+        // Insert street into trie (insertIntoTrie is idempotent for display name)
+        AddressDatabaseService::insertIntoTrie(data.streetTries[normCity], normStreet, entry.street);
+
+        // Store house entry in grouped data
+        auto &streetRec = data.streetData[normCity][normStreet];
+        if (streetRec.displayStreet.isEmpty())
+            streetRec.displayStreet = entry.street;
+        streetRec.houses.append({entry.housenumber, entry.postcode, entry.latitude, entry.longitude});
     }
 
+    // Precompute subtree unique counts (bottom-up)
+    std::function<int(TrieNode *)> computeCounts = [&](TrieNode *node) -> int {
+        int count = node->displayName.isEmpty() ? 0 : 1;
+        for (auto it = node->children.begin(); it != node->children.end(); ++it)
+            count += computeCounts(it.value());
+        node->subtreeUniqueCount = count;
+        return count;
+    };
+    computeCounts(data.cityTrieRoot);
+    for (auto it = data.streetTries.begin(); it != data.streetTries.end(); ++it)
+        computeCounts(it.value());
+
     qDebug() << "AddressDatabase: built tries —"
-             << data.cityDisplayNames.size() << "cities,"
+             << data.streetData.size() << "cities,"
              << addresses.size() << "addresses";
     return data;
 }
 
+static void installTrieData(AddressDatabaseService *svc, TrieData &data);
+
 void AddressDatabaseService::buildTries()
 {
-    TrieData data = buildTriesFromAddresses(m_allAddresses);
-
-    delete m_cityTrieRoot;
-    qDeleteAll(m_streetTries);
-
-    m_cityTrieRoot = data.cityTrieRoot;
-    m_streetTries = std::move(data.streetTries);
-    m_cityStreetIndex = std::move(data.cityStreetIndex);
-    m_cityDisplayNames = std::move(data.cityDisplayNames);
+    // Not used directly — trie building happens on background thread
+    Q_UNREACHABLE();
 }
 
 // ---------------------------------------------------------------------------
@@ -720,21 +695,19 @@ void AddressDatabaseService::initialize()
             return;
         }
 
-        m_allAddresses = std::move(result.addresses);
-
         // Install pre-built tries (built on background thread)
         delete m_cityTrieRoot;
         qDeleteAll(m_streetTries);
         m_cityTrieRoot = result.tries.cityTrieRoot;
-        result.tries.cityTrieRoot = nullptr; // prevent double-free
+        result.tries.cityTrieRoot = nullptr;
         m_streetTries = std::move(result.tries.streetTries);
-        m_cityStreetIndex = std::move(result.tries.cityStreetIndex);
-        m_cityDisplayNames = std::move(result.tries.cityDisplayNames);
+        m_streetData = std::move(result.tries.streetData);
+        m_addressCount = result.tries.addressCount;
 
-        // Save cache if we built from tiles
+        // Save cache if we built from tiles (use the raw addresses before they're discarded)
         if (!result.fromCache) {
             QString mapHash = result.mapHash;
-            QVector<AddressEntry> addrs = m_allAddresses;
+            QVector<AddressEntry> addrs = std::move(result.addresses);
             (void)QtConcurrent::run([mapHash, addrs]() {
                 QDir().mkpath(QFileInfo(AddressDatabaseService::CachePath).absolutePath());
 

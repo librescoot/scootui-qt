@@ -21,7 +21,8 @@ struct AddressEntry {
 
 struct TrieNode {
     QHash<QChar, TrieNode *> children;
-    QVector<int> addressIndices; // indices into m_allAddresses
+    QString displayName;        // non-empty at terminal nodes (original display name)
+    int subtreeUniqueCount = 0; // number of distinct terminal nodes in subtree
 
     ~TrieNode() { qDeleteAll(children); }
 };
@@ -43,7 +44,7 @@ public:
 
     int status() const { return m_status; }
     double buildProgress() const { return m_buildProgress; }
-    int addressCount() const { return m_allAddresses.size(); }
+    int addressCount() const { return m_addressCount; }
     QString statusMessage() const { return m_statusMessage; }
 
     // --- City trie queries ---
@@ -79,15 +80,13 @@ private:
     void buildTries();
 
     const TrieNode *findNode(const TrieNode *root, const QString &prefix) const;
-    void collectUniqueDisplayNames(const TrieNode *node, const QVector<AddressEntry> &entries,
-                                   bool isCity, QSet<QString> &out) const;
-    int countUniqueNames(const TrieNode *node, const QVector<AddressEntry> &entries,
-                         bool isCity) const;
+    void collectDisplayNames(const TrieNode *node, QStringList &out) const;
 
 public:
     static QString normalize(const QString &name);
     static QString cleanCityName(const QString &raw);
-    static void insertIntoTrie(TrieNode *root, const QString &normalizedName, int addressIndex);
+    static void insertIntoTrie(TrieNode *root, const QString &normalizedName,
+                               const QString &displayName);
 
 private:
 
@@ -95,21 +94,29 @@ private:
     double m_buildProgress = 0;
     QString m_statusMessage;
     std::atomic<bool> m_cancelRequested{false};
+    int m_addressCount = 0;
 
-    // Address data
-    QVector<AddressEntry> m_allAddresses;
-
-    // City trie: normalized city name → terminal nodes with address indices
+    // City trie: normalized city name → terminal nodes with display name
     TrieNode *m_cityTrieRoot = nullptr;
 
     // Per-city street tries: normalized city name → street trie root
     QHash<QString, TrieNode *> m_streetTries;
 
-    // Fast lookup: normalized city → normalized street → address indices
-    QHash<QString, QHash<QString, QVector<int>>> m_cityStreetIndex;
+public:
+    // Grouped address data: normCity → normStreet → list of {housenumber, postcode, lat, lng}
+    struct HouseEntry {
+        QString housenumber;
+        QString postcode;
+        double latitude;
+        double longitude;
+    };
+    struct StreetRecord {
+        QString displayStreet;
+        QVector<HouseEntry> houses;
+    };
 
-    // Map from normalized city name to original display name
-    QHash<QString, QString> m_cityDisplayNames;
+private:
+    QHash<QString, QHash<QString, StreetRecord>> m_streetData;
 
 public:
     static const QString MbtilesPath;
