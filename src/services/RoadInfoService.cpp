@@ -27,7 +27,10 @@ RoadInfoService::RoadInfoService(GpsStore *gps, SpeedLimitStore *speedLimit,
 {
     m_lastUpdate.start();
 
-    const QString &path = AddressDatabaseService::MbtilesPath;
+    // Prefer local map.mbtiles (desktop/simulator), fall back to device path
+    QString path = QFile::exists(QStringLiteral("map.mbtiles"))
+        ? QStringLiteral("map.mbtiles")
+        : AddressDatabaseService::MbtilesPath;
     if (QFile::exists(path)) {
         QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
                                                       m_dbConnectionName);
