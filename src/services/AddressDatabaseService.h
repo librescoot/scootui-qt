@@ -103,12 +103,16 @@ private:
     QHash<QString, TrieNode *> m_streetTries;
 
 public:
+    struct CentroidData {
+        double lat = 0;
+        double lng = 0;
+        int count = 0;
+    };
     struct StreetRecord {
         QString displayStreet;
         QSet<QString> postcodes;
-        double centroidLat = 0;
-        double centroidLng = 0;
-        int count = 0;        // number of address points (for running centroid)
+        CentroidData centroid;                    // overall centroid
+        QHash<QString, CentroidData> pcCentroids; // per-postcode centroid
     };
 
 private:

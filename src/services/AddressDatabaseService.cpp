@@ -296,10 +296,18 @@ QVariantList AddressDatabaseService::getHouseNumbers(const QString &city, const 
     if (streetIt == cityIt.value().constEnd())
         return {};
 
-    // Query house numbers on demand from mbtiles
-    return queryHouseNumbersFromTiles(city, street, postcode,
-                                      streetIt.value().centroidLat,
-                                      streetIt.value().centroidLng);
+    // Use postcode-specific centroid if available, otherwise overall
+    const auto &rec = streetIt.value();
+    double lat = rec.centroid.lat;
+    double lng = rec.centroid.lng;
+    if (!postcode.isEmpty()) {
+        auto pcIt = rec.pcCentroids.constFind(postcode);
+        if (pcIt != rec.pcCentroids.constEnd()) {
+            lat = pcIt.value().lat;
+            lng = pcIt.value().lng;
+        }
+    }
+    return queryHouseNumbersFromTiles(city, street, postcode, lat, lng);
 }
 
 QVariantMap AddressDatabaseService::getStreetCoordinates(const QString &city, const QString &street) const
@@ -317,8 +325,8 @@ QVariantMap AddressDatabaseService::getStreetCoordinates(const QString &city, co
         return {};
 
     QVariantMap result;
-    result[QStringLiteral("latitude")] = streetIt.value().centroidLat;
-    result[QStringLiteral("longitude")] = streetIt.value().centroidLng;
+    result[QStringLiteral("latitude")] = streetIt.value().centroid.lat;
+    result[QStringLiteral("longitude")] = streetIt.value().centroid.lng;
     return result;
 }
 
@@ -375,6 +383,10 @@ QVariantList AddressDatabaseService::queryHouseNumbersFromTiles(
 
         QString normStreet = normalize(street);
         QSet<QString> seenNumbers;
+        int tilesFound = 0, totalAddresses = 0, streetMatches = 0, cityMatches = 0;
+
+        qDebug() << "queryHouseNumbers: normStreet=" << normStreet
+                 << "tileCenter=" << centerX << centerY;
 
         QSqlQuery tileQuery(db);
         tileQuery.prepare(QStringLiteral(
@@ -387,6 +399,7 @@ QVariantList AddressDatabaseService::queryHouseNumbersFromTiles(
                 if (!tileQuery.exec() || !tileQuery.next())
                     continue;
 
+                tilesFound++;
                 QByteArray tileData = tileQuery.value(0).toByteArray();
                 QByteArray decompressed = VectorTile::gunzip(tileData);
                 if (decompressed.isEmpty())
@@ -402,11 +415,17 @@ QVariantList AddressDatabaseService::queryHouseNumbersFromTiles(
                         if (feature.type != 1)
                             continue;
 
+                        totalAddresses++;
                         QString fStreet = feature.properties.value(QStringLiteral("street"));
                         if (fStreet.isEmpty())
                             fStreet = feature.properties.value(QStringLiteral("name"));
-                        if (normalize(fStreet) != normStreet)
+                        QString normFS = normalize(fStreet);
+                        if (normFS != normStreet) {
+                            if (totalAddresses <= 3)
+                                qDebug() << "  sample street:" << fStreet << "→" << normFS;
                             continue;
+                        }
+                        streetMatches++;
 
                         // City match: the tile may have "Berlin-Hellersdorf" but user
                         // selected merged city "Berlin", so check if normalized tile city
@@ -446,6 +465,10 @@ QVariantList AddressDatabaseService::queryHouseNumbersFromTiles(
             }
         }
 
+        qDebug() << "queryHouseNumbers: tiles=" << tilesFound << "addresses=" << totalAddresses
+                 << "streetMatch=" << streetMatches << "cityMatch=" << cityMatches
+                 << "results=" << result.size();
+
         db.close();
     }
     QSqlDatabase::removeDatabase(connName);
@@ -460,9 +483,6 @@ QVariantList AddressDatabaseService::queryHouseNumbersFromTiles(
         if (numA != numB) return numA < numB;
         return ha.mid(posA) < hb.mid(posB);
     });
-
-    qDebug() << "AddressDatabase: queried" << result.size() << "house numbers for"
-             << street << "in" << city;
     return result;
 }
 
@@ -576,10 +596,17 @@ static TrieData buildTriesFromAddresses(QVector<AddressEntry> &addresses)
             streetRec.displayStreet = entry.street;
         if (!entry.postcode.isEmpty())
             streetRec.postcodes.insert(entry.postcode);
-        // Running centroid
-        streetRec.count++;
-        streetRec.centroidLat += (entry.latitude - streetRec.centroidLat) / streetRec.count;
-        streetRec.centroidLng += (entry.longitude - streetRec.centroidLng) / streetRec.count;
+        // Running centroids (overall + per-postcode)
+        auto &c = streetRec.centroid;
+        c.count++;
+        c.lat += (entry.latitude - c.lat) / c.count;
+        c.lng += (entry.longitude - c.lng) / c.count;
+        if (!entry.postcode.isEmpty()) {
+            auto &pc = streetRec.pcCentroids[entry.postcode];
+            pc.count++;
+            pc.lat += (entry.latitude - pc.lat) / pc.count;
+            pc.lng += (entry.longitude - pc.lng) / pc.count;
+        }
     }
 
     // Precompute subtree unique counts (bottom-up)
@@ -808,8 +835,20 @@ static BuildResult buildFromTiles(AddressDatabaseService *service, const QString
                         pcs.append(pc);
                     obj[QStringLiteral("p")] = pcs;
                 }
-                obj[QStringLiteral("lat")] = rec.centroidLat;
-                obj[QStringLiteral("lng")] = rec.centroidLng;
+                obj[QStringLiteral("lat")] = rec.centroid.lat;
+                obj[QStringLiteral("lng")] = rec.centroid.lng;
+                // Per-postcode centroids
+                if (!rec.pcCentroids.isEmpty()) {
+                    QJsonObject pcObj;
+                    for (auto pcIt = rec.pcCentroids.constBegin();
+                         pcIt != rec.pcCentroids.constEnd(); ++pcIt) {
+                        QJsonArray coords;
+                        coords.append(pcIt.value().lat);
+                        coords.append(pcIt.value().lng);
+                        pcObj[pcIt.key()] = coords;
+                    }
+                    obj[QStringLiteral("pc")] = pcObj;
+                }
                 arr.append(obj);
             }
         }
@@ -947,9 +986,20 @@ void AddressDatabaseService::initialize()
                         if (rec.displayStreet.isEmpty())
                             rec.displayStreet = street;
                         rec.postcodes.unite(postcodes);
-                        rec.centroidLat = lat;
-                        rec.centroidLng = lng;
-                        rec.count = 1;
+                        rec.centroid.lat = lat;
+                        rec.centroid.lng = lng;
+                        rec.centroid.count = 1;
+                        // Load per-postcode centroids
+                        QJsonObject pcObj = obj[QStringLiteral("pc")].toObject();
+                        for (auto pcIt = pcObj.constBegin(); pcIt != pcObj.constEnd(); ++pcIt) {
+                            QJsonArray coords = pcIt.value().toArray();
+                            if (coords.size() >= 2) {
+                                auto &pcd = rec.pcCentroids[pcIt.key()];
+                                pcd.lat = coords[0].toDouble();
+                                pcd.lng = coords[1].toDouble();
+                                pcd.count = 1;
+                            }
+                        }
                         data.addressCount++;
                     }
 
