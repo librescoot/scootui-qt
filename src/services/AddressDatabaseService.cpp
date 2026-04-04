@@ -438,31 +438,42 @@ static TrieData buildTriesFromAddresses(QVector<AddressEntry> &addresses)
     data.cityTrieRoot = new TrieNode();
     data.addressCount = addresses.size();
 
-    QSet<QString> seenCities; // track which normalized cities have been inserted into trie
+    QSet<QString> seenCities;
+    // Track seen house numbers per (normCity, normStreet) to deduplicate
+    QHash<QString, QSet<QString>> seenHouseNumbers; // "normCity\0normStreet" → set of housenumbers
 
+    int totalStored = 0;
     for (const auto &entry : addresses) {
         QString normCity = AddressDatabaseService::normalize(entry.city);
         QString normStreet = AddressDatabaseService::normalize(entry.street);
 
-        // Insert city into trie (only once per unique normalized name)
         if (!seenCities.contains(normCity)) {
             AddressDatabaseService::insertIntoTrie(data.cityTrieRoot, normCity, entry.city);
             seenCities.insert(normCity);
         }
 
-        // Create street trie for this city if needed
         if (!data.streetTries.contains(normCity))
             data.streetTries[normCity] = new TrieNode();
 
-        // Insert street into trie (insertIntoTrie is idempotent for display name)
         AddressDatabaseService::insertIntoTrie(data.streetTries[normCity], normStreet, entry.street);
 
-        // Store house entry in grouped data
         auto &streetRec = data.streetData[normCity][normStreet];
         if (streetRec.displayStreet.isEmpty())
             streetRec.displayStreet = entry.street;
-        streetRec.houses.append({entry.housenumber, entry.postcode, entry.latitude, entry.longitude});
+
+        // Deduplicate: only store first occurrence of each house number per street
+        QString dedupeKey = normCity + QChar('\0') + normStreet;
+        auto &seen = seenHouseNumbers[dedupeKey];
+        QString hn = entry.housenumber;
+        if (hn.isEmpty()) hn = QStringLiteral("__empty__");
+        if (!seen.contains(hn)) {
+            seen.insert(hn);
+            streetRec.houses.append({entry.housenumber, entry.postcode, entry.latitude, entry.longitude});
+            totalStored++;
+        }
     }
+    qDebug() << "AddressDatabase: deduplicated" << addresses.size()
+             << "→" << totalStored << "unique address entries";
 
     // Precompute subtree unique counts (bottom-up)
     std::function<int(TrieNode *)> computeCounts = [&](TrieNode *node) -> int {
@@ -658,7 +669,63 @@ static BuildResult buildFromTiles(AddressDatabaseService *service, const QString
 
     result.success = true;
     qDebug() << "AddressDatabase: extracted" << result.addresses.size() << "addresses";
+
+    // Build tries from addresses
     result.tries = buildTriesFromAddresses(result.addresses);
+
+    // Save cache from deduplicated streetData (much smaller than raw addresses)
+    {
+        QDir().mkpath(QFileInfo(AddressDatabaseService::CachePath).absolutePath());
+        QJsonArray arr;
+        for (auto cityIt = result.tries.streetData.constBegin();
+             cityIt != result.tries.streetData.constEnd(); ++cityIt) {
+            // Find display city name from city trie
+            QString displayCity;
+            const TrieNode *node = result.tries.cityTrieRoot;
+            for (const QChar &ch : cityIt.key()) {
+                auto childIt = node->children.constFind(ch);
+                if (childIt == node->children.constEnd()) break;
+                node = childIt.value();
+            }
+            displayCity = node ? node->displayName : cityIt.key();
+
+            for (auto streetIt = cityIt.value().constBegin();
+                 streetIt != cityIt.value().constEnd(); ++streetIt) {
+                const auto &rec = streetIt.value();
+                for (const auto &h : rec.houses) {
+                    QJsonObject obj;
+                    obj[QStringLiteral("c")] = displayCity;
+                    obj[QStringLiteral("s")] = rec.displayStreet;
+                    if (!h.housenumber.isEmpty())
+                        obj[QStringLiteral("h")] = h.housenumber;
+                    if (!h.postcode.isEmpty())
+                        obj[QStringLiteral("p")] = h.postcode;
+                    obj[QStringLiteral("lat")] = h.latitude;
+                    obj[QStringLiteral("lng")] = h.longitude;
+                    arr.append(obj);
+                }
+            }
+        }
+        QJsonObject root;
+        root[QStringLiteral("version")] = 3;
+        root[QStringLiteral("mapHash")] = result.mapHash;
+        root[QStringLiteral("addresses")] = arr;
+
+        QString tmpPath = AddressDatabaseService::CachePath + QStringLiteral(".tmp");
+        QFile file(tmpPath);
+        if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+            file.write(QJsonDocument(root).toJson(QJsonDocument::Compact));
+            file.close();
+            QFile::remove(AddressDatabaseService::CachePath);
+            QFile::rename(tmpPath, AddressDatabaseService::CachePath);
+            qDebug() << "AddressDatabase: saved cache with" << arr.size() << "entries";
+        }
+    }
+
+    // Free raw addresses — no longer needed
+    result.addresses.clear();
+    result.addresses.squeeze();
+
     return result;
 }
 
@@ -703,44 +770,6 @@ void AddressDatabaseService::initialize()
         m_streetTries = std::move(result.tries.streetTries);
         m_streetData = std::move(result.tries.streetData);
         m_addressCount = result.tries.addressCount;
-
-        // Save cache if we built from tiles (use the raw addresses before they're discarded)
-        if (!result.fromCache) {
-            QString mapHash = result.mapHash;
-            QVector<AddressEntry> addrs = std::move(result.addresses);
-            (void)QtConcurrent::run([mapHash, addrs]() {
-                QDir().mkpath(QFileInfo(AddressDatabaseService::CachePath).absolutePath());
-
-                QJsonArray arr;
-                for (const auto &addr : addrs) {
-                    QJsonObject obj;
-                    obj[QStringLiteral("c")] = addr.city;
-                    obj[QStringLiteral("s")] = addr.street;
-                    if (!addr.housenumber.isEmpty())
-                        obj[QStringLiteral("h")] = addr.housenumber;
-                    if (!addr.postcode.isEmpty())
-                        obj[QStringLiteral("p")] = addr.postcode;
-                    obj[QStringLiteral("lat")] = addr.latitude;
-                    obj[QStringLiteral("lng")] = addr.longitude;
-                    arr.append(obj);
-                }
-
-                QJsonObject root;
-                root[QStringLiteral("version")] = 3;
-                root[QStringLiteral("mapHash")] = mapHash;
-                root[QStringLiteral("addresses")] = arr;
-
-                QString tmpPath = AddressDatabaseService::CachePath + QStringLiteral(".tmp");
-                QFile file(tmpPath);
-                if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-                    file.write(QJsonDocument(root).toJson(QJsonDocument::Compact));
-                    file.close();
-                    QFile::remove(AddressDatabaseService::CachePath);
-                    QFile::rename(tmpPath, AddressDatabaseService::CachePath);
-                    qDebug() << "AddressDatabase: saved cache with" << addrs.size() << "addresses";
-                }
-            });
-        }
 
         setStatus(Ready, QStringLiteral("Ready"));
         emit addressCountChanged();
