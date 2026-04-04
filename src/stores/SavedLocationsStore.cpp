@@ -1,23 +1,23 @@
 #include "SavedLocationsStore.h"
 #include "repositories/MdbRepository.h"
 #include "services/SavedLocationsService.h"
-#include "services/ReverseGeocodingService.h"
 #include "services/NavigationService.h"
 #include "services/ToastService.h"
 #include "stores/GpsStore.h"
+#include "services/RoadInfoService.h"
 #include "models/Enums.h"
 
 #include <QDebug>
 
 SavedLocationsStore::SavedLocationsStore(MdbRepository *repo,
                                            SavedLocationsService *service,
-                                           ReverseGeocodingService *geocoding,
-                                           GpsStore *gps, NavigationService *nav,
+                                           GpsStore *gps, RoadInfoService *roadInfo,
+                                           NavigationService *nav,
                                            ToastService *toast, QObject *parent)
     : QObject(parent)
     , m_service(service)
-    , m_geocoding(geocoding)
     , m_gps(gps)
+    , m_roadInfo(roadInfo)
     , m_nav(nav)
     , m_toast(toast)
 {
@@ -84,27 +84,17 @@ void SavedLocationsStore::saveCurrentLocation()
     SavedLocation loc;
     loc.latitude = lat;
     loc.longitude = lng;
-    loc.label = QString::number(lat, 'f', 5) + QStringLiteral(", ") + QString::number(lng, 'f', 5);
 
-    // Try reverse geocoding in background
-    connect(m_geocoding, &ReverseGeocodingService::addressResolved, this,
-            [this, lat, lng](const QString &address) {
-        // Update the label of the most recently saved location matching these coords
-        for (auto &loc : m_locations) {
-            if (qFuzzyCompare(loc.latitude, lat) && qFuzzyCompare(loc.longitude, lng)) {
-                loc.label = address;
-                SavedLocation updated = loc;
-                updated.label = address;
-                m_service->save(updated);
-                emit locationsChanged();
-                break;
-            }
-        }
-    }, Qt::SingleShotConnection);
+    // Look up the nearest address from offline vector tiles
+    QString address = m_roadInfo->lookupNearestAddress(lat, lng);
+    if (!address.isEmpty()) {
+        loc.label = address;
+    } else {
+        loc.label = QString::number(lat, 'f', 5) + QStringLiteral(", ") + QString::number(lng, 'f', 5);
+    }
 
     if (m_service->save(loc)) {
         m_toast->showSuccess(QStringLiteral("Location saved"));
-        m_geocoding->resolve(lat, lng);
         load();
     } else {
         m_toast->showError(QStringLiteral("Failed to save location"));

@@ -40,7 +40,6 @@
 #include "services/HandlebarLockMonitor.h"
 #include "services/NavigationAvailabilityService.h"
 #include "services/SavedLocationsService.h"
-#include "services/ReverseGeocodingService.h"
 #include "services/SerialNumberService.h"
 #include "services/AddressDatabaseService.h"
 #include "services/MapDownloadService.h"
@@ -160,10 +159,9 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Saved locations (B7)
     m_savedLocationsService = new SavedLocationsService(repo, this);
-    m_reverseGeocoding = new ReverseGeocodingService(this);
     auto *savedLocationsStore = new SavedLocationsStore(
-        repo, m_savedLocationsService, m_reverseGeocoding, gpsStore, m_navigationService,
-        m_toastService, this);
+        repo, m_savedLocationsService, gpsStore, m_roadInfoService,
+        m_navigationService, m_toastService, this);
 
     // Monitoring services (B3, B4)
     m_lowTempMonitor = new LowTemperatureMonitor(engineStore, battery0Store,

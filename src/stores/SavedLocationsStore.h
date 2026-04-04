@@ -6,8 +6,8 @@
 
 class MdbRepository;
 class SavedLocationsService;
-class ReverseGeocodingService;
 class GpsStore;
+class RoadInfoService;
 class NavigationService;
 class ToastService;
 
@@ -21,8 +21,8 @@ class SavedLocationsStore : public QObject
 public:
     explicit SavedLocationsStore(MdbRepository *repo,
                                   SavedLocationsService *service,
-                                  ReverseGeocodingService *geocoding,
-                                  GpsStore *gps, NavigationService *nav,
+                                  GpsStore *gps, RoadInfoService *roadInfo,
+                                  NavigationService *nav,
                                   ToastService *toast, QObject *parent = nullptr);
 
     QVariantList locations() const;
@@ -40,8 +40,8 @@ signals:
 
 private:
     SavedLocationsService *m_service;
-    ReverseGeocodingService *m_geocoding;
     GpsStore *m_gps;
+    RoadInfoService *m_roadInfo;
     NavigationService *m_nav;
     ToastService *m_toast;
 

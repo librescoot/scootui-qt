@@ -227,3 +227,101 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
     m_speedLimit->setRoadNameDirect(name);
     m_speedLimit->setRoadTypeDirect(kind);
 }
+
+QString RoadInfoService::lookupNearestAddress(double lat, double lon)
+{
+    if (!m_dbOpen)
+        return {};
+
+    int tileX = lonToTileX(lon, QueryZoom);
+    int tileY = latToTileY(lat, QueryZoom);
+    quint64 cacheKey = (static_cast<quint64>(tileX) << 32)
+                       | static_cast<quint64>(static_cast<uint32_t>(tileY));
+
+    // Get or load tile
+    VectorTile::Tile *tile = nullptr;
+    if (m_tileCache.contains(cacheKey)) {
+        tile = &m_tileCache[cacheKey];
+        m_cacheOrder.removeOne(cacheKey);
+        m_cacheOrder.append(cacheKey);
+    } else {
+        QSqlDatabase db = QSqlDatabase::database(m_dbConnectionName);
+        QSqlQuery query(db);
+        query.prepare(QStringLiteral(
+            "SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?"));
+        query.addBindValue(QueryZoom);
+        query.addBindValue(tileX);
+        query.addBindValue(tileY);
+
+        if (!query.exec() || !query.next())
+            return {};
+
+        QByteArray tileData = query.value(0).toByteArray();
+        QByteArray decompressed = VectorTile::gunzip(tileData);
+        if (decompressed.isEmpty())
+            return {};
+
+        while (m_cacheOrder.size() >= MaxCachedTiles) {
+            quint64 evict = m_cacheOrder.takeFirst();
+            m_tileCache.remove(evict);
+        }
+
+        m_tileCache.insert(cacheKey, VectorTile::parse(decompressed));
+        m_cacheOrder.append(cacheKey);
+        tile = &m_tileCache[cacheKey];
+    }
+
+    // Find addresses layer
+    const VectorTile::Layer *addrLayer = nullptr;
+    for (const auto &layer : tile->layers) {
+        if (layer.name == QLatin1String("addresses")) {
+            addrLayer = &layer;
+            break;
+        }
+    }
+    if (!addrLayer || addrLayer->features.isEmpty())
+        return {};
+
+    const double n = std::pow(2.0, QueryZoom);
+    const double extent = addrLayer->extent;
+
+    // Find nearest address point
+    double minDist = std::numeric_limits<double>::max();
+    const VectorTile::Feature *nearest = nullptr;
+
+    for (const auto &feature : addrLayer->features) {
+        if (feature.type != 1) // POINT only
+            continue;
+
+        QPointF pt = VectorTile::decodePoint(feature.geometry);
+
+        double ptLon = (tileX + pt.x() / extent) / n * 360.0 - 180.0;
+        double yMerc = 1.0 - (tileY + 1.0 - pt.y() / extent) / n;
+        double ptLat = std::atan(std::sinh(M_PI * (1.0 - 2.0 * yMerc))) * 180.0 / M_PI;
+
+        double dLon = lon - ptLon;
+        double dLat = lat - ptLat;
+        double dist = dLon * dLon + dLat * dLat;
+
+        if (dist < minDist) {
+            minDist = dist;
+            nearest = &feature;
+        }
+    }
+
+    if (!nearest)
+        return {};
+
+    // Build label from address properties (see osm-tiles/tilemaker/process.lua)
+    QString street = nearest->properties.value(QStringLiteral("street"));
+    QString houseNumber = nearest->properties.value(QStringLiteral("housenumber"));
+    QString name = nearest->properties.value(QStringLiteral("name"));
+
+    if (!street.isEmpty()) {
+        if (!houseNumber.isEmpty())
+            return street + QStringLiteral(" ") + houseNumber;
+        return street;
+    }
+
+    return name;
+}
