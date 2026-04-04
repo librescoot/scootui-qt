@@ -234,17 +234,26 @@ QVariantList AddressDatabaseService::getMatchingStreets(const QString &city, con
     QStringList streetNames;
     collectDisplayNames(node, streetNames);
 
-    // Look up postcodes from m_streetData
+    // Look up postcodes from m_streetData for disambiguation
     auto cityDataIt = m_streetData.constFind(normCity);
     QList<QPair<QString, QString>> pairs;
     for (const QString &name : streetNames) {
-        QString postcode;
         if (cityDataIt != m_streetData.constEnd()) {
             auto streetIt = cityDataIt.value().constFind(normalize(name));
-            if (streetIt != cityDataIt.value().constEnd())
-                postcode = streetIt.value().postcode;
+            if (streetIt != cityDataIt.value().constEnd()) {
+                const auto &pcs = streetIt.value().postcodes;
+                if (pcs.size() > 1) {
+                    // Multiple postcodes — create one entry per postcode
+                    for (const QString &pc : pcs)
+                        pairs.append({name, pc});
+                    continue;
+                } else if (!pcs.isEmpty()) {
+                    pairs.append({name, *pcs.constBegin()});
+                    continue;
+                }
+            }
         }
-        pairs.append({name, postcode});
+        pairs.append({name, QString()});
     }
     std::sort(pairs.begin(), pairs.end(), [](const auto &a, const auto &b) {
         int cmp = a.first.compare(b.first, Qt::CaseInsensitive);
@@ -388,8 +397,13 @@ QVariantList AddressDatabaseService::queryHouseNumbersFromTiles(
                         if (normalize(fStreet) != normStreet)
                             continue;
 
+                        // City match: the tile may have "Berlin-Hellersdorf" but user
+                        // selected merged city "Berlin", so check if normalized tile city
+                        // starts with the target (handles district suffixes)
                         QString fCity = cleanCityName(feature.properties.value(QStringLiteral("city")));
-                        if (normalize(fCity) != normalize(city))
+                        QString normFCity = normalize(fCity);
+                        QString normTargetCity = normalize(city);
+                        if (normFCity != normTargetCity && !normFCity.startsWith(normTargetCity + QLatin1Char('-')))
                             continue;
 
                         QString fPostcode = feature.properties.value(QStringLiteral("postcode"));
@@ -547,10 +561,10 @@ static TrieData buildTriesFromAddresses(QVector<AddressEntry> &addresses)
         AddressDatabaseService::insertIntoTrie(data.streetTries[normCity], normStreet, entry.street);
 
         auto &streetRec = data.streetData[normCity][normStreet];
-        if (streetRec.displayStreet.isEmpty()) {
+        if (streetRec.displayStreet.isEmpty())
             streetRec.displayStreet = entry.street;
-            streetRec.postcode = entry.postcode;
-        }
+        if (!entry.postcode.isEmpty())
+            streetRec.postcodes.insert(entry.postcode);
         // Running centroid
         streetRec.count++;
         streetRec.centroidLat += (entry.latitude - streetRec.centroidLat) / streetRec.count;
@@ -777,8 +791,12 @@ static BuildResult buildFromTiles(AddressDatabaseService *service, const QString
                 QJsonObject obj;
                 obj[QStringLiteral("c")] = displayCity;
                 obj[QStringLiteral("s")] = rec.displayStreet;
-                if (!rec.postcode.isEmpty())
-                    obj[QStringLiteral("p")] = rec.postcode;
+                if (!rec.postcodes.isEmpty()) {
+                    QJsonArray pcs;
+                    for (const QString &pc : rec.postcodes)
+                        pcs.append(pc);
+                    obj[QStringLiteral("p")] = pcs;
+                }
                 obj[QStringLiteral("lat")] = rec.centroidLat;
                 obj[QStringLiteral("lng")] = rec.centroidLng;
                 arr.append(obj);
@@ -890,9 +908,18 @@ void AddressDatabaseService::initialize()
                         QJsonObject obj = v.toObject();
                         QString city = AddressDatabaseService::cleanCityName(obj[QStringLiteral("c")].toString());
                         QString street = obj[QStringLiteral("s")].toString();
-                        QString postcode = obj[QStringLiteral("p")].toString();
                         double lat = obj[QStringLiteral("lat")].toDouble();
                         double lng = obj[QStringLiteral("lng")].toDouble();
+
+                        // Read postcodes (v4 stores as array)
+                        QSet<QString> postcodes;
+                        QJsonValue pVal = obj[QStringLiteral("p")];
+                        if (pVal.isArray()) {
+                            for (const QJsonValue &pc : pVal.toArray())
+                                postcodes.insert(pc.toString());
+                        } else if (pVal.isString() && !pVal.toString().isEmpty()) {
+                            postcodes.insert(pVal.toString());
+                        }
 
                         QString normCity = AddressDatabaseService::normalize(city);
                         QString normStreet = AddressDatabaseService::normalize(street);
@@ -906,10 +933,9 @@ void AddressDatabaseService::initialize()
                         AddressDatabaseService::insertIntoTrie(data.streetTries[normCity], normStreet, street);
 
                         auto &rec = data.streetData[normCity][normStreet];
-                        if (rec.displayStreet.isEmpty()) {
+                        if (rec.displayStreet.isEmpty())
                             rec.displayStreet = street;
-                            rec.postcode = postcode;
-                        }
+                        rec.postcodes.unite(postcodes);
                         rec.centroidLat = lat;
                         rec.centroidLng = lng;
                         rec.count = 1;

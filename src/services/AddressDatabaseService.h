@@ -105,7 +105,7 @@ private:
 public:
     struct StreetRecord {
         QString displayStreet;
-        QString postcode;     // most common postcode
+        QSet<QString> postcodes;
         double centroidLat = 0;
         double centroidLng = 0;
         int count = 0;        // number of address points (for running centroid)
