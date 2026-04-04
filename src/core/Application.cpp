@@ -115,6 +115,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
     auto *internetStore = new InternetStore(repo, this);
     auto *navigationStore = new NavigationStore(repo, this);
     auto *settingsStore = new SettingsStore(repo, this);
+    if (m_simulatorMode)
+        settingsStore->refreshAllFields();
     auto *otaStore = new OtaStore(repo, this);
     auto *usbStore = new UsbStore(repo, this);
     auto *umsLogStore = new UmsLogStore(repo, this);
