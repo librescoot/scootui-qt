@@ -207,8 +207,8 @@ void Translations::initStrings()
     en[QStringLiteral("menuSwitchToMap")] = QStringLiteral("Switch to Map View");
     de[QStringLiteral("menuSwitchToMap")] = QStringLiteral("Zur Kartenansicht");
 
-    en[QStringLiteral("menuEnterDestinationCode")] = QStringLiteral("Enter Destination Code");
-    de[QStringLiteral("menuEnterDestinationCode")] = QStringLiteral("Zielcode eingeben");
+    en[QStringLiteral("menuEnterDestinationCode")] = QStringLiteral("Enter Address");
+    de[QStringLiteral("menuEnterDestinationCode")] = QStringLiteral("Adresse eingeben");
 
     en[QStringLiteral("menuDeleteLocation")] = QStringLiteral("Delete Location");
     de[QStringLiteral("menuDeleteLocation")] = QStringLiteral("Ort l\u00F6schen");
@@ -915,26 +915,32 @@ void Translations::initStrings()
     // Address entry
     // -----------------------------------------------------------------------
 
-    en[QStringLiteral("addressEditAction")] = QStringLiteral("Edit");
-    de[QStringLiteral("addressEditAction")] = QStringLiteral("\u00C4ndern");
+    en[QStringLiteral("navEnterCity")] = QStringLiteral("ENTER CITY");
+    de[QStringLiteral("navEnterCity")] = QStringLiteral("ORT EINGEBEN");
 
-    en[QStringLiteral("addressScrollAction")] = QStringLiteral("Scroll");
-    de[QStringLiteral("addressScrollAction")] = QStringLiteral("Scrollen");
+    en[QStringLiteral("navSelectCity")] = QStringLiteral("SELECT CITY");
+    de[QStringLiteral("navSelectCity")] = QStringLiteral("ORT AUSW\u00C4HLEN");
 
-    en[QStringLiteral("addressConfirmAction")] = QStringLiteral("Confirm");
-    de[QStringLiteral("addressConfirmAction")] = QStringLiteral("Best\u00E4tigen");
+    en[QStringLiteral("navEnterStreet")] = QStringLiteral("ENTER STREET");
+    de[QStringLiteral("navEnterStreet")] = QStringLiteral("STRASSE EINGEBEN");
 
-    en[QStringLiteral("addressNextAction")] = QStringLiteral("Next");
-    de[QStringLiteral("addressNextAction")] = QStringLiteral("Weiter");
+    en[QStringLiteral("navSelectStreet")] = QStringLiteral("SELECT STREET");
+    de[QStringLiteral("navSelectStreet")] = QStringLiteral("STRASSE AUSW\u00C4HLEN");
 
-    en[QStringLiteral("addressCloseAction")] = QStringLiteral("Close");
-    de[QStringLiteral("addressCloseAction")] = QStringLiteral("Schlie\u00DFen");
+    en[QStringLiteral("navSelectNumber")] = QStringLiteral("SELECT NUMBER");
+    de[QStringLiteral("navSelectNumber")] = QStringLiteral("HAUSNUMMER W\u00C4HLEN");
 
-    en[QStringLiteral("addressCancelAction")] = QStringLiteral("Cancel");
-    de[QStringLiteral("addressCancelAction")] = QStringLiteral("Abbrechen");
+    en[QStringLiteral("navConfirmDestination")] = QStringLiteral("CONFIRM DESTINATION");
+    de[QStringLiteral("navConfirmDestination")] = QStringLiteral("ZIEL BEST\u00C4TIGEN");
 
-    en[QStringLiteral("addressScreenTitle")] = QStringLiteral("Enter Destination Code");
-    de[QStringLiteral("addressScreenTitle")] = QStringLiteral("Zielcode eingeben");
+    en[QStringLiteral("navCities")] = QStringLiteral("cities");
+    de[QStringLiteral("navCities")] = QStringLiteral("Orte");
+
+    en[QStringLiteral("navStreets")] = QStringLiteral("streets");
+    de[QStringLiteral("navStreets")] = QStringLiteral("Stra\u00DFen");
+
+    en[QStringLiteral("navNoMatches")] = QStringLiteral("No matches");
+    de[QStringLiteral("navNoMatches")] = QStringLiteral("Keine Treffer");
 
     en[QStringLiteral("addressLoading")] = QStringLiteral("Loading address database...");
     de[QStringLiteral("addressLoading")] = QStringLiteral("Adressdatenbank wird geladen...");

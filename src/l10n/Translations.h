@@ -311,13 +311,15 @@ class Translations : public QObject
     Q_PROPERTY(QString odometerTripTime READ odometerTripTime NOTIFY languageChanged)
 
     // Address entry
-    Q_PROPERTY(QString addressEditAction READ addressEditAction NOTIFY languageChanged)
-    Q_PROPERTY(QString addressScrollAction READ addressScrollAction NOTIFY languageChanged)
-    Q_PROPERTY(QString addressConfirmAction READ addressConfirmAction NOTIFY languageChanged)
-    Q_PROPERTY(QString addressNextAction READ addressNextAction NOTIFY languageChanged)
-    Q_PROPERTY(QString addressCloseAction READ addressCloseAction NOTIFY languageChanged)
-    Q_PROPERTY(QString addressCancelAction READ addressCancelAction NOTIFY languageChanged)
-    Q_PROPERTY(QString addressScreenTitle READ addressScreenTitle NOTIFY languageChanged)
+    Q_PROPERTY(QString navEnterCity READ navEnterCity NOTIFY languageChanged)
+    Q_PROPERTY(QString navSelectCity READ navSelectCity NOTIFY languageChanged)
+    Q_PROPERTY(QString navEnterStreet READ navEnterStreet NOTIFY languageChanged)
+    Q_PROPERTY(QString navSelectStreet READ navSelectStreet NOTIFY languageChanged)
+    Q_PROPERTY(QString navSelectNumber READ navSelectNumber NOTIFY languageChanged)
+    Q_PROPERTY(QString navConfirmDestination READ navConfirmDestination NOTIFY languageChanged)
+    Q_PROPERTY(QString navCities READ navCities NOTIFY languageChanged)
+    Q_PROPERTY(QString navStreets READ navStreets NOTIFY languageChanged)
+    Q_PROPERTY(QString navNoMatches READ navNoMatches NOTIFY languageChanged)
     Q_PROPERTY(QString addressLoading READ addressLoading NOTIFY languageChanged)
     Q_PROPERTY(QString addressMapNotFound READ addressMapNotFound NOTIFY languageChanged)
 
@@ -638,13 +640,15 @@ public:
     QString odometerTripTime() const { return lookup("odometerTripTime"); }
 
     // Address entry
-    QString addressEditAction() const { return lookup("addressEditAction"); }
-    QString addressScrollAction() const { return lookup("addressScrollAction"); }
-    QString addressConfirmAction() const { return lookup("addressConfirmAction"); }
-    QString addressNextAction() const { return lookup("addressNextAction"); }
-    QString addressCloseAction() const { return lookup("addressCloseAction"); }
-    QString addressCancelAction() const { return lookup("addressCancelAction"); }
-    QString addressScreenTitle() const { return lookup("addressScreenTitle"); }
+    QString navEnterCity() const { return lookup("navEnterCity"); }
+    QString navSelectCity() const { return lookup("navSelectCity"); }
+    QString navEnterStreet() const { return lookup("navEnterStreet"); }
+    QString navSelectStreet() const { return lookup("navSelectStreet"); }
+    QString navSelectNumber() const { return lookup("navSelectNumber"); }
+    QString navConfirmDestination() const { return lookup("navConfirmDestination"); }
+    QString navCities() const { return lookup("navCities"); }
+    QString navStreets() const { return lookup("navStreets"); }
+    QString navNoMatches() const { return lookup("navNoMatches"); }
     QString addressLoading() const { return lookup("addressLoading"); }
     QString addressMapNotFound() const { return lookup("addressMapNotFound"); }
 

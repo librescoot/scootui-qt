@@ -1,10 +1,30 @@
 #pragma once
 
 #include <QObject>
+#include <QHash>
+#include <QSet>
+#include <QString>
+#include <QStringList>
+#include <QVariantList>
 #include <QVariantMap>
 #include <QVector>
-#include <QPair>
 #include <atomic>
+
+struct AddressEntry {
+    QString city;
+    QString street;
+    QString housenumber;
+    QString postcode;
+    double latitude;
+    double longitude;
+};
+
+struct TrieNode {
+    QHash<QChar, TrieNode *> children;
+    QVector<int> addressIndices; // indices into m_allAddresses
+
+    ~TrieNode() { qDeleteAll(children); }
+};
 
 class AddressDatabaseService : public QObject
 {
@@ -19,22 +39,29 @@ public:
     Q_ENUM(Status)
 
     explicit AddressDatabaseService(QObject *parent = nullptr);
+    ~AddressDatabaseService();
 
     int status() const { return m_status; }
     double buildProgress() const { return m_buildProgress; }
-    int addressCount() const { return m_addresses.size(); }
+    int addressCount() const { return m_allAddresses.size(); }
     QString statusMessage() const { return m_statusMessage; }
 
-    // Look up a base32 code → {valid, latitude, longitude}
-    Q_INVOKABLE QVariantMap lookupCode(const QString &code) const;
+    // --- City trie queries ---
+    Q_INVOKABLE QStringList getValidCityChars(const QString &prefix) const;
+    Q_INVOKABLE int getCityCount(const QString &prefix) const;
+    Q_INVOKABLE QStringList getMatchingCities(const QString &prefix) const;
 
-    // Start loading/building the database
-    void initialize();
+    // --- Street trie queries (within a city) ---
+    Q_INVOKABLE QStringList getValidStreetChars(const QString &city, const QString &prefix) const;
+    Q_INVOKABLE int getStreetCount(const QString &city, const QString &prefix) const;
+    Q_INVOKABLE QVariantList getMatchingStreets(const QString &city, const QString &prefix) const;
 
-    // Cancel an in-progress build
+    // --- House number / coordinate queries ---
+    Q_INVOKABLE QVariantList getHouseNumbers(const QString &city, const QString &street, const QString &postcode) const;
+    Q_INVOKABLE QVariantMap getStreetCoordinates(const QString &city, const QString &street) const;
+
+    Q_INVOKABLE void initialize();
     Q_INVOKABLE void cancelBuild();
-
-    // Called from build thread to check for cancellation
     bool isCancelled() const { return m_cancelRequested.load(); }
 
 signals:
@@ -44,24 +71,47 @@ signals:
     void statusMessageChanged();
 
 public slots:
-    // Called from background thread via queued connection
     void onBuildProgress(double progress, int count);
     void onBuildFinished(bool success, const QString &error);
 
 private:
-    static int fromBase32(const QString &code);
     void setStatus(Status s, const QString &message = {});
+    void buildTries();
+
+    const TrieNode *findNode(const TrieNode *root, const QString &prefix) const;
+    void collectUniqueDisplayNames(const TrieNode *node, const QVector<AddressEntry> &entries,
+                                   bool isCity, QSet<QString> &out) const;
+    int countUniqueNames(const TrieNode *node, const QVector<AddressEntry> &entries,
+                         bool isCity) const;
+
+public:
+    static QString normalize(const QString &name);
+    static QString cleanCityName(const QString &raw);
+    static void insertIntoTrie(TrieNode *root, const QString &normalizedName, int addressIndex);
+
+private:
 
     Status m_status = Idle;
     double m_buildProgress = 0;
     QString m_statusMessage;
     std::atomic<bool> m_cancelRequested{false};
 
-    // Ordered list: index = base32-decoded code value
-    QVector<QPair<double, double>> m_addresses; // (lat, lng)
+    // Address data
+    QVector<AddressEntry> m_allAddresses;
+
+    // City trie: normalized city name → terminal nodes with address indices
+    TrieNode *m_cityTrieRoot = nullptr;
+
+    // Per-city street tries: normalized city name → street trie root
+    QHash<QString, TrieNode *> m_streetTries;
+
+    // Fast lookup: normalized city → normalized street → address indices
+    QHash<QString, QHash<QString, QVector<int>>> m_cityStreetIndex;
+
+    // Map from normalized city name to original display name
+    QHash<QString, QString> m_cityDisplayNames;
 
 public:
     static const QString MbtilesPath;
     static const QString CachePath;
-    static const QString Base32Chars;
 };
