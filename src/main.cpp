@@ -3,6 +3,8 @@
 #include <QQuickWindow>
 #include <QFontDatabase>
 #include <QFont>
+#include <QDebug>
+#include <exception>
 
 #include "core/EnvConfig.h"
 #include "core/Application.h"
@@ -68,5 +70,12 @@ int main(int argc, char *argv[])
         engine.load(simUrl);
     }
 
-    return app.exec();
+    // Safety net: catch exceptions from MapLibre's internal sqlite reader
+    // (e.g. mapbox::sqlite::Exception on malformed mbtiles databases)
+    try {
+        return app.exec();
+    } catch (const std::exception &e) {
+        qCritical() << "Unhandled exception:" << e.what();
+        return 1;
+    }
 }

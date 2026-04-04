@@ -103,6 +103,30 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
         qDebug() << "MapService: no mbtiles found, using online tiles";
     }
 
+    // Quick-check mbtiles before passing to MapLibre (which throws
+    // mapbox::sqlite::Exception on malformed databases and crashes the app).
+    // A full integrity_check would be too slow on large files over eMMC,
+    // so just verify we can read the metadata table.
+    if (!m_mbtilesPath.isEmpty()) {
+        const QString connName = QStringLiteral("mapservice_validate");
+        {
+            QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connName);
+            db.setDatabaseName(m_mbtilesPath);
+            db.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
+            bool valid = false;
+            if (db.open()) {
+                QSqlQuery q(db);
+                valid = q.exec(QStringLiteral("SELECT count(*) FROM metadata")) && q.next();
+                db.close();
+            }
+            if (!valid) {
+                qWarning() << "MapService: mbtiles database is unreadable, falling back to online tiles";
+                m_mbtilesPath.clear();
+            }
+        }
+        QSqlDatabase::removeDatabase(connName);
+    }
+
     // Build initial style URL
     rebuildStyleUrl();
 
