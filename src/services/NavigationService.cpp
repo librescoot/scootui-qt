@@ -26,11 +26,12 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
 {
     m_valhalla = new ValhallaClient(this);
 
-    // Set endpoint from settings or default
+    // Set endpoint and language from settings
     QString url = settings->valhallaUrl();
     if (!url.isEmpty()) {
         m_valhalla->setEndpoint(url);
     }
+    m_valhalla->setLanguage(settings->language());
 
     // Connect Valhalla signals
     connect(m_valhalla, &ValhallaClient::routeCalculated,
@@ -71,6 +72,13 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
         if (!url.isEmpty()) {
             m_valhalla->setEndpoint(url);
         }
+    });
+
+    // Listen to language changes — recalculate route to get translated directions
+    connect(settings, &SettingsStore::languageChanged, this, [this]() {
+        m_valhalla->setLanguage(m_settings->language());
+        if (isNavigating())
+            calculateRoute();
     });
 
     m_lastRerouteTime.start();

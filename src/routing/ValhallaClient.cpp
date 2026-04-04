@@ -21,6 +21,12 @@ void ValhallaClient::setEndpoint(const QString &url)
         m_endpoint.append(QLatin1Char('/'));
 }
 
+void ValhallaClient::setLanguage(const QString &lang)
+{
+    m_language = lang;
+    qDebug() << "ValhallaClient: language set to" << m_language;
+}
+
 void ValhallaClient::calculateRoute(const LatLng &from, const LatLng &to)
 {
     QJsonObject request;
@@ -34,11 +40,11 @@ void ValhallaClient::calculateRoute(const LatLng &from, const LatLng &to)
     request[QStringLiteral("locations")] = locations;
     request[QStringLiteral("costing")] = QStringLiteral("motor_scooter");
     request[QStringLiteral("units")] = QStringLiteral("kilometers");
-    request[QStringLiteral("language")] = QStringLiteral("en-US");
+    request[QStringLiteral("language")] = m_language;
     request[QStringLiteral("shape_format")] = QStringLiteral("polyline6");
     QJsonObject dirOpts;
     dirOpts[QStringLiteral("units")] = QStringLiteral("kilometers");
-    dirOpts[QStringLiteral("language")] = QStringLiteral("en-US");
+    dirOpts[QStringLiteral("language")] = m_language;
     request[QStringLiteral("directions_options")] = dirOpts;
 
     QNetworkRequest req(QUrl(m_endpoint + QStringLiteral("route")));

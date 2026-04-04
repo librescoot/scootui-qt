@@ -12,6 +12,7 @@ public:
     explicit ValhallaClient(QObject *parent = nullptr);
 
     void setEndpoint(const QString &url);
+    void setLanguage(const QString &lang);
     void calculateRoute(const LatLng &from, const LatLng &to);
     void checkStatus();
 
@@ -27,4 +28,5 @@ private:
 
     QNetworkAccessManager m_nam;
     QString m_endpoint;
+    QString m_language = QStringLiteral("en-US");
 };
