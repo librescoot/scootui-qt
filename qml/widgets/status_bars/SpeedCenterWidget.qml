@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import "../indicators"
-import "../../theme"
 
 Item {
     id: speedCenter
@@ -39,7 +38,7 @@ Item {
             id: speedText
             anchors.horizontalCenter: parent.horizontalCenter
             text: Math.floor(speed).toString()
-            font.pixelSize: Theme.fontXL
+            font.pixelSize: themeStore.fontXL
             font.bold: true
             color: themeStore.textColor
             height: speedTight.tightBoundingRect.height
@@ -50,7 +49,7 @@ Item {
             id: unitText
             anchors.horizontalCenter: parent.horizontalCenter
             text: "km/h"
-            font.pixelSize: Theme.fontBody
+            font.pixelSize: themeStore.fontBody
             color: themeStore.textSecondary
             height: unitTight.tightBoundingRect.height
             verticalAlignment: Text.AlignVCenter

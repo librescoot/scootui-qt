@@ -1,5 +1,4 @@
 import QtQuick
-import "../theme"
 
 Item {
     id: hibernationOverlay
@@ -84,7 +83,7 @@ Item {
             color: "#CC000000"
             border.width: 1
             border.color: "#4DFFFFFF"
-            radius: Theme.radiusModal
+            radius: themeStore.radiusModal
 
             Column {
                 id: promptContent
@@ -99,7 +98,7 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: "\ue4e3" // power_settings_new
                     font.family: "Material Icons"
-                    font.pixelSize: Theme.fontHero
+                    font.pixelSize: themeStore.fontHero
                     color: "#FFFFFF"
                 }
 
@@ -107,7 +106,7 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: typeof translations !== "undefined" ? translations.hibernatePrompt : ""
-                    font.pixelSize: Theme.fontHeading
+                    font.pixelSize: themeStore.fontHeading
                     font.bold: true
                     color: "#FFFFFF"
                     horizontalAlignment: Text.AlignHCenter
@@ -119,7 +118,7 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: typeof translations !== "undefined" ? translations.hibernateTapKeycard : ""
-                    font.pixelSize: Theme.fontBody
+                    font.pixelSize: themeStore.fontBody
                     color: "#FFFFFF"
                 }
 
@@ -128,7 +127,7 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     visible: countdownActive && countdown > 0
                     text: countdown + "s"
-                    font.pixelSize: Theme.fontBody
+                    font.pixelSize: themeStore.fontBody
                     font.bold: true
                     color: "#FF9800"
                 }
@@ -137,7 +136,7 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     visible: !countdownActive && !bothBrakesHeld
                     text: typeof translations !== "undefined" ? translations.hibernationOrHoldBrakes : ""
-                    font.pixelSize: Theme.fontBody
+                    font.pixelSize: themeStore.fontBody
                     color: "#B3FFFFFF"
                 }
 
@@ -145,7 +144,7 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     visible: countdown === 0 && !countdownActive
                     text: typeof translations !== "undefined" ? translations.hibernationKeepHoldingBrakes : ""
-                    font.pixelSize: Theme.fontBody
+                    font.pixelSize: themeStore.fontBody
                     color: "#B3FFFFFF"
                 }
 
@@ -158,7 +157,7 @@ Item {
                     Rectangle {
                         width: 160
                         height: kickstandCol.height + 32
-                        radius: Theme.radiusModal
+                        radius: themeStore.radiusModal
                         color: "#33F44336"
                         border.width: 1
                         border.color: "#80F44336"
@@ -172,14 +171,14 @@ Item {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: "\ue16a" // close
                                 font.family: "Material Icons"
-                                font.pixelSize: Theme.fontHeading
+                                font.pixelSize: themeStore.fontHeading
                                 color: "#F44336"
                             }
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: typeof translations !== "undefined" ? translations.hibernationCancel : ""
-                                font.pixelSize: Theme.fontBody
+                                font.pixelSize: themeStore.fontBody
                                 font.bold: true
                                 color: "#FFFFFF"
                             }
@@ -187,7 +186,7 @@ Item {
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: typeof translations !== "undefined" ? translations.hibernationKickstand : ""
-                                font.pixelSize: Theme.fontBody
+                                font.pixelSize: themeStore.fontBody
                                 color: "#B3FFFFFF"
                             }
                         }
@@ -197,7 +196,7 @@ Item {
                     Rectangle {
                         width: 160
                         height: keycardCol.height + 32
-                        radius: Theme.radiusModal
+                        radius: themeStore.radiusModal
                         color: "#334CAF50"
                         border.width: 1
                         border.color: "#804CAF50"
@@ -211,14 +210,14 @@ Item {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: "\ue156" // check
                                 font.family: "Material Icons"
-                                font.pixelSize: Theme.fontHeading
+                                font.pixelSize: themeStore.fontHeading
                                 color: "#4CAF50"
                             }
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: typeof translations !== "undefined" ? translations.hibernationConfirm : ""
-                                font.pixelSize: Theme.fontBody
+                                font.pixelSize: themeStore.fontBody
                                 font.bold: true
                                 color: "#FFFFFF"
                             }
@@ -226,7 +225,7 @@ Item {
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: typeof translations !== "undefined" ? translations.hibernationTapKeycardToConfirm : ""
-                                font.pixelSize: Theme.fontBody
+                                font.pixelSize: themeStore.fontBody
                                 color: "#B3FFFFFF"
                             }
                         }
@@ -253,14 +252,14 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             text: String.fromCodePoint(0xf02a0) // warning_amber_rounded
             font.family: "Material Icons"
-            font.pixelSize: Theme.fontHero
+            font.pixelSize: themeStore.fontHero
             color: "#FFFFFF"
         }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: typeof translations !== "undefined" ? translations.hibernateSeatboxOpen : ""
-            font.pixelSize: Theme.fontHeading
+            font.pixelSize: themeStore.fontHeading
             font.bold: true
             color: "#000000"
         }
@@ -268,7 +267,7 @@ Item {
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: typeof translations !== "undefined" ? translations.hibernateCloseSeatbox : ""
-            font.pixelSize: Theme.fontBody
+            font.pixelSize: themeStore.fontBody
             color: "#000000"
         }
     }
@@ -290,14 +289,14 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             text: "\ue4e3" // power_settings_new
             font.family: "Material Icons"
-            font.pixelSize: Theme.fontHero
+            font.pixelSize: themeStore.fontHero
             color: "#F44336"
         }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: typeof translations !== "undefined" ? translations.hibernating : ""
-            font.pixelSize: Theme.fontHeading
+            font.pixelSize: themeStore.fontHeading
             font.bold: true
             color: "#FFFFFF"
         }
@@ -307,7 +306,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             width: 32
             height: 32
-            radius: Theme.radiusModal
+            radius: themeStore.radiusModal
             color: "transparent"
             border.color: "#FFFFFF"
             border.width: 3

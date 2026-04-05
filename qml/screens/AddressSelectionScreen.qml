@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Layouts
 import "../widgets/status_bars"
 import "../widgets/components"
-import "../theme"
 
 Rectangle {
     id: addressScreen
@@ -371,7 +370,7 @@ Rectangle {
                 }
             }
             color: textPrimary
-            font.pixelSize: Theme.fontTitle
+            font.pixelSize: themeStore.fontTitle
             font.bold: true
         }
 
@@ -402,7 +401,7 @@ Rectangle {
                 return parts.join(" › ")
             }
             color: textSecondary
-            font.pixelSize: Theme.fontBody
+            font.pixelSize: themeStore.fontBody
         }
 
         // --- Content area ---
@@ -420,7 +419,7 @@ Rectangle {
                     Layout.alignment: Qt.AlignHCenter
                     text: typeof addressDatabase !== "undefined" ? addressDatabase.statusMessage : ""
                     color: textPrimary
-                    font.pixelSize: Theme.fontBody
+                    font.pixelSize: themeStore.fontBody
                 }
 
                 Rectangle {
@@ -428,13 +427,13 @@ Rectangle {
                     visible: dbStatus === statusBuilding
                     width: 200
                     height: 6
-                    radius: Theme.radiusBar
+                    radius: themeStore.radiusBar
                     color: surfaceColor
 
                     Rectangle {
                         width: parent.width * (typeof addressDatabase !== "undefined" ? addressDatabase.buildProgress : 0)
                         height: parent.height
-                        radius: Theme.radiusBar
+                        radius: themeStore.radiusBar
                         color: textPrimary
                     }
                 }
@@ -446,7 +445,7 @@ Rectangle {
                           ? Math.round(addressDatabase.buildProgress * 100) + "%"
                           : "0%"
                     color: textSecondary
-                    font.pixelSize: Theme.fontBody
+                    font.pixelSize: themeStore.fontBody
                 }
             }
 
@@ -456,7 +455,7 @@ Rectangle {
                 visible: loadingHouseNumbers
                 text: typeof translations !== "undefined" ? translations.navLoadingHouseNumbers : "Loading..."
                 color: textSecondary
-                font.pixelSize: Theme.fontBody
+                font.pixelSize: themeStore.fontBody
             }
 
             // --- Error state ---
@@ -465,7 +464,7 @@ Rectangle {
                 visible: dbStatus === statusError
                 text: typeof addressDatabase !== "undefined" ? addressDatabase.statusMessage : "Address database unavailable"
                 color: errorColor
-                font.pixelSize: Theme.fontBody
+                font.pixelSize: themeStore.fontBody
             }
 
             // --- Letter carousel (Phase 1 and 3) ---
@@ -482,7 +481,7 @@ Rectangle {
                             ? addressScreen.cityPrefix : addressScreen.streetPrefix
                         return prefix + "_"
                     }
-                    font.pixelSize: Theme.fontHeading
+                    font.pixelSize: themeStore.fontHeading
                     font.bold: true
                     color: textPrimary
                     font.letterSpacing: 2
@@ -520,7 +519,7 @@ Rectangle {
                                 : Math.max(36, 56 - modelData.distance * 8)
                             width: tileSize
                             height: tileSize
-                            radius: Theme.radiusCard
+                            radius: themeStore.radiusCard
                             color: surfaceColor
                             border.width: modelData.isCurrent ? 2 : 0
                             border.color: isDark ? "#CCFFFFFF" : "#CC000000"
@@ -550,7 +549,7 @@ Rectangle {
                     visible: addressScreen.validChars.length > 1
                     text: (addressScreen.charIndex + 1) + " / " + addressScreen.validChars.length
                     color: textTertiary
-                    font.pixelSize: Theme.fontBody
+                    font.pixelSize: themeStore.fontBody
                 }
 
                 // No valid chars message
@@ -562,7 +561,7 @@ Rectangle {
                             : addressScreen.streetPrefix.length > 0)
                     text: typeof translations !== "undefined" ? translations.navNoMatches : "No matches"
                     color: errorColor
-                    font.pixelSize: Theme.fontBody
+                    font.pixelSize: themeStore.fontBody
                 }
             }
 
@@ -598,7 +597,7 @@ Rectangle {
                         delegate: Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 40
-                            radius: Theme.radiusCard
+                            radius: themeStore.radiusCard
                             color: modelData.selected ? selectedBg : "transparent"
 
                             Text {
@@ -626,7 +625,7 @@ Rectangle {
                                     return typeof item === "string" ? item : ""
                                 }
                                 color: textPrimary
-                                font.pixelSize: Theme.fontBody
+                                font.pixelSize: themeStore.fontBody
                                 font.bold: modelData.selected
                                 elide: Text.ElideRight
                             }
@@ -649,7 +648,7 @@ Rectangle {
                         anchors.centerIn: parent
                         text: "\ue356"
                         font.family: "Material Icons"
-                        font.pixelSize: Theme.fontTitle
+                        font.pixelSize: themeStore.fontTitle
                         color: textSecondary
                     }
                 }
@@ -669,7 +668,7 @@ Rectangle {
                         anchors.centerIn: parent
                         text: "\ue353"
                         font.family: "Material Icons"
-                        font.pixelSize: Theme.fontTitle
+                        font.pixelSize: themeStore.fontTitle
                         color: textSecondary
                     }
                 }
@@ -687,7 +686,7 @@ Rectangle {
                     text: typeof translations !== "undefined"
                         ? translations.navConfirmDest : "DESTINATION"
                     color: textTertiary
-                    font.pixelSize: Theme.fontBody
+                    font.pixelSize: themeStore.fontBody
                     font.letterSpacing: 1
                 }
 
@@ -700,7 +699,7 @@ Rectangle {
                             label += " " + addressScreen.selectedHouse
                         return label
                     }
-                    font.pixelSize: Theme.fontHeading
+                    font.pixelSize: themeStore.fontHeading
                     font.bold: true
                     color: textPrimary
                 }
@@ -714,7 +713,7 @@ Rectangle {
                         label += addressScreen.selectedCity
                         return label
                     }
-                    font.pixelSize: Theme.fontTitle
+                    font.pixelSize: themeStore.fontTitle
                     color: textSecondary
                 }
             }

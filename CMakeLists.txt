@@ -179,7 +179,12 @@ set_target_properties(scootui PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
 
+set_source_files_properties(qml/theme/Theme.qml
+    PROPERTIES QT_QML_SINGLETON_TYPE TRUE
+)
+
 set(QML_FILES
+    qml/theme/Theme.qml
     qml/Main.qml
     qml/screens/ClusterScreen.qml
     qml/screens/MaintenanceScreen.qml

@@ -5,7 +5,6 @@ import "../widgets/navigation"
 import "../widgets/cluster"
 import "../widgets/indicators"
 import "../widgets/map"
-import "../theme"
 
 Rectangle {
     id: mapScreen
@@ -57,7 +56,7 @@ Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: "\ue2dd" // gps_not_fixed
                     font.family: "Material Icons"
-                    font.pixelSize: Theme.fontXL
+                    font.pixelSize: themeStore.fontXL
                     color: typeof themeStore !== "undefined" && themeStore.isDark
                            ? "#99FFFFFF" : "#8A000000"  // white60 / black54
                 }
@@ -66,7 +65,7 @@ Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: typeof translations !== "undefined"
                           ? translations.mapWaitingForGps : "Waiting for GPS fix"
-                    font.pixelSize: Theme.fontBody
+                    font.pixelSize: themeStore.fontBody
                     color: typeof themeStore !== "undefined" && themeStore.isDark
                            ? "#FFFFFF" : "#000000"
                     horizontalAlignment: Text.AlignHCenter
@@ -115,7 +114,7 @@ Rectangle {
                 anchors.topMargin: 8
                 width: outOfCoverageRow.width + 24  // padding h:12
                 height: outOfCoverageRow.height + 16  // padding v:8
-                radius: Theme.radiusCard
+                radius: themeStore.radiusCard
                 color: typeof themeStore !== "undefined" && themeStore.isDark
                        ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.9)
                 border.width: 1.5
@@ -133,7 +132,7 @@ Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                         text: "\uf1ae" // map_outlined
                         font.family: "Material Icons"
-                        font.pixelSize: Theme.fontBody
+                        font.pixelSize: themeStore.fontBody
                         color: "#FF9800"  // Colors.orange
                     }
 
@@ -141,7 +140,7 @@ Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                         text: typeof translations !== "undefined"
                               ? translations.mapOutOfCoverage : "No map data for current location"
-                        font.pixelSize: Theme.fontBody
+                        font.pixelSize: themeStore.fontBody
                         font.weight: Font.Medium
                         color: "#FF9800"  // Colors.orange
                     }
@@ -159,7 +158,7 @@ Rectangle {
                          : "Navigation unavailable")
                 color: typeof themeStore !== "undefined" && themeStore.isDark
                        ? Qt.rgba(1, 1, 1, 0.4) : Qt.rgba(0, 0, 0, 0.4)
-                font.pixelSize: Theme.fontBody
+                font.pixelSize: themeStore.fontBody
                 horizontalAlignment: Text.AlignHCenter
             }
 
@@ -221,7 +220,7 @@ Rectangle {
                 Rectangle {
                     width: warningRow.width + 16
                     height: warningRow.height + 16
-                    radius: Theme.radiusCard
+                    radius: themeStore.radiusCard
                     color: typeof themeStore !== "undefined" && themeStore.isDark
                            ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.9)
                     border.width: 1

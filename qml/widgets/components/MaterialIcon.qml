@@ -1,5 +1,4 @@
 import QtQuick
-import "../../theme"
 
 Text {
     id: root
@@ -55,7 +54,7 @@ Text {
     readonly property string iconBugReport:       "\ue115"
 
     font.family: "Material Icons"
-    font.pixelSize: Theme.fontTitle
+    font.pixelSize: themeStore.fontTitle
     horizontalAlignment: Text.AlignHCenter
     verticalAlignment: Text.AlignVCenter
 }

@@ -12,6 +12,24 @@ class ThemeStore : public QObject
     Q_PROPERTY(QString themeName READ themeName NOTIFY themeChanged)
     Q_PROPERTY(bool isAutoMode READ isAutoMode NOTIFY themeChanged)
 
+    // Type scale (constant — not theme-dependent)
+    Q_PROPERTY(qreal fontDisplay MEMBER s_fontDisplay CONSTANT)
+    Q_PROPERTY(qreal fontPin MEMBER s_fontPin CONSTANT)
+    Q_PROPERTY(qreal fontHero MEMBER s_fontHero CONSTANT)
+    Q_PROPERTY(qreal fontXL MEMBER s_fontXL CONSTANT)
+    Q_PROPERTY(qreal fontFeature MEMBER s_fontFeature CONSTANT)
+    Q_PROPERTY(qreal fontInput MEMBER s_fontInput CONSTANT)
+    Q_PROPERTY(qreal fontHeading MEMBER s_fontHeading CONSTANT)
+    Q_PROPERTY(qreal fontTitle MEMBER s_fontTitle CONSTANT)
+    Q_PROPERTY(qreal fontBody MEMBER s_fontBody CONSTANT)
+    Q_PROPERTY(qreal fontCaption MEMBER s_fontCaption CONSTANT)
+    Q_PROPERTY(qreal fontMicro MEMBER s_fontMicro CONSTANT)
+
+    // Border radii (constant)
+    Q_PROPERTY(qreal radiusBar MEMBER s_radiusBar CONSTANT)
+    Q_PROPERTY(qreal radiusCard MEMBER s_radiusCard CONSTANT)
+    Q_PROPERTY(qreal radiusModal MEMBER s_radiusModal CONSTANT)
+
     // Colors
     Q_PROPERTY(QColor textColor READ textColor NOTIFY themeChanged)
     Q_PROPERTY(QColor textSecondary READ textSecondary NOTIFY themeChanged)
@@ -54,4 +72,22 @@ private:
     SettingsStore *m_settings;
     bool m_isDark = true;
     bool m_isAutoMode = false;
+
+    // Type scale constants
+    static constexpr qreal s_fontDisplay = 96;
+    static constexpr qreal s_fontPin     = 80;
+    static constexpr qreal s_fontHero    = 64;
+    static constexpr qreal s_fontXL      = 48;
+    static constexpr qreal s_fontFeature = 36;
+    static constexpr qreal s_fontInput   = 32;
+    static constexpr qreal s_fontHeading = 32;
+    static constexpr qreal s_fontTitle   = 24;
+    static constexpr qreal s_fontBody    = 18;
+    static constexpr qreal s_fontCaption = 14;
+    static constexpr qreal s_fontMicro   = 10;
+
+    // Border radii constants
+    static constexpr qreal s_radiusBar   = 2;
+    static constexpr qreal s_radiusCard  = 8;
+    static constexpr qreal s_radiusModal = 16;
 };

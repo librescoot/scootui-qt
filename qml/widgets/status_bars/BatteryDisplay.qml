@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Effects
-import "../../theme"
 
 Row {
     id: batteryDisplay
@@ -259,7 +258,7 @@ Row {
     Text {
         anchors.verticalCenter: parent.verticalCenter
         text: present0 ? (showAsRange ? rangeText(charge0, soh0) : charge0 + "%") : ""
-        font.pixelSize: Theme.fontBody
+        font.pixelSize: themeStore.fontBody
         font.weight: Font.DemiBold
         font.letterSpacing: -1.1
         color: fillColor(charge0, true)
@@ -365,7 +364,7 @@ Row {
         anchors.verticalCenter: parent.verticalCenter
         visible: batteryDisplay.showDual
         text: present1 ? (showAsRange ? rangeText(charge1, soh1) : charge1 + "%") : ""
-        font.pixelSize: Theme.fontBody
+        font.pixelSize: themeStore.fontBody
         font.weight: Font.DemiBold
         font.letterSpacing: -1.1
         color: fillColor(charge1, false)

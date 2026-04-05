@@ -1,6 +1,5 @@
 import QtQuick
 import "../indicators"
-import "../../theme"
 
 Item {
     id: speedometer
@@ -219,7 +218,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         y: parent.height / 2 - height / 2
         text: Math.floor(speedometer.animatedSpeed).toString()
-        font.pixelSize: Theme.fontDisplay
+        font.pixelSize: themeStore.fontDisplay
         font.bold: true
         color: speedometer.isDark ? "#FFFFFF" : "#000000"
     }
@@ -231,7 +230,7 @@ Item {
         anchors.top: speedText.bottom
         anchors.topMargin: -12
         text: "km/h"
-        font.pixelSize: Theme.fontTitle
+        font.pixelSize: themeStore.fontTitle
         color: speedometer.isDark ? "#99FFFFFF" : "#8A000000"
     }
 

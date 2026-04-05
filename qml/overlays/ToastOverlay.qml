@@ -1,5 +1,4 @@
 import QtQuick
-import "../theme"
 
 Item {
     id: toastOverlay
@@ -21,7 +20,7 @@ Item {
                 id: toastItem
                 width: Math.min(toastText.implicitWidth + 32, toastOverlay.width - 40)
                 height: toastText.implicitHeight + 16
-                radius: Theme.radiusCard
+                radius: themeStore.radiusCard
                 opacity: 0
 
                 color: {
@@ -39,7 +38,7 @@ Item {
                     width: Math.min(implicitWidth, toastOverlay.width - 72)
                     text: modelData.message
                     color: modelData.type === "warning" ? "#000000" : "white"
-                    font.pixelSize: Theme.fontBody
+                    font.pixelSize: themeStore.fontBody
                     font.weight: Font.Medium
                     wrapMode: Text.WordWrap
                     horizontalAlignment: Text.AlignHCenter

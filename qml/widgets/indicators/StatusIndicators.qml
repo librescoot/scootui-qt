@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Effects
-import "../../theme"
 
 Row {
     id: statusIndicators
@@ -98,7 +97,7 @@ Row {
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.topMargin: 1
-            font.pixelSize: Theme.fontMicro
+            font.pixelSize: themeStore.fontMicro
             font.bold: true
             color: statusIndicators.iconColor
             visible: modemState >= 2 && accessTech !== ""

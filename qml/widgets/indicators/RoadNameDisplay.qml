@@ -1,16 +1,15 @@
 import QtQuick
-import "../../theme"
 
 Rectangle {
     id: root
     property string roadName: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadName : ""
     property string roadType: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadType : ""
-    property real fontSize: Theme.fontCaption
+    property real fontSize: themeStore.fontCaption
 
     visible: roadName.length > 0
     width: label.width + 8
     height: label.height + 4
-    radius: Theme.radiusBar
+    radius: themeStore.radiusBar
 
     // German road sign styling based on road type
     color: {

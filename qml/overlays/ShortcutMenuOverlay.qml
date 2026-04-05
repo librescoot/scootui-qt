@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import "../widgets/components"
-import "../theme"
 
 Item {
     id: shortcutOverlay
@@ -44,7 +43,7 @@ Item {
         Rectangle {
             id: containerBg
             anchors.fill: parent
-            radius: Theme.radiusModal
+            radius: themeStore.radiusModal
             color: "transparent"
             border.width: 2
             border.color: isDark ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(0, 0, 0, 0.3)
@@ -65,7 +64,7 @@ Item {
 
                     width: isSelected ? 80 : 60
                     height: isSelected ? 80 : 60
-                    radius: Theme.radiusModal
+                    radius: themeStore.radiusModal
                     color: isSelected ? Qt.rgba(1, 0.6, 0, 0.15) : "transparent"
                     border.width: isSelected ? 4 : 2
                     border.color: itemColor
@@ -109,7 +108,7 @@ Item {
         // Matching Flutter's left/right 60
         width: Math.min(parent.width - 120, 360)
         height: confirmCol.height + 32
-        radius: Theme.radiusModal
+        radius: themeStore.radiusModal
         color: isDark ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.95)
         border.width: 2
         border.color: "#FF9800"
@@ -123,7 +122,7 @@ Item {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: typeof translations !== "undefined" ? translations.shortcutPressToConfirm : "Press to confirm"
-                font.pixelSize: Theme.fontBody
+                font.pixelSize: themeStore.fontBody
                 font.bold: true
                 color: isDark ? "#FFFFFF" : "#000000"
             }
@@ -133,14 +132,14 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: 200
                 height: 4
-                radius: Theme.radiusBar
+                radius: themeStore.radiusBar
                 color: isDark ? "#3DFFFFFF" : "#1F000000"
 
                 // Active progress bar (shrinks from 1.0 to 0.0 over 1s)
                 Rectangle {
                     anchors.left: parent.left
                     height: parent.height
-                    radius: Theme.radiusBar
+                    radius: themeStore.radiusBar
                     color: "#FF9800"
                     width: parent.width * (1.0 - confirmTimer.progress)
                 }

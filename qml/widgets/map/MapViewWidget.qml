@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import "../../theme"
 
 // QMapLibre MapView wrapper
 // Uses a Loader to gracefully handle missing QtLocation/QMapLibre plugin
@@ -52,7 +51,7 @@ Item {
                 text: "Map unavailable"
                 color: typeof themeStore !== "undefined" && themeStore.isDark
                        ? "#666" : "#999"
-                font.pixelSize: Theme.fontBody
+                font.pixelSize: themeStore.fontBody
             }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter

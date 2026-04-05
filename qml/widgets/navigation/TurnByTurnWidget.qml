@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import "../../theme"
 
 Item {
     id: tbtWidget
@@ -139,7 +138,7 @@ Item {
                     text: parent.mDist <= iconThreshold(parent.mType)
                           ? maneuverIcon(parent.mType) : miStraight
                     font.family: "Material Icons"
-                    font.pixelSize: Theme.fontHero
+                    font.pixelSize: themeStore.fontHero
                     color: isDark ? "white" : "#212121"
                 }
             }
@@ -156,7 +155,7 @@ Item {
                 Text {
                     text: typeof navigationService !== "undefined"
                           ? formatDistance(navigationService.currentManeuverDistance) : ""
-                    font.pixelSize: Theme.fontBody
+                    font.pixelSize: themeStore.fontBody
                     font.bold: true
                     color: isDark ? "white" : "#212121"
                     lineHeight: 1.0
@@ -167,7 +166,7 @@ Item {
                     Layout.fillWidth: true
                     text: typeof navigationService !== "undefined"
                           ? navigationService.currentVerbalInstruction : ""
-                    font.pixelSize: Theme.fontBody
+                    font.pixelSize: themeStore.fontBody
                     font.weight: isDark ? Font.Normal : Font.Medium
                     color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     wrapMode: Text.WordWrap
@@ -184,21 +183,21 @@ Item {
 
                     Text {
                         text: "Then"
-                        font.pixelSize: Theme.fontBody
+                        font.pixelSize: themeStore.fontBody
                         color: isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
                     }
                     Text {
                         text: typeof navigationService !== "undefined"
                               ? maneuverIcon(navigationService.nextManeuverType) : ""
                         font.family: "Material Icons"
-                        font.pixelSize: Theme.fontBody
+                        font.pixelSize: themeStore.fontBody
                         color: isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
                     }
                     Text {
                         Layout.fillWidth: true
                         text: typeof navigationService !== "undefined"
                               ? navigationService.nextStreetName : ""
-                        font.pixelSize: Theme.fontBody
+                        font.pixelSize: themeStore.fontBody
                         color: isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
                         elide: Text.ElideRight
                     }
@@ -218,7 +217,7 @@ Item {
             implicitWidth: timeRow.width + 16
             implicitHeight: timeRow.height + 8
             color: isDark ? Qt.rgba(0, 0, 0, 0.95) : Qt.rgba(1, 1, 1, 0.98)
-            radius: Theme.radiusCard
+            radius: themeStore.radiusCard
 
             // Left and Bottom borders
             Rectangle { anchors.left: parent.left; width: 1; height: parent.height; color: isDark ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.12) }

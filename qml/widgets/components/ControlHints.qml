@@ -1,5 +1,4 @@
 import QtQuick
-import "../../theme"
 
 Item {
     id: controlHints
@@ -23,7 +22,7 @@ Item {
         width: leftHint.width + 24
         height: leftHint.height + 12
         color: "transparent"
-        radius: Theme.radiusCard
+        radius: themeStore.radiusCard
         // Extend past left screen edge
         anchors.leftMargin: -6
 
@@ -36,7 +35,7 @@ Item {
             Text {
                 text: typeof translations !== "undefined" ? translations.controlLeftBrake : "Left Brake"
                 color: controlHints.secondaryColor
-                font.pixelSize: Theme.fontMicro
+                font.pixelSize: themeStore.fontMicro
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
             }
@@ -44,7 +43,7 @@ Item {
             Text {
                 text: controlHints.leftAction
                 color: controlHints.primaryColor
-                font.pixelSize: Theme.fontBody
+                font.pixelSize: themeStore.fontBody
                 font.bold: true
             }
         }
@@ -58,7 +57,7 @@ Item {
         width: rightHint.width + 24
         height: rightHint.height + 12
         color: "transparent"
-        radius: Theme.radiusCard
+        radius: themeStore.radiusCard
         // Extend past right screen edge
         anchors.rightMargin: -6
 
@@ -72,7 +71,7 @@ Item {
                 anchors.right: parent.right
                 text: typeof translations !== "undefined" ? translations.controlRightBrake : "Right Brake"
                 color: controlHints.secondaryColor
-                font.pixelSize: Theme.fontMicro
+                font.pixelSize: themeStore.fontMicro
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
             }
@@ -81,7 +80,7 @@ Item {
                 anchors.right: parent.right
                 text: controlHints.rightAction
                 color: controlHints.primaryColor
-                font.pixelSize: Theme.fontBody
+                font.pixelSize: themeStore.fontBody
                 font.bold: true
             }
         }
