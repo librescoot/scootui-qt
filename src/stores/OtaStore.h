@@ -40,6 +40,8 @@ public:
     int mdbInstallProgress() const { return m_mdbInstallProgress; }
     bool isActive() const;
 
+    Q_INVOKABLE void setBacklightOff(bool off);
+
 signals:
     void dbcStatusChanged();
     void dbcUpdateVersionChanged();

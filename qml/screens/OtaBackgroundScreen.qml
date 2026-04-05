@@ -1,7 +1,35 @@
 import QtQuick
 
 Rectangle {
+    id: otaScreen
     color: "black"
+
+    readonly property bool locked: typeof vehicleStore !== "undefined" && vehicleStore.state === 4
+
+    onLockedChanged: {
+        if (locked) {
+            backlightTimer.restart()
+        } else {
+            backlightTimer.stop()
+            if (typeof otaStore !== "undefined")
+                otaStore.setBacklightOff(false)
+        }
+    }
+
+    Timer {
+        id: backlightTimer
+        interval: 30000
+        running: otaScreen.locked
+        onTriggered: {
+            if (typeof otaStore !== "undefined")
+                otaStore.setBacklightOff(true)
+        }
+    }
+
+    Component.onDestruction: {
+        if (typeof otaStore !== "undefined")
+            otaStore.setBacklightOff(false)
+    }
 
     readonly property string dbcStatus: typeof otaStore !== "undefined" ? otaStore.dbcStatus : "idle"
     readonly property int downloadProgress: typeof otaStore !== "undefined" ? otaStore.dbcDownloadProgress : 0
