@@ -156,10 +156,12 @@ Rectangle {
             Text {
                 Layout.fillWidth: true
                 text: "This usually indicates a missing or unreliable connection between " +
-                      "the dashboard computer (DBC) and the middle driver board (MDB). " +
+                      "the dashboard computer (DBC) and the middle driver board (MDB).\n\n" +
                       "Check the USB cable if this persists."
                 color: Qt.rgba(1, 1, 1, 0.70)
                 font.pixelSize: themeStore.fontBody
+                lineHeight: 1.4
+                lineHeightMode: Text.ProportionalHeight
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -181,6 +183,8 @@ Rectangle {
                       "hold both brakes and press the seatbox button."
                 color: Qt.rgba(1, 1, 1, 0.60)
                 font.pixelSize: themeStore.fontBody
+                lineHeight: 1.4
+                lineHeightMode: Text.ProportionalHeight
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
             }
