@@ -80,8 +80,8 @@ private:
     static constexpr qreal s_fontXL      = 48;
     static constexpr qreal s_fontFeature = 36;
     static constexpr qreal s_fontInput   = 32;
-    static constexpr qreal s_fontHeading = 32;
-    static constexpr qreal s_fontTitle   = 24;
+    static constexpr qreal s_fontHeading = 28;
+    static constexpr qreal s_fontTitle   = 20;
     static constexpr qreal s_fontBody    = 18;
     static constexpr qreal s_fontCaption = 14;
     static constexpr qreal s_fontMicro   = 10;

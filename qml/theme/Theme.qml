@@ -53,8 +53,8 @@ QtObject {
     readonly property real fontXL: 48           // Speed compact, GPS icon
     readonly property real fontFeature: 36      // ShortcutMenu selected, coordinates
     readonly property real fontInput: 32        // Address keyboard, headings
-    readonly property real fontHeading: 32      // Overlay/menu titles, clock
-    readonly property real fontTitle: 24        // Screen titles, menu items
+    readonly property real fontHeading: 28      // Overlay/menu titles, clock
+    readonly property real fontTitle: 20        // Screen titles, menu items
     readonly property real fontBody: 18         // Body text, values, labels
     readonly property real fontCaption: 14      // Status bar labels, scale bar, road name
     readonly property real fontMicro: 10        // Status indicator labels
