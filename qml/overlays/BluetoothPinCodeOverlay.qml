@@ -44,7 +44,7 @@ Item {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Enter the PIN on your device"
-                font.pixelSize: 20
+                font.pixelSize: 24
                 color: "#FFFFFF"
             }
 

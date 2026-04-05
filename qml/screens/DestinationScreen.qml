@@ -58,7 +58,7 @@ Rectangle {
                     text: typeof translations !== "undefined"
                           ? translations.destinationOfflineOnly
                           : "The destination selector only works with offline maps"
-                    font.pixelSize: 20
+                    font.pixelSize: 24
                     font.bold: true
                     color: destinationScreen.textPrimary
                     horizontalAlignment: Text.AlignHCenter
@@ -71,7 +71,7 @@ Rectangle {
                     text: typeof translations !== "undefined"
                           ? translations.destinationInstallMapData
                           : "Please install the map data to use this feature"
-                    font.pixelSize: 14
+                    font.pixelSize: 18
                     color: "#9E9E9E"  // Colors.grey
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
@@ -124,7 +124,7 @@ Rectangle {
                 anchors.bottomMargin: 12
                 width: coordText.width + 24
                 height: coordText.height + 12
-                radius: 6
+                radius: 8
                 color: Qt.rgba(0, 0, 0, 0.7)
 
                 Text {
@@ -155,7 +155,7 @@ Rectangle {
             Text {
                 text: typeof translations !== "undefined" ? translations.navConfirmDest : "Confirm"
                 color: destinationScreen.textSecondary
-                font.pixelSize: 12
+                font.pixelSize: 18
             }
 
             Item { Layout.fillWidth: true }
@@ -163,7 +163,7 @@ Rectangle {
             Text {
                 text: typeof translations !== "undefined" ? translations.controlBack : "Back"
                 color: destinationScreen.textSecondary
-                font.pixelSize: 12
+                font.pixelSize: 18
             }
         }
     }

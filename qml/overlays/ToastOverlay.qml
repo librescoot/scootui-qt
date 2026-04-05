@@ -38,7 +38,7 @@ Item {
                     width: Math.min(implicitWidth, toastOverlay.width - 72)
                     text: modelData.message
                     color: modelData.type === "warning" ? "#000000" : "white"
-                    font.pixelSize: 14
+                    font.pixelSize: 18
                     font.weight: Font.Medium
                     wrapMode: Text.WordWrap
                     horizontalAlignment: Text.AlignHCenter

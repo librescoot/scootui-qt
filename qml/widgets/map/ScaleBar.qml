@@ -78,7 +78,7 @@ Item {
         anchors.bottomMargin: 4
         text: scaleBar.scaleText
         color: scaleBar.barColor
-        font.pixelSize: 10
+        font.pixelSize: 14
         font.bold: true
         style: Text.Outline
         styleColor: isDark ? "black" : "white"

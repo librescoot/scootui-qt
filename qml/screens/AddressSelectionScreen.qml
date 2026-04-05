@@ -370,7 +370,7 @@ Rectangle {
                 }
             }
             color: textPrimary
-            font.pixelSize: 22
+            font.pixelSize: 24
             font.bold: true
         }
 
@@ -401,7 +401,7 @@ Rectangle {
                 return parts.join(" › ")
             }
             color: textSecondary
-            font.pixelSize: 14
+            font.pixelSize: 18
         }
 
         // --- Content area ---
@@ -427,13 +427,13 @@ Rectangle {
                     visible: dbStatus === statusBuilding
                     width: 200
                     height: 6
-                    radius: 3
+                    radius: 2
                     color: surfaceColor
 
                     Rectangle {
                         width: parent.width * (typeof addressDatabase !== "undefined" ? addressDatabase.buildProgress : 0)
                         height: parent.height
-                        radius: 3
+                        radius: 2
                         color: textPrimary
                     }
                 }
@@ -445,7 +445,7 @@ Rectangle {
                           ? Math.round(addressDatabase.buildProgress * 100) + "%"
                           : "0%"
                     color: textSecondary
-                    font.pixelSize: 13
+                    font.pixelSize: 18
                 }
             }
 
@@ -549,7 +549,7 @@ Rectangle {
                     visible: addressScreen.validChars.length > 1
                     text: (addressScreen.charIndex + 1) + " / " + addressScreen.validChars.length
                     color: textTertiary
-                    font.pixelSize: 12
+                    font.pixelSize: 18
                 }
 
                 // No valid chars message
@@ -648,7 +648,7 @@ Rectangle {
                         anchors.centerIn: parent
                         text: "\ue356"
                         font.family: "Material Icons"
-                        font.pixelSize: 20
+                        font.pixelSize: 24
                         color: textSecondary
                     }
                 }
@@ -668,7 +668,7 @@ Rectangle {
                         anchors.centerIn: parent
                         text: "\ue353"
                         font.family: "Material Icons"
-                        font.pixelSize: 20
+                        font.pixelSize: 24
                         color: textSecondary
                     }
                 }
@@ -686,7 +686,7 @@ Rectangle {
                     text: typeof translations !== "undefined"
                         ? translations.navConfirmDest : "DESTINATION"
                     color: textTertiary
-                    font.pixelSize: 12
+                    font.pixelSize: 18
                     font.letterSpacing: 1
                 }
 
@@ -699,7 +699,7 @@ Rectangle {
                             label += " " + addressScreen.selectedHouse
                         return label
                     }
-                    font.pixelSize: 28
+                    font.pixelSize: 32
                     font.bold: true
                     color: textPrimary
                 }
@@ -713,7 +713,7 @@ Rectangle {
                         label += addressScreen.selectedCity
                         return label
                     }
-                    font.pixelSize: 20
+                    font.pixelSize: 24
                     color: textSecondary
                 }
             }

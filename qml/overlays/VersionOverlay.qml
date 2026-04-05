@@ -68,28 +68,28 @@ Item {
             Text {
                 text: "MDB: " + (typeof systemInfoService !== "undefined"
                       ? systemInfoService.mdbVersion : "unknown")
-                font.pixelSize: 12
+                font.pixelSize: 18
                 color: parent.parent.textColor
             }
 
             Text {
                 text: "DBC: " + (typeof systemInfoService !== "undefined"
                       ? systemInfoService.dbcVersion : "unknown")
-                font.pixelSize: 12
+                font.pixelSize: 18
                 color: parent.parent.textColor
             }
 
             Text {
                 text: "nRF: " + (typeof systemInfoService !== "undefined"
                       ? systemInfoService.nrfVersion : "unknown")
-                font.pixelSize: 12
+                font.pixelSize: 18
                 color: parent.parent.textColor
             }
 
             Text {
                 text: "ECU: " + (typeof systemInfoService !== "undefined"
                       ? systemInfoService.ecuVersion : "unknown")
-                font.pixelSize: 12
+                font.pixelSize: 18
                 color: parent.parent.textColor
             }
 
@@ -105,7 +105,7 @@ Item {
                 text: "AUX: " + (typeof auxBatteryStore !== "undefined"
                       ? auxBatteryStore.voltage + "mV " + auxBatteryStore.charge + "%"
                       : "unknown")
-                font.pixelSize: 12
+                font.pixelSize: 18
                 color: parent.parent.textColor
             }
 
@@ -113,7 +113,7 @@ Item {
                 text: "CBB: " + (typeof cbBatteryStore !== "undefined"
                       ? cbBatteryStore.charge + "%"
                       : "unknown")
-                font.pixelSize: 12
+                font.pixelSize: 18
                 color: parent.parent.textColor
             }
 
@@ -130,7 +130,7 @@ Item {
                 visible: typeof serialNumberService !== "undefined" && serialNumberService.available
                 text: "S/N: " + (typeof serialNumberService !== "undefined"
                       ? serialNumberService.serialNumber : "")
-                font.pixelSize: 11
+                font.pixelSize: 18
                 color: parent.parent.textColor
             }
         }

@@ -97,7 +97,7 @@ Row {
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.topMargin: 1
-            font.pixelSize: 9
+            font.pixelSize: 10
             font.bold: true
             color: statusIndicators.iconColor
             visible: modemState >= 2 && accessTech !== ""

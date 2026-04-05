@@ -108,7 +108,7 @@ Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 8
-                font.pixelSize: 14
+                font.pixelSize: 18
                 color: "white"
                 text: currentProgress + "%"
             }
@@ -122,7 +122,7 @@ Rectangle {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            font.pixelSize: 11
+            font.pixelSize: 18
             color: "#ff8800"
             visible: dbcStatus === "preparing" || dbcStatus === "installing"
             text: typeof translations !== "undefined" ? translations.otaDoNotPowerOff : "Do not turn off the scooter!"
@@ -132,7 +132,7 @@ Rectangle {
         // Version text
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            font.pixelSize: 12
+            font.pixelSize: 18
             color: "#aaaaaa"
             visible: updateVersion !== ""
             text: "Version: " + updateVersion
@@ -141,7 +141,7 @@ Rectangle {
         // Error message
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            font.pixelSize: 12
+            font.pixelSize: 18
             color: "#ff5555"
             visible: (dbcStatus === "error" || dbcStatus === "error-failed") && dbcErrorMessage !== ""
             text: dbcErrorMessage

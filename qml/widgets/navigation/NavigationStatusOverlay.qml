@@ -143,7 +143,7 @@ Item {
 
             Text {
                 text: "Off route"
-                font.pixelSize: 14
+                font.pixelSize: 18
                 font.bold: true
                 color: "white"
             }

@@ -36,7 +36,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             visible: usbStatus === "preparing"
             text: typeof translations !== "undefined" ? translations.umsPreparing : "Preparing Storage"
-            font.pixelSize: 20
+            font.pixelSize: 24
             font.bold: true
             color: "#FFFFFF"
         }
@@ -63,7 +63,7 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: typeof translations !== "undefined" ? translations.umsActive : "Update Mode"
-                    font.pixelSize: 24
+                    font.pixelSize: 32
                     font.bold: true
                     color: "#FFFFFF"
                 }
@@ -71,7 +71,7 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: typeof translations !== "undefined" ? translations.umsConnect : "Connect to Computer"
-                    font.pixelSize: 16
+                    font.pixelSize: 18
                     color: "#B3FFFFFF" // white 70% opacity
                 }
             }
@@ -94,7 +94,7 @@ Item {
                     anchors.centerIn: parent
                     width: 36
                     height: 36
-                    radius: 18
+                    radius: 16
                     color: "transparent"
                     border.color: "#FFFFFF"
                     border.width: 3
@@ -121,7 +121,7 @@ Item {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: typeof translations !== "undefined" ? translations.umsProcessing : "Processing Files"
-                font.pixelSize: 20
+                font.pixelSize: 24
                 font.bold: true
                 color: "#FFFFFF"
             }
@@ -143,7 +143,7 @@ Item {
                     Text {
                         text: "\ue5c8" // arrow_forward
                         font.family: "Material Icons"
-                        font.pixelSize: 15
+                        font.pixelSize: 18
                         color: "#E6FFFFFF"
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -151,7 +151,7 @@ Item {
                     Text {
                         id: stepText
                         text: usbStep
-                        font.pixelSize: 15
+                        font.pixelSize: 18
                         font.weight: Font.Medium
                         color: "#E6FFFFFF" // white 90% opacity
                     }
@@ -171,7 +171,7 @@ Item {
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: modelData
-                        font.pixelSize: 12
+                        font.pixelSize: 18
                         color: "#80FFFFFF" // white 50% opacity
                         horizontalAlignment: Text.AlignHCenter
                         elide: Text.ElideRight
@@ -188,7 +188,7 @@ Item {
                      && usbStatus !== "processing" && usbStatus !== "idle"
                      && usbStatus !== ""
             text: usbStatus
-            font.pixelSize: 20
+            font.pixelSize: 24
             font.bold: true
             color: "#FFFFFF"
         }

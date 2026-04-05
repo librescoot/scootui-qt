@@ -10,7 +10,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        radius: 12
+        radius: 16
         color: isDark ? Qt.rgba(0.31, 0.31, 0.31, 0.9) : Qt.rgba(0.76, 0.76, 0.76, 0.9)
         border.width: 0.5
         border.color: isDark ? Qt.rgba(0.46, 0.46, 0.46, 0.9) : Qt.rgba(0.62, 0.62, 0.62, 0.9)

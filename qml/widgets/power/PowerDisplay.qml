@@ -50,7 +50,7 @@ Item {
 
             Text {
                 text: qsTr("Regen")
-                font.pixelSize: 12
+                font.pixelSize: 18
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
                 font.capitalization: Font.AllUppercase
@@ -60,7 +60,7 @@ Item {
             Item { Layout.fillWidth: true }
             Text {
                 text: qsTr("Discharge")
-                font.pixelSize: 12
+                font.pixelSize: 18
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
                 font.capitalization: Font.AllUppercase
@@ -80,7 +80,7 @@ Item {
                 anchors.centerIn: parent
                 width: parent.width
                 height: 6
-                radius: 3
+                radius: 2
                 color: themeStore.isDark ? "#424242" : "#E0E0E0"
             }
 
@@ -98,7 +98,7 @@ Item {
                 visible: displayValue < -0.01
                 anchors.verticalCenter: parent.verticalCenter
                 height: 6
-                radius: 3
+                radius: 2
                 width: Math.min(Math.abs(displayValue) / maxRegen, 1.0) * (parent.width / 2)
                 x: parent.width / 2 - width
                 color: "#43A047"
@@ -110,7 +110,7 @@ Item {
                 x: parent.width / 2
                 anchors.verticalCenter: parent.verticalCenter
                 height: 6
-                radius: 3
+                radius: 2
                 width: Math.min(displayValue / maxDischarge, 1.0) * (parent.width / 2)
                 color: isAmpsMode && displayValue > boostThresholdA ? "#FB8C00" : "#1E88E5"
             }

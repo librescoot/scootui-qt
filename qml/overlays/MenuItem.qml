@@ -34,7 +34,7 @@ Rectangle {
             visible: menuItem.leadingIcon !== ""
             text: menuItem.leadingIcon
             font.family: "Material Icons"
-            font.pixelSize: 20
+            font.pixelSize: 24
             color: themeStore.isDark ? "#B3FFFFFF" : "#8A000000"
         }
 
@@ -44,7 +44,7 @@ Rectangle {
             width: parent.width - trailingIcon.width - parent.spacing
                    - (leadingIconText.visible ? leadingIconText.width + parent.spacing : 0)
             text: menuItem.title
-            font.pixelSize: 20
+            font.pixelSize: 24
             font.bold: isSelected
             color: themeStore.isDark ? "#FFFFFF" : "#000000"
             elide: isSelected ? Text.ElideNone : Text.ElideRight

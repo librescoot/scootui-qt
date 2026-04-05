@@ -106,7 +106,7 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: typeof translations !== "undefined" ? translations.hibernatePrompt : ""
-                    font.pixelSize: 28
+                    font.pixelSize: 32
                     font.bold: true
                     color: "#FFFFFF"
                     horizontalAlignment: Text.AlignHCenter
@@ -157,7 +157,7 @@ Item {
                     Rectangle {
                         width: 160
                         height: kickstandCol.height + 32
-                        radius: 12
+                        radius: 16
                         color: "#33F44336"
                         border.width: 1
                         border.color: "#80F44336"
@@ -186,7 +186,7 @@ Item {
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: typeof translations !== "undefined" ? translations.hibernationKickstand : ""
-                                font.pixelSize: 12
+                                font.pixelSize: 18
                                 color: "#B3FFFFFF"
                             }
                         }
@@ -196,7 +196,7 @@ Item {
                     Rectangle {
                         width: 160
                         height: keycardCol.height + 32
-                        radius: 12
+                        radius: 16
                         color: "#334CAF50"
                         border.width: 1
                         border.color: "#804CAF50"
@@ -225,7 +225,7 @@ Item {
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: typeof translations !== "undefined" ? translations.hibernationTapKeycardToConfirm : ""
-                                font.pixelSize: 12
+                                font.pixelSize: 18
                                 color: "#B3FFFFFF"
                             }
                         }
@@ -259,7 +259,7 @@ Item {
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: typeof translations !== "undefined" ? translations.hibernateSeatboxOpen : ""
-            font.pixelSize: 28
+            font.pixelSize: 32
             font.bold: true
             color: "#000000"
         }
@@ -296,7 +296,7 @@ Item {
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: typeof translations !== "undefined" ? translations.hibernating : ""
-            font.pixelSize: 28
+            font.pixelSize: 32
             font.bold: true
             color: "#FFFFFF"
         }

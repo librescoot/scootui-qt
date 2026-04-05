@@ -22,7 +22,7 @@ Item {
         width: leftHint.width + 24
         height: leftHint.height + 12
         color: "transparent"
-        radius: 6
+        radius: 8
         // Extend past left screen edge
         anchors.leftMargin: -6
 
@@ -43,7 +43,7 @@ Item {
             Text {
                 text: controlHints.leftAction
                 color: controlHints.primaryColor
-                font.pixelSize: 14
+                font.pixelSize: 18
                 font.bold: true
             }
         }
@@ -57,7 +57,7 @@ Item {
         width: rightHint.width + 24
         height: rightHint.height + 12
         color: "transparent"
-        radius: 6
+        radius: 8
         // Extend past right screen edge
         anchors.rightMargin: -6
 
@@ -80,7 +80,7 @@ Item {
                 anchors.right: parent.right
                 text: controlHints.rightAction
                 color: controlHints.primaryColor
-                font.pixelSize: 14
+                font.pixelSize: 18
                 font.bold: true
             }
         }

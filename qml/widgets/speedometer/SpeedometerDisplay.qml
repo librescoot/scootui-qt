@@ -230,7 +230,7 @@ Item {
         anchors.top: speedText.bottom
         anchors.topMargin: -12
         text: "km/h"
-        font.pixelSize: 22
+        font.pixelSize: 24
         color: speedometer.isDark ? "#99FFFFFF" : "#8A000000"
     }
 

@@ -43,7 +43,7 @@ Item {
         Rectangle {
             id: containerBg
             anchors.fill: parent
-            radius: 20
+            radius: 16
             color: "transparent"
             border.width: 2
             border.color: isDark ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(0, 0, 0, 0.3)
@@ -108,7 +108,7 @@ Item {
         // Matching Flutter's left/right 60
         width: Math.min(parent.width - 120, 360)
         height: confirmCol.height + 32
-        radius: 12
+        radius: 16
         color: isDark ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.95)
         border.width: 2
         border.color: "#FF9800"
@@ -122,7 +122,7 @@ Item {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: typeof translations !== "undefined" ? translations.shortcutPressToConfirm : "Press to confirm"
-                font.pixelSize: 16
+                font.pixelSize: 18
                 font.bold: true
                 color: isDark ? "#FFFFFF" : "#000000"
             }

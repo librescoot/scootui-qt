@@ -183,21 +183,21 @@ Item {
 
                     Text {
                         text: "Then"
-                        font.pixelSize: 14
+                        font.pixelSize: 18
                         color: isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
                     }
                     Text {
                         text: typeof navigationService !== "undefined"
                               ? maneuverIcon(navigationService.nextManeuverType) : ""
                         font.family: "Material Icons"
-                        font.pixelSize: 14
+                        font.pixelSize: 18
                         color: isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
                     }
                     Text {
                         Layout.fillWidth: true
                         text: typeof navigationService !== "undefined"
                               ? navigationService.nextStreetName : ""
-                        font.pixelSize: 14
+                        font.pixelSize: 18
                         color: isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
                         elide: Text.ElideRight
                     }

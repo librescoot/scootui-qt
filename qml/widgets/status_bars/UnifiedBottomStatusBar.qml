@@ -46,7 +46,7 @@ Rectangle {
                     spacing: 0
                     Text {
                         text: "Duration"
-                        font.pixelSize: 10
+                        font.pixelSize: 14
                         font.weight: Font.Medium
                         font.letterSpacing: 0.5
                         font.capitalization: Font.AllUppercase
@@ -65,7 +65,7 @@ Rectangle {
                     spacing: 0
                     Text {
                         text: "Avg"
-                        font.pixelSize: 10
+                        font.pixelSize: 14
                         font.weight: Font.Medium
                         font.letterSpacing: 0.5
                         font.capitalization: Font.AllUppercase
@@ -82,7 +82,7 @@ Rectangle {
                         }
                         Text {
                             text: "km/h"
-                            font.pixelSize: 12
+                            font.pixelSize: 14
                             color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
                             anchors.baseline: avgValue.baseline
                         }
@@ -114,7 +114,7 @@ Rectangle {
                     Text {
                         anchors.right: parent.right
                         text: "Trip"
-                        font.pixelSize: 10
+                        font.pixelSize: 14
                         font.weight: Font.Medium
                         font.letterSpacing: 0.5
                         font.capitalization: Font.AllUppercase
@@ -135,7 +135,7 @@ Rectangle {
                     Text {
                         anchors.right: parent.right
                         text: "Total"
-                        font.pixelSize: 10
+                        font.pixelSize: 14
                         font.weight: Font.Medium
                         font.letterSpacing: 0.5
                         font.capitalization: Font.AllUppercase
@@ -153,7 +153,7 @@ Rectangle {
                         }
                         Text {
                             text: "km"
-                            font.pixelSize: 12
+                            font.pixelSize: 14
                             color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
                             anchors.baseline: totalValue.baseline
                         }

@@ -4,12 +4,12 @@ Rectangle {
     id: root
     property string roadName: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadName : ""
     property string roadType: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadType : ""
-    property real fontSize: 13
+    property real fontSize: 14
 
     visible: roadName.length > 0
     width: label.width + 8
     height: label.height + 4
-    radius: 4
+    radius: 2
 
     // German road sign styling based on road type
     color: {

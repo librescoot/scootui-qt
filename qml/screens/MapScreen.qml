@@ -140,7 +140,7 @@ Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                         text: typeof translations !== "undefined"
                               ? translations.mapOutOfCoverage : "No map data for current location"
-                        font.pixelSize: 14
+                        font.pixelSize: 18
                         font.weight: Font.Medium
                         color: "#FF9800"  // Colors.orange
                     }
