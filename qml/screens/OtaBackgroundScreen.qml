@@ -62,7 +62,7 @@ Rectangle {
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             font.pixelSize: themeStore.fontBody
-            font.bold: true
+            font.weight: Font.Bold
             color: "white"
             text: {
                 var tr = typeof translations !== "undefined" ? translations : null

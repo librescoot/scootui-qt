@@ -43,7 +43,7 @@ Rectangle {
             Text {
                 id: clockText
                 anchors.centerIn: parent
-                font.pixelSize: themeStore.fontHeading
+                font.pixelSize: themeStore.fontTitle
                 font.weight: Font.Medium
                 color: themeStore.textColor
 

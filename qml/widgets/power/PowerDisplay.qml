@@ -50,7 +50,7 @@ Item {
 
             Text {
                 text: qsTr("Regen")
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: themeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
                 font.capitalization: Font.AllUppercase
@@ -60,7 +60,7 @@ Item {
             Item { Layout.fillWidth: true }
             Text {
                 text: qsTr("Discharge")
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: themeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
                 font.capitalization: Font.AllUppercase

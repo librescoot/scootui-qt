@@ -150,7 +150,7 @@ Rectangle {
             text: navSetupScreen.titleText
             color: navSetupScreen.textPrimary
             font.pixelSize: themeStore.fontTitle
-            font.bold: true
+            font.weight: Font.Bold
         }
 
         Item { Layout.preferredHeight: 16 }
@@ -256,7 +256,7 @@ Rectangle {
                     }
                     color: navSetupScreen.accentColor
                     font.pixelSize: themeStore.fontBody
-                    font.bold: true
+                    font.weight: Font.Bold
                 }
             }
 
@@ -337,7 +337,7 @@ Rectangle {
                 text: typeof translations !== "undefined" ? translations.navSetupDownloadDone : "Maps installed successfully"
                 color: navSetupScreen.doneColor
                 font.pixelSize: themeStore.fontBody
-                font.bold: true
+                font.weight: Font.Bold
             }
 
             // Error
@@ -351,7 +351,7 @@ Rectangle {
                     text: typeof translations !== "undefined" ? translations.navSetupDownloadError : "Download failed"
                     color: navSetupScreen.errorColor
                     font.pixelSize: themeStore.fontBody
-                    font.bold: true
+                    font.weight: Font.Bold
                 }
                 Text {
                     visible: navSetupScreen.dlError !== ""

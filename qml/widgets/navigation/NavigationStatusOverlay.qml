@@ -110,7 +110,7 @@ Item {
                     }
                 }
                 font.pixelSize: themeStore.fontBody
-                font.bold: true
+                font.weight: Font.Bold
                 color: "white"
             }
         }
@@ -144,7 +144,7 @@ Item {
             Text {
                 text: "Off route"
                 font.pixelSize: themeStore.fontBody
-                font.bold: true
+                font.weight: Font.Bold
                 color: "white"
             }
         }

@@ -27,7 +27,7 @@ Item {
             text: "Shutting down..."
             color: "white"
             font.pixelSize: themeStore.fontBody
-            font.bold: true
+            font.weight: Font.Bold
             anchors.horizontalCenter: parent.horizontalCenter
         }
     }
@@ -56,7 +56,7 @@ Item {
             }
             color: "white"
             font.pixelSize: themeStore.fontBody
-            font.bold: true
+            font.weight: Font.Bold
             anchors.horizontalCenter: parent.horizontalCenter
         }
 

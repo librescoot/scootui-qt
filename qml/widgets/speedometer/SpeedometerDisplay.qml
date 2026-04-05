@@ -219,7 +219,7 @@ Item {
         y: parent.height / 2 - height / 2
         text: Math.floor(speedometer.animatedSpeed).toString()
         font.pixelSize: themeStore.fontDisplay
-        font.bold: true
+        font.weight: Font.Bold
         color: speedometer.isDark ? "#FFFFFF" : "#000000"
     }
 

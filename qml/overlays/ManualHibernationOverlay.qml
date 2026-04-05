@@ -107,7 +107,7 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: typeof translations !== "undefined" ? translations.hibernatePrompt : ""
                     font.pixelSize: themeStore.fontHeading
-                    font.bold: true
+                    font.weight: Font.Bold
                     color: "#FFFFFF"
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
@@ -128,7 +128,7 @@ Item {
                     visible: countdownActive && countdown > 0
                     text: countdown + "s"
                     font.pixelSize: themeStore.fontBody
-                    font.bold: true
+                    font.weight: Font.Bold
                     color: "#FF9800"
                 }
 
@@ -179,7 +179,7 @@ Item {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: typeof translations !== "undefined" ? translations.hibernationCancel : ""
                                 font.pixelSize: themeStore.fontBody
-                                font.bold: true
+                                font.weight: Font.Bold
                                 color: "#FFFFFF"
                             }
 
@@ -218,7 +218,7 @@ Item {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: typeof translations !== "undefined" ? translations.hibernationConfirm : ""
                                 font.pixelSize: themeStore.fontBody
-                                font.bold: true
+                                font.weight: Font.Bold
                                 color: "#FFFFFF"
                             }
 
@@ -260,7 +260,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             text: typeof translations !== "undefined" ? translations.hibernateSeatboxOpen : ""
             font.pixelSize: themeStore.fontHeading
-            font.bold: true
+            font.weight: Font.Bold
             color: "#000000"
         }
 
@@ -297,7 +297,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             text: typeof translations !== "undefined" ? translations.hibernating : ""
             font.pixelSize: themeStore.fontHeading
-            font.bold: true
+            font.weight: Font.Bold
             color: "#FFFFFF"
         }
 

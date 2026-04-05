@@ -37,7 +37,7 @@ Item {
             visible: usbStatus === "preparing"
             text: typeof translations !== "undefined" ? translations.umsPreparing : "Preparing Storage"
             font.pixelSize: themeStore.fontTitle
-            font.bold: true
+            font.weight: Font.Bold
             color: "#FFFFFF"
         }
 
@@ -64,7 +64,7 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: typeof translations !== "undefined" ? translations.umsActive : "Update Mode"
                     font.pixelSize: themeStore.fontHeading
-                    font.bold: true
+                    font.weight: Font.Bold
                     color: "#FFFFFF"
                 }
 
@@ -122,7 +122,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: typeof translations !== "undefined" ? translations.umsProcessing : "Processing Files"
                 font.pixelSize: themeStore.fontTitle
-                font.bold: true
+                font.weight: Font.Bold
                 color: "#FFFFFF"
             }
 
@@ -189,7 +189,7 @@ Item {
                      && usbStatus !== ""
             text: usbStatus
             font.pixelSize: themeStore.fontTitle
-            font.bold: true
+            font.weight: Font.Bold
             color: "#FFFFFF"
         }
     }

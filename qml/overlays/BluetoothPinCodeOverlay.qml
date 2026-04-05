@@ -52,7 +52,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: btPinOverlay.currentPin
                 font.pixelSize: themeStore.fontPin
-                font.bold: true
+                font.weight: Font.Bold
                 font.letterSpacing: 14
                 color: "#FFFFFF"
             }

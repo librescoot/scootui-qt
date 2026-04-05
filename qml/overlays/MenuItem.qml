@@ -45,7 +45,7 @@ Rectangle {
                    - (leadingIconText.visible ? leadingIconText.width + parent.spacing : 0)
             text: menuItem.title
             font.pixelSize: themeStore.fontTitle
-            font.bold: isSelected
+            font.weight: isSelected ? Font.Bold : Font.Normal
             color: themeStore.isDark ? "#FFFFFF" : "#000000"
             elide: isSelected ? Text.ElideNone : Text.ElideRight
             wrapMode: isSelected ? Text.WordWrap : Text.NoWrap

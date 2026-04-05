@@ -371,7 +371,7 @@ Rectangle {
             }
             color: textPrimary
             font.pixelSize: themeStore.fontTitle
-            font.bold: true
+            font.weight: Font.Bold
         }
 
         // --- Breadcrumb ---
@@ -482,7 +482,7 @@ Rectangle {
                         return prefix + "_"
                     }
                     font.pixelSize: themeStore.fontHeading
-                    font.bold: true
+                    font.weight: Font.Bold
                     color: textPrimary
                     font.letterSpacing: 2
                 }
@@ -535,7 +535,7 @@ Rectangle {
                                 // Smooth font: 24 → 20 → 17 → 14
                                 font.pixelSize: modelData.isCurrent ? 24
                                     : Math.max(14, 24 - modelData.distance * 4)
-                                font.bold: modelData.isCurrent
+                                font.weight: modelData.isCurrent ? Font.Bold : Font.Normal
                                 color: textPrimary
                                 opacity: modelData.isCurrent ? 1.0 : Math.max(0.35, 1.0 - modelData.distance * 0.25)
                             }
@@ -626,7 +626,7 @@ Rectangle {
                                 }
                                 color: textPrimary
                                 font.pixelSize: themeStore.fontBody
-                                font.bold: modelData.selected
+                                font.weight: modelData.selected ? Font.Bold : Font.Normal
                                 elide: Text.ElideRight
                             }
                         }
@@ -700,7 +700,7 @@ Rectangle {
                         return label
                     }
                     font.pixelSize: themeStore.fontHeading
-                    font.bold: true
+                    font.weight: Font.Bold
                     color: textPrimary
                 }
 

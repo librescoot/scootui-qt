@@ -156,7 +156,7 @@ Item {
                     text: typeof navigationService !== "undefined"
                           ? formatDistance(navigationService.currentManeuverDistance) : ""
                     font.pixelSize: themeStore.fontBody
-                    font.bold: true
+                    font.weight: Font.Bold
                     color: isDark ? "white" : "#212121"
                     lineHeight: 1.0
                 }

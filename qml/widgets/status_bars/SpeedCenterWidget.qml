@@ -39,7 +39,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             text: Math.floor(speed).toString()
             font.pixelSize: themeStore.fontXL
-            font.bold: true
+            font.weight: Font.Bold
             color: themeStore.textColor
             height: speedTight.tightBoundingRect.height
             verticalAlignment: Text.AlignVCenter

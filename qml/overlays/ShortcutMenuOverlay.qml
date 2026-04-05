@@ -123,7 +123,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: typeof translations !== "undefined" ? translations.shortcutPressToConfirm : "Press to confirm"
                 font.pixelSize: themeStore.fontBody
-                font.bold: true
+                font.weight: Font.Bold
                 color: isDark ? "#FFFFFF" : "#000000"
             }
 

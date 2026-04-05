@@ -98,7 +98,7 @@ Row {
             anchors.top: parent.top
             anchors.topMargin: 1
             font.pixelSize: themeStore.fontMicro
-            font.bold: true
+            font.weight: Font.Bold
             color: statusIndicators.iconColor
             visible: modemState >= 2 && accessTech !== ""
             text: accessTechLabel(accessTech)

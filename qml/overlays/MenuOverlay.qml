@@ -34,7 +34,7 @@ Item {
             Layout.alignment: Qt.AlignHCenter
             text: menuStore.currentTitle
             font.pixelSize: themeStore.fontHeading
-            font.bold: true
+            font.weight: Font.Bold
             color: themeStore.isDark ? "#FFFFFF" : "#000000"
         }
 

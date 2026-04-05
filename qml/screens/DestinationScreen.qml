@@ -59,7 +59,7 @@ Rectangle {
                           ? translations.destinationOfflineOnly
                           : "The destination selector only works with offline maps"
                     font.pixelSize: themeStore.fontTitle
-                    font.bold: true
+                    font.weight: Font.Bold
                     color: destinationScreen.textPrimary
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap

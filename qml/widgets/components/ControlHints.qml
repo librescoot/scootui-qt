@@ -44,7 +44,7 @@ Item {
                 text: controlHints.leftAction
                 color: controlHints.primaryColor
                 font.pixelSize: themeStore.fontBody
-                font.bold: true
+                font.weight: Font.Bold
             }
         }
     }
@@ -81,7 +81,7 @@ Item {
                 text: controlHints.rightAction
                 color: controlHints.primaryColor
                 font.pixelSize: themeStore.fontBody
-                font.bold: true
+                font.weight: Font.Bold
             }
         }
     }

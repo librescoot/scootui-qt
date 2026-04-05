@@ -137,7 +137,7 @@ Rectangle {
                 text: "Trying to connect to vehicle system..."
                 color: "white"
                 font.pixelSize: themeStore.fontTitle
-                font.bold: true
+                font.weight: Font.Bold
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
             }

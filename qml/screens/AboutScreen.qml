@@ -284,7 +284,7 @@ Rectangle {
                                       : "NON-COMMERCIAL SOFTWARE"
                                 color: aboutScreen.warningText
                                 font.pixelSize: themeStore.fontBody
-                                font.bold: true
+                                font.weight: Font.Bold
                                 font.letterSpacing: 1.0
                             }
                         }
@@ -340,7 +340,7 @@ Rectangle {
                           : "OPEN SOURCE COMPONENTS"
                     color: aboutScreen.textSecondary
                     font.pixelSize: themeStore.fontBody
-                    font.bold: true
+                    font.weight: Font.Bold
                     font.letterSpacing: 1.5
                 }
 
@@ -412,7 +412,7 @@ Rectangle {
                           : "SPECIAL THANKS TO THE EARLY TESTERS"
                     color: aboutScreen.textSecondary
                     font.pixelSize: themeStore.fontBody
-                    font.bold: true
+                    font.weight: Font.Bold
                     font.letterSpacing: 1.5
                 }
 

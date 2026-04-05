@@ -27,7 +27,7 @@ Item {
         text: root.speedLimit
         font.family: "Roboto Condensed"
         font.pixelSize: root.iconSize * (72 / 144)
-        font.bold: true
+        font.weight: Font.Bold
         color: "black"
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter

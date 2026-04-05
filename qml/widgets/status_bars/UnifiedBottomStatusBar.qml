@@ -55,7 +55,7 @@ Rectangle {
                     Text {
                         text: formatDuration(tripDuration)
                         font.pixelSize: themeStore.fontBody
-                        font.bold: true
+                        font.weight: Font.Bold
                         color: themeStore.textColor
                     }
                 }
@@ -77,7 +77,7 @@ Rectangle {
                             id: avgValue
                             text: avgSpeed.toFixed(1)
                             font.pixelSize: themeStore.fontBody
-                            font.bold: true
+                            font.weight: Font.Bold
                             color: themeStore.textColor
                         }
                         Text {
@@ -124,7 +124,7 @@ Rectangle {
                         anchors.right: parent.right
                         text: (tripDistance).toFixed(1)
                         font.pixelSize: themeStore.fontBody
-                        font.bold: true
+                        font.weight: Font.Bold
                         color: themeStore.textColor
                     }
                 }
@@ -148,7 +148,7 @@ Rectangle {
                             id: totalValue
                             text: (odometer / 1000).toFixed(1)
                             font.pixelSize: themeStore.fontBody
-                            font.bold: true
+                            font.weight: Font.Bold
                             color: themeStore.textColor
                         }
                         Text {

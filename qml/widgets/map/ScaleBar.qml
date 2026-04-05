@@ -79,7 +79,7 @@ Item {
         text: scaleBar.scaleText
         color: scaleBar.barColor
         font.pixelSize: themeStore.fontCaption
-        font.bold: true
+        font.weight: Font.Bold
         style: Text.Outline
         styleColor: isDark ? "black" : "white"
     }
