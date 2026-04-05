@@ -3,7 +3,7 @@ import QtQuick.Layouts
 
 Item {
     id: tbtWidget
-    height: visible ? Math.max(contentCol.height + 16, 96) : 0
+    height: visible ? Math.max(contentCol.implicitHeight + 24, 96) : 0
     visible: typeof navigationService !== "undefined" && navigationService.isNavigating
              && navigationService.currentManeuverDistance > 0
 
@@ -92,7 +92,6 @@ Item {
     // Main background container
     Rectangle {
         anchors.fill: parent
-        clip: true
         color: isDark ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.8)
 
         // Bottom border
@@ -105,13 +104,15 @@ Item {
 
         RowLayout {
             id: contentRow
-            anchors.fill: parent
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
             spacing: 0
 
             // Icon box (left-aligned)
             Item {
                 Layout.preferredWidth: 80
-                Layout.fillHeight: true
+                Layout.preferredHeight: 80
 
                 property int mType: typeof navigationService !== "undefined"
                                     ? navigationService.currentManeuverType : 0
@@ -146,7 +147,6 @@ Item {
             ColumnLayout {
                 id: contentCol
                 Layout.fillWidth: true
-                Layout.fillHeight: true
                 Layout.margins: 8
                 Layout.topMargin: 12
                 spacing: 4
@@ -207,7 +207,6 @@ Item {
             // Right spacer for Time Info Bar
             Item {
                 Layout.preferredWidth: 140
-                Layout.fillHeight: true
             }
         }
 
