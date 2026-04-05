@@ -51,6 +51,9 @@ public slots:
     void doAddToSet(const QString &setKey, const QString &member);
     void doRemoveFromSet(const QString &setKey, const QString &member);
 
+    // Fetch a single field from a hash (queued from main thread)
+    void doHget(const QString &channel, const QString &field);
+
     // Read operations that need a return value (queued from main thread)
     // Results emitted via signals
     void doGetSetMembers(const QString &setKey);
@@ -59,6 +62,7 @@ public slots:
 signals:
     // Emitted on the worker thread; received on the main thread via queued connection
     void fieldsUpdated(const QString &channel, const FieldMap &fields);
+    void fieldFetched(const QString &channel, const QString &field, const QString &value);
     void connectionChanged(bool connected, bool usingBackup);
     void setMembersResult(const QString &setKey, const QStringList &members);
     void lrangeResult(const QString &key, const QStringList &values);

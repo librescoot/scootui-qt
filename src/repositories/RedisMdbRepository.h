@@ -45,6 +45,9 @@ public:
     // Call before start(). SyncableStore calls this during construction.
     void registerPollChannel(const QString &channel, int intervalMs);
 
+    // Fetch a single field immediately (queues to worker thread)
+    void requestField(const QString &channel, const QString &field) override;
+
     // Start the worker thread and pub/sub. Call after all channels are registered.
     void startWorker();
 

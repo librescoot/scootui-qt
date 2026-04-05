@@ -29,7 +29,7 @@ Item {
             loops: Animation.Infinite
             NumberAnimation { from: 0; to: 1; duration: 250; easing.type: Easing.InOutExpo }
             NumberAnimation { from: 1; to: 0; duration: 250; easing.type: Easing.InOutExpo }
-            PauseAnimation { duration: 228 }
+            PauseAnimation { duration: 300 }
         }
     }
 }

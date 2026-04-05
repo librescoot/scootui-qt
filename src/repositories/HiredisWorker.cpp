@@ -225,6 +225,28 @@ void HiredisWorker::pollChannel(const QString &channel)
     freeReplyObject(reply);
 }
 
+void HiredisWorker::doHget(const QString &channel, const QString &field)
+{
+    if (!ensureConnected()) return;
+
+    redisReply *reply = static_cast<redisReply *>(
+        redisCommand(m_ctx, "HGET %s %s",
+                     channel.toUtf8().constData(),
+                     field.toUtf8().constData()));
+    if (!reply) {
+        qWarning() << "HiredisWorker: HGET" << channel << field << "failed:" << m_ctx->errstr;
+        disconnectRedis();
+        m_connected = false;
+        emit connectionChanged(false, m_usingBackup);
+        return;
+    }
+
+    if (reply->type == REDIS_REPLY_STRING) {
+        emit fieldFetched(channel, field, QString::fromUtf8(reply->str, reply->len));
+    }
+    freeReplyObject(reply);
+}
+
 // Write operations
 
 void HiredisWorker::doSet(const QString &channel, const QString &variable,

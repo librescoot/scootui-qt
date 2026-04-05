@@ -46,6 +46,16 @@ void RedisMdbRepository::registerPollChannel(const QString &channel, int interva
     m_worker->registerChannel(channel, intervalMs);
 }
 
+void RedisMdbRepository::requestField(const QString &channel, const QString &field)
+{
+    if (m_worker) {
+        auto *w = m_worker;
+        QMetaObject::invokeMethod(w, [w, channel, field]() {
+            w->doHget(channel, field);
+        }, Qt::QueuedConnection);
+    }
+}
+
 void RedisMdbRepository::startWorker()
 {
     if (!m_worker) return;
@@ -58,6 +68,16 @@ void RedisMdbRepository::startWorker()
     // Field updates from worker -> main thread cache + dispatch
     connect(m_worker, &HiredisWorker::fieldsUpdated,
             this, &RedisMdbRepository::onFieldsUpdated, Qt::QueuedConnection);
+
+    // Single-field fetch results (from HGET after pub/sub notification)
+    connect(m_worker, &HiredisWorker::fieldFetched,
+            this, [this](const QString &channel, const QString &field, const QString &value) {
+        {
+            QMutexLocker lock(&m_cacheMutex);
+            m_cache[channel][field] = value;
+        }
+        emit fieldFetched(channel, field, value);
+    }, Qt::QueuedConnection);
 
     // Connection state from worker (bool connected, bool usingBackup)
     connect(m_worker, &HiredisWorker::connectionChanged,

@@ -28,7 +28,11 @@ void SyncableStore::start()
     connect(m_repo, &MdbRepository::fieldsUpdated,
             this, &SyncableStore::onFieldsReceived);
 
-    // Subscribe to pubsub for this channel (triggers immediate re-poll in worker)
+    // Listen for single-field fetches (from HGET after pub/sub notification)
+    connect(m_repo, &MdbRepository::fieldFetched,
+            this, &SyncableStore::onFieldFetched);
+
+    // Subscribe to pubsub for this channel (triggers immediate HGET in worker)
     m_repo->subscribe(settings.channel, [this](const QString &ch, const QString &msg) {
         onPubsubMessage(ch, msg);
     });
@@ -47,6 +51,8 @@ void SyncableStore::stop()
 
     disconnect(m_repo, &MdbRepository::fieldsUpdated,
                this, &SyncableStore::onFieldsReceived);
+    disconnect(m_repo, &MdbRepository::fieldFetched,
+               this, &SyncableStore::onFieldFetched);
 
     if (!m_channel.isEmpty())
         m_repo->unsubscribe(m_channel);
@@ -73,6 +79,13 @@ void SyncableStore::onFieldsReceived(const QString &channel, const FieldMap &fie
     }
 }
 
+void SyncableStore::onFieldFetched(const QString &channel, const QString &field, const QString &value)
+{
+    if (!m_started) return;
+    if (channel != syncSettings().channel) return;
+    applyFieldUpdate(field, value);
+}
+
 void SyncableStore::onPubsubMessage(const QString &channel, const QString &message)
 {
     if (!m_started) return;
@@ -87,10 +100,11 @@ void SyncableStore::onPubsubMessage(const QString &channel, const QString &messa
         }
     }
 
-    // For regular field notifications, the worker will re-poll and push
-    // updated fields via fieldsUpdated signal. If the message is "*"
-    // (from worker's own poll), we already processed the fields in
-    // onFieldsReceived, so nothing to do here.
+    // For regular field notifications, fetch the changed field immediately
+    // so we don't wait up to the full polling interval. The "*" message
+    // comes from the worker's own poll (already handled in onFieldsReceived).
+    if (message != QLatin1String("*"))
+        m_repo->requestField(channel, message);
 }
 
 void SyncableStore::refreshAllFields()

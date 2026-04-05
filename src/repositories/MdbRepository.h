@@ -42,6 +42,9 @@ public:
     // Register a channel for periodic polling (only used by RedisMdbRepository)
     virtual void registerPollChannel(const QString &, int) {}
 
+    // Fetch a single field immediately (e.g. after pub/sub notification)
+    virtual void requestField(const QString &channel, const QString &field) { Q_UNUSED(channel); Q_UNUSED(field); }
+
     // Re-emit current connection state so late listeners can sync
     void notifyConnectionState() { emit connectionStateChanged(isConnected()); }
 
@@ -52,4 +55,6 @@ signals:
 
     // Emitted when the worker thread has fetched new data for a channel
     void fieldsUpdated(const QString &channel, const FieldMap &fields);
+    // Emitted when a single field has been fetched (e.g. via HGET after pub/sub)
+    void fieldFetched(const QString &channel, const QString &field, const QString &value);
 };

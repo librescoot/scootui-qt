@@ -120,8 +120,8 @@ void VehicleStore::updateBlinkClock()
 {
     constexpr int FADE_IN = 250;
     constexpr int FADE_OUT = 250;
-    constexpr int PAUSE = 228;
-    constexpr int CYCLE = FADE_IN + FADE_OUT + PAUSE;
+    constexpr int PAUSE = 300;
+    constexpr int CYCLE = FADE_IN + FADE_OUT + PAUSE; // 800ms, matches vehicle-service blinkerInterval
 
     const int phase = static_cast<int>(m_blinkElapsed.elapsed() % CYCLE);
     qreal opacity;
