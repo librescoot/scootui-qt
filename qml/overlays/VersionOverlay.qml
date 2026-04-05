@@ -1,4 +1,5 @@
 import QtQuick
+import "../theme"
 
 Item {
     id: versionOverlay
@@ -47,7 +48,7 @@ Item {
         anchors.rightMargin: 20
         width: infoColumn.width + 24
         height: infoColumn.height + 24
-        radius: 8
+        radius: Theme.radiusCard
 
         color: typeof themeStore !== "undefined" && themeStore.isDark
                ? "#B3000000"   // black 0.7 opacity
@@ -68,28 +69,28 @@ Item {
             Text {
                 text: "MDB: " + (typeof systemInfoService !== "undefined"
                       ? systemInfoService.mdbVersion : "unknown")
-                font.pixelSize: 18
+                font.pixelSize: Theme.fontBody
                 color: parent.parent.textColor
             }
 
             Text {
                 text: "DBC: " + (typeof systemInfoService !== "undefined"
                       ? systemInfoService.dbcVersion : "unknown")
-                font.pixelSize: 18
+                font.pixelSize: Theme.fontBody
                 color: parent.parent.textColor
             }
 
             Text {
                 text: "nRF: " + (typeof systemInfoService !== "undefined"
                       ? systemInfoService.nrfVersion : "unknown")
-                font.pixelSize: 18
+                font.pixelSize: Theme.fontBody
                 color: parent.parent.textColor
             }
 
             Text {
                 text: "ECU: " + (typeof systemInfoService !== "undefined"
                       ? systemInfoService.ecuVersion : "unknown")
-                font.pixelSize: 18
+                font.pixelSize: Theme.fontBody
                 color: parent.parent.textColor
             }
 
@@ -105,7 +106,7 @@ Item {
                 text: "AUX: " + (typeof auxBatteryStore !== "undefined"
                       ? auxBatteryStore.voltage + "mV " + auxBatteryStore.charge + "%"
                       : "unknown")
-                font.pixelSize: 18
+                font.pixelSize: Theme.fontBody
                 color: parent.parent.textColor
             }
 
@@ -113,7 +114,7 @@ Item {
                 text: "CBB: " + (typeof cbBatteryStore !== "undefined"
                       ? cbBatteryStore.charge + "%"
                       : "unknown")
-                font.pixelSize: 18
+                font.pixelSize: Theme.fontBody
                 color: parent.parent.textColor
             }
 
@@ -130,7 +131,7 @@ Item {
                 visible: typeof serialNumberService !== "undefined" && serialNumberService.available
                 text: "S/N: " + (typeof serialNumberService !== "undefined"
                       ? serialNumberService.serialNumber : "")
-                font.pixelSize: 18
+                font.pixelSize: Theme.fontBody
                 color: parent.parent.textColor
             }
         }

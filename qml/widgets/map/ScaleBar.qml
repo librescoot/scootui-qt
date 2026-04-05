@@ -1,4 +1,5 @@
 import QtQuick
+import "../../theme"
 
 Item {
     id: scaleBar
@@ -78,7 +79,7 @@ Item {
         anchors.bottomMargin: 4
         text: scaleBar.scaleText
         color: scaleBar.barColor
-        font.pixelSize: 14
+        font.pixelSize: Theme.fontCaption
         font.bold: true
         style: Text.Outline
         styleColor: isDark ? "black" : "white"

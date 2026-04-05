@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import "../widgets/components"
+import "../theme"
 
 Item {
     id: menuOverlay
@@ -33,7 +34,7 @@ Item {
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: menuStore.currentTitle
-            font.pixelSize: 32
+            font.pixelSize: Theme.fontHeading
             font.bold: true
             color: themeStore.isDark ? "#FFFFFF" : "#000000"
         }
@@ -90,7 +91,7 @@ Item {
                     anchors.centerIn: parent
                     text: "\ue356" // keyboard_arrow_up
                     font.family: "Material Icons"
-                    font.pixelSize: 24
+                    font.pixelSize: Theme.fontTitle
                     color: themeStore.isDark ? "#8AFFFFFF" : "#8A000000" // white54 / black54
                 }
             }
@@ -111,7 +112,7 @@ Item {
                     anchors.centerIn: parent
                     text: "\ue353" // keyboard_arrow_down
                     font.family: "Material Icons"
-                    font.pixelSize: 24
+                    font.pixelSize: Theme.fontTitle
                     color: themeStore.isDark ? "#8AFFFFFF" : "#8A000000" // white54 / black54
                 }
             }

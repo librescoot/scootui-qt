@@ -46,11 +46,21 @@ QtObject {
     readonly property color indicatorYellow: "#FFC107"
     readonly property color indicatorOrange: "#FF9800"
 
-    // Font sizes (scaled)
-    readonly property real fontSpeedMain: 96
-    readonly property real fontSpeedUnit: 22
-    readonly property real fontSpeedLabel: 11
-    readonly property real fontStatusValue: 16
-    readonly property real fontStatusLabel: 10
-    readonly property real fontClock: 24
+    // Type scale
+    readonly property real fontDisplay: 96      // Speedometer main
+    readonly property real fontPin: 80          // BT PIN (special)
+    readonly property real fontHero: 64         // Large icons, countdown
+    readonly property real fontXL: 48           // Speed compact, GPS icon
+    readonly property real fontFeature: 36      // ShortcutMenu selected, coordinates
+    readonly property real fontInput: 32        // Address keyboard, headings
+    readonly property real fontHeading: 32      // Overlay/menu titles, clock
+    readonly property real fontTitle: 24        // Screen titles, menu items
+    readonly property real fontBody: 18         // Body text, values, labels
+    readonly property real fontCaption: 14      // Status bar labels, scale bar, road name
+    readonly property real fontMicro: 10        // Status indicator labels
+
+    // Border radii
+    readonly property real radiusBar: 2         // Progress bars, thin indicators
+    readonly property real radiusCard: 8        // Cards, menu items, toasts, badges
+    readonly property real radiusModal: 16      // Modals, action buttons, large containers
 }

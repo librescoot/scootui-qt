@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import "../../theme"
 
 Rectangle {
     id: bottomBar
@@ -46,7 +47,7 @@ Rectangle {
                     spacing: 0
                     Text {
                         text: "Duration"
-                        font.pixelSize: 14
+                        font.pixelSize: Theme.fontCaption
                         font.weight: Font.Medium
                         font.letterSpacing: 0.5
                         font.capitalization: Font.AllUppercase
@@ -54,7 +55,7 @@ Rectangle {
                     }
                     Text {
                         text: formatDuration(tripDuration)
-                        font.pixelSize: 16
+                        font.pixelSize: Theme.fontBody
                         font.bold: true
                         color: themeStore.textColor
                     }
@@ -65,7 +66,7 @@ Rectangle {
                     spacing: 0
                     Text {
                         text: "Avg"
-                        font.pixelSize: 14
+                        font.pixelSize: Theme.fontCaption
                         font.weight: Font.Medium
                         font.letterSpacing: 0.5
                         font.capitalization: Font.AllUppercase
@@ -76,13 +77,13 @@ Rectangle {
                         Text {
                             id: avgValue
                             text: avgSpeed.toFixed(1)
-                            font.pixelSize: 16
+                            font.pixelSize: Theme.fontBody
                             font.bold: true
                             color: themeStore.textColor
                         }
                         Text {
                             text: "km/h"
-                            font.pixelSize: 14
+                            font.pixelSize: Theme.fontCaption
                             color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
                             anchors.baseline: avgValue.baseline
                         }
@@ -114,7 +115,7 @@ Rectangle {
                     Text {
                         anchors.right: parent.right
                         text: "Trip"
-                        font.pixelSize: 14
+                        font.pixelSize: Theme.fontCaption
                         font.weight: Font.Medium
                         font.letterSpacing: 0.5
                         font.capitalization: Font.AllUppercase
@@ -123,7 +124,7 @@ Rectangle {
                     Text {
                         anchors.right: parent.right
                         text: (tripDistance).toFixed(1)
-                        font.pixelSize: 16
+                        font.pixelSize: Theme.fontBody
                         font.bold: true
                         color: themeStore.textColor
                     }
@@ -135,7 +136,7 @@ Rectangle {
                     Text {
                         anchors.right: parent.right
                         text: "Total"
-                        font.pixelSize: 14
+                        font.pixelSize: Theme.fontCaption
                         font.weight: Font.Medium
                         font.letterSpacing: 0.5
                         font.capitalization: Font.AllUppercase
@@ -147,13 +148,13 @@ Rectangle {
                         Text {
                             id: totalValue
                             text: (odometer / 1000).toFixed(1)
-                            font.pixelSize: 16
+                            font.pixelSize: Theme.fontBody
                             font.bold: true
                             color: themeStore.textColor
                         }
                         Text {
                             text: "km"
-                            font.pixelSize: 14
+                            font.pixelSize: Theme.fontCaption
                             color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
                             anchors.baseline: totalValue.baseline
                         }

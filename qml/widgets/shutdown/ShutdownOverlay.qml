@@ -1,4 +1,5 @@
 import QtQuick
+import "../../theme"
 
 Item {
     id: shutdownOverlay
@@ -26,7 +27,7 @@ Item {
         Text {
             text: "Shutting down..."
             color: "white"
-            font.pixelSize: 18
+            font.pixelSize: Theme.fontBody
             font.bold: true
             anchors.horizontalCenter: parent.horizontalCenter
         }
@@ -55,7 +56,7 @@ Item {
                 }
             }
             color: "white"
-            font.pixelSize: 18
+            font.pixelSize: Theme.fontBody
             font.bold: true
             anchors.horizontalCenter: parent.horizontalCenter
         }
@@ -63,7 +64,7 @@ Item {
         Text {
             text: "Your scooter will turn off when done.\nYou can unlock it again at any point."
             color: Qt.rgba(1, 1, 1, 0.7)
-            font.pixelSize: 18
+            font.pixelSize: Theme.fontBody
             horizontalAlignment: Text.AlignHCenter
             anchors.horizontalCenter: parent.horizontalCenter
             visible: {

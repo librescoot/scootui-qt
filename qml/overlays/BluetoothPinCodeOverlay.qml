@@ -1,4 +1,5 @@
 import QtQuick
+import "../theme"
 
 Item {
     id: btPinOverlay
@@ -44,14 +45,14 @@ Item {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Enter the PIN on your device"
-                font.pixelSize: 24
+                font.pixelSize: Theme.fontTitle
                 color: "#FFFFFF"
             }
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: btPinOverlay.currentPin
-                font.pixelSize: 80
+                font.pixelSize: Theme.fontPin
                 font.bold: true
                 font.letterSpacing: 14
                 color: "#FFFFFF"

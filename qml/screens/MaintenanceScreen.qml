@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import "../theme"
 
 Rectangle {
     id: maintenanceScreen
@@ -36,7 +37,7 @@ Rectangle {
                     color: "transparent"
                     border.color: "white"
                     border.width: 3
-                    radius: 16
+                    radius: Theme.radiusModal
 
                     Rectangle {
                         width: 18
@@ -64,7 +65,7 @@ Rectangle {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    font.pixelSize: 18
+                    font.pixelSize: Theme.fontBody
                     color: Qt.rgba(1, 1, 1, 0.8)
                     text: {
                         switch (loadingMode.otaStatus) {
@@ -108,7 +109,7 @@ Rectangle {
                 // Version
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    font.pixelSize: 18
+                    font.pixelSize: Theme.fontBody
                     color: Qt.rgba(1, 1, 1, 0.5)
                     visible: loadingMode.otaVersion !== ""
                     text: loadingMode.otaVersion
@@ -136,7 +137,7 @@ Rectangle {
                 Layout.fillWidth: true
                 text: "Trying to connect to vehicle system..."
                 color: "white"
-                font.pixelSize: 24
+                font.pixelSize: Theme.fontTitle
                 font.bold: true
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
@@ -159,7 +160,7 @@ Rectangle {
                       "the dashboard computer (DBC) and the middle driver board (MDB). " +
                       "Check the USB cable if this persists."
                 color: Qt.rgba(1, 1, 1, 0.70)
-                font.pixelSize: 18
+                font.pixelSize: Theme.fontBody
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -180,7 +181,7 @@ Rectangle {
                 text: "To put your scooter into drive mode anyway, raise the kickstand, " +
                       "hold both brakes and press the seatbox button."
                 color: Qt.rgba(1, 1, 1, 0.60)
-                font.pixelSize: 18
+                font.pixelSize: Theme.fontBody
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -194,7 +195,7 @@ Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         text: maintenanceScreen.stateRaw
         color: Qt.rgba(1, 1, 1, 0.54)
-        font.pixelSize: 18
+        font.pixelSize: Theme.fontBody
         visible: maintenanceScreen.stateRaw.length > 0
     }
 }

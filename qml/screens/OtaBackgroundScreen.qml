@@ -1,4 +1,5 @@
 import QtQuick
+import "../theme"
 
 Rectangle {
     color: "black"
@@ -61,7 +62,7 @@ Rectangle {
         // Status text
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            font.pixelSize: 16
+            font.pixelSize: Theme.fontBody
             font.bold: true
             color: "white"
             text: {
@@ -89,14 +90,14 @@ Rectangle {
             Rectangle {
                 anchors.fill: parent
                 color: "#333333"
-                radius: 2
+                radius: Theme.radiusBar
             }
 
             Rectangle {
                 width: parent.width * (currentProgress / 100)
                 height: parent.height
                 color: "#2196F3"
-                radius: 2
+                radius: Theme.radiusBar
 
                 Behavior on width {
                     NumberAnimation { duration: 300; easing.type: Easing.OutQuad }
@@ -108,7 +109,7 @@ Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 8
-                font.pixelSize: 18
+                font.pixelSize: Theme.fontBody
                 color: "white"
                 text: currentProgress + "%"
             }
@@ -122,7 +123,7 @@ Rectangle {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            font.pixelSize: 18
+            font.pixelSize: Theme.fontBody
             color: "#ff8800"
             visible: dbcStatus === "preparing" || dbcStatus === "installing"
             text: typeof translations !== "undefined" ? translations.otaDoNotPowerOff : "Do not turn off the scooter!"
@@ -132,7 +133,7 @@ Rectangle {
         // Version text
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            font.pixelSize: 18
+            font.pixelSize: Theme.fontBody
             color: "#aaaaaa"
             visible: updateVersion !== ""
             text: "Version: " + updateVersion
@@ -141,7 +142,7 @@ Rectangle {
         // Error message
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            font.pixelSize: 18
+            font.pixelSize: Theme.fontBody
             color: "#ff5555"
             visible: (dbcStatus === "error" || dbcStatus === "error-failed") && dbcErrorMessage !== ""
             text: dbcErrorMessage

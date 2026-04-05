@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import "../indicators"
+import "../../theme"
 
 Rectangle {
     id: topBar
@@ -43,7 +44,7 @@ Rectangle {
             Text {
                 id: clockText
                 anchors.centerIn: parent
-                font.pixelSize: 32
+                font.pixelSize: Theme.fontHeading
                 font.weight: Font.Medium
                 color: themeStore.textColor
 

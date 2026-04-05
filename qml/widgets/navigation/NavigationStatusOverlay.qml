@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import "../../theme"
 
 Item {
     id: navStatusOverlay
@@ -50,7 +51,7 @@ Item {
                 id: spinner
                 width: 16
                 height: 16
-                radius: 8
+                radius: Theme.radiusCard
                 color: "transparent"
                 border.color: "white"
                 border.width: 2
@@ -84,7 +85,7 @@ Item {
                 visible: navStatusOverlay.navStatus === statusArrived
                 text: "\ue4c9" // place
                 font.family: "Material Icons"
-                font.pixelSize: 24
+                font.pixelSize: Theme.fontTitle
                 color: "#FFFFFF"
             }
 
@@ -93,7 +94,7 @@ Item {
                 visible: navStatusOverlay.navStatus === statusError
                 text: "\ue6cc" // warning_amber
                 font.family: "Material Icons"
-                font.pixelSize: 18
+                font.pixelSize: Theme.fontBody
                 color: "white"
             }
 
@@ -109,7 +110,7 @@ Item {
                         default: return ""
                     }
                 }
-                font.pixelSize: 16
+                font.pixelSize: Theme.fontBody
                 font.bold: true
                 color: "white"
             }
@@ -137,13 +138,13 @@ Item {
             Text {
                 text: "\ue6cc" // warning_amber
                 font.family: "Material Icons"
-                font.pixelSize: 16
+                font.pixelSize: Theme.fontBody
                 color: "white"
             }
 
             Text {
                 text: "Off route"
-                font.pixelSize: 18
+                font.pixelSize: Theme.fontBody
                 font.bold: true
                 color: "white"
             }

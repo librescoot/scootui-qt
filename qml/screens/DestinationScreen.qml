@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import "../widgets/status_bars"
 import "../widgets/map"
+import "../theme"
 
 Rectangle {
     id: destinationScreen
@@ -49,7 +50,7 @@ Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: "\ue3aa" // location_off
                     font.family: "Material Icons"
-                    font.pixelSize: 48
+                    font.pixelSize: Theme.fontXL
                     color: "#9E9E9E"  // Colors.grey
                 }
 
@@ -58,7 +59,7 @@ Rectangle {
                     text: typeof translations !== "undefined"
                           ? translations.destinationOfflineOnly
                           : "The destination selector only works with offline maps"
-                    font.pixelSize: 24
+                    font.pixelSize: Theme.fontTitle
                     font.bold: true
                     color: destinationScreen.textPrimary
                     horizontalAlignment: Text.AlignHCenter
@@ -71,7 +72,7 @@ Rectangle {
                     text: typeof translations !== "undefined"
                           ? translations.destinationInstallMapData
                           : "Please install the map data to use this feature"
-                    font.pixelSize: 18
+                    font.pixelSize: Theme.fontBody
                     color: "#9E9E9E"  // Colors.grey
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
@@ -124,7 +125,7 @@ Rectangle {
                 anchors.bottomMargin: 12
                 width: coordText.width + 24
                 height: coordText.height + 12
-                radius: 8
+                radius: Theme.radiusCard
                 color: Qt.rgba(0, 0, 0, 0.7)
 
                 Text {
@@ -134,7 +135,7 @@ Rectangle {
                           ? mapService.mapLatitude.toFixed(5) + ", " + mapService.mapLongitude.toFixed(5)
                           : "N/A"
                     color: "white"
-                    font.pixelSize: 36
+                    font.pixelSize: Theme.fontFeature
                 }
             }
         }
@@ -155,7 +156,7 @@ Rectangle {
             Text {
                 text: typeof translations !== "undefined" ? translations.navConfirmDest : "Confirm"
                 color: destinationScreen.textSecondary
-                font.pixelSize: 18
+                font.pixelSize: Theme.fontBody
             }
 
             Item { Layout.fillWidth: true }
@@ -163,7 +164,7 @@ Rectangle {
             Text {
                 text: typeof translations !== "undefined" ? translations.controlBack : "Back"
                 color: destinationScreen.textSecondary
-                font.pixelSize: 18
+                font.pixelSize: Theme.fontBody
             }
         }
     }
