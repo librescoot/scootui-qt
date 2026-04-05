@@ -5,9 +5,8 @@ import "../indicators"
 Item {
     id: speedCenter
     implicitWidth: 120
-    implicitHeight: speedTight.tightBoundingRect.height + 4 + unitTight.tightBoundingRect.height
+    implicitHeight: 4 + speedTight.tightBoundingRect.height + 2 + unitTight.tightBoundingRect.height + 2
 
-    anchors.horizontalCenter: parent.horizontalCenter
 
     readonly property real speed: {
         if (typeof settingsStore !== "undefined" && typeof engineStore !== "undefined") {
@@ -31,8 +30,11 @@ Item {
 
     // Speed display (centered)
     Column {
+        id: speedCol
         anchors.centerIn: parent
-        spacing: 4
+        topPadding: 4
+        bottomPadding: 2
+        spacing: 2
 
         Text {
             id: speedText

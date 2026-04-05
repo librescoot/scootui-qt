@@ -55,6 +55,45 @@ ApplicationWindow {
                 }
             }
 
+            RowLayout {
+                Layout.fillWidth: true
+                SimLabel { text: "Theme" }
+                ButtonGroup { id: themeGroup; exclusive: true }
+                SimButton {
+                    text: "Dark"; small: true
+                    ButtonGroup.group: themeGroup
+                    checkable: true; checked: true
+                    onClicked: simulator.setTheme("dark")
+                }
+                SimButton {
+                    text: "Light"; small: true
+                    ButtonGroup.group: themeGroup
+                    checkable: true
+                    onClicked: simulator.setTheme("light")
+                }
+                SimButton {
+                    text: "Auto"; small: true
+                    ButtonGroup.group: themeGroup
+                    checkable: true
+                    onClicked: simulator.setTheme("auto")
+                }
+                Item { Layout.preferredWidth: 8 }
+                SimLabel { text: "Lang" }
+                ButtonGroup { id: langGroup; exclusive: true }
+                SimButton {
+                    text: "EN"; small: true
+                    ButtonGroup.group: langGroup
+                    checkable: true; checked: true
+                    onClicked: simulator.setLanguage("en")
+                }
+                SimButton {
+                    text: "DE"; small: true
+                    ButtonGroup.group: langGroup
+                    checkable: true
+                    onClicked: simulator.setLanguage("de")
+                }
+            }
+
             // ---- Connection ----
             SectionHeader { text: "Connection" }
 
@@ -526,50 +565,6 @@ ApplicationWindow {
                 }
             }
 
-            // ---- Display ----
-            SectionHeader { text: "Display" }
-
-            RowLayout {
-                Layout.fillWidth: true
-                SimLabel { text: "Theme" }
-                ButtonGroup { id: themeGroup; exclusive: true }
-                SimButton {
-                    text: "Dark"; small: true
-                    ButtonGroup.group: themeGroup
-                    checkable: true; checked: true
-                    onClicked: simulator.setTheme("dark")
-                }
-                SimButton {
-                    text: "Light"; small: true
-                    ButtonGroup.group: themeGroup
-                    checkable: true
-                    onClicked: simulator.setTheme("light")
-                }
-                SimButton {
-                    text: "Auto"; small: true
-                    ButtonGroup.group: themeGroup
-                    checkable: true
-                    onClicked: simulator.setTheme("auto")
-                }
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                SimLabel { text: "Language" }
-                ButtonGroup { id: langGroup; exclusive: true }
-                SimButton {
-                    text: "EN"; small: true
-                    ButtonGroup.group: langGroup
-                    checkable: true; checked: true
-                    onClicked: simulator.setLanguage("en")
-                }
-                SimButton {
-                    text: "DE"; small: true
-                    ButtonGroup.group: langGroup
-                    checkable: true
-                    onClicked: simulator.setLanguage("de")
-                }
-            }
 
             // Bottom spacer
             Item { Layout.preferredHeight: 20 }
