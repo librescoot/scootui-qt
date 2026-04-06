@@ -61,5 +61,6 @@ private:
 
     QHash<QString, QTimer*> m_setTimers;
     QString m_channel;
+    SyncSettings m_cachedSettings;
     bool m_started = false;
 };

@@ -18,7 +18,8 @@ void SyncableStore::start()
     if (m_started) return;
     m_started = true;
 
-    const auto settings = syncSettings();
+    m_cachedSettings = syncSettings();
+    const auto &settings = m_cachedSettings;
     m_channel = settings.channel;
 
     // Register this channel for polling by the worker thread
@@ -66,10 +67,9 @@ void SyncableStore::stop()
 
 void SyncableStore::onFieldsReceived(const QString &channel, const FieldMap &fields)
 {
-    const auto settings = syncSettings();
-    if (channel != settings.channel) return;
+    if (channel != m_cachedSettings.channel) return;
 
-    for (const auto &field : settings.fields) {
+    for (const auto &field : m_cachedSettings.fields) {
         const auto it = fields.constFind(field.variable);
         if (it != fields.constEnd()) {
             applyFieldUpdate(field.variable, *it);
@@ -82,7 +82,7 @@ void SyncableStore::onFieldsReceived(const QString &channel, const FieldMap &fie
 void SyncableStore::onFieldFetched(const QString &channel, const QString &field, const QString &value)
 {
     if (!m_started) return;
-    if (channel != syncSettings().channel) return;
+    if (channel != m_cachedSettings.channel) return;
     applyFieldUpdate(field, value);
 }
 
@@ -90,10 +90,8 @@ void SyncableStore::onPubsubMessage(const QString &channel, const QString &messa
 {
     if (!m_started) return;
 
-    const auto settings = syncSettings();
-
     // Check if this is a set field notification
-    for (const auto &setField : settings.setFields) {
+    for (const auto &setField : m_cachedSettings.setFields) {
         if (setField.name == message) {
             doRefreshSet(setField);
             return;
@@ -109,12 +107,10 @@ void SyncableStore::onPubsubMessage(const QString &channel, const QString &messa
 
 void SyncableStore::refreshAllFields()
 {
-    // Read from cache (non-blocking)
-    const auto settings = syncSettings();
-    FieldMap fields = m_repo->getAll(settings.channel);
-    onFieldsReceived(settings.channel, fields);
+    FieldMap fields = m_repo->getAll(m_cachedSettings.channel);
+    onFieldsReceived(m_cachedSettings.channel, fields);
 
-    for (const auto &field : settings.setFields)
+    for (const auto &field : m_cachedSettings.setFields)
         doRefreshSet(field);
 }
 
@@ -129,8 +125,7 @@ void SyncableStore::doRefreshSet(const SyncSetFieldDef &field)
 
 void SyncableStore::scheduleSetTimer(const SyncSetFieldDef &field)
 {
-    const auto settings = syncSettings();
-    const int interval = (field.intervalMs > 0) ? field.intervalMs : settings.intervalMs;
+    const int interval = (field.intervalMs > 0) ? field.intervalMs : m_cachedSettings.intervalMs;
 
     auto *timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, [this, field]() {
@@ -152,11 +147,10 @@ void SyncableStore::applySetUpdate(const QString &, const QStringList &)
 QString SyncableStore::interpolateKey(const QString &key) const
 {
     if (key.contains(QLatin1Char('$'))) {
-        const auto settings = syncSettings();
-        if (!settings.discriminator.isEmpty()) {
+        if (!m_cachedSettings.discriminator.isEmpty()) {
             const QString discValue = discriminatorValue();
             return QString(key).replace(
-                QLatin1Char('$') + settings.discriminator, discValue);
+                QLatin1Char('$') + m_cachedSettings.discriminator, discValue);
         }
     }
     return key;
