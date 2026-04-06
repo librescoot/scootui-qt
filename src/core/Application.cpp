@@ -76,7 +76,15 @@ Application::Application(QObject *parent)
 {
 }
 
-Application::~Application() = default;
+Application::~Application()
+{
+    // Delete all QObject children before m_repository (unique_ptr) is destroyed.
+    // Stores access m_repo in their destructors (unsubscribe, disconnect), so the
+    // repo must still be alive when they're deleted.
+    const auto children = this->children();
+    for (auto *child : children)
+        delete child;
+}
 
 bool Application::initialize(QQmlApplicationEngine &engine)
 {
