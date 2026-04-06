@@ -184,11 +184,14 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_handlebarLockMonitor = new HandlebarLockMonitor(vehicleStore, m_toastService, this);
 
     // Battery fault monitoring
-    auto connectFaultMonitor = [this](BatteryStore *batteryStore) {
+    auto connectFaultMonitor = [this, settingsStore](BatteryStore *batteryStore) {
         connect(batteryStore, &BatteryStore::faultsChanged, this,
-                [this, batteryStore]() {
+                [this, batteryStore, settingsStore]() {
             auto faults = batteryStore->faults();
             if (faults.isEmpty())
+                return;
+            // Suppress battery 1 fault toasts unless dual battery mode is enabled
+            if (batteryStore->batteryId() != QLatin1String("0") && !settingsStore->dualBattery())
                 return;
             QString slotName = batteryStore->batteryId() == QLatin1String("0")
                 ? m_translations->batterySlot0()
