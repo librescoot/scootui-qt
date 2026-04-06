@@ -287,7 +287,7 @@
 			"type": "line",
 			"source": "versatiles-shortbread",
 			"source-layer": "streets",
-			"filter": ["in", "kind", "tertiary", "unclassified", "residential", "living_street"],
+			"filter": ["in", "kind", "tertiary", "unclassified", "residential", "living_street", "service"],
 			"paint": {
 				"line-color": "#d0d0d0",
 				"line-width": {
@@ -307,7 +307,7 @@
 			"type": "line",
 			"source": "versatiles-shortbread",
 			"source-layer": "streets",
-			"filter": ["in", "kind", "tertiary", "unclassified", "residential", "living_street"],
+			"filter": ["in", "kind", "tertiary", "unclassified", "residential", "living_street", "service"],
 			"paint": {
 				"line-color": "#ffffff",
 				"line-width": {
