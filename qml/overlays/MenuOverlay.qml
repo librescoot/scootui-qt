@@ -26,7 +26,7 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.topMargin: 40   // Leave space for top status bar
+        anchors.topMargin: 30   // Leave space for top status bar
         spacing: 0
 
         // Title
@@ -38,7 +38,7 @@ Item {
             color: themeStore.isDark ? "#FFFFFF" : "#000000"
         }
 
-        Item { Layout.preferredHeight: 8 }
+        Item { Layout.preferredHeight: 4 }
 
         // Menu items list with scroll indicators (Flutter: Stack with ListView + gradient overlays)
         Item {
