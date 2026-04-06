@@ -1,9 +1,10 @@
 import QtQuick
+import ScootUI
 
 Row {
     id: indicatorLights
 
-    property int blinkerState: typeof vehicleStore !== "undefined" ? vehicleStore.blinkerState : 0
+    property int blinkerState: VehicleStore.blinkerState
     // 0=Off, 1=Left, 2=Right, 3=Both
 
     spacing: 8
@@ -12,7 +13,7 @@ Row {
         source: "qrc:/ScootUI/assets/icons/librescoot-turn-left.svg"
         active: blinkerState === 1 || blinkerState === 3
         blinking: true
-        blinkSource: typeof vehicleStore !== "undefined" ? vehicleStore.blinkOpacity : -1
+        blinkSource: VehicleStore.blinkOpacity
         tintColor: "#4CAF50"
     }
 
@@ -20,7 +21,7 @@ Row {
         source: "qrc:/ScootUI/assets/icons/librescoot-turn-right.svg"
         active: blinkerState === 2 || blinkerState === 3
         blinking: true
-        blinkSource: typeof vehicleStore !== "undefined" ? vehicleStore.blinkOpacity : -1
+        blinkSource: VehicleStore.blinkOpacity
         tintColor: "#4CAF50"
     }
 }

@@ -1,18 +1,25 @@
 #pragma once
 
 #include <QObject>
+#include <QtQml/qqmlregistration.h>
 
 class MdbRepository;
+
+class QQmlEngine;
+class QJSEngine;
 
 class ConnectionStore : public QObject
 {
     Q_OBJECT
+    QML_SINGLETON
+    QML_ELEMENT
     Q_PROPERTY(bool prolongedDisconnect READ prolongedDisconnect NOTIFY prolongedDisconnectChanged)
     Q_PROPERTY(bool hasEverConnected READ hasEverConnected NOTIFY hasEverConnectedChanged)
     Q_PROPERTY(bool usingBackupConnection READ usingBackupConnection NOTIFY usingBackupConnectionChanged)
 
 public:
     explicit ConnectionStore(MdbRepository *repo, QObject *parent = nullptr);
+    static ConnectionStore *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     bool prolongedDisconnect() const { return m_prolongedDisconnect; }
     bool hasEverConnected() const { return m_hasEverConnected; }
@@ -31,4 +38,5 @@ private:
     bool m_prolongedDisconnect = false;
     bool m_hasEverConnected = false;
     bool m_usingBackupConnection = false;
+    static inline ConnectionStore *s_instance = nullptr;
 };

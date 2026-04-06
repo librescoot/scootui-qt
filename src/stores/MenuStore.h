@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QVariantList>
 #include <QStringList>
+#include <QtQml/qqmlregistration.h>
 #include <memory>
 
 class MenuNode;
@@ -19,9 +20,14 @@ class ScreenStore;
 class NavigationAvailabilityService;
 class InternetStore;
 
+class QQmlEngine;
+class QJSEngine;
+
 class MenuStore : public QObject
 {
     Q_OBJECT
+    QML_SINGLETON
+    QML_ELEMENT
     Q_PROPERTY(bool isOpen READ isOpen NOTIFY isOpenChanged)
     Q_PROPERTY(QString currentTitle READ currentTitle NOTIFY menuChanged)
     Q_PROPERTY(QVariantList currentItems READ currentItems NOTIFY menuChanged)
@@ -35,6 +41,7 @@ public:
                        ThemeStore *theme, TripStore *trip,
                        Translations *translations, SettingsService *settingsService,
                        MdbRepository *repo, QObject *parent = nullptr);
+    static MenuStore *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     void setNavigationService(NavigationService *svc);
     void setSavedLocationsStore(SavedLocationsStore *store);
@@ -88,4 +95,5 @@ private:
     QStringList m_pathStack;      // node IDs for navigation depth
     QList<int> m_indexStack;      // selected index at each depth
     bool m_executingAction = false; // guard against reentrant rebuilds
+    static inline MenuStore *s_instance = nullptr;
 };

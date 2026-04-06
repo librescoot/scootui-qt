@@ -3,6 +3,7 @@
 SpeedLimitStore::SpeedLimitStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
+    s_instance = this;
 }
 
 SyncSettings SpeedLimitStore::syncSettings() const

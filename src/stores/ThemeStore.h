@@ -2,12 +2,18 @@
 
 #include <QObject>
 #include <QColor>
+#include <QtQml/qqmlregistration.h>
 
 class SettingsStore;
+
+class QQmlEngine;
+class QJSEngine;
 
 class ThemeStore : public QObject
 {
     Q_OBJECT
+    QML_SINGLETON
+    QML_ELEMENT
     Q_PROPERTY(bool isDark READ isDark NOTIFY themeChanged)
     Q_PROPERTY(QString themeName READ themeName NOTIFY themeChanged)
     Q_PROPERTY(bool isAutoMode READ isAutoMode NOTIFY themeChanged)
@@ -44,6 +50,7 @@ class ThemeStore : public QObject
 
 public:
     explicit ThemeStore(SettingsStore *settings, QObject *parent = nullptr);
+    static ThemeStore *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     bool isDark() const { return m_isDark; }
     bool isAutoMode() const { return m_isAutoMode; }
@@ -90,4 +97,5 @@ private:
     static constexpr qreal s_radiusBar   = 2;
     static constexpr qreal s_radiusCard  = 8;
     static constexpr qreal s_radiusModal = 16;
+    static inline ThemeStore *s_instance = nullptr;
 };

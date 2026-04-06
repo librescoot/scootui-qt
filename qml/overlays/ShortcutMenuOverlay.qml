@@ -1,14 +1,15 @@
 import QtQuick
 import QtQuick.Layouts
 import "../widgets/components"
+import ScootUI
 
 Item {
     id: shortcutOverlay
     anchors.fill: parent
-    visible: shortcutMenuStore.visible
+    visible: ShortcutMenuStore.visible
 
     property Item blurSource
-    property bool isDark: themeStore.isDark
+    property bool isDark: ThemeStore.isDark
 
     // Material Icons codepoints
     readonly property string miDarkMode:    "\ue1b0"
@@ -43,7 +44,7 @@ Item {
         Rectangle {
             id: containerBg
             anchors.fill: parent
-            radius: themeStore.radiusModal
+            radius: ThemeStore.radiusModal
             color: "transparent"
             border.width: 2
             border.color: isDark ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(0, 0, 0, 0.3)
@@ -59,12 +60,12 @@ Item {
                 
                 Rectangle {
                     id: menuItemRect
-                    property bool isSelected: index === shortcutMenuStore.selectedIndex
+                    property bool isSelected: index === ShortcutMenuStore.selectedIndex
                     property color itemColor: isSelected ? "#FF9800" : (isDark ? "#FFFFFF" : "#212121")
 
                     width: isSelected ? 80 : 60
                     height: isSelected ? 80 : 60
-                    radius: themeStore.radiusModal
+                    radius: ThemeStore.radiusModal
                     color: isSelected ? Qt.rgba(1, 0.6, 0, 0.15) : "transparent"
                     border.width: isSelected ? 4 : 2
                     border.color: itemColor
@@ -80,11 +81,11 @@ Item {
                         text: {
                             switch(index) {
                                 case 0: // Theme
-                                    if (themeStore.isAutoMode) return miDarkMode
-                                    if (themeStore.isDark) return miLightMode
+                                    if (ThemeStore.isAutoMode) return miDarkMode
+                                    if (ThemeStore.isDark) return miLightMode
                                     return miContrast
                                 case 1: // View
-                                    return screenStore.currentScreen === 0 ? miMap : miSpeed
+                                    return ScreenStore.currentScreen === 0 ? miMap : miSpeed
                                 case 2: // Hazards
                                     return miWarning
                                 case 3: // Debug
@@ -108,11 +109,11 @@ Item {
         // Matching Flutter's left/right 60
         width: Math.min(parent.width - 120, 360)
         height: confirmCol.height + 32
-        radius: themeStore.radiusModal
+        radius: ThemeStore.radiusModal
         color: isDark ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.95)
         border.width: 2
         border.color: "#FF9800"
-        visible: shortcutMenuStore.confirming
+        visible: ShortcutMenuStore.confirming
 
         Column {
             id: confirmCol
@@ -121,8 +122,8 @@ Item {
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: typeof translations !== "undefined" ? translations.shortcutPressToConfirm : "Press to confirm"
-                font.pixelSize: themeStore.fontBody
+                text: Translations.shortcutPressToConfirm
+                font.pixelSize: ThemeStore.fontBody
                 font.weight: Font.Bold
                 color: isDark ? "#FFFFFF" : "#000000"
             }
@@ -132,14 +133,14 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: 200
                 height: 4
-                radius: themeStore.radiusBar
+                radius: ThemeStore.radiusBar
                 color: isDark ? "#3DFFFFFF" : "#1F000000"
 
                 // Active progress bar (shrinks from 1.0 to 0.0 over 1s)
                 Rectangle {
                     anchors.left: parent.left
                     height: parent.height
-                    radius: themeStore.radiusBar
+                    radius: ThemeStore.radiusBar
                     color: "#FF9800"
                     width: parent.width * (1.0 - confirmTimer.progress)
                 }
@@ -151,7 +152,7 @@ Item {
             id: confirmTimer
             property real progress: 0
             interval: 16
-            running: shortcutMenuStore.confirming
+            running: ShortcutMenuStore.confirming
             repeat: true
             onTriggered: {
                 progress = Math.min(progress + 0.016, 1.0)

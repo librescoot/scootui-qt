@@ -3,11 +3,12 @@ import "screens"
 import "widgets/blinker"
 import "widgets/shutdown"
 import "overlays"
+import ScootUI
 
 Window {
     id: root
-    width: typeof appWidth !== "undefined" ? appWidth : 480
-    height: typeof appHeight !== "undefined" ? appHeight : 480
+    width: appWidth
+    height: appHeight
     visible: true
     color: "black"
     title: "ScootUI"
@@ -17,14 +18,13 @@ Window {
     // WaitingHibernation=13, WaitingHibernationAdvanced=14,
     // WaitingHibernationSeatbox=15, WaitingHibernationConfirm=16
     readonly property var allowedStates: [0, 2, 4, 6, 13, 14, 15, 16]
-    readonly property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : 0
-    readonly property int currentScreen: typeof screenStore !== "undefined" ? screenStore.currentScreen : 0
+    readonly property int vehicleState: VehicleStore.state
+    readonly property int currentScreen: ScreenStore.currentScreen
 
     readonly property bool showMaintenance: {
         // Prolonged Redis disconnect before ever connecting
-        if (typeof connectionStore !== "undefined"
-            && connectionStore.prolongedDisconnect
-            && !connectionStore.hasEverConnected) return true
+        if (ConnectionStore.prolongedDisconnect
+            && !ConnectionStore.hasEverConnected) return true
         if (allowedStates.indexOf(vehicleState) === -1) return true
         if (vehicleState === 0 && startupGraceElapsed) return true
         return false
@@ -32,9 +32,8 @@ Window {
 
     // Show connection info only for genuine connection failures, not for locked/transitional states
     readonly property bool maintenanceShowConnectionInfo: {
-        if (typeof connectionStore !== "undefined"
-            && connectionStore.prolongedDisconnect
-            && !connectionStore.hasEverConnected) return true
+        if (ConnectionStore.prolongedDisconnect
+            && !ConnectionStore.hasEverConnected) return true
         if (vehicleState === 0 && startupGraceElapsed) return true
         return false
     }
@@ -50,9 +49,9 @@ Window {
 
     // Cancel startup timer when vehicle state becomes known
     Connections {
-        target: typeof vehicleStore !== "undefined" ? vehicleStore : null
+        target: VehicleStore
         function onStateChanged() {
-            if (vehicleStore.state !== 0) {
+            if (VehicleStore.state !== 0) {
                 startupTimer.stop()
             }
         }
@@ -60,33 +59,25 @@ Window {
 
     // Show permanent toast on mid-session Redis disconnect
     Connections {
-        target: typeof connectionStore !== "undefined" ? connectionStore : null
+        target: ConnectionStore
         function onProlongedDisconnectChanged() {
-            if (typeof connectionStore !== "undefined" && typeof toastService !== "undefined") {
-                if (connectionStore.prolongedDisconnect && connectionStore.hasEverConnected) {
-                    toastService.showPermanentError(
-                        typeof translations !== "undefined"
-                            ? translations.redisDisconnected
-                            : "System connection lost",
-                        "redis-disconnect"
-                    )
-                } else {
-                    toastService.dismiss("redis-disconnect")
-                }
+            if (ConnectionStore.prolongedDisconnect && ConnectionStore.hasEverConnected) {
+                ToastService.showPermanentError(
+                    Translations.redisDisconnected,
+                    "redis-disconnect"
+                )
+            } else {
+                ToastService.dismiss("redis-disconnect")
             }
         }
         function onUsingBackupConnectionChanged() {
-            if (typeof connectionStore !== "undefined" && typeof toastService !== "undefined") {
-                if (connectionStore.usingBackupConnection) {
-                    toastService.showPermanentError(
-                        typeof translations !== "undefined"
-                            ? translations.usbDisconnected
-                            : "USB connection interrupted",
-                        "usb-disconnect"
-                    )
-                } else {
-                    toastService.dismiss("usb-disconnect")
-                }
+            if (ConnectionStore.usingBackupConnection) {
+                ToastService.showPermanentError(
+                    Translations.usbDisconnected,
+                    "usb-disconnect"
+                )
+            } else {
+                ToastService.dismiss("usb-disconnect")
             }
         }
     }

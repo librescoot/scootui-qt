@@ -21,6 +21,7 @@ SavedLocationsStore::SavedLocationsStore(MdbRepository *repo,
     , m_nav(nav)
     , m_toast(toast)
 {
+    s_instance = this;
     // Reload when settings data arrives from the Redis worker thread.
     // The initial load() in the constructor may run against an empty cache
     // (worker not started yet), so this ensures we pick up the data once it arrives.

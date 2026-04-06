@@ -2,27 +2,23 @@
 
 #include <QObject>
 #include <QTimer>
+#include <QtQml/qqmlregistration.h>
 
 class VehicleStore;
 class MenuStore;
 
-/**
- * Centralized brake input handler.
- *
- * Watches VehicleStore brake signals and emits high-level gesture signals
- * (tap, hold, double-tap). When the menu is open, brake presses are routed
- * to menu navigation internally; gesture signals are only emitted when the
- * menu is closed.
- *
- * This mirrors Flutter's ControlGesturesDetector pattern — screens connect
- * to gesture signals instead of watching raw brake values.
- */
+class QQmlEngine;
+class QJSEngine;
+
 class InputHandler : public QObject
 {
     Q_OBJECT
+    QML_SINGLETON
+    QML_ELEMENT
 
 public:
     explicit InputHandler(VehicleStore *vehicle, MenuStore *menu, QObject *parent = nullptr);
+    static InputHandler *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
 signals:
     // Gesture signals (only emitted when menu is closed and vehicle is parked)
@@ -59,4 +55,5 @@ private:
         bool wasOn = false;
         bool gestureActive = false;   // Press started while menu was closed
     } m_right;
+    static inline InputHandler *s_instance = nullptr;
 };

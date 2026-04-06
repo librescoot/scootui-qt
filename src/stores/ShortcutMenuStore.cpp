@@ -23,6 +23,7 @@ ShortcutMenuStore::ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
     , m_longPressTimer(new QTimer(this))
     , m_cycleTimer(new QTimer(this))
 {
+    s_instance = this;
     m_confirmTimer->setSingleShot(true);
     m_confirmTimer->setInterval(CONFIRM_TIMEOUT_MS);
     connect(m_confirmTimer, &QTimer::timeout, this, &ShortcutMenuStore::resetState);

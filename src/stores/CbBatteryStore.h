@@ -2,10 +2,16 @@
 
 #include "SyncableStore.h"
 #include "models/Enums.h"
+#include <QtQml/qqmlregistration.h>
+
+class QQmlEngine;
+class QJSEngine;
 
 class CbBatteryStore : public SyncableStore
 {
     Q_OBJECT
+    QML_SINGLETON
+    QML_ELEMENT
     Q_PROPERTY(int charge READ charge NOTIFY chargeChanged)
     Q_PROPERTY(int current READ current NOTIFY currentChanged)
     Q_PROPERTY(int remainingCapacity READ remainingCapacity NOTIFY remainingCapacityChanged)
@@ -24,6 +30,7 @@ class CbBatteryStore : public SyncableStore
 
 public:
     explicit CbBatteryStore(MdbRepository *repo, QObject *parent = nullptr);
+    static CbBatteryStore *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     int charge() const { return m_charge; }
     int current() const { return m_current; }
@@ -78,4 +85,5 @@ private:
     QString m_partNumber;
     QString m_serialNumber;
     QString m_uniqueId;
+    static inline CbBatteryStore *s_instance = nullptr;
 };

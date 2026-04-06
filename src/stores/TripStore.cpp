@@ -8,6 +8,7 @@ TripStore::TripStore(EngineStore *engine, VehicleStore *vehicle, QObject *parent
     , m_engine(engine)
     , m_vehicle(vehicle)
 {
+    s_instance = this;
     connect(m_vehicle, &VehicleStore::stateChanged,
             this, &TripStore::onVehicleStateChanged);
 

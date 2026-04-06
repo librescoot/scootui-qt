@@ -1,11 +1,12 @@
 import QtQuick
+import ScootUI
 
 Item {
     id: toastOverlay
     anchors.fill: parent
     z: 900
 
-    property var toastModel: typeof toastService !== "undefined" ? toastService.toasts : []
+    property var toastModel: ToastService.toasts
 
     Column {
         anchors.top: parent.top
@@ -20,7 +21,7 @@ Item {
                 id: toastItem
                 width: Math.min(toastText.implicitWidth + 32, toastOverlay.width - 40)
                 height: toastText.implicitHeight + 16
-                radius: themeStore.radiusCard
+                radius: ThemeStore.radiusCard
                 opacity: 0
 
                 color: {
@@ -38,7 +39,7 @@ Item {
                     width: Math.min(implicitWidth, toastOverlay.width - 72)
                     text: modelData.message
                     color: modelData.type === "warning" ? "#000000" : "white"
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Medium
                     wrapMode: Text.WordWrap
                     horizontalAlignment: Text.AlignHCenter

@@ -1,10 +1,10 @@
 import QtQuick
+import ScootUI
 
 Item {
     id: root
     property real iconSize: 35
-    property string speedLimit: typeof speedLimitStore !== "undefined"
-                                ? speedLimitStore.speedLimit : ""
+    property string speedLimit: SpeedLimitStore.speedLimit
 
     visible: speedLimit.length > 0 && speedLimit !== "unknown"
     width: iconSize

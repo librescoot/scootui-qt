@@ -2,10 +2,16 @@
 
 #include "SyncableStore.h"
 #include "models/Enums.h"
+#include <QtQml/qqmlregistration.h>
+
+class QQmlEngine;
+class QJSEngine;
 
 class EngineStore : public SyncableStore
 {
     Q_OBJECT
+    QML_SINGLETON
+    QML_ELEMENT
     Q_PROPERTY(int powerState READ powerState NOTIFY powerStateChanged)
     Q_PROPERTY(int kers READ kers NOTIFY kersChanged)
     Q_PROPERTY(QString kersReasonOff READ kersReasonOff NOTIFY kersReasonOffChanged)
@@ -22,6 +28,7 @@ class EngineStore : public SyncableStore
 
 public:
     explicit EngineStore(MdbRepository *repo, QObject *parent = nullptr);
+    static EngineStore *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     int powerState() const { return static_cast<int>(m_powerState); }
     int kers() const { return static_cast<int>(m_kers); }
@@ -69,4 +76,5 @@ private:
     QString m_firmwareVersion;
     double m_odometer = 0;
     double m_temperature = 0;
+    static inline EngineStore *s_instance = nullptr;
 };

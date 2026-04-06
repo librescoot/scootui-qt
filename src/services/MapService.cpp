@@ -92,6 +92,7 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
     , m_speedLimit(speedLimit)
     , m_tickTimer(new QTimer(this))
 {
+    s_instance = this;
     // Resolve mbtiles path: prefer ./map.mbtiles (desktop/simulator), fall back to device path
     if (QFile::exists(QStringLiteral("map.mbtiles"))) {
         m_mbtilesPath = QDir::currentPath() + QStringLiteral("/map.mbtiles");

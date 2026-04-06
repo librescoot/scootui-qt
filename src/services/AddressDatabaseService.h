@@ -8,6 +8,7 @@
 #include <QVariantList>
 #include <QVariantMap>
 #include <QVector>
+#include <QtQml/qqmlregistration.h>
 #include <atomic>
 
 struct AddressEntry {
@@ -27,9 +28,14 @@ struct TrieNode {
     ~TrieNode() { qDeleteAll(children); }
 };
 
+class QQmlEngine;
+class QJSEngine;
+
 class AddressDatabaseService : public QObject
 {
     Q_OBJECT
+    QML_SINGLETON
+    QML_NAMED_ELEMENT(AddressDatabase)
     Q_PROPERTY(int status READ status NOTIFY statusChanged)
     Q_PROPERTY(double buildProgress READ buildProgress NOTIFY buildProgressChanged)
     Q_PROPERTY(int addressCount READ addressCount NOTIFY addressCountChanged)
@@ -40,6 +46,7 @@ public:
     Q_ENUM(Status)
 
     explicit AddressDatabaseService(QObject *parent = nullptr);
+    static AddressDatabaseService *create(QQmlEngine *, QJSEngine *) { return s_instance; }
     ~AddressDatabaseService();
 
     int status() const { return m_status; }
@@ -126,4 +133,5 @@ private:
 public:
     static const QString MbtilesPath;
     static const QString CachePath;
+    static inline AddressDatabaseService *s_instance = nullptr;
 };

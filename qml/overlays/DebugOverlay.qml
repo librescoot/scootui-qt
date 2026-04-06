@@ -1,13 +1,14 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI
 
 Item {
     id: debugOverlay
     anchors.fill: parent
     z: 50
-    visible: typeof dashboardStore !== "undefined" && dashboardStore.debugMode === "overlay"
+    visible: DashboardStore.debugMode === "overlay"
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: ThemeStore.isDark
     readonly property color panelBg: isDark ? Qt.rgba(0, 0, 0, 0.6) : Qt.rgba(1, 1, 1, 0.6)
     readonly property color defaultBorder: isDark ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(0, 0, 0, 0.26)
     readonly property color textColor: isDark ? "#FFFFFF" : "#000000"
@@ -121,14 +122,14 @@ Item {
     readonly property var auxChargeStatusNames: ["NotCharging", "FloatCharge", "AbsorptionCharge", "BulkCharge"]
 
     // Safe accessors
-    function vs(prop) { return typeof vehicleStore !== "undefined" ? vehicleStore[prop] : 0 }
-    function es(prop) { return typeof engineStore !== "undefined" ? engineStore[prop] : 0 }
-    function gs(prop) { return typeof gpsStore !== "undefined" ? gpsStore[prop] : 0 }
-    function is_(prop) { return typeof internetStore !== "undefined" ? internetStore[prop] : 0 }
-    function b0(prop) { return typeof battery0Store !== "undefined" ? battery0Store[prop] : 0 }
-    function b1(prop) { return typeof battery1Store !== "undefined" ? battery1Store[prop] : 0 }
-    function aux(prop) { return typeof auxBatteryStore !== "undefined" ? auxBatteryStore[prop] : 0 }
-    function cb(prop) { return typeof cbBatteryStore !== "undefined" ? cbBatteryStore[prop] : 0 }
+    function vs(prop) { return VehicleStore[prop]}
+    function es(prop) { return EngineStore[prop]}
+    function gs(prop) { return GpsStore[prop]}
+    function is_(prop) { return InternetStore[prop]}
+    function b0(prop) { return Battery0Store[prop]}
+    function b1(prop) { return Battery1Store[prop]}
+    function aux(prop) { return AuxBatteryStore[prop]}
+    function cb(prop) { return CbBatteryStore[prop]}
 
     // =====================================================================
     // 1. Vehicle State — centered, below status bar
@@ -146,7 +147,7 @@ Item {
         Text {
             id: vehStateText
             anchors.centerIn: parent
-            text: typeof vehicleStore !== "undefined" ? vehicleStore.stateRaw : "?"
+            text: VehicleStore.stateRaw
             font.pixelSize: 12
             font.bold: true
             color: debugOverlay.textColor
@@ -249,7 +250,7 @@ Item {
                 spacing: 0
                 Text { text: "LAT: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof gpsStore !== "undefined" ? gpsStore.latitude.toFixed(5) : "?"
+                    text: GpsStore.latitude.toFixed(5)
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -257,7 +258,7 @@ Item {
                 spacing: 0
                 Text { text: "LON: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof gpsStore !== "undefined" ? gpsStore.longitude.toFixed(5) : "?"
+                    text: GpsStore.longitude.toFixed(5)
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -265,7 +266,7 @@ Item {
                 spacing: 0
                 Text { text: "SPD: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: (typeof gpsStore !== "undefined" ? gpsStore.speed.toFixed(1) : "?") + " km/h"
+                    text: GpsStore.speed.toFixed(1) + " km/h"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -316,7 +317,7 @@ Item {
             Row {
                 layoutDirection: Qt.RightToLeft; spacing: 0
                 Text {
-                    text: typeof internetStore !== "undefined" ? internetStore.accessTech : "?"
+                    text: InternetStore.accessTech
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
                 Text { text: " :TECH"; font.pixelSize: 10; color: "#9E9E9E" }
@@ -342,7 +343,7 @@ Item {
                 spacing: 0
                 Text { text: "THM: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof settingsStore !== "undefined" ? settingsStore.theme : "N/A"
+                    text: SettingsStore.theme
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -376,7 +377,7 @@ Item {
                 spacing: 0
                 Text { text: "RPM: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof engineStore !== "undefined" ? Math.floor(engineStore.rpm).toString() : "?"
+                    text: Math.floor(EngineStore.rpm).toString()
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -384,9 +385,7 @@ Item {
                 spacing: 0
                 Text { text: "PWR: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof engineStore !== "undefined"
-                          ? (engineStore.motorVoltage * engineStore.motorCurrent / 1000000).toFixed(0) + " W"
-                          : "?"
+                    text: (EngineStore.motorVoltage * EngineStore.motorCurrent / 1000000).toFixed(0) + " W"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -420,8 +419,7 @@ Item {
             Row {
                 layoutDirection: Qt.RightToLeft; spacing: 0
                 Text {
-                    text: typeof engineStore !== "undefined"
-                          ? (engineStore.motorVoltage / 1000).toFixed(1) + " V" : "?"
+                    text: (EngineStore.motorVoltage / 1000).toFixed(1) + " V"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
                 Text { text: " :MOTOR V"; font.pixelSize: 10; color: "#9E9E9E" }
@@ -429,8 +427,7 @@ Item {
             Row {
                 layoutDirection: Qt.RightToLeft; spacing: 0
                 Text {
-                    text: typeof engineStore !== "undefined"
-                          ? (engineStore.motorCurrent / 1000).toFixed(1) + " A" : "?"
+                    text: (EngineStore.motorCurrent / 1000).toFixed(1) + " A"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
                 Text { text: " :MOTOR I"; font.pixelSize: 10; color: "#9E9E9E" }
@@ -438,8 +435,7 @@ Item {
             Row {
                 layoutDirection: Qt.RightToLeft; spacing: 0
                 Text {
-                    text: typeof engineStore !== "undefined"
-                          ? engineStore.temperature.toFixed(1) + "\u00B0C" : "?"
+                    text: EngineStore.temperature.toFixed(1) + "\u00B0C"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
                 Text { text: " :TEMP"; font.pixelSize: 10; color: "#9E9E9E" }
@@ -462,7 +458,7 @@ Item {
 
             // Battery 0
             Rectangle {
-                property bool present: typeof battery0Store !== "undefined" && battery0Store.present
+                property bool present: Battery0Store.present
                 property int charge: b0("charge")
                 width: b0Col.width + 20
                 height: b0Col.height + 10
@@ -491,7 +487,7 @@ Item {
                         }
                         Text {
                             text: " - " + b0("cycleCount") + " cyc - fw " +
-                                  (typeof battery0Store !== "undefined" ? battery0Store.firmwareVersion : "?")
+                                  Battery0Store.firmwareVersion
                             font.pixelSize: 9; color: "#9E9E9E"
                         }
                     }
@@ -505,7 +501,7 @@ Item {
 
             // Battery 1
             Rectangle {
-                property bool present: typeof battery1Store !== "undefined" && battery1Store.present
+                property bool present: Battery1Store.present
                 property int charge: b1("charge")
                 width: b1Col.width + 20
                 height: b1Col.height + 10
@@ -534,7 +530,7 @@ Item {
                         }
                         Text {
                             text: " - " + b1("cycleCount") + " cyc - fw " +
-                                  (typeof battery1Store !== "undefined" ? battery1Store.firmwareVersion : "?")
+                                  Battery1Store.firmwareVersion
                             font.pixelSize: 9; color: "#9E9E9E"
                         }
                     }

@@ -1,4 +1,5 @@
 import QtQuick
+import ScootUI
 
 Item {
     id: hibernationOverlay
@@ -12,10 +13,8 @@ Item {
     readonly property int stateWaitingHibernationSeatbox: 15
     readonly property int stateWaitingHibernationConfirm: 16
 
-    property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : 0
-    property bool bothBrakesHeld: typeof vehicleStore !== "undefined"
-                                  ? (vehicleStore.brakeLeft === 1 && vehicleStore.brakeRight === 1)
-                                  : false
+    property int vehicleState: VehicleStore.state
+    property bool bothBrakesHeld: VehicleStore.brakeLeft === 1 && VehicleStore.brakeRight === 1
 
     property bool isHibernating: vehicleState === stateWaitingHibernation
                                  || vehicleState === stateWaitingHibernationAdvanced
@@ -83,7 +82,7 @@ Item {
             color: "#CC000000"
             border.width: 1
             border.color: "#4DFFFFFF"
-            radius: themeStore.radiusModal
+            radius: ThemeStore.radiusModal
 
             Column {
                 id: promptContent
@@ -98,15 +97,15 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: "\ue4e3" // power_settings_new
                     font.family: "Material Icons"
-                    font.pixelSize: themeStore.fontHero
+                    font.pixelSize: ThemeStore.fontHero
                     color: "#FFFFFF"
                 }
 
                 // Title
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.hibernatePrompt : ""
-                    font.pixelSize: themeStore.fontHeading
+                    text: Translations.hibernatePrompt
+                    font.pixelSize: ThemeStore.fontHeading
                     font.weight: Font.Bold
                     color: "#FFFFFF"
                     horizontalAlignment: Text.AlignHCenter
@@ -117,8 +116,8 @@ Item {
                 // Subtitle
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.hibernateTapKeycard : ""
-                    font.pixelSize: themeStore.fontBody
+                    text: Translations.hibernateTapKeycard
+                    font.pixelSize: ThemeStore.fontBody
                     color: "#FFFFFF"
                 }
 
@@ -127,7 +126,7 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     visible: countdownActive && countdown > 0
                     text: countdown + "s"
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Bold
                     color: "#FF9800"
                 }
@@ -135,16 +134,16 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     visible: !countdownActive && !bothBrakesHeld
-                    text: typeof translations !== "undefined" ? translations.hibernationOrHoldBrakes : ""
-                    font.pixelSize: themeStore.fontBody
+                    text: Translations.hibernationOrHoldBrakes
+                    font.pixelSize: ThemeStore.fontBody
                     color: "#B3FFFFFF"
                 }
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     visible: countdown === 0 && !countdownActive
-                    text: typeof translations !== "undefined" ? translations.hibernationKeepHoldingBrakes : ""
-                    font.pixelSize: themeStore.fontBody
+                    text: Translations.hibernationKeepHoldingBrakes
+                    font.pixelSize: ThemeStore.fontBody
                     color: "#B3FFFFFF"
                 }
 
@@ -157,7 +156,7 @@ Item {
                     Rectangle {
                         width: 160
                         height: kickstandCol.height + 32
-                        radius: themeStore.radiusModal
+                        radius: ThemeStore.radiusModal
                         color: "#33F44336"
                         border.width: 1
                         border.color: "#80F44336"
@@ -171,22 +170,22 @@ Item {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: "\ue16a" // close
                                 font.family: "Material Icons"
-                                font.pixelSize: themeStore.fontHeading
+                                font.pixelSize: ThemeStore.fontHeading
                                 color: "#F44336"
                             }
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: typeof translations !== "undefined" ? translations.hibernationCancel : ""
-                                font.pixelSize: themeStore.fontBody
+                                text: Translations.hibernationCancel
+                                font.pixelSize: ThemeStore.fontBody
                                 font.weight: Font.Bold
                                 color: "#FFFFFF"
                             }
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: typeof translations !== "undefined" ? translations.hibernationKickstand : ""
-                                font.pixelSize: themeStore.fontBody
+                                text: Translations.hibernationKickstand
+                                font.pixelSize: ThemeStore.fontBody
                                 color: "#B3FFFFFF"
                             }
                         }
@@ -196,7 +195,7 @@ Item {
                     Rectangle {
                         width: 160
                         height: keycardCol.height + 32
-                        radius: themeStore.radiusModal
+                        radius: ThemeStore.radiusModal
                         color: "#334CAF50"
                         border.width: 1
                         border.color: "#804CAF50"
@@ -210,22 +209,22 @@ Item {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: "\ue156" // check
                                 font.family: "Material Icons"
-                                font.pixelSize: themeStore.fontHeading
+                                font.pixelSize: ThemeStore.fontHeading
                                 color: "#4CAF50"
                             }
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: typeof translations !== "undefined" ? translations.hibernationConfirm : ""
-                                font.pixelSize: themeStore.fontBody
+                                text: Translations.hibernationConfirm
+                                font.pixelSize: ThemeStore.fontBody
                                 font.weight: Font.Bold
                                 color: "#FFFFFF"
                             }
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: typeof translations !== "undefined" ? translations.hibernationTapKeycardToConfirm : ""
-                                font.pixelSize: themeStore.fontBody
+                                text: Translations.hibernationTapKeycardToConfirm
+                                font.pixelSize: ThemeStore.fontBody
                                 color: "#B3FFFFFF"
                             }
                         }
@@ -252,22 +251,22 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             text: String.fromCodePoint(0xf02a0) // warning_amber_rounded
             font.family: "Material Icons"
-            font.pixelSize: themeStore.fontHero
+            font.pixelSize: ThemeStore.fontHero
             color: "#FFFFFF"
         }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: typeof translations !== "undefined" ? translations.hibernateSeatboxOpen : ""
-            font.pixelSize: themeStore.fontHeading
+            text: Translations.hibernateSeatboxOpen
+            font.pixelSize: ThemeStore.fontHeading
             font.weight: Font.Bold
             color: "#000000"
         }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: typeof translations !== "undefined" ? translations.hibernateCloseSeatbox : ""
-            font.pixelSize: themeStore.fontBody
+            text: Translations.hibernateCloseSeatbox
+            font.pixelSize: ThemeStore.fontBody
             color: "#000000"
         }
     }
@@ -289,14 +288,14 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             text: "\ue4e3" // power_settings_new
             font.family: "Material Icons"
-            font.pixelSize: themeStore.fontHero
+            font.pixelSize: ThemeStore.fontHero
             color: "#F44336"
         }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: typeof translations !== "undefined" ? translations.hibernating : ""
-            font.pixelSize: themeStore.fontHeading
+            text: Translations.hibernating
+            font.pixelSize: ThemeStore.fontHeading
             font.weight: Font.Bold
             color: "#FFFFFF"
         }
@@ -306,7 +305,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             width: 32
             height: 32
-            radius: themeStore.radiusModal
+            radius: ThemeStore.radiusModal
             color: "transparent"
             border.color: "#FFFFFF"
             border.width: 3

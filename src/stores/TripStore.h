@@ -3,19 +3,26 @@
 #include <QObject>
 #include <QTimer>
 #include <QElapsedTimer>
+#include <QtQml/qqmlregistration.h>
 
 class EngineStore;
 class VehicleStore;
 
+class QQmlEngine;
+class QJSEngine;
+
 class TripStore : public QObject
 {
     Q_OBJECT
+    QML_SINGLETON
+    QML_ELEMENT
     Q_PROPERTY(double distance READ distance NOTIFY distanceChanged)
     Q_PROPERTY(int duration READ duration NOTIFY durationChanged)
     Q_PROPERTY(double averageSpeed READ averageSpeed NOTIFY averageSpeedChanged)
 
 public:
     explicit TripStore(EngineStore *engine, VehicleStore *vehicle, QObject *parent = nullptr);
+    static TripStore *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     double distance() const { return m_distance; }
     int duration() const { return m_duration; }
@@ -48,4 +55,5 @@ private:
     double m_averageSpeed = 0;
     double m_speedSum = 0;
     int m_speedSamples = 0;
+    static inline TripStore *s_instance = nullptr;
 };

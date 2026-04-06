@@ -1,4 +1,5 @@
 import QtQuick
+import ScootUI
 
 Item {
     id: controlHints
@@ -6,7 +7,7 @@ Item {
     property string leftAction: ""
     property string rightAction: ""
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: ThemeStore.isDark
     readonly property color secondaryColor: isDark ? "#99FFFFFF" : "#8A000000"
     readonly property color primaryColor: isDark ? "#FFFFFF" : "#000000"
     readonly property color hintBg: isDark ? "#1AFFFFFF" : "#0F000000"
@@ -22,7 +23,7 @@ Item {
         width: leftHint.width + 24
         height: leftHint.height + 12
         color: "transparent"
-        radius: themeStore.radiusCard
+        radius: ThemeStore.radiusCard
         // Extend past left screen edge
         anchors.leftMargin: -6
 
@@ -33,9 +34,9 @@ Item {
             spacing: 2
 
             Text {
-                text: typeof translations !== "undefined" ? translations.controlLeftBrake : "Left Brake"
+                text: Translations.controlLeftBrake
                 color: controlHints.secondaryColor
-                font.pixelSize: themeStore.fontMicro
+                font.pixelSize: ThemeStore.fontMicro
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
             }
@@ -43,7 +44,7 @@ Item {
             Text {
                 text: controlHints.leftAction
                 color: controlHints.primaryColor
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 font.weight: Font.Bold
             }
         }
@@ -57,7 +58,7 @@ Item {
         width: rightHint.width + 24
         height: rightHint.height + 12
         color: "transparent"
-        radius: themeStore.radiusCard
+        radius: ThemeStore.radiusCard
         // Extend past right screen edge
         anchors.rightMargin: -6
 
@@ -69,9 +70,9 @@ Item {
 
             Text {
                 anchors.right: parent.right
-                text: typeof translations !== "undefined" ? translations.controlRightBrake : "Right Brake"
+                text: Translations.controlRightBrake
                 color: controlHints.secondaryColor
-                font.pixelSize: themeStore.fontMicro
+                font.pixelSize: ThemeStore.fontMicro
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
             }
@@ -80,7 +81,7 @@ Item {
                 anchors.right: parent.right
                 text: controlHints.rightAction
                 color: controlHints.primaryColor
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 font.weight: Font.Bold
             }
         }

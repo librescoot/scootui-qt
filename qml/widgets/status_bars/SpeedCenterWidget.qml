@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import "../indicators"
+import ScootUI
 
 Item {
     id: speedCenter
@@ -9,11 +10,9 @@ Item {
 
 
     readonly property real speed: {
-        if (typeof settingsStore !== "undefined" && typeof engineStore !== "undefined") {
-            if (settingsStore.showRawSpeed && engineStore.hasRawSpeed)
-                return engineStore.rawSpeed
-        }
-        return typeof engineStore !== "undefined" ? engineStore.speed : 0
+        if (SettingsStore.showRawSpeed && EngineStore.hasRawSpeed)
+            return EngineStore.rawSpeed
+        return EngineStore.speed
     }
 
     // Tight bounding rect metrics for pixel-perfect sizing
@@ -40,9 +39,9 @@ Item {
             id: speedText
             anchors.horizontalCenter: parent.horizontalCenter
             text: Math.floor(speed).toString()
-            font.pixelSize: themeStore.fontXL
+            font.pixelSize: ThemeStore.fontXL
             font.weight: Font.Bold
-            color: themeStore.textColor
+            color: ThemeStore.textColor
             height: speedTight.tightBoundingRect.height
             verticalAlignment: Text.AlignVCenter
         }
@@ -51,8 +50,8 @@ Item {
             id: unitText
             anchors.horizontalCenter: parent.horizontalCenter
             text: "km/h"
-            font.pixelSize: themeStore.fontBody
-            color: themeStore.textSecondary
+            font.pixelSize: ThemeStore.fontBody
+            color: ThemeStore.textSecondary
             height: unitTight.tightBoundingRect.height
             verticalAlignment: Text.AlignVCenter
         }

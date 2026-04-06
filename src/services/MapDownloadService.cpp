@@ -37,6 +37,7 @@ MapDownloadService::MapDownloadService(bool simulatorMode, QObject *parent)
     , m_nam(new QNetworkAccessManager(this))
     , m_simulatorMode(simulatorMode)
 {
+    s_instance = this;
     m_metadata = MapMetadata::load();
     if (!m_metadata.region.isEmpty()) {
         m_resolvedSlug = m_metadata.region;

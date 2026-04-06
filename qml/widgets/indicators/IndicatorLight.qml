@@ -1,4 +1,5 @@
 import QtQuick
+import ScootUI
 
 Item {
     id: indicatorLight

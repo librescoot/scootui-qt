@@ -1,4 +1,5 @@
 import QtQuick
+import ScootUI
 
 Item {
     id: shutdownOverlay
@@ -26,7 +27,7 @@ Item {
         Text {
             text: "Shutting down..."
             color: "white"
-            font.pixelSize: themeStore.fontBody
+            font.pixelSize: ThemeStore.fontBody
             font.weight: Font.Bold
             anchors.horizontalCenter: parent.horizontalCenter
         }
@@ -37,14 +38,12 @@ Item {
         anchors.centerIn: parent
         spacing: 8
         visible: overlay.opacity > 0.9
-                 && typeof otaStore !== "undefined"
-                 && otaStore.isActive
+                 && OtaStore.isActive
 
         Text {
             text: {
-                if (typeof otaStore === "undefined") return ""
-                var status = otaStore.dbcStatus !== "idle" ? otaStore.dbcStatus : otaStore.mdbStatus
-                var version = otaStore.dbcStatus !== "idle" ? otaStore.dbcUpdateVersion : otaStore.mdbUpdateVersion
+                var status = OtaStore.dbcStatus !== "idle" ? OtaStore.dbcStatus : OtaStore.mdbStatus
+                var version = OtaStore.dbcStatus !== "idle" ? OtaStore.dbcUpdateVersion : OtaStore.mdbUpdateVersion
                 var versionSuffix = version ? (" " + version) : ""
                 switch (status) {
                     case "downloading": return "Downloading update" + versionSuffix
@@ -55,7 +54,7 @@ Item {
                 }
             }
             color: "white"
-            font.pixelSize: themeStore.fontBody
+            font.pixelSize: ThemeStore.fontBody
             font.weight: Font.Bold
             anchors.horizontalCenter: parent.horizontalCenter
         }
@@ -63,24 +62,23 @@ Item {
         Text {
             text: "Your scooter will turn off when done.\nYou can unlock it again at any point."
             color: Qt.rgba(1, 1, 1, 0.7)
-            font.pixelSize: themeStore.fontBody
+            font.pixelSize: ThemeStore.fontBody
             horizontalAlignment: Text.AlignHCenter
             anchors.horizontalCenter: parent.horizontalCenter
             visible: {
-                if (typeof otaStore === "undefined") return false
-                var status = otaStore.dbcStatus !== "idle" ? otaStore.dbcStatus : otaStore.mdbStatus
+                var status = OtaStore.dbcStatus !== "idle" ? OtaStore.dbcStatus : OtaStore.mdbStatus
                 return status !== "pending-reboot" && status !== "idle"
             }
         }
     }
 
     Connections {
-        target: typeof shutdownStore !== "undefined" ? shutdownStore : null
+        target: ShutdownStore
 
         function onShuttingDownChanged() {
-            if (shutdownStore.isShuttingDown && !shutdownStore.showBlackout) {
+            if (ShutdownStore.isShuttingDown && !ShutdownStore.showBlackout) {
                 shutdownAnim.start()
-            } else if (!shutdownStore.isShuttingDown) {
+            } else if (!ShutdownStore.isShuttingDown) {
                 shutdownAnim.stop()
                 blackoutAnim.stop()
                 overlay.opacity = 0
@@ -88,7 +86,7 @@ Item {
         }
 
         function onShowBlackoutChanged() {
-            if (shutdownStore.showBlackout) {
+            if (ShutdownStore.showBlackout) {
                 shutdownAnim.stop()
                 blackoutAnim.start()
             }

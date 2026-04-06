@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI
 
 Item {
     id: navStatusOverlay
@@ -13,8 +14,7 @@ Item {
     readonly property int statusArrived: 4
     readonly property int statusError: 5
 
-    property int navStatus: typeof navigationService !== "undefined"
-                            ? navigationService.status : 0
+    property int navStatus: NavigationService.status
 
     visible: navStatus === statusCalculating ||
              navStatus === statusRerouting ||
@@ -50,7 +50,7 @@ Item {
                 id: spinner
                 width: 16
                 height: 16
-                radius: themeStore.radiusCard
+                radius: ThemeStore.radiusCard
                 color: "transparent"
                 border.color: "white"
                 border.width: 2
@@ -84,7 +84,7 @@ Item {
                 visible: navStatusOverlay.navStatus === statusArrived
                 text: "\ue4c9" // place
                 font.family: "Material Icons"
-                font.pixelSize: themeStore.fontTitle
+                font.pixelSize: ThemeStore.fontTitle
                 color: "#FFFFFF"
             }
 
@@ -93,23 +93,22 @@ Item {
                 visible: navStatusOverlay.navStatus === statusError
                 text: "\ue6cc" // warning_amber
                 font.family: "Material Icons"
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 color: "white"
             }
 
             Text {
                 text: {
                     switch (navStatusOverlay.navStatus) {
-                        case statusCalculating: return translations.navCalculating
-                        case statusRerouting: return translations.navRecalculating
-                        case statusArrived: return translations.navArrived
+                        case statusCalculating: return Translations.navCalculating
+                        case statusRerouting: return Translations.navRecalculating
+                        case statusArrived: return Translations.navArrived
                         case statusError:
-                            return typeof navigationService !== "undefined"
-                                   ? navigationService.errorMessage : translations.navRouteError
+                            return NavigationService.errorMessage
                         default: return ""
                     }
                 }
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 font.weight: Font.Bold
                 color: "white"
             }
@@ -127,7 +126,7 @@ Item {
         color: "#E65100"
         opacity: 0.85
         visible: navStatusOverlay.navStatus === statusNavigating &&
-                 typeof navigationService !== "undefined" && navigationService.isOffRoute
+                 NavigationService.isOffRoute
 
         RowLayout {
             id: offRouteRow
@@ -137,13 +136,13 @@ Item {
             Text {
                 text: "\ue6cc" // warning_amber
                 font.family: "Material Icons"
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 color: "white"
             }
 
             Text {
-                text: translations.navOffRoute
-                font.pixelSize: themeStore.fontBody
+                text: Translations.navOffRoute
+                font.pixelSize: ThemeStore.fontBody
                 font.weight: Font.Bold
                 color: "white"
             }

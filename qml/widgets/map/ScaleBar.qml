@@ -1,13 +1,14 @@
 import QtQuick
+import ScootUI
 
 Item {
     id: scaleBar
     width: barWidth
     height: 16
 
-    property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
-    property real zoom: typeof mapService !== "undefined" ? mapService.mapZoom : 17
-    property real latitude: typeof mapService !== "undefined" ? mapService.mapLatitude : 52
+    property bool isDark: ThemeStore.isDark
+    property real zoom: MapService.mapZoom
+    property real latitude: MapService.mapLatitude
 
     readonly property real metersPerPixel: (40075000 * Math.cos(latitude * Math.PI / 180)) / (256 * Math.pow(2, zoom))
     readonly property real maxWidthPx: 160
@@ -78,7 +79,7 @@ Item {
         anchors.bottomMargin: 4
         text: scaleBar.scaleText
         color: scaleBar.barColor
-        font.pixelSize: themeStore.fontCaption
+        font.pixelSize: ThemeStore.fontCaption
         font.weight: Font.Bold
         style: Text.Outline
         styleColor: isDark ? "black" : "white"

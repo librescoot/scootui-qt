@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QVariantList>
+#include <QtQml/qqmlregistration.h>
 #include "models/SavedLocation.h"
 
 class MdbRepository;
@@ -11,9 +12,14 @@ class RoadInfoService;
 class NavigationService;
 class ToastService;
 
+class QQmlEngine;
+class QJSEngine;
+
 class SavedLocationsStore : public QObject
 {
     Q_OBJECT
+    QML_SINGLETON
+    QML_ELEMENT
     Q_PROPERTY(QVariantList locations READ locations NOTIFY locationsChanged)
     Q_PROPERTY(bool isLoading READ isLoading NOTIFY isLoadingChanged)
     Q_PROPERTY(int count READ count NOTIFY locationsChanged)
@@ -24,6 +30,7 @@ public:
                                   GpsStore *gps, RoadInfoService *roadInfo,
                                   NavigationService *nav,
                                   ToastService *toast, QObject *parent = nullptr);
+    static SavedLocationsStore *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     QVariantList locations() const;
     bool isLoading() const { return m_isLoading; }
@@ -47,4 +54,5 @@ private:
 
     QList<SavedLocation> m_locations;
     bool m_isLoading = false;
+    static inline SavedLocationsStore *s_instance = nullptr;
 };

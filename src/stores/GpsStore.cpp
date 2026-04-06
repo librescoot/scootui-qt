@@ -3,6 +3,7 @@
 GpsStore::GpsStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
+    s_instance = this;
 }
 
 SyncSettings GpsStore::syncSettings() const

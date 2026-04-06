@@ -2,27 +2,25 @@ import QtQuick
 import QtQuick.Layouts
 import "../widgets/status_bars"
 import "../widgets/map"
+import ScootUI
 
 Rectangle {
     id: destinationScreen
-    color: typeof themeStore !== "undefined" && themeStore.isDark ? "black" : "white"
+    color: ThemeStore.isDark ? "black" : "white"
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: ThemeStore.isDark
     readonly property color textPrimary: isDark ? "#FFFFFF" : "#000000"
     readonly property color textSecondary: isDark ? "#99FFFFFF" : "#8A000000"
 
     // Right brake returns to map (centralized via InputHandler)
     Connections {
-        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        target: InputHandler
         function onRightTap() {
-            if (typeof screenStore !== "undefined") {
-                screenStore.setScreen(1) // Back to map
-            }
+            ScreenStore.setScreen(1) // Back to map
         }
     }
 
-    readonly property bool mapsAvailable: typeof navAvailabilityService !== "undefined"
-                                          ? navAvailabilityService.localDisplayMapsAvailable : false
+    readonly property bool mapsAvailable: NavAvailability.localDisplayMapsAvailable
 
     ColumnLayout {
         anchors.fill: parent
@@ -49,16 +47,14 @@ Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: "\ue3aa" // location_off
                     font.family: "Material Icons"
-                    font.pixelSize: themeStore.fontXL
+                    font.pixelSize: ThemeStore.fontXL
                     color: "#9E9E9E"  // Colors.grey
                 }
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined"
-                          ? translations.destinationOfflineOnly
-                          : "The destination selector only works with offline maps"
-                    font.pixelSize: themeStore.fontTitle
+                    text: Translations.destinationOfflineOnly
+                    font.pixelSize: ThemeStore.fontTitle
                     font.weight: Font.Bold
                     color: destinationScreen.textPrimary
                     horizontalAlignment: Text.AlignHCenter
@@ -68,10 +64,8 @@ Rectangle {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined"
-                          ? translations.destinationInstallMapData
-                          : "Please install the map data to use this feature"
-                    font.pixelSize: themeStore.fontBody
+                    text: Translations.destinationInstallMapData
+                    font.pixelSize: ThemeStore.fontBody
                     color: "#9E9E9E"  // Colors.grey
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
@@ -92,10 +86,10 @@ Rectangle {
 
             // Saved location markers (Flutter: CameraFilteredMarkerLayer with location_pin at zoom >= 17.5)
             Repeater {
-                model: typeof savedLocationsStore !== "undefined" ? savedLocationsStore.locations : []
+                model: SavedLocationsStore.locations
                 delegate: Item {
                     // Only show markers when zoom >= 17.5 (matches Flutter's CameraFilteredMarkerLayer)
-                    visible: typeof mapService !== "undefined" && mapService.mapZoom >= 17.5
+                    visible: MapService.mapZoom >= 17.5
                     // Marker positioning would require lat/lng to screen coordinate conversion
                     // which depends on the MapLibre GL integration; placeholder for now
                 }
@@ -124,17 +118,15 @@ Rectangle {
                 anchors.bottomMargin: 12
                 width: coordText.width + 24
                 height: coordText.height + 12
-                radius: themeStore.radiusCard
+                radius: ThemeStore.radiusCard
                 color: Qt.rgba(0, 0, 0, 0.7)
 
                 Text {
                     id: coordText
                     anchors.centerIn: parent
-                    text: typeof mapService !== "undefined"
-                          ? mapService.mapLatitude.toFixed(5) + ", " + mapService.mapLongitude.toFixed(5)
-                          : "N/A"
+                    text: MapService.mapLatitude.toFixed(5) + ", " + MapService.mapLongitude.toFixed(5)
                     color: "white"
-                    font.pixelSize: themeStore.fontFeature
+                    font.pixelSize: ThemeStore.fontFeature
                 }
             }
         }
@@ -153,17 +145,17 @@ Rectangle {
             Layout.rightMargin: 24
 
             Text {
-                text: typeof translations !== "undefined" ? translations.navConfirmDest : "Confirm"
+                text: Translations.navConfirmDest
                 color: destinationScreen.textSecondary
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
             }
 
             Item { Layout.fillWidth: true }
 
             Text {
-                text: typeof translations !== "undefined" ? translations.controlBack : "Back"
+                text: Translations.controlBack
                 color: destinationScreen.textSecondary
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
             }
         }
     }

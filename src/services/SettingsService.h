@@ -2,15 +2,22 @@
 
 #include <QObject>
 #include <QString>
+#include <QtQml/qqmlregistration.h>
 
 class MdbRepository;
+
+class QQmlEngine;
+class QJSEngine;
 
 class SettingsService : public QObject
 {
     Q_OBJECT
+    QML_SINGLETON
+    QML_ELEMENT
 
 public:
     explicit SettingsService(MdbRepository *repo, QObject *parent = nullptr);
+    static SettingsService *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     Q_INVOKABLE void updateMode(const QString &mode);
     Q_INVOKABLE void updateTheme(const QString &theme);
@@ -36,4 +43,5 @@ public:
 private:
     void writeSetting(const QString &key, const QString &value);
     MdbRepository *m_repo;
+    static inline SettingsService *s_instance = nullptr;
 };

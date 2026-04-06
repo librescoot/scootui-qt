@@ -5,10 +5,11 @@ import "../widgets/status_bars"
 import "../widgets/cluster"
 import "../widgets/indicators"
 import "../widgets/navigation"
+import ScootUI
 
 Rectangle {
     id: clusterScreen
-    color: themeStore.backgroundColor
+    color: ThemeStore.backgroundColor
 
     ColumnLayout {
         anchors.fill: parent

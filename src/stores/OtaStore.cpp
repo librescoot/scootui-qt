@@ -3,6 +3,7 @@
 OtaStore::OtaStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
+    s_instance = this;
 }
 
 bool OtaStore::isActive() const

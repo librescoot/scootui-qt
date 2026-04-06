@@ -1,4 +1,5 @@
 import QtQuick
+import ScootUI
 
 Rectangle {
     id: menuItem
@@ -14,9 +15,9 @@ Rectangle {
     // ListView spacing: 4 handles the inter-item gap
     height: 50
     color: isSelected
-           ? (themeStore.isDark ? "#3DFFFFFF" : "#1F000000")
+           ? (ThemeStore.isDark ? "#3DFFFFFF" : "#1F000000")
            : "transparent"
-    radius: themeStore.radiusCard
+    radius: ThemeStore.radiusCard
 
     Row {
         anchors.fill: parent
@@ -34,8 +35,8 @@ Rectangle {
             visible: menuItem.leadingIcon !== ""
             text: menuItem.leadingIcon
             font.family: "Material Icons"
-            font.pixelSize: themeStore.fontTitle
-            color: themeStore.isDark ? "#B3FFFFFF" : "#8A000000"
+            font.pixelSize: ThemeStore.fontTitle
+            color: ThemeStore.isDark ? "#B3FFFFFF" : "#8A000000"
         }
 
         // Title
@@ -44,9 +45,9 @@ Rectangle {
             width: parent.width - trailingIcon.width - parent.spacing
                    - (leadingIconText.visible ? leadingIconText.width + parent.spacing : 0)
             text: menuItem.title
-            font.pixelSize: themeStore.fontTitle
+            font.pixelSize: ThemeStore.fontTitle
             font.weight: isSelected ? Font.Bold : Font.Normal
-            color: themeStore.isDark ? "#FFFFFF" : "#000000"
+            color: ThemeStore.isDark ? "#FFFFFF" : "#000000"
             elide: isSelected ? Text.ElideNone : Text.ElideRight
             wrapMode: isSelected ? Text.WordWrap : Text.NoWrap
             maximumLineCount: isSelected ? 100 : 1
@@ -71,8 +72,8 @@ Rectangle {
             color: {
                 // Flutter: check uses text color, chevron uses white70/black54
                 if (itemType === "setting" && currentValue === 1)
-                    return themeStore.isDark ? "#FFFFFF" : "#000000"
-                return themeStore.isDark ? "#B3FFFFFF" : "#8A000000"
+                    return ThemeStore.isDark ? "#FFFFFF" : "#000000"
+                return ThemeStore.isDark ? "#B3FFFFFF" : "#8A000000"
             }
         }
     }

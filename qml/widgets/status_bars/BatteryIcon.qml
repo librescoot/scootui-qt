@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import ScootUI
 
 Item {
     id: batteryIcon
@@ -29,7 +30,7 @@ Item {
             if (charge <= 10) return "#FF0000"
             if (charge <= 20) return "#FF7900"
         }
-        return themeStore.textColor
+        return ThemeStore.textColor
     }
 
     // Base battery icon (tinted for theme)

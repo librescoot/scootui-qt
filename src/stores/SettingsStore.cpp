@@ -3,6 +3,7 @@
 SettingsStore::SettingsStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
+    s_instance = this;
 }
 
 SyncSettings SettingsStore::syncSettings() const

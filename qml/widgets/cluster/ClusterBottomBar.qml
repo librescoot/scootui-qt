@@ -1,14 +1,15 @@
 import QtQuick
 import "../power"
+import ScootUI
 
 Item {
     id: clusterBottom
     height: 60
 
-    readonly property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : 0
-    readonly property int blinkerState: typeof vehicleStore !== "undefined" ? vehicleStore.blinkerState : 0
-    readonly property int unableToDrive: typeof vehicleStore !== "undefined" ? vehicleStore.isUnableToDrive : 0
-    readonly property bool usbDisconnected: typeof connectionStore !== "undefined" && connectionStore.usingBackupConnection
+    readonly property int vehicleState: VehicleStore.state
+    readonly property int blinkerState: VehicleStore.blinkerState
+    readonly property int unableToDrive: VehicleStore.isUnableToDrive
+    readonly property bool usbDisconnected: ConnectionStore.usingBackupConnection
 
     // ScooterState.Parked = 4, BlinkerState.Both = 3, Toggle.On = 0
     readonly property bool hasTelltales: unableToDrive === 0 || usbDisconnected || blinkerState === 3 || vehicleState === 4
@@ -43,7 +44,7 @@ Item {
                 source: "qrc:/ScootUI/assets/icons/librescoot-hazards.svg"
                 sourceSize: Qt.size(32, 32)
                 visible: blinkerState === 3
-                opacity: typeof vehicleStore !== "undefined" ? vehicleStore.blinkOpacity : 1
+                opacity: VehicleStore.blinkOpacity
             }
 
             // Parking brake

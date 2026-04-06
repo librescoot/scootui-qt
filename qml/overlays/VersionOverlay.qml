@@ -1,4 +1,5 @@
 import QtQuick
+import ScootUI
 
 Item {
     id: versionOverlay
@@ -9,14 +10,10 @@ Item {
     // enum class Toggle { On, Off }; -> On=0, Off=1
     // So brakeLeft === 0 means On.
 
-    property bool bothBrakes: typeof vehicleStore !== "undefined"
-                              ? (vehicleStore.brakeLeft === 0 && vehicleStore.brakeRight === 0)
-                              : false
+    property bool bothBrakes: VehicleStore.brakeLeft === 0 && VehicleStore.brakeRight === 0
     // Use property binding (not Q_INVOKABLE method) for reactivity
     // ScooterState::Parked = 4
-    property bool canShow: typeof vehicleStore !== "undefined" && typeof menuStore !== "undefined"
-                           ? (vehicleStore.state === 4 && !menuStore.isOpen)
-                           : false
+    property bool canShow: VehicleStore.state === 4 && !MenuStore.isOpen
     property bool showOverlay: false
 
     visible: showOverlay
@@ -29,8 +26,8 @@ Item {
     }
 
     onShowOverlayChanged: {
-        if (showOverlay && typeof systemInfoService !== "undefined")
-            systemInfoService.loadVersions()
+        if (showOverlay)
+            SystemInfoService.loadVersions()
     }
 
     onBothBrakesChanged: {
@@ -47,17 +44,17 @@ Item {
         anchors.rightMargin: 20
         width: infoColumn.width + 24
         height: infoColumn.height + 24
-        radius: themeStore.radiusCard
+        radius: ThemeStore.radiusCard
 
-        color: typeof themeStore !== "undefined" && themeStore.isDark
+        color: ThemeStore.isDark
                ? "#B3000000"   // black 0.7 opacity
                : "#B3FFFFFF"   // white 0.7 opacity
         border.width: 1.5
-        border.color: typeof themeStore !== "undefined" && themeStore.isDark
+        border.color: ThemeStore.isDark
                       ? "#FFFFFF"
                       : "#000000"
 
-        property color textColor: typeof themeStore !== "undefined" && themeStore.isDark
+        property color textColor: ThemeStore.isDark
                                   ? "#FFFFFF" : "#000000"
 
         Column {
@@ -66,30 +63,26 @@ Item {
             spacing: 4
 
             Text {
-                text: "MDB: " + (typeof systemInfoService !== "undefined"
-                      ? systemInfoService.mdbVersion : "unknown")
-                font.pixelSize: themeStore.fontBody
+                text: "MDB: " + SystemInfoService.mdbVersion
+                font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
             }
 
             Text {
-                text: "DBC: " + (typeof systemInfoService !== "undefined"
-                      ? systemInfoService.dbcVersion : "unknown")
-                font.pixelSize: themeStore.fontBody
+                text: "DBC: " + SystemInfoService.dbcVersion
+                font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
             }
 
             Text {
-                text: "nRF: " + (typeof systemInfoService !== "undefined"
-                      ? systemInfoService.nrfVersion : "unknown")
-                font.pixelSize: themeStore.fontBody
+                text: "nRF: " + SystemInfoService.nrfVersion
+                font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
             }
 
             Text {
-                text: "ECU: " + (typeof systemInfoService !== "undefined"
-                      ? systemInfoService.ecuVersion : "unknown")
-                font.pixelSize: themeStore.fontBody
+                text: "ECU: " + SystemInfoService.ecuVersion
+                font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
             }
 
@@ -102,24 +95,20 @@ Item {
             }
 
             Text {
-                text: "AUX: " + (typeof auxBatteryStore !== "undefined"
-                      ? auxBatteryStore.voltage + "mV " + auxBatteryStore.charge + "%"
-                      : "unknown")
-                font.pixelSize: themeStore.fontBody
+                text: "AUX: " + AuxBatteryStore.voltage + "mV " + AuxBatteryStore.charge + "%"
+                font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
             }
 
             Text {
-                text: "CBB: " + (typeof cbBatteryStore !== "undefined"
-                      ? cbBatteryStore.charge + "%"
-                      : "unknown")
-                font.pixelSize: themeStore.fontBody
+                text: "CBB: " + CbBatteryStore.charge + "%"
+                font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
             }
 
             // Serial number
             Rectangle {
-                visible: typeof serialNumberService !== "undefined" && serialNumberService.available
+                visible: SerialNumberService.available
                 width: parent.width
                 height: 1
                 color: parent.parent.textColor
@@ -127,10 +116,9 @@ Item {
             }
 
             Text {
-                visible: typeof serialNumberService !== "undefined" && serialNumberService.available
-                text: "S/N: " + (typeof serialNumberService !== "undefined"
-                      ? serialNumberService.serialNumber : "")
-                font.pixelSize: themeStore.fontBody
+                visible: SerialNumberService.available
+                text: "S/N: " + SerialNumberService.serialNumber
+                font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
             }
         }

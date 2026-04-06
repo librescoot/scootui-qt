@@ -1,12 +1,13 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI
 
 Rectangle {
     id: maintenanceScreen
     color: "black"
 
     property bool showConnectionInfo: false
-    property string stateRaw: typeof vehicleStore !== "undefined" ? vehicleStore.stateRaw : ""
+    property string stateRaw: VehicleStore.stateRaw
 
     // --- Loading mode (default): silent spinner + optional OTA progress ---
     Item {
@@ -14,11 +15,11 @@ Rectangle {
         anchors.fill: parent
         visible: !showConnectionInfo
 
-        readonly property bool otaActive: typeof otaStore !== "undefined" && otaStore.isActive
-        readonly property string otaStatus: typeof otaStore !== "undefined" ? otaStore.dbcStatus : "idle"
-        readonly property int otaDownloadProgress: typeof otaStore !== "undefined" ? otaStore.dbcDownloadProgress : 0
-        readonly property int otaInstallProgress: typeof otaStore !== "undefined" ? otaStore.dbcInstallProgress : 0
-        readonly property string otaVersion: typeof otaStore !== "undefined" ? otaStore.dbcUpdateVersion : ""
+        readonly property bool otaActive: OtaStore.isActive
+        readonly property string otaStatus: OtaStore.dbcStatus
+        readonly property int otaDownloadProgress: OtaStore.dbcDownloadProgress
+        readonly property int otaInstallProgress: OtaStore.dbcInstallProgress
+        readonly property string otaVersion: OtaStore.dbcUpdateVersion
 
         Column {
             anchors.centerIn: parent
@@ -36,7 +37,7 @@ Rectangle {
                     color: "transparent"
                     border.color: "white"
                     border.width: 3
-                    radius: themeStore.radiusModal
+                    radius: ThemeStore.radiusModal
 
                     Rectangle {
                         width: 18
@@ -64,7 +65,7 @@ Rectangle {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     color: Qt.rgba(1, 1, 1, 0.8)
                     text: {
                         switch (loadingMode.otaStatus) {
@@ -108,7 +109,7 @@ Rectangle {
                 // Version
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     color: Qt.rgba(1, 1, 1, 0.5)
                     visible: loadingMode.otaVersion !== ""
                     text: loadingMode.otaVersion
@@ -136,7 +137,7 @@ Rectangle {
                 Layout.fillWidth: true
                 text: "Trying to connect to vehicle system..."
                 color: "white"
-                font.pixelSize: themeStore.fontTitle
+                font.pixelSize: ThemeStore.fontTitle
                 font.weight: Font.Bold
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
@@ -159,7 +160,7 @@ Rectangle {
                       "the dashboard computer (DBC) and the middle driver board (MDB).\n\n" +
                       "Check the USB cable if this persists."
                 color: Qt.rgba(1, 1, 1, 0.70)
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 lineHeight: 1.4
                 lineHeightMode: Text.ProportionalHeight
                 wrapMode: Text.WordWrap
@@ -182,7 +183,7 @@ Rectangle {
                 text: "To put your scooter into drive mode anyway, raise the kickstand, " +
                       "hold both brakes and press the seatbox button."
                 color: Qt.rgba(1, 1, 1, 0.60)
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 lineHeight: 1.4
                 lineHeightMode: Text.ProportionalHeight
                 wrapMode: Text.WordWrap
@@ -198,7 +199,7 @@ Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         text: maintenanceScreen.stateRaw
         color: Qt.rgba(1, 1, 1, 0.54)
-        font.pixelSize: themeStore.fontBody
+        font.pixelSize: ThemeStore.fontBody
         visible: maintenanceScreen.stateRaw.length > 0
     }
 }

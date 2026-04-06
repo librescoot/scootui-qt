@@ -1,18 +1,18 @@
 import QtQuick
+import ScootUI
 
 Rectangle {
     id: otaScreen
     color: "black"
 
-    readonly property bool locked: typeof vehicleStore !== "undefined" && vehicleStore.state === 4
+    readonly property bool locked: VehicleStore.state === 4
 
     onLockedChanged: {
         if (locked) {
             backlightTimer.restart()
         } else {
             backlightTimer.stop()
-            if (typeof otaStore !== "undefined")
-                otaStore.setBacklightOff(false)
+            OtaStore.setBacklightOff(false)
         }
     }
 
@@ -21,22 +21,20 @@ Rectangle {
         interval: 30000
         running: otaScreen.locked
         onTriggered: {
-            if (typeof otaStore !== "undefined")
-                otaStore.setBacklightOff(true)
+            OtaStore.setBacklightOff(true)
         }
     }
 
     Component.onDestruction: {
-        if (typeof otaStore !== "undefined")
-            otaStore.setBacklightOff(false)
+        OtaStore.setBacklightOff(false)
     }
 
-    readonly property string dbcStatus: typeof otaStore !== "undefined" ? otaStore.dbcStatus : "idle"
-    readonly property int downloadProgress: typeof otaStore !== "undefined" ? otaStore.dbcDownloadProgress : 0
-    readonly property int installProgress: typeof otaStore !== "undefined" ? otaStore.dbcInstallProgress : 0
-    readonly property string updateVersion: typeof otaStore !== "undefined" ? otaStore.dbcUpdateVersion : ""
-    readonly property string dbcError: typeof otaStore !== "undefined" ? otaStore.dbcError : ""
-    readonly property string dbcErrorMessage: typeof otaStore !== "undefined" ? otaStore.dbcErrorMessage : ""
+    readonly property string dbcStatus: OtaStore.dbcStatus
+    readonly property int downloadProgress: OtaStore.dbcDownloadProgress
+    readonly property int installProgress: OtaStore.dbcInstallProgress
+    readonly property string updateVersion: OtaStore.dbcUpdateVersion
+    readonly property string dbcError: OtaStore.dbcError
+    readonly property string dbcErrorMessage: OtaStore.dbcErrorMessage
 
     readonly property int currentProgress: {
         if (dbcStatus === "downloading") return downloadProgress
@@ -89,11 +87,11 @@ Rectangle {
         // Status text
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            font.pixelSize: themeStore.fontBody
+            font.pixelSize: ThemeStore.fontBody
             font.weight: Font.Bold
             color: "white"
             text: {
-                var tr = typeof translations !== "undefined" ? translations : null
+                var tr = Translations
                 switch (dbcStatus) {
                     case "downloading": return tr ? tr.otaDownloadingUpdates : "Downloading update..."
                     case "preparing": return tr ? tr.otaPreparingUpdate : "Preparing update..."
@@ -117,14 +115,14 @@ Rectangle {
             Rectangle {
                 anchors.fill: parent
                 color: "#333333"
-                radius: themeStore.radiusBar
+                radius: ThemeStore.radiusBar
             }
 
             Rectangle {
                 width: parent.width * (currentProgress / 100)
                 height: parent.height
                 color: "#2196F3"
-                radius: themeStore.radiusBar
+                radius: ThemeStore.radiusBar
 
                 Behavior on width {
                     NumberAnimation { duration: 300; easing.type: Easing.OutQuad }
@@ -136,7 +134,7 @@ Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.bottom
                 anchors.topMargin: 8
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 color: "white"
                 text: currentProgress + "%"
             }
@@ -150,17 +148,17 @@ Rectangle {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            font.pixelSize: themeStore.fontBody
+            font.pixelSize: ThemeStore.fontBody
             color: "#ff8800"
             visible: dbcStatus === "preparing" || dbcStatus === "installing"
-            text: typeof translations !== "undefined" ? translations.otaDoNotPowerOff : "Do not turn off the scooter!"
+            text: Translations.otaDoNotPowerOff
             horizontalAlignment: Text.AlignHCenter
         }
 
         // Version text
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            font.pixelSize: themeStore.fontBody
+            font.pixelSize: ThemeStore.fontBody
             color: "#aaaaaa"
             visible: updateVersion !== ""
             text: "Version: " + updateVersion
@@ -169,7 +167,7 @@ Rectangle {
         // Error message
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            font.pixelSize: themeStore.fontBody
+            font.pixelSize: ThemeStore.fontBody
             color: "#ff5555"
             visible: (dbcStatus === "error" || dbcStatus === "error-failed") && dbcErrorMessage !== ""
             text: dbcErrorMessage

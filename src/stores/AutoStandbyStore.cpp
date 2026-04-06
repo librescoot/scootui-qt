@@ -3,6 +3,7 @@
 AutoStandbyStore::AutoStandbyStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
+    s_instance = this;
 }
 
 SyncSettings AutoStandbyStore::syncSettings() const

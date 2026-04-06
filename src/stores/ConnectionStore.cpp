@@ -8,6 +8,7 @@ ConnectionStore::ConnectionStore(MdbRepository *repo, QObject *parent)
     , m_hasEverConnected(repo->isConnected() || repo->isUsingBackupConnection())
     , m_usingBackupConnection(repo->isUsingBackupConnection())
 {
+    s_instance = this;
     connect(m_repo, &MdbRepository::connectionStateChanged, this, [this](bool connected) {
         if (connected && !m_hasEverConnected) {
             m_hasEverConnected = true;

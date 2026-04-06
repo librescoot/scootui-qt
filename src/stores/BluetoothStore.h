@@ -2,10 +2,16 @@
 
 #include "SyncableStore.h"
 #include "models/Enums.h"
+#include <QtQml/qqmlregistration.h>
+
+class QQmlEngine;
+class QJSEngine;
 
 class BluetoothStore : public SyncableStore
 {
     Q_OBJECT
+    QML_SINGLETON
+    QML_ELEMENT
     Q_PROPERTY(int status READ status NOTIFY statusChanged)
     Q_PROPERTY(QString macAddress READ macAddress NOTIFY macAddressChanged)
     Q_PROPERTY(QString pinCode READ pinCode NOTIFY pinCodeChanged)
@@ -15,6 +21,7 @@ class BluetoothStore : public SyncableStore
 
 public:
     explicit BluetoothStore(MdbRepository *repo, QObject *parent = nullptr);
+    static BluetoothStore *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     int status() const { return static_cast<int>(m_status); }
     QString macAddress() const { return m_macAddress; }
@@ -42,4 +49,5 @@ private:
     QString m_serviceHealth;
     QString m_serviceError;
     QString m_lastUpdate;
+    static inline BluetoothStore *s_instance = nullptr;
 };

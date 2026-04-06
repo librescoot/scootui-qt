@@ -2,6 +2,7 @@ import QtQuick
 import QtLocation
 import QtPositioning
 import MapLibre
+import ScootUI
 
 MapView {
     id: mapView
@@ -28,7 +29,7 @@ MapView {
         
         PluginParameter {
             name: "maplibre.map.styles"
-            value: typeof mapService !== "undefined" ? mapService.styleUrl : ""
+            value: MapService.styleUrl
         }
         
         PluginParameter {
@@ -42,16 +43,16 @@ MapView {
         }
     }
 
-    map.zoomLevel: typeof mapService !== "undefined" ? mapService.mapZoom : 17
-    map.bearing: typeof mapService !== "undefined" ? mapService.mapBearing : 0
+    map.zoomLevel: MapService.mapZoom
+    map.bearing: MapService.mapBearing
     map.tilt: 85
 
     function vehicleCoordinate() {
-        if (typeof mapService !== "undefined" && mapService.isReady) {
-            return QtPositioning.coordinate(mapService.mapLatitude, mapService.mapLongitude)
+        if (MapService.isReady) {
+            return QtPositioning.coordinate(MapService.mapLatitude, MapService.mapLongitude)
         }
-        if (typeof gpsStore !== "undefined" && gpsStore.latitude !== 0) {
-            return QtPositioning.coordinate(gpsStore.latitude, gpsStore.longitude)
+        if (GpsStore.latitude !== 0) {
+            return QtPositioning.coordinate(GpsStore.latitude, GpsStore.longitude)
         }
         return QtPositioning.coordinate(52.520008, 13.404954)
     }
@@ -62,11 +63,11 @@ MapView {
         var vehicleCoord = vehicleCoordinate()
         if (!vehicleCoord || !vehicleCoord.isValid) return
 
-        if (typeof mapService !== "undefined" && mapService.isReady) {
+        if (MapService.isReady) {
             // mapLatitude/mapLongitude is the vehicle position.
             // Place it at the vehicle screen point (offset below center);
             // Qt handles the bearing-aware pivot so the map rotates around the marker.
-            var offsetY = mapService.vehicleOffsetY
+            var offsetY = MapService.vehicleOffsetY
             var pt = Qt.point(map.width / 2, map.height / 2 + offsetY)
 
             if (typeof map.alignCoordinateToPoint === "function") {
@@ -95,7 +96,7 @@ MapView {
     onHeightChanged: updateCamera()
 
     Connections {
-        target: typeof mapService !== "undefined" ? mapService : null
+        target: MapService
         function onIsReadyChanged() { mapView.updateCamera() }
         function onMapLatitudeChanged() { mapView.updateCamera() }
         function onMapLongitudeChanged() { mapView.updateCamera() }
@@ -105,7 +106,7 @@ MapView {
     }
 
     Connections {
-        target: typeof gpsStore !== "undefined" ? gpsStore : null
+        target: GpsStore
         function onLatitudeChanged() { mapView.updateCamera() }
         function onLongitudeChanged() { mapView.updateCamera() }
     }
@@ -119,7 +120,7 @@ MapView {
             id: routeSource
             styleId: "route"
             type: "geojson"
-            property string data: typeof mapService !== "undefined" ? mapService.routeGeoJson : ""
+            property string data: MapService.routeGeoJson
             onDataChanged: updateNotify()
         }
 

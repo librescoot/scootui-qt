@@ -3,6 +3,7 @@
 EngineStore::EngineStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
+    s_instance = this;
 }
 
 SyncSettings EngineStore::syncSettings() const

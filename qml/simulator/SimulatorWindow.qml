@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import ScootUI
 
 ApplicationWindow {
     id: simWindow
@@ -33,25 +34,25 @@ ApplicationWindow {
                     text: "Cluster"; small: true
                     ButtonGroup.group: screenGroup
                     checkable: true; checked: true
-                    onClicked: screenStore.setScreen(0)
+                    onClicked: ScreenStore.setScreen(0)
                 }
                 SimButton {
                     text: "Map"; small: true
                     ButtonGroup.group: screenGroup
                     checkable: true
-                    onClicked: screenStore.setScreen(1)
+                    onClicked: ScreenStore.setScreen(1)
                 }
                 SimButton {
                     text: "Debug"; small: true
                     ButtonGroup.group: screenGroup
                     checkable: true
-                    onClicked: screenStore.setScreen(3)
+                    onClicked: ScreenStore.setScreen(3)
                 }
                 SimButton {
                     text: "About"; small: true
                     ButtonGroup.group: screenGroup
                     checkable: true
-                    onClicked: screenStore.setScreen(4)
+                    onClicked: ScreenStore.setScreen(4)
                 }
             }
 
@@ -103,12 +104,12 @@ ApplicationWindow {
                 SimButton {
                     text: "Disconnect"
                     color: "#f44336"
-                    onClicked: connectionStore.simulateUsbDisconnect(true)
+                    onClicked: ConnectionStore.simulateUsbDisconnect(true)
                 }
                 SimButton {
                     text: "Reconnect"
                     color: "#4caf50"
-                    onClicked: connectionStore.simulateUsbDisconnect(false)
+                    onClicked: ConnectionStore.simulateUsbDisconnect(false)
                 }
             }
 
@@ -182,9 +183,7 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     color: "#f44336"
                     onClicked: {
-                        if (typeof navigationService !== "undefined") {
-                            navigationService.clearNavigation()
-                        }
+                        NavigationService.clearNavigation()
                     }
                 }
             }

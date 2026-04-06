@@ -2,10 +2,16 @@
 
 #include "SyncableStore.h"
 #include "models/Enums.h"
+#include <QtQml/qqmlregistration.h>
+
+class QQmlEngine;
+class QJSEngine;
 
 class AuxBatteryStore : public SyncableStore
 {
     Q_OBJECT
+    QML_SINGLETON
+    QML_ELEMENT
     Q_PROPERTY(int dateStreamEnable READ dateStreamEnable NOTIFY dateStreamEnableChanged)
     Q_PROPERTY(int voltage READ voltage NOTIFY voltageChanged)
     Q_PROPERTY(int charge READ charge NOTIFY chargeChanged)
@@ -13,6 +19,7 @@ class AuxBatteryStore : public SyncableStore
 
 public:
     explicit AuxBatteryStore(MdbRepository *repo, QObject *parent = nullptr);
+    static AuxBatteryStore *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     int dateStreamEnable() const { return m_dateStreamEnable; }
     int voltage() const { return m_voltage; }
@@ -34,4 +41,5 @@ private:
     int m_voltage = 12500;
     int m_charge = 100;
     ScootEnums::AuxChargeStatus m_chargeStatus = ScootEnums::AuxChargeStatus::FloatCharge;
+    static inline AuxBatteryStore *s_instance = nullptr;
 };

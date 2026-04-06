@@ -3,6 +3,7 @@
 UsbStore::UsbStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
+    s_instance = this;
 }
 
 SyncSettings UsbStore::syncSettings() const

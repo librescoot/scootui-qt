@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import ScootUI
 
 Row {
     id: statusIndicators
@@ -7,29 +8,29 @@ Row {
     layoutDirection: Qt.RightToLeft
 
     // Theme-aware icon color (matches Flutter's ColorFilter.mode srcIn)
-    readonly property color iconColor: typeof themeStore !== "undefined" && !themeStore.isDark
+    readonly property color iconColor: !ThemeStore.isDark
                                         ? "#000000" : "#FFFFFF"
 
-    readonly property int gpsState: typeof gpsStore !== "undefined" ? gpsStore.gpsState : 0
-    readonly property bool gpsRecentFix: typeof gpsStore !== "undefined" ? gpsStore.hasRecentFix : false
-    readonly property bool gpsHasTimestamp: typeof gpsStore !== "undefined" ? gpsStore.hasTimestamp : false
-    readonly property int btStatus: typeof bluetoothStore !== "undefined" ? bluetoothStore.status : 1
-    readonly property string btServiceHealth: typeof bluetoothStore !== "undefined" ? bluetoothStore.serviceHealth : ""
-    readonly property int modemState: typeof internetStore !== "undefined" ? internetStore.modemState : 0
-    readonly property int cloudStatus: typeof internetStore !== "undefined" ? internetStore.unuCloud : 1
-    readonly property int signalQuality: typeof internetStore !== "undefined" ? internetStore.signalQuality : 0
-    readonly property string accessTech: typeof internetStore !== "undefined" ? internetStore.accessTech : ""
-    readonly property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : 0
-    readonly property bool otaActive: typeof otaStore !== "undefined" ? otaStore.isActive : false
-    readonly property string otaDbcStatus: typeof otaStore !== "undefined" ? otaStore.dbcStatus : "idle"
-    readonly property int otaDbcDownloadProgress: typeof otaStore !== "undefined" ? otaStore.dbcDownloadProgress : 0
-    readonly property int otaDbcInstallProgress: typeof otaStore !== "undefined" ? otaStore.dbcInstallProgress : 0
+    readonly property int gpsState: GpsStore.gpsState
+    readonly property bool gpsRecentFix: GpsStore.hasRecentFix
+    readonly property bool gpsHasTimestamp: GpsStore.hasTimestamp
+    readonly property int btStatus: BluetoothStore.status
+    readonly property string btServiceHealth: BluetoothStore.serviceHealth
+    readonly property int modemState: InternetStore.modemState
+    readonly property int cloudStatus: InternetStore.unuCloud
+    readonly property int signalQuality: InternetStore.signalQuality
+    readonly property string accessTech: InternetStore.accessTech
+    readonly property int vehicleState: VehicleStore.state
+    readonly property bool otaActive: OtaStore.isActive
+    readonly property string otaDbcStatus: OtaStore.dbcStatus
+    readonly property int otaDbcDownloadProgress: OtaStore.dbcDownloadProgress
+    readonly property int otaDbcInstallProgress: OtaStore.dbcInstallProgress
 
     // Visibility settings from SettingsStore (values: "always", "active-or-error", "error", "never")
-    readonly property string showGpsSetting: typeof settingsStore !== "undefined" ? settingsStore.showGps : "error"
-    readonly property string showBtSetting: typeof settingsStore !== "undefined" ? settingsStore.showBluetooth : "active-or-error"
-    readonly property string showCloudSetting: typeof settingsStore !== "undefined" ? settingsStore.showCloud : "never"
-    readonly property string showInternetSetting: typeof settingsStore !== "undefined" ? settingsStore.showInternet : "never"
+    readonly property string showGpsSetting: SettingsStore.showGps
+    readonly property string showBtSetting: SettingsStore.showBluetooth
+    readonly property string showCloudSetting: SettingsStore.showCloud
+    readonly property string showInternetSetting: SettingsStore.showInternet
 
     // Active/error state for each indicator (matches Flutter shouldShowIndicator logic)
     readonly property bool gpsIsActive: (gpsState === 0 && gpsRecentFix) || (gpsState === 2 && gpsRecentFix)
@@ -97,7 +98,7 @@ Row {
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.topMargin: 1
-            font.pixelSize: themeStore.fontMicro
+            font.pixelSize: ThemeStore.fontMicro
             font.weight: Font.Bold
             color: statusIndicators.iconColor
             visible: modemState >= 2 && accessTech !== ""
@@ -274,7 +275,7 @@ Row {
             Image {
                 anchors.fill: parent
                 sourceSize: Qt.size(24, 24)
-                source: (typeof themeStore !== "undefined" && themeStore.isDark)
+                source: (ThemeStore.isDark)
                     ? "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
                     : "qrc:/ScootUI/assets/icons/librescoot-overlay-error-light.svg"
                 visible: otaDbcStatus === "error" || otaDbcStatus === "error-failed"

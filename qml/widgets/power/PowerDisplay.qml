@@ -1,14 +1,15 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI
 
 Item {
     id: powerDisplay
 
-    readonly property real motorCurrent: typeof engineStore !== "undefined" ? engineStore.motorCurrent : 0
-    readonly property real motorVoltage: typeof engineStore !== "undefined" ? engineStore.motorVoltage : 0
+    readonly property real motorCurrent: EngineStore.motorCurrent
+    readonly property real motorVoltage: EngineStore.motorVoltage
 
     // 0 = kW (default), 1 = Amps
-    readonly property int displayMode: typeof settingsStore !== "undefined" ? settingsStore.powerDisplayMode : 0
+    readonly property int displayMode: SettingsStore.powerDisplayMode
     readonly property bool isAmpsMode: displayMode === 1
 
     // Current in A, Power in kW (voltage in mV × current in mA → W, /1e6 → kW)
@@ -50,21 +51,21 @@ Item {
 
             Text {
                 text: qsTr("Regen")
-                font.pixelSize: themeStore.fontCaption
+                font.pixelSize: ThemeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
                 font.capitalization: Font.AllUppercase
-                color: themeStore.textHint
+                color: ThemeStore.textHint
                 bottomPadding: -2
             }
             Item { Layout.fillWidth: true }
             Text {
                 text: qsTr("Discharge")
-                font.pixelSize: themeStore.fontCaption
+                font.pixelSize: ThemeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
                 font.capitalization: Font.AllUppercase
-                color: themeStore.textHint
+                color: ThemeStore.textHint
                 bottomPadding: -2
             }
         }
@@ -80,8 +81,8 @@ Item {
                 anchors.centerIn: parent
                 width: parent.width
                 height: 6
-                radius: themeStore.radiusBar
-                color: themeStore.isDark ? "#424242" : "#E0E0E0"
+                radius: ThemeStore.radiusBar
+                color: ThemeStore.isDark ? "#424242" : "#E0E0E0"
             }
 
             // Zero marker
@@ -90,7 +91,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 2
                 height: 8
-                color: themeStore.isDark ? "#66FFFFFF" : "#61000000"
+                color: ThemeStore.isDark ? "#66FFFFFF" : "#61000000"
             }
 
             // Regen bar (grows left from center)
@@ -98,7 +99,7 @@ Item {
                 visible: displayValue < -0.01
                 anchors.verticalCenter: parent.verticalCenter
                 height: 6
-                radius: themeStore.radiusBar
+                radius: ThemeStore.radiusBar
                 width: Math.min(Math.abs(displayValue) / maxRegen, 1.0) * (parent.width / 2)
                 x: parent.width / 2 - width
                 color: "#43A047"
@@ -110,7 +111,7 @@ Item {
                 x: parent.width / 2
                 anchors.verticalCenter: parent.verticalCenter
                 height: 6
-                radius: themeStore.radiusBar
+                radius: ThemeStore.radiusBar
                 width: Math.min(displayValue / maxDischarge, 1.0) * (parent.width / 2)
                 color: isAmpsMode && displayValue > boostThresholdA ? "#FB8C00" : "#1E88E5"
             }
@@ -120,8 +121,8 @@ Item {
         Text {
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: 1
-            font.pixelSize: themeStore.fontBody
-            color: themeStore.textHint
+            font.pixelSize: ThemeStore.fontBody
+            color: ThemeStore.textHint
             text: {
                 var absVal = Math.abs(displayValue)
                 if (absVal < 0.01) return "0 " + unit

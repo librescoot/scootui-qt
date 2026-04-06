@@ -1,4 +1,6 @@
 import QtQuick
+import QtQuick.Effects
+import ScootUI
 
 Row {
     id: batteryDisplay
@@ -6,9 +8,9 @@ Row {
     height: 24
 
     // Theme-aware icon color (matches Flutter's ColorFilter.mode srcIn)
-    readonly property color iconColor: typeof themeStore !== "undefined" && !themeStore.isDark
+    readonly property color iconColor: !ThemeStore.isDark
                                         ? "#000000" : "#FFFFFF"
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: ThemeStore.isDark
 
     // --- Enum int values ---
     // BatteryState: Unknown=0, Asleep=1, Idle=2, Active=3
@@ -26,25 +28,24 @@ Row {
     readonly property int acsNotCharging: 0
 
     // --- Battery 0 ---
-    readonly property int charge0: typeof battery0Store !== "undefined" ? battery0Store.charge : 0
-    readonly property bool present0: typeof battery0Store !== "undefined" ? battery0Store.present : false
-    readonly property int soh0: typeof battery0Store !== "undefined" ? battery0Store.stateOfHealth : 100
-    readonly property int battState0: typeof battery0Store !== "undefined" ? battery0Store.batteryState : 0
-    readonly property var faults0: typeof battery0Store !== "undefined" ? battery0Store.faults : []
+    readonly property int charge0: Battery0Store.charge
+    readonly property bool present0: Battery0Store.present
+    readonly property int soh0: Battery0Store.stateOfHealth
+    readonly property int battState0: Battery0Store.batteryState
+    readonly property var faults0: Battery0Store.faults
     readonly property bool hasFault0: present0 && faults0.length > 0
 
     // --- Battery 1 ---
-    readonly property int charge1: typeof battery1Store !== "undefined" ? battery1Store.charge : 0
-    readonly property bool present1: typeof battery1Store !== "undefined" ? battery1Store.present : false
-    readonly property int soh1: typeof battery1Store !== "undefined" ? battery1Store.stateOfHealth : 100
-    readonly property int battState1: typeof battery1Store !== "undefined" ? battery1Store.batteryState : 0
-    readonly property var faults1: typeof battery1Store !== "undefined" ? battery1Store.faults : []
+    readonly property int charge1: Battery1Store.charge
+    readonly property bool present1: Battery1Store.present
+    readonly property int soh1: Battery1Store.stateOfHealth
+    readonly property int battState1: Battery1Store.batteryState
+    readonly property var faults1: Battery1Store.faults
     readonly property bool hasFault1: present1 && faults1.length > 0
     readonly property bool showDual: present1
 
     // --- Battery display mode ---
-    readonly property bool showAsRange: typeof settingsStore !== "undefined"
-                                         && settingsStore.batteryDisplayMode === "range"
+    readonly property bool showAsRange: SettingsStore.batteryDisplayMode === "range"
 
     function rangeText(charge, soh) {
         var rangeKm = 45.0 * (soh / 100.0) * (charge / 100.0)
@@ -58,12 +59,11 @@ Row {
             if (charge <= 10) return "#FF0000"
             if (charge <= 20) return "#FF7900"
         }
-        return themeStore.textColor
+        return ThemeStore.textColor
     }
 
     // --- Seatbox ---
-    readonly property bool seatboxOpen: typeof vehicleStore !== "undefined"
-                                         ? vehicleStore.seatboxLock !== slClosed : false
+    readonly property bool seatboxOpen: VehicleStore.seatboxLock !== slClosed
 
     // --- Turtle mode ---
     readonly property bool showTurtle: present0 && charge0 <= 20
@@ -71,34 +71,34 @@ Row {
     // --- Battery warning conditions ---
     // CB warning: charge < 95%, not charging, main present & active, seatbox closed
     readonly property bool cbWarningCondition: {
-        if (typeof cbBatteryStore === "undefined" || typeof vehicleStore === "undefined") return false
-        return cbBatteryStore.charge < 95
-            && cbBatteryStore.chargeStatus === csNotCharging
+        // types always defined
+        return CbBatteryStore.charge < 95
+            && CbBatteryStore.chargeStatus === csNotCharging
             && present0 && charge0 > 0 && battState0 === bsActive
-            && vehicleStore.seatboxLock === slClosed
+            && VehicleStore.seatboxLock === slClosed
     }
     // AUX low charge: charge ≤ 25%, not charging, main present & active, seatbox closed
     readonly property bool auxLowChargeCondition: {
-        if (typeof auxBatteryStore === "undefined" || typeof vehicleStore === "undefined") return false
-        return auxBatteryStore.charge <= 25
-            && auxBatteryStore.chargeStatus === acsNotCharging
+        // types always defined
+        return AuxBatteryStore.charge <= 25
+            && AuxBatteryStore.chargeStatus === acsNotCharging
             && present0 && charge0 > 0 && battState0 === bsActive
-            && vehicleStore.seatboxLock === slClosed
+            && VehicleStore.seatboxLock === slClosed
     }
     // AUX low voltage: voltage < 11500mV, not charging, main present, seatbox closed
     readonly property bool auxLowVoltageCondition: {
-        if (typeof auxBatteryStore === "undefined" || typeof vehicleStore === "undefined") return false
-        return auxBatteryStore.voltage < 11500
-            && auxBatteryStore.chargeStatus === acsNotCharging
+        // types always defined
+        return AuxBatteryStore.voltage < 11500
+            && AuxBatteryStore.chargeStatus === acsNotCharging
             && present0
-            && vehicleStore.seatboxLock === slClosed
+            && VehicleStore.seatboxLock === slClosed
     }
     // AUX critical voltage: voltage < 11000mV, main present, seatbox closed
     readonly property bool auxCriticalCondition: {
-        if (typeof auxBatteryStore === "undefined" || typeof vehicleStore === "undefined") return false
-        return auxBatteryStore.voltage < 11000
+        // types always defined
+        return AuxBatteryStore.voltage < 11000
             && present0
-            && vehicleStore.seatboxLock === slClosed
+            && VehicleStore.seatboxLock === slClosed
     }
 
     // --- 3-second debounce for warning indicators (matching Flutter) ---
@@ -171,7 +171,7 @@ Row {
     Text {
         anchors.verticalCenter: parent.verticalCenter
         text: present0 ? (showAsRange ? rangeText(charge0, soh0) : charge0 + "%") : ""
-        font.pixelSize: themeStore.fontBody
+        font.pixelSize: ThemeStore.fontBody
         font.weight: Font.DemiBold
         font.letterSpacing: -1.1
         color: chargeLabelColor(charge0, true)
@@ -199,7 +199,7 @@ Row {
         anchors.verticalCenter: parent.verticalCenter
         visible: batteryDisplay.showDual
         text: present1 ? (showAsRange ? rangeText(charge1, soh1) : charge1 + "%") : ""
-        font.pixelSize: themeStore.fontBody
+        font.pixelSize: ThemeStore.fontBody
         font.weight: Font.DemiBold
         font.letterSpacing: -1.1
         color: chargeLabelColor(charge1, false)

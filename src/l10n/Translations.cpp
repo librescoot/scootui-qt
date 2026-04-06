@@ -3,6 +3,7 @@
 Translations::Translations(QObject *parent)
     : QObject(parent)
 {
+    s_instance = this;
     initStrings();
 }
 

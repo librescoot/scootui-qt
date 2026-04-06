@@ -8,6 +8,7 @@ InputHandler::InputHandler(VehicleStore *vehicle, MenuStore *menu, QObject *pare
     , m_vehicle(vehicle)
     , m_menu(menu)
 {
+    s_instance = this;
     // Double-tap timer for left brake (menu open gesture)
     m_left.doubleTapTimer = new QTimer(this);
     m_left.doubleTapTimer->setSingleShot(true);

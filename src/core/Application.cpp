@@ -85,7 +85,6 @@ bool Application::initialize(QQmlApplicationEngine &engine)
         qDebug() << "Using InMemoryMdbRepository (simulator mode)";
         m_repository = std::make_unique<InMemoryMdbRepository>();
         m_simulatorMode = true;
-        // Use online routing in simulator (no local Valhalla server)
         m_repository->set(QStringLiteral("settings"),
                           QLatin1String(AppConfig::valhallaEndpointKey),
                           QLatin1String(AppConfig::valhallaOnlineEndpoint));
@@ -94,94 +93,112 @@ bool Application::initialize(QQmlApplicationEngine &engine)
         m_repository = std::make_unique<RedisMdbRepository>(redisHost, 6379, QStringLiteral("192.168.8.1"));
     }
 
-    createStores(engine);
+    createStores();
+    createServices();
+    wireSignals();
+    registerQmlSingletons(engine);
     registerContextProperties(engine);
+    startStoresAndWorker();
     setupSignalHandlers();
 
     return true;
 }
 
-void Application::createStores(QQmlApplicationEngine &engine)
+void Application::createStores()
 {
     auto *repo = m_repository.get();
 
-    // Core stores (M1)
-    auto *engineStore = new EngineStore(repo, this);
-    auto *vehicleStore = new VehicleStore(repo, this);
-    auto *battery0Store = new BatteryStore(repo, QStringLiteral("0"), this);
-    auto *battery1Store = new BatteryStore(repo, QStringLiteral("1"), this);
-    auto *gpsStore = new GpsStore(repo, this);
-    auto *bluetoothStore = new BluetoothStore(repo, this);
-    auto *internetStore = new InternetStore(repo, this);
-    auto *navigationStore = new NavigationStore(repo, this);
-    auto *settingsStore = new SettingsStore(repo, this);
+    m_engineStore = new EngineStore(repo, this);
+    m_vehicleStore = new VehicleStore(repo, this);
+    m_battery0Store = new BatteryStore(repo, QStringLiteral("0"), this);
+    m_battery1Store = new BatteryStore(repo, QStringLiteral("1"), this);
+    Battery0StoreForeign::s_instance = m_battery0Store;
+    Battery1StoreForeign::s_instance = m_battery1Store;
+    m_gpsStore = new GpsStore(repo, this);
+    m_bluetoothStore = new BluetoothStore(repo, this);
+    m_internetStore = new InternetStore(repo, this);
+    m_navigationStore = new NavigationStore(repo, this);
+    m_settingsStore = new SettingsStore(repo, this);
     if (m_simulatorMode)
-        settingsStore->refreshAllFields();
-    auto *otaStore = new OtaStore(repo, this);
-    auto *usbStore = new UsbStore(repo, this);
-    auto *umsLogStore = new UmsLogStore(repo, this);
-    auto *speedLimitStore = new SpeedLimitStore(repo, this);
-    auto *autoStandbyStore = new AutoStandbyStore(repo, this);
-    auto *cbBatteryStore = new CbBatteryStore(repo, this);
-    auto *auxBatteryStore = new AuxBatteryStore(repo, this);
-    auto *themeStore = new ThemeStore(settingsStore, this);
-    auto *screenStore = new ScreenStore(settingsStore, this);
-    auto *tripStore = new TripStore(engineStore, vehicleStore, this);
+        m_settingsStore->refreshAllFields();
+    m_otaStore = new OtaStore(repo, this);
+    m_usbStore = new UsbStore(repo, this);
+    m_umsLogStore = new UmsLogStore(repo, this);
+    m_speedLimitStore = new SpeedLimitStore(repo, this);
+    m_autoStandbyStore = new AutoStandbyStore(repo, this);
+    m_cbBatteryStore = new CbBatteryStore(repo, this);
+    m_auxBatteryStore = new AuxBatteryStore(repo, this);
+    m_themeStore = new ThemeStore(m_settingsStore, this);
+    m_screenStore = new ScreenStore(m_settingsStore, this);
+    m_tripStore = new TripStore(m_engineStore, m_vehicleStore, this);
     m_shutdownStore = new ShutdownStore(this);
-    auto *shutdownStore = m_shutdownStore;
-    auto *localeStore = new LocaleStore(settingsStore, this);
+    m_localeStore = new LocaleStore(m_settingsStore, this);
+    m_connectionStore = new ConnectionStore(repo, this);
+    m_dashboardStore = new DashboardStore(repo, this);
+}
 
-    // New stores
-    auto *connectionStore = new ConnectionStore(repo, this);
-    auto *dashboardStore = new DashboardStore(repo, this);
+void Application::createServices()
+{
+    auto *repo = m_repository.get();
 
-    // M5: Services
     m_settingsService = new SettingsService(repo, this);
     m_translations = new Translations(this);
-    m_autoThemeService = new AutoThemeService(repo, themeStore, this);
+    m_autoThemeService = new AutoThemeService(repo, m_themeStore, this);
     m_toastService = new ToastService(this);
     m_serialNumberService = new SerialNumberService(this);
     m_systemInfoService = new SystemInfoService(repo, this);
 
-    // Address database (for destination code lookup)
     m_addressDatabaseService = new AddressDatabaseService(this);
     m_addressDatabaseService->initialize();
 
-    // M7: Navigation service
-    m_navigationService = new NavigationService(gpsStore, navigationStore, vehicleStore,
-                                                 settingsStore, speedLimitStore, repo, this);
+    m_navigationService = new NavigationService(m_gpsStore, m_navigationStore, m_vehicleStore,
+                                                 m_settingsStore, m_speedLimitStore, repo, this);
 
-    // Show toast on navigation errors so the user knows what went wrong
+    m_roadInfoService = new RoadInfoService(m_gpsStore, m_speedLimitStore, this);
+
+    m_mapService = new MapService(m_gpsStore, m_engineStore, m_navigationService,
+                                   m_settingsStore, m_themeStore, m_speedLimitStore, this);
+
+    m_navAvailability = new NavigationAvailabilityService(m_settingsStore, m_internetStore, repo, this);
+
+    m_mapDownloadService = new MapDownloadService(m_simulatorMode, this);
+
+    m_savedLocationsService = new SavedLocationsService(repo, this);
+    m_savedLocationsStore = new SavedLocationsStore(
+        repo, m_savedLocationsService, m_gpsStore, m_roadInfoService,
+        m_navigationService, m_toastService, this);
+
+    m_lowTempMonitor = new LowTemperatureMonitor(m_engineStore, m_battery0Store,
+                                                   m_cbBatteryStore, m_toastService, this);
+    m_bleHealthMonitor = new BluetoothHealthMonitor(m_bluetoothStore, m_toastService, this);
+    m_handlebarLockMonitor = new HandlebarLockMonitor(m_vehicleStore, m_toastService, this);
+
+    m_menuStore = new MenuStore(m_settingsStore, m_vehicleStore, m_themeStore,
+                                m_tripStore, m_translations, m_settingsService,
+                                repo, this);
+    m_menuStore->setSavedLocationsStore(m_savedLocationsStore);
+    m_menuStore->setScreenStore(m_screenStore);
+    m_menuStore->setNavigationService(m_navigationService);
+    m_menuStore->setNavigationAvailabilityService(m_navAvailability);
+    m_menuStore->setInternetStore(m_internetStore);
+
+    m_shortcutMenuStore = new ShortcutMenuStore(m_themeStore, m_vehicleStore, m_screenStore,
+                                                m_dashboardStore, repo, m_settingsService, this);
+
+    m_inputHandler = new InputHandler(m_vehicleStore, m_menuStore, this);
+
+    if (m_simulatorMode)
+        m_simulatorService = new SimulatorService(repo, m_navigationService, this);
+}
+
+void Application::wireSignals()
+{
+    // Navigation error toasts
     connect(m_navigationService, &NavigationService::errorChanged, this, [this]() {
         QString msg = m_navigationService->errorMessage();
         if (!msg.isEmpty())
             m_toastService->showError(msg);
     });
-
-    // Road info service (extracts street name + speed limit from vector tiles)
-    m_roadInfoService = new RoadInfoService(gpsStore, speedLimitStore, this);
-
-    // Map service (A2)
-    m_mapService = new MapService(gpsStore, engineStore, m_navigationService,
-                                   settingsStore, themeStore, speedLimitStore, this);
-
-    // Navigation availability (B6)
-    m_navAvailability = new NavigationAvailabilityService(settingsStore, internetStore, repo, this);
-
-    // Map download service
-    m_mapDownloadService = new MapDownloadService(m_simulatorMode, this);
-
-    // Saved locations (B7)
-    m_savedLocationsService = new SavedLocationsService(repo, this);
-    auto *savedLocationsStore = new SavedLocationsStore(
-        repo, m_savedLocationsService, gpsStore, m_roadInfoService,
-        m_navigationService, m_toastService, this);
-
-    // Monitoring services (B3, B4)
-    m_lowTempMonitor = new LowTemperatureMonitor(engineStore, battery0Store,
-                                                   cbBatteryStore, m_toastService, this);
-    m_bleHealthMonitor = new BluetoothHealthMonitor(bluetoothStore, m_toastService, this);
-    m_handlebarLockMonitor = new HandlebarLockMonitor(vehicleStore, m_toastService, this);
 
     // Battery fault monitoring
     auto connectFaultMonitor = [this](BatteryStore *batteryStore) {
@@ -211,141 +228,75 @@ void Application::createStores(QQmlApplicationEngine &engine)
             }
         });
     };
-    connectFaultMonitor(battery0Store);
-    connectFaultMonitor(battery1Store);
+    connectFaultMonitor(m_battery0Store);
+    connectFaultMonitor(m_battery1Store);
 
-    // Wire UMS log polling to USB status
-    connect(usbStore, &UsbStore::statusChanged, this, [usbStore, umsLogStore]() {
-        const QString &status = usbStore->status();
+    // UMS log polling driven by USB status
+    connect(m_usbStore, &UsbStore::statusChanged, this, [this]() {
+        const QString &status = m_usbStore->status();
         if (status == QLatin1String("processing")) {
-            umsLogStore->startPolling();
+            m_umsLogStore->startPolling();
         } else if (status == QLatin1String("idle")) {
-            umsLogStore->stopPolling();
-            umsLogStore->clear();
+            m_umsLogStore->stopPolling();
+            m_umsLogStore->clear();
         } else {
-            umsLogStore->stopPolling();
+            m_umsLogStore->stopPolling();
         }
     });
 
-    // M5: Wire translations to locale
-    connect(localeStore, &LocaleStore::languageChanged, m_translations, [this, localeStore]() {
-        m_translations->setLanguage(localeStore->language());
+    // Translations follow locale
+    connect(m_localeStore, &LocaleStore::languageChanged, m_translations, [this]() {
+        m_translations->setLanguage(m_localeStore->language());
     });
-    m_translations->setLanguage(localeStore->language());
+    m_translations->setLanguage(m_localeStore->language());
 
-    // M5: Wire auto-theme to settings
-    connect(settingsStore, &SettingsStore::themeChanged, this, [this, settingsStore]() {
-        m_autoThemeService->setEnabled(settingsStore->theme() == QLatin1String("auto"));
+    // Auto-theme follows settings
+    connect(m_settingsStore, &SettingsStore::themeChanged, this, [this]() {
+        m_autoThemeService->setEnabled(m_settingsStore->theme() == QLatin1String("auto"));
     });
-    if (settingsStore->theme() == QLatin1String("auto")) {
+    if (m_settingsStore->theme() == QLatin1String("auto")) {
         m_autoThemeService->setEnabled(true);
     }
 
-    // M5: MenuStore with full dependencies
-    auto *menuStore = new MenuStore(settingsStore, vehicleStore, themeStore,
-                                    tripStore, m_translations, m_settingsService,
-                                    repo, this);
+    // Shutdown reacts to vehicle state
+    m_shutdownStore->connectToVehicle(m_vehicleStore);
+}
 
-    // Wire saved locations, screen store, navigation, and availability into menu
-    menuStore->setSavedLocationsStore(savedLocationsStore);
-    menuStore->setScreenStore(screenStore);
-    menuStore->setNavigationService(m_navigationService);
-    menuStore->setNavigationAvailabilityService(m_navAvailability);
-    menuStore->setInternetStore(internetStore);
-
-    // M5: ShortcutMenuStore
-    auto *shortcutMenuStore = new ShortcutMenuStore(themeStore, vehicleStore, screenStore, dashboardStore, repo, m_settingsService, this);
-
-    // Input handler: brake gesture detection → menu control
-    m_inputHandler = new InputHandler(vehicleStore, menuStore, this);
-
-    // M6: Wire shutdown to vehicle state monitoring
-    m_shutdownStore->connectToVehicle(vehicleStore);
-
-    // Register context properties
+void Application::registerQmlSingletons(QQmlApplicationEngine &engine)
+{
     auto *ctx = engine.rootContext();
-    ctx->setContextProperty(QStringLiteral("engineStore"), engineStore);
-    ctx->setContextProperty(QStringLiteral("vehicleStore"), vehicleStore);
-    ctx->setContextProperty(QStringLiteral("battery0Store"), battery0Store);
-    ctx->setContextProperty(QStringLiteral("battery1Store"), battery1Store);
-    ctx->setContextProperty(QStringLiteral("gpsStore"), gpsStore);
-    ctx->setContextProperty(QStringLiteral("bluetoothStore"), bluetoothStore);
-    ctx->setContextProperty(QStringLiteral("internetStore"), internetStore);
-    ctx->setContextProperty(QStringLiteral("navigationStore"), navigationStore);
-    ctx->setContextProperty(QStringLiteral("settingsStore"), settingsStore);
-    ctx->setContextProperty(QStringLiteral("otaStore"), otaStore);
-    ctx->setContextProperty(QStringLiteral("usbStore"), usbStore);
-    ctx->setContextProperty(QStringLiteral("speedLimitStore"), speedLimitStore);
-    ctx->setContextProperty(QStringLiteral("autoStandbyStore"), autoStandbyStore);
-    ctx->setContextProperty(QStringLiteral("cbBatteryStore"), cbBatteryStore);
-    ctx->setContextProperty(QStringLiteral("auxBatteryStore"), auxBatteryStore);
-    ctx->setContextProperty(QStringLiteral("themeStore"), themeStore);
-    ctx->setContextProperty(QStringLiteral("screenStore"), screenStore);
-    ctx->setContextProperty(QStringLiteral("menuStore"), menuStore);
-    ctx->setContextProperty(QStringLiteral("tripStore"), tripStore);
-    ctx->setContextProperty(QStringLiteral("shutdownStore"), shutdownStore);
-    ctx->setContextProperty(QStringLiteral("localeStore"), localeStore);
-    ctx->setContextProperty(QStringLiteral("shortcutMenuStore"), shortcutMenuStore);
-    ctx->setContextProperty(QStringLiteral("translations"), m_translations);
-    ctx->setContextProperty(QStringLiteral("settingsService"), m_settingsService);
-    ctx->setContextProperty(QStringLiteral("navigationService"), m_navigationService);
-
-    // New context properties
-    ctx->setContextProperty(QStringLiteral("connectionStore"), connectionStore);
-    ctx->setContextProperty(QStringLiteral("dashboardStore"), dashboardStore);
-    ctx->setContextProperty(QStringLiteral("toastService"), m_toastService);
-    ctx->setContextProperty(QStringLiteral("mapService"), m_mapService);
-    ctx->setContextProperty(QStringLiteral("inputHandler"), m_inputHandler);
-    ctx->setContextProperty(QStringLiteral("navAvailabilityService"), m_navAvailability);
-    ctx->setContextProperty(QStringLiteral("savedLocationsStore"), savedLocationsStore);
-    ctx->setContextProperty(QStringLiteral("serialNumberService"), m_serialNumberService);
-    ctx->setContextProperty(QStringLiteral("addressDatabase"), m_addressDatabaseService);
-    ctx->setContextProperty(QStringLiteral("mapDownloadService"), m_mapDownloadService);
-    ctx->setContextProperty(QStringLiteral("umsLogStore"), umsLogStore);
-    ctx->setContextProperty(QStringLiteral("systemInfoService"), m_systemInfoService);
-
-    // Simulator service (created in sim mode, null otherwise)
     if (m_simulatorMode) {
-        m_simulatorService = new SimulatorService(repo, m_navigationService, this);
         ctx->setContextProperty(QStringLiteral("simulator"), m_simulatorService);
         ctx->setContextProperty(QStringLiteral("simulatorMode"), true);
     } else {
         ctx->setContextProperty(QStringLiteral("simulator"), nullptr);
         ctx->setContextProperty(QStringLiteral("simulatorMode"), false);
     }
+}
 
-    // Store references for lifecycle management
-    m_stores = {engineStore, vehicleStore, battery0Store, battery1Store,
-                gpsStore, bluetoothStore, internetStore, navigationStore,
-                settingsStore, otaStore, usbStore, speedLimitStore,
-                autoStandbyStore, cbBatteryStore, auxBatteryStore, dashboardStore};
+void Application::startStoresAndWorker()
+{
+    auto *repo = m_repository.get();
 
-    // Start all syncable stores (registers their channels with the repo)
+    m_stores = {m_engineStore, m_vehicleStore, m_battery0Store, m_battery1Store,
+                m_gpsStore, m_bluetoothStore, m_internetStore, m_navigationStore,
+                m_settingsStore, m_otaStore, m_usbStore, m_speedLimitStore,
+                m_autoStandbyStore, m_cbBatteryStore, m_auxBatteryStore, m_dashboardStore};
+
     for (auto *store : m_stores) {
         if (auto *syncable = qobject_cast<SyncableStore*>(store)) {
             syncable->start();
         }
     }
 
-    // Register infrequently-polled channels not covered by any store
     repo->registerPollChannel(QStringLiteral("system"), 30000);
     repo->registerPollChannel(QStringLiteral("version:mdb"), 30000);
     repo->registerPollChannel(QStringLiteral("version:dbc"), 30000);
 
-    // Start the Redis worker thread (after all channels are registered)
     if (auto *redisRepo = qobject_cast<RedisMdbRepository*>(repo)) {
         redisRepo->startWorker();
     }
 
-    // Debug: log battery store state after initial sync
-    qDebug() << "Battery0 after start: present=" << battery0Store->present()
-             << "state=" << battery0Store->batteryState()
-             << "charge=" << battery0Store->charge();
-    qDebug() << "Battery1 after start: present=" << battery1Store->present()
-             << "state=" << battery1Store->batteryState()
-             << "charge=" << battery1Store->charge();
-
-    // Notify other services that the dashboard is ready (on startup and every reconnect)
     auto publishReady = [repo, this]() {
         if (m_serialNumberService->available()) {
             repo->set(QStringLiteral("dashboard"), QStringLiteral("serial-number"),
@@ -358,8 +309,6 @@ void Application::createStores(QQmlApplicationEngine &engine)
             publishReady();
     });
     publishReady();
-
-    qDebug() << "All stores created and started (M5: menu, settings, translations, auto-theme, toast, map, nav-availability, saved-locations, serial-number)";
 }
 
 void Application::registerContextProperties(QQmlApplicationEngine &engine)

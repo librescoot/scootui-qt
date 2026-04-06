@@ -24,6 +24,7 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
     , m_speedLimit(speedLimit)
     , m_repo(repo)
 {
+    s_instance = this;
     m_valhalla = new ValhallaClient(this);
 
     // Set endpoint and language from settings

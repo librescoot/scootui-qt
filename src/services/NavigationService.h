@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QTimer>
 #include <QElapsedTimer>
+#include <QtQml/qqmlregistration.h>
 #include "routing/RouteModels.h"
 
 class GpsStore;
@@ -13,9 +14,14 @@ class SpeedLimitStore;
 class ValhallaClient;
 class MdbRepository;
 
+class QQmlEngine;
+class QJSEngine;
+
 class NavigationService : public QObject
 {
     Q_OBJECT
+    QML_SINGLETON
+    QML_ELEMENT
 
     // Navigation status
     Q_PROPERTY(int status READ status NOTIFY statusChanged)
@@ -59,6 +65,7 @@ public:
                                 VehicleStore *vehicle, SettingsStore *settings,
                                 SpeedLimitStore *speedLimit, MdbRepository *repo,
                                 QObject *parent = nullptr);
+    static NavigationService *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     int status() const { return static_cast<int>(m_status); }
     bool isNavigating() const { return m_status == NavigationStatus::Navigating; }
@@ -154,4 +161,5 @@ private:
     bool m_wasArrived = false;
 
     QTimer *m_navDataDebounce = nullptr;
+    static inline NavigationService *s_instance = nullptr;
 };
