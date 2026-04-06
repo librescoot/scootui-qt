@@ -189,6 +189,7 @@ class Translations : public QObject
     Q_PROPERTY(QString navArrivedAtDestination READ navArrivedAtDestination NOTIFY languageChanged)
     Q_PROPERTY(QString navOffRouteRerouting READ navOffRouteRerouting NOTIFY languageChanged)
     Q_PROPERTY(QString navCouldNotCalculateNewRoute READ navCouldNotCalculateNewRoute NOTIFY languageChanged)
+    Q_PROPERTY(QString navRouteError READ navRouteError NOTIFY languageChanged)
 
     // Navigation short instructions
     Q_PROPERTY(QString navShortContinueStraight READ navShortContinueStraight NOTIFY languageChanged)
@@ -520,6 +521,7 @@ public:
     QString navArrivedAtDestination() const { return lookup("navArrivedAtDestination"); }
     QString navOffRouteRerouting() const { return lookup("navOffRouteRerouting"); }
     QString navCouldNotCalculateNewRoute() const { return lookup("navCouldNotCalculateNewRoute"); }
+    QString navRouteError() const { return lookup("navRouteError"); }
 
     // Nav short instructions
     QString navShortContinueStraight() const { return lookup("navShortContinueStraight"); }

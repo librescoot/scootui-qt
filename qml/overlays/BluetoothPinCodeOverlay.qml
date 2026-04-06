@@ -43,7 +43,7 @@ Item {
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: "Enter the PIN on your device"
+                text: translations.blePinPrompt
                 font.pixelSize: themeStore.fontTitle
                 color: "#FFFFFF"
             }

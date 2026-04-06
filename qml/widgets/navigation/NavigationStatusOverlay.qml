@@ -100,12 +100,12 @@ Item {
             Text {
                 text: {
                     switch (navStatusOverlay.navStatus) {
-                        case statusCalculating: return "Calculating route..."
-                        case statusRerouting: return "Recalculating..."
-                        case statusArrived: return "You have arrived"
+                        case statusCalculating: return translations.navCalculating
+                        case statusRerouting: return translations.navRecalculating
+                        case statusArrived: return translations.navArrived
                         case statusError:
                             return typeof navigationService !== "undefined"
-                                   ? navigationService.errorMessage : "Route error"
+                                   ? navigationService.errorMessage : translations.navRouteError
                         default: return ""
                     }
                 }
@@ -142,7 +142,7 @@ Item {
             }
 
             Text {
-                text: "Off route"
+                text: translations.navOffRoute
                 font.pixelSize: themeStore.fontBody
                 font.weight: Font.Bold
                 color: "white"

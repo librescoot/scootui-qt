@@ -565,6 +565,9 @@ void Translations::initStrings()
     en[QStringLiteral("navCouldNotCalculateNewRoute")] = QStringLiteral("Could not calculate new route");
     de[QStringLiteral("navCouldNotCalculateNewRoute")] = QStringLiteral("Neue Route konnte nicht berechnet werden");
 
+    en[QStringLiteral("navRouteError")] = QStringLiteral("Route error");
+    de[QStringLiteral("navRouteError")] = QStringLiteral("Routenfehler");
+
     // -----------------------------------------------------------------------
     // Navigation short instructions
     // -----------------------------------------------------------------------
