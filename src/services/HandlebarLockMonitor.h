@@ -18,7 +18,7 @@ private slots:
     void evaluate();
 
 private:
-    static constexpr int DelayMs = 2000;
+    static constexpr int DelayMs = 1200;
     static const QString ToastId;
 
     VehicleStore *m_vehicle;

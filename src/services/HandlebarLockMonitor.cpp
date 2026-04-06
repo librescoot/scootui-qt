@@ -15,7 +15,10 @@ HandlebarLockMonitor::HandlebarLockMonitor(VehicleStore *vehicle, ToastService *
     m_delayTimer->setSingleShot(true);
     m_delayTimer->setInterval(DelayMs);
     connect(m_delayTimer, &QTimer::timeout, this, [this]() {
-        if (m_vehicle->isReadyToDrive() &&
+        auto state = static_cast<ScootEnums::ScooterState>(m_vehicle->state());
+        bool activeState = (state == ScootEnums::ScooterState::ReadyToDrive ||
+                            state == ScootEnums::ScooterState::Parked);
+        if (activeState &&
             m_vehicle->handleBarLockSensor() == static_cast<int>(ScootEnums::HandleBarLockSensor::Locked)) {
             m_showing = true;
             m_toast->showPermanentWarning(tr("Handlebar lock is still engaged"), ToastId);
@@ -28,10 +31,15 @@ HandlebarLockMonitor::HandlebarLockMonitor(VehicleStore *vehicle, ToastService *
 
 void HandlebarLockMonitor::evaluate()
 {
-    bool readyToDrive = m_vehicle->isReadyToDrive();
-    bool locked = m_vehicle->handleBarLockSensor() == static_cast<int>(ScootEnums::HandleBarLockSensor::Locked);
+    auto state = static_cast<ScootEnums::ScooterState>(m_vehicle->state());
+    bool activeState = (state == ScootEnums::ScooterState::ReadyToDrive ||
+                        state == ScootEnums::ScooterState::Parked);
+    auto lockSensor = static_cast<ScootEnums::HandleBarLockSensor>(m_vehicle->handleBarLockSensor());
 
-    if (readyToDrive && locked) {
+    if (lockSensor == ScootEnums::HandleBarLockSensor::Unknown)
+        return;
+
+    if (activeState && lockSensor == ScootEnums::HandleBarLockSensor::Locked) {
         if (!m_showing && !m_delayTimer->isActive())
             m_delayTimer->start();
     } else {

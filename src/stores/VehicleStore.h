@@ -18,7 +18,7 @@ class VehicleStore : public SyncableStore
     Q_PROPERTY(int state READ state NOTIFY stateChanged)
     Q_PROPERTY(QString stateRaw READ stateRaw NOTIFY stateRawChanged)
     Q_PROPERTY(int handleBarLockSensor READ handleBarLockSensor NOTIFY handleBarLockSensorChanged)
-    Q_PROPERTY(int handleBarPosition READ handleBarPosition NOTIFY handleBarPositionChanged)
+    Q_PROPERTY(bool handlebarInLockPosition READ handlebarInLockPosition NOTIFY handlebarInLockPositionChanged)
     Q_PROPERTY(int seatboxButton READ seatboxButton NOTIFY seatboxButtonChanged)
     Q_PROPERTY(int seatboxLock READ seatboxLock NOTIFY seatboxLockChanged)
     Q_PROPERTY(int hornButton READ hornButton NOTIFY hornButtonChanged)
@@ -36,7 +36,7 @@ public:
     int state() const { return static_cast<int>(m_state); }
     QString stateRaw() const { return m_stateRaw; }
     int handleBarLockSensor() const { return static_cast<int>(m_handleBarLockSensor); }
-    int handleBarPosition() const { return static_cast<int>(m_handleBarPosition); }
+    bool handlebarInLockPosition() const { return m_handlebarInLockPosition; }
     int seatboxButton() const { return static_cast<int>(m_seatboxButton); }
     int seatboxLock() const { return static_cast<int>(m_seatboxLock); }
     int hornButton() const { return static_cast<int>(m_hornButton); }
@@ -59,7 +59,7 @@ signals:
     void stateChanged();
     void stateRawChanged();
     void handleBarLockSensorChanged();
-    void handleBarPositionChanged();
+    void handlebarInLockPositionChanged();
     void seatboxButtonChanged();
     void seatboxLockChanged();
     void hornButtonChanged();
@@ -85,8 +85,8 @@ private:
     ScootEnums::Kickstand m_kickstand = ScootEnums::Kickstand::Down;
     ScootEnums::ScooterState m_state = ScootEnums::ScooterState::Unknown;
     QString m_stateRaw;
-    ScootEnums::HandleBarLockSensor m_handleBarLockSensor = ScootEnums::HandleBarLockSensor::Locked;
-    ScootEnums::HandleBarPosition m_handleBarPosition = ScootEnums::HandleBarPosition::OnPlace;
+    ScootEnums::HandleBarLockSensor m_handleBarLockSensor = ScootEnums::HandleBarLockSensor::Unknown;
+    bool m_handlebarInLockPosition = false;
     ScootEnums::Toggle m_seatboxButton = ScootEnums::Toggle::Off;
     ScootEnums::SeatboxLock m_seatboxLock = ScootEnums::SeatboxLock::Closed;
     ScootEnums::Toggle m_hornButton = ScootEnums::Toggle::Off;

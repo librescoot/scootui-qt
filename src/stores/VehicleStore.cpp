@@ -27,7 +27,7 @@ SyncSettings VehicleStore::syncSettings() const
             {QStringLiteral("kickstand"), QStringLiteral("kickstand")},
             {QStringLiteral("state"), QStringLiteral("state")},
             {QStringLiteral("handleBarLockSensor"), QStringLiteral("handlebar:lock-sensor")},
-            {QStringLiteral("handleBarPosition"), QStringLiteral("handlebar:position")},
+            {QStringLiteral("handlebarInLockPosition"), QStringLiteral("handlebar:position")},
             {QStringLiteral("seatboxButton"), QStringLiteral("seatbox:button")},
             {QStringLiteral("seatboxLock"), QStringLiteral("seatbox:lock")},
             {QStringLiteral("hornButton"), QStringLiteral("horn-button")},
@@ -76,8 +76,8 @@ void VehicleStore::applyFieldUpdate(const QString &variable, const QString &valu
         auto v = ScootEnums::parseHandleBarLockSensor(value);
         if (v != m_handleBarLockSensor) { m_handleBarLockSensor = v; emit handleBarLockSensorChanged(); }
     } else if (variable == QLatin1String("handlebar:position")) {
-        auto v = ScootEnums::parseHandleBarPosition(value);
-        if (v != m_handleBarPosition) { m_handleBarPosition = v; emit handleBarPositionChanged(); }
+        bool v = (value == QLatin1String("on-place"));
+        if (v != m_handlebarInLockPosition) { m_handlebarInLockPosition = v; emit handlebarInLockPositionChanged(); }
     } else if (variable == QLatin1String("seatbox:button")) {
         auto v = ScootEnums::parseToggle(value);
         if (v != m_seatboxButton) { m_seatboxButton = v; emit seatboxButtonChanged(); }

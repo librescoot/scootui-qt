@@ -40,11 +40,8 @@ Q_ENUM_NS(ScooterState)
 enum class Kickstand { Up, Down };
 Q_ENUM_NS(Kickstand)
 
-enum class HandleBarLockSensor { Locked, Unlocked };
+enum class HandleBarLockSensor { Locked, Unlocked, Unknown };
 Q_ENUM_NS(HandleBarLockSensor)
-
-enum class HandleBarPosition { OnPlace };
-Q_ENUM_NS(HandleBarPosition)
 
 enum class SeatboxLock { Open, Closed };
 Q_ENUM_NS(SeatboxLock)
@@ -117,11 +114,9 @@ inline Kickstand parseKickstand(const QString &s) {
 }
 
 inline HandleBarLockSensor parseHandleBarLockSensor(const QString &s) {
-    return (s == QLatin1String("unlocked")) ? HandleBarLockSensor::Unlocked : HandleBarLockSensor::Locked;
-}
-
-inline HandleBarPosition parseHandleBarPosition(const QString &) {
-    return HandleBarPosition::OnPlace;
+    if (s == QLatin1String("locked")) return HandleBarLockSensor::Locked;
+    if (s == QLatin1String("unlocked")) return HandleBarLockSensor::Unlocked;
+    return HandleBarLockSensor::Unknown;
 }
 
 inline SeatboxLock parseSeatboxLock(const QString &s) {
