@@ -42,7 +42,7 @@ MapView {
         }
     }
 
-    map.zoomLevel: typeof mapService !== "undefined" ? mapService.mapZoom : 17
+    map.zoomLevel: typeof mapService !== "undefined" ? mapService.mapZoom : 13
     map.bearing: typeof mapService !== "undefined" ? mapService.mapBearing : 0
     map.tilt: 85
 
