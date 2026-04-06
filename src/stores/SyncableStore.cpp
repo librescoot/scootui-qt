@@ -50,13 +50,15 @@ void SyncableStore::stop()
     if (!m_started) return;
     m_started = false;
 
-    disconnect(m_repo, &MdbRepository::fieldsUpdated,
-               this, &SyncableStore::onFieldsReceived);
-    disconnect(m_repo, &MdbRepository::fieldFetched,
-               this, &SyncableStore::onFieldFetched);
+    if (m_repo) {
+        disconnect(m_repo, &MdbRepository::fieldsUpdated,
+                   this, &SyncableStore::onFieldsReceived);
+        disconnect(m_repo, &MdbRepository::fieldFetched,
+                   this, &SyncableStore::onFieldFetched);
 
-    if (!m_channel.isEmpty())
-        m_repo->unsubscribe(m_channel);
+        if (!m_channel.isEmpty())
+            m_repo->unsubscribe(m_channel);
+    }
 
     for (auto *timer : m_setTimers) {
         timer->stop();
