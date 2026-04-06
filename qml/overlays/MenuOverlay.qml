@@ -26,7 +26,7 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.topMargin: 30   // Leave space for top status bar
+        anchors.topMargin: 24   // Leave space for top status bar
         spacing: 0
 
         // Title
@@ -38,7 +38,7 @@ Item {
             color: themeStore.isDark ? "#FFFFFF" : "#000000"
         }
 
-        Item { Layout.preferredHeight: 4 }
+        Item { Layout.preferredHeight: 8 }
 
         // Menu items list with scroll indicators (Flutter: Stack with ListView + gradient overlays)
         Item {
@@ -68,9 +68,23 @@ Item {
                     leadingIcon: modelData.leadingIcon !== undefined ? modelData.leadingIcon : ""
                 }
 
-                // Ensure selected item is visible
+                // Ensure selected item is fully visible outside gradient overlays
                 onCurrentIndexChanged: {
-                    positionViewAtIndex(currentIndex, ListView.Contain)
+                    var gradientHeight = 40
+                    var item = menuList.itemAtIndex(currentIndex)
+                    if (!item) {
+                        positionViewAtIndex(currentIndex, ListView.Contain)
+                        return
+                    }
+                    var itemTop = item.y - menuList.contentY
+                    var itemBottom = itemTop + item.height
+                    var viewHeight = menuList.height
+
+                    if (itemBottom > viewHeight - gradientHeight) {
+                        menuList.contentY = item.y + item.height - viewHeight + gradientHeight
+                    } else if (itemTop < gradientHeight) {
+                        menuList.contentY = item.y - gradientHeight
+                    }
                 }
             }
 
