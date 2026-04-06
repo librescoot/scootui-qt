@@ -21,7 +21,7 @@ HandlebarLockMonitor::HandlebarLockMonitor(VehicleStore *vehicle, ToastService *
         if (activeState &&
             m_vehicle->handleBarLockSensor() == static_cast<int>(ScootEnums::HandleBarLockSensor::Locked)) {
             m_showing = true;
-            m_toast->showPermanentWarning(tr("Handlebar lock is still engaged"), ToastId);
+            m_toast->showPermanentWarning(tr("Handlebar locked — turn all the way left to unlock"), ToastId);
         }
     });
 
