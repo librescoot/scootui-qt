@@ -201,6 +201,7 @@ set(QML_FILES
     qml/widgets/speedometer/SpeedometerDisplay.qml
     qml/widgets/status_bars/TopStatusBar.qml
     qml/widgets/status_bars/BatteryDisplay.qml
+    qml/widgets/status_bars/BatteryIcon.qml
     qml/widgets/status_bars/UnifiedBottomStatusBar.qml
     qml/widgets/status_bars/SpeedCenterWidget.qml
     qml/widgets/cluster/BlinkerRow.qml

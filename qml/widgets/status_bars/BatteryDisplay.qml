@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Effects
 
 Row {
     id: batteryDisplay
@@ -54,8 +53,7 @@ Row {
         return rangeKm.toFixed(1) + " km"
     }
 
-    // Fill color: red/orange only for battery 0, normal for battery 1
-    function fillColor(charge, isBattery0) {
+    function chargeLabelColor(charge, isBattery0) {
         if (isBattery0) {
             if (charge <= 10) return "#FF0000"
             if (charge <= 20) return "#FF7900"
@@ -156,102 +154,17 @@ Row {
         }
     }
 
-    // --- Charge bar dimensions (scaled from 144x144 to 24x24) ---
-    readonly property real chargeX: 23.0 * (24.0 / 144.0)   // ~3.83
-    readonly property real chargeY: 41.0 * (24.0 / 144.0)    // ~6.83
-    readonly property real chargeH: 83.0 * (24.0 / 144.0)    // ~13.83
-    readonly property real chargeMaxW: 98.0 * (24.0 / 144.0) // ~16.33
-
     // =====================================================================
     // Battery 0 icon
     // =====================================================================
-    Item {
-        width: 24; height: 24
-
-        // Base battery icon (tinted for theme)
-        Image {
-            id: b0base
-            anchors.fill: parent
-            source: {
-                if (!present0) return "qrc:/ScootUI/assets/icons/librescoot-main-battery-absent.svg"
-                if (battState0 !== bsAsleep && battState0 !== bsIdle && charge0 <= 10)
-                    return "qrc:/ScootUI/assets/icons/librescoot-main-battery-empty.svg"
-                return "qrc:/ScootUI/assets/icons/librescoot-main-battery-blank.svg"
-            }
-            sourceSize: Qt.size(24, 24)
-            fillMode: Image.PreserveAspectFit
-            visible: false
-        }
-        MultiEffect {
-            source: b0base
-            anchors.fill: parent
-            colorization: 1.0
-            colorizationColor: batteryDisplay.iconColor
-        }
-
-        // Charge bar (shown for blank icon states)
-        Rectangle {
-            visible: present0 && charge0 > 10
-                     && (battState0 === bsActive || battState0 === bsAsleep || battState0 === bsIdle || charge0 > 10)
-            x: chargeX; y: chargeY
-            height: chargeH
-            width: chargeMaxW * (charge0 / 100.0)
-            color: fillColor(charge0, true)
-        }
-
-        // Asleep mask (renders in background color to "cut out" areas)
-        Image {
-            id: b0asleepMask
-            anchors.fill: parent
-            visible: false
-            source: "qrc:/ScootUI/assets/icons/librescoot-main-battery-asleep-mask.svg"
-            sourceSize: Qt.size(24, 24)
-            fillMode: Image.PreserveAspectFit
-        }
-        MultiEffect {
-            source: b0asleepMask
-            anchors.fill: parent
-            visible: present0 && battState0 === bsAsleep
-            colorization: 1.0
-            colorizationColor: batteryDisplay.isDark ? "#000000" : "#FFFFFF"
-        }
-
-        // Asleep overlay
-        Image {
-            id: b0asleepOverlay
-            anchors.fill: parent
-            visible: false
-            source: "qrc:/ScootUI/assets/icons/librescoot-main-battery-asleep-overlay.svg"
-            sourceSize: Qt.size(24, 24)
-            fillMode: Image.PreserveAspectFit
-        }
-        MultiEffect {
-            source: b0asleepOverlay
-            anchors.fill: parent
-            visible: present0 && battState0 === bsAsleep
-            colorization: 1.0
-            colorizationColor: batteryDisplay.iconColor
-        }
-
-        // Idle overlay (uses original colors in dark mode, inverted in light)
-        Image {
-            anchors.fill: parent
-            visible: present0 && battState0 === bsIdle
-            source: isDark ? "qrc:/ScootUI/assets/icons/librescoot-overlay-idle.svg"
-                           : "qrc:/ScootUI/assets/icons/librescoot-overlay-idle-light.svg"
-            sourceSize: Qt.size(24, 24)
-            fillMode: Image.PreserveAspectFit
-        }
-
-        // Fault overlay (uses original colors in dark mode, inverted in light)
-        Image {
-            anchors.fill: parent
-            visible: hasFault0
-            source: isDark ? "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
-                           : "qrc:/ScootUI/assets/icons/librescoot-overlay-error-light.svg"
-            sourceSize: Qt.size(24, 24)
-            fillMode: Image.PreserveAspectFit
-        }
+    BatteryIcon {
+        charge: charge0
+        batteryState: battState0
+        present: present0
+        isBattery0: true
+        hasFault: hasFault0
+        iconColor: batteryDisplay.iconColor
+        isDark: batteryDisplay.isDark
     }
 
     // Battery 0 charge/range text
@@ -261,7 +174,7 @@ Row {
         font.pixelSize: themeStore.fontBody
         font.weight: Font.DemiBold
         font.letterSpacing: -1.1
-        color: fillColor(charge0, true)
+        color: chargeLabelColor(charge0, true)
     }
 
     // Group separator before Battery 1
@@ -270,93 +183,15 @@ Row {
     // =====================================================================
     // Battery 1 icon (dual mode)
     // =====================================================================
-    Item {
-        width: 24; height: 24
+    BatteryIcon {
         visible: batteryDisplay.showDual
-
-        Image {
-            id: b1base
-            anchors.fill: parent
-            source: {
-                if (!present1) return "qrc:/ScootUI/assets/icons/librescoot-main-battery-absent.svg"
-                if (battState1 !== bsAsleep && battState1 !== bsIdle && charge1 <= 10)
-                    return "qrc:/ScootUI/assets/icons/librescoot-main-battery-empty.svg"
-                return "qrc:/ScootUI/assets/icons/librescoot-main-battery-blank.svg"
-            }
-            sourceSize: Qt.size(24, 24)
-            fillMode: Image.PreserveAspectFit
-            visible: false
-        }
-        MultiEffect {
-            source: b1base
-            anchors.fill: parent
-            colorization: 1.0
-            colorizationColor: batteryDisplay.iconColor
-        }
-
-        // Charge bar
-        Rectangle {
-            visible: present1 && charge1 > 10
-                     && (battState1 === bsActive || battState1 === bsAsleep || battState1 === bsIdle || charge1 > 10)
-            x: chargeX; y: chargeY
-            height: chargeH
-            width: chargeMaxW * (charge1 / 100.0)
-            color: fillColor(charge1, false)
-        }
-
-        // Asleep mask
-        Image {
-            id: b1asleepMask
-            anchors.fill: parent
-            visible: false
-            source: "qrc:/ScootUI/assets/icons/librescoot-main-battery-asleep-mask.svg"
-            sourceSize: Qt.size(24, 24)
-            fillMode: Image.PreserveAspectFit
-        }
-        MultiEffect {
-            source: b1asleepMask
-            anchors.fill: parent
-            visible: present1 && battState1 === bsAsleep
-            colorization: 1.0
-            colorizationColor: batteryDisplay.isDark ? "#000000" : "#FFFFFF"
-        }
-
-        // Asleep overlay
-        Image {
-            id: b1asleepOverlay
-            anchors.fill: parent
-            visible: false
-            source: "qrc:/ScootUI/assets/icons/librescoot-main-battery-asleep-overlay.svg"
-            sourceSize: Qt.size(24, 24)
-            fillMode: Image.PreserveAspectFit
-        }
-        MultiEffect {
-            source: b1asleepOverlay
-            anchors.fill: parent
-            visible: present1 && battState1 === bsAsleep
-            colorization: 1.0
-            colorizationColor: batteryDisplay.iconColor
-        }
-
-        // Idle overlay (uses original colors in dark mode, inverted in light)
-        Image {
-            anchors.fill: parent
-            visible: present1 && battState1 === bsIdle
-            source: isDark ? "qrc:/ScootUI/assets/icons/librescoot-overlay-idle.svg"
-                           : "qrc:/ScootUI/assets/icons/librescoot-overlay-idle-light.svg"
-            sourceSize: Qt.size(24, 24)
-            fillMode: Image.PreserveAspectFit
-        }
-
-        // Fault overlay (uses original colors in dark mode, inverted in light)
-        Image {
-            anchors.fill: parent
-            visible: hasFault1
-            source: isDark ? "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
-                           : "qrc:/ScootUI/assets/icons/librescoot-overlay-error-light.svg"
-            sourceSize: Qt.size(24, 24)
-            fillMode: Image.PreserveAspectFit
-        }
+        charge: charge1
+        batteryState: battState1
+        present: present1
+        isBattery0: false
+        hasFault: hasFault1
+        iconColor: batteryDisplay.iconColor
+        isDark: batteryDisplay.isDark
     }
 
     // Battery 1 charge/range text
@@ -367,7 +202,7 @@ Row {
         font.pixelSize: themeStore.fontBody
         font.weight: Font.DemiBold
         font.letterSpacing: -1.1
-        color: fillColor(charge1, false)
+        color: chargeLabelColor(charge1, false)
     }
 
     // Group separator before warning icons
