@@ -283,11 +283,47 @@
 			"minzoom": 13
 		},
 		{
+			"id": "minor-roads-casing",
+			"type": "line",
+			"source": "versatiles-shortbread",
+			"source-layer": "streets",
+			"filter": ["in", "kind", "service", "pedestrian", "track", "busway"],
+			"paint": {
+				"line-color": "hsl(48,40%,10%)",
+				"line-width": {
+					"stops": [
+						[14, 3],
+						[16, 5],
+						[18, 7]
+					]
+				}
+			},
+			"minzoom": 14
+		},
+		{
+			"id": "minor-roads",
+			"type": "line",
+			"source": "versatiles-shortbread",
+			"source-layer": "streets",
+			"filter": ["in", "kind", "service", "pedestrian", "track", "busway"],
+			"paint": {
+				"line-color": "hsl(48,30%,18%)",
+				"line-width": {
+					"stops": [
+						[14, 1.5],
+						[16, 3],
+						[18, 5]
+					]
+				}
+			},
+			"minzoom": 14
+		},
+		{
 			"id": "local-roads-casing",
 			"type": "line",
 			"source": "versatiles-shortbread",
 			"source-layer": "streets",
-			"filter": ["in", "kind", "tertiary", "unclassified", "residential", "living_street", "service"],
+			"filter": ["in", "kind", "tertiary", "unclassified", "residential", "living_street"],
 			"paint": {
 				"line-color": "hsl(48,80%,12%)",
 				"line-width": {
@@ -307,7 +343,7 @@
 			"type": "line",
 			"source": "versatiles-shortbread",
 			"source-layer": "streets",
-			"filter": ["in", "kind", "tertiary", "unclassified", "residential", "living_street", "service"],
+			"filter": ["in", "kind", "tertiary", "unclassified", "residential", "living_street"],
 			"paint": {
 				"line-color": "hsl(48,40%,25%)",
 				"line-width": {
