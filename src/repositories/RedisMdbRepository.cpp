@@ -31,7 +31,7 @@ RedisMdbRepository::~RedisMdbRepository()
     teardownPubsub();
 
     if (m_workerThread) {
-        QMetaObject::invokeMethod(m_worker, &HiredisWorker::stop, Qt::QueuedConnection);
+        QMetaObject::invokeMethod(m_worker, &HiredisWorker::stop, Qt::BlockingQueuedConnection);
         m_workerThread->quit();
         m_workerThread->wait(3000);
         delete m_worker;
@@ -203,11 +203,12 @@ void RedisMdbRepository::removeFromSet(const QString &setKey, const QString &mem
     }
 }
 
-// These are still synchronous reads for now (rare callers).
-// They return the last cached result from the worker.
+// Async fetch + cached read. The fetch is queued to the worker thread and
+// the result from the *previous* fetch is returned immediately. This means
+// the first call always returns an empty list; callers must tolerate a
+// one-cycle lag (the periodic timer in SyncableStore handles steady-state).
 QStringList RedisMdbRepository::getSetMembers(const QString &setKey)
 {
-    // Trigger a fetch and return cached result
     if (m_worker) {
         auto *w = m_worker;
         QMetaObject::invokeMethod(w, [w, setKey]() {

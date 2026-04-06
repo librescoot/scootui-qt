@@ -26,6 +26,7 @@ class VehicleStore : public SyncableStore
 
 public:
     explicit VehicleStore(MdbRepository *repo, QObject *parent = nullptr);
+    ~VehicleStore() override;
 
     int blinkerState() const { return static_cast<int>(m_blinkerState); }
     int blinkerSwitch() const { return static_cast<int>(m_blinkerSwitch); }

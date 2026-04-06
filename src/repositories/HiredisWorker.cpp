@@ -16,6 +16,12 @@ HiredisWorker::~HiredisWorker()
 
 void HiredisWorker::registerChannel(const QString &channel, int intervalMs)
 {
+    for (auto &ch : m_channels) {
+        if (ch.channel == channel) {
+            ch.intervalMs = qMin(ch.intervalMs, intervalMs);
+            return;
+        }
+    }
     m_channels.append({channel, intervalMs, 0});
 }
 

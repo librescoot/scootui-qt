@@ -14,6 +14,12 @@ VehicleStore::VehicleStore(MdbRepository *repo, QObject *parent)
     connect(&m_blinkTimer, &QTimer::timeout, this, &VehicleStore::updateBlinkClock);
 }
 
+VehicleStore::~VehicleStore()
+{
+    if (m_repo)
+        m_repo->unsubscribe(QStringLiteral("buttons"));
+}
+
 SyncSettings VehicleStore::syncSettings() const
 {
     return SyncSettings{
