@@ -1,15 +1,17 @@
 #include "HandlebarLockMonitor.h"
 #include "ToastService.h"
 #include "stores/VehicleStore.h"
+#include "l10n/Translations.h"
 #include "models/Enums.h"
 
 const QString HandlebarLockMonitor::ToastId = QStringLiteral("handlebar-lock-warning");
 
 HandlebarLockMonitor::HandlebarLockMonitor(VehicleStore *vehicle, ToastService *toast,
-                                             QObject *parent)
+                                             Translations *translations, QObject *parent)
     : QObject(parent)
     , m_vehicle(vehicle)
     , m_toast(toast)
+    , m_translations(translations)
     , m_delayTimer(new QTimer(this))
 {
     m_delayTimer->setSingleShot(true);
@@ -21,7 +23,7 @@ HandlebarLockMonitor::HandlebarLockMonitor(VehicleStore *vehicle, ToastService *
         if (activeState &&
             m_vehicle->handleBarLockSensor() == static_cast<int>(ScootEnums::HandleBarLockSensor::Locked)) {
             m_showing = true;
-            m_toast->showPermanentWarning(tr("Handlebar locked — turn all the way left to unlock"), ToastId);
+            m_toast->showPermanentWarning(m_translations->warningHandlebarLocked(), ToastId);
         }
     });
 

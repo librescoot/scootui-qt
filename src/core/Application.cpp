@@ -179,9 +179,9 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Monitoring services (B3, B4)
     m_lowTempMonitor = new LowTemperatureMonitor(engineStore, battery0Store,
-                                                   cbBatteryStore, m_toastService, this);
+                                                   cbBatteryStore, m_toastService, m_translations, this);
     m_bleHealthMonitor = new BluetoothHealthMonitor(bluetoothStore, m_toastService, this);
-    m_handlebarLockMonitor = new HandlebarLockMonitor(vehicleStore, m_toastService, this);
+    m_handlebarLockMonitor = new HandlebarLockMonitor(vehicleStore, m_toastService, m_translations, this);
 
     // Battery fault monitoring
     auto connectFaultMonitor = [this, settingsStore](BatteryStore *batteryStore) {

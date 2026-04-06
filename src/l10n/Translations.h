@@ -273,6 +273,10 @@ class Translations : public QObject
     Q_PROPERTY(QString batterySlot0 READ batterySlot0 NOTIFY languageChanged)
     Q_PROPERTY(QString batterySlot1 READ batterySlot1 NOTIFY languageChanged)
 
+    // Warnings
+    Q_PROPERTY(QString warningHandlebarLocked READ warningHandlebarLocked NOTIFY languageChanged)
+    Q_PROPERTY(QString warningLowTemperature READ warningLowTemperature NOTIFY languageChanged)
+
     // Speed & power
     Q_PROPERTY(QString speedKmh READ speedKmh NOTIFY languageChanged)
     Q_PROPERTY(QString powerRegen READ powerRegen NOTIFY languageChanged)
@@ -604,6 +608,10 @@ public:
     QString batteryLowPowerReduced() const { return lookup("batteryLowPowerReduced"); }
     QString batterySlot0() const { return lookup("batterySlot0"); }
     QString batterySlot1() const { return lookup("batterySlot1"); }
+
+    // Warnings
+    QString warningHandlebarLocked() const { return lookup("warningHandlebarLocked"); }
+    QString warningLowTemperature() const { return lookup("warningLowTemperature"); }
 
     // Speed & power
     QString speedKmh() const { return lookup("speedKmh"); }

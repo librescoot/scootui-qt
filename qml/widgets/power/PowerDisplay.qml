@@ -49,7 +49,7 @@ Item {
             Layout.fillWidth: true
 
             Text {
-                text: qsTr("Regen")
+                text: translations.powerRegen
                 font.pixelSize: themeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
@@ -59,7 +59,7 @@ Item {
             }
             Item { Layout.fillWidth: true }
             Text {
-                text: qsTr("Discharge")
+                text: translations.powerDischarge
                 font.pixelSize: themeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5

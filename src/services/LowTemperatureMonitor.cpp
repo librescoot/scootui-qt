@@ -3,15 +3,17 @@
 #include "stores/EngineStore.h"
 #include "stores/BatteryStore.h"
 #include "stores/CbBatteryStore.h"
+#include "l10n/Translations.h"
 
 LowTemperatureMonitor::LowTemperatureMonitor(EngineStore *engine, BatteryStore *battery0,
                                                CbBatteryStore *cbBattery, ToastService *toast,
-                                               QObject *parent)
+                                               Translations *translations, QObject *parent)
     : QObject(parent)
     , m_engine(engine)
     , m_battery0(battery0)
     , m_cbBattery(cbBattery)
     , m_toast(toast)
+    , m_translations(translations)
     , m_debounceTimer(new QTimer(this))
 {
     m_debounceTimer->setSingleShot(true);
@@ -19,7 +21,7 @@ LowTemperatureMonitor::LowTemperatureMonitor(EngineStore *engine, BatteryStore *
     connect(m_debounceTimer, &QTimer::timeout, this, [this]() {
         if (m_conditionMet && !m_hasShownWarning) {
             m_hasShownWarning = true;
-            m_toast->showWarning(tr("Low temperature detected. Reduced performance possible."));
+            m_toast->showWarning(m_translations->warningLowTemperature());
         }
     });
 

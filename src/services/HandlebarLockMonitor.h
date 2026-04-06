@@ -5,6 +5,7 @@
 
 class VehicleStore;
 class ToastService;
+class Translations;
 
 class HandlebarLockMonitor : public QObject
 {
@@ -12,7 +13,7 @@ class HandlebarLockMonitor : public QObject
 
 public:
     explicit HandlebarLockMonitor(VehicleStore *vehicle, ToastService *toast,
-                                   QObject *parent = nullptr);
+                                   Translations *translations, QObject *parent = nullptr);
 
 private slots:
     void evaluate();
@@ -23,6 +24,7 @@ private:
 
     VehicleStore *m_vehicle;
     ToastService *m_toast;
+    Translations *m_translations;
     QTimer *m_delayTimer;
     bool m_showing = false;
 };

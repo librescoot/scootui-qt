@@ -7,6 +7,7 @@ class EngineStore;
 class BatteryStore;
 class CbBatteryStore;
 class ToastService;
+class Translations;
 
 class LowTemperatureMonitor : public QObject
 {
@@ -15,7 +16,7 @@ class LowTemperatureMonitor : public QObject
 public:
     explicit LowTemperatureMonitor(EngineStore *engine, BatteryStore *battery0,
                                     CbBatteryStore *cbBattery, ToastService *toast,
-                                    QObject *parent = nullptr);
+                                    Translations *translations, QObject *parent = nullptr);
 
 private slots:
     void checkTemperatures();
@@ -32,6 +33,7 @@ private:
     BatteryStore *m_battery0;
     CbBatteryStore *m_cbBattery;
     ToastService *m_toast;
+    Translations *m_translations;
     QTimer *m_debounceTimer;
     bool m_hasShownWarning = false;
     bool m_conditionMet = false;

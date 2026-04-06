@@ -810,6 +810,12 @@ void Translations::initStrings()
     // Speed & power
     // -----------------------------------------------------------------------
 
+    en[QStringLiteral("warningHandlebarLocked")] = QStringLiteral("Handlebar locked \u2014 turn all the way left to unlock");
+    de[QStringLiteral("warningHandlebarLocked")] = QStringLiteral("Lenker verriegelt \u2014 ganz nach links drehen zum Entriegeln");
+
+    en[QStringLiteral("warningLowTemperature")] = QStringLiteral("Low temperature detected. Reduced performance possible.");
+    de[QStringLiteral("warningLowTemperature")] = QStringLiteral("Niedrige Temperatur erkannt. Eingeschr\u00E4nkte Leistung m\u00F6glich.");
+
     en[QStringLiteral("speedKmh")] = QStringLiteral("km/h");
     de[QStringLiteral("speedKmh")] = QStringLiteral("km/h");
 
