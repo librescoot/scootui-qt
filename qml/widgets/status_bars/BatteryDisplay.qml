@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 
 Row {
     id: batteryDisplay
