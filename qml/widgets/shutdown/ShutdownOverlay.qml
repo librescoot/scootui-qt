@@ -43,15 +43,16 @@ Item {
         Text {
             text: {
                 if (typeof otaStore === "undefined") return ""
+                var tr = typeof translations !== "undefined" ? translations : null
                 var status = otaStore.dbcStatus !== "idle" ? otaStore.dbcStatus : otaStore.mdbStatus
                 var version = otaStore.dbcStatus !== "idle" ? otaStore.dbcUpdateVersion : otaStore.mdbUpdateVersion
                 var versionSuffix = version ? (" " + version) : ""
                 switch (status) {
-                    case "downloading": return "Downloading update" + versionSuffix
-                    case "preparing": return "Preparing update" + versionSuffix
-                    case "installing": return "Installing update" + versionSuffix
-                    case "pending-reboot": return "Update ready"
-                    default: return "Updating..."
+                    case "downloading": return (tr ? tr.otaDownloadingUpdates : "Downloading update...") + versionSuffix
+                    case "preparing": return (tr ? tr.otaPreparingUpdate : "Preparing update...") + versionSuffix
+                    case "installing": return (tr ? tr.otaInstallingUpdates : "Installing update...") + versionSuffix
+                    case "pending-reboot": return tr ? tr.otaPendingReboot : "Update installed, will apply next time the scooter is started"
+                    default: return tr ? tr.otaInitializing : "Updating..."
                 }
             }
             color: "white"
@@ -61,7 +62,10 @@ Item {
         }
 
         Text {
-            text: "Your scooter will turn off when done.\nYou can unlock it again at any point."
+            text: {
+                var tr = typeof translations !== "undefined" ? translations : null
+                return tr ? tr.otaDoNotPowerOff : "Do not turn off the scooter!"
+            }
             color: Qt.rgba(1, 1, 1, 0.7)
             font.pixelSize: themeStore.fontBody
             horizontalAlignment: Text.AlignHCenter

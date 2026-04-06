@@ -98,7 +98,7 @@ Rectangle {
                     case "downloading": return tr ? tr.otaDownloadingUpdates : "Downloading update..."
                     case "preparing": return tr ? tr.otaPreparingUpdate : "Preparing update..."
                     case "installing": return tr ? tr.otaInstallingUpdates : "Installing update..."
-                    case "pending-reboot": return tr ? tr.otaPendingReboot : "Update ready, will apply next time the scooter is started"
+                    case "pending-reboot": return tr ? tr.otaPendingReboot : "Update installed, will apply next time the scooter is started"
                     case "rebooting": return tr ? tr.otaStatusWaitingForReboot : "Waiting for reboot..."
                     case "reboot-failed": return tr ? tr.otaRebootFailed : "Reboot failed"
                     case "error":

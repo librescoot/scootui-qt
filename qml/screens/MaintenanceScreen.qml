@@ -67,13 +67,14 @@ Rectangle {
                     font.pixelSize: themeStore.fontBody
                     color: Qt.rgba(1, 1, 1, 0.8)
                     text: {
+                        var tr = typeof translations !== "undefined" ? translations : null
                         switch (loadingMode.otaStatus) {
-                            case "downloading": return "Downloading update..."
-                            case "preparing": return "Preparing update..."
-                            case "installing": return "Installing update..."
-                            case "pending-reboot": return "Update ready"
-                            case "error": return "Update failed"
-                            default: return "Updating..."
+                            case "downloading": return tr ? tr.otaDownloadingUpdates : "Downloading update..."
+                            case "preparing": return tr ? tr.otaPreparingUpdate : "Preparing update..."
+                            case "installing": return tr ? tr.otaInstallingUpdates : "Installing update..."
+                            case "pending-reboot": return tr ? tr.otaPendingReboot : "Update installed, will apply next time the scooter is started"
+                            case "error": return tr ? tr.otaUpdateError : "Update failed"
+                            default: return tr ? tr.otaInitializing : "Updating..."
                         }
                     }
                 }

@@ -763,8 +763,8 @@ void Translations::initStrings()
     en[QStringLiteral("otaPreparingUpdate")] = QStringLiteral("Preparing update...");
     de[QStringLiteral("otaPreparingUpdate")] = QStringLiteral("Update wird vorbereitet...");
 
-    en[QStringLiteral("otaPendingReboot")] = QStringLiteral("Update ready, will apply next time the scooter is started");
-    de[QStringLiteral("otaPendingReboot")] = QStringLiteral("Update bereit, wird beim n\u00E4chsten Start angewendet");
+    en[QStringLiteral("otaPendingReboot")] = QStringLiteral("Update installed, will apply next time the scooter is started");
+    de[QStringLiteral("otaPendingReboot")] = QStringLiteral("Update installiert, wird beim n\u00E4chsten Start angewendet");
 
     en[QStringLiteral("otaDoNotPowerOff")] = QStringLiteral("Do not turn off the scooter!");
     de[QStringLiteral("otaDoNotPowerOff")] = QStringLiteral("Scooter nicht ausschalten!");
