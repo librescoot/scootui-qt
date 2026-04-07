@@ -766,8 +766,8 @@ void Translations::initStrings()
     en[QStringLiteral("otaPendingReboot")] = QStringLiteral("Update installed, will apply next time the scooter is started");
     de[QStringLiteral("otaPendingReboot")] = QStringLiteral("Update installiert, wird beim n\u00E4chsten Start angewendet");
 
-    en[QStringLiteral("otaDoNotPowerOff")] = QStringLiteral("Do not turn off the scooter!");
-    de[QStringLiteral("otaDoNotPowerOff")] = QStringLiteral("Scooter nicht ausschalten!");
+    en[QStringLiteral("otaScooterWillTurnOff")] = QStringLiteral("Your scooter will turn off when done.\nYou can unlock it again at any point.");
+    de[QStringLiteral("otaScooterWillTurnOff")] = QStringLiteral("Dein Roller wird danach ausgeschaltet.\nDu kannst ihn jederzeit wieder entsperren.");
 
     // -----------------------------------------------------------------------
     // Battery messages

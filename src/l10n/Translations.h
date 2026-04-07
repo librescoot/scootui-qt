@@ -258,7 +258,7 @@ class Translations : public QObject
     Q_PROPERTY(QString otaUpdateError READ otaUpdateError NOTIFY languageChanged)
     Q_PROPERTY(QString otaPreparingUpdate READ otaPreparingUpdate NOTIFY languageChanged)
     Q_PROPERTY(QString otaPendingReboot READ otaPendingReboot NOTIFY languageChanged)
-    Q_PROPERTY(QString otaDoNotPowerOff READ otaDoNotPowerOff NOTIFY languageChanged)
+    Q_PROPERTY(QString otaScooterWillTurnOff READ otaScooterWillTurnOff NOTIFY languageChanged)
 
     // Battery messages
     Q_PROPERTY(QString batteryKm READ batteryKm NOTIFY languageChanged)
@@ -594,7 +594,7 @@ public:
     QString otaUpdateError() const { return lookup("otaUpdateError"); }
     QString otaPreparingUpdate() const { return lookup("otaPreparingUpdate"); }
     QString otaPendingReboot() const { return lookup("otaPendingReboot"); }
-    QString otaDoNotPowerOff() const { return lookup("otaDoNotPowerOff"); }
+    QString otaScooterWillTurnOff() const { return lookup("otaScooterWillTurnOff"); }
 
     // Battery messages
     QString batteryKm() const { return lookup("batteryKm"); }

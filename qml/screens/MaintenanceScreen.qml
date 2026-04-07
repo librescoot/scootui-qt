@@ -8,6 +8,30 @@ Rectangle {
     property bool showConnectionInfo: false
     property string stateRaw: typeof vehicleStore !== "undefined" ? vehicleStore.stateRaw : ""
 
+    // Turn off backlight after 15s to save power during unattended maintenance/updates
+    Timer {
+        id: backlightTimer
+        interval: 15000
+        running: true
+        onTriggered: {
+            if (typeof otaStore !== "undefined")
+                otaStore.setBacklightOff(true)
+        }
+    }
+
+    Connections {
+        target: typeof vehicleStore !== "undefined" ? vehicleStore : null
+        function onStateChanged() {
+            if (typeof otaStore !== "undefined")
+                otaStore.setBacklightOff(false)
+        }
+    }
+
+    Component.onDestruction: {
+        if (typeof otaStore !== "undefined")
+            otaStore.setBacklightOff(false)
+    }
+
     // --- Loading mode (default): silent spinner + optional OTA progress ---
     Item {
         id: loadingMode

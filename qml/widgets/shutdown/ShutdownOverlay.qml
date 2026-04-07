@@ -64,16 +64,18 @@ Item {
         Text {
             text: {
                 var tr = typeof translations !== "undefined" ? translations : null
-                return tr ? tr.otaDoNotPowerOff : "Do not turn off the scooter!"
+                return tr ? tr.otaScooterWillTurnOff : "Your scooter will turn off when done.\nYou can unlock it again at any point."
             }
-            color: Qt.rgba(1, 1, 1, 0.7)
+            color: Qt.rgba(1, 1, 1, 0.6)
             font.pixelSize: themeStore.fontBody
             horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            width: 280
             anchors.horizontalCenter: parent.horizontalCenter
             visible: {
                 if (typeof otaStore === "undefined") return false
                 var status = otaStore.dbcStatus !== "idle" ? otaStore.dbcStatus : otaStore.mdbStatus
-                return status !== "pending-reboot" && status !== "idle"
+                return status !== "idle" && status !== "error" && status !== "error-failed"
             }
         }
     }

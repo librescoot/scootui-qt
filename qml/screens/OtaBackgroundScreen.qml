@@ -18,7 +18,7 @@ Rectangle {
 
     Timer {
         id: backlightTimer
-        interval: 30000
+        interval: 15000
         running: otaScreen.locked
         onTriggered: {
             if (typeof otaStore !== "undefined")
@@ -151,10 +151,12 @@ Rectangle {
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             font.pixelSize: themeStore.fontBody
-            color: "#ff8800"
-            visible: dbcStatus === "preparing" || dbcStatus === "installing"
-            text: typeof translations !== "undefined" ? translations.otaDoNotPowerOff : "Do not turn off the scooter!"
+            color: Qt.rgba(1, 1, 1, 0.6)
+            visible: dbcStatus !== "idle" && dbcStatus !== "error" && dbcStatus !== "error-failed"
+            text: typeof translations !== "undefined" ? translations.otaScooterWillTurnOff : "Your scooter will turn off when done.\nYou can unlock it again at any point."
             horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            width: 280
         }
 
         // Version text
