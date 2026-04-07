@@ -200,7 +200,7 @@ jobs:
           echo "branch=$SAFE_BRANCH_NAME" >> $GITHUB_OUTPUT
 
       - name: Create Github release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2.4.2
         with:
           name: ScootUI-Qt DBC RPM Build ${{ github.ref_name }} ${{ steps.date.outputs.value }}
           tag_name: dbc-rpm-${{ steps.sanitize-tag.outputs.branch }}-${{ steps.date.outputs.value }}
