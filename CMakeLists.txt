@@ -269,6 +269,7 @@ qt_add_qml_module(scootui
         assets/icons/librescoot-overlay-error-light.svg
         assets/icons/librescoot-overlay-locked.svg
         assets/icons/librescoot-overlay-slashed.svg
+        assets/icons/librescoot-overlay-slashed-light.svg
         assets/icons/librescoot-overlay-charging.svg
         assets/icons/librescoot-overlay-asleep.svg
         assets/icons/librescoot-overlay-idle.svg

@@ -70,9 +70,13 @@ Row {
     readonly property bool showTurtle: present0 && charge0 <= 20
 
     // --- Battery warning conditions ---
+    // CB battery not present
+    readonly property bool cbNotPresent: typeof cbBatteryStore !== "undefined" && !cbBatteryStore.present
+
     // CB warning: charge < 95%, not charging, main present & active, seatbox closed
     readonly property bool cbWarningCondition: {
         if (typeof cbBatteryStore === "undefined" || typeof vehicleStore === "undefined") return false
+        if (!cbBatteryStore.present) return false
         return cbBatteryStore.charge < 95
             && cbBatteryStore.chargeStatus === csNotCharging
             && present0 && charge0 > 0 && battState0 === bsActive
@@ -207,7 +211,7 @@ Row {
     }
 
     // Group separator before warning icons
-    Item { width: 5; height: 1; visible: batteryDisplay.seatboxOpen || showCbWarning || showAuxWarning || showTurtle }
+    Item { width: 5; height: 1; visible: batteryDisplay.seatboxOpen || cbNotPresent || showCbWarning || showAuxWarning || showTurtle }
 
     // =====================================================================
     // Seatbox open indicator
@@ -230,6 +234,37 @@ Row {
             anchors.fill: parent
             colorization: 1.0
             colorizationColor: batteryDisplay.iconColor
+        }
+    }
+
+    // =====================================================================
+    // CB battery not present (blank + slashed overlay)
+    // =====================================================================
+    Item {
+        visible: cbNotPresent
+        width: 24; height: 24
+        anchors.verticalCenter: parent.verticalCenter
+
+        Image {
+            id: cbAbsentIcon
+            anchors.fill: parent
+            source: "qrc:/ScootUI/assets/icons/librescoot-cb-battery-blank.svg"
+            sourceSize: Qt.size(24, 24)
+            fillMode: Image.PreserveAspectFit
+            visible: false
+        }
+        MultiEffect {
+            source: cbAbsentIcon
+            anchors.fill: parent
+            colorization: 1.0
+            colorizationColor: batteryDisplay.iconColor
+        }
+        Image {
+            anchors.fill: parent
+            source: isDark ? "qrc:/ScootUI/assets/icons/librescoot-overlay-slashed.svg"
+                           : "qrc:/ScootUI/assets/icons/librescoot-overlay-slashed-light.svg"
+            sourceSize: Qt.size(24, 24)
+            fillMode: Image.PreserveAspectFit
         }
     }
 
