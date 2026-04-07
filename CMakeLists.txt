@@ -313,6 +313,7 @@ qt_add_qml_module(scootui
 )
 
 target_include_directories(scootui PRIVATE ${HIREDIS_INCLUDE_DIRS})
+target_link_directories(scootui PRIVATE ${HIREDIS_LIBRARY_DIRS})
 
 target_link_libraries(scootui PRIVATE
     Qt6::Quick
