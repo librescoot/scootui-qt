@@ -1,0 +1,26 @@
+name: Check Schema Coverage
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check-schema-coverage:
+    name: Schema Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout scootui-qt
+        uses: actions/checkout@v4
+
+      - name: Checkout settings-service (for schema)
+        uses: actions/checkout@v4
+        with:
+          repository: librescoot/settings-service
+          path: settings-service
+
+      - name: Check schema coverage
+        run: |
+          ./scripts/check-schema-coverage.sh \
+              --schema settings-service/settings.schema.json \
+              --src ./src
