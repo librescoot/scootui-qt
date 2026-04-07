@@ -288,11 +288,11 @@ Row {
             font.weight: Font.DemiBold
             font.features: {"tnum": 1}
             color: statusIndicators.iconColor
-            visible: otaDbcStatus === "downloading" || otaDbcStatus === "installing"
+            visible: otaDbcStatus === "downloading" || otaDbcStatus === "preparing" || otaDbcStatus === "installing"
             text: {
                 if (otaDbcStatus === "downloading")
                     return otaDbcDownloadProgress
-                if (otaDbcStatus === "installing")
+                if (otaDbcStatus === "preparing" || otaDbcStatus === "installing")
                     return otaDbcInstallProgress
                 return ""
             }
