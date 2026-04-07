@@ -14,22 +14,22 @@ Rectangle {
         interval: 15000
         running: true
         onTriggered: {
-            if (typeof otaStore !== "undefined")
-                otaStore.setBacklightOff(true)
+            if (typeof dashboardStore !== "undefined")
+                dashboardStore.setBacklightOff(true)
         }
     }
 
     Connections {
         target: typeof vehicleStore !== "undefined" ? vehicleStore : null
         function onStateChanged() {
-            if (typeof otaStore !== "undefined")
-                otaStore.setBacklightOff(false)
+            if (typeof dashboardStore !== "undefined")
+                dashboardStore.setBacklightOff(false)
         }
     }
 
     Component.onDestruction: {
-        if (typeof otaStore !== "undefined")
-            otaStore.setBacklightOff(false)
+        if (typeof dashboardStore !== "undefined")
+            dashboardStore.setBacklightOff(false)
     }
 
     // --- Loading mode (default): silent spinner + optional OTA progress ---
@@ -38,11 +38,11 @@ Rectangle {
         anchors.fill: parent
         visible: !showConnectionInfo
 
-        readonly property bool otaActive: typeof otaStore !== "undefined" && otaStore.isActive
-        readonly property string otaStatus: typeof otaStore !== "undefined" ? otaStore.dbcStatus : "idle"
-        readonly property int otaDownloadProgress: typeof otaStore !== "undefined" ? otaStore.dbcDownloadProgress : 0
-        readonly property int otaInstallProgress: typeof otaStore !== "undefined" ? otaStore.dbcInstallProgress : 0
-        readonly property string otaVersion: typeof otaStore !== "undefined" ? otaStore.dbcUpdateVersion : ""
+        readonly property bool otaActive: typeof dashboardStore !== "undefined" && otaStore.isActive
+        readonly property string otaStatus: typeof dashboardStore !== "undefined" ? otaStore.dbcStatus : "idle"
+        readonly property int otaDownloadProgress: typeof dashboardStore !== "undefined" ? otaStore.dbcDownloadProgress : 0
+        readonly property int otaInstallProgress: typeof dashboardStore !== "undefined" ? otaStore.dbcInstallProgress : 0
+        readonly property string otaVersion: typeof dashboardStore !== "undefined" ? otaStore.dbcUpdateVersion : ""
 
         Column {
             anchors.centerIn: parent

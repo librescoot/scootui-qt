@@ -11,8 +11,8 @@ Rectangle {
             backlightTimer.restart()
         } else {
             backlightTimer.stop()
-            if (typeof otaStore !== "undefined")
-                otaStore.setBacklightOff(false)
+            if (typeof dashboardStore !== "undefined")
+                dashboardStore.setBacklightOff(false)
         }
     }
 
@@ -21,14 +21,14 @@ Rectangle {
         interval: 15000
         running: otaScreen.locked
         onTriggered: {
-            if (typeof otaStore !== "undefined")
-                otaStore.setBacklightOff(true)
+            if (typeof dashboardStore !== "undefined")
+                dashboardStore.setBacklightOff(true)
         }
     }
 
     Component.onDestruction: {
-        if (typeof otaStore !== "undefined")
-            otaStore.setBacklightOff(false)
+        if (typeof dashboardStore !== "undefined")
+            dashboardStore.setBacklightOff(false)
     }
 
     readonly property string dbcStatus: typeof otaStore !== "undefined" ? otaStore.dbcStatus : "idle"

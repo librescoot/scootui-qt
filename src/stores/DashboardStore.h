@@ -12,6 +12,8 @@ public:
 
     QString debugMode() const { return m_debugMode; }
 
+    Q_INVOKABLE void setBacklightOff(bool off);
+
 signals:
     void debugModeChanged();
 

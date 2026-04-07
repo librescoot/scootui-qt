@@ -10,13 +10,6 @@ bool OtaStore::isActive() const
     return m_dbcStatus != QLatin1String("idle") || m_mdbStatus != QLatin1String("idle");
 }
 
-void OtaStore::setBacklightOff(bool off)
-{
-    m_repo->set(QStringLiteral("dashboard"),
-                QStringLiteral("backlight-off"),
-                off ? QStringLiteral("1") : QStringLiteral("0"));
-}
-
 SyncSettings OtaStore::syncSettings() const
 {
     return SyncSettings{

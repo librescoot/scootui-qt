@@ -18,6 +18,13 @@ SyncSettings DashboardStore::syncSettings() const
     };
 }
 
+void DashboardStore::setBacklightOff(bool off)
+{
+    m_repo->set(QStringLiteral("dashboard"),
+                QStringLiteral("backlight-off"),
+                off ? QStringLiteral("1") : QStringLiteral("0"));
+}
+
 void DashboardStore::applyFieldUpdate(const QString &variable, const QString &value)
 {
     if (variable == QLatin1String("debug")) {
