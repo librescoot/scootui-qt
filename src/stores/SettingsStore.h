@@ -79,23 +79,39 @@ protected:
     void applyFieldUpdate(const QString &variable, const QString &value) override;
 
 private:
+    // @schema dashboard.theme
     QString m_theme = QStringLiteral("dark");
+    // @schema dashboard.mode
     QString m_mode = QStringLiteral("speedometer");
     QString m_showRawSpeed = QStringLiteral("false");
+    // @schema dashboard.battery-display-mode
     QString m_batteryDisplayMode = QStringLiteral("percentage");
+    // @schema dashboard.map.type
     ScootEnums::MapType m_mapType = ScootEnums::MapType::Offline;
     ScootEnums::MapRenderMode m_mapRenderMode = ScootEnums::MapRenderMode::Vector;
     QString m_valhallaUrl;
+    // @schema dashboard.language
     QString m_language = QStringLiteral("en");
+    // @schema dashboard.power-display-mode
     ScootEnums::PowerDisplayMode m_powerDisplayMode = ScootEnums::PowerDisplayMode::Kw;
+    // @schema dashboard.blinker-style
     QString m_blinkerStyle = QStringLiteral("icon");
+    // @schema scooter.dual-battery
     QString m_dualBattery = QStringLiteral("false");
+    // @schema dashboard.show-gps
     QString m_showGps = QStringLiteral("error");
+    // @schema dashboard.show-bluetooth
     QString m_showBluetooth = QStringLiteral("active-or-error");
+    // @schema dashboard.show-cloud
     QString m_showCloud = QStringLiteral("error");
+    // @schema dashboard.show-internet
     QString m_showInternet = QStringLiteral("always");
+    // @schema dashboard.show-clock
     QString m_showClock = QStringLiteral("always");
+    // @schema alarm.enabled
     QString m_alarmEnabled = QStringLiteral("false");
+    // @schema alarm.honk
     QString m_alarmHonk = QStringLiteral("false");
-    QString m_alarmDuration;
+    // @schema alarm.duration
+    QString m_alarmDuration = QStringLiteral("60");
 };
