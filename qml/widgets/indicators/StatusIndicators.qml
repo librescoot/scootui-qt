@@ -55,15 +55,22 @@ Row {
             case "5G": return "5G"
             case "LTE":
             case "4G": return "4G"
-            case "3G":
-            case "UMTS":
+            case "HSPA+":
+            case "HSPA_PLUS": return "H+"
             case "HSPA":
             case "HSDPA":
-            case "HSUPA": return "3G"
-            case "2G":
-            case "EDGE":
+            case "HSUPA": return "H"
+            case "3G":
+            case "UMTS":
+            case "EVDO0":
+            case "EVDOA":
+            case "EVDOB": return "3G"
+            case "EDGE": return "E"
             case "GPRS": return "2G"
-            case "GSM": return "G"
+            case "1XRTT": return "1x"
+            case "GSM":
+            case "GSM_COMPACT":
+            case "POTS": return "G"
             default: return ""
         }
     }
