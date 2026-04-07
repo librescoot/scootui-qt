@@ -214,11 +214,23 @@ void MenuStore::rebuildMenuTree()
                     loc[QStringLiteral("latitude")].toDouble(), 0, 'f', 5).arg(
                     loc[QStringLiteral("longitude")].toDouble(), 0, 'f', 5);
 
-            savedLocsNode->addChild(MenuNode::action(
-                QStringLiteral("saved_loc_%1").arg(locId), label,
+            auto *locNode = MenuNode::submenu(
+                QStringLiteral("saved_loc_%1").arg(locId), label);
+            savedLocsNode->addChild(locNode);
+
+            locNode->addChild(MenuNode::action(
+                QStringLiteral("start_nav_%1").arg(locId),
+                tr->menuStartNavigation(),
                 [this, locId]() {
                     m_savedLocations->navigateToLocation(locId);
                     close();
+                }));
+
+            locNode->addChild(MenuNode::action(
+                QStringLiteral("delete_loc_%1").arg(locId),
+                tr->menuDeleteLocation(),
+                [this, locId]() {
+                    m_savedLocations->deleteLocation(locId);
                 }));
         }
     }
