@@ -59,7 +59,13 @@ jobs:
           echo "Detected scootui-qt commit: $SCOOTUI_QT_COMMIT"
 
           # Get the branch name from GitHub context (handles detached HEAD in Actions)
-          SCOOTUI_QT_BRANCH="${{ github.head_ref || github.ref_name }}"
+          # For tag pushes, ref_name is the tag — resolve to the branch it's on
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            SCOOTUI_QT_BRANCH=$(git branch -r --contains HEAD --format='%(refname:short)' | sed 's|origin/||' | grep -v HEAD | head -1)
+            SCOOTUI_QT_BRANCH="${SCOOTUI_QT_BRANCH:-main}"
+          else
+            SCOOTUI_QT_BRANCH="${{ github.head_ref || github.ref_name }}"
+          fi
           echo "branch=$SCOOTUI_QT_BRANCH" >> $GITHUB_OUTPUT
           echo "Detected scootui-qt branch: $SCOOTUI_QT_BRANCH"
 
