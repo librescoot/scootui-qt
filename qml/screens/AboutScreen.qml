@@ -428,13 +428,14 @@ Rectangle {
 
                     Repeater {
                         model: [
-                            "alex.aus.berlin", "DSIW",
-                            "EndOS", "Fa. Wilhelm Zweiradtechnik",
-                            "Felix", "Freal",
-                            "inpin", "jaibee1",
-                            "Jonas", "Julinho666",
-                            "leifbln", "Lena",
-                            "ligustah", "suat"
+                            "alex.aus.berlin", "Bendix",
+                            "DSIW", "EndOS",
+                            "Fa. Wilhelm Zweiradtechnik", "Felix",
+                            "Freal", "inpin",
+                            "jaibee1", "Jonas",
+                            "Julinho666", "leifbln",
+                            "Lena", "ligustah",
+                            "suat"
                         ]
 
                         Text {
