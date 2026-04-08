@@ -37,16 +37,17 @@ Item {
 
             Column {
                 id: cardContent
-                anchors.centerIn: parent
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.margins: 24
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: 24
+                anchors.rightMargin: 24
                 spacing: 16
 
                 // Lock icon
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "\ue897" // lock
+                    text: "\ue3ae" // lock
                     font.family: "Material Icons"
                     font.pixelSize: themeStore.fontHero
                     color: "#FFFFFF"
