@@ -46,6 +46,9 @@ void SimulatorService::setVehicleState(const QString &state)
 void SimulatorService::setKickstand(const QString &state)
 {
     m_repo->set(QStringLiteral("vehicle"), QStringLiteral("kickstand"), state);
+    // Real vehicle-service resets the auto-standby timer on every kickstand
+    // change (system.go handleInputChange "kickstand" branch).
+    resetAutoStandbyTimerIfActive();
 }
 
 void SimulatorService::setBlinkerState(const QString &state)
@@ -58,6 +61,10 @@ void SimulatorService::setBrakeLeft(bool pressed)
     m_repo->set(QStringLiteral("vehicle"), QStringLiteral("brake:left"),
                 pressed ? QStringLiteral("on") : QStringLiteral("off"));
     m_repo->publishButtonEvent(QStringLiteral("brake:left:") + (pressed ? QStringLiteral("on") : QStringLiteral("off")));
+    // Real vehicle-service resets the auto-standby timer whenever either brake
+    // is pressed (system.go handleInputChange brake branch).
+    if (pressed)
+        resetAutoStandbyTimerIfActive();
 }
 
 void SimulatorService::setBrakeRight(bool pressed)
@@ -65,11 +72,17 @@ void SimulatorService::setBrakeRight(bool pressed)
     m_repo->set(QStringLiteral("vehicle"), QStringLiteral("brake:right"),
                 pressed ? QStringLiteral("on") : QStringLiteral("off"));
     m_repo->publishButtonEvent(QStringLiteral("brake:right:") + (pressed ? QStringLiteral("on") : QStringLiteral("off")));
+    if (pressed)
+        resetAutoStandbyTimerIfActive();
 }
 
 void SimulatorService::setSeatboxButton(bool pressed)
 {
     m_repo->publishButtonEvent(QStringLiteral("seatbox:") + (pressed ? QStringLiteral("on") : QStringLiteral("off")));
+    // Real vehicle-service resets the auto-standby timer on seatbox button
+    // press (only on press, not release — matches system.go behavior).
+    if (pressed)
+        resetAutoStandbyTimerIfActive();
 }
 
 void SimulatorService::simulateBrakeTap(const QString &side)
@@ -350,6 +363,7 @@ void SimulatorService::setAutoStandbyDeadline(int secondsFromNow)
     const qint64 deadline = QDateTime::currentSecsSinceEpoch() + secondsFromNow;
     m_repo->set(QStringLiteral("vehicle"), QStringLiteral("auto-standby-deadline"),
                 QString::number(deadline));
+    m_autoStandbyActive = true;
 }
 
 void SimulatorService::clearAutoStandbyDeadline()
@@ -359,12 +373,23 @@ void SimulatorService::clearAutoStandbyDeadline()
     // SyncableStore on hdel — set("") goes through the fieldsUpdated path.
     m_repo->set(QStringLiteral("vehicle"), QStringLiteral("auto-standby-deadline"),
                 QString());
+    m_autoStandbyActive = false;
 }
 
 void SimulatorService::setAutoStandbySetting(int seconds)
 {
+    m_autoStandbySeconds = seconds;
     m_repo->set(QStringLiteral("settings"), QStringLiteral("scooter.auto-standby-seconds"),
                 QString::number(seconds));
+}
+
+void SimulatorService::resetAutoStandbyTimerIfActive()
+{
+    if (!m_autoStandbyActive)
+        return;
+    const qint64 deadline = QDateTime::currentSecsSinceEpoch() + m_autoStandbySeconds;
+    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("auto-standby-deadline"),
+                QString::number(deadline));
 }
 
 // --- Presets ---

@@ -111,6 +111,12 @@ private:
     void applyDefaults();
     void setBatteryField(int slot, const QString &field, const QString &value);
 
+    // Refreshes the auto-standby deadline (= now + m_autoStandbySeconds) if a
+    // countdown is currently armed. Mirrors vehicle-service's
+    // resetAutoStandbyTimer, which is called on every brake/kickstand/seatbox
+    // input so the user can interrupt the countdown.
+    void resetAutoStandbyTimerIfActive();
+
     int m_currentInstructionIndex = 0;
 
     MdbRepository *m_repo;
@@ -128,4 +134,6 @@ private:
     double m_batteryCharge0 = 80;
     double m_batteryCharge1 = 80;
     double m_odometer = 1234.5;
+    int m_autoStandbySeconds = 900;       // last value pushed via setAutoStandbySetting
+    bool m_autoStandbyActive = false;     // true while a deadline is armed
 };
