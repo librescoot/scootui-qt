@@ -312,9 +312,6 @@ qt_add_qml_module(scootui
         assets/fonts/MaterialIcons-Regular.otf
         assets/styles/mapdark.json
         assets/styles/maplight.json
-        assets/styles/mapretro.json
-        assets/sprites/retro.png
-        assets/sprites/retro.json
 )
 
 target_include_directories(scootui PRIVATE ${HIREDIS_INCLUDE_DIRS})
