@@ -31,6 +31,15 @@ Item {
                                  || vehicleState === stateHibernating
                                  || vehicleState === stateHibernatingImminent
 
+    // Theme-aware colors. Accent colors (orange/red/green) work in both modes
+    // and stay as-is. Seatbox mode keeps its orange warning background as-is.
+    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property color scrimColor:    isDark ? "#000000" : "#FFFFFF"
+    readonly property color cardColor:     isDark ? "#CC000000" : "#CCFFFFFF"
+    readonly property color cardBorder:    isDark ? "#4DFFFFFF" : "#4D000000"
+    readonly property color textPrimary:   isDark ? "#FFFFFF" : "#000000"
+    readonly property color textSecondary: isDark ? "#B3FFFFFF" : "#B3000000"
+
     // Countdown logic
     property int countdown: 15
     property bool countdownActive: false
@@ -66,7 +75,7 @@ Item {
     // Mode 1: Hibernation prompt (states 13, 14)
     Rectangle {
         anchors.fill: parent
-        color: "#000000"
+        color: hibernationOverlay.scrimColor
         opacity: 0.9
         visible: isPromptMode
     }
@@ -80,17 +89,18 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             width: Math.min(parent.parent.width - 48, 420)
             height: promptContent.height + 48
-            color: "#CC000000"
+            color: hibernationOverlay.cardColor
             border.width: 1
-            border.color: "#4DFFFFFF"
+            border.color: hibernationOverlay.cardBorder
             radius: themeStore.radiusModal
 
             Column {
                 id: promptContent
-                anchors.centerIn: parent
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.margins: 24
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: 24
+                anchors.rightMargin: 24
                 spacing: 16
 
                 // Power icon
@@ -99,7 +109,7 @@ Item {
                     text: "\ue4e3" // power_settings_new
                     font.family: "Material Icons"
                     font.pixelSize: themeStore.fontHero
-                    color: "#FFFFFF"
+                    color: hibernationOverlay.textPrimary
                 }
 
                 // Title
@@ -108,7 +118,7 @@ Item {
                     text: typeof translations !== "undefined" ? translations.hibernatePrompt : ""
                     font.pixelSize: themeStore.fontHeading
                     font.weight: Font.Bold
-                    color: "#FFFFFF"
+                    color: hibernationOverlay.textPrimary
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
                     width: parent.width
@@ -119,7 +129,7 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: typeof translations !== "undefined" ? translations.hibernateTapKeycard : ""
                     font.pixelSize: themeStore.fontBody
-                    color: "#FFFFFF"
+                    color: hibernationOverlay.textPrimary
                 }
 
                 // Countdown status
@@ -137,7 +147,7 @@ Item {
                     visible: !countdownActive && !bothBrakesHeld
                     text: typeof translations !== "undefined" ? translations.hibernationOrHoldBrakes : ""
                     font.pixelSize: themeStore.fontBody
-                    color: "#B3FFFFFF"
+                    color: hibernationOverlay.textSecondary
                 }
 
                 Text {
@@ -145,7 +155,7 @@ Item {
                     visible: countdown === 0 && !countdownActive
                     text: typeof translations !== "undefined" ? translations.hibernationKeepHoldingBrakes : ""
                     font.pixelSize: themeStore.fontBody
-                    color: "#B3FFFFFF"
+                    color: hibernationOverlay.textSecondary
                 }
 
                 // Action boxes
@@ -180,14 +190,14 @@ Item {
                                 text: typeof translations !== "undefined" ? translations.hibernationCancel : ""
                                 font.pixelSize: themeStore.fontBody
                                 font.weight: Font.Bold
-                                color: "#FFFFFF"
+                                color: hibernationOverlay.textPrimary
                             }
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: typeof translations !== "undefined" ? translations.hibernationKickstand : ""
                                 font.pixelSize: themeStore.fontBody
-                                color: "#B3FFFFFF"
+                                color: hibernationOverlay.textSecondary
                             }
                         }
                     }
@@ -219,14 +229,14 @@ Item {
                                 text: typeof translations !== "undefined" ? translations.hibernationConfirm : ""
                                 font.pixelSize: themeStore.fontBody
                                 font.weight: Font.Bold
-                                color: "#FFFFFF"
+                                color: hibernationOverlay.textPrimary
                             }
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: typeof translations !== "undefined" ? translations.hibernationTapKeycardToConfirm : ""
                                 font.pixelSize: themeStore.fontBody
-                                color: "#B3FFFFFF"
+                                color: hibernationOverlay.textSecondary
                             }
                         }
                     }
@@ -275,7 +285,7 @@ Item {
     // Mode 3: Confirming (states 7, 8, 16)
     Rectangle {
         anchors.fill: parent
-        color: "#000000"
+        color: hibernationOverlay.scrimColor
         opacity: 0.8
         visible: isConfirmMode
     }
@@ -298,7 +308,7 @@ Item {
             text: typeof translations !== "undefined" ? translations.hibernating : ""
             font.pixelSize: themeStore.fontHeading
             font.weight: Font.Bold
-            color: "#FFFFFF"
+            color: hibernationOverlay.textPrimary
         }
 
         Rectangle {
@@ -308,13 +318,14 @@ Item {
             height: 32
             radius: themeStore.radiusModal
             color: "transparent"
-            border.color: "#FFFFFF"
+            border.color: hibernationOverlay.textPrimary
             border.width: 3
 
+            // Mask half the ring to fake a spinner — must match the scrim.
             Rectangle {
                 width: 18
                 height: 18
-                color: "#000000"
+                color: hibernationOverlay.scrimColor
                 anchors.right: parent.right
                 anchors.top: parent.top
             }

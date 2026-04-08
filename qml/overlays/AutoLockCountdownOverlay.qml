@@ -10,6 +10,14 @@ Item {
     property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : 0
     property int remaining: typeof autoStandbyStore !== "undefined" ? autoStandbyStore.remainingSeconds : 0
 
+    // Theme-aware colors. Orange countdown stays as-is (accent works in both modes).
+    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property color scrimColor:    isDark ? "#000000" : "#FFFFFF"
+    readonly property color cardColor:     isDark ? "#CC000000" : "#CCFFFFFF"
+    readonly property color cardBorder:    isDark ? "#4DFFFFFF" : "#4D000000"
+    readonly property color textPrimary:   isDark ? "#FFFFFF" : "#000000"
+    readonly property color textSecondary: isDark ? "#B3FFFFFF" : "#B3000000"
+
     // Show only during the last 60s of the auto-lock idle timer, while parked.
     // The countdown is interrupted automatically: any user input (brake, kickstand,
     // seatbox button) makes vehicle-service reset the timer and republish a later
@@ -18,7 +26,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: "#000000"
+        color: autoLockOverlay.scrimColor
         opacity: 0.9
     }
 
@@ -30,9 +38,9 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             width: Math.min(parent.parent.width - 48, 420)
             height: cardContent.height + 48
-            color: "#CC000000"
+            color: autoLockOverlay.cardColor
             border.width: 1
-            border.color: "#4DFFFFFF"
+            border.color: autoLockOverlay.cardBorder
             radius: themeStore.radiusModal
 
             Column {
@@ -50,7 +58,7 @@ Item {
                     text: "\ue3ae" // lock
                     font.family: "Material Icons"
                     font.pixelSize: themeStore.fontHero
-                    color: "#FFFFFF"
+                    color: autoLockOverlay.textPrimary
                 }
 
                 // Title
@@ -59,7 +67,7 @@ Item {
                     text: typeof translations !== "undefined" ? translations.autoLockTitle : "Auto-Locking"
                     font.pixelSize: themeStore.fontHeading
                     font.weight: Font.Bold
-                    color: "#FFFFFF"
+                    color: autoLockOverlay.textPrimary
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
                     width: parent.width
@@ -81,7 +89,7 @@ Item {
                           ? translations.autoLockCancelHint
                           : "Touch a brake or kickstand to cancel"
                     font.pixelSize: themeStore.fontBody
-                    color: "#B3FFFFFF"
+                    color: autoLockOverlay.textSecondary
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
                     width: parent.width
