@@ -339,6 +339,34 @@ void SimulatorService::setDualBattery(bool enabled)
                 enabled ? QStringLiteral("true") : QStringLiteral("false"));
 }
 
+// --- Auto-lock countdown ---
+
+void SimulatorService::setAutoStandbyDeadline(int secondsFromNow)
+{
+    // Mirror real vehicle-service: the deadline is only meaningful while
+    // parked, so force parked state too. This makes the simulator buttons
+    // "just work" regardless of the previously selected state.
+    setVehicleState(QStringLiteral("parked"));
+    const qint64 deadline = QDateTime::currentSecsSinceEpoch() + secondsFromNow;
+    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("auto-standby-deadline"),
+                QString::number(deadline));
+}
+
+void SimulatorService::clearAutoStandbyDeadline()
+{
+    // Empty value is treated as "no timer active" by AutoStandbyStore. We
+    // don't HDEL because the InMemory simulator repo doesn't notify
+    // SyncableStore on hdel — set("") goes through the fieldsUpdated path.
+    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("auto-standby-deadline"),
+                QString());
+}
+
+void SimulatorService::setAutoStandbySetting(int seconds)
+{
+    m_repo->set(QStringLiteral("settings"), QStringLiteral("scooter.auto-standby-seconds"),
+                QString::number(seconds));
+}
+
 // --- Presets ---
 
 void SimulatorService::loadPreset(const QString &name)

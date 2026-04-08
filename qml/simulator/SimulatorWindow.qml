@@ -305,6 +305,46 @@ ApplicationWindow {
                 }
             }
 
+            // ---- Auto-Lock ----
+            SectionHeader { text: "Auto-Lock" }
+
+            RowLayout {
+                Layout.fillWidth: true
+                SimLabel { text: "Trigger" }
+                SimButton {
+                    text: "60s"; small: true
+                    onClicked: simulator.setAutoStandbyDeadline(60)
+                }
+                SimButton {
+                    text: "30s"; small: true
+                    onClicked: simulator.setAutoStandbyDeadline(30)
+                }
+                SimButton {
+                    text: "10s"; small: true
+                    onClicked: simulator.setAutoStandbyDeadline(10)
+                }
+                SimButton {
+                    text: "Clear"; small: true; color: "#f44336"
+                    onClicked: simulator.clearAutoStandbyDeadline()
+                }
+            }
+
+            SimSliderRow {
+                label: "Timeout"
+                from: 0; to: 1800; value: 900; unit: "s"; decimals: 0
+                onMoved: function(v) { simulator.setAutoStandbySetting(Math.round(v)) }
+            }
+
+            Text {
+                Layout.fillWidth: true
+                visible: typeof autoStandbyStore !== "undefined"
+                         && autoStandbyStore.remainingSeconds > 0
+                text: "Remaining: " + autoStandbyStore.remainingSeconds + "s"
+                color: autoStandbyStore.remainingSeconds <= 60 ? "#FF9800" : "#4caf50"
+                font.pixelSize: 12
+                horizontalAlignment: Text.AlignHCenter
+            }
+
             // ---- Engine ----
             SectionHeader { text: "Engine" }
 

@@ -86,6 +86,11 @@ public:
     Q_INVOKABLE void setLanguage(const QString &lang);
     Q_INVOKABLE void setDualBattery(bool enabled);
 
+    // Auto-lock countdown (drives the AutoLockCountdownOverlay)
+    Q_INVOKABLE void setAutoStandbyDeadline(int secondsFromNow);
+    Q_INVOKABLE void clearAutoStandbyDeadline();
+    Q_INVOKABLE void setAutoStandbySetting(int seconds);
+
     // Presets
     Q_INVOKABLE void loadPreset(const QString &name);
 
