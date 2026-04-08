@@ -4,16 +4,9 @@ Item {
     id: versionOverlay
     anchors.fill: parent
 
-    // Toggle::On = 0, Off = 1 in C++ enum (checking Enums.h)
-    // Wait, let me check Enums.h again:
-    // enum class Toggle { On, Off }; -> On=0, Off=1
-    // So brakeLeft === 0 means On.
-
     property bool bothBrakes: typeof vehicleStore !== "undefined"
                               ? (vehicleStore.brakeLeft === 0 && vehicleStore.brakeRight === 0)
                               : false
-    // Use property binding (not Q_INVOKABLE method) for reactivity
-    // ScooterState::Parked = 4
     property bool canShow: typeof vehicleStore !== "undefined" && typeof menuStore !== "undefined"
                            ? (vehicleStore.state === 4 && !menuStore.isOpen)
                            : false
@@ -33,9 +26,17 @@ Item {
             systemInfoService.loadVersions()
     }
 
+    Timer {
+        id: lingerTimer
+        interval: 4000
+        onTriggered: versionOverlay.showOverlay = false
+    }
+
     onBothBrakesChanged: {
         if (!bothBrakes) {
-            showOverlay = false
+            lingerTimer.start()
+        } else {
+            lingerTimer.stop()
         }
     }
 

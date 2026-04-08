@@ -192,6 +192,11 @@ Window {
         z: 1100
     }
 
+    VersionOverlay {
+        anchors.fill: parent
+        z: 1150
+    }
+
     ManualHibernationOverlay {
         anchors.fill: parent
         z: 1200
@@ -200,10 +205,5 @@ Window {
     BluetoothPinCodeOverlay {
         anchors.fill: parent
         z: 1300
-    }
-
-    VersionOverlay {
-        anchors.fill: parent
-        z: 1400
     }
 }
