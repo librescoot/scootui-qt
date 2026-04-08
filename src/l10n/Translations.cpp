@@ -398,6 +398,16 @@ void Translations::initStrings()
     de[QStringLiteral("hibernationConfirm")] = QStringLiteral("BEST\u00C4TIGEN");
 
     // -----------------------------------------------------------------------
+    // Auto-lock countdown
+    // -----------------------------------------------------------------------
+
+    en[QStringLiteral("autoLockTitle")] = QStringLiteral("Auto-Locking");
+    de[QStringLiteral("autoLockTitle")] = QStringLiteral("Automatisches Sperren");
+
+    en[QStringLiteral("autoLockCancelHint")] = QStringLiteral("Touch a brake or kickstand to cancel");
+    de[QStringLiteral("autoLockCancelHint")] = QStringLiteral("Bremse oder Seitenst\u00E4nder bet\u00E4tigen zum Abbrechen");
+
+    // -----------------------------------------------------------------------
     // About
     // -----------------------------------------------------------------------
 

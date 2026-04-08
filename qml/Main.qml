@@ -177,6 +177,11 @@ Window {
         z: 900
     }
 
+    AutoLockCountdownOverlay {
+        anchors.fill: parent
+        z: 950
+    }
+
     ShutdownOverlay {
         anchors.fill: parent
         z: 1000

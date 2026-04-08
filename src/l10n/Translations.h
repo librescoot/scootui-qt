@@ -131,6 +131,10 @@ class Translations : public QObject
     Q_PROPERTY(QString hibernationKickstand READ hibernationKickstand NOTIFY languageChanged)
     Q_PROPERTY(QString hibernationConfirm READ hibernationConfirm NOTIFY languageChanged)
 
+    // Auto-lock countdown
+    Q_PROPERTY(QString autoLockTitle READ autoLockTitle NOTIFY languageChanged)
+    Q_PROPERTY(QString autoLockCancelHint READ autoLockCancelHint NOTIFY languageChanged)
+
     // About
     Q_PROPERTY(QString aboutTitle READ aboutTitle NOTIFY languageChanged)
     Q_PROPERTY(QString aboutNonCommercialTitle READ aboutNonCommercialTitle NOTIFY languageChanged)
@@ -466,6 +470,8 @@ public:
     QString hibernationTapKeycardToConfirm() const { return lookup("hibernationTapKeycardToConfirm"); }
     QString hibernationKeepHoldingBrakes() const { return lookup("hibernationKeepHoldingBrakes"); }
     QString hibernationOrHoldBrakes() const { return lookup("hibernationOrHoldBrakes"); }
+    QString autoLockTitle() const { return lookup("autoLockTitle"); }
+    QString autoLockCancelHint() const { return lookup("autoLockCancelHint"); }
     QString hibernationCancel() const { return lookup("hibernationCancel"); }
     QString hibernationKickstand() const { return lookup("hibernationKickstand"); }
     QString hibernationConfirm() const { return lookup("hibernationConfirm"); }
