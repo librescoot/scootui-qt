@@ -51,6 +51,7 @@
 #include "simulator/SimulatorService.h"
 
 #include <QQmlContext>
+#include <QtQml/qqml.h>
 #include <QDebug>
 #include <QProcess>
 #include <QFile>
@@ -101,6 +102,8 @@ bool Application::initialize(QQmlApplicationEngine &engine)
         qDebug() << "Connecting to Redis at" << redisHost;
         m_repository = std::make_unique<RedisMdbRepository>(redisHost, 6379, QStringLiteral("192.168.8.1"));
     }
+
+    qmlRegisterUncreatableMetaObject(ScootEnums::staticMetaObject, "ScootUI", 1, 0, "ScootEnums", "");
 
     createStores(engine);
     registerContextProperties(engine);

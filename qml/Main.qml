@@ -1,4 +1,5 @@
 import QtQuick
+import ScootUI 1.0
 import "screens"
 import "widgets/blinker"
 import "widgets/shutdown"
@@ -12,12 +13,17 @@ Window {
     color: "black"
     title: "ScootUI"
 
-    // Allowed vehicle states for normal UI
-    // Unknown=0, Parked=4, ReadyToDrive=2, ShuttingDown=6,
-    // WaitingHibernation=13, WaitingHibernationAdvanced=14,
-    // WaitingHibernationSeatbox=15, WaitingHibernationConfirm=16
-    readonly property var allowedStates: [0, 2, 4, 6, 13, 14, 15, 16]
-    readonly property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : 0
+    readonly property var allowedStates: [
+        ScootEnums.ScooterState.Unknown,
+        ScootEnums.ScooterState.ReadyToDrive,
+        ScootEnums.ScooterState.Parked,
+        ScootEnums.ScooterState.ShuttingDown,
+        ScootEnums.ScooterState.WaitingHibernation,
+        ScootEnums.ScooterState.WaitingHibernationAdvanced,
+        ScootEnums.ScooterState.WaitingHibernationSeatbox,
+        ScootEnums.ScooterState.WaitingHibernationConfirm
+    ]
+    readonly property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : ScootEnums.ScooterState.Unknown
     readonly property int currentScreen: typeof screenStore !== "undefined" ? screenStore.currentScreen : 0
 
     readonly property bool showMaintenance: {
@@ -26,7 +32,7 @@ Window {
             && connectionStore.prolongedDisconnect
             && !connectionStore.hasEverConnected) return true
         if (allowedStates.indexOf(vehicleState) === -1) return true
-        if (vehicleState === 0 && startupGraceElapsed) return true
+        if (vehicleState === ScootEnums.ScooterState.Unknown && startupGraceElapsed) return true
         return false
     }
 
@@ -35,7 +41,7 @@ Window {
         if (typeof connectionStore !== "undefined"
             && connectionStore.prolongedDisconnect
             && !connectionStore.hasEverConnected) return true
-        if (vehicleState === 0 && startupGraceElapsed) return true
+        if (vehicleState === ScootEnums.ScooterState.Unknown && startupGraceElapsed) return true
         return false
     }
 
@@ -53,12 +59,13 @@ Window {
     Connections {
         target: typeof vehicleStore !== "undefined" ? vehicleStore : null
         function onStateChanged() {
-            if (vehicleStore.state !== 0) {
+            if (vehicleStore.state !== ScootEnums.ScooterState.Unknown) {
                 startupTimer.stop()
             }
-            // ReadyToDrive=2: close About screen if open
-            if (vehicleStore.state === 2 && typeof screenStore !== "undefined") {
-                if (screenStore.currentScreen === 4) screenStore.closeAbout()
+            if (vehicleStore.state === ScootEnums.ScooterState.ReadyToDrive
+                    && typeof screenStore !== "undefined") {
+                if (screenStore.currentScreen === ScootEnums.ScreenMode.About)
+                    screenStore.closeAbout()
             }
         }
     }
@@ -122,16 +129,16 @@ Window {
             var name = "unknown"
             var comp = clusterComponent
             switch (screen) {
-                case 0: comp = clusterComponent; name = "cluster"; break
-                case 1: comp = mapComponent; name = "map"; break
-                case 3: comp = debugComponent; name = "debug"; break
-                case 4: comp = aboutComponent; name = "about"; break
-                case 5: comp = maintenanceComponent; name = "maintenance"; break
-                case 6: comp = otaBgComponent; name = "otaBg"; break
-                case 7: comp = addressComponent; name = "address"; break
-                case 9: comp = navSetupComponent; name = "navSetup"; break
-                case 10: comp = destinationComponent; name = "destination"; break
-                default: comp = clusterComponent; name = "cluster(default)"; break
+                case ScootEnums.ScreenMode.Cluster:         comp = clusterComponent;     name = "cluster";     break
+                case ScootEnums.ScreenMode.Map:             comp = mapComponent;         name = "map";         break
+                case ScootEnums.ScreenMode.Debug:           comp = debugComponent;       name = "debug";       break
+                case ScootEnums.ScreenMode.About:           comp = aboutComponent;       name = "about";       break
+                case ScootEnums.ScreenMode.Maintenance:     comp = maintenanceComponent; name = "maintenance"; break
+                case ScootEnums.ScreenMode.Ota:             comp = otaBgComponent;       name = "otaBg";       break
+                case ScootEnums.ScreenMode.AddressSelection:comp = addressComponent;     name = "address";     break
+                case ScootEnums.ScreenMode.NavigationSetup: comp = navSetupComponent;    name = "navSetup";    break
+                case ScootEnums.ScreenMode.Destination:     comp = destinationComponent; name = "destination"; break
+                default:                                    comp = clusterComponent;     name = "cluster(default)"; break
             }
             console.log("SCREEN: " + name + " (screen=" + screen + ")")
             return comp
