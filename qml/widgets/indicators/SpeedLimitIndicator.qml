@@ -6,7 +6,12 @@ Item {
     property string speedLimit: typeof speedLimitStore !== "undefined"
                                 ? speedLimitStore.speedLimit : ""
 
-    visible: speedLimit.length > 0 && speedLimit !== "unknown"
+    // Only numeric values (e.g. "30", "50") are displayable. OSM maxspeed may
+    // contain non-numeric tokens like "signals", "variable", "walk" — filter
+    // those out and show nothing rather than overflowing text.
+    readonly property bool isNumeric: /^\d+$/.test(speedLimit)
+
+    visible: isNumeric || speedLimit === "none"
     width: iconSize
     height: iconSize
 
@@ -23,7 +28,7 @@ Item {
 
     Text {
         anchors.centerIn: parent
-        visible: root.speedLimit !== "none" && root.speedLimit !== "unknown"
+        visible: root.isNumeric
         text: root.speedLimit
         font.family: "Roboto Condensed"
         font.pixelSize: root.iconSize * (72 / 144)
