@@ -75,6 +75,7 @@ private:
     void projectPositionAlongRoute(double distMeters);
     void projectPositionStraight(double distMeters, double headingDeg);
     void blendGpsCorrection(double dt);
+    void snapToRouteLine();
     void applyLatencyCompensation(double speedMs, double headingDeg);
 
     // Dynamic zoom

@@ -75,6 +75,30 @@ static void projectForward(double lat, double lng, double bearing, double distan
                                    cosD - sinLat * std::sin(outLat * DegToRad))) * RadToDeg;
 }
 
+// Perpendicular distance from (lat, lon) to the great-circle segment (A→B).
+// Uses a local equirectangular approximation (valid for segments < ~50 km).
+static double distanceToSegment(double lat, double lon,
+                                double aLat, double aLon,
+                                double bLat, double bLon)
+{
+    double cosLat = std::cos(lat * DegToRad);
+    // Local metric offsets of segment endpoints from the query point
+    double ax = (aLon - lon) * EarthRadius * cosLat * DegToRad;
+    double ay = (aLat - lat) * EarthRadius * DegToRad;
+    double bx = (bLon - lon) * EarthRadius * cosLat * DegToRad;
+    double by = (bLat - lat) * EarthRadius * DegToRad;
+    double dx = bx - ax;
+    double dy = by - ay;
+    double lenSq = dx * dx + dy * dy;
+    if (lenSq < 1e-6)
+        return std::hypot(ax, ay);
+    // Project origin onto line AB; t ∈ [0,1] clamps to segment
+    double t = std::clamp((-ax * dx - ay * dy) / lenSq, 0.0, 1.0);
+    double px = ax + t * dx;
+    double py = ay + t * dy;
+    return std::hypot(px, py);
+}
+
 // ---------------------------------------------------------------------------
 // Construction
 // ---------------------------------------------------------------------------
@@ -339,6 +363,14 @@ void MapService::onGpsPositionChanged()
     m_lastGpsLatitude = gpsLat;
     m_lastGpsLongitude = gpsLng;
 
+    // Re-evaluate which route segment we're on using the real GPS position.
+    // This corrects drift where the DR segment index falls behind or overshoots.
+    if (m_routeShape.size() >= 2) {
+        int seg = findClosestSegment(gpsLat, gpsLng);
+        if (seg >= 0 && seg >= m_currentRouteSegment)
+            m_currentRouteSegment = seg;
+    }
+
     // Check if GPS position is outside mbtiles bounds
     checkOutOfCoverage();
 }
@@ -527,16 +559,22 @@ void MapService::onDeadReckoningTick()
         if (m_gps->hasRecentFix()) {
             blendGpsCorrection(dt);
         }
+
+        // ----- Snap DR back onto the route line after GPS correction -----
+        if (!m_routeShape.isEmpty() && m_currentRouteSegment >= 0) {
+            snapToRouteLine();
+        }
     }
 
     // ----- Latency compensation -----
     // Project the displayed position forward to compensate for GPS latency,
     // without modifying the internal DR state.
+    // Use the current display bearing (already smoothed) rather than raw GPS
+    // course so the compensation direction matches what the map shows.
     double compensatedLat = m_drLatitude;
     double compensatedLng = m_drLongitude;
     if (speedMs > 0.5) {
-        double heading = m_gps->course();
-        projectForward(m_drLatitude, m_drLongitude, heading,
+        projectForward(m_drLatitude, m_drLongitude, m_displayBearing,
                        speedMs * LatencyCompensationSec,
                        compensatedLat, compensatedLng);
     }
@@ -644,6 +682,52 @@ void MapService::blendGpsCorrection(double dt)
 
     m_gpsErrorLatitude *= (1.0 - factor);
     m_gpsErrorLongitude *= (1.0 - factor);
+}
+
+// ---------------------------------------------------------------------------
+// Snap DR position onto the current route segment (cross-track correction)
+// ---------------------------------------------------------------------------
+
+void MapService::snapToRouteLine()
+{
+    if (m_routeShape.size() < 2 || m_currentRouteSegment < 0
+            || m_currentRouteSegment >= m_routeShape.size() - 1)
+        return;
+
+    double aLat = m_routeShape[m_currentRouteSegment].first;
+    double aLon = m_routeShape[m_currentRouteSegment].second;
+    double bLat = m_routeShape[m_currentRouteSegment + 1].first;
+    double bLon = m_routeShape[m_currentRouteSegment + 1].second;
+
+    double cosLat = std::cos(m_drLatitude * DegToRad);
+    // Local metric offsets of segment endpoints from DR position
+    double ax = (aLon - m_drLongitude) * EarthRadius * cosLat * DegToRad;
+    double ay = (aLat - m_drLatitude) * EarthRadius * DegToRad;
+    double bx = (bLon - m_drLongitude) * EarthRadius * cosLat * DegToRad;
+    double by = (bLat - m_drLatitude) * EarthRadius * DegToRad;
+    double dx = bx - ax;
+    double dy = by - ay;
+    double lenSq = dx * dx + dy * dy;
+    if (lenSq < 1e-6)
+        return;
+
+    // t = projection of origin onto segment; clamp to [0, 1]
+    double t = std::clamp((-ax * dx - ay * dy) / lenSq, 0.0, 1.0);
+    double projX = ax + t * dx;  // meters east of DR position
+    double projY = ay + t * dy;  // meters north of DR position
+
+    m_drLatitude  += projY / EarthRadius * RadToDeg;
+    m_drLongitude += projX / (EarthRadius * cosLat) * RadToDeg;
+
+    // Clear the cross-track component of accumulated GPS error so subsequent
+    // blend steps don't immediately pull us off the route line again.
+    double errorCosLat = std::cos(m_drLatitude * DegToRad);
+    double ex = m_gpsErrorLongitude * EarthRadius * errorCosLat * DegToRad;
+    double ey = m_gpsErrorLatitude  * EarthRadius * DegToRad;
+    // Keep only the along-track component
+    double alongTrackFrac = (ex * dx + ey * dy) / lenSq;
+    m_gpsErrorLatitude  = alongTrackFrac * dy / (EarthRadius * DegToRad);
+    m_gpsErrorLongitude = alongTrackFrac * dx / (EarthRadius * errorCosLat * DegToRad);
 }
 
 // ---------------------------------------------------------------------------
@@ -862,9 +946,9 @@ int MapService::findClosestSegment(double lat, double lng) const
     double bestDist = std::numeric_limits<double>::max();
 
     for (int i = 0; i < m_routeShape.size() - 1; ++i) {
-        // Simple: distance to segment start as heuristic
-        double d = haversineDistance(lat, lng,
-                                     m_routeShape[i].first, m_routeShape[i].second);
+        double d = distanceToSegment(lat, lng,
+                                     m_routeShape[i].first,   m_routeShape[i].second,
+                                     m_routeShape[i+1].first, m_routeShape[i+1].second);
         if (d < bestDist) {
             bestDist = d;
             bestIdx = i;
