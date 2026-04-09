@@ -4,7 +4,7 @@ Item {
     id: autoLockOverlay
     anchors.fill: parent
 
-    // ScooterState.Parked = 4 (see src/models/Enums.h: Unknown, StandBy, ReadyToDrive, Off, Parked)
+    // VehicleState.Parked = 4 (see src/models/Enums.h: Unknown, StandBy, ReadyToDrive, Off, Parked)
     readonly property int stateParked: 4
 
     property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : 0

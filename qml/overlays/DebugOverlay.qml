@@ -13,7 +13,7 @@ Item {
     readonly property color textColor: isDark ? "#FFFFFF" : "#000000"
 
     // --- Enum int values (must match Enums.h order) ---
-    // ScooterState
+    // VehicleState
     readonly property int stUnknown: 0
     readonly property int stStandBy: 1
     readonly property int stReadyToDrive: 2

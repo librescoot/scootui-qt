@@ -14,16 +14,16 @@ Window {
     title: "ScootUI"
 
     readonly property var allowedStates: [
-        ScootEnums.ScooterState.Unknown,
-        ScootEnums.ScooterState.ReadyToDrive,
-        ScootEnums.ScooterState.Parked,
-        ScootEnums.ScooterState.ShuttingDown,
-        ScootEnums.ScooterState.WaitingHibernation,
-        ScootEnums.ScooterState.WaitingHibernationAdvanced,
-        ScootEnums.ScooterState.WaitingHibernationSeatbox,
-        ScootEnums.ScooterState.WaitingHibernationConfirm
+        Scooter.VehicleState.Unknown,
+        Scooter.VehicleState.ReadyToDrive,
+        Scooter.VehicleState.Parked,
+        Scooter.VehicleState.ShuttingDown,
+        Scooter.VehicleState.WaitingHibernation,
+        Scooter.VehicleState.WaitingHibernationAdvanced,
+        Scooter.VehicleState.WaitingHibernationSeatbox,
+        Scooter.VehicleState.WaitingHibernationConfirm
     ]
-    readonly property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : ScootEnums.ScooterState.Unknown
+    readonly property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : Scooter.VehicleState.Unknown
     readonly property int currentScreen: typeof screenStore !== "undefined" ? screenStore.currentScreen : 0
 
     readonly property bool showMaintenance: {
@@ -32,7 +32,7 @@ Window {
             && connectionStore.prolongedDisconnect
             && !connectionStore.hasEverConnected) return true
         if (allowedStates.indexOf(vehicleState) === -1) return true
-        if (vehicleState === ScootEnums.ScooterState.Unknown && startupGraceElapsed) return true
+        if (vehicleState === Scooter.VehicleState.Unknown && startupGraceElapsed) return true
         return false
     }
 
@@ -41,7 +41,7 @@ Window {
         if (typeof connectionStore !== "undefined"
             && connectionStore.prolongedDisconnect
             && !connectionStore.hasEverConnected) return true
-        if (vehicleState === ScootEnums.ScooterState.Unknown && startupGraceElapsed) return true
+        if (vehicleState === Scooter.VehicleState.Unknown && startupGraceElapsed) return true
         return false
     }
 
@@ -59,12 +59,12 @@ Window {
     Connections {
         target: typeof vehicleStore !== "undefined" ? vehicleStore : null
         function onStateChanged() {
-            if (vehicleStore.state !== ScootEnums.ScooterState.Unknown) {
+            if (vehicleStore.state !== Scooter.VehicleState.Unknown) {
                 startupTimer.stop()
             }
-            if (vehicleStore.state === ScootEnums.ScooterState.ReadyToDrive
+            if (vehicleStore.state === Scooter.VehicleState.ReadyToDrive
                     && typeof screenStore !== "undefined") {
-                if (screenStore.currentScreen === ScootEnums.ScreenMode.About)
+                if (screenStore.currentScreen === Scooter.ScreenMode.About)
                     screenStore.closeAbout()
             }
         }
@@ -129,15 +129,15 @@ Window {
             var name = "unknown"
             var comp = clusterComponent
             switch (screen) {
-                case ScootEnums.ScreenMode.Cluster:         comp = clusterComponent;     name = "cluster";     break
-                case ScootEnums.ScreenMode.Map:             comp = mapComponent;         name = "map";         break
-                case ScootEnums.ScreenMode.Debug:           comp = debugComponent;       name = "debug";       break
-                case ScootEnums.ScreenMode.About:           comp = aboutComponent;       name = "about";       break
-                case ScootEnums.ScreenMode.Maintenance:     comp = maintenanceComponent; name = "maintenance"; break
-                case ScootEnums.ScreenMode.Ota:             comp = otaBgComponent;       name = "otaBg";       break
-                case ScootEnums.ScreenMode.AddressSelection:comp = addressComponent;     name = "address";     break
-                case ScootEnums.ScreenMode.NavigationSetup: comp = navSetupComponent;    name = "navSetup";    break
-                case ScootEnums.ScreenMode.Destination:     comp = destinationComponent; name = "destination"; break
+                case Scooter.ScreenMode.Cluster:         comp = clusterComponent;     name = "cluster";     break
+                case Scooter.ScreenMode.Map:             comp = mapComponent;         name = "map";         break
+                case Scooter.ScreenMode.Debug:           comp = debugComponent;       name = "debug";       break
+                case Scooter.ScreenMode.About:           comp = aboutComponent;       name = "about";       break
+                case Scooter.ScreenMode.Maintenance:     comp = maintenanceComponent; name = "maintenance"; break
+                case Scooter.ScreenMode.Ota:             comp = otaBgComponent;       name = "otaBg";       break
+                case Scooter.ScreenMode.AddressSelection:comp = addressComponent;     name = "address";     break
+                case Scooter.ScreenMode.NavigationSetup: comp = navSetupComponent;    name = "navSetup";    break
+                case Scooter.ScreenMode.Destination:     comp = destinationComponent; name = "destination"; break
                 default:                                    comp = clusterComponent;     name = "cluster(default)"; break
             }
             console.log("SCREEN: " + name + " (screen=" + screen + ")")

@@ -18,7 +18,7 @@ TripStore::TripStore(EngineStore *engine, VehicleStore *vehicle, QObject *parent
 
 void TripStore::onVehicleStateChanged()
 {
-    using S = ScootEnums::ScooterState;
+    using S = ScootEnums::VehicleState;
     auto state = static_cast<S>(m_vehicle->state());
 
     if (state == S::ReadyToDrive) {

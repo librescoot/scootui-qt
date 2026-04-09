@@ -10,7 +10,7 @@ Item {
     readonly property int unableToDrive: typeof vehicleStore !== "undefined" ? vehicleStore.isUnableToDrive : 0
     readonly property bool usbDisconnected: typeof connectionStore !== "undefined" && connectionStore.usingBackupConnection
 
-    // ScooterState.Parked = 4, BlinkerState.Both = 3, Toggle.On = 0
+    // VehicleState.Parked = 4, BlinkerState.Both = 3, Toggle.On = 0
     readonly property bool hasTelltales: unableToDrive === 0 || usbDisconnected || blinkerState === 3 || vehicleState === 4
 
     // AnimatedSwitcher equivalent

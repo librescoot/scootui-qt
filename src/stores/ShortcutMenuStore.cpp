@@ -95,7 +95,7 @@ void ShortcutMenuStore::handleButtonEvent(const QString &channel, const QString 
     if (button != QLatin1String("seatbox")) return;
 
     // Only allow when ready-to-drive
-    if (m_vehicle->state() != static_cast<int>(ScootEnums::ScooterState::ReadyToDrive)) {
+    if (m_vehicle->state() != static_cast<int>(ScootEnums::VehicleState::ReadyToDrive)) {
         return;
     }
 

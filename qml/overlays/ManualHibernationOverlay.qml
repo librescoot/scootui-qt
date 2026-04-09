@@ -4,7 +4,7 @@ Item {
     id: hibernationOverlay
     anchors.fill: parent
 
-    // ScooterState enum values from Enums.h
+    // VehicleState enum values from Enums.h
     readonly property int stateHibernating: 7
     readonly property int stateHibernatingImminent: 8
     readonly property int stateWaitingHibernation: 13

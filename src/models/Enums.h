@@ -28,14 +28,14 @@ Q_ENUM_NS(BlinkerState)
 enum class BlinkerSwitch { Off, Left, Right };
 Q_ENUM_NS(BlinkerSwitch)
 
-enum class ScooterState {
+enum class VehicleState {
     Unknown, StandBy, ReadyToDrive, Off, Parked,
     Booting, ShuttingDown, Hibernating, HibernatingImminent,
     Suspending, SuspendingImminent, Updating,
     WaitingSeatbox, WaitingHibernation, WaitingHibernationAdvanced,
     WaitingHibernationSeatbox, WaitingHibernationConfirm
 };
-Q_ENUM_NS(ScooterState)
+Q_ENUM_NS(VehicleState)
 
 enum class Kickstand { Up, Down };
 Q_ENUM_NS(Kickstand)
@@ -89,24 +89,24 @@ inline BlinkerSwitch parseBlinkerSwitch(const QString &s) {
     return BlinkerSwitch::Off;
 }
 
-inline ScooterState parseScooterState(const QString &s) {
-    if (s == QLatin1String("stand-by")) return ScooterState::StandBy;
-    if (s == QLatin1String("ready-to-drive")) return ScooterState::ReadyToDrive;
-    if (s == QLatin1String("off")) return ScooterState::Off;
-    if (s == QLatin1String("parked")) return ScooterState::Parked;
-    if (s == QLatin1String("booting")) return ScooterState::Booting;
-    if (s == QLatin1String("shutting-down")) return ScooterState::ShuttingDown;
-    if (s == QLatin1String("hibernating")) return ScooterState::Hibernating;
-    if (s == QLatin1String("hibernating-imminent")) return ScooterState::HibernatingImminent;
-    if (s == QLatin1String("suspending")) return ScooterState::Suspending;
-    if (s == QLatin1String("suspending-imminent")) return ScooterState::SuspendingImminent;
-    if (s == QLatin1String("updating")) return ScooterState::Updating;
-    if (s == QLatin1String("waiting-seatbox")) return ScooterState::WaitingSeatbox;
-    if (s == QLatin1String("waiting-hibernation")) return ScooterState::WaitingHibernation;
-    if (s == QLatin1String("waiting-hibernation-advanced")) return ScooterState::WaitingHibernationAdvanced;
-    if (s == QLatin1String("waiting-hibernation-seatbox")) return ScooterState::WaitingHibernationSeatbox;
-    if (s == QLatin1String("waiting-hibernation-confirm")) return ScooterState::WaitingHibernationConfirm;
-    return ScooterState::Unknown;
+inline VehicleState parseVehicleState(const QString &s) {
+    if (s == QLatin1String("stand-by")) return VehicleState::StandBy;
+    if (s == QLatin1String("ready-to-drive")) return VehicleState::ReadyToDrive;
+    if (s == QLatin1String("off")) return VehicleState::Off;
+    if (s == QLatin1String("parked")) return VehicleState::Parked;
+    if (s == QLatin1String("booting")) return VehicleState::Booting;
+    if (s == QLatin1String("shutting-down")) return VehicleState::ShuttingDown;
+    if (s == QLatin1String("hibernating")) return VehicleState::Hibernating;
+    if (s == QLatin1String("hibernating-imminent")) return VehicleState::HibernatingImminent;
+    if (s == QLatin1String("suspending")) return VehicleState::Suspending;
+    if (s == QLatin1String("suspending-imminent")) return VehicleState::SuspendingImminent;
+    if (s == QLatin1String("updating")) return VehicleState::Updating;
+    if (s == QLatin1String("waiting-seatbox")) return VehicleState::WaitingSeatbox;
+    if (s == QLatin1String("waiting-hibernation")) return VehicleState::WaitingHibernation;
+    if (s == QLatin1String("waiting-hibernation-advanced")) return VehicleState::WaitingHibernationAdvanced;
+    if (s == QLatin1String("waiting-hibernation-seatbox")) return VehicleState::WaitingHibernationSeatbox;
+    if (s == QLatin1String("waiting-hibernation-confirm")) return VehicleState::WaitingHibernationConfirm;
+    return VehicleState::Unknown;
 }
 
 inline Kickstand parseKickstand(const QString &s) {

@@ -44,11 +44,11 @@ public:
     int isUnableToDrive() const { return static_cast<int>(m_isUnableToDrive); }
 
     // Helper getters for QML
-    Q_INVOKABLE bool isParked() const { return m_state == ScootEnums::ScooterState::Parked; }
-    Q_INVOKABLE bool isReadyToDrive() const { return m_state == ScootEnums::ScooterState::ReadyToDrive; }
-    Q_INVOKABLE bool isOff() const { return m_state == ScootEnums::ScooterState::Off; }
-    Q_INVOKABLE bool isShuttingDown() const { return m_state == ScootEnums::ScooterState::ShuttingDown; }
-    Q_INVOKABLE bool isStandBy() const { return m_state == ScootEnums::ScooterState::StandBy; }
+    Q_INVOKABLE bool isParked() const { return m_state == ScootEnums::VehicleState::Parked; }
+    Q_INVOKABLE bool isReadyToDrive() const { return m_state == ScootEnums::VehicleState::ReadyToDrive; }
+    Q_INVOKABLE bool isOff() const { return m_state == ScootEnums::VehicleState::Off; }
+    Q_INVOKABLE bool isShuttingDown() const { return m_state == ScootEnums::VehicleState::ShuttingDown; }
+    Q_INVOKABLE bool isStandBy() const { return m_state == ScootEnums::VehicleState::StandBy; }
 
 signals:
     void blinkerStateChanged();
@@ -85,7 +85,7 @@ private:
     ScootEnums::Toggle m_brakeLeft = ScootEnums::Toggle::Off;
     ScootEnums::Toggle m_brakeRight = ScootEnums::Toggle::Off;
     ScootEnums::Kickstand m_kickstand = ScootEnums::Kickstand::Down;
-    ScootEnums::ScooterState m_state = ScootEnums::ScooterState::Unknown;
+    ScootEnums::VehicleState m_state = ScootEnums::VehicleState::Unknown;
     QString m_stateRaw;
     ScootEnums::HandleBarLockSensor m_handleBarLockSensor = ScootEnums::HandleBarLockSensor::Unknown;
     bool m_handlebarInLockPosition = false;

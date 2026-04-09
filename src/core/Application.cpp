@@ -103,7 +103,7 @@ bool Application::initialize(QQmlApplicationEngine &engine)
         m_repository = std::make_unique<RedisMdbRepository>(redisHost, 6379, QStringLiteral("192.168.8.1"));
     }
 
-    qmlRegisterUncreatableMetaObject(ScootEnums::staticMetaObject, "ScootUI", 1, 0, "ScootEnums", "");
+    qmlRegisterUncreatableMetaObject(ScootEnums::staticMetaObject, "ScootUI", 1, 0, "Scooter", "");
 
     createStores(engine);
     registerContextProperties(engine);

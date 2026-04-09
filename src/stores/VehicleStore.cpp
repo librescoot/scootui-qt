@@ -90,7 +90,7 @@ void VehicleStore::applyFieldUpdate(const QString &variable, const QString &valu
         auto v = ScootEnums::parseKickstand(value);
         if (v != m_kickstand) { m_kickstand = v; emit kickstandChanged(); }
     } else if (variable == QLatin1String("state")) {
-        auto v = ScootEnums::parseScooterState(value);
+        auto v = ScootEnums::parseVehicleState(value);
         if (v != m_state) { m_state = v; emit stateChanged(); }
         if (value != m_stateRaw) { m_stateRaw = value; emit stateRawChanged(); }
     } else if (variable == QLatin1String("handlebar:lock-sensor")) {
