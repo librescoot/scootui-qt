@@ -66,6 +66,7 @@ class Translations : public QObject
     Q_PROPERTY(QString menuHopOn READ menuHopOn NOTIFY languageChanged)
     Q_PROPERTY(QString menuHopOnHeader READ menuHopOnHeader NOTIFY languageChanged)
     Q_PROPERTY(QString menuHopOnActivate READ menuHopOnActivate NOTIFY languageChanged)
+    Q_PROPERTY(QString menuHopOnActivateTop READ menuHopOnActivateTop NOTIFY languageChanged)
     Q_PROPERTY(QString menuHopOnRelearn READ menuHopOnRelearn NOTIFY languageChanged)
     Q_PROPERTY(QString menuHopOnDisable READ menuHopOnDisable NOTIFY languageChanged)
     Q_PROPERTY(QString hopOnLearnTitle READ hopOnLearnTitle NOTIFY languageChanged)
@@ -426,6 +427,7 @@ public:
     QString menuHopOn() const { return lookup("menuHopOn"); }
     QString menuHopOnHeader() const { return lookup("menuHopOnHeader"); }
     QString menuHopOnActivate() const { return lookup("menuHopOnActivate"); }
+    QString menuHopOnActivateTop() const { return lookup("menuHopOnActivateTop"); }
     QString menuHopOnRelearn() const { return lookup("menuHopOnRelearn"); }
     QString menuHopOnDisable() const { return lookup("menuHopOnDisable"); }
     QString hopOnLearnTitle() const { return lookup("hopOnLearnTitle"); }

@@ -6,6 +6,7 @@
 
 namespace ScootEnums {
 Q_NAMESPACE
+Q_CLASSINFO("RegisterEnumClassesUnscoped", "false")
 
 enum class ConnectionStatus { Connected, Disconnected };
 Q_ENUM_NS(ConnectionStatus)

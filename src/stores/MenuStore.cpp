@@ -142,39 +142,17 @@ void MenuStore::rebuildMenuTree()
             close();
         }));
 
-    // === Hop-on / hop-off ===
+    // === Hop-on activate (top-level, only when a combo is configured) ===
     // Experimental flag: completely hidden unless `experimental.hop-on` is
     // set to "true" in the settings hash (e.g. via `lsc set experimental.hop-on true`).
-    // No combo defined -> entry is a single action that jumps straight to learning.
-    // Combo defined -> entry is a submenu offering Activate / Re-learn / Disable.
-    if (m_hopOn && settings->experimentalHopOn()) {
-        if (!m_hopOn->hasCombo()) {
-            m_rootNode->addChild(MenuNode::action(QStringLiteral("hop_on"),
-                tr->menuHopOn(), [this]() {
-                    close();
-                    m_hopOn->startLearning();
-                }));
-        } else {
-            auto *hopNode = MenuNode::submenu(QStringLiteral("hop_on"),
-                tr->menuHopOn(), tr->menuHopOnHeader());
-            m_rootNode->addChild(hopNode);
-
-            hopNode->addChild(MenuNode::action(QStringLiteral("hop_on_activate"),
-                tr->menuHopOnActivate(), [this]() {
-                    close();
-                    m_hopOn->activate();
-                }));
-            hopNode->addChild(MenuNode::action(QStringLiteral("hop_on_relearn"),
-                tr->menuHopOnRelearn(), [this]() {
-                    close();
-                    m_hopOn->startLearning();
-                }));
-            hopNode->addChild(MenuNode::action(QStringLiteral("hop_on_disable"),
-                tr->menuHopOnDisable(), [this]() {
-                    m_hopOn->disable();
-                    close();
-                }));
-        }
+    // Only the Activate action lives at the top level below Hazard Lights.
+    // Learning / disabling the combo lives under Settings > Hop-on.
+    if (m_hopOn && settings->experimentalHopOn() && m_hopOn->hasCombo()) {
+        m_rootNode->addChild(MenuNode::action(QStringLiteral("hop_on_activate"),
+            tr->menuHopOnActivateTop(), [this]() {
+                close();
+                m_hopOn->activate();
+            }));
     }
 
     // === Switch to Cluster View (only on map screen) ===
@@ -448,6 +426,33 @@ void MenuStore::rebuildMenuTree()
         alarmDur == QLatin1String("20") ? 1 : 0, [svc]() { svc->updateAlarmDuration(20); }));
     alarmDurNode->addChild(MenuNode::setting(QStringLiteral("alarm_dur_30"), tr->menuAlarmDuration30(),
         alarmDur == QLatin1String("30") ? 1 : 0, [svc]() { svc->updateAlarmDuration(30); }));
+
+    // Hop-on (experimental) — learning / disabling the combo
+    // Hidden unless `experimental.hop-on` is enabled in settings.
+    if (m_hopOn && settings->experimentalHopOn()) {
+        if (!m_hopOn->hasCombo()) {
+            settingsNode->addChild(MenuNode::action(QStringLiteral("settings_hop_on"),
+                tr->menuHopOn(), [this]() {
+                    close();
+                    m_hopOn->startLearning();
+                }));
+        } else {
+            auto *hopNode = MenuNode::submenu(QStringLiteral("settings_hop_on"),
+                tr->menuHopOn(), tr->menuHopOnHeader());
+            settingsNode->addChild(hopNode);
+
+            hopNode->addChild(MenuNode::action(QStringLiteral("settings_hop_on_relearn"),
+                tr->menuHopOnRelearn(), [this]() {
+                    close();
+                    m_hopOn->startLearning();
+                }));
+            hopNode->addChild(MenuNode::action(QStringLiteral("settings_hop_on_disable"),
+                tr->menuHopOnDisable(), [this]() {
+                    m_hopOn->disable();
+                    close();
+                }));
+        }
+    }
 
     // System
     auto *systemNode = MenuNode::submenu(QStringLiteral("settings_system"), tr->menuSystem());

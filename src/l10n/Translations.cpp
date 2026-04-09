@@ -210,6 +210,9 @@ void Translations::initStrings()
     en[QStringLiteral("menuHopOnActivate")] = QStringLiteral("Activate now");
     de[QStringLiteral("menuHopOnActivate")] = QStringLiteral("Jetzt aktivieren");
 
+    en[QStringLiteral("menuHopOnActivateTop")] = QStringLiteral("Activate Hop-on");
+    de[QStringLiteral("menuHopOnActivateTop")] = QStringLiteral("Hop-on aktivieren");
+
     en[QStringLiteral("menuHopOnRelearn")] = QStringLiteral("Set new combo");
     de[QStringLiteral("menuHopOnRelearn")] = QStringLiteral("Neue Kombi lernen");
 
