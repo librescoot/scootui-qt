@@ -103,6 +103,15 @@ Window {
         }
     }
 
+    // Double-tap left brake opens menu on main screens
+    Connections {
+        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        enabled: typeof menuStore !== "undefined" && !menuStore.isOpen
+                 && (root.currentScreen === Scooter.ScreenMode.Cluster
+                     || root.currentScreen === Scooter.ScreenMode.Map)
+        function onLeftDoubleTap() { menuStore.open() }
+    }
+
     // Wire maintenanceShowConnectionInfo into loaded MaintenanceScreen
     Connections {
         target: screenLoader

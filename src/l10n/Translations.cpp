@@ -302,6 +302,9 @@ void Translations::initStrings()
     en[QStringLiteral("controlNextItem")] = QStringLiteral("Next Item");
     de[QStringLiteral("controlNextItem")] = QStringLiteral("N\u00E4chster Eintrag");
 
+    en[QStringLiteral("controlScroll")] = QStringLiteral("Scroll");
+    de[QStringLiteral("controlScroll")] = QStringLiteral("Scrollen");
+
     en[QStringLiteral("controlPressRightBrakeConfirm")] = QStringLiteral("Press Right Brake to Confirm");
     de[QStringLiteral("controlPressRightBrakeConfirm")] = QStringLiteral("Rechte Bremse zum Best\u00E4tigen");
 
