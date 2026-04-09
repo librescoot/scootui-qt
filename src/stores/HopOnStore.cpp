@@ -60,16 +60,17 @@ HopOnStore::HopOnStore(VehicleStore *vehicle,
 
     // If the experimental flag is flipped off mid-session, abort whatever
     // we are doing — never leave the user stuck on a lock screen they
-    // cannot reach the menu of.
+    // cannot reach the menu of, and never leave vehicle-service in
+    // StateHopOn after we've forgotten about it.
     connect(m_settings, &SettingsStore::experimentalHopOnChanged, this, [this]() {
         if (m_settings->experimentalHopOn()) return;
         if (m_mode == Idle) return;
         qDebug() << "HopOn: experimental flag turned off, exiting mode" << m_mode;
+        // Both Learning and Locked entered StateHopOn on vehicle-service
+        // (silently or not) — release it before we drop our own mode.
+        if (m_repo)
+            m_repo->push(QStringLiteral("scooter:hop-on"), QStringLiteral("release"));
         if (m_mode == Locked) {
-            // Tell vehicle-service to release the lockout, otherwise the
-            // FSM stays blocked forever.
-            if (m_repo)
-                m_repo->push(QStringLiteral("scooter:hop-on"), QStringLiteral("release"));
             m_backlightTimer.stop();
             if (m_dashboard)
                 m_dashboard->setBacklightOff(false);
@@ -105,6 +106,15 @@ void HopOnStore::startLearning()
         return;
     }
     qDebug() << "HopOn: startLearning";
+
+    // Borrow vehicle-service's StateHopOn silently so input side-effects
+    // (horn, blinker, brake LED, seatbox open, hibernation hold) are
+    // suppressed while the user records their combo. "engage-silent"
+    // skips the LED cue, opportunistic steering lock, and hop-on-active
+    // flag publish — only the input suppression is borrowed.
+    if (m_repo)
+        m_repo->push(QStringLiteral("scooter:hop-on"), QStringLiteral("engage-silent"));
+
     m_buffer.clear();
     emit capturedTokensChanged();
     setLastResult(ResultNone);
@@ -307,6 +317,9 @@ void HopOnStore::onIdleTimeout()
             qDebug() << "HopOn: learning aborted (buffer too short:" << m_buffer.size() << ")";
             setLastResult(ResultAborted);
         }
+        // Release the silent StateHopOn that startLearning() entered.
+        if (m_repo)
+            m_repo->push(QStringLiteral("scooter:hop-on"), QStringLiteral("release"));
         m_buffer.clear();
         emit capturedTokensChanged();
         setMode(Idle);
@@ -332,8 +345,13 @@ void HopOnStore::onVehicleStateChanged()
 {
     if (m_mode == Idle) return;
     if (!m_vehicle->isParked()) {
-        // Left Parked while learning or locked. Drop everything.
+        // Left Parked while learning or locked. Drop everything. We
+        // also push "release" so vehicle-service doesn't end up stuck
+        // in StateHopOn — if it already left (e.g. via auto-standby
+        // timeout), the release is a harmless no-op.
         qDebug() << "HopOn: vehicle left Parked, exiting mode" << m_mode;
+        if (m_repo)
+            m_repo->push(QStringLiteral("scooter:hop-on"), QStringLiteral("release"));
         if (m_mode == Locked) {
             m_backlightTimer.stop();
             if (m_dashboard)
