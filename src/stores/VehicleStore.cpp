@@ -1,4 +1,5 @@
 #include "VehicleStore.h"
+#include <QDateTime>
 #include <QDebug>
 
 VehicleStore::VehicleStore(MdbRepository *repo, QObject *parent)
@@ -52,8 +53,13 @@ void VehicleStore::applyFieldUpdate(const QString &variable, const QString &valu
             m_blinkerState = v;
             emit blinkerStateChanged();
             if (v != ScootEnums::BlinkerState::Off) {
+                // Request start_nanos to compute correct phase; animation starts in its handler.
+                // Falls back to phase 0 if start_nanos arrives after this or is unavailable.
+                m_blinkPhaseOffset = 0;
                 m_blinkElapsed.start();
                 m_blinkTimer.start();
+                if (m_repo)
+                    m_repo->requestField(QStringLiteral("vehicle"), QStringLiteral("blinker:start_nanos"));
             } else {
                 m_blinkTimer.stop();
                 if (m_blinkOpacity != 0.0) {
@@ -61,6 +67,15 @@ void VehicleStore::applyFieldUpdate(const QString &variable, const QString &valu
                     emit blinkOpacityChanged();
                 }
             }
+        }
+    } else if (variable == QLatin1String("blinker:start_nanos")) {
+        qint64 startNanos = value.toLongLong();
+        if (startNanos > 0 && m_blinkerState != ScootEnums::BlinkerState::Off) {
+            qint64 startMs = startNanos / 1000000LL;
+            qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
+            m_blinkPhaseOffset = (nowMs - startMs) % 800;
+            // Restart elapsed timer so phase is counted from now with the computed offset
+            m_blinkElapsed.start();
         }
     } else if (variable == QLatin1String("blinker:switch")) {
         auto v = ScootEnums::parseBlinkerSwitch(value);
@@ -129,7 +144,7 @@ void VehicleStore::updateBlinkClock()
     constexpr int PAUSE = 300;
     constexpr int CYCLE = FADE_IN + FADE_OUT + PAUSE; // 800ms, matches vehicle-service blinkerInterval
 
-    const int phase = static_cast<int>(m_blinkElapsed.elapsed() % CYCLE);
+    const int phase = static_cast<int>((m_blinkElapsed.elapsed() + m_blinkPhaseOffset) % CYCLE);
     qreal opacity;
 
     if (phase < FADE_IN) {

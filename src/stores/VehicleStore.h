@@ -78,6 +78,7 @@ private:
     QElapsedTimer m_blinkElapsed;
     QEasingCurve m_blinkEasing{QEasingCurve::InOutExpo};
     qreal m_blinkOpacity = 0.0;
+    qint64 m_blinkPhaseOffset = 0; // ms offset into 800ms cycle when animation started
 
     ScootEnums::BlinkerState m_blinkerState = ScootEnums::BlinkerState::Off;
     ScootEnums::BlinkerSwitch m_blinkerSwitch = ScootEnums::BlinkerSwitch::Off;
