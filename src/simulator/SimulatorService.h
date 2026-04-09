@@ -85,6 +85,7 @@ public:
     Q_INVOKABLE void setTheme(const QString &theme);
     Q_INVOKABLE void setLanguage(const QString &lang);
     Q_INVOKABLE void setDualBattery(bool enabled);
+    Q_INVOKABLE void setExperimentalHopOn(bool enabled);
 
     // Auto-lock countdown (drives the AutoLockCountdownOverlay)
     Q_INVOKABLE void setAutoStandbyDeadline(int secondsFromNow);

@@ -111,6 +111,11 @@ void SettingsService::updatePowerDisplayMode(const QString &mode)
     writeSetting(QStringLiteral("dashboard.power-display-mode"), mode);
 }
 
+void SettingsService::updateHopOnCombo(const QString &combo)
+{
+    writeSetting(QStringLiteral("dashboard.hop-on-combo"), combo);
+}
+
 QString SettingsService::toggleBootAnimation()
 {
 #ifdef Q_OS_LINUX

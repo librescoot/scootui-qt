@@ -92,6 +92,14 @@ ApplicationWindow {
                     checkable: true
                     onClicked: simulator.setLanguage("de")
                 }
+                Item { Layout.preferredWidth: 8 }
+                SimLabel { text: "Hop-on" }
+                SimButton {
+                    text: settingsStore && settingsStore.experimentalHopOn ? "On" : "Off"
+                    small: true
+                    color: settingsStore && settingsStore.experimentalHopOn ? "#4caf50" : "#666"
+                    onClicked: simulator.setExperimentalHopOn(!(settingsStore && settingsStore.experimentalHopOn))
+                }
             }
 
             // ---- Connection ----

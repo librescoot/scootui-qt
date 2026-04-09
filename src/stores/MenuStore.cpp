@@ -7,6 +7,7 @@
 #include "ScreenStore.h"
 #include "SavedLocationsStore.h"
 #include "InternetStore.h"
+#include "HopOnStore.h"
 #include "l10n/Translations.h"
 #include "services/SettingsService.h"
 #include "services/NavigationService.h"
@@ -36,6 +37,7 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
     connect(m_settings, &SettingsStore::alarmEnabledChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::alarmHonkChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::alarmDurationChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::experimentalHopOnChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::showGpsChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::showBluetoothChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::showCloudChanged, this, &MenuStore::rebuildMenuTree);
@@ -89,6 +91,17 @@ void MenuStore::setInternetStore(InternetStore *store)
     m_internet = store;
 }
 
+void MenuStore::setHopOnStore(HopOnStore *store)
+{
+    m_hopOn = store;
+    if (m_hopOn) {
+        // Re-render the menu when the combo state changes (no combo <->
+        // has combo flips this entry between an action and a submenu).
+        connect(m_hopOn, &HopOnStore::comboChanged,
+                this, &MenuStore::rebuildMenuTree);
+    }
+}
+
 void MenuStore::rebuildMenuTree()
 {
     // Skip rebuilds if the menu is closed. We'll rebuild when it opens.
@@ -128,6 +141,41 @@ void MenuStore::rebuildMenuTree()
             repo->push(QStringLiteral("scooter:blinker"), cmd);
             close();
         }));
+
+    // === Hop-on / hop-off ===
+    // Experimental flag: completely hidden unless `experimental.hop-on` is
+    // set to "true" in the settings hash (e.g. via `lsc set experimental.hop-on true`).
+    // No combo defined -> entry is a single action that jumps straight to learning.
+    // Combo defined -> entry is a submenu offering Activate / Re-learn / Disable.
+    if (m_hopOn && settings->experimentalHopOn()) {
+        if (!m_hopOn->hasCombo()) {
+            m_rootNode->addChild(MenuNode::action(QStringLiteral("hop_on"),
+                tr->menuHopOn(), [this]() {
+                    close();
+                    m_hopOn->startLearning();
+                }));
+        } else {
+            auto *hopNode = MenuNode::submenu(QStringLiteral("hop_on"),
+                tr->menuHopOn(), tr->menuHopOnHeader());
+            m_rootNode->addChild(hopNode);
+
+            hopNode->addChild(MenuNode::action(QStringLiteral("hop_on_activate"),
+                tr->menuHopOnActivate(), [this]() {
+                    close();
+                    m_hopOn->activate();
+                }));
+            hopNode->addChild(MenuNode::action(QStringLiteral("hop_on_relearn"),
+                tr->menuHopOnRelearn(), [this]() {
+                    close();
+                    m_hopOn->startLearning();
+                }));
+            hopNode->addChild(MenuNode::action(QStringLiteral("hop_on_disable"),
+                tr->menuHopOnDisable(), [this]() {
+                    m_hopOn->disable();
+                    close();
+                }));
+        }
+    }
 
     // === Switch to Cluster View (only on map screen) ===
     m_rootNode->addChild(MenuNode::action(QStringLiteral("switch_cluster"),

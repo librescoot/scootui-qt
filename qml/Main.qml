@@ -182,6 +182,16 @@ Window {
         z: 950
     }
 
+    HopOnLearnOverlay {
+        anchors.fill: parent
+        z: 970
+    }
+
+    HopOnLockOverlay {
+        anchors.fill: parent
+        z: 980
+    }
+
     ShutdownOverlay {
         anchors.fill: parent
         z: 1000

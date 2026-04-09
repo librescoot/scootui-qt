@@ -75,6 +75,7 @@ set(CPP_SOURCES
     src/stores/ThemeStore.cpp
     src/stores/ScreenStore.cpp
     src/stores/MenuStore.cpp
+    src/stores/HopOnStore.cpp
     src/stores/TripStore.cpp
     src/stores/ShutdownStore.cpp
     src/stores/LocaleStore.cpp
@@ -227,6 +228,8 @@ set(QML_FILES
     qml/overlays/BluetoothPinCodeOverlay.qml
     qml/overlays/ManualHibernationOverlay.qml
     qml/overlays/AutoLockCountdownOverlay.qml
+    qml/overlays/HopOnLearnOverlay.qml
+    qml/overlays/HopOnLockOverlay.qml
     qml/overlays/VersionOverlay.qml
     qml/overlays/ToastOverlay.qml
     qml/overlays/DebugOverlay.qml

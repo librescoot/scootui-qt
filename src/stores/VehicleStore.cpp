@@ -38,6 +38,7 @@ SyncSettings VehicleStore::syncSettings() const
             {QStringLiteral("seatboxLock"), QStringLiteral("seatbox:lock")},
             {QStringLiteral("hornButton"), QStringLiteral("horn-button")},
             {QStringLiteral("isUnableToDrive"), QStringLiteral("unable-to-drive")},
+            {QStringLiteral("hopOnActive"), QStringLiteral("hop-on-active")},
         },
         {},
         {}
@@ -96,29 +97,81 @@ void VehicleStore::applyFieldUpdate(const QString &variable, const QString &valu
     } else if (variable == QLatin1String("unable-to-drive")) {
         auto v = ScootEnums::parseToggle(value);
         if (v != m_isUnableToDrive) { m_isUnableToDrive = v; emit isUnableToDriveChanged(); }
+    } else if (variable == QLatin1String("hop-on-active")) {
+        bool v = (value == QLatin1String("true"));
+        if (v != m_hopOnActive) { m_hopOnActive = v; emit hopOnActiveChanged(); }
     }
 }
 
 void VehicleStore::onButtonEvent(const QString &, const QString &message)
 {
-    // Format: "brake:left/right:on/off"
+    // Real vehicle-service (and the simulator) publish to the "buttons"
+    // pub/sub channel in two formats:
+    //   "brake:left:on" / "brake:left:off"     (3 parts)
+    //   "brake:right:on" / "brake:right:off"   (3 parts)
+    //   "horn:on" / "horn:off"                 (2 parts)
+    //   "seatbox:on" / "seatbox:off"           (2 parts)
+    //   "blinker:left:on" / "blinker:left:off" (3 parts)
+    //   "blinker:right:on" / "blinker:right:off" (3 parts)
     QStringList parts = message.split(':');
-    if (parts.size() < 3 || parts[0] != QLatin1String("brake")) return;
+    if (parts.isEmpty()) return;
 
-    QString position = parts[1];
-    QString state = parts[2];
-    auto v = ScootEnums::parseToggle(state);
+    const QString &kind = parts[0];
 
-    if (position == QLatin1String("left")) {
-        if (v != m_brakeLeft) {
-            m_brakeLeft = v;
-            emit brakeLeftChanged();
+    if (kind == QLatin1String("brake")) {
+        if (parts.size() < 3) return;
+        const QString &position = parts[1];
+        auto v = ScootEnums::parseToggle(parts[2]);
+        if (position == QLatin1String("left")) {
+            if (v != m_brakeLeft) { m_brakeLeft = v; emit brakeLeftChanged(); }
+        } else if (position == QLatin1String("right")) {
+            if (v != m_brakeRight) { m_brakeRight = v; emit brakeRightChanged(); }
         }
-    } else if (position == QLatin1String("right")) {
-        if (v != m_brakeRight) {
-            m_brakeRight = v;
-            emit brakeRightChanged();
+        return;
+    }
+
+    if (kind == QLatin1String("horn")) {
+        if (parts.size() < 2) return;
+        auto v = ScootEnums::parseToggle(parts[1]);
+        if (v != m_hornButton) { m_hornButton = v; emit hornButtonChanged(); }
+        return;
+    }
+
+    if (kind == QLatin1String("seatbox")) {
+        if (parts.size() < 2) return;
+        auto v = ScootEnums::parseToggle(parts[1]);
+        if (v != m_seatboxButton) { m_seatboxButton = v; emit seatboxButtonChanged(); }
+        return;
+    }
+
+    if (kind == QLatin1String("blinker")) {
+        if (parts.size() < 3) return;
+        const QString &position = parts[1];
+        bool on = (parts[2] == QLatin1String("on"));
+        // The dashboard mirrors the *physical* switch state. A press
+        // on either side moves the switch into that position; a release
+        // moves it back to Off. We never see both sides "on" at once
+        // from the buttons channel — vehicle-service models that as
+        // hazards via blinker:state, not the switch.
+        ScootEnums::BlinkerSwitch desired = m_blinkerSwitch;
+        if (on) {
+            desired = (position == QLatin1String("left"))
+                ? ScootEnums::BlinkerSwitch::Left
+                : ScootEnums::BlinkerSwitch::Right;
+        } else {
+            // Only clear if the release matches the position we currently
+            // think the switch is in — otherwise a stale "left:off" from
+            // a previous toggle could clobber a fresh "right:on".
+            if ((position == QLatin1String("left") && m_blinkerSwitch == ScootEnums::BlinkerSwitch::Left) ||
+                (position == QLatin1String("right") && m_blinkerSwitch == ScootEnums::BlinkerSwitch::Right)) {
+                desired = ScootEnums::BlinkerSwitch::Off;
+            }
         }
+        if (desired != m_blinkerSwitch) {
+            m_blinkerSwitch = desired;
+            emit blinkerSwitchChanged();
+        }
+        return;
     }
 }
 
