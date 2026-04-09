@@ -249,6 +249,8 @@ void HiredisWorker::doHget(const QString &channel, const QString &field)
 
     if (reply->type == REDIS_REPLY_STRING) {
         emit fieldFetched(channel, field, QString::fromUtf8(reply->str, reply->len));
+    } else if (reply->type == REDIS_REPLY_NIL) {
+        emit fieldFetched(channel, field, QString());
     }
     freeReplyObject(reply);
 }
