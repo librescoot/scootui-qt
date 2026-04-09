@@ -48,12 +48,17 @@ Window {
         onTriggered: root.startupGraceElapsed = true
     }
 
-    // Cancel startup timer when vehicle state becomes known
+    // Cancel startup timer when vehicle state becomes known;
+    // auto-close parked-only screens when riding starts
     Connections {
         target: typeof vehicleStore !== "undefined" ? vehicleStore : null
         function onStateChanged() {
             if (vehicleStore.state !== 0) {
                 startupTimer.stop()
+            }
+            // ReadyToDrive=2: close About screen if open
+            if (vehicleStore.state === 2 && typeof screenStore !== "undefined") {
+                if (screenStore.currentScreen === 4) screenStore.closeAbout()
             }
         }
     }
