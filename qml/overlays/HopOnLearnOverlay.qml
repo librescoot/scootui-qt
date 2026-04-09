@@ -1,10 +1,11 @@
 import QtQuick
+import "../widgets/components"
 
 // Full-screen overlay for the hop-on combo learning flow.
 // Shows a live row of chips, one per captured token, growing left-to-right
-// as the user presses brakes / horn / blinker switch. A countdown ticks
-// from 5000 ms down; the buffer is committed when it reaches 0 (provided
-// the user pressed at least 2 inputs).
+// as the user presses brakes / horn / blinker switch / seatbox button.
+// A countdown ticks from 5000 ms down; the buffer is committed when it
+// reaches 0 (provided the user pressed at least 2 inputs).
 Item {
     id: learnOverlay
     anchors.fill: parent
@@ -29,16 +30,18 @@ Item {
     readonly property color chipColor:     isDark ? "#1FFFFFFF" : "#1F000000"
     readonly property color accentColor:   "#FF9800"
 
-    // Short labels for the chips. Kept terse so chips stay small and
-    // a long sequence still fits the card width via the wrapping Flow.
-    function labelFor(token) {
-        if (token === "LB") return "L"
-        if (token === "RB") return "R"
-        if (token === "HORN") return "Hrn"
-        if (token === "BL") return "B\u2190"
-        if (token === "BR") return "B\u2192"
-        if (token === "SBOX") return "Box"
-        return token
+    // Map a token id to its icon. Reuses existing librescoot-* SVGs
+    // (turn-left/right) and the four new ones contributed for hop-on
+    // (brake-left/right, horn, seatbox-button). Tinted via TintedImage
+    // so the icon adapts to the active theme.
+    function iconFor(token) {
+        if (token === "LB")   return "qrc:/ScootUI/assets/icons/librescoot-brake-left.svg"
+        if (token === "RB")   return "qrc:/ScootUI/assets/icons/librescoot-brake-right.svg"
+        if (token === "HORN") return "qrc:/ScootUI/assets/icons/librescoot-horn.svg"
+        if (token === "BL")   return "qrc:/ScootUI/assets/icons/librescoot-turn-left.svg"
+        if (token === "BR")   return "qrc:/ScootUI/assets/icons/librescoot-turn-right.svg"
+        if (token === "SBOX") return "qrc:/ScootUI/assets/icons/librescoot-seatbox-button.svg"
+        return ""
     }
 
     Rectangle {
@@ -90,8 +93,8 @@ Item {
                     id: chipRow
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: parent.width
-                    // Allow up to 3 rows of 36 px chips (108) + spacing.
-                    height: Math.max(40, Math.min(120, chipFlow.implicitHeight))
+                    // Allow up to 3 rows of 40 px chips (120) + spacing.
+                    height: Math.max(48, Math.min(140, chipFlow.implicitHeight))
                     clip: true
 
                     Text {
@@ -108,14 +111,14 @@ Item {
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 6
+                        spacing: 8
 
                         Repeater {
                             model: learnOverlay.tokens
                             delegate: Rectangle {
-                                width: chipText.implicitWidth + 14
-                                height: 32
-                                radius: 16
+                                width: 40
+                                height: 40
+                                radius: 20
                                 color: learnOverlay.chipColor
                                 border.color: learnOverlay.accentColor
                                 border.width: 1
@@ -125,13 +128,13 @@ Item {
                                 Component.onCompleted: opacity = 1
                                 Behavior on opacity { NumberAnimation { duration: 150 } }
 
-                                Text {
-                                    id: chipText
+                                TintedImage {
                                     anchors.centerIn: parent
-                                    text: learnOverlay.labelFor(modelData)
-                                    color: learnOverlay.textPrimary
-                                    font.pixelSize: 14
-                                    font.weight: Font.DemiBold
+                                    width: 24
+                                    height: 24
+                                    sourceSize: Qt.size(24, 24)
+                                    source: learnOverlay.iconFor(modelData)
+                                    tintColor: learnOverlay.textPrimary
                                 }
                             }
                         }
