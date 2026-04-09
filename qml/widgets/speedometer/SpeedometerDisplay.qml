@@ -30,8 +30,9 @@ Item {
     readonly property real centerY: 150
     readonly property real arcRadius: canvasWidth / 2
 
-    // Speed labels to show
-    readonly property var speedLabels: [0, 30, 50, 60, 70, 80, 90, 100, 120]
+    // Speed labels to show (every 10 km/h for regulatory compliance)
+    readonly property var speedLabels: [0, 10, 20, 30, 40, 50, 60]
+    readonly property var majorSpeedLabels: [0, 30, 50, 60]
 
     // Fixed size matching Flutter (no scaling)
     readonly property real displayScale: 1.0
@@ -194,18 +195,21 @@ Item {
 
             // === Speed labels ===
             var labelInward = 44
-            ctx.font = "500 11px sans-serif"
-            ctx.fillStyle = isDark ? "#80FFFFFF" : "#1F000000"
             ctx.textAlign = "center"
             ctx.textBaseline = "middle"
 
             for (var i = 0; i < speedLabels.length; i++) {
                 var spd = speedLabels[i]
                 if (spd > maxArcSpeed) continue
+                var isMajor = majorSpeedLabels.indexOf(spd) >= 0
                 var labelAngle = startRad + sweepRad * (spd / maxArcSpeed)
                 var labelR = r - labelInward
                 var lx = cx + labelR * Math.cos(labelAngle)
                 var ly = cy + labelR * Math.sin(labelAngle)
+                ctx.font = isMajor ? "600 13px sans-serif" : "400 9px sans-serif"
+                ctx.fillStyle = isMajor
+                    ? (isDark ? "#CCFFFFFF" : "#4D000000")
+                    : (isDark ? "#80FFFFFF" : "#1F000000")
                 ctx.fillText(spd.toString(), lx, ly)
             }
         }
