@@ -23,6 +23,7 @@
 #include "stores/ThemeStore.h"
 #include "stores/ScreenStore.h"
 #include "stores/MenuStore.h"
+#include "stores/HopOnStore.h"
 #include "stores/TripStore.h"
 #include "stores/ShutdownStore.h"
 #include "stores/LocaleStore.h"
@@ -267,6 +268,12 @@ void Application::createStores(QQmlApplicationEngine &engine)
     menuStore->setNavigationAvailabilityService(m_navAvailability);
     menuStore->setInternetStore(internetStore);
 
+    // Hop-on / hop-off store: combo learning, matching, lock screen.
+    auto *hopOnStore = new HopOnStore(vehicleStore, settingsStore,
+                                      m_settingsService, dashboardStore,
+                                      repo, this);
+    menuStore->setHopOnStore(hopOnStore);
+
     // M5: ShortcutMenuStore
     auto *shortcutMenuStore = new ShortcutMenuStore(themeStore, vehicleStore, screenStore, dashboardStore, repo, m_settingsService, this);
 
@@ -296,6 +303,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("themeStore"), themeStore);
     ctx->setContextProperty(QStringLiteral("screenStore"), screenStore);
     ctx->setContextProperty(QStringLiteral("menuStore"), menuStore);
+    ctx->setContextProperty(QStringLiteral("hopOnStore"), hopOnStore);
     ctx->setContextProperty(QStringLiteral("tripStore"), tripStore);
     ctx->setContextProperty(QStringLiteral("shutdownStore"), shutdownStore);
     ctx->setContextProperty(QStringLiteral("localeStore"), localeStore);

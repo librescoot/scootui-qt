@@ -63,6 +63,17 @@ class Translations : public QObject
 
     // Menu actions
     Q_PROPERTY(QString menuToggleHazardLights READ menuToggleHazardLights NOTIFY languageChanged)
+    Q_PROPERTY(QString menuHopOn READ menuHopOn NOTIFY languageChanged)
+    Q_PROPERTY(QString menuHopOnHeader READ menuHopOnHeader NOTIFY languageChanged)
+    Q_PROPERTY(QString menuHopOnActivate READ menuHopOnActivate NOTIFY languageChanged)
+    Q_PROPERTY(QString menuHopOnRelearn READ menuHopOnRelearn NOTIFY languageChanged)
+    Q_PROPERTY(QString menuHopOnDisable READ menuHopOnDisable NOTIFY languageChanged)
+    Q_PROPERTY(QString hopOnLearnTitle READ hopOnLearnTitle NOTIFY languageChanged)
+    Q_PROPERTY(QString hopOnLearnHint READ hopOnLearnHint NOTIFY languageChanged)
+    Q_PROPERTY(QString hopOnLockedTitle READ hopOnLockedTitle NOTIFY languageChanged)
+    Q_PROPERTY(QString hopOnLockedHint READ hopOnLockedHint NOTIFY languageChanged)
+    Q_PROPERTY(QString hopOnSavedToast READ hopOnSavedToast NOTIFY languageChanged)
+    Q_PROPERTY(QString hopOnAbortedToast READ hopOnAbortedToast NOTIFY languageChanged)
     Q_PROPERTY(QString menuSwitchToCluster READ menuSwitchToCluster NOTIFY languageChanged)
     Q_PROPERTY(QString menuSwitchToMap READ menuSwitchToMap NOTIFY languageChanged)
     Q_PROPERTY(QString menuEnterDestinationCode READ menuEnterDestinationCode NOTIFY languageChanged)
@@ -412,6 +423,17 @@ public:
 
     // Menu actions
     QString menuToggleHazardLights() const { return lookup("menuToggleHazardLights"); }
+    QString menuHopOn() const { return lookup("menuHopOn"); }
+    QString menuHopOnHeader() const { return lookup("menuHopOnHeader"); }
+    QString menuHopOnActivate() const { return lookup("menuHopOnActivate"); }
+    QString menuHopOnRelearn() const { return lookup("menuHopOnRelearn"); }
+    QString menuHopOnDisable() const { return lookup("menuHopOnDisable"); }
+    QString hopOnLearnTitle() const { return lookup("hopOnLearnTitle"); }
+    QString hopOnLearnHint() const { return lookup("hopOnLearnHint"); }
+    QString hopOnLockedTitle() const { return lookup("hopOnLockedTitle"); }
+    QString hopOnLockedHint() const { return lookup("hopOnLockedHint"); }
+    QString hopOnSavedToast() const { return lookup("hopOnSavedToast"); }
+    QString hopOnAbortedToast() const { return lookup("hopOnAbortedToast"); }
     QString menuSwitchToCluster() const { return lookup("menuSwitchToCluster"); }
     QString menuSwitchToMap() const { return lookup("menuSwitchToMap"); }
     QString menuEnterDestinationCode() const { return lookup("menuEnterDestinationCode"); }

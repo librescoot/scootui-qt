@@ -29,6 +29,8 @@ SyncSettings SettingsStore::syncSettings() const
             {QStringLiteral("alarmEnabled"), QStringLiteral("alarm.enabled")},
             {QStringLiteral("alarmHonk"), QStringLiteral("alarm.honk")},
             {QStringLiteral("alarmDuration"), QStringLiteral("alarm.duration")},
+            {QStringLiteral("hopOnCombo"), QStringLiteral("dashboard.hop-on-combo")},
+            {QStringLiteral("experimentalHopOn"), QStringLiteral("scooter.experimental.hop-on")},
         },
         {}, {}
     };
@@ -77,5 +79,9 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
         if (value != m_alarmHonk) { m_alarmHonk = value; emit alarmHonkChanged(); }
     } else if (variable == QLatin1String("alarm.duration")) {
         if (value != m_alarmDuration) { m_alarmDuration = value; emit alarmDurationChanged(); }
+    } else if (variable == QLatin1String("dashboard.hop-on-combo")) {
+        if (value != m_hopOnCombo) { m_hopOnCombo = value; emit hopOnComboChanged(); }
+    } else if (variable == QLatin1String("scooter.experimental.hop-on")) {
+        if (value != m_experimentalHopOn) { m_experimentalHopOn = value; emit experimentalHopOnChanged(); }
     }
 }

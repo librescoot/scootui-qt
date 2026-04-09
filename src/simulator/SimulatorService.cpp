@@ -352,6 +352,12 @@ void SimulatorService::setDualBattery(bool enabled)
                 enabled ? QStringLiteral("true") : QStringLiteral("false"));
 }
 
+void SimulatorService::setExperimentalHopOn(bool enabled)
+{
+    m_repo->set(QStringLiteral("settings"), QStringLiteral("scooter.experimental.hop-on"),
+                enabled ? QStringLiteral("true") : QStringLiteral("false"));
+}
+
 // --- Auto-lock countdown ---
 
 void SimulatorService::setAutoStandbyDeadline(int secondsFromNow)

@@ -75,6 +75,7 @@ set(CPP_SOURCES
     src/stores/ThemeStore.cpp
     src/stores/ScreenStore.cpp
     src/stores/MenuStore.cpp
+    src/stores/HopOnStore.cpp
     src/stores/TripStore.cpp
     src/stores/ShutdownStore.cpp
     src/stores/LocaleStore.cpp
@@ -227,6 +228,8 @@ set(QML_FILES
     qml/overlays/BluetoothPinCodeOverlay.qml
     qml/overlays/ManualHibernationOverlay.qml
     qml/overlays/AutoLockCountdownOverlay.qml
+    qml/overlays/HopOnLearnOverlay.qml
+    qml/overlays/HopOnLockOverlay.qml
     qml/overlays/VersionOverlay.qml
     qml/overlays/ToastOverlay.qml
     qml/overlays/DebugOverlay.qml
@@ -244,6 +247,10 @@ qt_add_qml_module(scootui
         assets/icons/librescoot-engine-warning.svg
         assets/icons/librescoot-parking-brake.svg
         assets/icons/librescoot-seatbox-open.svg
+        assets/icons/librescoot-brake-left.svg
+        assets/icons/librescoot-brake-right.svg
+        assets/icons/librescoot-horn.svg
+        assets/icons/librescoot-seatbox-button.svg
         assets/icons/librescoot-turtle-mode.svg
         assets/icons/librescoot-propulsion-battery-fault.svg
         assets/icons/librescoot-main-battery-blank.svg

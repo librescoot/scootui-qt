@@ -201,6 +201,39 @@ void Translations::initStrings()
     en[QStringLiteral("menuToggleHazardLights")] = QStringLiteral("Toggle Hazard Lights");
     de[QStringLiteral("menuToggleHazardLights")] = QStringLiteral("Warnblinker umschalten");
 
+    en[QStringLiteral("menuHopOn")] = QStringLiteral("Hop On / Off");
+    de[QStringLiteral("menuHopOn")] = QStringLiteral("Hop-on / -off");
+
+    en[QStringLiteral("menuHopOnHeader")] = QStringLiteral("HOP ON");
+    de[QStringLiteral("menuHopOnHeader")] = QStringLiteral("HOP ON");
+
+    en[QStringLiteral("menuHopOnActivate")] = QStringLiteral("Activate now");
+    de[QStringLiteral("menuHopOnActivate")] = QStringLiteral("Jetzt aktivieren");
+
+    en[QStringLiteral("menuHopOnRelearn")] = QStringLiteral("Set new combo");
+    de[QStringLiteral("menuHopOnRelearn")] = QStringLiteral("Neue Kombi lernen");
+
+    en[QStringLiteral("menuHopOnDisable")] = QStringLiteral("Disable hop-on");
+    de[QStringLiteral("menuHopOnDisable")] = QStringLiteral("Hop-on deaktivieren");
+
+    en[QStringLiteral("hopOnLearnTitle")] = QStringLiteral("Press your sequence");
+    de[QStringLiteral("hopOnLearnTitle")] = QStringLiteral("Drücke deine Sequenz");
+
+    en[QStringLiteral("hopOnLearnHint")] = QStringLiteral("Saves 5 s after the last press. Touch nothing to abort.");
+    de[QStringLiteral("hopOnLearnHint")] = QStringLiteral("Speichert 5 s nach dem letzten Druck. Nichts berühren = abbrechen.");
+
+    en[QStringLiteral("hopOnLockedTitle")] = QStringLiteral("Hop-on active");
+    de[QStringLiteral("hopOnLockedTitle")] = QStringLiteral("Hop-on aktiv");
+
+    en[QStringLiteral("hopOnLockedHint")] = QStringLiteral("Press your combo to unlock");
+    de[QStringLiteral("hopOnLockedHint")] = QStringLiteral("Drücke deine Kombi zum Entsperren");
+
+    en[QStringLiteral("hopOnSavedToast")] = QStringLiteral("Combo saved");
+    de[QStringLiteral("hopOnSavedToast")] = QStringLiteral("Kombi gespeichert");
+
+    en[QStringLiteral("hopOnAbortedToast")] = QStringLiteral("Aborted (need at least 2 inputs)");
+    de[QStringLiteral("hopOnAbortedToast")] = QStringLiteral("Abgebrochen (mindestens 2 Eingaben nötig)");
+
     en[QStringLiteral("menuSwitchToCluster")] = QStringLiteral("Switch to Cluster View");
     de[QStringLiteral("menuSwitchToCluster")] = QStringLiteral("Zur Tacho-Ansicht");
 

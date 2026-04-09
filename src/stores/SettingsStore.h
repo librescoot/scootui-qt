@@ -25,6 +25,8 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(bool alarmEnabled READ alarmEnabled NOTIFY alarmEnabledChanged)
     Q_PROPERTY(bool alarmHonk READ alarmHonk NOTIFY alarmHonkChanged)
     Q_PROPERTY(QString alarmDuration READ alarmDuration NOTIFY alarmDurationChanged)
+    Q_PROPERTY(QString hopOnCombo READ hopOnCombo NOTIFY hopOnComboChanged)
+    Q_PROPERTY(bool experimentalHopOn READ experimentalHopOn NOTIFY experimentalHopOnChanged)
 
 public:
     explicit SettingsStore(MdbRepository *repo, QObject *parent = nullptr);
@@ -48,6 +50,8 @@ public:
     bool alarmEnabled() const { return m_alarmEnabled == QLatin1String("true"); }
     bool alarmHonk() const { return m_alarmHonk == QLatin1String("true"); }
     QString alarmDuration() const { return m_alarmDuration; }
+    QString hopOnCombo() const { return m_hopOnCombo; }
+    bool experimentalHopOn() const { return m_experimentalHopOn == QLatin1String("true"); }
 
     // Helper
     bool showBatteryAsRange() const { return m_batteryDisplayMode == QLatin1String("range"); }
@@ -73,6 +77,8 @@ signals:
     void alarmEnabledChanged();
     void alarmHonkChanged();
     void alarmDurationChanged();
+    void hopOnComboChanged();
+    void experimentalHopOnChanged();
 
 protected:
     SyncSettings syncSettings() const override;
@@ -114,4 +120,15 @@ private:
     QString m_alarmHonk = QStringLiteral("false");
     // @schema alarm.duration
     QString m_alarmDuration = QStringLiteral("60");
+    // dashboard.hop-on-combo: pipe-delimited token list (e.g. "LB|RB|HORN");
+    // empty = no combo defined. Managed by the hop-on learning UI.
+    // Schema: settings-service/settings.schema.json (user-visible: false).
+    QString m_hopOnCombo;
+    // scooter.experimental.hop-on: opt-in flag for the hop-on / hop-off feature.
+    // The menu entry and lock screen are completely hidden until this is set
+    // to "true" via `lsc set scooter.experimental.hop-on true`. Defaults to
+    // empty (= false) so the feature is invisible by default. The `scooter.`
+    // prefix is required for settings-service to persist the value across
+    // reboots. Schema: settings-service/settings.schema.json (user-visible: false).
+    QString m_experimentalHopOn;
 };
