@@ -12,6 +12,9 @@ ValhallaClient::ValhallaClient(QObject *parent)
     : QObject(parent)
     , m_endpoint(QStringLiteral("http://127.0.0.1:8002/"))
 {
+    m_debounce.setSingleShot(true);
+    m_debounce.setInterval(DebounceIntervalMs);
+    connect(&m_debounce, &QTimer::timeout, this, &ValhallaClient::dispatchPending);
 }
 
 void ValhallaClient::setEndpoint(const QString &url)
@@ -29,6 +32,31 @@ void ValhallaClient::setLanguage(const QString &lang)
 
 void ValhallaClient::calculateRoute(const LatLng &from, const LatLng &to)
 {
+    // Coalesce rapid calls — the latest request wins, earlier ones are dropped
+    m_pendingFrom = from;
+    m_pendingTo = to;
+    m_hasPending = true;
+    m_debounce.start();
+}
+
+void ValhallaClient::dispatchPending()
+{
+    if (!m_hasPending)
+        return;
+    m_hasPending = false;
+
+    LatLng from = m_pendingFrom;
+    LatLng to = m_pendingTo;
+
+    // Abort any in-flight reply before issuing a new request so its result
+    // can't race ahead of the one we're about to dispatch
+    if (m_activeReply) {
+        m_activeReply->disconnect(this);
+        m_activeReply->abort();
+        m_activeReply->deleteLater();
+        m_activeReply.clear();
+    }
+
     QJsonObject request;
     QJsonArray locations;
     locations.append(QJsonObject{{QStringLiteral("lat"), from.latitude},
@@ -61,6 +89,7 @@ void ValhallaClient::calculateRoute(const LatLng &from, const LatLng &to)
     QByteArray body = QJsonDocument(request).toJson(QJsonDocument::Compact);
     qDebug() << "ValhallaClient: POST" << req.url().toString() << body;
     auto *reply = m_nam.post(req, body);
+    m_activeReply = reply;
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         handleRouteReply(reply);
     });
@@ -85,6 +114,8 @@ void ValhallaClient::checkStatus()
 void ValhallaClient::handleRouteReply(QNetworkReply *reply)
 {
     reply->deleteLater();
+    if (m_activeReply == reply)
+        m_activeReply.clear();
 
     if (reply->error() != QNetworkReply::NoError) {
         int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
