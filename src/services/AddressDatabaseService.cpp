@@ -359,7 +359,8 @@ static int latToTileYTMS_query(double lat, int zoom)
     double latRad = lat * M_PI / 180.0;
     double n = std::pow(2.0, zoom);
     double y = (1.0 - std::log(std::tan(latRad) + 1.0 / std::cos(latRad)) / M_PI) / 2.0 * n;
-    return static_cast<int>(std::floor(n - 1 - y)) + 1;
+    // Convert slippy Y to TMS Y: MBTiles tile_row uses TMS (Y=0 at bottom)
+    return static_cast<int>(n) - 1 - static_cast<int>(std::floor(y));
 }
 
 QVariantList AddressDatabaseService::queryHouseNumbersFromTiles(
@@ -466,7 +467,8 @@ QVariantList AddressDatabaseService::queryHouseNumbersFromTiles(
 
                         QPointF pt = VectorTile::decodePoint(feature.geometry);
                         double lon = (x + pt.x() / layer.extent) / n * 360.0 - 180.0;
-                        double yMerc = 1.0 - (y + pt.y() / layer.extent) / n;
+                        // TMS: Y flipped within tile (same as RoadInfoService)
+                        double yMerc = 1.0 - (y + 1.0 - pt.y() / layer.extent) / n;
                         double z = M_PI * (1.0 - 2.0 * yMerc);
                         double lat = std::atan(std::sinh(z)) * 180.0 / M_PI;
 
@@ -664,8 +666,8 @@ static int latToTileYTMS(double lat, int zoom)
     double latRad = lat * M_PI / 180.0;
     double n = std::pow(2.0, zoom);
     double y = (1.0 - std::log(std::tan(latRad) + 1.0 / std::cos(latRad)) / M_PI) / 2.0 * n;
-    int tmsY = static_cast<int>(std::floor(n - 1 - y)) + 1;
-    return tmsY;
+    // Convert slippy Y to TMS Y: MBTiles tile_row uses TMS (Y=0 at bottom)
+    return static_cast<int>(n) - 1 - static_cast<int>(std::floor(y));
 }
 
 // ---------------------------------------------------------------------------
@@ -802,7 +804,8 @@ static BuildResult buildFromTiles(AddressDatabaseService *service, const QString
                         QPointF pt = VectorTile::decodePoint(feature.geometry);
 
                         double lon = (x + pt.x() / layer.extent) / n * 360.0 - 180.0;
-                        double yMerc = 1.0 - (y + pt.y() / layer.extent) / n;
+                        // TMS: Y flipped within tile (same as RoadInfoService)
+                        double yMerc = 1.0 - (y + 1.0 - pt.y() / layer.extent) / n;
                         double z = M_PI * (1.0 - 2.0 * yMerc);
                         double lat = std::atan(std::sinh(z)) * 180.0 / M_PI;
 
@@ -868,7 +871,7 @@ static BuildResult buildFromTiles(AddressDatabaseService *service, const QString
             }
         }
         QJsonObject root;
-        root[QStringLiteral("version")] = 4;
+        root[QStringLiteral("version")] = 5;
         root[QStringLiteral("mapHash")] = result.mapHash;
         root[QStringLiteral("streets")] = arr;
 
@@ -953,14 +956,14 @@ void AddressDatabaseService::initialize()
         mapFile.close();
         QString mapHash = QString::fromLatin1(hash.result().toHex());
 
-        // Try loading from cache (v4: compact street records, no house numbers)
+        // Try loading from cache (v5: fixed TMS Y coordinate decoding)
         QFile cacheFile(CachePath);
         if (cacheFile.open(QIODevice::ReadOnly)) {
             QJsonDocument doc = QJsonDocument::fromJson(cacheFile.readAll());
             cacheFile.close();
             if (doc.isObject()) {
                 QJsonObject root = doc.object();
-                if (root.value(QStringLiteral("version")).toInt() == 4 &&
+                if (root.value(QStringLiteral("version")).toInt() == 5 &&
                     root.value(QStringLiteral("mapHash")).toString() == mapHash) {
                     QJsonArray arr = root.value(QStringLiteral("streets")).toArray();
 
