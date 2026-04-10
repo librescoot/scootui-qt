@@ -79,11 +79,11 @@ Rectangle {
         refreshValidChars()
     }
 
-    function enterCityList() {
+    function enterCityList(autoSelect) {
         phase = phaseCityList
         listIndex = 0
         itemList = addressDatabase.getMatchingCities(cityPrefix)
-        if (itemList.length === 1) {
+        if (autoSelect !== false && itemList.length === 1) {
             selectCity(0)
         }
     }
@@ -95,11 +95,11 @@ Rectangle {
         refreshValidChars()
     }
 
-    function enterStreetList() {
+    function enterStreetList(autoSelect) {
         phase = phaseStreetList
         listIndex = 0
         itemList = addressDatabase.getMatchingStreets(selectedCity, streetPrefix)
-        if (itemList.length === 1) {
+        if (autoSelect !== false && itemList.length === 1) {
             selectStreet(0)
         }
     }
@@ -196,7 +196,7 @@ Rectangle {
                 streetPrefix = streetPrefix.slice(0, -1)
                 refreshValidChars()
             } else {
-                enterCityList()
+                enterCityList(false)
             }
         }
     }
@@ -295,10 +295,10 @@ Rectangle {
                 addressScreen.enterStreetLetters(addressScreen.streetPrefix)
                 break
             case addressScreen.phaseHouseNumbers:
-                addressScreen.enterStreetList()
+                addressScreen.enterStreetList(false)
                 break
             case addressScreen.phaseConfirm:
-                addressScreen.enterStreetList()
+                addressScreen.enterStreetList(false)
                 break
             }
         }
