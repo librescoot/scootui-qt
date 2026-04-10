@@ -17,6 +17,10 @@
 #include <QtMath>
 #include <algorithm>
 
+#if defined(__GLIBC__)
+#include <malloc.h>
+#endif
+
 const QString AddressDatabaseService::MbtilesPath = QStringLiteral("/data/maps/map.mbtiles");
 const QString AddressDatabaseService::CachePath = QStringLiteral("/data/scootui/address_database.json");
 
@@ -937,6 +941,15 @@ void AddressDatabaseService::initialize()
         m_streetTries = std::move(result.tries.streetTries);
         m_streetData = std::move(result.tries.streetData);
         m_addressCount = result.tries.addressCount;
+
+        // Trie building churns through many temporary allocations (JSON parse,
+        // QString interning, intermediate hash buckets) and leaves the sbrk
+        // heap heavily fragmented — dump analysis showed ~230 MB of
+        // never-reclaimed free space. Force glibc to return unused pages to
+        // the kernel now that the steady-state data structure is installed.
+#if defined(__GLIBC__)
+        malloc_trim(0);
+#endif
 
         setStatus(Ready, QStringLiteral("Ready"));
         emit addressCountChanged();
