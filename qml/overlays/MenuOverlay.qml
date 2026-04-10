@@ -111,7 +111,7 @@ Item {
 
                 Text {
                     anchors.centerIn: parent
-                    text: "\ue356" // keyboard_arrow_up
+                    text: MaterialIcon.iconKeyboardArrowUp
                     font.family: "Material Icons"
                     font.pixelSize: themeStore.fontTitle
                     color: themeStore.isDark ? "#8AFFFFFF" : "#8A000000" // white54 / black54
@@ -132,7 +132,7 @@ Item {
 
                 Text {
                     anchors.centerIn: parent
-                    text: "\ue353" // keyboard_arrow_down
+                    text: MaterialIcon.iconKeyboardArrowDown
                     font.family: "Material Icons"
                     font.pixelSize: themeStore.fontTitle
                     color: themeStore.isDark ? "#8AFFFFFF" : "#8A000000" // white54 / black54

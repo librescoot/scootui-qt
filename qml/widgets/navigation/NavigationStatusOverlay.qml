@@ -82,7 +82,7 @@ Item {
             // Arrived icon (Flutter: Icons.place, green, size 24)
             Text {
                 visible: navStatusOverlay.navStatus === statusArrived
-                text: "\ue4c9" // place
+                text: MaterialIcon.iconPlace
                 font.family: "Material Icons"
                 font.pixelSize: themeStore.fontTitle
                 color: "#FFFFFF"
@@ -91,7 +91,7 @@ Item {
             // Error icon (Flutter: warning_amber)
             Text {
                 visible: navStatusOverlay.navStatus === statusError
-                text: "\ue6cc" // warning_amber
+                text: MaterialIcon.iconWarningAmber
                 font.family: "Material Icons"
                 font.pixelSize: themeStore.fontBody
                 color: "white"
@@ -135,7 +135,7 @@ Item {
             spacing: 6
 
             Text {
-                text: "\ue6cc" // warning_amber
+                text: MaterialIcon.iconWarningAmber
                 font.family: "Material Icons"
                 font.pixelSize: themeStore.fontBody
                 color: "white"

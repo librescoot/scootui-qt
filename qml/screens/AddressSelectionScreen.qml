@@ -646,7 +646,7 @@ Rectangle {
                     }
                     Text {
                         anchors.centerIn: parent
-                        text: "\ue356"
+                        text: MaterialIcon.iconKeyboardArrowUp
                         font.family: "Material Icons"
                         font.pixelSize: themeStore.fontTitle
                         color: textSecondary
@@ -666,7 +666,7 @@ Rectangle {
                     }
                     Text {
                         anchors.centerIn: parent
-                        text: "\ue353"
+                        text: MaterialIcon.iconKeyboardArrowDown
                         font.family: "Material Icons"
                         font.pixelSize: themeStore.fontTitle
                         color: textSecondary

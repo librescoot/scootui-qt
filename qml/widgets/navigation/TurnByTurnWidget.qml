@@ -52,40 +52,22 @@ Item {
         return Math.round(meters) + " m"
     }
 
-    // Material Icons codepoints for navigation
-    // Note: These icons are in the Unicode supplementary plane (U+F0XXX).
-    // QML's \uXXXX escape only handles 4 hex digits, so we use String.fromCodePoint().
-    readonly property string miTurnLeft:        String.fromCodePoint(0xf058f)
-    readonly property string miTurnRight:       String.fromCodePoint(0xf0590)
-    readonly property string miTurnSharpLeft:   String.fromCodePoint(0xf0591)
-    readonly property string miTurnSharpRight:  String.fromCodePoint(0xf0592)
-    readonly property string miTurnSlightLeft:  String.fromCodePoint(0xf0593)
-    readonly property string miTurnSlightRight: String.fromCodePoint(0xf0594)
-    readonly property string miUTurnLeft:       String.fromCodePoint(0xf0595)
-    readonly property string miUTurnRight:      String.fromCodePoint(0xf0596)
-    readonly property string miStraight:        String.fromCodePoint(0xf0574)
-    readonly property string miMerge:           String.fromCodePoint(0xf053b)
-    readonly property string miNavigation:      "\ue41e"
-    readonly property string miTimer:           "\ue662"
-    readonly property string miFlag:            "\ue28e"
-    readonly property string miSpeed:           "\ue5e0"
-
     function maneuverIcon(maneuverType) {
         switch (maneuverType) {
-            case mtTurnLeft:                          return miTurnLeft
-            case mtTurnSharpLeft:                     return miTurnSharpLeft
-            case mtTurnRight:                         return miTurnRight
-            case mtTurnSharpRight:                    return miTurnSharpRight
-            case mtTurnSlightLeft: case mtKeepLeft:   return miTurnSlightLeft
-            case mtTurnSlightRight: case mtKeepRight: return miTurnSlightRight
-            case mtUTurn:                             return miUTurnLeft
-            case mtUTurnRight:                        return miUTurnRight
-            case mtExitLeft:                          return miTurnSlightLeft
-            case mtExitRight:                         return miTurnSlightRight
+            case mtTurnLeft:                          return MaterialIcon.iconTurnLeft
+            case mtTurnSharpLeft:                     return MaterialIcon.iconTurnSharpLeft
+            case mtTurnRight:                         return MaterialIcon.iconTurnRight
+            case mtTurnSharpRight:                    return MaterialIcon.iconTurnSharpRight
+            case mtTurnSlightLeft: case mtKeepLeft:   return MaterialIcon.iconTurnSlightLeft
+            case mtTurnSlightRight: case mtKeepRight: return MaterialIcon.iconTurnSlightRight
+            case mtUTurn:                             return MaterialIcon.iconUTurnLeft
+            case mtUTurnRight:                        return MaterialIcon.iconUTurnRight
+            case mtExitLeft:                          return MaterialIcon.iconTurnSlightLeft
+            case mtExitRight:                         return MaterialIcon.iconTurnSlightRight
             case mtMergeStraight: case mtMergeLeft: case mtMergeRight:
-                                                      return miMerge
-            case mtKeepStraight: case mtFerry:        return miStraight
-            default:                                  return miStraight
+                                                      return MaterialIcon.iconMerge
+            case mtKeepStraight: case mtFerry:        return MaterialIcon.iconStraight
+            default:                                  return MaterialIcon.iconStraight
         }
     }
 
@@ -136,7 +118,7 @@ Item {
                     anchors.centerIn: parent
                     visible: !parent.isRoundabout
                     text: parent.mDist <= iconThreshold(parent.mType)
-                          ? maneuverIcon(parent.mType) : miStraight
+                          ? maneuverIcon(parent.mType) : MaterialIcon.iconStraight
                     font.family: "Material Icons"
                     font.pixelSize: themeStore.fontHero
                     color: isDark ? "white" : "#212121"
@@ -231,7 +213,7 @@ Item {
                 // Distance remaining
                 Row {
                     spacing: 4
-                    Text { text: miSpeed; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
+                    Text { text: MaterialIcon.iconSpeed; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
                         text: typeof navigationService !== "undefined"
                               ? formatDistance(navigationService.distanceToDestination) : ""
@@ -242,7 +224,7 @@ Item {
                 // Time remaining
                 Row {
                     spacing: 4
-                    Text { text: miTimer; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
+                    Text { text: MaterialIcon.iconTimer; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
                         text: typeof navigationService !== "undefined" && navigationService.remainingDuration > 0
                               ? Math.ceil(navigationService.remainingDuration / 60) + "m"
@@ -254,7 +236,7 @@ Item {
                 // ETA
                 Row {
                     spacing: 4
-                    Text { text: miFlag; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
+                    Text { text: MaterialIcon.iconFlag; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
                         text: typeof navigationService !== "undefined" ? navigationService.eta : ""
                         font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)

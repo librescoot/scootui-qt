@@ -60,7 +60,7 @@ Item {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "\ue3ae" // material lock
+                    text: MaterialIcon.iconLock
                     font.family: "Material Icons"
                     font.pixelSize: typeof themeStore !== "undefined" ? themeStore.fontHero : 48
                     color: lockOverlay.textPrimary

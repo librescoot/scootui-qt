@@ -238,6 +238,9 @@ set(QML_FILES
     qml/simulator/SimulatorWindow.qml
 )
 
+set_source_files_properties(qml/widgets/components/MaterialIcon.qml
+    PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+
 qt_add_qml_module(scootui
     URI ScootUI
     VERSION 1.0

@@ -47,7 +47,7 @@ Rectangle {
                 // location_off icon (Flutter: Icons.location_off, size: 48, color: grey)
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "\ue3aa" // location_off
+                    text: MaterialIcon.iconLocationOff
                     font.family: "Material Icons"
                     font.pixelSize: themeStore.fontXL
                     color: "#9E9E9E"  // Colors.grey

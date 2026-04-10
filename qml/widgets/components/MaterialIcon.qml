@@ -1,12 +1,21 @@
+pragma Singleton
 import QtQuick
 
-Text {
-    id: root
-
-    // Material Icons codepoints (baseline variants)
+// Central Material Icons codepoint registry.
+//
+// Single source of truth for Material Icons glyphs used across the UI.
+// Every QML file should reference these instead of inlining "\ueXXX" literals —
+// raw codepoints silently rot across font revisions (that's how we ended up
+// rendering a cigarette for arrow_forward).
+//
+// To verify or regenerate, run:
+//   python3 -c "from fontTools.ttLib import TTFont; \
+//     print({v: hex(k) for k,v in TTFont('assets/fonts/MaterialIcons-Regular.otf').getBestCmap().items()})"
+//
+// Font: assets/fonts/MaterialIcons-Regular.otf
+QtObject {
     // Navigation / Turn-by-turn
-    // Note: These icons are in the Unicode supplementary plane (U+F0XXX).
-    // QML's \uXXXX escape only handles 4 hex digits, so we use String.fromCodePoint().
+    // Supplementary-plane (U+F0XXX) — \uXXXX can't encode these, so use fromCodePoint.
     readonly property string iconTurnLeft:        String.fromCodePoint(0xf058f)
     readonly property string iconTurnRight:       String.fromCodePoint(0xf0590)
     readonly property string iconTurnSharpLeft:   String.fromCodePoint(0xf0591)
@@ -19,6 +28,8 @@ Text {
     readonly property string iconMerge:           String.fromCodePoint(0xf053b)
     readonly property string iconNavigation:      "\ue41e"
     readonly property string iconPlace:           "\ue4c9"
+    readonly property string iconLocationOff:     "\ue3aa"
+    readonly property string iconGpsNotFixed:     "\ue2dd"
 
     // Arrows
     readonly property string iconArrowBack:       "\ue092"
@@ -31,9 +42,11 @@ Text {
     // Actions / Controls
     readonly property string iconCheck:           "\ue156"
     readonly property string iconClose:           "\ue16a"
+    readonly property string iconCancel:          "\ue139"
     readonly property string iconCheckCircleOutline: "\ue15a"
     readonly property string iconRefresh:         "\ue514"
     readonly property string iconPowerSettingsNew: "\ue4e3"
+    readonly property string iconLock:            "\ue3ae"
 
     // Status / Info
     readonly property string iconErrorOutline:    "\ue238"
@@ -41,20 +54,15 @@ Text {
     readonly property string iconSpeed:           "\ue5e0"
     readonly property string iconTimer:           "\ue662"
     readonly property string iconFlag:            "\ue28e"
-    readonly property string iconGpsNotFixed:     "\ue2dd"
     readonly property string iconLinkOff:         "\ue381"
+    readonly property string iconUsb:             "\ue697"
 
     // Theme / Display
     readonly property string iconLightMode:       "\ue37a"
     readonly property string iconDarkMode:        "\ue1b0"
     readonly property string iconContrast:        String.fromCodePoint(0xf04d8)
-    readonly property string iconMap:             "\uf1ae"
+    readonly property string iconMap:             "\uf1ae" // map_outlined
 
     // Misc
     readonly property string iconBugReport:       "\ue115"
-
-    font.family: "Material Icons"
-    font.pixelSize: themeStore.fontTitle
-    horizontalAlignment: Text.AlignHCenter
-    verticalAlignment: Text.AlignVCenter
 }

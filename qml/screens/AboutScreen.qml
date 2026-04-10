@@ -272,7 +272,7 @@ Rectangle {
                             spacing: 6
 
                             Text {
-                                text: "\ue6cc" // warning_amber
+                                text: MaterialIcon.iconWarningAmber
                                 font.family: "Material Icons"
                                 font.pixelSize: themeStore.fontBody
                                 color: aboutScreen.warningText

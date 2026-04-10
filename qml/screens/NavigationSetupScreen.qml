@@ -166,7 +166,7 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 spacing: 8
                 Text {
-                    text: navSetupScreen.mapsOk ? "\ue15a" : "\ue139"
+                    text: navSetupScreen.mapsOk ? MaterialIcon.iconCheckCircleOutline : MaterialIcon.iconCancel
                     font.family: "Material Icons"
                     font.pixelSize: themeStore.fontBody
                     color: navSetupScreen.mapsOk ? navSetupScreen.checkColor : navSetupScreen.crossColor
@@ -184,7 +184,7 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 spacing: 8
                 Text {
-                    text: navSetupScreen.routingOk ? "\ue15a" : "\ue139"
+                    text: navSetupScreen.routingOk ? MaterialIcon.iconCheckCircleOutline : MaterialIcon.iconCancel
                     font.family: "Material Icons"
                     font.pixelSize: themeStore.fontBody
                     color: navSetupScreen.routingOk ? navSetupScreen.checkColor : navSetupScreen.crossColor

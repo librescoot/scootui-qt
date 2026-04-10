@@ -47,10 +47,9 @@ Item {
             visible: usbStatus === "active"
             spacing: 24
 
-            // Flutter: Icons.usb, size: 64
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: "\ue697" // usb
+                text: MaterialIcon.iconUsb
                 font.family: "Material Icons"
                 font.pixelSize: themeStore.fontHero
                 color: "#FFFFFF"
@@ -141,7 +140,7 @@ Item {
                     spacing: 4
 
                     Text {
-                        text: "\ue5c8" // arrow_forward
+                        text: MaterialIcon.iconArrowForward
                         font.family: "Material Icons"
                         font.pixelSize: themeStore.fontBody
                         color: "#E6FFFFFF"

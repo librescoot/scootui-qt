@@ -106,7 +106,7 @@ Item {
                 // Power icon
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "\ue4e3" // power_settings_new
+                    text: MaterialIcon.iconPowerSettingsNew
                     font.family: "Material Icons"
                     font.pixelSize: themeStore.fontHero
                     color: hibernationOverlay.textPrimary
@@ -179,7 +179,7 @@ Item {
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "\ue16a" // close
+                                text: MaterialIcon.iconClose
                                 font.family: "Material Icons"
                                 font.pixelSize: themeStore.fontHeading
                                 color: "#F44336"
@@ -218,7 +218,7 @@ Item {
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "\ue156" // check
+                                text: MaterialIcon.iconCheck
                                 font.family: "Material Icons"
                                 font.pixelSize: themeStore.fontHeading
                                 color: "#4CAF50"
@@ -297,7 +297,7 @@ Item {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "\ue4e3" // power_settings_new
+            text: MaterialIcon.iconPowerSettingsNew
             font.family: "Material Icons"
             font.pixelSize: themeStore.fontHero
             color: "#F44336"

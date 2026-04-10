@@ -54,7 +54,7 @@ Rectangle {
                 // gps_not_fixed icon (Flutter: Icons.gps_not_fixed, size: 48, color: fgDim)
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "\ue2dd" // gps_not_fixed
+                    text: MaterialIcon.iconGpsNotFixed
                     font.family: "Material Icons"
                     font.pixelSize: themeStore.fontXL
                     color: typeof themeStore !== "undefined" && themeStore.isDark
@@ -133,7 +133,7 @@ Rectangle {
                     // map_outlined icon (Flutter: Icons.map_outlined, color: orange, size: 16)
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "\uf1ae" // map_outlined
+                        text: MaterialIcon.iconMap
                         font.family: "Material Icons"
                         font.pixelSize: themeStore.fontBody
                         color: "#FF9800"  // Colors.orange

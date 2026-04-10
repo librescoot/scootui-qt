@@ -55,7 +55,7 @@ Item {
                 // Lock icon
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "\ue3ae" // lock
+                    text: MaterialIcon.iconLock
                     font.family: "Material Icons"
                     font.pixelSize: themeStore.fontHero
                     color: autoLockOverlay.textPrimary

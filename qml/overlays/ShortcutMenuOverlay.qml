@@ -10,15 +10,6 @@ Item {
     property Item blurSource
     property bool isDark: themeStore.isDark
 
-    // Material Icons codepoints
-    readonly property string miDarkMode:    "\ue1b0"
-    readonly property string miLightMode:   "\ue37a"
-    readonly property string miContrast:    String.fromCodePoint(0xf04d8)
-    readonly property string miMap:         "\uf1ae"
-    readonly property string miSpeed:        "\ue5e0"
-    readonly property string miWarning:     "\ue6cc"
-    readonly property string miBugReport:   "\ue115"
-
     // Main bottom container
     Item {
         id: containerWrapper
@@ -80,15 +71,15 @@ Item {
                         text: {
                             switch(index) {
                                 case 0: // Theme
-                                    if (themeStore.isAutoMode) return miDarkMode
-                                    if (themeStore.isDark) return miLightMode
-                                    return miContrast
+                                    if (themeStore.isAutoMode) return MaterialIcon.iconDarkMode
+                                    if (themeStore.isDark) return MaterialIcon.iconLightMode
+                                    return MaterialIcon.iconContrast
                                 case 1: // View
-                                    return screenStore.currentScreen === 0 ? miMap : miSpeed
+                                    return screenStore.currentScreen === 0 ? MaterialIcon.iconMap : MaterialIcon.iconSpeed
                                 case 2: // Hazards
-                                    return miWarning
+                                    return MaterialIcon.iconWarningAmber
                                 case 3: // Debug
-                                    return miBugReport
+                                    return MaterialIcon.iconBugReport
                                 default: return ""
                             }
                         }

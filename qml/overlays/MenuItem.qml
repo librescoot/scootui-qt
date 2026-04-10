@@ -64,9 +64,9 @@ Rectangle {
             horizontalAlignment: Text.AlignRight
             text: {
                 if (itemType === "submenu" || hasChildren)
-                    return "\ue15f" // chevron_right
+                    return MaterialIcon.iconChevronRight
                 if (itemType === "setting" && currentValue === 1)
-                    return "\ue156" // check
+                    return MaterialIcon.iconCheck
                 return ""
             }
             font.family: "Material Icons"
