@@ -7,6 +7,8 @@ Item {
 
     property string usbStatus: typeof usbStore !== "undefined" ? usbStore.status : "idle"
     property string usbStep: typeof usbStore !== "undefined" ? usbStore.step : ""
+    property int usbProgress: typeof usbStore !== "undefined" ? usbStore.progress : 0
+    property string usbDetail: typeof usbStore !== "undefined" ? usbStore.detail : ""
 
     visible: opacity > 0
     opacity: (usbStatus !== "idle" && usbStatus !== "") ? 1.0 : 0.0
@@ -153,6 +155,48 @@ Item {
                         font.pixelSize: themeStore.fontBody
                         font.weight: Font.Medium
                         color: "#E6FFFFFF" // white 90% opacity
+                    }
+                }
+            }
+
+            // Per-file progress bar + detail line. Only visible while a
+            // file transfer is actually streaming (progress > 0).
+            Item {
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: usbProgress > 0
+                width: Math.min(umsOverlay.width - 96, 400)
+                height: progressBarCol.height + 8
+
+                Column {
+                    id: progressBarCol
+                    anchors.top: parent.top
+                    anchors.topMargin: 8
+                    width: parent.width
+                    spacing: 6
+
+                    // Track
+                    Rectangle {
+                        width: parent.width
+                        height: 4
+                        radius: 2
+                        color: "#33FFFFFF" // white 20%
+
+                        // Fill
+                        Rectangle {
+                            width: parent.width * (usbProgress / 100)
+                            height: parent.height
+                            radius: parent.radius
+                            color: "#FFFFFF"
+                            Behavior on width { NumberAnimation { duration: 150 } }
+                        }
+                    }
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: usbDetail
+                        visible: usbDetail !== ""
+                        font.pixelSize: themeStore.fontBody
+                        color: "#99FFFFFF" // white 60%
                     }
                 }
             }
