@@ -594,6 +594,7 @@ void MenuStore::open()
 {
     if (!m_vehicle->isParked()) return;
     if (m_isOpen) return;
+    if (m_hopOn && m_hopOn->mode() != HopOnStore::Idle) return;
 
     m_isOpen = true;
     m_pathStack.clear();
