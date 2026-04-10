@@ -55,6 +55,9 @@ bool SavedLocationsService::save(const SavedLocation &location)
                 QDateTime::currentDateTimeUtc().toString(Qt::ISODate), false);
     m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("last-used-at")),
                 QDateTime::currentDateTimeUtc().toString(Qt::ISODate), false);
+    // Notify settings-service so the new location is persisted to TOML
+    m_repo->publish(QStringLiteral("settings"),
+                    QStringLiteral("%1.%2").arg(QLatin1String(AppConfig::savedLocationsPrefix)).arg(slot));
     return true;
 }
 
@@ -70,6 +73,9 @@ bool SavedLocationsService::remove(int id)
     for (const auto &f : fields) {
         m_repo->hdel(QStringLiteral("settings"), fieldKey(id, f));
     }
+    // Notify settings-service so the deletion is persisted to TOML
+    m_repo->publish(QStringLiteral("settings"),
+                    QStringLiteral("%1.%2").arg(QLatin1String(AppConfig::savedLocationsPrefix)).arg(id));
     return true;
 }
 
@@ -79,7 +85,7 @@ bool SavedLocationsService::updateLastUsed(int id)
         return false;
 
     m_repo->set(QStringLiteral("settings"), fieldKey(id, QStringLiteral("last-used-at")),
-                QDateTime::currentDateTimeUtc().toString(Qt::ISODate), false);
+                QDateTime::currentDateTimeUtc().toString(Qt::ISODate), true);
     return true;
 }
 
