@@ -249,14 +249,16 @@ QVariantList AddressDatabaseService::getMatchingStreets(const QString &city, con
         if (cityDataIt != m_streetData.constEnd()) {
             auto streetIt = cityDataIt.value().constFind(normalize(name));
             if (streetIt != cityDataIt.value().constEnd()) {
-                const auto &pcs = streetIt.value().postcodes;
-                if (pcs.size() > 1) {
+                const auto &rec = streetIt.value();
+                int n = rec.postcodeCount();
+                if (n > 1) {
                     // Multiple postcodes — create one entry per postcode
-                    for (const QString &pc : pcs)
-                        pairs.append({name, pc});
+                    pairs.append({name, rec.firstPostcode});
+                    for (const auto &e : rec.extraPcs)
+                        pairs.append({name, e.first});
                     continue;
-                } else if (!pcs.isEmpty()) {
-                    pairs.append({name, *pcs.constBegin()});
+                } else if (n == 1) {
+                    pairs.append({name, rec.firstPostcode});
                     continue;
                 }
             }
@@ -307,10 +309,9 @@ void AddressDatabaseService::queryHouseNumbers(const QString &city, const QStrin
     double lat = rec.centroid.lat;
     double lng = rec.centroid.lng;
     if (!postcode.isEmpty()) {
-        auto pcIt = rec.pcCentroids.constFind(postcode);
-        if (pcIt != rec.pcCentroids.constEnd()) {
-            lat = pcIt.value().lat;
-            lng = pcIt.value().lng;
+        if (const auto *pcd = rec.findPcCentroid(postcode)) {
+            lat = pcd->lat;
+            lng = pcd->lng;
         }
     }
 
@@ -611,15 +612,13 @@ static TrieData buildTriesFromAddresses(QVector<AddressEntry> &addresses)
         auto &streetRec = data.streetData[normCity][normStreet];
         if (streetRec.displayStreet.isEmpty())
             streetRec.displayStreet = entry.street;
-        if (!entry.postcode.isEmpty())
-            streetRec.postcodes.insert(entry.postcode);
         // Running centroids (overall + per-postcode)
         auto &c = streetRec.centroid;
         c.count++;
         c.lat += (entry.latitude - c.lat) / c.count;
         c.lng += (entry.longitude - c.lng) / c.count;
         if (!entry.postcode.isEmpty()) {
-            auto &pc = streetRec.pcCentroids[entry.postcode];
+            auto &pc = streetRec.pcCentroidRef(entry.postcode);
             pc.count++;
             pc.lat += (entry.latitude - pc.lat) / pc.count;
             pc.lng += (entry.longitude - pc.lng) / pc.count;
@@ -847,23 +846,27 @@ static BuildResult buildFromTiles(AddressDatabaseService *service, const QString
                 QJsonObject obj;
                 obj[QStringLiteral("c")] = displayCity;
                 obj[QStringLiteral("s")] = rec.displayStreet;
-                if (!rec.postcodes.isEmpty()) {
-                    QJsonArray pcs;
-                    for (const QString &pc : rec.postcodes)
-                        pcs.append(pc);
-                    obj[QStringLiteral("p")] = pcs;
-                }
                 obj[QStringLiteral("lat")] = rec.centroid.lat;
                 obj[QStringLiteral("lng")] = rec.centroid.lng;
-                // Per-postcode centroids
-                if (!rec.pcCentroids.isEmpty()) {
+                if (rec.hasPostcodes()) {
+                    QJsonArray pcs;
+                    pcs.append(rec.firstPostcode);
+                    for (const auto &e : rec.extraPcs)
+                        pcs.append(e.first);
+                    obj[QStringLiteral("p")] = pcs;
+
                     QJsonObject pcObj;
-                    for (auto pcIt = rec.pcCentroids.constBegin();
-                         pcIt != rec.pcCentroids.constEnd(); ++pcIt) {
+                    {
                         QJsonArray coords;
-                        coords.append(pcIt.value().lat);
-                        coords.append(pcIt.value().lng);
-                        pcObj[pcIt.key()] = coords;
+                        coords.append(rec.firstPcCentroid.lat);
+                        coords.append(rec.firstPcCentroid.lng);
+                        pcObj[rec.firstPostcode] = coords;
+                    }
+                    for (const auto &e : rec.extraPcs) {
+                        QJsonArray coords;
+                        coords.append(e.second.lat);
+                        coords.append(e.second.lng);
+                        pcObj[e.first] = coords;
                     }
                     obj[QStringLiteral("pc")] = pcObj;
                 }
@@ -979,16 +982,6 @@ void AddressDatabaseService::initialize()
                         double lat = obj[QStringLiteral("lat")].toDouble();
                         double lng = obj[QStringLiteral("lng")].toDouble();
 
-                        // Read postcodes (v4 stores as array)
-                        QSet<QString> postcodes;
-                        QJsonValue pVal = obj[QStringLiteral("p")];
-                        if (pVal.isArray()) {
-                            for (const QJsonValue &pc : pVal.toArray())
-                                postcodes.insert(pc.toString());
-                        } else if (pVal.isString() && !pVal.toString().isEmpty()) {
-                            postcodes.insert(pVal.toString());
-                        }
-
                         QString normCity = AddressDatabaseService::normalize(city);
                         QString normStreet = AddressDatabaseService::normalize(street);
 
@@ -1003,19 +996,41 @@ void AddressDatabaseService::initialize()
                         auto &rec = data.streetData[normCity][normStreet];
                         if (rec.displayStreet.isEmpty())
                             rec.displayStreet = street;
-                        rec.postcodes.unite(postcodes);
                         rec.centroid.lat = lat;
                         rec.centroid.lng = lng;
                         rec.centroid.count = 1;
-                        // Load per-postcode centroids
+
+                        // Load per-postcode centroids. `pc` (object) is the
+                        // source of truth for which postcodes exist; `p` (array)
+                        // is redundant bookkeeping kept only for older cache
+                        // readers.
                         QJsonObject pcObj = obj[QStringLiteral("pc")].toObject();
                         for (auto pcIt = pcObj.constBegin(); pcIt != pcObj.constEnd(); ++pcIt) {
                             QJsonArray coords = pcIt.value().toArray();
                             if (coords.size() >= 2) {
-                                auto &pcd = rec.pcCentroids[pcIt.key()];
+                                auto &pcd = rec.pcCentroidRef(pcIt.key());
                                 pcd.lat = coords[0].toDouble();
                                 pcd.lng = coords[1].toDouble();
                                 pcd.count = 1;
+                            }
+                        }
+                        // Fall back to `p` if `pc` is missing but `p` is present
+                        // (older caches may have had postcodes without per-pc
+                        // centroids; use the overall centroid for each).
+                        if (pcObj.isEmpty()) {
+                            QJsonValue pVal = obj[QStringLiteral("p")];
+                            auto addPc = [&](const QString &pc) {
+                                if (pc.isEmpty()) return;
+                                auto &pcd = rec.pcCentroidRef(pc);
+                                pcd.lat = lat;
+                                pcd.lng = lng;
+                                pcd.count = 1;
+                            };
+                            if (pVal.isArray()) {
+                                for (const QJsonValue &pc : pVal.toArray())
+                                    addPc(pc.toString());
+                            } else if (pVal.isString()) {
+                                addPc(pVal.toString());
                             }
                         }
                         data.addressCount++;

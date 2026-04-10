@@ -109,11 +109,48 @@ public:
         double lng = 0;
         int count = 0;
     };
+    // Per-street record. Qt6 QHash/QSet pre-allocate a full bucket table on
+    // first insert (~5 KB each), so a naive QHash<postcode, centroid> burns
+    // ~10 KB per street for what is almost always a single postcode. With
+    // ~50k streets that adds up to ~500 MB of mostly-empty buckets. Instead
+    // we inline the common 1-postcode case and spill to a QVector for the
+    // rare multi-postcode streets.
     struct StreetRecord {
         QString displayStreet;
-        QSet<QString> postcodes;
-        CentroidData centroid;                    // overall centroid
-        QHash<QString, CentroidData> pcCentroids; // per-postcode centroid
+        CentroidData centroid;                // overall centroid across all postcodes
+        QString firstPostcode;                // empty = no postcode data at all
+        CentroidData firstPcCentroid;         // valid iff firstPostcode non-empty
+        QVector<QPair<QString, CentroidData>> extraPcs; // empty in ~99% of cases
+
+        int postcodeCount() const {
+            return firstPostcode.isEmpty() ? 0 : 1 + int(extraPcs.size());
+        }
+        bool hasPostcodes() const { return !firstPostcode.isEmpty(); }
+
+        // Look up an existing per-postcode centroid (read-only).
+        const CentroidData *findPcCentroid(const QString &pc) const {
+            if (firstPostcode == pc)
+                return &firstPcCentroid;
+            for (const auto &e : extraPcs)
+                if (e.first == pc)
+                    return &e.second;
+            return nullptr;
+        }
+
+        // Insert or return a mutable reference to the centroid for a postcode.
+        CentroidData &pcCentroidRef(const QString &pc) {
+            if (firstPostcode.isEmpty()) {
+                firstPostcode = pc;
+                return firstPcCentroid;
+            }
+            if (firstPostcode == pc)
+                return firstPcCentroid;
+            for (auto &e : extraPcs)
+                if (e.first == pc)
+                    return e.second;
+            extraPcs.append({pc, CentroidData{}});
+            return extraPcs.last().second;
+        }
     };
 
 private:
