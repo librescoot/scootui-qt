@@ -73,7 +73,7 @@ void RoadInfoService::countMissAndMaybeClear()
 
 void RoadInfoService::onGpsChanged()
 {
-    if (!m_gps || m_gps->gpsState() != 2) { // GpsState::FixEstablished
+    if (!m_gps || !m_gps->hasGpsFix()) {
         m_consecutiveMisses = ClearAfterMisses;
         m_speedLimit->setRoadNameDirect(QString());
         m_speedLimit->setRoadTypeDirect(QString());

@@ -10,22 +10,33 @@
 
 namespace RouteHelpers {
 
-// Project point onto line segment, return closest point clamped to segment
+// Project point onto line segment, return closest point clamped to segment.
+// Uses a local equirectangular projection (longitude scaled by cos(lat))
+// so the projection parameter is computed in an approximately isotropic
+// metric frame. Without this scaling, segments at non-equatorial latitudes
+// are distorted along the longitude axis and the projected point drifts
+// toward the longitudinal endpoint.
 inline LatLng closestPointOnSegment(const LatLng &point,
                                      const LatLng &segA,
                                      const LatLng &segB)
 {
-    double dx = segB.longitude - segA.longitude;
+    constexpr double DegToRad = M_PI / 180.0;
+    double cosLat = std::cos(point.latitude * DegToRad);
+
+    double dx = (segB.longitude - segA.longitude) * cosLat;
     double dy = segB.latitude - segA.latitude;
     double lenSq = dx * dx + dy * dy;
 
-    if (lenSq < 1e-15) return segA;
+    if (lenSq < 1e-18) return segA;
 
-    double t = ((point.longitude - segA.longitude) * dx +
-                (point.latitude - segA.latitude) * dy) / lenSq;
-    t = std::clamp(t, 0.0, 1.0);
+    double px = (point.longitude - segA.longitude) * cosLat;
+    double py = point.latitude - segA.latitude;
 
-    return {segA.latitude + t * dy, segA.longitude + t * dx};
+    double t = std::clamp((px * dx + py * dy) / lenSq, 0.0, 1.0);
+
+    // Convert projection parameter back to raw lat/lng
+    return {segA.latitude + t * dy,
+            segA.longitude + t * (dx / cosLat)};
 }
 
 // Find closest point on entire route polyline

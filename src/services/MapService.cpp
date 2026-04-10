@@ -355,7 +355,7 @@ void MapService::onGpsPositionChanged()
         m_snapTargetLat = gpsLat;
         m_snapTargetLng = gpsLng;
     } else {
-        // Normal / large error: accumulate correction for gradual blending
+        // Normal / small error: accumulate correction for gradual blending
         m_gpsErrorLatitude = gpsLat - m_drLatitude;
         m_gpsErrorLongitude = gpsLng - m_drLongitude;
     }
@@ -364,10 +364,14 @@ void MapService::onGpsPositionChanged()
     m_lastGpsLongitude = gpsLng;
 
     // Re-evaluate which route segment we're on using the real GPS position.
-    // This corrects drift where the DR segment index falls behind or overshoots.
+    // Previously this was locked monotonic (forward-only) to suppress jitter
+    // in roundabouts, but that left DR stuck on an earlier segment after a
+    // wrong-turn recovery until the next reroute replaced the shape.
+    // findClosestSegment returns the globally nearest segment; the subsequent
+    // snap + blend steps handle any residual jitter.
     if (m_routeShape.size() >= 2) {
         int seg = findClosestSegment(gpsLat, gpsLng);
-        if (seg >= 0 && seg >= m_currentRouteSegment)
+        if (seg >= 0)
             m_currentRouteSegment = seg;
     }
 
@@ -623,8 +627,11 @@ void MapService::projectPositionAlongRoute(double distMeters)
 
         double distOnSeg = haversineDistance(m_drLatitude, m_drLongitude, nextLat, nextLng);
 
-        if (remaining >= distOnSeg && seg < m_routeShape.size() - 2) {
-            // Advance to next segment
+        if (remaining >= distOnSeg) {
+            // Advance to the end of this segment. When this is the final
+            // segment, seg reaches size-1 and the while loop exits; any
+            // excess distance past the destination is intentionally
+            // discarded so DR doesn't drift past the end of the route.
             m_drLatitude = nextLat;
             m_drLongitude = nextLng;
             remaining -= distOnSeg;
@@ -632,8 +639,7 @@ void MapService::projectPositionAlongRoute(double distMeters)
         } else {
             // Interpolate within current segment
             double brng = bearingBetween(m_drLatitude, m_drLongitude, nextLat, nextLng);
-            double advance = std::min(remaining, distOnSeg);
-            projectForward(m_drLatitude, m_drLongitude, brng, advance,
+            projectForward(m_drLatitude, m_drLongitude, brng, remaining,
                            m_drLatitude, m_drLongitude);
             remaining = 0;
         }
