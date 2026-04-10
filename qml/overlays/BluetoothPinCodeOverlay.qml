@@ -6,7 +6,9 @@ Item {
 
     property string currentPin: ""
 
-    visible: currentPin !== ""
+    property bool hopOn: typeof vehicleStore !== "undefined" && vehicleStore.hopOnActive
+
+    visible: currentPin !== "" && !hopOn
 
     Connections {
         target: typeof bluetoothStore !== "undefined" ? bluetoothStore : null
