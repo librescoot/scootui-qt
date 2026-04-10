@@ -15,12 +15,13 @@ Item {
     readonly property real currentA: motorCurrent / 1000
     readonly property real powerKw: (motorVoltage * motorCurrent) / 1000000000
 
-    // Display values
-    readonly property real maxRegenA: 10
-    readonly property real maxDischargeA: 80
-    readonly property real boostThresholdA: 50
-    readonly property real maxRegenKw: 0.54
-    readonly property real maxDischargeKw: 4.0
+    // Display values – double the scale when dual battery is enabled
+    readonly property bool isDualBattery: typeof settingsStore !== "undefined" && settingsStore.dualBattery
+    readonly property real maxRegenA: isDualBattery ? 20 : 10
+    readonly property real maxDischargeA: isDualBattery ? 160 : 80
+    readonly property real boostThresholdA: isDualBattery ? 100 : 50
+    readonly property real maxRegenKw: isDualBattery ? 1.08 : 0.54
+    readonly property real maxDischargeKw: isDualBattery ? 8.0 : 4.0
 
     readonly property real rawValue: isAmpsMode ? currentA : powerKw
     readonly property real maxRegen: isAmpsMode ? maxRegenA : maxRegenKw
