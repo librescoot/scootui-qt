@@ -28,7 +28,7 @@ Item {
         target: typeof inputHandler !== "undefined" ? inputHandler : null
         enabled: menuStore.isOpen
         function onLeftTap()  { menuStore.navigateDown() }
-        function onLeftHold() { menuStore.navigateUp()   }
+        function onLeftHold() { menuStore.goBack()        }
         function onRightTap() { menuStore.selectItem()   }
     }
 
