@@ -511,7 +511,7 @@ void AddressDatabaseService::onBuildFinished(bool success, const QString &error)
 
 struct TrieData {
     FlatTrie cityTrie;
-    QHash<QString, std::unique_ptr<FlatTrie>> streetTries;
+    QHash<QString, std::shared_ptr<FlatTrie>> streetTries;
     QHash<QString, QHash<QString, AddressDatabaseService::StreetRecord>> streetData;
     int addressCount = 0;
 
@@ -575,7 +575,7 @@ static TrieData buildTriesFromAddresses(QVector<AddressEntry> &addresses)
 
         auto &streetTriePtr = data.streetTries[normCity];
         if (!streetTriePtr)
-            streetTriePtr = std::make_unique<FlatTrie>();
+            streetTriePtr = std::make_shared<FlatTrie>();
         streetTriePtr->insert(normStreet, entry.street);
 
         auto &streetRec = data.streetData[normCity][normStreet];
@@ -963,7 +963,7 @@ void AddressDatabaseService::initialize()
                         }
                         auto &streetTriePtr = data.streetTries[normCity];
                         if (!streetTriePtr)
-                            streetTriePtr = std::make_unique<FlatTrie>();
+                            streetTriePtr = std::make_shared<FlatTrie>();
                         streetTriePtr->insert(normStreet, street);
 
                         auto &rec = data.streetData[normCity][normStreet];

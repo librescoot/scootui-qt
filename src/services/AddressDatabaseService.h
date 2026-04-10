@@ -90,10 +90,12 @@ private:
     FlatTrie m_cityTrie;
 
     // Per-city street tries: normalized city name → street trie.
-    // unique_ptr because FlatTrie is move-only and QHash historically wants
-    // copyable value types; the indirection is cheap (one pointer per city,
-    // ~400 cities max).
-    QHash<QString, std::unique_ptr<FlatTrie>> m_streetTries;
+    // shared_ptr rather than unique_ptr because Qt6 QHash bakes a copy of the
+    // value type into its detach() path at template-instantiation time, even
+    // when the runtime path doesn't actually copy. unique_ptr won't compile;
+    // shared_ptr copies (the rare times QHash detaches) are cheap ref-count
+    // bumps. The indirection is one pointer per city (~400 cities max).
+    QHash<QString, std::shared_ptr<FlatTrie>> m_streetTries;
 
 public:
     struct CentroidData {
