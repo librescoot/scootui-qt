@@ -4,7 +4,12 @@
 #include <QList>
 #include <functional>
 
-enum class MenuNodeType { Action, Submenu, Setting };
+enum class MenuNodeType { Action, Submenu, Setting, CycleSetting };
+
+struct CycleOption {
+    QString label;
+    std::function<void()> action;
+};
 
 class MenuNode
 {
@@ -23,12 +28,26 @@ public:
     MenuNode *parent() const { return m_parent; }
     int currentValue() const { return m_currentValue; }
     const QList<MenuNode*> &children() const { return m_children; }
+    const QList<CycleOption> &cycleOptions() const { return m_cycleOptions; }
+    int cycleIndex() const { return m_cycleIndex; }
+    QString currentValueLabel() const {
+        if (m_cycleOptions.isEmpty()) return {};
+        return m_cycleOptions[m_cycleIndex].label;
+    }
 
     // Setters
     void setHeaderTitle(const QString &t) { m_headerTitle = t; }
     void setCurrentValue(int v) { m_currentValue = v; }
     void setOnAction(std::function<void()> fn) { m_onAction = std::move(fn); }
     void setIsVisible(std::function<bool()> fn) { m_isVisible = std::move(fn); }
+
+    // Cycle operations
+    void cycleNext() {
+        if (m_cycleOptions.isEmpty()) return;
+        int next = (m_cycleIndex + 1) % m_cycleOptions.size();
+        if (m_cycleOptions[next].action)
+            m_cycleOptions[next].action();
+    }
 
     // Tree operations
     MenuNode *addChild(MenuNode *child) {
@@ -81,6 +100,16 @@ public:
         return n;
     }
 
+    static MenuNode *cycleSetting(const QString &id, const QString &title,
+                                   QList<CycleOption> options, int currentIndex,
+                                   std::function<bool()> isVisible = nullptr) {
+        auto *n = new MenuNode(id, title, MenuNodeType::CycleSetting);
+        n->m_cycleOptions = std::move(options);
+        n->m_cycleIndex = qBound(0, currentIndex, qMax(0, n->m_cycleOptions.size() - 1));
+        n->m_isVisible = std::move(isVisible);
+        return n;
+    }
+
 private:
     QString m_id;
     QString m_title;
@@ -91,4 +120,6 @@ private:
     QList<MenuNode*> m_children;
     std::function<void()> m_onAction;
     std::function<bool()> m_isVisible;
+    QList<CycleOption> m_cycleOptions;
+    int m_cycleIndex = 0;
 };

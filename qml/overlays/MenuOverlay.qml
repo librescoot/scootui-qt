@@ -74,6 +74,7 @@ Item {
                     currentValue: modelData.currentValue
                     hasChildren: modelData.hasChildren
                     leadingIcon: modelData.leadingIcon !== undefined ? modelData.leadingIcon : ""
+                    valueLabel: modelData.valueLabel !== undefined ? modelData.valueLabel : ""
                 }
 
                 // Ensure selected item is fully visible outside gradient overlays

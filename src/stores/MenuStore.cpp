@@ -275,129 +275,134 @@ void MenuStore::rebuildMenuTree()
                                            QStringLiteral("SETTINGS"));
     m_rootNode->addChild(settingsNode);
 
-    // Theme
-    auto *themeNode = MenuNode::submenu(QStringLiteral("settings_theme"),
-                                        tr->menuTheme(),
-                                        tr->menuTheme().toUpper());
-    settingsNode->addChild(themeNode);
+    // Theme (inline cycle: Auto → Dark → Light)
+    {
+        int themeIdx = isAutoTheme ? 0 : (isDark ? 1 : 2);
+        settingsNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_theme"),
+            tr->menuTheme(), {
+                {tr->menuThemeAuto(), [svc]() { svc->updateAutoTheme(true); }},
+                {tr->menuThemeDark(), [svc]() { svc->updateTheme(QStringLiteral("dark")); }},
+                {tr->menuThemeLight(), [svc]() { svc->updateTheme(QStringLiteral("light")); }},
+            }, themeIdx));
+    }
 
-    themeNode->addChild(MenuNode::setting(QStringLiteral("theme_auto"), tr->menuThemeAuto(),
-        isAutoTheme ? 1 : 0, [this, svc]() { svc->updateAutoTheme(true); close(); }));
-    themeNode->addChild(MenuNode::setting(QStringLiteral("theme_dark"), tr->menuThemeDark(),
-        (!isAutoTheme && isDark) ? 1 : 0, [this, svc]() { svc->updateTheme(QStringLiteral("dark")); close(); }));
-    themeNode->addChild(MenuNode::setting(QStringLiteral("theme_light"), tr->menuThemeLight(),
-        (!isAutoTheme && !isDark) ? 1 : 0, [this, svc]() { svc->updateTheme(QStringLiteral("light")); close(); }));
+    // Language (inline cycle: English → Deutsch)
+    {
+        int langIdx = (currentLang == QLatin1String("de")) ? 1 : 0;
+        settingsNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_language"),
+            tr->menuLanguage(), {
+                {QStringLiteral("English"), [svc]() { svc->updateLanguage(QStringLiteral("en")); }},
+                {QStringLiteral("Deutsch"), [svc]() { svc->updateLanguage(QStringLiteral("de")); }},
+            }, langIdx));
+    }
 
-    // Language
-    auto *langNode = MenuNode::submenu(QStringLiteral("settings_language"),
-                                       tr->menuLanguage(),
-                                       tr->menuLanguage().toUpper());
-    settingsNode->addChild(langNode);
-
-    langNode->addChild(MenuNode::setting(QStringLiteral("lang_en"), QStringLiteral("English"),
-        currentLang == QLatin1String("en") ? 1 : 0, [svc]() { svc->updateLanguage(QStringLiteral("en")); }));
-    langNode->addChild(MenuNode::setting(QStringLiteral("lang_de"), QStringLiteral("Deutsch"),
-        currentLang == QLatin1String("de") ? 1 : 0, [svc]() { svc->updateLanguage(QStringLiteral("de")); }));
-
-    // Status Bar
+    // Status Bar (flat list of inline cycle settings)
     auto *statusBarNode = MenuNode::submenu(QStringLiteral("settings_status_bar"),
                                             tr->menuStatusBar(),
                                             QStringLiteral("STATUS BAR"));
     settingsNode->addChild(statusBarNode);
 
-    // Battery Display
-    auto *battDispNode = MenuNode::submenu(QStringLiteral("status_battery"),
-                                           tr->menuBatteryDisplay(),
-                                           QStringLiteral("BATTERY"));
-    statusBarNode->addChild(battDispNode);
-    QString battMode = settings->batteryDisplayMode();
-    battDispNode->addChild(MenuNode::setting(QStringLiteral("battery_percentage"), tr->menuBatteryPercentage(),
-        battMode != QLatin1String("range") ? 1 : 0, [svc]() { svc->updateBatteryDisplayMode(QStringLiteral("percentage")); }));
-    battDispNode->addChild(MenuNode::setting(QStringLiteral("battery_range"), tr->menuBatteryRange(),
-        battMode == QLatin1String("range") ? 1 : 0, [svc]() { svc->updateBatteryDisplayMode(QStringLiteral("range")); }));
+    // Battery Display (inline cycle: Percentage → Range)
+    {
+        QString battMode = settings->batteryDisplayMode();
+        int battIdx = (battMode == QLatin1String("range")) ? 1 : 0;
+        statusBarNode->addChild(MenuNode::cycleSetting(QStringLiteral("status_battery"),
+            tr->menuBatteryDisplay(), {
+                {tr->menuBatteryPercentage(), [svc]() { svc->updateBatteryDisplayMode(QStringLiteral("percentage")); }},
+                {tr->menuBatteryRange(), [svc]() { svc->updateBatteryDisplayMode(QStringLiteral("range")); }},
+            }, battIdx));
+    }
 
-    // Helper for 4-option visibility submenus
-    auto addVisibilitySubmenu = [&](const QString &id, const QString &title,
-                                    const QString &currentVal, const QString &defaultVal,
-                                    std::function<void(const QString&)> updateFn) {
-        auto *node = MenuNode::submenu(id, title);
-        statusBarNode->addChild(node);
+    // Helper for 4-option visibility cycle settings
+    auto addVisibilityCycle = [&](const QString &id, const QString &title,
+                                   const QString &currentVal, const QString &defaultVal,
+                                   std::function<void(const QString&)> updateFn) {
         QString val = currentVal.isEmpty() ? defaultVal : currentVal;
-        node->addChild(MenuNode::setting(id + QStringLiteral("_always"), tr->optAlways(),
-            val == QLatin1String("always") ? 1 : 0, [updateFn]() { updateFn(QStringLiteral("always")); }));
-        node->addChild(MenuNode::setting(id + QStringLiteral("_active"), tr->optActiveOrError(),
-            val == QLatin1String("active-or-error") ? 1 : 0, [updateFn]() { updateFn(QStringLiteral("active-or-error")); }));
-        node->addChild(MenuNode::setting(id + QStringLiteral("_error"), tr->optErrorOnly(),
-            val == QLatin1String("error") ? 1 : 0, [updateFn]() { updateFn(QStringLiteral("error")); }));
-        node->addChild(MenuNode::setting(id + QStringLiteral("_never"), tr->optNever(),
-            val == QLatin1String("never") ? 1 : 0, [updateFn]() { updateFn(QStringLiteral("never")); }));
+        int idx = 0;
+        if (val == QLatin1String("active-or-error")) idx = 1;
+        else if (val == QLatin1String("error")) idx = 2;
+        else if (val == QLatin1String("never")) idx = 3;
+        statusBarNode->addChild(MenuNode::cycleSetting(id, title, {
+            {tr->optAlways(), [updateFn]() { updateFn(QStringLiteral("always")); }},
+            {tr->optActiveOrError(), [updateFn]() { updateFn(QStringLiteral("active-or-error")); }},
+            {tr->optErrorOnly(), [updateFn]() { updateFn(QStringLiteral("error")); }},
+            {tr->optNever(), [updateFn]() { updateFn(QStringLiteral("never")); }},
+        }, idx));
     };
 
     // Read visibility settings from SettingsStore (already synced from Redis)
-    auto gpsVal = settings->showGps();
-    auto btVal = settings->showBluetooth();
-    auto cloudVal = settings->showCloud();
-    auto inetVal = settings->showInternet();
-    auto clockVal = settings->showClock();
-
-    addVisibilitySubmenu(QStringLiteral("status_gps"), tr->menuGpsIcon(), gpsVal, QStringLiteral("error"),
+    addVisibilityCycle(QStringLiteral("status_gps"), tr->menuGpsIcon(),
+        settings->showGps(), QStringLiteral("error"),
         [svc](const QString &v) { svc->updateShowGps(v); });
-    addVisibilitySubmenu(QStringLiteral("status_bluetooth"), tr->menuBluetoothIcon(), btVal, QStringLiteral("active-or-error"),
+    addVisibilityCycle(QStringLiteral("status_bluetooth"), tr->menuBluetoothIcon(),
+        settings->showBluetooth(), QStringLiteral("active-or-error"),
         [svc](const QString &v) { svc->updateShowBluetooth(v); });
-    addVisibilitySubmenu(QStringLiteral("status_cloud"), tr->menuCloudIcon(), cloudVal, QStringLiteral("error"),
+    addVisibilityCycle(QStringLiteral("status_cloud"), tr->menuCloudIcon(),
+        settings->showCloud(), QStringLiteral("error"),
         [svc](const QString &v) { svc->updateShowCloud(v); });
-    addVisibilitySubmenu(QStringLiteral("status_internet"), tr->menuInternetIcon(), inetVal, QStringLiteral("always"),
+    addVisibilityCycle(QStringLiteral("status_internet"), tr->menuInternetIcon(),
+        settings->showInternet(), QStringLiteral("always"),
         [svc](const QString &v) { svc->updateShowInternet(v); });
 
-    // Clock (2 options only)
-    auto *clockNode = MenuNode::submenu(QStringLiteral("status_clock"), tr->menuClock());
-    statusBarNode->addChild(clockNode);
-    QString clkVal = clockVal.isEmpty() ? QStringLiteral("always") : clockVal;
-    clockNode->addChild(MenuNode::setting(QStringLiteral("clock_always"), tr->optAlways(),
-        clkVal != QLatin1String("never") ? 1 : 0, [svc]() { svc->updateShowClock(QStringLiteral("always")); }));
-    clockNode->addChild(MenuNode::setting(QStringLiteral("clock_never"), tr->optNever(),
-        clkVal == QLatin1String("never") ? 1 : 0, [svc]() { svc->updateShowClock(QStringLiteral("never")); }));
+    // Clock (inline cycle: Always → Never)
+    {
+        QString clkVal = settings->showClock();
+        if (clkVal.isEmpty()) clkVal = QStringLiteral("always");
+        int clkIdx = (clkVal == QLatin1String("never")) ? 1 : 0;
+        statusBarNode->addChild(MenuNode::cycleSetting(QStringLiteral("status_clock"),
+            tr->menuClock(), {
+                {tr->optAlways(), [svc]() { svc->updateShowClock(QStringLiteral("always")); }},
+                {tr->optNever(), [svc]() { svc->updateShowClock(QStringLiteral("never")); }},
+            }, clkIdx));
+    }
 
-    // Map & Navigation
+    // Map & Navigation (flat list of inline cycle settings)
     auto *mapNavNode = MenuNode::submenu(QStringLiteral("settings_map"),
                                          tr->menuMapNav(),
                                          QStringLiteral("MAP"));
     settingsNode->addChild(mapNavNode);
 
-    auto *mapTypeNode = MenuNode::submenu(QStringLiteral("map_type"), tr->menuMapType());
-    mapNavNode->addChild(mapTypeNode);
-    int mapType = settings->mapType();
-    mapTypeNode->addChild(MenuNode::setting(QStringLiteral("map_online"), tr->menuOnline(),
-        mapType == 0 ? 1 : 0, [svc]() { svc->updateMapType(QStringLiteral("online")); }));
-    mapTypeNode->addChild(MenuNode::setting(QStringLiteral("map_offline"), tr->menuOffline(),
-        mapType == 1 ? 1 : 0, [svc]() { svc->updateMapType(QStringLiteral("offline")); }));
+    // Map Type (inline cycle: Online → Offline)
+    {
+        int mapType = settings->mapType();
+        mapNavNode->addChild(MenuNode::cycleSetting(QStringLiteral("map_type"),
+            tr->menuMapType(), {
+                {tr->menuOnline(), [svc]() { svc->updateMapType(QStringLiteral("online")); }},
+                {tr->menuOffline(), [svc]() { svc->updateMapType(QStringLiteral("offline")); }},
+            }, mapType == 1 ? 1 : 0));
+    }
 
-    auto *routingNode = MenuNode::submenu(QStringLiteral("navigation_routing"), tr->menuNavRouting());
-    mapNavNode->addChild(routingNode);
-    QString vUrl = settings->valhallaUrl();
-    bool isOnlineRouting = (vUrl == QLatin1String(AppConfig::valhallaOnlineEndpoint));
-    routingNode->addChild(MenuNode::setting(QStringLiteral("routing_online"), tr->menuOnlineOsm(),
-        isOnlineRouting ? 1 : 0, [svc]() { svc->updateValhallaEndpoint(QLatin1String(AppConfig::valhallaOnlineEndpoint)); }));
-    routingNode->addChild(MenuNode::setting(QStringLiteral("routing_offline"), tr->menuOffline(),
-        !isOnlineRouting ? 1 : 0, [svc]() { svc->updateValhallaEndpoint(QLatin1String(AppConfig::valhallaOnDeviceEndpoint)); }));
+    // Navigation Routing (inline cycle: Online OSM → Offline)
+    {
+        QString vUrl = settings->valhallaUrl();
+        bool isOnlineRouting = (vUrl == QLatin1String(AppConfig::valhallaOnlineEndpoint));
+        mapNavNode->addChild(MenuNode::cycleSetting(QStringLiteral("navigation_routing"),
+            tr->menuNavRouting(), {
+                {tr->menuOnlineOsm(), [svc]() { svc->updateValhallaEndpoint(QLatin1String(AppConfig::valhallaOnlineEndpoint)); }},
+                {tr->menuOffline(), [svc]() { svc->updateValhallaEndpoint(QLatin1String(AppConfig::valhallaOnDeviceEndpoint)); }},
+            }, isOnlineRouting ? 0 : 1));
+    }
 
-    // Blinker Style
-    auto *blinkerNode = MenuNode::submenu(QStringLiteral("settings_blinker_style"), tr->menuBlinkerStyle());
-    settingsNode->addChild(blinkerNode);
-    QString bStyle = settings->blinkerStyle();
-    blinkerNode->addChild(MenuNode::setting(QStringLiteral("blinker_icon"), tr->menuBlinkerIcon(),
-        bStyle != QLatin1String("overlay") ? 1 : 0, [svc]() { svc->updateBlinkerStyle(QStringLiteral("icon")); }));
-    blinkerNode->addChild(MenuNode::setting(QStringLiteral("blinker_overlay"), tr->menuBlinkerOverlay(),
-        bStyle == QLatin1String("overlay") ? 1 : 0, [svc]() { svc->updateBlinkerStyle(QStringLiteral("overlay")); }));
+    // Blinker Style (inline cycle: Icon → Overlay)
+    {
+        QString bStyle = settings->blinkerStyle();
+        int blinkerIdx = (bStyle == QLatin1String("overlay")) ? 1 : 0;
+        settingsNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_blinker_style"),
+            tr->menuBlinkerStyle(), {
+                {tr->menuBlinkerIcon(), [svc]() { svc->updateBlinkerStyle(QStringLiteral("icon")); }},
+                {tr->menuBlinkerOverlay(), [svc]() { svc->updateBlinkerStyle(QStringLiteral("overlay")); }},
+            }, blinkerIdx));
+    }
 
-    // Battery Mode
-    auto *battModeNode = MenuNode::submenu(QStringLiteral("settings_battery_mode"), tr->menuBatteryMode());
-    settingsNode->addChild(battModeNode);
-    bool dualBatt = settings->dualBattery();
-    battModeNode->addChild(MenuNode::setting(QStringLiteral("battery_mode_single"), tr->menuBatterySingle(),
-        !dualBatt ? 1 : 0, [svc]() { svc->updateDualBattery(false); }));
-    battModeNode->addChild(MenuNode::setting(QStringLiteral("battery_mode_dual"), tr->menuBatteryDual(),
-        dualBatt ? 1 : 0, [svc]() { svc->updateDualBattery(true); }));
+    // Battery Mode (inline cycle: Single → Dual)
+    {
+        bool dualBatt = settings->dualBattery();
+        settingsNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_battery_mode"),
+            tr->menuBatteryMode(), {
+                {tr->menuBatterySingle(), [svc]() { svc->updateDualBattery(false); }},
+                {tr->menuBatteryDual(), [svc]() { svc->updateDualBattery(true); }},
+            }, dualBatt ? 1 : 0));
+    }
 
     // Alarm
     auto *alarmNode = MenuNode::submenu(QStringLiteral("settings_alarm"), tr->menuAlarm(),
@@ -412,15 +417,18 @@ void MenuStore::rebuildMenuTree()
     alarmNode->addChild(MenuNode::setting(QStringLiteral("alarm_honk"), tr->menuAlarmHonk(),
         alarmHonkOn ? 1 : 0, [svc, alarmHonkOn]() { svc->updateAlarmHonk(!alarmHonkOn); }));
 
-    auto *alarmDurNode = MenuNode::submenu(QStringLiteral("alarm_duration"), tr->menuAlarmDuration(),
-                                           tr->menuAlarmDuration().toUpper());
-    alarmNode->addChild(alarmDurNode);
-    alarmDurNode->addChild(MenuNode::setting(QStringLiteral("alarm_dur_10"), tr->menuAlarmDuration10(),
-        (alarmDur.isEmpty() || alarmDur == QLatin1String("10")) ? 1 : 0, [svc]() { svc->updateAlarmDuration(10); }));
-    alarmDurNode->addChild(MenuNode::setting(QStringLiteral("alarm_dur_20"), tr->menuAlarmDuration20(),
-        alarmDur == QLatin1String("20") ? 1 : 0, [svc]() { svc->updateAlarmDuration(20); }));
-    alarmDurNode->addChild(MenuNode::setting(QStringLiteral("alarm_dur_30"), tr->menuAlarmDuration30(),
-        alarmDur == QLatin1String("30") ? 1 : 0, [svc]() { svc->updateAlarmDuration(30); }));
+    // Alarm Duration (inline cycle: 10s → 20s → 30s)
+    {
+        int durIdx = 0;
+        if (alarmDur == QLatin1String("20")) durIdx = 1;
+        else if (alarmDur == QLatin1String("30")) durIdx = 2;
+        alarmNode->addChild(MenuNode::cycleSetting(QStringLiteral("alarm_duration"),
+            tr->menuAlarmDuration(), {
+                {tr->menuAlarmDuration10(), [svc]() { svc->updateAlarmDuration(10); }},
+                {tr->menuAlarmDuration20(), [svc]() { svc->updateAlarmDuration(20); }},
+                {tr->menuAlarmDuration30(), [svc]() { svc->updateAlarmDuration(30); }},
+            }, durIdx));
+    }
 
     // Hop-on — learning / disabling the combo
     if (m_hopOn) {
@@ -546,9 +554,12 @@ QVariantList MenuStore::currentItems() const
         item[QStringLiteral("title")] = child->title();
         item[QStringLiteral("type")] = child->type() == MenuNodeType::Action ? QStringLiteral("action")
                                      : child->type() == MenuNodeType::Submenu ? QStringLiteral("submenu")
+                                     : child->type() == MenuNodeType::CycleSetting ? QStringLiteral("cycle")
                                      : QStringLiteral("setting");
         item[QStringLiteral("currentValue")] = child->currentValue();
         item[QStringLiteral("hasChildren")] = child->hasChildren();
+        if (child->type() == MenuNodeType::CycleSetting)
+            item[QStringLiteral("valueLabel")] = child->currentValueLabel();
         list.append(item);
     }
     return list;
@@ -644,7 +655,13 @@ void MenuStore::selectItem()
 
     auto *selected = children[childIndex];
 
-    if (selected->type() == MenuNodeType::Submenu && selected->hasChildren()) {
+    if (selected->type() == MenuNodeType::CycleSetting) {
+        // Inline cycle: advance to next option and apply it
+        m_executingAction = true;
+        selected->cycleNext();
+        m_executingAction = false;
+        rebuildMenuTree();
+    } else if (selected->type() == MenuNodeType::Submenu && selected->hasChildren()) {
         // Enter submenu
         m_pathStack.append(selected->id());
         m_indexStack.append(m_selectedIndex);

@@ -9,6 +9,7 @@ Rectangle {
     property int currentValue: 0
     property bool hasChildren: false
     property string leadingIcon: ""
+    property string valueLabel: ""
 
     // Flutter: Container is 50px (54 total slot - 4px from Padding(vertical:2))
     // ListView spacing: 4 handles the inter-item gap
@@ -41,7 +42,9 @@ Rectangle {
         // Title
         Text {
             anchors.verticalCenter: parent.verticalCenter
-            width: parent.width - trailingIcon.width - parent.spacing
+            width: parent.width
+                   - (trailingIcon.visible ? trailingIcon.width + parent.spacing : 0)
+                   - (trailingValue.visible ? trailingValue.implicitWidth + parent.spacing : 0)
                    - (leadingIconText.visible ? leadingIconText.width + parent.spacing : 0)
             text: menuItem.title
             font.pixelSize: themeStore.fontTitle
@@ -52,11 +55,12 @@ Rectangle {
             maximumLineCount: isSelected ? 100 : 1
         }
 
-        // Trailing icon
+        // Trailing icon (submenu chevron / setting check) — hidden for cycle type
         Text {
             id: trailingIcon
             anchors.verticalCenter: parent.verticalCenter
-            width: 24
+            visible: itemType !== "cycle"
+            width: visible ? 24 : 0
             horizontalAlignment: Text.AlignRight
             text: {
                 if (itemType === "submenu" || hasChildren)
@@ -74,6 +78,18 @@ Rectangle {
                     return themeStore.isDark ? "#FFFFFF" : "#000000"
                 return themeStore.isDark ? "#B3FFFFFF" : "#8A000000"
             }
+        }
+
+        // Trailing value label for inline cycle settings
+        Text {
+            id: trailingValue
+            anchors.verticalCenter: parent.verticalCenter
+            visible: itemType === "cycle"
+            text: menuItem.valueLabel
+            font.pixelSize: themeStore.fontBody
+            font.weight: Font.Normal
+            color: themeStore.isDark ? "#B3FFFFFF" : "#8A000000"
+            horizontalAlignment: Text.AlignRight
         }
     }
 }
