@@ -97,6 +97,7 @@ set(CPP_SOURCES
     src/services/ReverseGeocodingService.cpp
     src/services/SerialNumberService.cpp
     src/services/AddressDatabaseService.cpp
+    src/services/FlatTrie.cpp
     src/services/SystemInfoService.cpp
     src/services/VectorTileDecoder.cpp
     src/services/MapDownloadService.cpp
@@ -158,6 +159,7 @@ set(CPP_HEADERS
     src/services/ReverseGeocodingService.h
     src/services/SerialNumberService.h
     src/services/AddressDatabaseService.h
+    src/services/FlatTrie.h
     src/services/SystemInfoService.h
     src/services/VectorTileDecoder.h
     src/services/MapDownloadService.h

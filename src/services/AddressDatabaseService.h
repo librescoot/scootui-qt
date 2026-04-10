@@ -1,14 +1,16 @@
 #pragma once
 
+#include "FlatTrie.h"
+
 #include <QObject>
 #include <QHash>
-#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
 #include <QVariantMap>
 #include <QVector>
 #include <atomic>
+#include <memory>
 
 struct AddressEntry {
     QString city;
@@ -17,14 +19,6 @@ struct AddressEntry {
     QString postcode;
     double latitude;
     double longitude;
-};
-
-struct TrieNode {
-    QHash<QChar, TrieNode *> children;
-    QString displayName;        // non-empty at terminal nodes (original display name)
-    int subtreeUniqueCount = 0; // number of distinct terminal nodes in subtree
-
-    ~TrieNode() { qDeleteAll(children); }
 };
 
 class AddressDatabaseService : public QObject
@@ -80,14 +74,9 @@ private:
     void setStatus(Status s, const QString &message = {});
     void buildTries();
 
-    const TrieNode *findNode(const TrieNode *root, const QString &prefix) const;
-    void collectDisplayNames(const TrieNode *node, QStringList &out) const;
-
 public:
     static QString normalize(const QString &name);
     static QString cleanCityName(const QString &raw);
-    static void insertIntoTrie(TrieNode *root, const QString &normalizedName,
-                               const QString &displayName);
 
 private:
 
@@ -98,10 +87,13 @@ private:
     int m_addressCount = 0;
 
     // City trie: normalized city name → terminal nodes with display name
-    TrieNode *m_cityTrieRoot = nullptr;
+    FlatTrie m_cityTrie;
 
-    // Per-city street tries: normalized city name → street trie root
-    QHash<QString, TrieNode *> m_streetTries;
+    // Per-city street tries: normalized city name → street trie.
+    // unique_ptr because FlatTrie is move-only and QHash historically wants
+    // copyable value types; the indirection is cheap (one pointer per city,
+    // ~400 cities max).
+    QHash<QString, std::unique_ptr<FlatTrie>> m_streetTries;
 
 public:
     struct CentroidData {
