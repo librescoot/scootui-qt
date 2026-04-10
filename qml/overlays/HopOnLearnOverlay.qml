@@ -16,10 +16,8 @@ Item {
     property int mode: typeof hopOnStore !== "undefined" ? hopOnStore.mode : 0
     property var tokens: typeof hopOnStore !== "undefined" ? hopOnStore.capturedTokens : []
     property int idleMs: typeof hopOnStore !== "undefined" ? hopOnStore.idleMillisRemaining : 0
-    // Experimental gate: never render unless `experimental.hop-on` is set.
-    property bool gateOpen: typeof settingsStore !== "undefined" && settingsStore.experimentalHopOn
 
-    visible: gateOpen && mode === modeLearning
+    visible: mode === modeLearning
 
     readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
     readonly property color scrimColor:    isDark ? "#000000" : "#FFFFFF"

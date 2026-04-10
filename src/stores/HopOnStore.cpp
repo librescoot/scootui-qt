@@ -58,29 +58,6 @@ HopOnStore::HopOnStore(VehicleStore *vehicle,
     connect(m_settings, &SettingsStore::hopOnComboChanged,
             this, &HopOnStore::comboChanged);
 
-    // If the experimental flag is flipped off mid-session, abort whatever
-    // we are doing — never leave the user stuck on a lock screen they
-    // cannot reach the menu of, and never leave vehicle-service in
-    // StateHopOn after we've forgotten about it.
-    connect(m_settings, &SettingsStore::experimentalHopOnChanged, this, [this]() {
-        if (m_settings->experimentalHopOn()) return;
-        if (m_mode == Idle) return;
-        qDebug() << "HopOn: experimental flag turned off, exiting mode" << m_mode;
-        // Both Learning and Locked entered StateHopOn on vehicle-service
-        // (silently or not) — release it before we drop our own mode.
-        if (m_repo)
-            m_repo->push(QStringLiteral("scooter:hop-on"), QStringLiteral("release"));
-        if (m_mode == Locked) {
-            m_backlightTimer.stop();
-            if (m_dashboard)
-                m_dashboard->setBacklightOff(false);
-        }
-        cancelTimers();
-        m_buffer.clear();
-        emit capturedTokensChanged();
-        setMode(Idle);
-    });
-
     // Initialise edge-detection state from current values so the very
     // first signal isn't treated as a press.
     m_lastBrakeLeft = m_vehicle->brakeLeft();
@@ -97,10 +74,6 @@ QString HopOnStore::combo() const
 
 void HopOnStore::startLearning()
 {
-    if (!m_settings || !m_settings->experimentalHopOn()) {
-        qDebug() << "HopOn: refuse startLearning, experimental flag not set";
-        return;
-    }
     if (!m_vehicle->isParked()) {
         qDebug() << "HopOn: refuse startLearning, not parked";
         return;
@@ -124,10 +97,6 @@ void HopOnStore::startLearning()
 
 void HopOnStore::activate()
 {
-    if (!m_settings || !m_settings->experimentalHopOn()) {
-        qDebug() << "HopOn: refuse activate, experimental flag not set";
-        return;
-    }
     if (!m_vehicle->isParked()) {
         qDebug() << "HopOn: refuse activate, not parked";
         return;

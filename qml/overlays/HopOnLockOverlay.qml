@@ -17,10 +17,8 @@ Item {
     readonly property int modeLocked: 2
 
     property int mode: typeof hopOnStore !== "undefined" ? hopOnStore.mode : 0
-    // Experimental gate: never render unless `experimental.hop-on` is set.
-    property bool gateOpen: typeof settingsStore !== "undefined" && settingsStore.experimentalHopOn
 
-    visible: gateOpen && mode === modeLocked
+    visible: mode === modeLocked
 
     readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
     readonly property color scrimColor:    isDark ? "#000000" : "#FFFFFF"
