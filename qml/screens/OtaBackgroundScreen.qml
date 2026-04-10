@@ -89,6 +89,9 @@ Rectangle {
         // Status text
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
+            width: otaScreen.width - 64
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
             font.pixelSize: themeStore.fontBody
             font.weight: Font.Bold
             color: "white"
@@ -150,13 +153,13 @@ Rectangle {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
+            width: otaScreen.width - 64
             font.pixelSize: themeStore.fontBody
             color: Qt.rgba(1, 1, 1, 0.6)
             visible: dbcStatus !== "idle" && dbcStatus !== "error" && dbcStatus !== "error-failed"
             text: typeof translations !== "undefined" ? translations.otaScooterWillTurnOff : "Your scooter will turn off when done.\nYou can unlock it again at any point."
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
-            width: 280
         }
 
         // Version text
@@ -171,13 +174,13 @@ Rectangle {
         // Error message
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
+            width: otaScreen.width - 64
             font.pixelSize: themeStore.fontBody
             color: "#ff5555"
             visible: (dbcStatus === "error" || dbcStatus === "error-failed") && dbcErrorMessage !== ""
             text: dbcErrorMessage
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
-            width: 240
         }
     }
 }
