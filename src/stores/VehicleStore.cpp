@@ -13,6 +13,24 @@ VehicleStore::VehicleStore(MdbRepository *repo, QObject *parent)
 
     m_blinkTimer.setInterval(16); // ~60fps
     connect(&m_blinkTimer, &QTimer::timeout, this, &VehicleStore::updateBlinkClock);
+
+    m_brakeLeftDebounce.setSingleShot(true);
+    m_brakeLeftDebounce.setInterval(BRAKE_DEBOUNCE_MS);
+    connect(&m_brakeLeftDebounce, &QTimer::timeout, this, [this]() {
+        if (m_pendingBrakeLeft != m_brakeLeft) {
+            m_brakeLeft = m_pendingBrakeLeft;
+            emit brakeLeftChanged();
+        }
+    });
+
+    m_brakeRightDebounce.setSingleShot(true);
+    m_brakeRightDebounce.setInterval(BRAKE_DEBOUNCE_MS);
+    connect(&m_brakeRightDebounce, &QTimer::timeout, this, [this]() {
+        if (m_pendingBrakeRight != m_brakeRight) {
+            m_brakeRight = m_pendingBrakeRight;
+            emit brakeRightChanged();
+        }
+    });
 }
 
 VehicleStore::~VehicleStore()
@@ -82,11 +100,9 @@ void VehicleStore::applyFieldUpdate(const QString &variable, const QString &valu
         auto v = ScootEnums::parseBlinkerSwitch(value);
         if (v != m_blinkerSwitch) { m_blinkerSwitch = v; emit blinkerSwitchChanged(); }
     } else if (variable == QLatin1String("brake:left")) {
-        auto v = ScootEnums::parseToggle(value);
-        if (v != m_brakeLeft) { m_brakeLeft = v; emit brakeLeftChanged(); }
+        setBrake(true, ScootEnums::parseToggle(value));
     } else if (variable == QLatin1String("brake:right")) {
-        auto v = ScootEnums::parseToggle(value);
-        if (v != m_brakeRight) { m_brakeRight = v; emit brakeRightChanged(); }
+        setBrake(false, ScootEnums::parseToggle(value));
     } else if (variable == QLatin1String("kickstand")) {
         auto v = ScootEnums::parseKickstand(value);
         if (v != m_kickstand) { m_kickstand = v; emit kickstandChanged(); }
@@ -138,9 +154,9 @@ void VehicleStore::onButtonEvent(const QString &, const QString &message)
         const QString &position = parts[1];
         auto v = ScootEnums::parseToggle(parts[2]);
         if (position == QLatin1String("left")) {
-            if (v != m_brakeLeft) { m_brakeLeft = v; emit brakeLeftChanged(); }
+            setBrake(true, v);
         } else if (position == QLatin1String("right")) {
-            if (v != m_brakeRight) { m_brakeRight = v; emit brakeRightChanged(); }
+            setBrake(false, v);
         }
         return;
     }
@@ -187,6 +203,25 @@ void VehicleStore::onButtonEvent(const QString &, const QString &message)
             emit blinkerSwitchChanged();
         }
         return;
+    }
+}
+
+void VehicleStore::setBrake(bool isLeft, ScootEnums::Toggle value)
+{
+    if (isLeft) {
+        m_pendingBrakeLeft = value;
+        if (value == m_brakeLeft) {
+            m_brakeLeftDebounce.stop();
+        } else {
+            m_brakeLeftDebounce.start();
+        }
+    } else {
+        m_pendingBrakeRight = value;
+        if (value == m_brakeRight) {
+            m_brakeRightDebounce.stop();
+        } else {
+            m_brakeRightDebounce.start();
+        }
     }
 }
 

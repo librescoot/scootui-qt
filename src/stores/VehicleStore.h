@@ -76,6 +76,9 @@ protected:
 private:
     void onButtonEvent(const QString &channel, const QString &message);
     void updateBlinkClock();
+    void setBrake(bool isLeft, ScootEnums::Toggle value);
+
+    static constexpr int BRAKE_DEBOUNCE_MS = 20;
 
     QTimer m_blinkTimer;
     QElapsedTimer m_blinkElapsed;
@@ -87,6 +90,10 @@ private:
     ScootEnums::BlinkerSwitch m_blinkerSwitch = ScootEnums::BlinkerSwitch::Off;
     ScootEnums::Toggle m_brakeLeft = ScootEnums::Toggle::Off;
     ScootEnums::Toggle m_brakeRight = ScootEnums::Toggle::Off;
+    ScootEnums::Toggle m_pendingBrakeLeft = ScootEnums::Toggle::Off;
+    ScootEnums::Toggle m_pendingBrakeRight = ScootEnums::Toggle::Off;
+    QTimer m_brakeLeftDebounce;
+    QTimer m_brakeRightDebounce;
     ScootEnums::Kickstand m_kickstand = ScootEnums::Kickstand::Down;
     ScootEnums::VehicleState m_state = ScootEnums::VehicleState::Unknown;
     QString m_stateRaw;
