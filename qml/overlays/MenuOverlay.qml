@@ -24,6 +24,14 @@ Item {
             : Qt.rgba(1, 1, 1, 0.65)
     }
 
+    Connections {
+        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        enabled: menuStore.isOpen
+        function onLeftTap()  { menuStore.navigateDown() }
+        function onLeftHold() { menuStore.navigateUp()   }
+        function onRightTap() { menuStore.selectItem()   }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.topMargin: 24   // Leave space for top status bar
@@ -151,7 +159,7 @@ Item {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 leftAction: typeof translations !== "undefined"
-                            ? translations.controlNextItem : "Next Item"
+                            ? translations.controlScroll : "Scroll"
                 rightAction: typeof translations !== "undefined"
                              ? translations.controlSelect : "Select"
             }
