@@ -159,6 +159,7 @@ class Translations : public QObject
     Q_PROPERTY(QString nonCommercialLicense READ nonCommercialLicense NOTIFY languageChanged)
     Q_PROPERTY(QString aboutCommercialProhibited READ aboutCommercialProhibited NOTIFY languageChanged)
     Q_PROPERTY(QString aboutScamWarning READ aboutScamWarning NOTIFY languageChanged)
+    Q_PROPERTY(QString aboutAuthorizedPartners READ aboutAuthorizedPartners NOTIFY languageChanged)
     Q_PROPERTY(QString aboutSpecialThanks READ aboutSpecialThanks NOTIFY languageChanged)
     Q_PROPERTY(QString aboutPatienceNote READ aboutPatienceNote NOTIFY languageChanged)
 
@@ -511,6 +512,7 @@ public:
     QString nonCommercialLicense() const { return lookup("nonCommercialLicense"); }
     QString aboutCommercialProhibited() const { return lookup("aboutCommercialProhibited"); }
     QString aboutScamWarning() const { return lookup("aboutScamWarning"); }
+    QString aboutAuthorizedPartners() const { return lookup("aboutAuthorizedPartners"); }
     QString aboutSpecialThanks() const { return lookup("aboutSpecialThanks"); }
     QString aboutPatienceNote() const { return lookup("aboutPatienceNote"); }
 

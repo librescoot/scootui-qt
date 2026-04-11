@@ -36,6 +36,11 @@ Rectangle {
         { name: "Material Icons", license: "Apache-2.0" }
     ]
 
+    // Authorized installation partners
+    readonly property var authorizedPartners: [
+        { name: "Fa. Wilhelm Zweiradtechnik", lines: ["General-Pape-Str. 8", "12101 Berlin"] }
+    ]
+
     Component.onCompleted: {
         if (typeof systemInfoService !== "undefined")
             systemInfoService.loadVersions()
@@ -463,6 +468,67 @@ Rectangle {
                     lineHeight: 1.4
                     lineHeightMode: Text.ProportionalHeight
                     wrapMode: Text.WordWrap
+                }
+
+                Item { width: 1; height: 20 }
+
+                // Divider
+                Rectangle {
+                    width: parent.width - 80
+                    height: 1
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    color: aboutScreen.dividerColor
+                }
+
+                Item { width: 1; height: 8 }
+
+                // Authorized installation partners header
+                Text {
+                    x: 40
+                    text: typeof translations !== "undefined"
+                          ? translations.aboutAuthorizedPartners
+                          : "AUTHORIZED INSTALLATION PARTNERS"
+                    color: aboutScreen.textSecondary
+                    font.pixelSize: themeStore.fontBody
+                    font.weight: Font.Bold
+                    font.letterSpacing: 1.5
+                }
+
+                Item { width: 1; height: 8 }
+
+                // Authorized partners list
+                Repeater {
+                    model: aboutScreen.authorizedPartners
+
+                    delegate: Column {
+                        x: 40
+                        width: scrollContent.width - 80
+                        spacing: 0
+                        bottomPadding: 10
+
+                        Text {
+                            width: parent.width
+                            text: modelData.name
+                            color: aboutScreen.textPrimary
+                            font.pixelSize: themeStore.fontBody
+                            font.weight: Font.DemiBold
+                            wrapMode: Text.WordWrap
+                        }
+
+                        Repeater {
+                            model: modelData.lines
+
+                            Text {
+                                width: parent.parent.width
+                                text: modelData
+                                color: aboutScreen.textSecondary
+                                font.pixelSize: themeStore.fontBody
+                                lineHeight: 1.3
+                                lineHeightMode: Text.ProportionalHeight
+                                wrapMode: Text.WordWrap
+                            }
+                        }
+                    }
                 }
 
                 // Bottom padding
