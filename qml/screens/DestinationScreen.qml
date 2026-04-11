@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import "../widgets/status_bars"
 import "../widgets/map"
+import "../widgets/components"
 
 Rectangle {
     id: destinationScreen

@@ -1,4 +1,5 @@
 import QtQuick
+import "../widgets/components"
 
 // Full-screen lock overlay shown while hop-on / hop-off mode is engaged.
 // The display backlight is OFF underneath this overlay (set by HopOnStore

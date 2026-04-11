@@ -1,5 +1,5 @@
 import QtQuick
-import "qrc:/ScootUI/qml/widgets/components" as Components
+import "../widgets/components"
 
 Item {
     id: umsOverlay
@@ -238,7 +238,7 @@ Item {
     }
 
     // Control hints (bottom) — only show exit hint during active state
-    Components.ControlHints {
+    ControlHints {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right

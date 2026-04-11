@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import "../widgets/status_bars"
+import "../widgets/components"
 import "../widgets/navigation"
 import "../widgets/cluster"
 import "../widgets/indicators"

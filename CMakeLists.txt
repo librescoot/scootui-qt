@@ -246,6 +246,7 @@ qt_add_qml_module(scootui
     VERSION 1.0
     QML_FILES ${QML_FILES}
     RESOURCES
+        qml/widgets/components/qmldir
         assets/icons/librescoot-turn-left.svg
         assets/icons/librescoot-turn-right.svg
         assets/icons/librescoot-hazards.svg

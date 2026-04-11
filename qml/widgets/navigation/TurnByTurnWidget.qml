@@ -1,9 +1,15 @@
 import QtQuick
 import QtQuick.Layouts
+import "../components"
 
 Item {
     id: tbtWidget
-    height: visible ? Math.max(contentCol.implicitHeight + 24, 96) : 0
+    // Grow downward to fit the instruction, capped at ~75% of the parent so it
+    // never eats the whole screen. Floor at 96 keeps the layout stable when idle.
+    height: visible
+            ? Math.min(parent ? parent.height * 0.75 : Number.MAX_VALUE,
+                       Math.max(contentCol.implicitHeight + 24, 96))
+            : 0
     visible: typeof navigationService !== "undefined" && navigationService.isNavigating
              && navigationService.currentManeuverDistance > 0
 
@@ -129,12 +135,15 @@ Item {
             ColumnLayout {
                 id: contentCol
                 Layout.fillWidth: true
-                Layout.margins: 8
+                Layout.leftMargin: 8
+                Layout.rightMargin: 8
                 Layout.topMargin: 12
+                Layout.bottomMargin: 8
                 spacing: 4
 
                 // Distance indicator
                 Text {
+                    Layout.fillWidth: true
                     text: typeof navigationService !== "undefined"
                           ? formatDistance(navigationService.currentManeuverDistance) : ""
                     font.pixelSize: themeStore.fontBody
@@ -143,7 +152,7 @@ Item {
                     lineHeight: 1.0
                 }
 
-                // Main instruction text (verbal)
+                // Main instruction text (verbal) — wraps freely; widget grows to fit
                 Text {
                     Layout.fillWidth: true
                     text: typeof navigationService !== "undefined"
@@ -152,8 +161,6 @@ Item {
                     font.weight: isDark ? Font.Normal : Font.Medium
                     color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     wrapMode: Text.WordWrap
-                    maximumLineCount: 3
-                    elide: Text.ElideRight
                     lineHeight: 1.2
                 }
 
@@ -186,14 +193,12 @@ Item {
                 }
             }
 
-            // Right spacer for Time Info Bar
-            Item {
-                Layout.preferredWidth: 140
-            }
         }
 
-        // Compact Time Info Bar (top-right corner)
+        // Compact Time Info Bar (top-right corner) — floats on top; doesn't affect wrapping
         Rectangle {
+            id: timeInfoBar
+            z: 1
             anchors.top: parent.top
             anchors.right: parent.right
             implicitWidth: timeRow.width + 16
