@@ -445,7 +445,20 @@
 			"minzoom": 6
 		},
 		{
-			"id": "building",
+			"id": "buildings",
+			"type": "fill-extrusion",
+			"source": "versatiles-shortbread",
+			"source-layer": "buildings",
+			"minzoom": 14,
+			"paint": {
+				"fill-extrusion-color": "#d4ccc2",
+				"fill-extrusion-height": ["get", "render_height"],
+				"fill-extrusion-base": ["get", "render_min_height"],
+				"fill-extrusion-opacity": 0.7
+			}
+		},
+		{
+			"id": "building-compat",
 			"type": "fill-extrusion",
 			"source": "versatiles-shortbread",
 			"source-layer": "building",
