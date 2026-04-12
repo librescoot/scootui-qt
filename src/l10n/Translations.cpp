@@ -377,6 +377,12 @@ void Translations::initStrings()
     en[QStringLiteral("umsConnectToComputer")] = QStringLiteral("Connect to a computer to transfer files.");
     de[QStringLiteral("umsConnectToComputer")] = QStringLiteral("Zum Dateitransfer mit Computer verbinden.");
 
+    en[QStringLiteral("umsHoldExit")] = QStringLiteral("Exit");
+    de[QStringLiteral("umsHoldExit")] = QStringLiteral("Beenden");
+
+    en[QStringLiteral("controlLeftBrakeHold")] = QStringLiteral("Left Brake (Hold)");
+    de[QStringLiteral("controlLeftBrakeHold")] = QStringLiteral("Linke Bremse (Halten)");
+
     // -----------------------------------------------------------------------
     // Bluetooth
     // -----------------------------------------------------------------------

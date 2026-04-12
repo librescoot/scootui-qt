@@ -123,6 +123,8 @@ class Translations : public QObject
     Q_PROPERTY(QString umsProcessing READ umsProcessing NOTIFY languageChanged)
     Q_PROPERTY(QString umsTitle READ umsTitle NOTIFY languageChanged)
     Q_PROPERTY(QString umsConnectToComputer READ umsConnectToComputer NOTIFY languageChanged)
+    Q_PROPERTY(QString umsHoldExit READ umsHoldExit NOTIFY languageChanged)
+    Q_PROPERTY(QString controlLeftBrakeHold READ controlLeftBrakeHold NOTIFY languageChanged)
 
     // Bluetooth
     Q_PROPERTY(QString blePinPrompt READ blePinPrompt NOTIFY languageChanged)
@@ -481,6 +483,8 @@ public:
     QString umsProcessing() const { return lookup("umsProcessing"); }
     QString umsTitle() const { return lookup("umsTitle"); }
     QString umsConnectToComputer() const { return lookup("umsConnectToComputer"); }
+    QString umsHoldExit() const { return lookup("umsHoldExit"); }
+    QString controlLeftBrakeHold() const { return lookup("controlLeftBrakeHold"); }
 
     QString blePinPrompt() const { return lookup("blePinPrompt"); }
     QString bluetoothCommError() const { return lookup("bluetoothCommError"); }
