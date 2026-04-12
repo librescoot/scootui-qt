@@ -5,6 +5,7 @@ Item {
 
     property string leftAction: ""
     property string rightAction: ""
+    property string leftLabel: ""
 
     readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
     readonly property color secondaryColor: isDark ? "#99FFFFFF" : "#8A000000"
@@ -33,7 +34,8 @@ Item {
             spacing: 2
 
             Text {
-                text: typeof translations !== "undefined" ? translations.controlLeftBrake : "Left Brake"
+                text: controlHints.leftLabel !== "" ? controlHints.leftLabel
+                    : (typeof translations !== "undefined" ? translations.controlLeftBrake : "Left Brake")
                 color: controlHints.secondaryColor
                 font.pixelSize: themeStore.fontMicro
                 font.weight: Font.Medium
