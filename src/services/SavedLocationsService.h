@@ -18,7 +18,7 @@ public:
     bool remove(int id);
     bool updateLastUsed(int id);
 
-    static constexpr int MaxLocations = 10;
+    static constexpr int MaxLocations = 30;
 
 private:
     QString fieldKey(int id, const QString &field) const;
