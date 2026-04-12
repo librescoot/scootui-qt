@@ -13,17 +13,6 @@ Item {
     visible: opacity > 0
     opacity: (usbStatus !== "idle" && usbStatus !== "") ? 1.0 : 0.0
 
-    // Exit UMS via right brake tap (only when active, not processing)
-    Connections {
-        target: typeof inputHandler !== "undefined" ? inputHandler : null
-        enabled: usbStatus === "active"
-        function onRightTap() {
-            if (typeof usbStore !== "undefined") {
-                usbStore.exitUmsMode()
-            }
-        }
-    }
-
     Rectangle {
         anchors.fill: parent
         color: "#000000"
@@ -246,6 +235,7 @@ Item {
         anchors.leftMargin: 12
         anchors.rightMargin: 12
         visible: usbStatus === "active"
-        rightAction: "Exit"
+        leftLabel: typeof translations !== "undefined" ? translations.controlLeftBrakeHold : "Left Brake (Hold)"
+        leftAction: typeof translations !== "undefined" ? translations.umsHoldExit : "Exit"
     }
 }
