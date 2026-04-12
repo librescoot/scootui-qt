@@ -448,7 +448,7 @@
 			"id": "building",
 			"type": "fill-extrusion",
 			"source": "versatiles-shortbread",
-			"source-layer": "building",
+			"source-layer": "buildings",
 			"minzoom": 14,
 			"paint": {
 				"fill-extrusion-color": "#d4ccc2",
