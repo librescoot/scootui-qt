@@ -61,6 +61,47 @@ RoadInfoService::~RoadInfoService()
     }
 }
 
+void RoadInfoService::reloadMbtiles()
+{
+    QString path = QFile::exists(QStringLiteral("map.mbtiles"))
+        ? QStringLiteral("map.mbtiles")
+        : AddressDatabaseService::MbtilesPath;
+
+    if (!QFile::exists(path))
+        return;
+
+    // Close existing connection if open
+    if (m_dbOpen) {
+        {
+            QSqlDatabase db = QSqlDatabase::database(m_dbConnectionName);
+            db.close();
+        }
+        QSqlDatabase::removeDatabase(m_dbConnectionName);
+        m_dbOpen = false;
+        m_tileCache.clear();
+        m_cacheOrder.clear();
+    }
+
+    QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
+                                                  m_dbConnectionName);
+    db.setDatabaseName(path);
+    db.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
+    if (db.open()) {
+        m_dbOpen = true;
+        qDebug() << "RoadInfoService: mbtiles database opened";
+        if (!m_gps->property("latitude").isValid()) {
+            // GPS signals might already be connected; only connect if not yet done
+        }
+        // Ensure GPS signals are connected
+        disconnect(m_gps, &GpsStore::latitudeChanged, this, &RoadInfoService::onGpsChanged);
+        disconnect(m_gps, &GpsStore::longitudeChanged, this, &RoadInfoService::onGpsChanged);
+        connect(m_gps, &GpsStore::latitudeChanged, this, &RoadInfoService::onGpsChanged);
+        connect(m_gps, &GpsStore::longitudeChanged, this, &RoadInfoService::onGpsChanged);
+    } else {
+        qWarning() << "RoadInfoService: failed to open mbtiles";
+    }
+}
+
 void RoadInfoService::countMissAndMaybeClear()
 {
     if (++m_consecutiveMisses >= ClearAfterMisses) {

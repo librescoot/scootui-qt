@@ -116,46 +116,7 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
     , m_speedLimit(speedLimit)
     , m_tickTimer(new QTimer(this))
 {
-    // Resolve mbtiles path: prefer ./map.mbtiles (desktop/simulator), fall back to device path
-    if (QFile::exists(QStringLiteral("map.mbtiles"))) {
-        m_mbtilesPath = QDir::currentPath() + QStringLiteral("/map.mbtiles");
-        qDebug() << "MapService: using local mbtiles:" << m_mbtilesPath;
-    } else if (QFile::exists(QStringLiteral("/data/maps/map.mbtiles"))) {
-        m_mbtilesPath = QStringLiteral("/data/maps/map.mbtiles");
-        qDebug() << "MapService: using device mbtiles:" << m_mbtilesPath;
-    } else {
-        qDebug() << "MapService: no mbtiles found, using online tiles";
-    }
-
-    // Quick-check mbtiles before passing to MapLibre (which throws
-    // mapbox::sqlite::Exception on malformed databases and crashes the app).
-    // A full integrity_check would be too slow on large files over eMMC,
-    // so just verify we can read the metadata table.
-    if (!m_mbtilesPath.isEmpty()) {
-        const QString connName = QStringLiteral("mapservice_validate");
-        {
-            QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connName);
-            db.setDatabaseName(m_mbtilesPath);
-            db.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
-            bool valid = false;
-            if (db.open()) {
-                QSqlQuery q(db);
-                valid = q.exec(QStringLiteral("SELECT count(*) FROM metadata")) && q.next();
-                db.close();
-            }
-            if (!valid) {
-                qWarning() << "MapService: mbtiles database is unreadable, falling back to online tiles";
-                m_mbtilesPath.clear();
-            }
-        }
-        QSqlDatabase::removeDatabase(connName);
-    }
-
-    // Build initial style URL
-    rebuildStyleUrl();
-
-    // Load mbtiles bounds for out-of-coverage detection
-    loadMbtilesBounds();
+    reloadMbtiles();
 
     // --- GPS position updates ---
     connect(m_gps, &GpsStore::latitudeChanged, this, &MapService::onGpsPositionChanged);
@@ -188,6 +149,50 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
 MapService::~MapService()
 {
     m_tickTimer->stop();
+}
+
+void MapService::reloadMbtiles()
+{
+    QString newPath;
+
+    if (QFile::exists(QStringLiteral("map.mbtiles"))) {
+        newPath = QDir::currentPath() + QStringLiteral("/map.mbtiles");
+    } else if (QFile::exists(QStringLiteral("/data/maps/map.mbtiles"))) {
+        newPath = QStringLiteral("/data/maps/map.mbtiles");
+    }
+
+    if (!newPath.isEmpty()) {
+        const QString connName = QStringLiteral("mapservice_validate");
+        {
+            QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connName);
+            db.setDatabaseName(newPath);
+            db.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
+            bool valid = false;
+            if (db.open()) {
+                QSqlQuery q(db);
+                valid = q.exec(QStringLiteral("SELECT count(*) FROM metadata")) && q.next();
+                db.close();
+            }
+            if (!valid) {
+                qWarning() << "MapService: mbtiles database is unreadable, falling back to online tiles";
+                newPath.clear();
+            }
+        }
+        QSqlDatabase::removeDatabase(connName);
+    }
+
+    if (newPath == m_mbtilesPath)
+        return;
+
+    if (newPath.isEmpty()) {
+        qDebug() << "MapService: no mbtiles found, using online tiles";
+    } else {
+        qDebug() << "MapService: mbtiles loaded:" << newPath;
+    }
+
+    m_mbtilesPath = newPath;
+    rebuildStyleUrl();
+    loadMbtilesBounds();
 }
 
 // ---------------------------------------------------------------------------

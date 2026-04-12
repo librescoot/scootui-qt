@@ -54,6 +54,8 @@
 #include <QQmlContext>
 #include <QtQml/qqml.h>
 #include <QDebug>
+#include <QDir>
+#include <QFileSystemWatcher>
 #include <QProcess>
 #include <QFile>
 #include <QTimer>
@@ -182,6 +184,32 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Map download service
     m_mapDownloadService = new MapDownloadService(m_simulatorMode, this);
+
+    // Watch /data/maps/ for mbtiles appearing late (e.g. /data not yet
+    // mounted at startup) or being replaced (e.g. OTA map update).
+    // inotify on the mountpoint directory fires when the filesystem is mounted.
+    auto *mbtilesWatcher = new QFileSystemWatcher(this);
+    static const QString mapsDir = QStringLiteral("/data/maps");
+    if (QDir(mapsDir).exists())
+        mbtilesWatcher->addPath(mapsDir);
+    else
+        mbtilesWatcher->addPath(QStringLiteral("/data"));
+
+    connect(mbtilesWatcher, &QFileSystemWatcher::directoryChanged, this,
+            [this, mbtilesWatcher](const QString &path) {
+        static const QString mapsDir = QStringLiteral("/data/maps");
+        // /data was just mounted — start watching /data/maps/ instead
+        if (path == QLatin1String("/data") && QDir(mapsDir).exists()) {
+            mbtilesWatcher->removePath(QStringLiteral("/data"));
+            mbtilesWatcher->addPath(mapsDir);
+        }
+        if (!QFile::exists(mapsDir + QStringLiteral("/map.mbtiles")))
+            return;
+        qDebug() << "Mbtiles change detected, reloading services";
+        m_mapService->reloadMbtiles();
+        m_roadInfoService->reloadMbtiles();
+        m_addressDatabaseService->initialize();
+    });
 
     // Saved locations (B7)
     m_savedLocationsService = new SavedLocationsService(repo, this);

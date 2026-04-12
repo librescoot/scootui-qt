@@ -18,6 +18,8 @@ public:
                               QObject *parent = nullptr);
     ~RoadInfoService();
 
+    void reloadMbtiles();
+
     // Look up the nearest address label from the offline addresses tile layer
     QString lookupNearestAddress(double lat, double lon);
 

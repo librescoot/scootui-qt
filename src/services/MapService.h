@@ -35,6 +35,8 @@ public:
                         QObject *parent = nullptr);
     ~MapService() override;
 
+    void reloadMbtiles();
+
     double mapLatitude() const { return m_mapLatitude; }
     double mapLongitude() const { return m_mapLongitude; }
     double mapZoom() const { return m_mapZoom; }
