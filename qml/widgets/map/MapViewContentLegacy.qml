@@ -128,7 +128,7 @@ MapView {
             type: "line"
             property string source: "route"
             layout: { "line-cap": "round", "line-join": "round" }
-            paint: { "line-color": "#ECEFF1", "line-width": 6 }
+            paint: { "line-color": "#1565C0", "line-width": 11 }
         }
 
         LayerParameter {
@@ -136,7 +136,7 @@ MapView {
             type: "line"
             property string source: "route"
             layout: { "line-cap": "round", "line-join": "round" }
-            paint: { "line-color": "#42A5F5", "line-width": 4 }
+            paint: { "line-color": "#42A5F5", "line-width": 7 }
         }
     }
 
