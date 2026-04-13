@@ -13,6 +13,7 @@ class SimulatorService : public QObject
     Q_PROPERTY(bool autoDriveActive READ autoDriveActive NOTIFY autoDriveActiveChanged)
     Q_PROPERTY(double autoDriveSpeed READ autoDriveSpeed NOTIFY autoDriveSpeedChanged)
     Q_PROPERTY(bool simulatorMode READ simulatorMode CONSTANT)
+    Q_PROPERTY(bool gpsFrozen READ gpsFrozen WRITE setGpsFrozen NOTIFY gpsFrozenChanged)
 
 public:
     explicit SimulatorService(MdbRepository *repo, NavigationService *nav, QObject *parent = nullptr);
@@ -20,6 +21,8 @@ public:
     bool autoDriveActive() const { return m_autoDriveActive; }
     double autoDriveSpeed() const { return m_autoDriveSpeed; }
     bool simulatorMode() const { return true; }
+    bool gpsFrozen() const { return m_gpsFrozen; }
+    void setGpsFrozen(bool frozen) { if (frozen != m_gpsFrozen) { m_gpsFrozen = frozen; emit gpsFrozenChanged(); } }
 
     // Vehicle
     Q_INVOKABLE void setVehicleState(const QString &state);
@@ -101,9 +104,13 @@ public:
     Q_INVOKABLE void startAutoDrive(double targetSpeed);
     Q_INVOKABLE void stopAutoDrive();
 
+    // Screenshot
+    Q_INVOKABLE void takeScreenshot();
+
 signals:
     void autoDriveActiveChanged();
     void autoDriveSpeedChanged();
+    void gpsFrozenChanged();
 
 private:
     void autoDriveTick();
@@ -136,4 +143,5 @@ private:
     double m_odometer = 1234.5;
     int m_autoStandbySeconds = 900;       // last value pushed via setAutoStandbySetting
     bool m_autoStandbyActive = false;     // true while a deadline is armed
+    bool m_gpsFrozen = false;
 };

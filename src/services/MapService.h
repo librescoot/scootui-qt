@@ -27,6 +27,7 @@ class MapService : public QObject
     Q_PROPERTY(QString routeGeoJson READ routeGeoJson NOTIFY routeGeoJsonChanged)
     Q_PROPERTY(double vehicleOffsetY READ vehicleOffsetY NOTIFY vehicleOffsetYChanged)
     Q_PROPERTY(bool isOutOfCoverage READ isOutOfCoverage NOTIFY isOutOfCoverageChanged)
+    Q_PROPERTY(bool deadReckoningPaused READ deadReckoningPaused WRITE setDeadReckoningPaused NOTIFY deadReckoningPausedChanged)
 
 public:
     explicit MapService(GpsStore *gps, EngineStore *engine,
@@ -36,6 +37,9 @@ public:
     ~MapService() override;
 
     void reloadMbtiles();
+
+    bool deadReckoningPaused() const { return m_deadReckoningPaused; }
+    void setDeadReckoningPaused(bool paused) { if (paused != m_deadReckoningPaused) { m_deadReckoningPaused = paused; emit deadReckoningPausedChanged(); } }
 
     double mapLatitude() const { return m_mapLatitude; }
     double mapLongitude() const { return m_mapLongitude; }
@@ -63,6 +67,7 @@ signals:
     void routeGeoJsonChanged();
     void vehicleOffsetYChanged();
     void isOutOfCoverageChanged();
+    void deadReckoningPausedChanged();
 
 private slots:
     void onDeadReckoningTick();
@@ -188,6 +193,7 @@ private:
     double m_lastGpsLatitude = 0;
     double m_lastGpsLongitude = 0;
     bool m_hasInitialPosition = false;
+    bool m_deadReckoningPaused = false;
     int m_currentRouteSegment = -1;
 
     // GPS correction blending

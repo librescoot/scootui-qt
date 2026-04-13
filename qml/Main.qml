@@ -13,6 +13,10 @@ Window {
     color: "black"
     title: "ScootUI"
 
+    // In desktop/simulator mode, position left of center so simulator panel fits beside it
+    x: typeof simulator !== "undefined" ? Screen.width / 2 - (width + 480 + 20) / 2 : Screen.desktopAvailableWidth / 2 - width / 2
+    y: Screen.height / 2 - height / 2
+
     readonly property var allowedStates: [
         Scooter.VehicleState.Unknown,
         Scooter.VehicleState.ReadyToDrive,

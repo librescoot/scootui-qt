@@ -606,7 +606,7 @@ QString MapService::rewriteStyleStripTraffic(const QString &qrcPath)
 
 void MapService::onDeadReckoningTick()
 {
-    if (!m_hasInitialPosition)
+    if (!m_hasInitialPosition || m_deadReckoningPaused)
         return;
 
     double dtMs = static_cast<double>(m_elapsed.restart());

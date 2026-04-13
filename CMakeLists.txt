@@ -316,6 +316,7 @@ qt_add_qml_module(scootui
         assets/icons/nav-setup-qr.png
         assets/routes/route1.json
         assets/routes/route2.json
+        assets/routes/route3.json
         assets/fonts/Roboto-Regular.ttf
         assets/fonts/Roboto-Bold.ttf
         assets/fonts/Roboto-Medium.ttf

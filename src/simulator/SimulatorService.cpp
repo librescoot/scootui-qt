@@ -8,6 +8,10 @@
 #include <QDateTime>
 #include <QFile>
 #include <QJsonDocument>
+#include <QGuiApplication>
+#include <QQuickWindow>
+#include <QStandardPaths>
+#include <QDir>
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QDebug>
@@ -246,6 +250,7 @@ void SimulatorService::setGpsPosition(double lat, double lng)
 {
     m_autoDriveLat = lat;
     m_autoDriveLng = lng;
+    if (m_gpsFrozen) return;
     const QString now = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
     m_repo->set(QStringLiteral("gps"), QStringLiteral("latitude"),
                 QString::number(lat, 'f', 8));
@@ -415,7 +420,7 @@ void SimulatorService::loadPreset(const QString &name)
         setBatteryCharge(0, 80);
         setBatteryTemperature(0, 25);
         setBatteryPresent(1, true);
-        setBatteryState(1, QStringLiteral("active"));
+        setBatteryState(1, QStringLiteral("idle"));
         setBatteryCharge(1, 75);
         setBatteryTemperature(1, 24);
         setGpsState(QStringLiteral("fix-established"));
@@ -528,8 +533,23 @@ void SimulatorService::loadTestRoute(int index)
             setRoadType(QStringLiteral("secondary"));
         }
 
-        // Push route to NavigationService
-        m_nav->setRoute(route);
+        // Set destination in navigation store so the full nav UI activates
+        const auto &dest = route.waypoints.last();
+        m_repo->set(QStringLiteral("navigation"), QStringLiteral("latitude"),
+                    QString::number(dest.latitude, 'f', 8));
+        m_repo->set(QStringLiteral("navigation"), QStringLiteral("longitude"),
+                    QString::number(dest.longitude, 'f', 8));
+        QString address;
+        if (index == 3)
+            address = QStringLiteral("Boxhagener Str. 105, Friedrichshain");
+        else
+            address = QStringLiteral("Invalidenstraße, Moabit");
+        m_repo->set(QStringLiteral("navigation"), QStringLiteral("address"), address);
+
+        // Delay setRoute so GPS store picks up the position we just wrote
+        QTimer::singleShot(100, this, [this, route]() {
+            m_nav->setRoute(route);
+        });
     } else {
         qWarning() << "Simulator: Failed to parse route" << index;
     }
@@ -744,4 +764,32 @@ void SimulatorService::applyDefaults()
     QTimer::singleShot(200, this, [this]() {
         loadPreset(QStringLiteral("parked"));
     });
+}
+
+void SimulatorService::takeScreenshot()
+{
+    // Find the main ScootUI window (not the simulator panel)
+    const auto windows = QGuiApplication::topLevelWindows();
+    QQuickWindow *mainWindow = nullptr;
+    for (auto *w : windows) {
+        auto *qw = qobject_cast<QQuickWindow*>(w);
+        if (qw && qw->title() == QLatin1String("ScootUI")) {
+            mainWindow = qw;
+            break;
+        }
+    }
+    if (!mainWindow) {
+        qWarning() << "Simulator: no main window found for screenshot";
+        return;
+    }
+
+    QImage img = mainWindow->grabWindow();
+    QString dir = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    QString timestamp = QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss"));
+    QString path = dir + QStringLiteral("/scootui-") + timestamp + QStringLiteral(".png");
+    if (img.save(path)) {
+        qDebug() << "Simulator: screenshot saved to" << path;
+    } else {
+        qWarning() << "Simulator: failed to save screenshot to" << path;
+    }
 }

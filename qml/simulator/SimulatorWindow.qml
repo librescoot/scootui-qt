@@ -5,14 +5,14 @@ import QtQuick.Layouts
 ApplicationWindow {
     id: simWindow
     title: "ScootUI Simulator"
-    width: 380
+    width: 480
     height: 800
     visible: true
     color: "#1e1e1e"
 
     // Position to the right of the main dashboard window
-    x: 520
-    y: 50
+    x: Screen.width / 2 - (480 + width + 20) / 2 + 480 + 20
+    y: Screen.height / 2 - 480 / 2
 
     ScrollView {
         anchors.fill: parent
@@ -22,6 +22,13 @@ ApplicationWindow {
         ColumnLayout {
             width: parent.width
             spacing: 8
+
+            SimButton {
+                text: "Screenshot"
+                Layout.fillWidth: true
+                color: "#607D8B"
+                onClicked: simulator.takeScreenshot()
+            }
 
             // ---- Screen ----
             SectionHeader { text: "Screen" }
@@ -178,14 +185,19 @@ ApplicationWindow {
                 columnSpacing: 4
                 rowSpacing: 4
                 SimButton {
-                    text: "Load Route 1"
+                    text: "Charlottenburg \u2192 Moabit"
                     Layout.fillWidth: true
                     onClicked: simulator.loadTestRoute(1)
                 }
                 SimButton {
-                    text: "Load Route 2"
+                    text: "Mitte \u2192 Moabit"
                     Layout.fillWidth: true
                     onClicked: simulator.loadTestRoute(2)
+                }
+                SimButton {
+                    text: "Tempelhof \u2192 Friedrichshain"
+                    Layout.fillWidth: true
+                    onClicked: simulator.loadTestRoute(3)
                 }
                 SimButton {
                     text: "Clear Route"
@@ -503,6 +515,20 @@ ApplicationWindow {
 
             // ---- GPS ----
             SectionHeader { text: "GPS" }
+
+            RowLayout {
+                Layout.fillWidth: true
+                SimLabel { text: "Freeze position" }
+                Switch {
+                    checked: simulator.gpsFrozen
+                    onToggled: {
+                        simulator.gpsFrozen = checked
+                        if (typeof mapService !== "undefined")
+                            mapService.deadReckoningPaused = checked
+                    }
+                    palette.button: "#333"
+                }
+            }
 
             RowLayout {
                 Layout.fillWidth: true
