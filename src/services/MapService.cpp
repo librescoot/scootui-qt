@@ -131,6 +131,9 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
     // --- Map type changes (online / offline) ---
     connect(m_settings, &SettingsStore::mapTypeChanged, this, &MapService::onMapTypeChanged);
 
+    // --- Traffic overlay toggle ---
+    connect(m_settings, &SettingsStore::mapTrafficOverlayChanged, this, &MapService::onTrafficOverlayChanged);
+
     // --- Route overview timer (single-shot) ---
     m_overviewTimer = new QTimer(this);
     m_overviewTimer->setSingleShot(true);
@@ -421,13 +424,42 @@ void MapService::onMapTypeChanged()
     rebuildStyleUrl();
 }
 
+void MapService::onTrafficOverlayChanged()
+{
+    rebuildStyleUrl();
+}
+
+void MapService::removeTrafficFromStyle(QJsonObject &root)
+{
+    // Remove google-traffic source
+    QJsonObject sources = root.value(QStringLiteral("sources")).toObject();
+    if (sources.contains(QStringLiteral("google-traffic"))) {
+        sources.remove(QStringLiteral("google-traffic"));
+        root[QStringLiteral("sources")] = sources;
+        qDebug() << "MapService: stripped google-traffic source";
+    }
+
+    // Remove traffic-overlay layer
+    QJsonArray layers = root.value(QStringLiteral("layers")).toArray();
+    QJsonArray filtered;
+    for (const QJsonValue &v : layers) {
+        QJsonObject layer = v.toObject();
+        if (layer.value(QStringLiteral("id")).toString() == QStringLiteral("traffic-overlay"))
+            continue;
+        filtered.append(v);
+    }
+    root[QStringLiteral("layers")] = filtered;
+}
+
 void MapService::rebuildStyleUrl()
 {
     bool isDark = m_theme->isDark();
     bool useLocal = !m_mbtilesPath.isEmpty();
+    bool showTraffic = m_settings->mapTrafficOverlay();
 
     qDebug() << "MapService: rebuildStyleUrl - dark:" << isDark
-             << "mbtiles:" << (useLocal ? m_mbtilesPath : QStringLiteral("none"));
+             << "mbtiles:" << (useLocal ? m_mbtilesPath : QStringLiteral("none"))
+             << "traffic:" << showTraffic;
 
     QString qrcPath = isDark
         ? QStringLiteral("qrc:/ScootUI/assets/styles/mapdark.json")
@@ -436,6 +468,9 @@ void MapService::rebuildStyleUrl()
     QString url;
     if (useLocal) {
         url = rewriteStyleForMbtiles(qrcPath, m_mbtilesPath);
+    } else if (!showTraffic) {
+        // Online mode with traffic disabled: rewrite style to strip traffic layer
+        url = rewriteStyleStripTraffic(qrcPath);
     } else {
         url = qrcPath;
         qDebug() << "MapService: using online style:" << url;
@@ -450,9 +485,13 @@ void MapService::rebuildStyleUrl()
 
 QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString &mbtilesPath)
 {
-    // Determine output path
+    // Determine output path (include traffic state so URL changes when toggled)
     QString baseName = qrcPath.section(QLatin1Char('/'), -1);  // "mapdark.json" or "maplight.json"
-    QString outPath = QStringLiteral("/tmp/") + baseName;
+    QString stem = baseName.chopped(5);  // strip ".json"
+    bool showTraffic = m_settings->mapTrafficOverlay();
+    QString outPath = QStringLiteral("/tmp/") + stem
+        + (showTraffic ? QStringLiteral("") : QStringLiteral("-notraffic"))
+        + QStringLiteral(".json");
 
     // Read embedded style from QRC
     QString qrcFile = qrcPath;
@@ -505,6 +544,10 @@ QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString
     }
     root[QStringLiteral("layers")] = filtered;
 
+    // Strip traffic overlay if disabled
+    if (!m_settings->mapTrafficOverlay())
+        removeTrafficFromStyle(root);
+
     // Write to /tmp
     QFile out(outPath);
     if (!out.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
@@ -517,6 +560,43 @@ QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString
 
     QString fileUrl = QStringLiteral("file://") + outPath;
     qDebug() << "MapService: wrote offline style to" << fileUrl << "(" << json.size() << "bytes)";
+    return fileUrl;
+}
+
+QString MapService::rewriteStyleStripTraffic(const QString &qrcPath)
+{
+    QString baseName = qrcPath.section(QLatin1Char('/'), -1);
+    QString stem = baseName.chopped(5);  // strip ".json"
+    QString outPath = QStringLiteral("/tmp/") + stem + QStringLiteral("-notraffic.json");
+
+    QString qrcFile = qrcPath;
+    qrcFile.replace(QStringLiteral("qrc:/"), QStringLiteral(":/"));
+    QFile f(qrcFile);
+    if (!f.open(QIODevice::ReadOnly)) {
+        qWarning() << "MapService: cannot open embedded style" << qrcFile;
+        return qrcPath;
+    }
+    QJsonDocument doc = QJsonDocument::fromJson(f.readAll());
+    f.close();
+    if (!doc.isObject()) {
+        qWarning() << "MapService: invalid style JSON";
+        return qrcPath;
+    }
+
+    QJsonObject root = doc.object();
+    removeTrafficFromStyle(root);
+
+    QFile out(outPath);
+    if (!out.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        qWarning() << "MapService: cannot write" << outPath;
+        return qrcPath;
+    }
+    QByteArray json = QJsonDocument(root).toJson(QJsonDocument::Compact);
+    out.write(json);
+    out.close();
+
+    QString fileUrl = QStringLiteral("file://") + outPath;
+    qDebug() << "MapService: wrote no-traffic style to" << fileUrl << "(" << json.size() << "bytes)";
     return fileUrl;
 }
 

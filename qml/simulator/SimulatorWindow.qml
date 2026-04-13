@@ -94,6 +94,16 @@ ApplicationWindow {
                 }
             }
 
+            RowLayout {
+                Layout.fillWidth: true
+                SimLabel { text: "Traffic" }
+                Switch {
+                    checked: false
+                    palette.highlight: "#2196F3"
+                    onToggled: simulator.setTrafficOverlay(checked)
+                }
+            }
+
             // ---- Connection ----
             SectionHeader { text: "Connection" }
 

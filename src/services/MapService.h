@@ -70,6 +70,7 @@ private slots:
     void onRouteChanged();
     void onThemeChanged();
     void onMapTypeChanged();
+    void onTrafficOverlayChanged();
     void onOverviewTimeout();
 
 private:
@@ -93,6 +94,10 @@ private:
     // Style
     void rebuildStyleUrl();
     QString rewriteStyleForMbtiles(const QString &qrcPath, const QString &mbtilesPath);
+
+    // Traffic overlay
+    static void removeTrafficFromStyle(QJsonObject &root);
+    QString rewriteStyleStripTraffic(const QString &qrcPath);
 
     // Route GeoJSON for native MapLibre layer
     void updateRouteGeoJson();

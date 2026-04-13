@@ -28,6 +28,7 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(QString hopOnCombo READ hopOnCombo NOTIFY hopOnComboChanged)
     Q_PROPERTY(bool mapCheckForUpdates READ mapCheckForUpdates NOTIFY mapCheckForUpdatesChanged)
     Q_PROPERTY(bool mapAutoDownload READ mapAutoDownload NOTIFY mapAutoDownloadChanged)
+    Q_PROPERTY(bool mapTrafficOverlay READ mapTrafficOverlay NOTIFY mapTrafficOverlayChanged)
 
 public:
     explicit SettingsStore(MdbRepository *repo, QObject *parent = nullptr);
@@ -54,6 +55,7 @@ public:
     QString hopOnCombo() const { return m_hopOnCombo; }
     bool mapCheckForUpdates() const { return m_mapCheckForUpdates == QLatin1String("true"); }
     bool mapAutoDownload() const { return m_mapAutoDownload == QLatin1String("true"); }
+    bool mapTrafficOverlay() const { return m_mapTrafficOverlay == QLatin1String("true"); }
 
     // Helper
     bool showBatteryAsRange() const { return m_batteryDisplayMode == QLatin1String("range"); }
@@ -82,6 +84,7 @@ signals:
     void hopOnComboChanged();
     void mapCheckForUpdatesChanged();
     void mapAutoDownloadChanged();
+    void mapTrafficOverlayChanged();
 
 protected:
     SyncSettings syncSettings() const override;
@@ -131,4 +134,6 @@ private:
     QString m_mapCheckForUpdates = QStringLiteral("true");
     // @schema dashboard.maps.auto-download
     QString m_mapAutoDownload = QStringLiteral("false");
+    // @schema dashboard.map.traffic-overlay
+    QString m_mapTrafficOverlay = QStringLiteral("false");
 };

@@ -352,6 +352,12 @@ void SimulatorService::setDualBattery(bool enabled)
                 enabled ? QStringLiteral("true") : QStringLiteral("false"));
 }
 
+void SimulatorService::setTrafficOverlay(bool enabled)
+{
+    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.map.traffic-overlay"),
+                enabled ? QStringLiteral("true") : QStringLiteral("false"));
+}
+
 // --- Auto-lock countdown ---
 
 void SimulatorService::setAutoStandbyDeadline(int secondsFromNow)
