@@ -475,6 +475,9 @@ QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString
     QJsonObject sources = root.value(QStringLiteral("sources")).toObject();
     for (auto it = sources.begin(); it != sources.end(); ++it) {
         QJsonObject src = it.value().toObject();
+        // Only rewrite vector sources; keep raster sources (e.g. traffic overlay) as-is
+        if (src.value(QStringLiteral("type")).toString() != QStringLiteral("vector"))
+            continue;
         src.remove(QStringLiteral("tiles"));
         QString mbtilesUrl = QStringLiteral("mbtiles://") + mbtilesPath;
         src[QStringLiteral("url")] = mbtilesUrl;

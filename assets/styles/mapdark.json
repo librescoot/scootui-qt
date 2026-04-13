@@ -21,6 +21,15 @@
 			],
 			"minzoom": 0,
 			"maxzoom": 14
+		},
+		"google-traffic": {
+			"type": "raster",
+			"tiles": [
+				"http://mts0.google.com/vt/lyrs=h,traffic&x={x}&y={y}&z={z}&style=3"
+			],
+			"tileSize": 256,
+			"minzoom": 0,
+			"maxzoom": 20
 		}
 	},
 	"layers": [
@@ -443,6 +452,14 @@
 				}
 			},
 			"minzoom": 6
+		},
+		{
+			"id": "traffic-overlay",
+			"type": "raster",
+			"source": "google-traffic",
+			"paint": {
+				"raster-opacity": 0.8
+			}
 		},
 		{
 			"id": "buildings",
