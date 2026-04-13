@@ -434,6 +434,9 @@ void SimulatorService::loadPreset(const QString &name)
         setBrakeLeft(false);
         setBrakeRight(false);
         stopAutoDrive();
+        m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("present"), QStringLiteral("true"));
+        m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("charge"), QStringLiteral("95"));
+        m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("temperature"), QStringLiteral("23"));
         // Use online routing in simulator (no local valhalla)
         m_repo->set(QStringLiteral("dashboard"), QStringLiteral("dashboard.valhalla-url"),
                     QLatin1String(AppConfig::valhallaOnlineEndpoint));

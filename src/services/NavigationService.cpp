@@ -339,6 +339,11 @@ void NavigationService::onRouteCalculated(const Route &route)
     m_currentSegmentIndex = 0;
     m_wasArrived = false;
 
+    if (!m_destination.isValid() && !route.waypoints.isEmpty()) {
+        m_destination = route.waypoints.last();
+        emit destinationChanged();
+    }
+
     setStatus(NavigationStatus::Navigating);
     emit routeChanged();
 
