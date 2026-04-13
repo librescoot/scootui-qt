@@ -18,11 +18,11 @@ SyncSettings DashboardStore::syncSettings() const
     };
 }
 
-void DashboardStore::setBacklightOff(bool off)
+void DashboardStore::setBacklightEnabled(bool enabled)
 {
     m_repo->set(QStringLiteral("dashboard"),
-                QStringLiteral("backlight-off"),
-                off ? QStringLiteral("1") : QStringLiteral("0"));
+                QStringLiteral("backlight-enabled"),
+                enabled ? QStringLiteral("true") : QStringLiteral("false"));
 }
 
 void DashboardStore::applyFieldUpdate(const QString &variable, const QString &value)

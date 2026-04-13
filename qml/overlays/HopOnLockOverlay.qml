@@ -3,7 +3,7 @@ import "../widgets/components"
 
 // Full-screen lock overlay shown while hop-on / hop-off mode is engaged.
 // The display backlight is OFF underneath this overlay (set by HopOnStore
-// via DashboardStore::setBacklightOff(true)), but the QML scene is still
+// via DashboardStore::setBacklightEnabled(false)), but the QML scene is still
 // alive and watches for the user-defined unlock combo. As soon as the
 // matcher accepts the sequence the overlay disappears and the backlight
 // comes back on.
