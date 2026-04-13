@@ -149,6 +149,29 @@ void Application::createStores(QQmlApplicationEngine &engine)
     auto *connectionStore = new ConnectionStore(repo, this);
     auto *dashboardStore = new DashboardStore(repo, this);
 
+    // --- Start Redis worker early ---
+    // All SyncableStores above register their poll channels during start().
+    // Starting the worker now lets the TCP connection to Redis happen in
+    // parallel with service creation, wiring, and QML loading below.
+    m_stores = {engineStore, vehicleStore, battery0Store, battery1Store,
+                gpsStore, bluetoothStore, internetStore, navigationStore,
+                settingsStore, otaStore, usbStore, speedLimitStore,
+                autoStandbyStore, cbBatteryStore, auxBatteryStore, dashboardStore};
+
+    for (auto *store : m_stores) {
+        if (auto *syncable = qobject_cast<SyncableStore*>(store)) {
+            syncable->start();
+        }
+    }
+
+    repo->registerPollChannel(QStringLiteral("system"), 30000);
+    repo->registerPollChannel(QStringLiteral("version:mdb"), 30000);
+    repo->registerPollChannel(QStringLiteral("version:dbc"), 30000);
+
+    if (auto *redisRepo = qobject_cast<RedisMdbRepository*>(repo)) {
+        redisRepo->startWorker();
+    }
+
     // M5: Services
     m_settingsService = new SettingsService(repo, this);
     m_translations = new Translations(this);
@@ -362,29 +385,6 @@ void Application::createStores(QQmlApplicationEngine &engine)
     } else {
         ctx->setContextProperty(QStringLiteral("simulator"), nullptr);
         ctx->setContextProperty(QStringLiteral("simulatorMode"), false);
-    }
-
-    // Store references for lifecycle management
-    m_stores = {engineStore, vehicleStore, battery0Store, battery1Store,
-                gpsStore, bluetoothStore, internetStore, navigationStore,
-                settingsStore, otaStore, usbStore, speedLimitStore,
-                autoStandbyStore, cbBatteryStore, auxBatteryStore, dashboardStore};
-
-    // Start all syncable stores (registers their channels with the repo)
-    for (auto *store : m_stores) {
-        if (auto *syncable = qobject_cast<SyncableStore*>(store)) {
-            syncable->start();
-        }
-    }
-
-    // Register infrequently-polled channels not covered by any store
-    repo->registerPollChannel(QStringLiteral("system"), 30000);
-    repo->registerPollChannel(QStringLiteral("version:mdb"), 30000);
-    repo->registerPollChannel(QStringLiteral("version:dbc"), 30000);
-
-    // Start the Redis worker thread (after all channels are registered)
-    if (auto *redisRepo = qobject_cast<RedisMdbRepository*>(repo)) {
-        redisRepo->startWorker();
     }
 
     // Debug: log battery store state after initial sync

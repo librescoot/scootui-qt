@@ -46,12 +46,40 @@ Window {
     }
 
     property bool startupGraceElapsed: false
+    property bool startupOverlaysLoaded: false
+    property bool _versionOverlayRequested: false
 
     Timer {
         id: startupTimer
         interval: 5000
         running: true
         onTriggered: root.startupGraceElapsed = true
+    }
+
+    // Load deferred overlays (e.g. ToastOverlay) one event-loop tick after
+    // the first frame so they don't delay the initial render.
+    Timer {
+        interval: 0
+        running: true
+        onTriggered: root.startupOverlaysLoaded = true
+    }
+
+    // Version overlay activation (mirrors the 3-second brake-hold logic that
+    // was inside the eagerly-loaded VersionOverlay)
+    Timer {
+        id: versionHoldTimer
+        interval: 3000
+        running: typeof vehicleStore !== "undefined"
+                 && vehicleStore.brakeLeft === 0 && vehicleStore.brakeRight === 0
+                 && vehicleStore.state === 4
+                 && typeof menuStore !== "undefined" && !menuStore.isOpen
+                 && !root._versionOverlayRequested
+        onTriggered: root._versionOverlayRequested = true
+    }
+    Connections {
+        target: typeof vehicleStore !== "undefined" ? vehicleStore : null
+        function onBrakeLeftChanged()  { if (vehicleStore.brakeLeft  !== 0) root._versionOverlayRequested = false }
+        function onBrakeRightChanged() { if (vehicleStore.brakeRight !== 0) root._versionOverlayRequested = false }
     }
 
     // Cancel startup timer when vehicle state becomes known;
@@ -165,76 +193,124 @@ Window {
     Component { id: destinationComponent; DestinationScreen {} }
 
     // Overlays (bottom to top stacking order)
+    //
+    // Most overlays are wrapped in Loader to defer QML compilation and
+    // instantiation until they are actually needed.  This shaves ~0.5-1.5 s
+    // off the initial engine.load() on the i.MX6.
 
-    // Debug overlay (floating, lowest z)
-    DebugOverlay {
-        anchors.fill: parent
-        z: 50
+    // Toast notifications — loaded early (after a single event-loop tick) so
+    // boot-time toasts are not lost, but still deferred from the first frame.
+    Loader {
+        anchors.fill: parent; z: 900
+        active: root.startupOverlaysLoaded
+        sourceComponent: Component { ToastOverlay { anchors.fill: parent } }
     }
 
-    BlinkerOverlay {
-        anchors.fill: parent
-        z: 100
-        topInset: 40
-        bottomInset: screenLoader.item && typeof screenLoader.item.bottomBarHeight === "number"
-                     ? screenLoader.item.bottomBarHeight : 48
+    // Blinker overlay — only when blinker is active
+    Loader {
+        anchors.fill: parent; z: 100
+        active: typeof vehicleStore !== "undefined" && vehicleStore.blinkerState !== 0
+        sourceComponent: Component {
+            BlinkerOverlay {
+                anchors.fill: parent
+                topInset: 40
+                bottomInset: screenLoader.item && typeof screenLoader.item.bottomBarHeight === "number"
+                             ? screenLoader.item.bottomBarHeight : 48
+            }
+        }
     }
 
-    MenuOverlay {
-        anchors.fill: parent
-        z: 200
-        blurSource: screenLoader
+    // Menu overlay — only when menu is open
+    Loader {
+        anchors.fill: parent; z: 200
+        active: typeof menuStore !== "undefined" && menuStore.isOpen
+        sourceComponent: Component {
+            MenuOverlay {
+                anchors.fill: parent
+                blurSource: screenLoader
+            }
+        }
     }
 
-    ShortcutMenuOverlay {
-        anchors.fill: parent
-        z: 300
-        blurSource: screenLoader
+    // Shortcut menu overlay
+    Loader {
+        anchors.fill: parent; z: 300
+        active: typeof shortcutMenuStore !== "undefined" && shortcutMenuStore.visible
+        sourceComponent: Component {
+            ShortcutMenuOverlay {
+                anchors.fill: parent
+                blurSource: screenLoader
+            }
+        }
     }
 
-    // Toast notifications
-    ToastOverlay {
-        anchors.fill: parent
-        z: 900
+    // Debug overlay — only when debug mode is "overlay"
+    Loader {
+        anchors.fill: parent; z: 50
+        active: typeof dashboardStore !== "undefined" && dashboardStore.debugMode === "overlay"
+        sourceComponent: Component { DebugOverlay { anchors.fill: parent } }
     }
 
-    AutoLockCountdownOverlay {
-        anchors.fill: parent
-        z: 950
+    // Auto-lock countdown — only when parked and countdown is active
+    Loader {
+        anchors.fill: parent; z: 950
+        active: typeof vehicleStore !== "undefined" && vehicleStore.state === 4
+                && typeof autoStandbyStore !== "undefined"
+                && autoStandbyStore.remainingSeconds > 0
+                && autoStandbyStore.remainingSeconds <= 60
+        sourceComponent: Component { AutoLockCountdownOverlay { anchors.fill: parent } }
     }
 
-    HopOnLearnOverlay {
-        anchors.fill: parent
-        z: 970
+    // Hop-on learn overlay — only during learning mode
+    Loader {
+        anchors.fill: parent; z: 970
+        active: typeof hopOnStore !== "undefined" && hopOnStore.mode === 1
+        sourceComponent: Component { HopOnLearnOverlay { anchors.fill: parent } }
     }
 
-    HopOnLockOverlay {
-        anchors.fill: parent
-        z: 980
+    // Hop-on lock overlay — only when locked
+    Loader {
+        anchors.fill: parent; z: 980
+        active: typeof hopOnStore !== "undefined" && hopOnStore.mode === 2
+        sourceComponent: Component { HopOnLockOverlay { anchors.fill: parent } }
     }
 
-    ShutdownOverlay {
-        anchors.fill: parent
-        z: 1000
+    // Shutdown overlay — only during shutdown sequence
+    Loader {
+        anchors.fill: parent; z: 1000
+        active: typeof shutdownStore !== "undefined"
+                && (shutdownStore.isShuttingDown || shutdownStore.showBlackout)
+        sourceComponent: Component { ShutdownOverlay { anchors.fill: parent } }
     }
 
-    UmsOverlay {
-        anchors.fill: parent
-        z: 1100
+    // UMS overlay — only during USB mass storage operations
+    Loader {
+        anchors.fill: parent; z: 1100
+        active: typeof usbStore !== "undefined" && usbStore.status !== "idle" && usbStore.status !== ""
+        sourceComponent: Component { UmsOverlay { anchors.fill: parent } }
     }
 
-    VersionOverlay {
-        anchors.fill: parent
-        z: 1150
+    // Version overlay — only when explicitly triggered (both brakes held 3s)
+    Loader {
+        anchors.fill: parent; z: 1150
+        active: root._versionOverlayRequested
+        sourceComponent: Component { VersionOverlay { anchors.fill: parent } }
     }
 
-    ManualHibernationOverlay {
-        anchors.fill: parent
-        z: 1200
+    // Manual hibernation overlay
+    Loader {
+        anchors.fill: parent; z: 1200
+        active: typeof vehicleStore !== "undefined"
+                && (vehicleStore.state === 7 || vehicleStore.state === 8
+                    || vehicleStore.state === 13 || vehicleStore.state === 14
+                    || vehicleStore.state === 15 || vehicleStore.state === 16)
+        sourceComponent: Component { ManualHibernationOverlay { anchors.fill: parent } }
     }
 
-    BluetoothPinCodeOverlay {
-        anchors.fill: parent
-        z: 1300
+    // Bluetooth PIN code overlay
+    Loader {
+        anchors.fill: parent; z: 1300
+        active: typeof bluetoothStore !== "undefined" && bluetoothStore.pinCode !== ""
+        sourceComponent: Component { BluetoothPinCodeOverlay { anchors.fill: parent } }
     }
 }
