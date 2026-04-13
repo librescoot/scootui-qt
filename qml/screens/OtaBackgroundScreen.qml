@@ -12,7 +12,7 @@ Rectangle {
         } else {
             backlightTimer.stop()
             if (typeof dashboardStore !== "undefined")
-                dashboardStore.setBacklightOff(false)
+                dashboardStore.setBacklightEnabled(true)
         }
     }
 
@@ -22,13 +22,13 @@ Rectangle {
         running: otaScreen.locked
         onTriggered: {
             if (typeof dashboardStore !== "undefined")
-                dashboardStore.setBacklightOff(true)
+                dashboardStore.setBacklightEnabled(false)
         }
     }
 
     Component.onDestruction: {
         if (typeof dashboardStore !== "undefined")
-            dashboardStore.setBacklightOff(false)
+            dashboardStore.setBacklightEnabled(true)
     }
 
     readonly property string dbcStatus: typeof otaStore !== "undefined" ? otaStore.dbcStatus : "idle"

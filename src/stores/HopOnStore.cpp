@@ -112,11 +112,9 @@ void HopOnStore::activate()
         m_repo->push(QStringLiteral("scooter:hop-on"), QStringLiteral("engage"));
 
     // Mirror the OTA screen pattern: keep the backlight ON briefly so the
-    // user can see the lock screen, then drop it after kBacklightDelayMs.
-    // setBacklightOff(false) below is a no-op when the backlight was
-    // already on, but ensures we never start in a "stuck off" state.
+    // user can see the lock screen, then disable it after kBacklightDelayMs.
     if (m_dashboard)
-        m_dashboard->setBacklightOff(false);
+        m_dashboard->setBacklightEnabled(true);
     m_backlightTimer.start();
 
     m_buffer.clear();
@@ -142,7 +140,7 @@ void HopOnStore::unlock()
         m_repo->push(QStringLiteral("scooter:hop-on"), QStringLiteral("release"));
     m_backlightTimer.stop();
     if (m_dashboard)
-        m_dashboard->setBacklightOff(false);
+        m_dashboard->setBacklightEnabled(true);
 
     cancelTimers();
     m_buffer.clear();
@@ -156,7 +154,7 @@ void HopOnStore::onBacklightDelayElapsed()
     if (m_mode != Locked) return;
     qDebug() << "HopOn: backlight delay elapsed, turning backlight off";
     if (m_dashboard)
-        m_dashboard->setBacklightOff(true);
+        m_dashboard->setBacklightEnabled(false);
 }
 
 void HopOnStore::onBrakeLeftChanged()
@@ -324,7 +322,7 @@ void HopOnStore::onVehicleStateChanged()
         if (m_mode == Locked) {
             m_backlightTimer.stop();
             if (m_dashboard)
-                m_dashboard->setBacklightOff(false);
+                m_dashboard->setBacklightEnabled(true);
         }
         cancelTimers();
         m_buffer.clear();
@@ -341,7 +339,7 @@ void HopOnStore::onHopOnActiveChanged()
         qDebug() << "HopOn: vehicle-service released hop-on externally";
         m_backlightTimer.stop();
         if (m_dashboard)
-            m_dashboard->setBacklightOff(false);
+            m_dashboard->setBacklightEnabled(true);
         cancelTimers();
         m_buffer.clear();
         emit capturedTokensChanged();

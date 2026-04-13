@@ -166,6 +166,12 @@ void Translations::initStrings()
     en[QStringLiteral("menuNavRouting")] = QStringLiteral("Navigation Routing");
     de[QStringLiteral("menuNavRouting")] = QStringLiteral("Navigations-Routing");
 
+    en[QStringLiteral("menuMapUpdateCheck")] = QStringLiteral("Map Update Check");
+    de[QStringLiteral("menuMapUpdateCheck")] = QStringLiteral("Kartenupdate-Pr\u00fcfung");
+
+    en[QStringLiteral("menuMapAutoDownload")] = QStringLiteral("Auto-download Maps");
+    de[QStringLiteral("menuMapAutoDownload")] = QStringLiteral("Karten auto. laden");
+
     en[QStringLiteral("menuOnlineOsm")] = QStringLiteral("Online (OpenStreetMap)");
     de[QStringLiteral("menuOnlineOsm")] = QStringLiteral("Online (OpenStreetMap)");
 
@@ -741,6 +747,12 @@ void Translations::initStrings()
 
     en[QStringLiteral("navSetupDownloadProgressBytes")] = QStringLiteral("%1 / %2 MB");
     de[QStringLiteral("navSetupDownloadProgressBytes")] = QStringLiteral("%1 / %2 MB");
+
+    en[QStringLiteral("mapUpdateAvailableToast")] = QStringLiteral("Map update available \u2014 open Menu \u2192 Navigation Setup to install");
+    de[QStringLiteral("mapUpdateAvailableToast")] = QStringLiteral("Kartenupdate verf\u00fcgbar \u2014 Men\u00fc \u2192 Navigation einrichten");
+
+    en[QStringLiteral("mapUpdateBadge")] = QStringLiteral("Map update");
+    de[QStringLiteral("mapUpdateBadge")] = QStringLiteral("Kartenupdate");
 
     en[QStringLiteral("menuSetupMapMode")] = QStringLiteral("Set up Map Mode");
     de[QStringLiteral("menuSetupMapMode")] = QStringLiteral("Kartenmodus einrichten");

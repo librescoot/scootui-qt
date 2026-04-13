@@ -15,7 +15,7 @@ Rectangle {
         running: true
         onTriggered: {
             if (typeof dashboardStore !== "undefined")
-                dashboardStore.setBacklightOff(true)
+                dashboardStore.setBacklightEnabled(false)
         }
     }
 
@@ -23,13 +23,13 @@ Rectangle {
         target: typeof vehicleStore !== "undefined" ? vehicleStore : null
         function onStateChanged() {
             if (typeof dashboardStore !== "undefined")
-                dashboardStore.setBacklightOff(false)
+                dashboardStore.setBacklightEnabled(true)
         }
     }
 
     Component.onDestruction: {
         if (typeof dashboardStore !== "undefined")
-            dashboardStore.setBacklightOff(false)
+            dashboardStore.setBacklightEnabled(true)
     }
 
     // --- Loading mode (default): silent spinner + optional OTA progress ---

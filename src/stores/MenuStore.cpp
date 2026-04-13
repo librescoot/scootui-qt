@@ -12,6 +12,7 @@
 #include "services/SettingsService.h"
 #include "services/NavigationService.h"
 #include "services/NavigationAvailabilityService.h"
+#include "services/MapDownloadService.h"
 #include "repositories/MdbRepository.h"
 #include "core/AppConfig.h"
 
@@ -42,6 +43,8 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
     connect(m_settings, &SettingsStore::showCloudChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::showInternetChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::showClockChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::mapCheckForUpdatesChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::mapAutoDownloadChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_translations, &Translations::languageChanged, this, &MenuStore::rebuildMenuTree);
 
     // Close menu when vehicle starts moving
@@ -97,6 +100,15 @@ void MenuStore::setHopOnStore(HopOnStore *store)
         // Re-render the menu when the combo state changes (no combo <->
         // has combo flips this entry between an action and a submenu).
         connect(m_hopOn, &HopOnStore::comboChanged,
+                this, &MenuStore::rebuildMenuTree);
+    }
+}
+
+void MenuStore::setMapDownloadService(MapDownloadService *svc)
+{
+    m_mapDownload = svc;
+    if (m_mapDownload) {
+        connect(m_mapDownload, &MapDownloadService::updateAvailableChanged,
                 this, &MenuStore::rebuildMenuTree);
     }
 }
@@ -383,6 +395,22 @@ void MenuStore::rebuildMenuTree()
             }, isOnlineRouting ? 0 : 1));
     }
 
+    // Map Update Check (toggle)
+    {
+        bool checkUpdates = settings->mapCheckForUpdates();
+        mapNavNode->addChild(MenuNode::setting(QStringLiteral("map_check_updates"),
+            tr->menuMapUpdateCheck(), checkUpdates ? 1 : 0,
+            [svc, checkUpdates]() { svc->updateMapCheckForUpdates(!checkUpdates); }));
+    }
+
+    // Auto-download Map Updates (toggle)
+    {
+        bool autoDownload = settings->mapAutoDownload();
+        mapNavNode->addChild(MenuNode::setting(QStringLiteral("map_auto_download"),
+            tr->menuMapAutoDownload(), autoDownload ? 1 : 0,
+            [svc, autoDownload]() { svc->updateMapAutoDownload(!autoDownload); }));
+    }
+
     // Blinker Style (inline cycle: Icon → Overlay)
     {
         QString bStyle = settings->blinkerStyle();
@@ -560,6 +588,9 @@ QVariantList MenuStore::currentItems() const
         item[QStringLiteral("hasChildren")] = child->hasChildren();
         if (child->type() == MenuNodeType::CycleSetting)
             item[QStringLiteral("valueLabel")] = child->currentValueLabel();
+        if (child->id() == QLatin1String("nav_setup")
+            && m_mapDownload && m_mapDownload->updateAvailable())
+            item[QStringLiteral("leadingIcon")] = QStringLiteral("\ue692"); // update
         list.append(item);
     }
     return list;

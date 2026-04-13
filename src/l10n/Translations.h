@@ -50,6 +50,8 @@ class Translations : public QObject
     Q_PROPERTY(QString menuOnline READ menuOnline NOTIFY languageChanged)
     Q_PROPERTY(QString menuOffline READ menuOffline NOTIFY languageChanged)
     Q_PROPERTY(QString menuNavRouting READ menuNavRouting NOTIFY languageChanged)
+    Q_PROPERTY(QString menuMapUpdateCheck READ menuMapUpdateCheck NOTIFY languageChanged)
+    Q_PROPERTY(QString menuMapAutoDownload READ menuMapAutoDownload NOTIFY languageChanged)
     Q_PROPERTY(QString menuOnlineOsm READ menuOnlineOsm NOTIFY languageChanged)
 
     // Menu headers
@@ -250,6 +252,8 @@ class Translations : public QObject
     Q_PROPERTY(QString navSetupDownloadWaitingGps READ navSetupDownloadWaitingGps NOTIFY languageChanged)
     Q_PROPERTY(QString navSetupDownloadProgress READ navSetupDownloadProgress NOTIFY languageChanged)
     Q_PROPERTY(QString navSetupDownloadProgressBytes READ navSetupDownloadProgressBytes NOTIFY languageChanged)
+    Q_PROPERTY(QString mapUpdateAvailableToast READ mapUpdateAvailableToast NOTIFY languageChanged)
+    Q_PROPERTY(QString mapUpdateBadge READ mapUpdateBadge NOTIFY languageChanged)
     Q_PROPERTY(QString menuSetupMapMode READ menuSetupMapMode NOTIFY languageChanged)
     Q_PROPERTY(QString menuSetupNavigation READ menuSetupNavigation NOTIFY languageChanged)
 
@@ -414,6 +418,8 @@ public:
     QString menuOnline() const { return lookup("menuOnline"); }
     QString menuOffline() const { return lookup("menuOffline"); }
     QString menuNavRouting() const { return lookup("menuNavRouting"); }
+    QString menuMapUpdateCheck() const { return lookup("menuMapUpdateCheck"); }
+    QString menuMapAutoDownload() const { return lookup("menuMapAutoDownload"); }
     QString menuOnlineOsm() const { return lookup("menuOnlineOsm"); }
 
     // Menu headers
@@ -603,6 +609,8 @@ public:
     QString navSetupDownloadWaitingGps() const { return lookup("navSetupDownloadWaitingGps"); }
     QString navSetupDownloadProgress() const { return lookup("navSetupDownloadProgress"); }
     QString navSetupDownloadProgressBytes() const { return lookup("navSetupDownloadProgressBytes"); }
+    QString mapUpdateAvailableToast() const { return lookup("mapUpdateAvailableToast"); }
+    QString mapUpdateBadge() const { return lookup("mapUpdateBadge"); }
     QString menuSetupMapMode() const { return lookup("menuSetupMapMode"); }
     QString menuSetupNavigation() const { return lookup("menuSetupNavigation"); }
 

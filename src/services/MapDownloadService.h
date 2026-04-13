@@ -5,6 +5,7 @@
 #include <QNetworkReply>
 #include <QFile>
 #include <QCryptographicHash>
+#include <functional>
 #include "models/Enums.h"
 #include "models/MapMetadata.h"
 
@@ -43,6 +44,9 @@ public:
     Q_INVOKABLE void cancel();
     Q_INVOKABLE void checkForUpdates();
 
+    bool hasMapsInstalled() const { return !m_metadata.region.isEmpty() && m_metadata.displayTiles.has_value(); }
+    bool shouldCheckForUpdates() const;
+
 signals:
     void statusChanged();
     void progressChanged();
@@ -65,8 +69,13 @@ private:
                         qint64 expectedSize, bool isDisplay);
     void doVerify(const QString &filePath, const QString &expectedDigest,
                   const QString &destPath, bool isDisplay);
-    void doInstall(const QString &tempPath, const QString &destPath, bool isDisplay);
+    void doInstall(const QString &tempPath, const QString &destPath, bool isDisplay,
+                   const QString &digest = {});
     void doFinishAll();
+
+    void fetchTilesManifest(std::function<void(const QJsonObject &)> callback);
+
+    void computeMissingDigests();
 
     // Helpers
     QString slugForState(const QString &state) const;

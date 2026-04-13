@@ -33,6 +33,8 @@ struct MapMetadata {
     QString region;
     std::optional<MapTileInfo> displayTiles;
     std::optional<MapTileInfo> valhallaTiles;
+    QString lastUpdateCheck;
+    bool updateAvailable = false;
 
     QJsonObject toJson() const {
         QJsonObject o;
@@ -41,6 +43,10 @@ struct MapMetadata {
             o[QStringLiteral("displayTiles")] = displayTiles->toJson();
         if (valhallaTiles)
             o[QStringLiteral("valhallaTiles")] = valhallaTiles->toJson();
+        if (!lastUpdateCheck.isEmpty())
+            o[QStringLiteral("lastUpdateCheck")] = lastUpdateCheck;
+        if (updateAvailable)
+            o[QStringLiteral("updateAvailable")] = true;
         return o;
     }
 
@@ -51,6 +57,8 @@ struct MapMetadata {
             m.displayTiles = MapTileInfo::fromJson(o[QStringLiteral("displayTiles")].toObject());
         if (o.contains(QStringLiteral("valhallaTiles")))
             m.valhallaTiles = MapTileInfo::fromJson(o[QStringLiteral("valhallaTiles")].toObject());
+        m.lastUpdateCheck = o[QStringLiteral("lastUpdateCheck")].toString();
+        m.updateAvailable = o[QStringLiteral("updateAvailable")].toBool();
         return m;
     }
 

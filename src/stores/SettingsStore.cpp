@@ -30,6 +30,8 @@ SyncSettings SettingsStore::syncSettings() const
             {QStringLiteral("alarmHonk"), QStringLiteral("alarm.honk")},
             {QStringLiteral("alarmDuration"), QStringLiteral("alarm.duration")},
             {QStringLiteral("hopOnCombo"), QStringLiteral("dashboard.hop-on-combo")},
+            {QStringLiteral("mapCheckForUpdates"), QStringLiteral("dashboard.maps.check-for-updates")},
+            {QStringLiteral("mapAutoDownload"), QStringLiteral("dashboard.maps.auto-download")},
         },
         {}, {}
     };
@@ -80,5 +82,9 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
         if (value != m_alarmDuration) { m_alarmDuration = value; emit alarmDurationChanged(); }
     } else if (variable == QLatin1String("dashboard.hop-on-combo")) {
         if (value != m_hopOnCombo) { m_hopOnCombo = value; emit hopOnComboChanged(); }
+    } else if (variable == QLatin1String("dashboard.maps.check-for-updates")) {
+        if (value != m_mapCheckForUpdates) { m_mapCheckForUpdates = value; emit mapCheckForUpdatesChanged(); }
+    } else if (variable == QLatin1String("dashboard.maps.auto-download")) {
+        if (value != m_mapAutoDownload) { m_mapAutoDownload = value; emit mapAutoDownloadChanged(); }
     }
 }
