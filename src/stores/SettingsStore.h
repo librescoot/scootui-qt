@@ -26,6 +26,8 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(bool alarmHonk READ alarmHonk NOTIFY alarmHonkChanged)
     Q_PROPERTY(QString alarmDuration READ alarmDuration NOTIFY alarmDurationChanged)
     Q_PROPERTY(QString hopOnCombo READ hopOnCombo NOTIFY hopOnComboChanged)
+    Q_PROPERTY(bool mapCheckForUpdates READ mapCheckForUpdates NOTIFY mapCheckForUpdatesChanged)
+    Q_PROPERTY(bool mapAutoDownload READ mapAutoDownload NOTIFY mapAutoDownloadChanged)
 
 public:
     explicit SettingsStore(MdbRepository *repo, QObject *parent = nullptr);
@@ -50,6 +52,8 @@ public:
     bool alarmHonk() const { return m_alarmHonk == QLatin1String("true"); }
     QString alarmDuration() const { return m_alarmDuration; }
     QString hopOnCombo() const { return m_hopOnCombo; }
+    bool mapCheckForUpdates() const { return m_mapCheckForUpdates == QLatin1String("true"); }
+    bool mapAutoDownload() const { return m_mapAutoDownload == QLatin1String("true"); }
 
     // Helper
     bool showBatteryAsRange() const { return m_batteryDisplayMode == QLatin1String("range"); }
@@ -76,6 +80,8 @@ signals:
     void alarmHonkChanged();
     void alarmDurationChanged();
     void hopOnComboChanged();
+    void mapCheckForUpdatesChanged();
+    void mapAutoDownloadChanged();
 
 protected:
     SyncSettings syncSettings() const override;
@@ -121,4 +127,8 @@ private:
     // empty = no combo defined. Managed by the hop-on learning UI.
     // Schema: settings-service/settings.schema.json (user-visible: false).
     QString m_hopOnCombo;
+    // @schema dashboard.maps.check-for-updates
+    QString m_mapCheckForUpdates = QStringLiteral("true");
+    // @schema dashboard.maps.auto-download
+    QString m_mapAutoDownload = QStringLiteral("false");
 };

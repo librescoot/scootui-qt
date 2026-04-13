@@ -63,6 +63,10 @@ QtObject {
     readonly property string iconContrast:        String.fromCodePoint(0xf04d8)
     readonly property string iconMap:             "\uf1ae" // map_outlined
 
+    // Updates
+    readonly property string iconUpdate:          "\ue692"
+    readonly property string iconCloudDownload:   "\ue172"
+
     // Misc
     readonly property string iconBugReport:       "\ue115"
 }

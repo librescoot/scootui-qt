@@ -185,6 +185,51 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // Map download service
     m_mapDownloadService = new MapDownloadService(m_simulatorMode, this);
 
+    // Auto-check for map updates when connectivity is established
+    connect(internetStore, &InternetStore::modemStateChanged, this,
+            [this, internetStore, settingsStore]() {
+        if (!settingsStore->mapCheckForUpdates())
+            return;
+        if (internetStore->modemState() != static_cast<int>(ScootEnums::ModemState::Connected))
+            return;
+        if (!m_mapDownloadService->hasMapsInstalled())
+            return;
+        if (!m_mapDownloadService->shouldCheckForUpdates())
+            return;
+        qDebug() << "Auto-checking for map updates (weekly)";
+        m_mapDownloadService->checkForUpdates();
+    });
+
+    // Notify user when a map update is found, or auto-download if enabled
+    connect(m_mapDownloadService, &MapDownloadService::updateAvailableChanged, this,
+            [this, settingsStore, gpsStore]() {
+        if (!m_mapDownloadService->updateAvailable())
+            return;
+        if (settingsStore->mapAutoDownload()) {
+            qDebug() << "Auto-downloading map update";
+            m_mapDownloadService->startDownload(
+                gpsStore->latitude(), gpsStore->longitude(), true, true);
+        } else {
+            m_toastService->showInfo(m_translations->mapUpdateAvailableToast());
+        }
+    });
+
+    // Show persisted update notification on startup while parked/stand-by
+    if (m_mapDownloadService->updateAvailable()) {
+        auto *startupConn = new QMetaObject::Connection;
+        *startupConn = connect(vehicleStore, &VehicleStore::stateChanged, this,
+                [this, vehicleStore, startupConn]() {
+            auto state = static_cast<ScootEnums::VehicleState>(vehicleStore->state());
+            if (state == ScootEnums::VehicleState::Parked
+                || state == ScootEnums::VehicleState::StandBy) {
+                if (m_mapDownloadService->updateAvailable())
+                    m_toastService->showInfo(m_translations->mapUpdateAvailableToast());
+            }
+            disconnect(*startupConn);
+            delete startupConn;
+        });
+    }
+
     // Watch /data/maps/ for mbtiles appearing late (e.g. /data not yet
     // mounted at startup) or being replaced (e.g. OTA map update).
     // inotify on the mountpoint directory fires when the filesystem is mounted.
@@ -301,6 +346,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
                                       m_settingsService, dashboardStore,
                                       repo, this);
     menuStore->setHopOnStore(hopOnStore);
+    menuStore->setMapDownloadService(m_mapDownloadService);
 
     // M5: ShortcutMenuStore
     auto *shortcutMenuStore = new ShortcutMenuStore(themeStore, vehicleStore, screenStore, dashboardStore, repo, m_settingsService, this);

@@ -116,6 +116,18 @@ void SettingsService::updateHopOnCombo(const QString &combo)
     writeSetting(QStringLiteral("dashboard.hop-on-combo"), combo);
 }
 
+void SettingsService::updateMapCheckForUpdates(bool enabled)
+{
+    writeSetting(QStringLiteral("dashboard.maps.check-for-updates"),
+                 enabled ? QStringLiteral("true") : QStringLiteral("false"));
+}
+
+void SettingsService::updateMapAutoDownload(bool enabled)
+{
+    writeSetting(QStringLiteral("dashboard.maps.auto-download"),
+                 enabled ? QStringLiteral("true") : QStringLiteral("false"));
+}
+
 QString SettingsService::toggleBootAnimation()
 {
 #ifdef Q_OS_LINUX

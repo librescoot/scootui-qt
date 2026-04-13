@@ -3,7 +3,6 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
-#include <QRegularExpression>
 #include <QDir>
 #include <QStorageInfo>
 #include <QDebug>
@@ -41,6 +40,9 @@ MapDownloadService::MapDownloadService(bool simulatorMode, QObject *parent)
     if (!m_metadata.region.isEmpty()) {
         m_resolvedSlug = m_metadata.region;
     }
+    m_updateAvailable = m_metadata.updateAvailable;
+
+    computeMissingDigests();
 
     // Check for partial downloads
     emit partialStateChanged();
@@ -126,50 +128,88 @@ void MapDownloadService::checkForUpdates()
     if (m_resolvedSlug.isEmpty())
         return;
 
+    if (m_status != ScootEnums::MapDownloadStatus::Idle &&
+        m_status != ScootEnums::MapDownloadStatus::Error)
+        return;
+
     setStatus(ScootEnums::MapDownloadStatus::CheckingUpdates);
 
-    // Fetch releases and compare digests with metadata
-    QUrl apiUrl{QStringLiteral("https://api.github.com/repos/librescoot/osm-tiles/releases/tags/latest")};
-    QNetworkRequest req{apiUrl};
-    req.setRawHeader("Accept", "application/vnd.github+json");
-    req.setTransferTimeout(15000);
-
-    auto *reply = m_nam->get(req);
-    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
-        reply->deleteLater();
-        if (reply->error() != QNetworkReply::NoError) {
+    fetchTilesManifest([this](const QJsonObject &manifest) {
+        if (manifest.isEmpty()) {
             setStatus(ScootEnums::MapDownloadStatus::Idle);
             return;
         }
 
-        auto doc = QJsonDocument::fromJson(reply->readAll());
-        auto assets = doc.object()[QStringLiteral("assets")].toArray();
-
-        QString displayName = QStringLiteral("tiles_") + m_resolvedSlug + QStringLiteral(".mbtiles");
-        QString routingName = QStringLiteral("valhalla_tiles_") + m_resolvedSlug + QStringLiteral(".tar");
+        auto region = manifest[m_resolvedSlug].toObject();
+        if (region.isEmpty()) {
+            setStatus(ScootEnums::MapDownloadStatus::Idle);
+            return;
+        }
 
         bool hasUpdate = false;
-        for (const auto &a : assets) {
-            auto obj = a.toObject();
-            QString name = obj[QStringLiteral("name")].toString();
-            if (name == displayName && m_metadata.displayTiles) {
-                // Check if size differs (simple update detection)
-                qint64 remoteSize = obj[QStringLiteral("size")].toDouble();
-                if (remoteSize != m_metadata.displayTiles->size)
-                    hasUpdate = true;
-            }
-            if (name == routingName && m_metadata.valhallaTiles) {
-                qint64 remoteSize = obj[QStringLiteral("size")].toDouble();
-                if (remoteSize != m_metadata.valhallaTiles->size)
-                    hasUpdate = true;
+        if (m_metadata.displayTiles && !m_metadata.displayTiles->digest.isEmpty()) {
+            QString remoteDigest = region[QStringLiteral("map")].toObject()
+                                       [QStringLiteral("sha256")].toString();
+            if (!remoteDigest.isEmpty() && remoteDigest != m_metadata.displayTiles->digest) {
+                hasUpdate = true;
+                qDebug() << "Display map update available:"
+                         << m_metadata.displayTiles->digest << "->" << remoteDigest;
             }
         }
+        if (m_metadata.valhallaTiles && !m_metadata.valhallaTiles->digest.isEmpty()) {
+            QString remoteDigest = region[QStringLiteral("valhalla")].toObject()
+                                       [QStringLiteral("sha256")].toString();
+            if (!remoteDigest.isEmpty() && remoteDigest != m_metadata.valhallaTiles->digest) {
+                hasUpdate = true;
+                qDebug() << "Routing map update available:"
+                         << m_metadata.valhallaTiles->digest << "->" << remoteDigest;
+            }
+        }
+
+        m_metadata.lastUpdateCheck = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
+        MapMetadata::save(m_metadata);
 
         if (hasUpdate != m_updateAvailable) {
             m_updateAvailable = hasUpdate;
+            m_metadata.updateAvailable = hasUpdate;
+            MapMetadata::save(m_metadata);
             emit updateAvailableChanged();
         }
         setStatus(ScootEnums::MapDownloadStatus::Idle);
+    });
+}
+
+bool MapDownloadService::shouldCheckForUpdates() const
+{
+    if (!hasMapsInstalled())
+        return false;
+
+    if (m_metadata.lastUpdateCheck.isEmpty())
+        return true;
+
+    auto lastCheck = QDateTime::fromString(m_metadata.lastUpdateCheck, Qt::ISODate);
+    if (!lastCheck.isValid())
+        return true;
+
+    return lastCheck.daysTo(QDateTime::currentDateTimeUtc()) >= 7;
+}
+
+void MapDownloadService::fetchTilesManifest(std::function<void(const QJsonObject &)> callback)
+{
+    QUrl url{QStringLiteral("https://downloads.librescoot.org/releases/tiles.json")};
+    QNetworkRequest req{url};
+    req.setRawHeader("User-Agent", "LibreScoot/1.0");
+    req.setTransferTimeout(15000);
+
+    auto *reply = m_nam->get(req);
+    connect(reply, &QNetworkReply::finished, this, [reply, callback]() {
+        reply->deleteLater();
+        if (reply->error() != QNetworkReply::NoError) {
+            callback({});
+            return;
+        }
+        auto doc = QJsonDocument::fromJson(reply->readAll());
+        callback(doc.object());
     });
 }
 
@@ -228,54 +268,17 @@ void MapDownloadService::doResolveSlug(double lat, double lng)
 
 void MapDownloadService::fetchEstimates()
 {
-    // Fetch display tile size from osm-tiles repo
-    QUrl displayUrl{QStringLiteral("https://api.github.com/repos/librescoot/osm-tiles/releases/tags/latest")};
-    QNetworkRequest displayReq{displayUrl};
-    displayReq.setRawHeader("Accept", "application/vnd.github+json");
-    displayReq.setTransferTimeout(15000);
-
-    auto *displayReply = m_nam->get(displayReq);
-    connect(displayReply, &QNetworkReply::finished, this, [this, displayReply]() {
-        displayReply->deleteLater();
+    fetchTilesManifest([this](const QJsonObject &manifest) {
         if (m_cancelled) return;
 
-        if (displayReply->error() == QNetworkReply::NoError) {
-            auto doc = QJsonDocument::fromJson(displayReply->readAll());
-            auto assets = doc.object()[QStringLiteral("assets")].toArray();
-            QString target = QStringLiteral("tiles_") + m_resolvedSlug + QStringLiteral(".mbtiles");
-            for (const auto &a : assets) {
-                auto obj = a.toObject();
-                if (obj[QStringLiteral("name")].toString() == target) {
-                    m_estimatedDisplayBytes = static_cast<qint64>(obj[QStringLiteral("size")].toDouble());
-                    break;
-                }
-            }
-        }
-        emit estimatesChanged();
-    });
-
-    // Fetch routing tile size from valhalla-tiles repo
-    QUrl routingUrl{QStringLiteral("https://api.github.com/repos/librescoot/valhalla-tiles/releases/tags/latest")};
-    QNetworkRequest routingReq{routingUrl};
-    routingReq.setRawHeader("Accept", "application/vnd.github+json");
-    routingReq.setTransferTimeout(15000);
-
-    auto *routingReply = m_nam->get(routingReq);
-    connect(routingReply, &QNetworkReply::finished, this, [this, routingReply]() {
-        routingReply->deleteLater();
-        if (m_cancelled) return;
-
-        if (routingReply->error() == QNetworkReply::NoError) {
-            auto doc = QJsonDocument::fromJson(routingReply->readAll());
-            auto assets = doc.object()[QStringLiteral("assets")].toArray();
-            QString target = QStringLiteral("valhalla_tiles_") + m_resolvedSlug + QStringLiteral(".tar");
-            for (const auto &a : assets) {
-                auto obj = a.toObject();
-                if (obj[QStringLiteral("name")].toString() == target) {
-                    m_estimatedRoutingBytes = static_cast<qint64>(obj[QStringLiteral("size")].toDouble());
-                    break;
-                }
-            }
+        auto region = manifest[m_resolvedSlug].toObject();
+        if (!region.isEmpty()) {
+            auto map = region[QStringLiteral("map")].toObject();
+            if (!map.isEmpty())
+                m_estimatedDisplayBytes = static_cast<qint64>(map[QStringLiteral("size")].toDouble());
+            auto valhalla = region[QStringLiteral("valhalla")].toObject();
+            if (!valhalla.isEmpty())
+                m_estimatedRoutingBytes = static_cast<qint64>(valhalla[QStringLiteral("size")].toDouble());
         }
         emit estimatesChanged();
         setStatus(ScootEnums::MapDownloadStatus::Idle);
@@ -284,81 +287,43 @@ void MapDownloadService::fetchEstimates()
 
 void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
 {
-    // Helper to parse asset info from a release response
-    auto parseAssets = [](const QByteArray &data) {
-        QHash<QString, QJsonObject> map;
-        auto doc = QJsonDocument::fromJson(data);
-        for (const auto &a : doc.object()[QStringLiteral("assets")].toArray()) {
-            auto obj = a.toObject();
-            map[obj[QStringLiteral("name")].toString()] = obj;
+    fetchTilesManifest([this, needsDisplay, needsRouting](const QJsonObject &manifest) {
+        if (m_cancelled) return;
+
+        auto region = manifest[m_resolvedSlug].toObject();
+        if (region.isEmpty()) {
+            setError(QStringLiteral("Maps not available for ") + m_regionName);
+            return;
         }
-        return map;
-    };
 
-    // Fetch display tiles from osm-tiles repo
-    QUrl displayUrl{QStringLiteral("https://api.github.com/repos/librescoot/osm-tiles/releases/tags/latest")};
-    QNetworkRequest displayReq{displayUrl};
-    displayReq.setRawHeader("Accept", "application/vnd.github+json");
-    displayReq.setTransferTimeout(15000);
-
-    auto *displayReply = m_nam->get(displayReq);
-
-    // Fetch routing tiles from valhalla-tiles repo (in parallel)
-    QUrl routingUrl{QStringLiteral("https://api.github.com/repos/librescoot/valhalla-tiles/releases/tags/latest")};
-    QNetworkRequest routingReq{routingUrl};
-    routingReq.setRawHeader("Accept", "application/vnd.github+json");
-    routingReq.setTransferTimeout(15000);
-
-    auto *routingReply = needsRouting ? m_nam->get(routingReq) : nullptr;
-
-    // Track completion of both requests
-    auto *pending = new int(needsRouting ? 2 : 1);
-    auto *displayData = new QByteArray();
-    auto *routingData = new QByteArray();
-
-    auto finalize = [this, needsDisplay, needsRouting, pending, displayData, routingData, parseAssets]() {
-        if (--(*pending) > 0) return; // Wait for both
-
-        QString sha256Suffix = QStringLiteral(".sha256");
         qint64 totalNeeded = 0;
 
         if (needsDisplay) {
-            auto assetMap = parseAssets(*displayData);
-            QString name = QStringLiteral("tiles_") + m_resolvedSlug + QStringLiteral(".mbtiles");
-            if (!assetMap.contains(name)) {
+            auto map = region[QStringLiteral("map")].toObject();
+            if (map.isEmpty()) {
                 setError(QStringLiteral("Display maps not available for ") + m_regionName);
-                delete pending; delete displayData; delete routingData;
                 return;
             }
-            auto &asset = assetMap[name];
-            m_displayAsset.url = asset[QStringLiteral("browser_download_url")].toString();
-            m_displayAsset.size = static_cast<qint64>(asset[QStringLiteral("size")].toDouble());
+            m_displayAsset.url = map[QStringLiteral("url")].toString();
+            m_displayAsset.size = static_cast<qint64>(map[QStringLiteral("size")].toDouble());
+            m_displayAsset.digest = map[QStringLiteral("sha256")].toString();
             m_estimatedDisplayBytes = m_displayAsset.size;
-            QString sha256Name = name + sha256Suffix;
-            if (assetMap.contains(sha256Name))
-                m_displayAsset.digest = assetMap[sha256Name][QStringLiteral("browser_download_url")].toString();
             totalNeeded += m_displayAsset.size;
         }
 
         if (needsRouting) {
-            auto assetMap = parseAssets(*routingData);
-            QString name = QStringLiteral("valhalla_tiles_") + m_resolvedSlug + QStringLiteral(".tar");
-            if (!assetMap.contains(name)) {
+            auto valhalla = region[QStringLiteral("valhalla")].toObject();
+            if (valhalla.isEmpty()) {
                 setError(QStringLiteral("Routing maps not available for ") + m_regionName);
-                delete pending; delete displayData; delete routingData;
                 return;
             }
-            auto &asset = assetMap[name];
-            m_routingAsset.url = asset[QStringLiteral("browser_download_url")].toString();
-            m_routingAsset.size = static_cast<qint64>(asset[QStringLiteral("size")].toDouble());
+            m_routingAsset.url = valhalla[QStringLiteral("url")].toString();
+            m_routingAsset.size = static_cast<qint64>(valhalla[QStringLiteral("size")].toDouble());
+            m_routingAsset.digest = valhalla[QStringLiteral("sha256")].toString();
             m_estimatedRoutingBytes = m_routingAsset.size;
-            QString sha256Name = name + sha256Suffix;
-            if (assetMap.contains(sha256Name))
-                m_routingAsset.digest = assetMap[sha256Name][QStringLiteral("browser_download_url")].toString();
             totalNeeded += m_routingAsset.size;
         }
 
-        delete pending; delete displayData; delete routingData;
         emit estimatesChanged();
 
         if (!hasEnoughDiskSpace(totalNeeded)) {
@@ -378,31 +343,7 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
             doDownloadFile(m_routingAsset.url, routingPartPath(),
                           m_routingAsset.digest, m_routingAsset.size, false);
         }
-    };
-
-    connect(displayReply, &QNetworkReply::finished, this, [this, displayReply, displayData, finalize]() {
-        displayReply->deleteLater();
-        if (m_cancelled) return;
-        if (displayReply->error() != QNetworkReply::NoError) {
-            setError(QStringLiteral("Could not fetch display tile info"));
-            return;
-        }
-        *displayData = displayReply->readAll();
-        finalize();
     });
-
-    if (routingReply) {
-        connect(routingReply, &QNetworkReply::finished, this, [this, routingReply, routingData, finalize]() {
-            routingReply->deleteLater();
-            if (m_cancelled) return;
-            if (routingReply->error() != QNetworkReply::NoError) {
-                setError(QStringLiteral("Could not fetch routing tile info"));
-                return;
-            }
-            *routingData = routingReply->readAll();
-            finalize();
-        });
-    }
 }
 
 void MapDownloadService::doDownloadFile(const QString &url, const QString &destPath,
@@ -478,26 +419,7 @@ void MapDownloadService::doDownloadFile(const QString &url, const QString &destP
             }
         }
 
-        // If digest is a URL (sha256 file), fetch it first
-        if (digest.startsWith(QStringLiteral("http"))) {
-            QUrl shaUrl{digest};
-            QNetworkRequest shaReq{shaUrl};
-            shaReq.setRawHeader("User-Agent", "LibreScoot/1.0");
-            auto *shaReplyPtr = m_nam->get(shaReq);
-            connect(shaReplyPtr, &QNetworkReply::finished, this,
-                    [this, shaReplyPtr, destPath, isDisplay]() {
-                shaReplyPtr->deleteLater();
-                QString sha256;
-                if (shaReplyPtr->error() == QNetworkReply::NoError) {
-                    // Format: "<hash>  <filename>"
-                    QString content = QString::fromUtf8(shaReplyPtr->readAll()).trimmed();
-                    sha256 = content.split(QRegularExpression(QStringLiteral("\\s+"))).first();
-                }
-                doVerify(destPath, sha256, isDisplay ? displayDestPath() : routingDestPath(), isDisplay);
-            });
-        } else {
-            doVerify(destPath, digest, isDisplay ? displayDestPath() : routingDestPath(), isDisplay);
-        }
+        doVerify(destPath, digest, isDisplay ? displayDestPath() : routingDestPath(), isDisplay);
     });
 }
 
@@ -509,7 +431,6 @@ void MapDownloadService::doVerify(const QString &filePath, const QString &expect
     setStatus(ScootEnums::MapDownloadStatus::Installing);
 
     if (expectedDigest.isEmpty()) {
-        // No digest to verify, just install
         doInstall(filePath, destPath, isDisplay);
         return;
     }
@@ -540,18 +461,18 @@ void MapDownloadService::doVerify(const QString &filePath, const QString &expect
         if (computed != expectedDigest) {
             qWarning() << "SHA256 mismatch for" << filePath
                        << "expected:" << expectedDigest << "got:" << computed;
-            // Remove the corrupted file and retry
             QFile::remove(filePath);
             setError(QStringLiteral("Download verification failed, please retry"));
             return;
         }
 
-        doInstall(filePath, destPath, isDisplay);
+        doInstall(filePath, destPath, isDisplay, computed);
     });
     watcher->setFuture(future);
 }
 
-void MapDownloadService::doInstall(const QString &tempPath, const QString &destPath, bool isDisplay)
+void MapDownloadService::doInstall(const QString &tempPath, const QString &destPath,
+                                    bool isDisplay, const QString &digest)
 {
     if (m_cancelled) return;
 
@@ -566,6 +487,7 @@ void MapDownloadService::doInstall(const QString &tempPath, const QString &destP
 
     // Update metadata
     MapTileInfo info;
+    info.digest = digest;
     info.size = QFileInfo(destPath).size();
     info.publishedAt = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
 
@@ -602,6 +524,12 @@ void MapDownloadService::doInstall(const QString &tempPath, const QString &destP
 
 void MapDownloadService::doFinishAll()
 {
+    if (m_updateAvailable) {
+        m_updateAvailable = false;
+        m_metadata.updateAvailable = false;
+        MapMetadata::save(m_metadata);
+        emit updateAvailableChanged();
+    }
     m_progress = 1.0;
     emit progressChanged();
     setStatus(ScootEnums::MapDownloadStatus::Done);
@@ -662,4 +590,61 @@ bool MapDownloadService::hasEnoughDiskSpace(qint64 needed) const
     QDir().mkpath(mapsDir());
     QStorageInfo storage(mapsDir());
     return storage.bytesAvailable() > needed;
+}
+
+void MapDownloadService::computeMissingDigests()
+{
+    struct Job {
+        QString filePath;
+        bool isDisplay;
+    };
+
+    QList<Job> jobs;
+    if (m_metadata.displayTiles && m_metadata.displayTiles->digest.isEmpty()
+        && QFile::exists(displayDestPath()))
+        jobs.append({displayDestPath(), true});
+    if (m_metadata.valhallaTiles && m_metadata.valhallaTiles->digest.isEmpty()
+        && QFile::exists(routingDestPath()))
+        jobs.append({routingDestPath(), false});
+
+    if (jobs.isEmpty())
+        return;
+
+    qDebug() << "Computing SHA256 for" << jobs.size() << "installed map file(s)";
+
+    for (const auto &job : jobs) {
+        auto future = QtConcurrent::run([path = job.filePath]() -> QString {
+            QFile f(path);
+            if (!f.open(QIODevice::ReadOnly))
+                return {};
+            QCryptographicHash hash(QCryptographicHash::Sha256);
+            char buf[65536];
+            while (!f.atEnd()) {
+                qint64 read = f.read(buf, sizeof(buf));
+                if (read > 0)
+                    hash.addData(QByteArrayView(buf, read));
+            }
+            return QString::fromLatin1(hash.result().toHex());
+        });
+
+        auto *watcher = new QFutureWatcher<QString>(this);
+        connect(watcher, &QFutureWatcher<QString>::finished, this,
+                [this, watcher, isDisplay = job.isDisplay]() {
+            QString digest = watcher->result();
+            watcher->deleteLater();
+
+            if (digest.isEmpty())
+                return;
+
+            if (isDisplay && m_metadata.displayTiles) {
+                m_metadata.displayTiles->digest = digest;
+                qDebug() << "Computed display map digest:" << digest;
+            } else if (!isDisplay && m_metadata.valhallaTiles) {
+                m_metadata.valhallaTiles->digest = digest;
+                qDebug() << "Computed routing map digest:" << digest;
+            }
+            MapMetadata::save(m_metadata);
+        });
+        watcher->setFuture(future);
+    }
 }

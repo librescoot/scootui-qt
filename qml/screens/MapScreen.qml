@@ -185,6 +185,75 @@ Rectangle {
                 fontSize: 14
             }
 
+            // Map update indicator (top-left, fades after 20s in ready-to-drive)
+            Rectangle {
+                id: mapUpdateBadge
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.leftMargin: 8
+                anchors.topMargin: 8
+                width: updateBadgeRow.width + 16
+                height: updateBadgeRow.height + 10
+                radius: themeStore.radiusCard
+                color: typeof themeStore !== "undefined" && themeStore.isDark
+                       ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.9)
+                border.width: 1
+                border.color: typeof themeStore !== "undefined" && themeStore.isDark
+                              ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.12)
+                visible: opacity > 0
+                z: 10
+
+                property bool shouldShow: typeof mapDownloadService !== "undefined"
+                                          && mapDownloadService.updateAvailable
+                property bool fadingOut: false
+
+                opacity: shouldShow && !fadingOut ? 1.0 : 0.0
+                Behavior on opacity { NumberAnimation { duration: 1000 } }
+
+                Row {
+                    id: updateBadgeRow
+                    anchors.centerIn: parent
+                    spacing: 6
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: MaterialIcon.iconUpdate
+                        font.family: "Material Icons"
+                        font.pixelSize: 16
+                        color: "#40C8F0"
+                    }
+
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: typeof translations !== "undefined"
+                              ? translations.mapUpdateBadge : "Map update"
+                        font.pixelSize: 12
+                        font.weight: Font.Medium
+                        color: typeof themeStore !== "undefined" && themeStore.isDark
+                               ? "#FFFFFF" : "#000000"
+                    }
+                }
+
+                Timer {
+                    id: fadeBadgeTimer
+                    interval: 20000
+                    onTriggered: mapUpdateBadge.fadingOut = true
+                }
+
+                Connections {
+                    target: typeof vehicleStore !== "undefined" ? vehicleStore : null
+                    function onStateChanged() {
+                        if (vehicleStore.state === 2) { // ReadyToDrive
+                            if (mapUpdateBadge.shouldShow)
+                                fadeBadgeTimer.start()
+                        } else {
+                            fadeBadgeTimer.stop()
+                            mapUpdateBadge.fadingOut = false
+                        }
+                    }
+                }
+            }
+
             // North indicator (bottom-right, fixed position)
             NorthIndicator {
                 anchors.right: parent.right
