@@ -85,6 +85,11 @@ Rectangle {
                 anchors.fill: parent
             }
 
+            // Confetti layer — renders on top of the map but below widgets (z>=5 below)
+            MilestoneConfettiLayer {
+                anchors.fill: parent
+            }
+
             // Vehicle marker at fixed screen position, tilted to match 3D map
             VehicleMarker {
                 id: vehicleMarkerItem

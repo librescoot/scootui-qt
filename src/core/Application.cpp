@@ -46,6 +46,7 @@
 #include "services/AddressDatabaseService.h"
 #include "services/MapDownloadService.h"
 #include "services/RoadInfoService.h"
+#include "services/OdometerMilestoneService.h"
 #include "services/SystemInfoService.h"
 #include "l10n/Translations.h"
 #include "utils/FaultFormatter.h"
@@ -174,6 +175,10 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Road info service (extracts street name + speed limit from vector tiles)
     m_roadInfoService = new RoadInfoService(gpsStore, speedLimitStore, this);
+
+    // Odometer milestone celebration (500 km, then every 1000 km)
+    m_odometerMilestoneService = new OdometerMilestoneService(
+        engineStore, vehicleStore, connectionStore, this);
 
     // Map service (A2)
     m_mapService = new MapService(gpsStore, engineStore, m_navigationService,
@@ -399,6 +404,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("mapDownloadService"), m_mapDownloadService);
     ctx->setContextProperty(QStringLiteral("umsLogStore"), umsLogStore);
     ctx->setContextProperty(QStringLiteral("systemInfoService"), m_systemInfoService);
+    ctx->setContextProperty(QStringLiteral("odometerMilestoneService"), m_odometerMilestoneService);
 
     // Simulator service (created in sim mode, null otherwise)
     if (m_simulatorMode) {

@@ -202,6 +202,11 @@ Window {
         z: 900
     }
 
+    OdometerMilestoneOverlay {
+        anchors.fill: parent
+        z: 920
+    }
+
     AutoLockCountdownOverlay {
         anchors.fill: parent
         z: 950

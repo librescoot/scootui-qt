@@ -5,7 +5,7 @@ import "../widgets/status_bars"
 import "../widgets/cluster"
 import "../widgets/indicators"
 import "../widgets/navigation"
-
+import "../widgets/components"
 Rectangle {
     id: clusterScreen
     color: themeStore.backgroundColor
@@ -22,6 +22,11 @@ Rectangle {
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
+
+            // First child — paints behind the speedometer + widgets above.
+            MilestoneConfettiLayer {
+                anchors.fill: parent
+            }
 
             SpeedometerDisplay {
                 id: speedometer
