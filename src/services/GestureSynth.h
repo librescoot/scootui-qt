@@ -24,9 +24,9 @@ signals:
     void event(const QString &event);
 
 private:
-    static constexpr int LONG_TAP_MS = 500;
-    static constexpr int HOLD_MS = 2000;
-    static constexpr int DOUBLE_TAP_MS = 500;
+    static constexpr int LONG_TAP_MS = 800;
+    static constexpr int HOLD_MS = 3000;
+    static constexpr int DOUBLE_TAP_MS = 800;
 
     struct State {
         bool pressed = false;
