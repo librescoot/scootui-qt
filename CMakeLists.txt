@@ -103,6 +103,7 @@ set(CPP_SOURCES
     src/services/VectorTileDecoder.cpp
     src/services/MapDownloadService.cpp
     src/services/RoadInfoService.cpp
+    src/services/OdometerMilestoneService.cpp
     src/routing/ValhallaClient.cpp
     src/l10n/Translations.cpp
     src/utils/FaultFormatter.cpp
@@ -166,6 +167,7 @@ set(CPP_HEADERS
     src/services/VectorTileDecoder.h
     src/services/MapDownloadService.h
     src/services/RoadInfoService.h
+    src/services/OdometerMilestoneService.h
     src/models/MapMetadata.h
     src/routing/RouteModels.h
     src/routing/RouteHelpers.h
@@ -219,6 +221,7 @@ set(QML_FILES
     qml/widgets/components/MaterialIcon.qml
     qml/widgets/components/TintedImage.qml
     qml/widgets/components/FrostedGlass.qml
+    qml/widgets/components/MilestoneConfettiLayer.qml
     qml/widgets/map/MapViewWidget.qml
     qml/widgets/map/MapViewContent.qml
     qml/widgets/map/MapViewContentLegacy.qml
@@ -236,6 +239,7 @@ set(QML_FILES
     qml/overlays/HopOnLockOverlay.qml
     qml/overlays/VersionOverlay.qml
     qml/overlays/ToastOverlay.qml
+    qml/overlays/OdometerMilestoneOverlay.qml
     qml/overlays/DebugOverlay.qml
     qml/simulator/SimulatorWindow.qml
 )

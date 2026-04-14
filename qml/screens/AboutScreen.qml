@@ -46,17 +46,25 @@ Rectangle {
             systemInfoService.loadVersions()
     }
 
-    // Easter egg state machine (matches Flutter's _trackEgg step counter)
-    // Sequence: down×4, up×3, down×2, up×1 — true=down, false=up
+    // Easter egg state machines. true=down, false=up.
+    // Boot animation: down x4, up x3, down x2, up x1
     readonly property var eggSeq: [true, true, true, true, false, false, false, true, true, false]
     property int eggStep: 0
+
+    // Milestone easter eggs: mirror sequence, down x1, up x2, down x3, up x4
+    readonly property var milestoneEggSeq: [true, false, false, true, true, true, false, false, false, false]
+    property int milestoneEggStep: 0
 
     function trackEgg(isDown) {
         if (isDown === eggSeq[eggStep]) {
             eggStep++
         } else {
-            // Reset: if current input matches the first step, start at 1
             eggStep = (isDown === eggSeq[0]) ? 1 : 0
+        }
+        if (isDown === milestoneEggSeq[milestoneEggStep]) {
+            milestoneEggStep++
+        } else {
+            milestoneEggStep = (isDown === milestoneEggSeq[0]) ? 1 : 0
         }
     }
 
@@ -89,6 +97,17 @@ Rectangle {
                     else
                         toastService.showInfo(typeof translations !== "undefined"
                             ? translations.aboutBootThemeRestored : "Boot theme: LibreScoot restored.")
+                }
+            }
+        }
+        if (milestoneEggStep === milestoneEggSeq.length) {
+            if (typeof odometerMilestoneService !== "undefined") {
+                var enabled = !odometerMilestoneService.easterEggsEnabled
+                odometerMilestoneService.easterEggsEnabled = enabled
+                if (typeof toastService !== "undefined") {
+                    toastService.showInfo(enabled
+                        ? "Milestone easter eggs unlocked"
+                        : "Milestone easter eggs locked")
                 }
             }
         }

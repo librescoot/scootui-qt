@@ -387,16 +387,59 @@ ApplicationWindow {
                 Text { text: "Odometer"; Layout.preferredWidth: 100; color: "#CCC"; font.pixelSize: 12 }
                 TextField {
                     Layout.fillWidth: true
-                    text: "1234.0"
+                    text: "0.0"
                     placeholderText: "km"
                     font.pixelSize: 12
                     onEditingFinished: {
                         var v = parseFloat(text)
                         if (!isNaN(v)) simulator.setOdometer(v)
                     }
-                    Component.onCompleted: simulator.setOdometer(1234)
+                    Component.onCompleted: simulator.setOdometer(0)
                 }
                 Text { text: "km"; color: "#999"; font.pixelSize: 12 }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Text { text: "Trip / Milestone"; Layout.preferredWidth: 100; color: "#CCC"; font.pixelSize: 12 }
+                Text {
+                    Layout.fillWidth: true
+                    color: "#CCC"
+                    font.pixelSize: 12
+                    text: {
+                        var trip = (typeof tripStore !== "undefined" && tripStore.distance !== undefined)
+                                    ? (tripStore.distance / 1000).toFixed(2) + " km" : "—"
+                        var ms = (typeof odometerMilestoneService !== "undefined"
+                                  && odometerMilestoneService.currentKm !== undefined
+                                  && odometerMilestoneService.currentKm > 0)
+                                    ? odometerMilestoneService.currentKm.toFixed(1) + " km"
+                                      + (odometerMilestoneService.currentTag
+                                         ? " [" + odometerMilestoneService.currentTag + "]"
+                                         : "")
+                                    : "—"
+                        return "trip " + trip + " · last " + ms
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Text { text: "Easter eggs"; Layout.preferredWidth: 100; color: "#CCC"; font.pixelSize: 12 }
+                CheckBox {
+                    checked: typeof odometerMilestoneService !== "undefined"
+                             && odometerMilestoneService.easterEggsEnabled
+                    onToggled: {
+                        if (typeof odometerMilestoneService !== "undefined")
+                            odometerMilestoneService.easterEggsEnabled = checked
+                    }
+                }
+                Text {
+                    Layout.fillWidth: true
+                    text: "666, 1024, 1234.5, 1337, 3133.7, 8008.5, 9999.9"
+                    color: "#999"
+                    font.pixelSize: 10
+                    wrapMode: Text.WordWrap
+                }
             }
 
             SimSliderRow {

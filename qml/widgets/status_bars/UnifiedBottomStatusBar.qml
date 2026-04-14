@@ -132,7 +132,7 @@ Rectangle {
                 spacing: 2
                 Text {
                     id: totalValue
-                    text: (odometer / 1000).toFixed(1)
+                    text: (Math.floor(odometer / 100) / 10).toFixed(1)
                     font.pixelSize: themeStore.fontBody
                     font.weight: Font.Bold
                     color: themeStore.textColor

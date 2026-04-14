@@ -25,6 +25,7 @@ class SystemInfoService;
 class SimulatorService;
 class MapDownloadService;
 class RoadInfoService;
+class OdometerMilestoneService;
 
 class Application : public QObject
 {
@@ -64,6 +65,7 @@ private:
     SimulatorService *m_simulatorService = nullptr;
     MapDownloadService *m_mapDownloadService = nullptr;
     RoadInfoService *m_roadInfoService = nullptr;
+    OdometerMilestoneService *m_odometerMilestoneService = nullptr;
     bool m_simulatorMode = false;
     QList<QObject*> m_stores;
 };
