@@ -28,6 +28,9 @@ class MapService : public QObject
     Q_PROPERTY(double vehicleOffsetY READ vehicleOffsetY NOTIFY vehicleOffsetYChanged)
     Q_PROPERTY(bool isOutOfCoverage READ isOutOfCoverage NOTIFY isOutOfCoverageChanged)
     Q_PROPERTY(bool deadReckoningPaused READ deadReckoningPaused WRITE setDeadReckoningPaused NOTIFY deadReckoningPausedChanged)
+    Q_PROPERTY(double vehicleLatitude READ vehicleLatitude NOTIFY vehiclePositionChanged)
+    Q_PROPERTY(double vehicleLongitude READ vehicleLongitude NOTIFY vehiclePositionChanged)
+    Q_PROPERTY(bool hasVehiclePosition READ hasVehiclePosition NOTIFY vehiclePositionChanged)
 
 public:
     explicit MapService(GpsStore *gps, EngineStore *engine,
@@ -52,6 +55,10 @@ public:
     double vehicleOffsetY() const { return m_vehicleOffsetY; }
     bool isOutOfCoverage() const { return m_isOutOfCoverage; }
 
+    double vehicleLatitude() const { return m_drLatitude; }
+    double vehicleLongitude() const { return m_drLongitude; }
+    bool hasVehiclePosition() const { return m_hasInitialPosition; }
+
     void setRouteWaypoints(const QVariantList &waypoints);
     void clearRoute();
     void updateRouteFromNavigation();
@@ -68,6 +75,7 @@ signals:
     void vehicleOffsetYChanged();
     void isOutOfCoverageChanged();
     void deadReckoningPausedChanged();
+    void vehiclePositionChanged();
 
 private slots:
     void onDeadReckoningTick();
@@ -121,8 +129,15 @@ private:
 
     // Dead reckoning
     static constexpr double TickIntervalMs = 66.0;
-    static constexpr double SpeedFactor = 0.95;
     static constexpr double LatencyCompensationSec = 0.15;
+
+    // Odometer-primary DR: odometer (100 m steps, meters) is the truth.
+    // Speed acts as feedforward between odometer edges; a bounded catchup
+    // term closes the gap between cumulative DR distance and odometer.
+    static constexpr double CatchupRate = 0.5;         // /s — closes half of deficit per second
+    static constexpr double MaxCatchupPerTick = 0.5;   // meters — clamp per-tick correction
+    static constexpr double StationarySpeedMs = 0.3;   // below this, assume no motion
+
     static constexpr double BlendRateNormal = 2.0;
     static constexpr double BlendRateLarge = 5.0;
     static constexpr double SnapThreshold = 50.0;
@@ -195,6 +210,12 @@ private:
     bool m_hasInitialPosition = false;
     bool m_deadReckoningPaused = false;
     int m_currentRouteSegment = -1;
+
+    // Odometer-primary DR bookkeeping
+    bool m_odoSeeded = false;
+    double m_odoAtSeed = 0;       // meters — odometer snapshot at seed
+    double m_odoTarget = 0;       // meters since seed per odometer
+    double m_drTravelled = 0;     // meters since seed per our integration
 
     // GPS correction blending
     double m_gpsErrorLatitude = 0;
