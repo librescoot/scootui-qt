@@ -6,6 +6,7 @@
 
 class MdbRepository;
 class NavigationService;
+class GestureSynth;
 
 class SimulatorService : public QObject
 {
@@ -128,6 +129,7 @@ private:
 
     MdbRepository *m_repo;
     NavigationService *m_nav;
+    GestureSynth *m_gestures = nullptr;
     QTimer *m_autoDriveTimer = nullptr;
     QTimer *m_gpsTimestampTimer = nullptr;
     bool m_autoDriveActive = false;

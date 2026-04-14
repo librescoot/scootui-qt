@@ -8,6 +8,10 @@
 #include "../models/Enums.h"
 #include <QDebug>
 
+namespace {
+constexpr char kInputEventsChannel[] = "input-events";
+}
+
 ShortcutMenuStore::ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
                                      ScreenStore *screen, DashboardStore *dashboard,
                                      MdbRepository *repo, SettingsService *settingsService,
@@ -20,26 +24,27 @@ ShortcutMenuStore::ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
     , m_repo(repo)
     , m_settingsService(settingsService)
     , m_confirmTimer(new QTimer(this))
-    , m_longPressTimer(new QTimer(this))
     , m_cycleTimer(new QTimer(this))
 {
     m_confirmTimer->setSingleShot(true);
     m_confirmTimer->setInterval(CONFIRM_TIMEOUT_MS);
     connect(m_confirmTimer, &QTimer::timeout, this, &ShortcutMenuStore::resetState);
 
-    m_longPressTimer->setSingleShot(true);
-    m_longPressTimer->setInterval(LONG_PRESS_MS);
-    connect(m_longPressTimer, &QTimer::timeout, this, &ShortcutMenuStore::onLongPressTimeout);
-
     m_cycleTimer->setInterval(ITEM_CYCLE_MS);
     connect(m_cycleTimer, &QTimer::timeout, this, &ShortcutMenuStore::onCycleTimeout);
 
-    // Subscribe to button events
     if (m_repo) {
-        m_repo->subscribe(QStringLiteral("buttons"), [this](const QString &channel, const QString &message) {
-            handleButtonEvent(channel, message);
+        m_repo->subscribe(QLatin1String(kInputEventsChannel),
+                          [this](const QString &, const QString &message) {
+            onInputEvent(message);
         });
     }
+}
+
+ShortcutMenuStore::~ShortcutMenuStore()
+{
+    if (m_repo)
+        m_repo->unsubscribe(QLatin1String(kInputEventsChannel));
 }
 
 void ShortcutMenuStore::show()
@@ -81,74 +86,49 @@ void ShortcutMenuStore::confirm()
     m_confirmTimer->start();
 }
 
-void ShortcutMenuStore::handleButtonEvent(const QString &channel, const QString &message)
+bool ShortcutMenuStore::isReadyToDrive() const
 {
-    Q_UNUSED(channel);
-    
-    // Format: "button:state" (e.g., "seatbox:on")
+    return m_vehicle->state() == static_cast<int>(ScootEnums::VehicleState::ReadyToDrive);
+}
+
+void ShortcutMenuStore::onInputEvent(const QString &message)
+{
+    // Format: "<source>:<gesture>" — only seatbox is of interest here.
     QStringList parts = message.split(':');
-    if (parts.size() < 2) return;
-
-    QString button = parts[0];
-    QString state = parts[1];
-
-    if (button != QLatin1String("seatbox")) return;
-
-    // Only allow when ready-to-drive
-    if (m_vehicle->state() != static_cast<int>(ScootEnums::VehicleState::ReadyToDrive)) {
+    if (parts.size() != 2 || parts[0] != QLatin1String("seatbox"))
         return;
-    }
 
-    if (state == QLatin1String("on")) {
-        QDateTime now = QDateTime::currentDateTime();
+    if (!isReadyToDrive())
+        return;
 
-        // 1. If confirming, execute selected action
-        if (m_confirming) {
-            executeAction(m_selectedIndex);
-            resetState();
-            return;
+    const QString &gesture = parts[1];
+
+    if (gesture == QLatin1String("long-tap")) {
+        // Open the menu and begin cycling items while the user keeps holding.
+        if (!m_visible) {
+            show();
+            m_cycleTimer->start();
         }
-
-        // 2. Check for double tap (toggle hazards)
-        if (!m_buttonPressStartTime.isValid() && m_lastTapTime.isValid()) {
-            if (m_lastTapTime.msecsTo(now) < DOUBLE_PRESS_MS) {
-                toggleHazards();
-                resetState();
-                return;
-            }
-        }
-
-        // 3. Start long press detection
-        m_buttonPressStartTime = now;
-        m_longPressTimer->start();
-
-    } else if (state == QLatin1String("off")) {
-        if (!m_buttonPressStartTime.isValid()) return;
-
-        m_longPressTimer->stop();
-        QDateTime now = QDateTime::currentDateTime();
-        qint64 holdDuration = m_buttonPressStartTime.msecsTo(now);
-
+    } else if (gesture == QLatin1String("release")) {
+        // Release after the menu is shown enters the confirmation window.
         if (m_visible && !m_confirming) {
-            // Enter confirmation state
             m_cycleTimer->stop();
             m_confirming = true;
             emit confirmingChanged();
             m_confirmTimer->start();
-        } else if (holdDuration < LONG_PRESS_MS) {
-            // Record tap time for potential double tap
-            m_lastTapTime = m_buttonPressStartTime;
         }
-
-        m_buttonPressStartTime = QDateTime();
+    } else if (gesture == QLatin1String("press")) {
+        // A press while confirming executes the selected action.
+        if (m_confirming) {
+            executeAction(m_selectedIndex);
+            resetState();
+        }
+    } else if (gesture == QLatin1String("double-tap")) {
+        // Double-tap with the menu closed is a hazards toggle shortcut.
+        if (!m_visible && !m_confirming) {
+            toggleHazards();
+        }
     }
-}
-
-void ShortcutMenuStore::onLongPressTimeout()
-{
-    // Long press detected, show menu and start cycling
-    show();
-    m_cycleTimer->start();
 }
 
 void ShortcutMenuStore::onCycleTimeout()
@@ -180,7 +160,7 @@ void ShortcutMenuStore::toggleHazards()
     if (!m_repo) return;
 
     bool isBoth = (m_vehicle->blinkerState() == static_cast<int>(ScootEnums::BlinkerState::Both));
-    
+
     m_repo->push(QStringLiteral("scooter:blinker"),
                  isBoth ? QStringLiteral("off") : QStringLiteral("both"));
 }
@@ -211,14 +191,13 @@ void ShortcutMenuStore::cycleTheme()
 
 void ShortcutMenuStore::resetState()
 {
-    m_longPressTimer->stop();
     m_cycleTimer->stop();
     m_confirmTimer->stop();
-    
+
     m_visible = false;
     m_confirming = false;
     m_selectedIndex = 0;
-    
+
     emit visibleChanged();
     emit confirmingChanged();
     emit selectionChanged();

@@ -1,6 +1,7 @@
 #include "SimulatorService.h"
 #include "repositories/MdbRepository.h"
 #include "services/NavigationService.h"
+#include "services/GestureSynth.h"
 #include "routing/RouteHelpers.h"
 #include "core/AppConfig.h"
 
@@ -21,6 +22,15 @@ SimulatorService::SimulatorService(MdbRepository *repo, NavigationService *nav, 
     , m_repo(repo)
     , m_nav(nav)
 {
+    // Stand in for vehicle-service's gesture detector: synthesize
+    // "input-events" messages from the button edges we publish, so
+    // InputHandler and other consumers behave identically under the
+    // simulator.
+    m_gestures = new GestureSynth(this);
+    connect(m_gestures, &GestureSynth::event, this, [this](const QString &ev) {
+        m_repo->publish(QStringLiteral("input-events"), ev);
+    });
+
     m_autoDriveTimer = new QTimer(this);
     m_autoDriveTimer->setInterval(100); // 10 Hz
     connect(m_autoDriveTimer, &QTimer::timeout, this, &SimulatorService::autoDriveTick);
@@ -65,6 +75,7 @@ void SimulatorService::setBrakeLeft(bool pressed)
     m_repo->set(QStringLiteral("vehicle"), QStringLiteral("brake:left"),
                 pressed ? QStringLiteral("on") : QStringLiteral("off"));
     m_repo->publishButtonEvent(QStringLiteral("brake:left:") + (pressed ? QStringLiteral("on") : QStringLiteral("off")));
+    m_gestures->onChange(QStringLiteral("brake:left"), pressed);
     // Real vehicle-service resets the auto-standby timer whenever either brake
     // is pressed (system.go handleInputChange brake branch).
     if (pressed)
@@ -76,6 +87,7 @@ void SimulatorService::setBrakeRight(bool pressed)
     m_repo->set(QStringLiteral("vehicle"), QStringLiteral("brake:right"),
                 pressed ? QStringLiteral("on") : QStringLiteral("off"));
     m_repo->publishButtonEvent(QStringLiteral("brake:right:") + (pressed ? QStringLiteral("on") : QStringLiteral("off")));
+    m_gestures->onChange(QStringLiteral("brake:right"), pressed);
     if (pressed)
         resetAutoStandbyTimerIfActive();
 }
@@ -83,6 +95,7 @@ void SimulatorService::setBrakeRight(bool pressed)
 void SimulatorService::setSeatboxButton(bool pressed)
 {
     m_repo->publishButtonEvent(QStringLiteral("seatbox:") + (pressed ? QStringLiteral("on") : QStringLiteral("off")));
+    m_gestures->onChange(QStringLiteral("seatbox"), pressed);
     // Real vehicle-service resets the auto-standby timer on seatbox button
     // press (only on press, not release — matches system.go behavior).
     if (pressed)

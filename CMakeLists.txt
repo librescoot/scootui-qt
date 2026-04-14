@@ -85,6 +85,7 @@ set(CPP_SOURCES
     src/stores/SavedLocationsStore.cpp
     src/services/SettingsService.cpp
     src/services/AutoThemeService.cpp
+    src/services/GestureSynth.cpp
     src/services/InputHandler.cpp
     src/services/NavigationService.cpp
     src/services/ToastService.cpp
@@ -147,6 +148,7 @@ set(CPP_HEADERS
     src/stores/SavedLocationsStore.h
     src/services/SettingsService.h
     src/services/AutoThemeService.h
+    src/services/GestureSynth.h
     src/services/InputHandler.h
     src/services/NavigationService.h
     src/services/ToastService.h

@@ -351,8 +351,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // M5: ShortcutMenuStore
     auto *shortcutMenuStore = new ShortcutMenuStore(themeStore, vehicleStore, screenStore, dashboardStore, repo, m_settingsService, this);
 
-    // Input handler: brake gesture detection
-    m_inputHandler = new InputHandler(vehicleStore, this);
+    // Input handler: consumes vehicle-service's "input-events" gesture stream
+    m_inputHandler = new InputHandler(vehicleStore, repo, this);
 
     // M6: Wire shutdown to vehicle state monitoring
     m_shutdownStore->connectToVehicle(vehicleStore);
