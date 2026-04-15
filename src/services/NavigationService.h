@@ -87,7 +87,7 @@ public:
     bool isOffRoute() const { return m_isOffRoute; }
     double totalDistance() const { return m_route.distance; }
     double totalDuration() const { return m_route.duration; }
-    double remainingDuration() const { return m_remainingDuration; }
+    double remainingDuration() const;
     QString eta() const;
 
     Q_INVOKABLE void setDestination(double lat, double lng, const QString &address = {});

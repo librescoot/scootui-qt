@@ -12,6 +12,12 @@
 #include <QDebug>
 #include <QDateTime>
 
+namespace {
+// Valhalla's motor_scooter estimates tend to run optimistic in practice
+// (ignores typical urban friction: pedestrians, bike-lane shifts, lights).
+constexpr double kDurationPadFactor = 1.20;
+}
+
 NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
                                        VehicleStore *vehicle, SettingsStore *settings,
                                        SpeedLimitStore *speedLimit, MdbRepository *repo,
@@ -166,11 +172,16 @@ bool NavigationService::showNextPreview() const
     return next.distance < 300 && !m_upcomingInstructions.first().verbalMultiCue;
 }
 
+double NavigationService::remainingDuration() const
+{
+    return m_remainingDuration * kDurationPadFactor;
+}
+
 QString NavigationService::eta() const
 {
     if (!m_route.isValid() || m_remainingDuration <= 0) return {};
     QDateTime arrival = QDateTime::currentDateTime().addSecs(
-        static_cast<qint64>(m_remainingDuration));
+        static_cast<qint64>(m_remainingDuration * kDurationPadFactor));
     return arrival.toString(QStringLiteral("HH:mm"));
 }
 
