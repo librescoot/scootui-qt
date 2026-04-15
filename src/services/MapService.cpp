@@ -347,6 +347,12 @@ void MapService::onGpsPositionChanged()
     // Compute GPS error (distance from DR position to new GPS fix)
     double error = haversineDistance(m_drLatitude, m_drLongitude, gpsLat, gpsLng);
 
+    // While ECU reports stationary, GPS jitter would drag DR off the true
+    // position. Only accept GPS input that's big enough to be a real teleport
+    // (vehicle moved while DR was paused, app resume, etc.).
+    double ecuSpeedMs = m_engine->speed() * (1000.0 / 3600.0);
+    bool stationary = ecuSpeedMs < StationarySpeedMs;
+
     if (error > SnapUpperThreshold) {
         // Extreme error: immediate reset
         m_drLatitude = gpsLat;
@@ -354,7 +360,7 @@ void MapService::onGpsPositionChanged()
         m_gpsErrorLatitude = 0;
         m_gpsErrorLongitude = 0;
         m_isSnapping = false;
-    } else if (error > SnapThreshold) {
+    } else if (!stationary && error > SnapThreshold) {
         // Large jump: animated snap over SnapAnimationDuration
         m_isSnapping = true;
         m_snapProgress = 0;
@@ -362,7 +368,7 @@ void MapService::onGpsPositionChanged()
         m_snapStartLng = m_drLongitude;
         m_snapTargetLat = gpsLat;
         m_snapTargetLng = gpsLng;
-    } else {
+    } else if (!stationary) {
         // Normal / small error: accumulate correction for gradual blending
         m_gpsErrorLatitude = gpsLat - m_drLatitude;
         m_gpsErrorLongitude = gpsLng - m_drLongitude;
@@ -376,8 +382,9 @@ void MapService::onGpsPositionChanged()
     // in roundabouts, but that left DR stuck on an earlier segment after a
     // wrong-turn recovery until the next reroute replaced the shape.
     // findClosestSegment returns the globally nearest segment; the subsequent
-    // snap + blend steps handle any residual jitter.
-    if (m_routeShape.size() >= 2) {
+    // snap + blend steps handle any residual jitter. Skip while stationary so
+    // GPS noise can't bounce m_currentRouteSegment along a nearby route leg.
+    if (!stationary && m_routeShape.size() >= 2) {
         int seg = findClosestSegment(gpsLat, gpsLng);
         if (seg >= 0)
             m_currentRouteSegment = seg;
@@ -689,12 +696,16 @@ void MapService::onDeadReckoningTick()
         }
 
         // ----- GPS correction blending (only when GPS fix is recent) -----
-        if (m_gps->hasRecentFix()) {
+        // While stationary (ECU says we're not moving), skip GPS blending and
+        // route snapping — GPS jitter would otherwise slide the marker along
+        // the route and snap back when the fix recovers.
+        bool stationary = speedMs < StationarySpeedMs;
+        if (!stationary && m_gps->hasRecentFix()) {
             blendGpsCorrection(dt);
         }
 
         // ----- Snap DR back onto the route line after GPS correction -----
-        if (!m_routeShape.isEmpty() && m_currentRouteSegment >= 0) {
+        if (!stationary && !m_routeShape.isEmpty() && m_currentRouteSegment >= 0) {
             snapToRouteLine();
         }
     }
