@@ -39,8 +39,6 @@ void TripStore::startTracking()
         m_distance = 0;
         m_accumulatedMs = 0;
         m_averageSpeed = 0;
-        m_speedSum = 0;
-        m_speedSamples = 0;
         m_resetPending = false;
         emit distanceChanged();
         emit durationChanged();
@@ -65,8 +63,6 @@ void TripStore::reset()
     m_distance = 0;
     m_accumulatedMs = 0;
     m_averageSpeed = 0;
-    m_speedSum = 0;
-    m_speedSamples = 0;
     if (m_tracking) {
         m_elapsed.restart();
     }
@@ -88,10 +84,8 @@ void TripStore::onTick()
     m_duration = static_cast<int>((m_accumulatedMs + m_elapsed.elapsed()) / 1000);
     emit durationChanged();
 
-    if (speed > 0) {
-        m_speedSum += speed;
-        m_speedSamples++;
-        m_averageSpeed = m_speedSum / m_speedSamples;
+    if (m_duration > 0) {
+        m_averageSpeed = m_distance * 3600.0 / m_duration;
         emit averageSpeedChanged();
     }
 }

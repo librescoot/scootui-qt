@@ -46,6 +46,4 @@ private:
     double m_distance = 0;
     int m_duration = 0;
     double m_averageSpeed = 0;
-    double m_speedSum = 0;
-    int m_speedSamples = 0;
 };
