@@ -1,4 +1,5 @@
 import QtQuick
+import "../widgets/components"
 
 Rectangle {
     id: otaScreen

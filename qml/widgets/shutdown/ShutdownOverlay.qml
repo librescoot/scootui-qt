@@ -1,4 +1,5 @@
 import QtQuick
+import "../components"
 
 Item {
     id: shutdownOverlay
