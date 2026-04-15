@@ -204,21 +204,21 @@ Item {
             anchors.centerIn: parent
             spacing: 1
             Row {
-                layoutDirection: Qt.RightToLeft; spacing: 0
+                spacing: 0
+                Text { text: "BLINK: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
                     text: enumName(vs("blinkerSwitch"), blinkerSwitchNames) + "/" +
                           enumName(vs("blinkerState"), blinkerStateNames)
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
-                Text { text: " :BLINK"; font.pixelSize: 10; color: "#9E9E9E" }
             }
             Row {
-                layoutDirection: Qt.RightToLeft; spacing: 0
+                spacing: 0
+                Text { text: "BRAKE: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
                     text: enumName(vs("brakeRight"), toggleNames)
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
-                Text { text: " :BRAKE"; font.pixelSize: 10; color: "#9E9E9E" }
             }
         }
     }
@@ -290,36 +290,36 @@ Item {
             anchors.centerIn: parent
             spacing: 1
             Row {
-                layoutDirection: Qt.RightToLeft; spacing: 0
+                spacing: 0
+                Text { text: "MODEM: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
                     text: enumName(is_("modemState"), modemStateNames)
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
-                Text { text: " :MODEM"; font.pixelSize: 10; color: "#9E9E9E" }
             }
             Row {
-                layoutDirection: Qt.RightToLeft; spacing: 0
+                spacing: 0
+                Text { text: "CLOUD: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
                     text: enumName(is_("unuCloud"), connectionStatusNames)
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
-                Text { text: " :CLOUD"; font.pixelSize: 10; color: "#9E9E9E" }
             }
             Row {
-                layoutDirection: Qt.RightToLeft; spacing: 0
+                spacing: 0
+                Text { text: "SIGNAL: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
                     text: is_("signalQuality") + "%"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
-                Text { text: " :SIGNAL"; font.pixelSize: 10; color: "#9E9E9E" }
             }
             Row {
-                layoutDirection: Qt.RightToLeft; spacing: 0
+                spacing: 0
+                Text { text: "TECH: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
                     text: typeof internetStore !== "undefined" ? internetStore.accessTech : "?"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
-                Text { text: " :TECH"; font.pixelSize: 10; color: "#9E9E9E" }
             }
         }
     }
@@ -418,31 +418,31 @@ Item {
             anchors.centerIn: parent
             spacing: 1
             Row {
-                layoutDirection: Qt.RightToLeft; spacing: 0
+                spacing: 0
+                Text { text: "MOTOR V: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
                     text: typeof engineStore !== "undefined"
                           ? (engineStore.motorVoltage / 1000).toFixed(1) + " V" : "?"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
-                Text { text: " :MOTOR V"; font.pixelSize: 10; color: "#9E9E9E" }
             }
             Row {
-                layoutDirection: Qt.RightToLeft; spacing: 0
+                spacing: 0
+                Text { text: "MOTOR I: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
                     text: typeof engineStore !== "undefined"
                           ? (engineStore.motorCurrent / 1000).toFixed(1) + " A" : "?"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
-                Text { text: " :MOTOR I"; font.pixelSize: 10; color: "#9E9E9E" }
             }
             Row {
-                layoutDirection: Qt.RightToLeft; spacing: 0
+                spacing: 0
+                Text { text: "TEMP: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
                     text: typeof engineStore !== "undefined"
                           ? engineStore.temperature.toFixed(1) + "\u00B0C" : "?"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
-                Text { text: " :TEMP"; font.pixelSize: 10; color: "#9E9E9E" }
             }
         }
     }
