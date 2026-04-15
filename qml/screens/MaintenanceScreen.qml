@@ -88,6 +88,9 @@ Rectangle {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
+                    width: maintenanceScreen.width - 64
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
                     font.pixelSize: themeStore.fontBody
                     color: Qt.rgba(1, 1, 1, 0.8)
                     text: {

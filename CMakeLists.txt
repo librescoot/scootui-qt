@@ -217,6 +217,7 @@ set(QML_FILES
     qml/widgets/blinker/BlinkerOverlay.qml
     qml/widgets/shutdown/ShutdownOverlay.qml
     qml/widgets/components/SvgIcon.qml
+    qml/widgets/components/OtaStatusIcon.qml
     qml/widgets/components/ControlHints.qml
     qml/widgets/components/MaterialIcon.qml
     qml/widgets/components/TintedImage.qml

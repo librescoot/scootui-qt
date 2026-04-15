@@ -45,59 +45,30 @@ Rectangle {
         return 0
     }
 
+    readonly property bool hasProgress: dbcStatus === "downloading"
+                                        || dbcStatus === "preparing"
+                                        || dbcStatus === "installing"
+    readonly property bool isError: dbcStatus === "error" || dbcStatus === "error-failed"
+
     Column {
         anchors.centerIn: parent
         spacing: 16
 
-        // OTA icon
-        Item {
-            width: 64; height: 64
+        OtaStatusIcon {
             anchors.horizontalCenter: parent.horizontalCenter
-
-            Image {
-                id: otaMainIcon
-                anchors.fill: parent
-                sourceSize: Qt.size(64, 64)
-                source: {
-                    switch (dbcStatus) {
-                        case "downloading":
-                            return "qrc:/ScootUI/assets/icons/librescoot-ota-status-downloading.svg"
-                        case "preparing":
-                        case "installing":
-                            return "qrc:/ScootUI/assets/icons/librescoot-ota-status-installing.svg"
-                        case "pending-reboot":
-                        case "rebooting":
-                        case "reboot-failed":
-                            return "qrc:/ScootUI/assets/icons/librescoot-ota-status-waiting-for-reboot.svg"
-                        case "error":
-                        case "error-failed":
-                            return "qrc:/ScootUI/assets/icons/librescoot-ota-status-downloading.svg"
-                        default:
-                            return "qrc:/ScootUI/assets/icons/librescoot-ota-status-downloading.svg"
-                    }
-                }
-            }
-
-            Image {
-                anchors.fill: parent
-                sourceSize: Qt.size(64, 64)
-                source: "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
-                visible: dbcStatus === "error" || dbcStatus === "error-failed"
-            }
+            status: otaScreen.dbcStatus
         }
 
-        // Status text
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             width: otaScreen.width - 64
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             font.pixelSize: themeStore.fontBody
-            font.weight: Font.Bold
-            color: "white"
+            color: Qt.rgba(1, 1, 1, 0.8)
             text: {
                 var tr = typeof translations !== "undefined" ? translations : null
-                switch (dbcStatus) {
+                switch (otaScreen.dbcStatus) {
                     case "downloading": return tr ? tr.otaDownloadingUpdates : "Downloading update..."
                     case "preparing": return tr ? tr.otaPreparingUpdate : "Preparing update..."
                     case "installing": return tr ? tr.otaInstallingUpdates : "Installing update..."
@@ -111,44 +82,35 @@ Rectangle {
             }
         }
 
-        // Progress bar
         Item {
-            width: 200; height: 4
+            width: 160; height: 3
             anchors.horizontalCenter: parent.horizontalCenter
-            visible: dbcStatus === "downloading" || dbcStatus === "preparing" || dbcStatus === "installing"
+            visible: otaScreen.hasProgress
 
             Rectangle {
                 anchors.fill: parent
-                color: "#333333"
-                radius: themeStore.radiusBar
+                color: Qt.rgba(1, 1, 1, 0.2)
+                radius: 1
             }
 
             Rectangle {
-                width: parent.width * (currentProgress / 100)
+                width: parent.width * (otaScreen.currentProgress / 100)
                 height: parent.height
-                color: "#2196F3"
-                radius: themeStore.radiusBar
+                color: Qt.rgba(1, 1, 1, 0.6)
+                radius: 1
 
                 Behavior on width {
                     NumberAnimation { duration: 300; easing.type: Easing.OutQuad }
                 }
             }
-
-            // Progress percentage text
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: parent.bottom
-                anchors.topMargin: 8
-                font.pixelSize: themeStore.fontBody
-                color: "white"
-                text: currentProgress + "%"
-            }
         }
 
-        // Spacer for progress text below bar
-        Item {
-            width: 1; height: 16
-            visible: dbcStatus === "downloading" || dbcStatus === "preparing" || dbcStatus === "installing"
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            font.pixelSize: themeStore.fontBody
+            color: Qt.rgba(1, 1, 1, 0.5)
+            visible: otaScreen.updateVersion !== ""
+            text: otaScreen.updateVersion
         }
 
         Text {
@@ -156,29 +118,19 @@ Rectangle {
             width: otaScreen.width - 64
             font.pixelSize: themeStore.fontBody
             color: Qt.rgba(1, 1, 1, 0.6)
-            visible: dbcStatus !== "idle" && dbcStatus !== "error" && dbcStatus !== "error-failed"
+            visible: otaScreen.dbcStatus !== "idle" && !otaScreen.isError
             text: typeof translations !== "undefined" ? translations.otaScooterWillTurnOff : "Your scooter will turn off when done.\nYou can unlock it again at any point."
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
         }
 
-        // Version text
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            font.pixelSize: themeStore.fontBody
-            color: "#aaaaaa"
-            visible: updateVersion !== ""
-            text: "Version: " + updateVersion
-        }
-
-        // Error message
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             width: otaScreen.width - 64
             font.pixelSize: themeStore.fontBody
             color: "#ff5555"
-            visible: (dbcStatus === "error" || dbcStatus === "error-failed") && dbcErrorMessage !== ""
-            text: dbcErrorMessage
+            visible: otaScreen.isError && otaScreen.dbcErrorMessage !== ""
+            text: otaScreen.dbcErrorMessage
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
         }
