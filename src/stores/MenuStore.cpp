@@ -631,6 +631,7 @@ void MenuStore::open()
     m_pathStack.clear();
     m_indexStack.clear();
     m_selectedIndex = 0;
+    m_openedAt.start();
     rebuildMenuTree();
     emit isOpenChanged();
 }
@@ -648,6 +649,7 @@ void MenuStore::close()
 
 void MenuStore::navigateUp()
 {
+    if (m_openedAt.isValid() && m_openedAt.elapsed() < kOpenInputGraceMs) return;
     auto *node = findCurrentNode();
     if (!node) return;
     int backOffset = m_pathStack.isEmpty() ? 0 : 1;
@@ -659,6 +661,7 @@ void MenuStore::navigateUp()
 
 void MenuStore::navigateDown()
 {
+    if (m_openedAt.isValid() && m_openedAt.elapsed() < kOpenInputGraceMs) return;
     auto *node = findCurrentNode();
     if (!node) return;
     int backOffset = m_pathStack.isEmpty() ? 0 : 1;

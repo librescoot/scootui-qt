@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QElapsedTimer>
 #include <QObject>
 #include <QVariantList>
 #include <QStringList>
@@ -94,4 +95,10 @@ private:
     QStringList m_pathStack;      // node IDs for navigation depth
     QList<int> m_indexStack;      // selected index at each depth
     bool m_executingAction = false; // guard against reentrant rebuilds
+
+    // vehicle-service emits "tap" right before "double-tap" on a double-tap.
+    // The trailing tap races with menu open and would shift selection off
+    // the first item. Drop navigation input in the first few ms after open.
+    QElapsedTimer m_openedAt;
+    static constexpr qint64 kOpenInputGraceMs = 150;
 };
