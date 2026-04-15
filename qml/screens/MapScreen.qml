@@ -71,6 +71,77 @@ Rectangle {
                            ? "#FFFFFF" : "#000000"
                     horizontalAlignment: Text.AlignHCenter
                 }
+
+                Grid {
+                    id: gpsInfoGrid
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    columns: 2
+                    columnSpacing: 16
+                    rowSpacing: 4
+                    visible: typeof gpsStore !== "undefined" && gpsStore.hasTimestamp
+
+                    readonly property color labelColor: typeof themeStore !== "undefined" && themeStore.isDark
+                                                       ? "#99FFFFFF" : "#8A000000"
+                    readonly property color valueColor: typeof themeStore !== "undefined" && themeStore.isDark
+                                                       ? "#FFFFFF" : "#000000"
+                    readonly property int labelSize: themeStore.fontCaption
+                    readonly property int valueSize: themeStore.fontCaption
+
+                    component InfoLabel : Text {
+                        font.pixelSize: gpsInfoGrid.labelSize
+                        color: gpsInfoGrid.labelColor
+                        horizontalAlignment: Text.AlignRight
+                    }
+                    component InfoValue : Text {
+                        font.pixelSize: gpsInfoGrid.valueSize
+                        font.family: "monospace"
+                        color: gpsInfoGrid.valueColor
+                    }
+
+                    InfoLabel { text: "Fix" }
+                    InfoValue {
+                        text: {
+                            var f = gpsStore.fix
+                            if (!f || f === "none") return "—"
+                            return f.toUpperCase()
+                        }
+                    }
+
+                    InfoLabel { text: "Satellites" }
+                    InfoValue {
+                        text: gpsStore.satellitesUsed + " / " + gpsStore.satellitesVisible
+                    }
+
+                    InfoLabel { text: "SNR" }
+                    InfoValue {
+                        text: gpsStore.snr > 0 ? gpsStore.snr.toFixed(1) + " dB" : "—"
+                    }
+
+                    InfoLabel { text: "Accuracy" }
+                    InfoValue {
+                        text: gpsStore.eph > 0 ? "±" + gpsStore.eph.toFixed(1) + " m" : "—"
+                    }
+
+                    InfoLabel { text: "HDOP / PDOP" }
+                    InfoValue {
+                        text: (gpsStore.hdop > 0 ? gpsStore.hdop.toFixed(1) : "—")
+                              + " / "
+                              + (gpsStore.pdop > 0 ? gpsStore.pdop.toFixed(1) : "—")
+                    }
+
+                    InfoLabel { text: "Mode" }
+                    InfoValue {
+                        text: gpsStore.mode || "—"
+                    }
+
+                    InfoLabel { text: "Last TTFF" }
+                    InfoValue {
+                        text: gpsStore.lastTtffSeconds > 0
+                              ? gpsStore.lastTtffSeconds.toFixed(0) + " s"
+                                + (gpsStore.lastTtffMode ? " (" + gpsStore.lastTtffMode + ")" : "")
+                              : "—"
+                    }
+                }
             }
         }
 

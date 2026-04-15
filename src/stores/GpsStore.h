@@ -16,6 +16,18 @@ class GpsStore : public SyncableStore
     Q_PROPERTY(QString timestamp READ timestamp NOTIFY timestampChanged)
     Q_PROPERTY(int gpsState READ gpsState NOTIFY gpsStateChanged)
     Q_PROPERTY(double eph READ eph NOTIFY ephChanged)
+    Q_PROPERTY(double ept READ ept NOTIFY eptChanged)
+    Q_PROPERTY(double eps READ eps NOTIFY epsChanged)
+    Q_PROPERTY(double snr READ snr NOTIFY snrChanged)
+    Q_PROPERTY(double pdop READ pdop NOTIFY pdopChanged)
+    Q_PROPERTY(double hdop READ hdop NOTIFY hdopChanged)
+    Q_PROPERTY(double vdop READ vdop NOTIFY vdopChanged)
+    Q_PROPERTY(int satellitesUsed READ satellitesUsed NOTIFY satellitesUsedChanged)
+    Q_PROPERTY(int satellitesVisible READ satellitesVisible NOTIFY satellitesVisibleChanged)
+    Q_PROPERTY(QString fix READ fix NOTIFY fixChanged)
+    Q_PROPERTY(QString mode READ mode NOTIFY modeChanged)
+    Q_PROPERTY(double lastTtffSeconds READ lastTtffSeconds NOTIFY lastTtffSecondsChanged)
+    Q_PROPERTY(QString lastTtffMode READ lastTtffMode NOTIFY lastTtffModeChanged)
     Q_PROPERTY(bool hasRecentFix READ hasRecentFix NOTIFY timestampChanged)
     Q_PROPERTY(bool hasTimestamp READ hasTimestamp NOTIFY timestampChanged)
 
@@ -28,6 +40,18 @@ public:
     double speed() const { return m_speed; }
     double altitude() const { return m_altitude; }
     double eph() const { return m_eph; }
+    double ept() const { return m_ept; }
+    double eps() const { return m_eps; }
+    double snr() const { return m_snr; }
+    double pdop() const { return m_pdop; }
+    double hdop() const { return m_hdop; }
+    double vdop() const { return m_vdop; }
+    int satellitesUsed() const { return m_satellitesUsed; }
+    int satellitesVisible() const { return m_satellitesVisible; }
+    QString fix() const { return m_fix; }
+    QString mode() const { return m_mode; }
+    double lastTtffSeconds() const { return m_lastTtffSeconds; }
+    QString lastTtffMode() const { return m_lastTtffMode; }
     QString updated() const { return m_updated; }
     QString timestamp() const { return m_timestamp; }
     int gpsState() const { return static_cast<int>(m_gpsState); }
@@ -55,6 +79,18 @@ signals:
     void timestampChanged();
     void gpsStateChanged();
     void ephChanged();
+    void eptChanged();
+    void epsChanged();
+    void snrChanged();
+    void pdopChanged();
+    void hdopChanged();
+    void vdopChanged();
+    void satellitesUsedChanged();
+    void satellitesVisibleChanged();
+    void fixChanged();
+    void modeChanged();
+    void lastTtffSecondsChanged();
+    void lastTtffModeChanged();
 
 protected:
     SyncSettings syncSettings() const override;
@@ -67,6 +103,18 @@ private:
     double m_speed = 0;
     double m_altitude = 0;
     double m_eph = 0;
+    double m_ept = 0;
+    double m_eps = 0;
+    double m_snr = 0;
+    double m_pdop = 0;
+    double m_hdop = 0;
+    double m_vdop = 0;
+    int m_satellitesUsed = 0;
+    int m_satellitesVisible = 0;
+    QString m_fix;
+    QString m_mode;
+    double m_lastTtffSeconds = 0;
+    QString m_lastTtffMode;
     QString m_updated;
     QString m_timestamp;
     QElapsedTimer m_timestampAge;
