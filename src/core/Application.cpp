@@ -184,6 +184,10 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_mapService = new MapService(gpsStore, engineStore, m_navigationService,
                                    settingsStore, themeStore, speedLimitStore, this);
 
+    // Wire MapService's dead-reckoned position into NavigationService so
+    // TBT and off-route detection update smoothly between GPS samples.
+    m_navigationService->setMapService(m_mapService);
+
     // Navigation availability (B6)
     m_navAvailability = new NavigationAvailabilityService(settingsStore, internetStore, repo, this);
 

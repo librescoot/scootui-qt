@@ -618,7 +618,34 @@ void MapService::onDeadReckoningTick()
 
     // ----- Speed (from ECU, km/h -> m/s) -----
     double speedKmh = m_engine->speed();
-    double speedMs = speedKmh * (1000.0 / 3600.0) * SpeedFactor;
+    double speedMs = speedKmh * (1000.0 / 3600.0);
+
+    // ----- Odometer-primary distance (odometer = truth, speed = feedforward) -----
+    // Seed on first tick after we have a map position; odometer deltas from
+    // this point on represent cumulative travelled distance. Between odometer
+    // edges (100 m quantisation on the ECU) we advance with speed * dt and
+    // reconcile via a bounded catchup term so the map marker stays smooth.
+    double odoNow = m_engine->odometer();
+    if (!m_odoSeeded) {
+        if (odoNow > 0 || m_engine->odometer() == 0) {
+            // Accept even a zero reading — we just need a baseline.
+            m_odoAtSeed = odoNow;
+            m_odoTarget = 0;
+            m_drTravelled = 0;
+            m_odoSeeded = true;
+        }
+    } else {
+        double newTarget = odoNow - m_odoAtSeed;
+        if (newTarget < m_odoTarget - 1.0) {
+            // Odometer rolled back (reboot, reset, NIL read). Reseed so
+            // future deltas stay continuous; don't snap the DR position.
+            m_odoAtSeed = odoNow;
+            m_odoTarget = 0;
+            m_drTravelled = 0;
+        } else {
+            m_odoTarget = newTarget;
+        }
+    }
 
     // ----- Snap animation -----
     if (m_isSnapping) {
@@ -638,7 +665,21 @@ void MapService::onDeadReckoningTick()
         }
     } else {
         // ----- Project position forward -----
-        double distMeters = speedMs * dt;
+        // Feedforward: speed × dt between odometer edges.
+        // Correction:  bounded pull toward odoTarget (ground truth).
+        double ffAdvance = speedMs * dt;
+        if (speedMs < StationarySpeedMs)
+            ffAdvance = 0;  // don't integrate speed noise while stopped
+
+        double distMeters = ffAdvance;
+        if (m_odoSeeded) {
+            double deficit = m_odoTarget - m_drTravelled;
+            double correction = std::clamp(deficit * CatchupRate * dt,
+                                            -ffAdvance,            // never rewind
+                                            MaxCatchupPerTick);     // never lurch
+            distMeters = std::max(0.0, ffAdvance + correction);
+            m_drTravelled += distMeters;
+        }
 
         if (!m_routeShape.isEmpty() && m_currentRouteSegment >= 0) {
             projectPositionAlongRoute(distMeters);
@@ -689,6 +730,11 @@ void MapService::onDeadReckoningTick()
         if (latChanged) emit mapLatitudeChanged();
         if (lngChanged) emit mapLongitudeChanged();
     }
+
+    // Notify downstream consumers (e.g. NavigationService for TBT) of the
+    // updated DR position. Fires at the 15 Hz tick rate; consumers should
+    // throttle if they do expensive work.
+    emit vehiclePositionChanged();
 
     // ----- isReady -----
     if (!m_isReady && m_hasInitialPosition) {

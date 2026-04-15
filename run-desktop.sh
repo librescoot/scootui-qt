@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Optional local overrides (QT_DIR, QMAPLIBRE_DIR, etc.)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+[ -f "$SCRIPT_DIR/.env" ] && . "$SCRIPT_DIR/.env"
+
 QT_DIR="${QT_DIR:-$HOME/Qt/6.9.3/gcc_64}"
 
 cmake -B build-desktop -DDESKTOP_MODE=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH="$QT_DIR"

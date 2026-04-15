@@ -12,6 +12,7 @@ class SettingsStore;
 class SpeedLimitStore;
 class ValhallaClient;
 class MdbRepository;
+class MapService;
 
 class NavigationService : public QObject
 {
@@ -94,6 +95,11 @@ public:
     Q_INVOKABLE void clearNavigation();
     Q_INVOKABLE void setRoute(const Route &route);
 
+    // Wire the MapService after both are constructed (resolves the
+    // nav↔map circular dependency). NavigationService subscribes to
+    // vehiclePositionChanged to keep TBT in sync with dead reckoning.
+    void setMapService(MapService *map);
+
     // Route waypoints for MapService dead reckoning
     QList<LatLng> routeWaypoints() const { return m_route.waypoints; }
 
@@ -111,13 +117,15 @@ private slots:
     void onVehicleStateChanged();
     void onRouteCalculated(const Route &route);
     void onRouteError(const QString &error);
+    void onVehiclePositionChanged();
 
 private:
     void calculateRoute();
     void reroute();
     void updateNavigationState();
     void setStatus(NavigationStatus status);
-    LatLng currentGpsPosition() const;
+    LatLng currentPosition() const;     // DR position when available, else raw GPS
+    LatLng currentGpsPosition() const;  // raw GPS only (for rerouting)
     bool hasValidGps() const;
 
     // Thresholds (meters)
@@ -134,6 +142,13 @@ private:
     SpeedLimitStore *m_speedLimit;
     MdbRepository *m_repo;
     ValhallaClient *m_valhalla;
+    MapService *m_map = nullptr;
+
+    // Throttle DR-driven nav updates; the 15 Hz DR tick is too fast for the
+    // route snapping + upcoming-instruction walk, and QML bindings churn
+    // faster than they can be meaningfully consumed.
+    QElapsedTimer m_lastDrUpdate;
+    static constexpr int DrUpdateMinIntervalMs = 200;  // 5 Hz
 
     NavigationStatus m_status = NavigationStatus::Idle;
     Route m_route;

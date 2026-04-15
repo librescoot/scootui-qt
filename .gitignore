@@ -3,6 +3,9 @@ build/
 build-*/
 deploy-*/
 
+# Local env
+.env
+
 # CMake
 CMakeCache.txt
 CMakeFiles/

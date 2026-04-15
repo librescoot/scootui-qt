@@ -1,4 +1,5 @@
 #include "NavigationService.h"
+#include "MapService.h"
 #include "routing/ValhallaClient.h"
 #include "routing/RouteHelpers.h"
 #include "stores/GpsStore.h"
@@ -88,6 +89,35 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
     });
 
     m_lastRerouteTime.start();
+    m_lastDrUpdate.start();
+}
+
+void NavigationService::setMapService(MapService *map)
+{
+    if (m_map == map) return;
+    m_map = map;
+    if (m_map) {
+        connect(m_map, &MapService::vehiclePositionChanged,
+                this, &NavigationService::onVehiclePositionChanged);
+    }
+}
+
+void NavigationService::onVehiclePositionChanged()
+{
+    // Drive TBT from DR. Throttled to DrUpdateMinIntervalMs so route
+    // snapping + upcoming-instruction walks don't run at the full 15 Hz
+    // tick rate.
+    if (m_status != NavigationStatus::Navigating &&
+        m_status != NavigationStatus::Rerouting &&
+        m_status != NavigationStatus::Arrived)
+        return;
+
+    if (m_lastDrUpdate.isValid() &&
+        m_lastDrUpdate.elapsed() < DrUpdateMinIntervalMs)
+        return;
+
+    m_lastDrUpdate.restart();
+    updateNavigationState();
 }
 
 // --- Property getters for current instruction ---
@@ -264,9 +294,16 @@ void NavigationService::onGpsChanged()
     bool hasPosition = (m_gps->latitude() != 0 || m_gps->longitude() != 0);
     if (!hasPosition) return;
 
-    if (m_status == NavigationStatus::Navigating ||
-        m_status == NavigationStatus::Rerouting ||
-        m_status == NavigationStatus::Arrived) {
+    // Nav state is normally driven by MapService's DR tick via
+    // onVehiclePositionChanged. Only run here as a fallback when DR isn't
+    // initialised or is paused (e.g. simulator freeze), so boot + frozen
+    // states still react to GPS edges.
+    bool drReady = m_map && m_map->hasVehiclePosition();
+    if (!drReady &&
+        (m_status == NavigationStatus::Navigating ||
+         m_status == NavigationStatus::Rerouting ||
+         m_status == NavigationStatus::Arrived)) {
+        m_lastDrUpdate.restart();
         updateNavigationState();
     }
 
@@ -274,7 +311,7 @@ void NavigationService::onGpsChanged()
     if (m_destination.isValid() && !m_route.isValid() &&
         (m_status == NavigationStatus::Idle || m_status == NavigationStatus::Error)) {
         if (hasValidGps()) {
-            LatLng pos = currentGpsPosition();
+            LatLng pos = currentPosition();
             double dist = pos.distanceTo(m_destination);
             if (dist < ArrivalProximity) {
                 clearNavigation();
@@ -334,7 +371,7 @@ void NavigationService::onVehicleStateChanged()
     // Clear navigation if shutting down or entering stand-by near destination
     bool isLocking = m_vehicle->isShuttingDown() || m_vehicle->isStandBy();
     if (isLocking && m_destination.isValid()) {
-        LatLng pos = currentGpsPosition();
+        LatLng pos = currentPosition();
         double dist = pos.distanceTo(m_destination);
         if (dist < ShutdownProximity || m_wasArrived) {
             qDebug() << "NavigationService: clearing navigation (lock near destination)";
@@ -425,7 +462,7 @@ void NavigationService::updateNavigationState()
 {
     if (!m_route.isValid()) return;
 
-    LatLng pos = currentGpsPosition();
+    LatLng pos = currentPosition();
     if (!pos.isValid()) return;
 
     // Distance to destination
@@ -525,6 +562,19 @@ LatLng NavigationService::currentGpsPosition() const
 {
     if (!m_gps) return {};
     return {m_gps->latitude(), m_gps->longitude()};
+}
+
+LatLng NavigationService::currentPosition() const
+{
+    // Prefer the dead-reckoned position from MapService so nav stays in sync
+    // with the vehicle marker between GPS samples. Fall back to raw GPS when
+    // DR isn't initialised yet.
+    if (m_map && m_map->hasVehiclePosition()) {
+        double lat = m_map->vehicleLatitude();
+        double lng = m_map->vehicleLongitude();
+        if (lat != 0 || lng != 0) return {lat, lng};
+    }
+    return currentGpsPosition();
 }
 
 bool NavigationService::hasValidGps() const
