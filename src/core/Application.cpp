@@ -54,6 +54,7 @@
 
 #include <QQmlContext>
 #include <QtQml/qqml.h>
+#include <QCoreApplication>
 #include <QDebug>
 #include <QDir>
 #include <QFileSystemWatcher>
@@ -522,6 +523,9 @@ void Application::setupSignalHandlers()
             if (m_shutdownStore) {
                 m_shutdownStore->forceBlackout();
             }
+            // Blackout fade is 600ms; quit just after so systemd doesn't
+            // spend the rest of its TimeoutStopSec waiting to SIGKILL us.
+            QTimer::singleShot(700, &QCoreApplication::quit);
         });
 
         struct sigaction sa;
