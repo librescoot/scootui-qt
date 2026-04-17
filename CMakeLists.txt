@@ -7,7 +7,12 @@ set(CMAKE_AUTOMOC ON)
 
 option(DESKTOP_MODE "Build for desktop development with simulator panel (QMapLibre optional)" OFF)
 
-find_package(Qt6 6.7 REQUIRED COMPONENTS Quick Qml Svg Network Sql Concurrent)
+find_package(Qt6 6.7 REQUIRED COMPONENTS Quick Qml Svg Network Sql Concurrent QuickLayouts)
+find_package(Qt6QuickParticlesPrivate 6.7 REQUIRED)
+# QuickEffects (MultiEffect) isn't exported with cmake config by the Yocto
+# qtdeclarative recipe, so we don't link its private headers at build time.
+# Every QML file that uses MultiEffect gets QT_QML_SKIP_TYPE_COMPILER below
+# so it loads the runtime QML plugin via the VM, same as pre-qmltc main.
 find_package(ZLIB REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(HIREDIS REQUIRED hiredis)
@@ -248,12 +253,65 @@ set(QML_FILES
 set_source_files_properties(qml/widgets/components/MaterialIcon.qml
     PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
+# QMapLibre types use custom parsers (Layer/GeoJSONSource properties like
+# paint/layout/styleId/type/tilt) that qmltc can't introspect; skip these
+# files from type compilation so they run via the QML VM as before.
+set_source_files_properties(
+    qml/widgets/map/MapViewContent.qml
+    qml/widgets/map/MapViewContentLegacy.qml
+    qml/widgets/map/MapViewWidget.qml
+    qml/screens/MapScreen.qml
+    qml/screens/DestinationScreen.qml
+    PROPERTIES QT_QML_SKIP_TYPE_COMPILER TRUE)
+
+# QML Canvas (QQuickCanvasItem) isn't exported from any linked Qt library
+# (it lives in qtquick2plugin which loads dynamically), so qmltc-generated
+# code referencing it fails at link. Skip each Canvas-using leaf and every
+# QML type that instantiates one, since qmltc emits a nested moc class per
+# child element and those inherit from the would-be C++ type.
+set_source_files_properties(
+    qml/widgets/speedometer/SpeedometerDisplay.qml
+    qml/widgets/navigation/RoundaboutIcon.qml
+    qml/widgets/navigation/TurnByTurnWidget.qml
+    qml/widgets/map/NorthIndicator.qml
+    qml/widgets/map/VehicleMarker.qml
+    qml/widgets/map/ScaleBar.qml
+    qml/screens/ClusterScreen.qml
+    qml/Main.qml
+    PROPERTIES QT_QML_SKIP_TYPE_COMPILER TRUE)
+
+# SimulatorWindow uses inline-component property aliases with types qmltc
+# can't infer; it's dev-only and not on the boot path, so skip it.
+set_source_files_properties(qml/simulator/SimulatorWindow.qml
+    PROPERTIES QT_QML_SKIP_TYPE_COMPILER TRUE)
+
+# MultiEffect (QtQuick.Effects) lives in the Qt6QuickEffects module whose
+# cmake config isn't shipped by the Yocto qtdeclarative recipe, so qmltc
+# code that would #include qquickmultieffect_p.h fails to build on target.
+# Skip each MultiEffect-using leaf plus the cascade of types that embed one.
+set_source_files_properties(
+    qml/widgets/components/FrostedGlass.qml
+    qml/widgets/components/SvgIcon.qml
+    qml/widgets/components/TintedImage.qml
+    qml/widgets/indicators/StatusIndicators.qml
+    qml/widgets/status_bars/BatteryIcon.qml
+    qml/widgets/status_bars/BatteryDisplay.qml
+    qml/widgets/status_bars/TopStatusBar.qml
+    qml/overlays/MenuOverlay.qml
+    qml/overlays/ShortcutMenuOverlay.qml
+    qml/overlays/HopOnLearnOverlay.qml
+    qml/screens/AboutScreen.qml
+    qml/screens/NavigationSetupScreen.qml
+    qml/screens/AddressSelectionScreen.qml
+    PROPERTIES QT_QML_SKIP_TYPE_COMPILER TRUE)
+
 qt_add_qml_module(scootui
     URI ScootUI
     VERSION 1.0
+    ENABLE_TYPE_COMPILER
+    RESOURCE_PREFIX "/"
     QML_FILES ${QML_FILES}
     RESOURCES
-        qml/widgets/components/qmldir
         assets/icons/librescoot-turn-left.svg
         assets/icons/librescoot-turn-right.svg
         assets/icons/librescoot-hazards.svg
@@ -342,6 +400,9 @@ target_link_directories(scootui PRIVATE ${HIREDIS_LIBRARY_DIRS})
 
 target_link_libraries(scootui PRIVATE
     Qt6::Quick
+    Qt6::QuickPrivate
+    Qt6::QuickLayoutsPrivate
+    Qt6::QuickParticlesPrivate
     Qt6::Svg
     Qt6::Network
     Qt6::Sql

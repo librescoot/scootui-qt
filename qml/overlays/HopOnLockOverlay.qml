@@ -1,5 +1,4 @@
 import QtQuick
-import "../widgets/components"
 import ScootUI 1.0
 
 // Full-screen lock overlay shown while hop-on / hop-off mode is engaged.

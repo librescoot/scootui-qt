@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import "../widgets/components"
 import ScootUI 1.0
 
 Rectangle {

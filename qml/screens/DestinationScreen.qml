@@ -1,8 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import "../widgets/status_bars"
-import "../widgets/map"
-import "../widgets/components"
 import ScootUI 1.0
 
 Rectangle {
