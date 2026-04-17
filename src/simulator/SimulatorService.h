@@ -3,14 +3,20 @@
 #include <QObject>
 #include <QTimer>
 #include "routing/RouteModels.h"
+#include <QtQml/qqmlregistration.h>
 
 class MdbRepository;
 class NavigationService;
 class GestureSynth;
 
+class QQmlEngine;
+class QJSEngine;
+
 class SimulatorService : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(bool autoDriveActive READ autoDriveActive NOTIFY autoDriveActiveChanged)
     Q_PROPERTY(double autoDriveSpeed READ autoDriveSpeed NOTIFY autoDriveSpeedChanged)
     Q_PROPERTY(bool simulatorMode READ simulatorMode CONSTANT)
@@ -18,6 +24,7 @@ class SimulatorService : public QObject
 
 public:
     explicit SimulatorService(MdbRepository *repo, NavigationService *nav, QObject *parent = nullptr);
+    static SimulatorService *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     bool autoDriveActive() const { return m_autoDriveActive; }
     double autoDriveSpeed() const { return m_autoDriveSpeed; }
@@ -146,4 +153,6 @@ private:
     int m_autoStandbySeconds = 900;       // last value pushed via setAutoStandbySetting
     bool m_autoStandbyActive = false;     // true while a deadline is armed
     bool m_gpsFrozen = false;
+
+    static inline SimulatorService *s_instance = nullptr;
 };

@@ -5,6 +5,7 @@
 SystemInfoService::SystemInfoService(MdbRepository *repo, QObject *parent)
     : QObject(parent), m_repo(repo)
 {
+    s_instance = this;
 }
 
 void SystemInfoService::loadVersions()

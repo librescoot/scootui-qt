@@ -1,10 +1,10 @@
 import QtQuick
+import ScootUI 1.0
 
 Item {
     id: root
     property real iconSize: 35
-    property string speedLimit: typeof speedLimitStore !== "undefined"
-                                ? speedLimitStore.speedLimit : ""
+    property string speedLimit: SpeedLimitStore.speedLimit
 
     // Only numeric values (e.g. "30", "50") are displayable. OSM maxspeed may
     // contain non-numeric tokens like "signals", "variable", "walk" — filter

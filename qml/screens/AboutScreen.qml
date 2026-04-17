@@ -1,21 +1,22 @@
 import QtQuick
 import QtQuick.Layouts
 import "../widgets/components"
+import ScootUI 1.0
 
 Rectangle {
     id: aboutScreen
-    color: typeof themeStore !== "undefined" && themeStore.isDark ? "black" : "white"
+    color: ThemeStore.isDark ? "black" : "white"
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
-    readonly property color textPrimary: isDark ? "#FFFFFF" : "#000000"
-    readonly property color textSecondary: isDark ? "#99FFFFFF" : "#8A000000"
-    readonly property color accentColor: isDark ? "#40C8F0" : "#007A99"
-    readonly property color dividerColor: isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.12)
+    readonly property bool isDark: ThemeStore.isDark
+    readonly property color textPrimary: aboutScreen.isDark ? "#FFFFFF" : "#000000"
+    readonly property color textSecondary: aboutScreen.isDark ? "#99FFFFFF" : "#8A000000"
+    readonly property color accentColor: aboutScreen.isDark ? "#40C8F0" : "#007A99"
+    readonly property color dividerColor: aboutScreen.isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.12)
 
     // Warning box colors
-    readonly property color warningBg: isDark ? "#1A1200" : "#FFF8E1"
-    readonly property color warningBorder: isDark ? "#5C4400" : "#FFB300"
-    readonly property color warningText: isDark ? "#FFB300" : "#BF360C"
+    readonly property color warningBg: aboutScreen.isDark ? "#1A1200" : "#FFF8E1"
+    readonly property color warningBorder: aboutScreen.isDark ? "#5C4400" : "#FFB300"
+    readonly property color warningText: aboutScreen.isDark ? "#FFB300" : "#BF360C"
 
     readonly property string licenseId: "CC BY-NC-SA 4.0"
     readonly property string websiteUrl: "https://librescoot.org"
@@ -42,8 +43,8 @@ Rectangle {
     ]
 
     Component.onCompleted: {
-        if (typeof systemInfoService !== "undefined")
-            systemInfoService.loadVersions()
+        if (true)
+            SystemInfoService.loadVersions()
     }
 
     // Easter egg state machines. true=down, false=up.
@@ -56,15 +57,15 @@ Rectangle {
     property int milestoneEggStep: 0
 
     function trackEgg(isDown) {
-        if (isDown === eggSeq[eggStep]) {
-            eggStep++
+        if (isDown === aboutScreen.eggSeq[aboutScreen.eggStep]) {
+            aboutScreen.eggStep++
         } else {
-            eggStep = (isDown === eggSeq[0]) ? 1 : 0
+            aboutScreen.eggStep = (isDown === aboutScreen.eggSeq[0]) ? 1 : 0
         }
-        if (isDown === milestoneEggSeq[milestoneEggStep]) {
-            milestoneEggStep++
+        if (isDown === aboutScreen.milestoneEggSeq[aboutScreen.milestoneEggStep]) {
+            aboutScreen.milestoneEggStep++
         } else {
-            milestoneEggStep = (isDown === milestoneEggSeq[0]) ? 1 : 0
+            aboutScreen.milestoneEggStep = (isDown === aboutScreen.milestoneEggSeq[0]) ? 1 : 0
         }
     }
 
@@ -73,52 +74,50 @@ Rectangle {
 
     function scrollDown() {
         var maxY = Math.max(0, flickable.contentHeight - flickable.height)
-        scrollTarget = Math.min(flickable.contentY + 80, maxY)
-        scrollAnimation.to = scrollTarget
+        aboutScreen.scrollTarget = Math.min(flickable.contentY + 80, maxY)
+        scrollAnimation.to = aboutScreen.scrollTarget
         scrollAnimation.restart()
-        trackEgg(true)
+        aboutScreen.trackEgg(true)
     }
 
     function scrollUp() {
-        scrollTarget = Math.max(flickable.contentY - 80, 0)
-        scrollAnimation.to = scrollTarget
+        aboutScreen.scrollTarget = Math.max(flickable.contentY - 80, 0)
+        scrollAnimation.to = aboutScreen.scrollTarget
         scrollAnimation.restart()
-        trackEgg(false)
+        aboutScreen.trackEgg(false)
     }
 
     function closeScreen() {
-        if (eggStep === eggSeq.length) {
-            if (typeof settingsService !== "undefined") {
-                var next = settingsService.toggleBootAnimation()
-                if (typeof toastService !== "undefined" && next !== "") {
+        if (aboutScreen.eggStep === aboutScreen.eggSeq.length) {
+            if (true) {
+                var next = SettingsService.toggleBootAnimation()
+                if (next !== "") {
                     if (next === "windowsxp")
-                        toastService.showSuccess(typeof translations !== "undefined"
-                            ? translations.aboutGenuineAdvantage : "Genuine Advantage activated.")
+                        ToastService.showSuccess(Translations.aboutGenuineAdvantage)
                     else
-                        toastService.showInfo(typeof translations !== "undefined"
-                            ? translations.aboutBootThemeRestored : "Boot theme: LibreScoot restored.")
+                        ToastService.showInfo(Translations.aboutBootThemeRestored)
                 }
             }
         }
-        if (milestoneEggStep === milestoneEggSeq.length) {
-            if (typeof odometerMilestoneService !== "undefined") {
-                var enabled = !odometerMilestoneService.easterEggsEnabled
-                odometerMilestoneService.easterEggsEnabled = enabled
-                if (typeof toastService !== "undefined") {
-                    toastService.showInfo(enabled
+        if (aboutScreen.milestoneEggStep === aboutScreen.milestoneEggSeq.length) {
+            if (true) {
+                var enabled = !OdometerMilestoneService.easterEggsEnabled
+                OdometerMilestoneService.easterEggsEnabled = enabled
+                if (true) {
+                    ToastService.showInfo(enabled
                         ? "Milestone easter eggs unlocked"
                         : "Milestone easter eggs locked")
                 }
             }
         }
-        if (typeof screenStore !== "undefined") {
-            screenStore.closeAbout()
+        if (true) {
+            ScreenStore.closeAbout()
         }
     }
 
     // Centralized brake gesture handling via InputHandler
     Connections {
-        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        target: InputHandler
         function onLeftTap() { aboutScreen.scrollDown() }
         function onLeftHold() { aboutScreen.scrollUp() }
         function onRightTap() { aboutScreen.closeScreen() }
@@ -179,7 +178,7 @@ Rectangle {
                         Text {
                             text: "sqtui"
                             color: aboutScreen.textSecondary
-                            font.pixelSize: themeStore.fontBody
+                            font.pixelSize: ThemeStore.fontBody
                             font.letterSpacing: 1.0
                         }
                     }
@@ -190,10 +189,9 @@ Rectangle {
                 // FOSS description
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.aboutFossDescription
-                          : "FOSS firmware for unu Scooter Pro e-mopeds"
+                    text: Translations.aboutFossDescription
                     color: aboutScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.italic: true
                     horizontalAlignment: Text.AlignHCenter
                 }
@@ -203,9 +201,9 @@ Rectangle {
                 // Website URL
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: websiteUrl
+                    text: aboutScreen.websiteUrl
                     color: aboutScreen.accentColor
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     horizontalAlignment: Text.AlignHCenter
                 }
 
@@ -214,34 +212,35 @@ Rectangle {
                 // Copyright
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: licenseId + "  \u00A9\u00A0" + copyrightYear + " LibreScoot contributors"
+                    text: aboutScreen.licenseId + "  \u00A9\u00A0" + aboutScreen.copyrightYear + " LibreScoot contributors"
                     color: aboutScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     horizontalAlignment: Text.AlignHCenter
                 }
 
                 // Firmware version rows
                 Loader {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    active: typeof systemInfoService !== "undefined" &&
-                            systemInfoService.versionRows.length > 0
+                    active: SystemInfoService.versionRows.length > 0
                     sourceComponent: Column {
                         spacing: 0
                         topPadding: 16
 
                         Repeater {
-                            model: typeof systemInfoService !== "undefined"
-                                   ? systemInfoService.versionRows : []
+                            model: true
+                                   ? SystemInfoService.versionRows : []
 
                             Row {
+                                id: versionRow
+                                required property var modelData
                                 spacing: 6
                                 anchors.horizontalCenter: parent.horizontalCenter
 
                                 Text {
                                     width: 36
-                                    text: modelData.label
-                                    color: aboutScreen.textSecondary
-                                    font.pixelSize: themeStore.fontBody
+                                    text: versionRow.modelData.label
+                                    color: ThemeStore.isDark ? "#99FFFFFF" : "#8A000000"
+                                    font.pixelSize: ThemeStore.fontBody
                                     font.weight: Font.DemiBold
                                     horizontalAlignment: Text.AlignRight
                                     topPadding: 2
@@ -249,9 +248,9 @@ Rectangle {
                                 }
 
                                 Text {
-                                    text: modelData.value
-                                    color: aboutScreen.textSecondary
-                                    font.pixelSize: themeStore.fontBody
+                                    text: versionRow.modelData.value
+                                    color: ThemeStore.isDark ? "#99FFFFFF" : "#8A000000"
+                                    font.pixelSize: ThemeStore.fontBody
                                     font.family: "monospace"
                                     topPadding: 2
                                     bottomPadding: 2
@@ -281,7 +280,7 @@ Rectangle {
                     color: aboutScreen.warningBg
                     border.color: aboutScreen.warningBorder
                     border.width: 1.5
-                    radius: themeStore.radiusCard
+                    radius: ThemeStore.radiusCard
 
                     Column {
                         id: warningContent
@@ -298,16 +297,14 @@ Rectangle {
                             Text {
                                 text: MaterialIcon.iconWarningAmber
                                 font.family: "Material Icons"
-                                font.pixelSize: themeStore.fontBody
+                                font.pixelSize: ThemeStore.fontBody
                                 color: aboutScreen.warningText
                             }
 
                             Text {
-                                text: typeof translations !== "undefined"
-                                      ? translations.aboutNonCommercialTitle
-                                      : "NON-COMMERCIAL SOFTWARE"
+                                text: Translations.aboutNonCommercialTitle
                                 color: aboutScreen.warningText
-                                font.pixelSize: themeStore.fontBody
+                                font.pixelSize: ThemeStore.fontBody
                                 font.weight: Font.Bold
                                 font.letterSpacing: 1.0
                             }
@@ -316,11 +313,9 @@ Rectangle {
                         // Commercial prohibited text
                         Text {
                             width: parent.width
-                            text: typeof translations !== "undefined"
-                                  ? translations.aboutCommercialProhibited
-                                  : "Commercial distribution, resale, or preinstallation on devices for sale is prohibited under CC BY-NC-SA 4.0."
+                            text: Translations.aboutCommercialProhibited
                             color: aboutScreen.textPrimary
-                            font.pixelSize: themeStore.fontBody
+                            font.pixelSize: ThemeStore.fontBody
                             lineHeight: 1.5
                             lineHeightMode: Text.ProportionalHeight
                             wrapMode: Text.WordWrap
@@ -331,11 +326,9 @@ Rectangle {
                         // Scam warning
                         Text {
                             width: parent.width
-                            text: typeof translations !== "undefined"
-                                  ? translations.aboutScamWarning
-                                  : "If you paid money for this software, or if you purchased a new scooter from a shop or vendor with this software preinstalled, you may have been the victim of a scam. Please report it at https://librescoot.org."
+                            text: Translations.aboutScamWarning
                             color: aboutScreen.textPrimary
-                            font.pixelSize: themeStore.fontBody
+                            font.pixelSize: ThemeStore.fontBody
                             font.weight: Font.DemiBold
                             lineHeight: 1.5
                             lineHeightMode: Text.ProportionalHeight
@@ -359,11 +352,9 @@ Rectangle {
                 // FOSS Components header
                 Text {
                     x: 40
-                    text: typeof translations !== "undefined"
-                          ? translations.aboutOpenSourceComponents
-                          : "OPEN SOURCE COMPONENTS"
+                    text: Translations.aboutOpenSourceComponents
                     color: aboutScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Bold
                     font.letterSpacing: 1.5
                 }
@@ -375,7 +366,9 @@ Rectangle {
                     model: aboutScreen.fossComponents
 
                     delegate: Column {
-                        width: scrollContent.width
+                        id: fossEntry
+                        required property var modelData
+                        width: parent.width
                         spacing: 0
 
                         Item {
@@ -392,16 +385,16 @@ Rectangle {
 
                                 Text {
                                     width: parent.width - licenseText.width
-                                    text: modelData.name
-                                    color: aboutScreen.textPrimary
-                                    font.pixelSize: themeStore.fontBody
+                                    text: fossEntry.modelData.name
+                                    color: ThemeStore.isDark ? "#FFFFFF" : "#000000"
+                                    font.pixelSize: ThemeStore.fontBody
                                 }
 
                                 Text {
                                     id: licenseText
-                                    text: modelData.license
-                                    color: aboutScreen.textSecondary
-                                    font.pixelSize: themeStore.fontBody
+                                    text: fossEntry.modelData.license
+                                    color: ThemeStore.isDark ? "#99FFFFFF" : "#8A000000"
+                                    font.pixelSize: ThemeStore.fontBody
                                     font.family: "monospace"
                                 }
                             }
@@ -411,7 +404,7 @@ Rectangle {
                             width: parent.width - 80
                             x: 40
                             height: 1
-                            color: aboutScreen.dividerColor
+                            color: ThemeStore.isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.12)
                         }
                     }
                 }
@@ -431,11 +424,9 @@ Rectangle {
                 // Special Thanks header
                 Text {
                     x: 40
-                    text: typeof translations !== "undefined"
-                          ? translations.aboutSpecialThanks
-                          : "SPECIAL THANKS TO THE EARLY TESTERS"
+                    text: Translations.aboutSpecialThanks
                     color: aboutScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Bold
                     font.letterSpacing: 1.5
                 }
@@ -463,10 +454,11 @@ Rectangle {
                         ]
 
                         Text {
+                            required property string modelData
                             width: (parent.parent.width - 12) / 2
                             text: modelData
-                            color: aboutScreen.textPrimary
-                            font.pixelSize: themeStore.fontBody
+                            color: ThemeStore.isDark ? "#FFFFFF" : "#000000"
+                            font.pixelSize: ThemeStore.fontBody
                             elide: Text.ElideRight
                         }
                     }
@@ -478,11 +470,9 @@ Rectangle {
                 Text {
                     x: 40
                     width: parent.width - 80
-                    text: typeof translations !== "undefined"
-                          ? translations.aboutPatienceNote
-                          : "And Cin and Tabitha for their patience with the scooters in the hallway."
+                    text: Translations.aboutPatienceNote
                     color: aboutScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.italic: true
                     lineHeight: 1.4
                     lineHeightMode: Text.ProportionalHeight
@@ -504,11 +494,9 @@ Rectangle {
                 // Authorized installation partners header
                 Text {
                     x: 40
-                    text: typeof translations !== "undefined"
-                          ? translations.aboutAuthorizedPartners
-                          : "AUTHORIZED INSTALLATION PARTNERS"
+                    text: Translations.aboutAuthorizedPartners
                     color: aboutScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Bold
                     font.letterSpacing: 1.5
                 }
@@ -520,28 +508,31 @@ Rectangle {
                     model: aboutScreen.authorizedPartners
 
                     delegate: Column {
+                        id: partnerEntry
+                        required property var modelData
                         x: 40
-                        width: scrollContent.width - 80
+                        width: parent.width - 80
                         spacing: 0
                         bottomPadding: 10
 
                         Text {
                             width: parent.width
-                            text: modelData.name
-                            color: aboutScreen.textPrimary
-                            font.pixelSize: themeStore.fontBody
+                            text: partnerEntry.modelData.name
+                            color: ThemeStore.isDark ? "#FFFFFF" : "#000000"
+                            font.pixelSize: ThemeStore.fontBody
                             font.weight: Font.DemiBold
                             wrapMode: Text.WordWrap
                         }
 
                         Repeater {
-                            model: modelData.lines
+                            model: partnerEntry.modelData.lines
 
                             Text {
+                                required property string modelData
                                 width: parent.parent.width
                                 text: modelData
-                                color: aboutScreen.textSecondary
-                                font.pixelSize: themeStore.fontBody
+                                color: ThemeStore.isDark ? "#99FFFFFF" : "#8A000000"
+                                font.pixelSize: ThemeStore.fontBody
                                 lineHeight: 1.3
                                 lineHeightMode: Text.ProportionalHeight
                                 wrapMode: Text.WordWrap
@@ -574,10 +565,8 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                leftAction: typeof translations !== "undefined"
-                            ? translations.aboutScrollAction : "Scroll"
-                rightAction: typeof translations !== "undefined"
-                             ? translations.aboutBackAction : "Back"
+                leftAction: Translations.aboutScrollAction
+                rightAction: Translations.aboutBackAction
             }
         }
     }

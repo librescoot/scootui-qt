@@ -27,6 +27,7 @@ const QString AddressDatabaseService::CachePath = QStringLiteral("/data/scootui/
 AddressDatabaseService::AddressDatabaseService(QObject *parent)
     : QObject(parent)
 {
+    s_instance = this;
 }
 
 AddressDatabaseService::~AddressDatabaseService() = default;

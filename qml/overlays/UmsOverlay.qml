@@ -1,17 +1,18 @@
 import QtQuick
 import "../widgets/components"
+import ScootUI 1.0
 
 Item {
     id: umsOverlay
     anchors.fill: parent
 
-    property string usbStatus: typeof usbStore !== "undefined" ? usbStore.status : "idle"
-    property string usbStep: typeof usbStore !== "undefined" ? usbStore.step : ""
-    property int usbProgress: typeof usbStore !== "undefined" ? usbStore.progress : 0
-    property string usbDetail: typeof usbStore !== "undefined" ? usbStore.detail : ""
+    property string usbStatus: UsbStore.status
+    property string usbStep: UsbStore.step
+    property int usbProgress: UsbStore.progress
+    property string usbDetail: UsbStore.detail
 
     visible: opacity > 0
-    opacity: (usbStatus !== "idle" && usbStatus !== "") ? 1.0 : 0.0
+    opacity: (umsOverlay.usbStatus !== "idle" && umsOverlay.usbStatus !== "") ? 1.0 : 0.0
 
     Rectangle {
         anchors.fill: parent
@@ -25,9 +26,9 @@ Item {
         // Preparing state
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            visible: usbStatus === "preparing"
-            text: typeof translations !== "undefined" ? translations.umsPreparing : "Preparing Storage"
-            font.pixelSize: themeStore.fontTitle
+            visible: umsOverlay.usbStatus === "preparing"
+            text: Translations.umsPreparing
+            font.pixelSize: ThemeStore.fontTitle
             font.weight: Font.Bold
             color: "#FFFFFF"
         }
@@ -35,14 +36,14 @@ Item {
         // Active state
         Column {
             anchors.horizontalCenter: parent.horizontalCenter
-            visible: usbStatus === "active"
+            visible: umsOverlay.usbStatus === "active"
             spacing: 24
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: MaterialIcon.iconUsb
                 font.family: "Material Icons"
-                font.pixelSize: themeStore.fontHero
+                font.pixelSize: ThemeStore.fontHero
                 color: "#FFFFFF"
             }
 
@@ -52,16 +53,16 @@ Item {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.umsActive : "Update Mode"
-                    font.pixelSize: themeStore.fontHeading
+                    text: Translations.umsActive
+                    font.pixelSize: ThemeStore.fontHeading
                     font.weight: Font.Bold
                     color: "#FFFFFF"
                 }
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.umsConnect : "Connect to Computer"
-                    font.pixelSize: themeStore.fontBody
+                    text: Translations.umsConnect
+                    font.pixelSize: ThemeStore.fontBody
                     color: "#B3FFFFFF" // white 70% opacity
                 }
             }
@@ -70,7 +71,7 @@ Item {
         // Processing state
         Column {
             anchors.horizontalCenter: parent.horizontalCenter
-            visible: usbStatus === "processing"
+            visible: umsOverlay.usbStatus === "processing"
             spacing: 0
 
             // Spinner
@@ -84,7 +85,7 @@ Item {
                     anchors.centerIn: parent
                     width: 36
                     height: 36
-                    radius: themeStore.radiusModal
+                    radius: ThemeStore.radiusModal
                     color: "transparent"
                     border.color: "#FFFFFF"
                     border.width: 3
@@ -98,7 +99,7 @@ Item {
                     }
 
                     RotationAnimator on rotation {
-                        running: usbStatus === "processing"
+                        running: umsOverlay.usbStatus === "processing"
                         from: 0; to: 360
                         duration: 1000
                         loops: Animation.Infinite
@@ -110,8 +111,8 @@ Item {
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: typeof translations !== "undefined" ? translations.umsProcessing : "Processing Files"
-                font.pixelSize: themeStore.fontTitle
+                text: Translations.umsProcessing
+                font.pixelSize: ThemeStore.fontTitle
                 font.weight: Font.Bold
                 color: "#FFFFFF"
             }
@@ -119,7 +120,7 @@ Item {
             // Current step
             Item {
                 anchors.horizontalCenter: parent.horizontalCenter
-                visible: usbStep !== ""
+                visible: umsOverlay.usbStep !== ""
                 width: parent.width
                 height: stepRow.height + 12
 
@@ -133,15 +134,15 @@ Item {
                     Text {
                         text: MaterialIcon.iconArrowForward
                         font.family: "Material Icons"
-                        font.pixelSize: themeStore.fontBody
+                        font.pixelSize: ThemeStore.fontBody
                         color: "#E6FFFFFF"
                         anchors.verticalCenter: parent.verticalCenter
                     }
 
                     Text {
                         id: stepText
-                        text: usbStep
-                        font.pixelSize: themeStore.fontBody
+                        text: umsOverlay.usbStep
+                        font.pixelSize: ThemeStore.fontBody
                         font.weight: Font.Medium
                         color: "#E6FFFFFF" // white 90% opacity
                     }
@@ -152,7 +153,7 @@ Item {
             // file transfer is actually streaming (progress > 0).
             Item {
                 anchors.horizontalCenter: parent.horizontalCenter
-                visible: usbProgress > 0
+                visible: umsOverlay.usbProgress > 0
                 width: Math.min(umsOverlay.width - 96, 400)
                 height: progressBarCol.height + 8
 
@@ -172,7 +173,7 @@ Item {
 
                         // Fill
                         Rectangle {
-                            width: parent.width * (usbProgress / 100)
+                            width: parent.width * (umsOverlay.usbProgress / 100)
                             height: parent.height
                             radius: parent.radius
                             color: "#FFFFFF"
@@ -182,9 +183,9 @@ Item {
 
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: usbDetail
-                        visible: usbDetail !== ""
-                        font.pixelSize: themeStore.fontBody
+                        text: umsOverlay.usbDetail
+                        visible: umsOverlay.usbDetail !== ""
+                        font.pixelSize: ThemeStore.fontBody
                         color: "#99FFFFFF" // white 60%
                     }
                 }
@@ -194,20 +195,23 @@ Item {
             Item { width: 1; height: 16 }
 
             Column {
+                id: logColumn
                 anchors.horizontalCenter: parent.horizontalCenter
+                width: umsOverlay.width - 48
                 spacing: 2
 
                 Repeater {
-                    model: typeof umsLogStore !== "undefined" ? umsLogStore.logEntries : []
+                    model: true ? UmsLogStore.logEntries : []
 
                     Text {
+                        required property string modelData
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: modelData
-                        font.pixelSize: themeStore.fontBody
+                        font.pixelSize: ThemeStore.fontBody
                         color: "#80FFFFFF" // white 50% opacity
                         horizontalAlignment: Text.AlignHCenter
                         elide: Text.ElideRight
-                        width: umsOverlay.width - 48
+                        width: parent.width
                     }
                 }
             }
@@ -216,11 +220,11 @@ Item {
         // Default/other state
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            visible: usbStatus !== "preparing" && usbStatus !== "active"
-                     && usbStatus !== "processing" && usbStatus !== "idle"
-                     && usbStatus !== ""
-            text: usbStatus
-            font.pixelSize: themeStore.fontTitle
+            visible: umsOverlay.usbStatus !== "preparing" && umsOverlay.usbStatus !== "active"
+                     && umsOverlay.usbStatus !== "processing" && umsOverlay.usbStatus !== "idle"
+                     && umsOverlay.usbStatus !== ""
+            text: umsOverlay.usbStatus
+            font.pixelSize: ThemeStore.fontTitle
             font.weight: Font.Bold
             color: "#FFFFFF"
         }
@@ -234,8 +238,8 @@ Item {
         anchors.bottomMargin: 12
         anchors.leftMargin: 12
         anchors.rightMargin: 12
-        visible: usbStatus === "active"
-        leftLabel: typeof translations !== "undefined" ? translations.controlLeftBrakeHold : "Left Brake (Hold)"
-        leftAction: typeof translations !== "undefined" ? translations.umsHoldExit : "Exit"
+        visible: umsOverlay.usbStatus === "active"
+        leftLabel: Translations.controlLeftBrakeHold
+        leftAction: Translations.umsHoldExit
     }
 }

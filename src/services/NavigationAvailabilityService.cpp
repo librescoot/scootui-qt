@@ -19,6 +19,7 @@ NavigationAvailabilityService::NavigationAvailabilityService(SettingsStore *sett
     , m_repo(repo)
     , m_nam(new QNetworkAccessManager(this))
 {
+    s_instance = this;
     m_retryTimer.setSingleShot(true);
     connect(&m_retryTimer, &QTimer::timeout, this, &NavigationAvailabilityService::checkRouting);
 

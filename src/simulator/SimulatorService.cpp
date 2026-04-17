@@ -22,6 +22,7 @@ SimulatorService::SimulatorService(MdbRepository *repo, NavigationService *nav, 
     , m_repo(repo)
     , m_nav(nav)
 {
+    s_instance = this;
     // Stand in for vehicle-service's gesture detector: synthesize
     // "input-events" messages from the button edges we publish, so
     // InputHandler and other consumers behave identically under the

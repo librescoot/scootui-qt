@@ -1,8 +1,9 @@
 import QtQuick
 import QtQuick.Particles
+import ScootUI 1.0
 
 // Drop this into a screen at a low z value so confetti falls behind widgets.
-// Listens to odometerMilestoneService.milestoneReached and bursts accordingly.
+// Listens to OdometerMilestoneService.milestoneReached and bursts accordingly.
 Item {
     id: root
     anchors.fill: parent
@@ -19,7 +20,7 @@ Item {
     // Each palette is intentionally small (3 colours) to keep the confetti
     // readable and on-theme with the card. Light-theme variants drop any
     // near-white colour so particles stay visible on a light background.
-    readonly property bool dark: typeof themeStore !== "undefined" && themeStore.isDark
+    readonly property bool dark: ThemeStore.isDark
 
     readonly property var paletteStandard: dark
         ? ["#D4AF37", "#F6E27A", "#FFFFFF"]
@@ -57,7 +58,7 @@ Item {
     }
 
     Connections {
-        target: odometerMilestoneService ? odometerMilestoneService : null
+        target: OdometerMilestoneService ? OdometerMilestoneService : null
         function onMilestoneReached(km, intens, tag) {
             root.tag = tag
             root.intensity = intens

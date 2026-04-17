@@ -1,12 +1,13 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI 1.0
 
 Rectangle {
     id: maintenanceScreen
     color: "black"
 
     property bool showConnectionInfo: false
-    property string stateRaw: typeof vehicleStore !== "undefined" ? vehicleStore.stateRaw : ""
+    property string stateRaw: VehicleStore.stateRaw
 
     // Turn off backlight after 15s to save power during unattended maintenance/updates
     Timer {
@@ -14,35 +15,35 @@ Rectangle {
         interval: 15000
         running: true
         onTriggered: {
-            if (typeof dashboardStore !== "undefined")
-                dashboardStore.setBacklightEnabled(false)
+            if (true)
+                DashboardStore.setBacklightEnabled(false)
         }
     }
 
     Connections {
-        target: typeof vehicleStore !== "undefined" ? vehicleStore : null
+        target: VehicleStore
         function onStateChanged() {
-            if (typeof dashboardStore !== "undefined")
-                dashboardStore.setBacklightEnabled(true)
+            if (true)
+                DashboardStore.setBacklightEnabled(true)
         }
     }
 
     Component.onDestruction: {
-        if (typeof dashboardStore !== "undefined")
-            dashboardStore.setBacklightEnabled(true)
+        if (true)
+            DashboardStore.setBacklightEnabled(true)
     }
 
     // --- Loading mode (default): silent spinner + optional OTA progress ---
     Item {
         id: loadingMode
         anchors.fill: parent
-        visible: !showConnectionInfo
+        visible: !maintenanceScreen.showConnectionInfo
 
-        readonly property bool otaActive: typeof dashboardStore !== "undefined" && otaStore.isActive
-        readonly property string otaStatus: typeof dashboardStore !== "undefined" ? otaStore.dbcStatus : "idle"
-        readonly property int otaDownloadProgress: typeof dashboardStore !== "undefined" ? otaStore.dbcDownloadProgress : 0
-        readonly property int otaInstallProgress: typeof dashboardStore !== "undefined" ? otaStore.dbcInstallProgress : 0
-        readonly property string otaVersion: typeof dashboardStore !== "undefined" ? otaStore.dbcUpdateVersion : ""
+        readonly property bool otaActive: OtaStore.isActive
+        readonly property string otaStatus: true ? OtaStore.dbcStatus : "idle"
+        readonly property int otaDownloadProgress: true ? OtaStore.dbcDownloadProgress : 0
+        readonly property int otaInstallProgress: true ? OtaStore.dbcInstallProgress : 0
+        readonly property string otaVersion: true ? OtaStore.dbcUpdateVersion : ""
 
         Column {
             anchors.centerIn: parent
@@ -60,7 +61,7 @@ Rectangle {
                     color: "transparent"
                     border.color: "white"
                     border.width: 3
-                    radius: themeStore.radiusModal
+                    radius: ThemeStore.radiusModal
 
                     Rectangle {
                         width: 18
@@ -91,10 +92,10 @@ Rectangle {
                     width: maintenanceScreen.width - 64
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     color: Qt.rgba(1, 1, 1, 0.8)
                     text: {
-                        var tr = typeof translations !== "undefined" ? translations : null
+                        var tr = Translations
                         switch (loadingMode.otaStatus) {
                             case "downloading": return tr ? tr.otaDownloadingUpdates : "Downloading update..."
                             case "preparing": return tr ? tr.otaPreparingUpdate : "Preparing update..."
@@ -136,7 +137,7 @@ Rectangle {
                 // Version
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     color: Qt.rgba(1, 1, 1, 0.5)
                     visible: loadingMode.otaVersion !== ""
                     text: loadingMode.otaVersion
@@ -149,7 +150,7 @@ Rectangle {
     Item {
         id: connectionInfoMode
         anchors.fill: parent
-        visible: showConnectionInfo
+        visible: maintenanceScreen.showConnectionInfo
         clip: true
 
         ColumnLayout {
@@ -164,7 +165,7 @@ Rectangle {
                 Layout.fillWidth: true
                 text: "Trying to connect to vehicle system..."
                 color: "white"
-                font.pixelSize: themeStore.fontTitle
+                font.pixelSize: ThemeStore.fontTitle
                 font.weight: Font.Bold
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
@@ -187,7 +188,7 @@ Rectangle {
                       "the dashboard computer (DBC) and the middle driver board (MDB).\n\n" +
                       "Check the USB cable if this persists."
                 color: Qt.rgba(1, 1, 1, 0.70)
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 lineHeight: 1.4
                 lineHeightMode: Text.ProportionalHeight
                 wrapMode: Text.WordWrap
@@ -210,7 +211,7 @@ Rectangle {
                 text: "To put your scooter into drive mode anyway, raise the kickstand, " +
                       "hold both brakes and press the seatbox button."
                 color: Qt.rgba(1, 1, 1, 0.60)
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 lineHeight: 1.4
                 lineHeightMode: Text.ProportionalHeight
                 wrapMode: Text.WordWrap
@@ -226,7 +227,7 @@ Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         text: maintenanceScreen.stateRaw
         color: Qt.rgba(1, 1, 1, 0.54)
-        font.pixelSize: themeStore.fontBody
+        font.pixelSize: ThemeStore.fontBody
         visible: maintenanceScreen.stateRaw.length > 0
     }
 }

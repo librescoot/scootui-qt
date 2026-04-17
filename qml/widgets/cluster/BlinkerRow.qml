@@ -1,25 +1,26 @@
 import QtQuick
+import ScootUI 1.0
 
 Item {
     id: blinkerRow
     height: 56
 
-    readonly property int blinkerState: typeof vehicleStore !== "undefined" ? vehicleStore.blinkerState : 0
+    readonly property int blinkerState: VehicleStore.blinkerState
     // BlinkerState enum: 0=Off, 1=Left, 2=Right, 3=Both
 
     readonly property bool showLeft: blinkerState === 1 || blinkerState === 3
     readonly property bool showRight: blinkerState === 2 || blinkerState === 3
 
-    readonly property bool overlayEnabled: typeof settingsStore !== "undefined"
-                                           ? settingsStore.blinkerStyle === "overlay" : false
+    readonly property bool overlayEnabled: true
+                                           ? SettingsStore.blinkerStyle === "overlay" : false
 
     // Hide small blinkers if large overlay is showing (state 1 or 2 with overlay enabled)
     visible: !overlayEnabled || (blinkerState !== 1 && blinkerState !== 2)
 
     // Shared blink clock from VehicleStore
-    readonly property real blinkOpacity: typeof vehicleStore !== "undefined" ? vehicleStore.blinkOpacity : 0
+    readonly property real blinkOpacity: VehicleStore.blinkOpacity
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: ThemeStore.isDark
 
     Row {
         anchors.fill: parent

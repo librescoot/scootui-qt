@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI 1.0
 
 Rectangle {
     id: debugScreen
@@ -60,7 +61,7 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "VEHICLE"
                     entries: [
-                        { label: "State", value: debugScreen.safeVal(typeof vehicleStore !== "undefined", typeof vehicleStore !== "undefined" ? vehicleStore.stateRaw : "") }
+                        { label: "State", value: debugScreen.safeVal(true, VehicleStore.stateRaw) }
                     ]
                 }
 
@@ -68,9 +69,9 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "ENGINE"
                     entries: [
-                        { label: "Speed", value: debugScreen.safeVal(typeof engineStore !== "undefined", typeof engineStore !== "undefined" ? engineStore.speed.toFixed(1) + " km/h" : "") },
-                        { label: "RPM", value: debugScreen.safeVal(typeof engineStore !== "undefined", typeof engineStore !== "undefined" ? engineStore.rpm.toFixed(0) + " RPM" : "") },
-                        { label: "Odometer", value: debugScreen.safeVal(typeof engineStore !== "undefined", typeof engineStore !== "undefined" ? (engineStore.odometer / 1000).toFixed(1) + " km" : "") }
+                        { label: "Speed", value: debugScreen.safeVal(true, true ? EngineStore.speed.toFixed(1) + " km/h" : "") },
+                        { label: "RPM", value: debugScreen.safeVal(true, true ? EngineStore.rpm.toFixed(0) + " RPM" : "") },
+                        { label: "Odometer", value: debugScreen.safeVal(true, true ? (EngineStore.odometer / 1000).toFixed(1) + " km" : "") }
                     ]
                 }
 
@@ -78,11 +79,11 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "SWITCHES"
                     entries: [
-                        { label: "Kickstand", value: debugScreen.safeVal(typeof vehicleStore !== "undefined", typeof vehicleStore !== "undefined" ? vehicleStore.kickstand : "") },
-                        { label: "Seatbox Lock", value: debugScreen.safeVal(typeof vehicleStore !== "undefined", typeof vehicleStore !== "undefined" ? vehicleStore.seatboxLock : "") },
-                        { label: "Brake L", value: debugScreen.safeVal(typeof vehicleStore !== "undefined", typeof vehicleStore !== "undefined" ? vehicleStore.brakeLeft : "") },
-                        { label: "Brake R", value: debugScreen.safeVal(typeof vehicleStore !== "undefined", typeof vehicleStore !== "undefined" ? vehicleStore.brakeRight : "") },
-                        { label: "Blinker", value: debugScreen.safeVal(typeof vehicleStore !== "undefined", typeof vehicleStore !== "undefined" ? vehicleStore.blinkerState : "") }
+                        { label: "Kickstand", value: debugScreen.safeVal(true, VehicleStore.kickstand) },
+                        { label: "Seatbox Lock", value: debugScreen.safeVal(true, VehicleStore.seatboxLock) },
+                        { label: "Brake L", value: debugScreen.safeVal(true, VehicleStore.brakeLeft) },
+                        { label: "Brake R", value: debugScreen.safeVal(true, VehicleStore.brakeRight) },
+                        { label: "Blinker", value: debugScreen.safeVal(true, VehicleStore.blinkerState) }
                     ]
                 }
 
@@ -90,9 +91,9 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "GPS"
                     entries: [
-                        { label: "Latitude", value: debugScreen.safeVal(typeof gpsStore !== "undefined", typeof gpsStore !== "undefined" ? gpsStore.latitude.toFixed(6) : "") },
-                        { label: "Longitude", value: debugScreen.safeVal(typeof gpsStore !== "undefined", typeof gpsStore !== "undefined" ? gpsStore.longitude.toFixed(6) : "") },
-                        { label: "Altitude", value: debugScreen.safeVal(typeof gpsStore !== "undefined", typeof gpsStore !== "undefined" ? gpsStore.altitude.toFixed(1) + " m" : "") }
+                        { label: "Latitude", value: debugScreen.safeVal(true, true ? GpsStore.latitude.toFixed(6) : "") },
+                        { label: "Longitude", value: debugScreen.safeVal(true, true ? GpsStore.longitude.toFixed(6) : "") },
+                        { label: "Altitude", value: debugScreen.safeVal(true, true ? GpsStore.altitude.toFixed(1) + " m" : "") }
                     ]
                 }
 
@@ -100,10 +101,10 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "BATTERY 0"
                     entries: [
-                        { label: "Present", value: debugScreen.safeVal(typeof battery0Store !== "undefined", typeof battery0Store !== "undefined" ? battery0Store.present : "") },
-                        { label: "State", value: debugScreen.safeVal(typeof battery0Store !== "undefined", typeof battery0Store !== "undefined" ? battery0Store.batteryState : "") },
-                        { label: "Charge", value: debugScreen.safeVal(typeof battery0Store !== "undefined", typeof battery0Store !== "undefined" ? battery0Store.charge + "%" : "") },
-                        { label: "Voltage", value: debugScreen.safeVal(typeof battery0Store !== "undefined", typeof battery0Store !== "undefined" ? battery0Store.voltage + " mV" : "") }
+                        { label: "Present", value: debugScreen.safeVal(true, Battery0Store.present) },
+                        { label: "State", value: debugScreen.safeVal(true, Battery0Store.batteryState) },
+                        { label: "Charge", value: debugScreen.safeVal(true, true ? Battery0Store.charge + "%" : "") },
+                        { label: "Voltage", value: debugScreen.safeVal(true, true ? Battery0Store.voltage + " mV" : "") }
                     ]
                 }
 
@@ -111,10 +112,10 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "BATTERY 1"
                     entries: [
-                        { label: "Present", value: debugScreen.safeVal(typeof battery1Store !== "undefined", typeof battery1Store !== "undefined" ? battery1Store.present : "") },
-                        { label: "State", value: debugScreen.safeVal(typeof battery1Store !== "undefined", typeof battery1Store !== "undefined" ? battery1Store.batteryState : "") },
-                        { label: "Charge", value: debugScreen.safeVal(typeof battery1Store !== "undefined", typeof battery1Store !== "undefined" ? battery1Store.charge + "%" : "") },
-                        { label: "Voltage", value: debugScreen.safeVal(typeof battery1Store !== "undefined", typeof battery1Store !== "undefined" ? battery1Store.voltage + " mV" : "") }
+                        { label: "Present", value: debugScreen.safeVal(true, Battery1Store.present) },
+                        { label: "State", value: debugScreen.safeVal(true, Battery1Store.batteryState) },
+                        { label: "Charge", value: debugScreen.safeVal(true, true ? Battery1Store.charge + "%" : "") },
+                        { label: "Voltage", value: debugScreen.safeVal(true, true ? Battery1Store.voltage + " mV" : "") }
                     ]
                 }
 
@@ -122,10 +123,10 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "INTERNET"
                     entries: [
-                        { label: "Modem", value: debugScreen.safeVal(typeof internetStore !== "undefined", typeof internetStore !== "undefined" ? internetStore.modemState : "") },
-                        { label: "Status", value: debugScreen.safeVal(typeof internetStore !== "undefined", typeof internetStore !== "undefined" ? internetStore.status : "") },
-                        { label: "Cloud", value: debugScreen.safeVal(typeof internetStore !== "undefined", typeof internetStore !== "undefined" ? internetStore.unuCloud : "") },
-                        { label: "IP", value: debugScreen.safeVal(typeof internetStore !== "undefined", typeof internetStore !== "undefined" ? internetStore.ipAddress : "") }
+                        { label: "Modem", value: debugScreen.safeVal(true, InternetStore.modemState) },
+                        { label: "Status", value: debugScreen.safeVal(true, InternetStore.status) },
+                        { label: "Cloud", value: debugScreen.safeVal(true, InternetStore.unuCloud) },
+                        { label: "IP", value: debugScreen.safeVal(true, InternetStore.ipAddress) }
                     ]
                 }
 
@@ -133,8 +134,8 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "OTA"
                     entries: [
-                        { label: "DBC Status", value: debugScreen.safeVal(typeof otaStore !== "undefined", typeof otaStore !== "undefined" ? otaStore.dbcStatus : "") },
-                        { label: "DBC Download", value: debugScreen.safeVal(typeof otaStore !== "undefined", typeof otaStore !== "undefined" ? otaStore.dbcDownloadProgress + "%" : "") }
+                        { label: "DBC Status", value: debugScreen.safeVal(true, OtaStore.dbcStatus) },
+                        { label: "DBC Download", value: debugScreen.safeVal(true, true ? OtaStore.dbcDownloadProgress + "%" : "") }
                     ]
                 }
 
@@ -175,9 +176,12 @@ Rectangle {
             model: debugSection.entries
 
             delegate: Rectangle {
+                id: entryRow
+                required property var modelData
+                required property int index
                 Layout.fillWidth: true
                 Layout.preferredHeight: 20
-                color: index % 2 === 0 ? "#0A0A0A" : "black"
+                color: entryRow.index % 2 === 0 ? "#0A0A0A" : "black"
 
                 RowLayout {
                     anchors.fill: parent
@@ -187,7 +191,7 @@ Rectangle {
 
                     Text {
                         Layout.preferredWidth: parent.width * 0.4
-                        text: modelData.label
+                        text: entryRow.modelData.label
                         color: "#9E9E9E"
                         font.pixelSize: 11
                         font.bold: true
@@ -196,7 +200,7 @@ Rectangle {
 
                     Text {
                         Layout.fillWidth: true
-                        text: modelData.value
+                        text: entryRow.modelData.value
                         color: "white"
                         font.pixelSize: 11
                         elide: Text.ElideRight

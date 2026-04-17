@@ -1,5 +1,6 @@
 import QtQuick
 import "../widgets/components"
+import ScootUI 1.0
 
 Item {
     id: hibernationOverlay
@@ -13,9 +14,9 @@ Item {
     readonly property int stateWaitingHibernationSeatbox: 15
     readonly property int stateWaitingHibernationConfirm: 16
 
-    property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : 0
-    property bool bothBrakesHeld: typeof vehicleStore !== "undefined"
-                                  ? (vehicleStore.brakeLeft === 1 && vehicleStore.brakeRight === 1)
+    property int vehicleState: VehicleStore.state
+    property bool bothBrakesHeld: true
+                                  ? (VehicleStore.brakeLeft === 1 && VehicleStore.brakeRight === 1)
                                   : false
 
     property bool isHibernating: vehicleState === stateWaitingHibernation
@@ -34,7 +35,7 @@ Item {
 
     // Theme-aware colors. Accent colors (orange/red/green) work in both modes
     // and stay as-is. Seatbox mode keeps its orange warning background as-is.
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: ThemeStore.isDark
     readonly property color scrimColor:    isDark ? "#000000" : "#FFFFFF"
     readonly property color cardColor:     isDark ? "#CC000000" : "#CCFFFFFF"
     readonly property color cardBorder:    isDark ? "#4DFFFFFF" : "#4D000000"
@@ -48,14 +49,14 @@ Item {
     visible: isHibernating
 
     onBothBrakesHeldChanged: {
-        if (bothBrakesHeld && isPromptMode) {
-            countdown = 15
-            countdownActive = true
+        if (hibernationOverlay.bothBrakesHeld && hibernationOverlay.isPromptMode) {
+            hibernationOverlay.countdown = 15
+            hibernationOverlay.countdownActive = true
             countdownTimer.start()
         } else {
-            countdownActive = false
+            hibernationOverlay.countdownActive = false
             countdownTimer.stop()
-            countdown = 15
+            hibernationOverlay.countdown = 15
         }
     }
 
@@ -78,12 +79,12 @@ Item {
         anchors.fill: parent
         color: hibernationOverlay.scrimColor
         opacity: 0.9
-        visible: isPromptMode
+        visible: hibernationOverlay.isPromptMode
     }
 
     Column {
         anchors.centerIn: parent
-        visible: isPromptMode
+        visible: hibernationOverlay.isPromptMode
         spacing: 0
 
         Rectangle {
@@ -93,7 +94,7 @@ Item {
             color: hibernationOverlay.cardColor
             border.width: 1
             border.color: hibernationOverlay.cardBorder
-            radius: themeStore.radiusModal
+            radius: ThemeStore.radiusModal
 
             Column {
                 id: promptContent
@@ -109,15 +110,15 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: MaterialIcon.iconPowerSettingsNew
                     font.family: "Material Icons"
-                    font.pixelSize: themeStore.fontHero
+                    font.pixelSize: ThemeStore.fontHero
                     color: hibernationOverlay.textPrimary
                 }
 
                 // Title
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.hibernatePrompt : ""
-                    font.pixelSize: themeStore.fontHeading
+                    text: Translations.hibernatePrompt
+                    font.pixelSize: ThemeStore.fontHeading
                     font.weight: Font.Bold
                     color: hibernationOverlay.textPrimary
                     horizontalAlignment: Text.AlignHCenter
@@ -128,34 +129,34 @@ Item {
                 // Subtitle
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.hibernateTapKeycard : ""
-                    font.pixelSize: themeStore.fontBody
+                    text: Translations.hibernateTapKeycard
+                    font.pixelSize: ThemeStore.fontBody
                     color: hibernationOverlay.textPrimary
                 }
 
                 // Countdown status
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    visible: countdownActive && countdown > 0
-                    text: countdown + "s"
-                    font.pixelSize: themeStore.fontBody
+                    visible: hibernationOverlay.countdownActive && hibernationOverlay.countdown > 0
+                    text: hibernationOverlay.countdown + "s"
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Bold
                     color: "#FF9800"
                 }
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    visible: !countdownActive && !bothBrakesHeld
-                    text: typeof translations !== "undefined" ? translations.hibernationOrHoldBrakes : ""
-                    font.pixelSize: themeStore.fontBody
+                    visible: !hibernationOverlay.countdownActive && !hibernationOverlay.bothBrakesHeld
+                    text: Translations.hibernationOrHoldBrakes
+                    font.pixelSize: ThemeStore.fontBody
                     color: hibernationOverlay.textSecondary
                 }
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    visible: countdown === 0 && !countdownActive
-                    text: typeof translations !== "undefined" ? translations.hibernationKeepHoldingBrakes : ""
-                    font.pixelSize: themeStore.fontBody
+                    visible: hibernationOverlay.countdown === 0 && !hibernationOverlay.countdownActive
+                    text: Translations.hibernationKeepHoldingBrakes
+                    font.pixelSize: ThemeStore.fontBody
                     color: hibernationOverlay.textSecondary
                 }
 
@@ -168,7 +169,7 @@ Item {
                     Rectangle {
                         width: 160
                         height: kickstandCol.height + 32
-                        radius: themeStore.radiusModal
+                        radius: ThemeStore.radiusModal
                         color: "#33F44336"
                         border.width: 1
                         border.color: "#80F44336"
@@ -182,22 +183,22 @@ Item {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: MaterialIcon.iconClose
                                 font.family: "Material Icons"
-                                font.pixelSize: themeStore.fontHeading
+                                font.pixelSize: ThemeStore.fontHeading
                                 color: "#F44336"
                             }
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: typeof translations !== "undefined" ? translations.hibernationCancel : ""
-                                font.pixelSize: themeStore.fontBody
+                                text: Translations.hibernationCancel
+                                font.pixelSize: ThemeStore.fontBody
                                 font.weight: Font.Bold
                                 color: hibernationOverlay.textPrimary
                             }
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: typeof translations !== "undefined" ? translations.hibernationKickstand : ""
-                                font.pixelSize: themeStore.fontBody
+                                text: Translations.hibernationKickstand
+                                font.pixelSize: ThemeStore.fontBody
                                 color: hibernationOverlay.textSecondary
                             }
                         }
@@ -207,7 +208,7 @@ Item {
                     Rectangle {
                         width: 160
                         height: keycardCol.height + 32
-                        radius: themeStore.radiusModal
+                        radius: ThemeStore.radiusModal
                         color: "#334CAF50"
                         border.width: 1
                         border.color: "#804CAF50"
@@ -221,22 +222,22 @@ Item {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: MaterialIcon.iconCheck
                                 font.family: "Material Icons"
-                                font.pixelSize: themeStore.fontHeading
+                                font.pixelSize: ThemeStore.fontHeading
                                 color: "#4CAF50"
                             }
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: typeof translations !== "undefined" ? translations.hibernationConfirm : ""
-                                font.pixelSize: themeStore.fontBody
+                                text: Translations.hibernationConfirm
+                                font.pixelSize: ThemeStore.fontBody
                                 font.weight: Font.Bold
                                 color: hibernationOverlay.textPrimary
                             }
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: typeof translations !== "undefined" ? translations.hibernationTapKeycardToConfirm : ""
-                                font.pixelSize: themeStore.fontBody
+                                text: Translations.hibernationTapKeycardToConfirm
+                                font.pixelSize: ThemeStore.fontBody
                                 color: hibernationOverlay.textSecondary
                             }
                         }
@@ -251,34 +252,34 @@ Item {
         anchors.fill: parent
         color: "#FF9800"
         opacity: 0.9
-        visible: isSeatboxMode
+        visible: hibernationOverlay.isSeatboxMode
     }
 
     Column {
         anchors.centerIn: parent
-        visible: isSeatboxMode
+        visible: hibernationOverlay.isSeatboxMode
         spacing: 16
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: String.fromCodePoint(0xf02a0) // warning_amber_rounded
             font.family: "Material Icons"
-            font.pixelSize: themeStore.fontHero
+            font.pixelSize: ThemeStore.fontHero
             color: "#FFFFFF"
         }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: typeof translations !== "undefined" ? translations.hibernateSeatboxOpen : ""
-            font.pixelSize: themeStore.fontHeading
+            text: Translations.hibernateSeatboxOpen
+            font.pixelSize: ThemeStore.fontHeading
             font.weight: Font.Bold
             color: "#000000"
         }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: typeof translations !== "undefined" ? translations.hibernateCloseSeatbox : ""
-            font.pixelSize: themeStore.fontBody
+            text: Translations.hibernateCloseSeatbox
+            font.pixelSize: ThemeStore.fontBody
             color: "#000000"
         }
     }
@@ -288,26 +289,26 @@ Item {
         anchors.fill: parent
         color: hibernationOverlay.scrimColor
         opacity: 0.8
-        visible: isConfirmMode
+        visible: hibernationOverlay.isConfirmMode
     }
 
     Column {
         anchors.centerIn: parent
-        visible: isConfirmMode
+        visible: hibernationOverlay.isConfirmMode
         spacing: 16
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: MaterialIcon.iconPowerSettingsNew
             font.family: "Material Icons"
-            font.pixelSize: themeStore.fontHero
+            font.pixelSize: ThemeStore.fontHero
             color: "#F44336"
         }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: typeof translations !== "undefined" ? translations.hibernating : ""
-            font.pixelSize: themeStore.fontHeading
+            text: Translations.hibernating
+            font.pixelSize: ThemeStore.fontHeading
             font.weight: Font.Bold
             color: hibernationOverlay.textPrimary
         }
@@ -317,7 +318,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             width: 32
             height: 32
-            radius: themeStore.radiusModal
+            radius: ThemeStore.radiusModal
             color: "transparent"
             border.color: hibernationOverlay.textPrimary
             border.width: 3
@@ -335,7 +336,7 @@ Item {
                 from: 0; to: 360
                 duration: 1000
                 loops: Animation.Infinite
-                running: isConfirmMode
+                running: hibernationOverlay.isConfirmMode
             }
         }
     }

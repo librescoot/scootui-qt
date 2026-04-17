@@ -358,7 +358,18 @@ if(DESKTOP_MODE)
     target_link_libraries(scootui PRIVATE Qt6::QuickControls2)
 endif()
 
-target_include_directories(scootui PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(scootui PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/stores
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/services
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/l10n
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/repositories
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/models
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/routing
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/simulator
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/utils
+)
 
 install(TARGETS scootui
     BUNDLE DESTINATION .

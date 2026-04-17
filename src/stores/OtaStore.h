@@ -1,10 +1,16 @@
 #pragma once
 
 #include "SyncableStore.h"
+#include <QtQml/qqmlregistration.h>
+
+class QQmlEngine;
+class QJSEngine;
 
 class OtaStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(QString dbcStatus READ dbcStatus NOTIFY dbcStatusChanged)
     Q_PROPERTY(QString dbcUpdateVersion READ dbcUpdateVersion NOTIFY dbcUpdateVersionChanged)
     Q_PROPERTY(QString dbcUpdateMethod READ dbcUpdateMethod NOTIFY dbcUpdateMethodChanged)
@@ -23,6 +29,7 @@ class OtaStore : public SyncableStore
 
 public:
     explicit OtaStore(MdbRepository *repo, QObject *parent = nullptr);
+    static OtaStore *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     QString dbcStatus() const { return m_dbcStatus; }
     QString dbcUpdateVersion() const { return m_dbcUpdateVersion; }
@@ -76,4 +83,6 @@ private:
     QString m_mdbErrorMessage;
     int m_mdbDownloadProgress = 0;
     int m_mdbInstallProgress = 0;
+
+    static inline OtaStore *s_instance = nullptr;
 };

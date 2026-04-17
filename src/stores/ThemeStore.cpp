@@ -5,6 +5,7 @@ ThemeStore::ThemeStore(SettingsStore *settings, QObject *parent)
     : QObject(parent)
     , m_settings(settings)
 {
+    s_instance = this;
     connect(m_settings, &SettingsStore::themeChanged,
             this, &ThemeStore::onSettingsThemeChanged);
     onSettingsThemeChanged();

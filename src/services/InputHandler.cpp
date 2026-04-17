@@ -11,6 +11,7 @@ InputHandler::InputHandler(VehicleStore *vehicle, MdbRepository *repo, QObject *
     , m_vehicle(vehicle)
     , m_repo(repo)
 {
+    s_instance = this;
     if (m_repo) {
         m_repo->subscribe(QLatin1String(kInputEventsChannel),
                           [this](const QString &, const QString &msg) {

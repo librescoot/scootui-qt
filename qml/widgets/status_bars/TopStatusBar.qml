@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import "../indicators"
+import ScootUI 1.0
 
 Rectangle {
     id: topBar
@@ -15,7 +16,7 @@ Rectangle {
         anchors.bottom: parent.bottom
         width: parent.width
         height: 1
-        color: themeStore.borderColor
+        color: ThemeStore.borderColor
     }
 
     RowLayout {
@@ -41,14 +42,14 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.preferredWidth: 1
-            visible: typeof settingsStore === "undefined" || settingsStore.showClock !== "never"
+            visible: false || SettingsStore.showClock !== "never"
 
             Text {
                 id: clockText
                 anchors.centerIn: parent
-                font.pixelSize: themeStore.fontTitle
+                font.pixelSize: ThemeStore.fontTitle
                 font.weight: Font.Medium
-                color: themeStore.textColor
+                color: ThemeStore.textColor
 
                 property string timeStr: ""
                 Timer {

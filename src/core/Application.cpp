@@ -168,6 +168,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
     auto *vehicleStore = new VehicleStore(repo, this);
     auto *battery0Store = new BatteryStore(repo, QStringLiteral("0"), this);
     auto *battery1Store = new BatteryStore(repo, QStringLiteral("1"), this);
+    Battery0StoreForeign::s_instance = battery0Store;
+    Battery1StoreForeign::s_instance = battery1Store;
     auto *gpsStore = new GpsStore(repo, this);
     auto *bluetoothStore = new BluetoothStore(repo, this);
     auto *internetStore = new InternetStore(repo, this);
@@ -433,55 +435,14 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // Register context properties
     auto *ctx = engine.rootContext();
     ctx->setContextProperty(QStringLiteral("bootTimer"), new BootTimer(this));
-    ctx->setContextProperty(QStringLiteral("engineStore"), engineStore);
-    ctx->setContextProperty(QStringLiteral("vehicleStore"), vehicleStore);
-    ctx->setContextProperty(QStringLiteral("battery0Store"), battery0Store);
-    ctx->setContextProperty(QStringLiteral("battery1Store"), battery1Store);
-    ctx->setContextProperty(QStringLiteral("gpsStore"), gpsStore);
-    ctx->setContextProperty(QStringLiteral("bluetoothStore"), bluetoothStore);
-    ctx->setContextProperty(QStringLiteral("internetStore"), internetStore);
-    ctx->setContextProperty(QStringLiteral("navigationStore"), navigationStore);
-    ctx->setContextProperty(QStringLiteral("settingsStore"), settingsStore);
-    ctx->setContextProperty(QStringLiteral("otaStore"), otaStore);
-    ctx->setContextProperty(QStringLiteral("usbStore"), usbStore);
-    ctx->setContextProperty(QStringLiteral("speedLimitStore"), speedLimitStore);
-    ctx->setContextProperty(QStringLiteral("autoStandbyStore"), autoStandbyStore);
-    ctx->setContextProperty(QStringLiteral("cbBatteryStore"), cbBatteryStore);
-    ctx->setContextProperty(QStringLiteral("auxBatteryStore"), auxBatteryStore);
-    ctx->setContextProperty(QStringLiteral("themeStore"), themeStore);
-    ctx->setContextProperty(QStringLiteral("screenStore"), screenStore);
-    ctx->setContextProperty(QStringLiteral("menuStore"), menuStore);
-    ctx->setContextProperty(QStringLiteral("hopOnStore"), hopOnStore);
-    ctx->setContextProperty(QStringLiteral("tripStore"), tripStore);
-    ctx->setContextProperty(QStringLiteral("shutdownStore"), shutdownStore);
-    ctx->setContextProperty(QStringLiteral("localeStore"), localeStore);
-    ctx->setContextProperty(QStringLiteral("shortcutMenuStore"), shortcutMenuStore);
-    ctx->setContextProperty(QStringLiteral("translations"), m_translations);
-    ctx->setContextProperty(QStringLiteral("settingsService"), m_settingsService);
-    ctx->setContextProperty(QStringLiteral("navigationService"), m_navigationService);
 
     // New context properties
-    ctx->setContextProperty(QStringLiteral("connectionStore"), connectionStore);
-    ctx->setContextProperty(QStringLiteral("dashboardStore"), dashboardStore);
-    ctx->setContextProperty(QStringLiteral("toastService"), m_toastService);
-    ctx->setContextProperty(QStringLiteral("mapService"), m_mapService);
-    ctx->setContextProperty(QStringLiteral("inputHandler"), m_inputHandler);
-    ctx->setContextProperty(QStringLiteral("navAvailabilityService"), m_navAvailability);
-    ctx->setContextProperty(QStringLiteral("savedLocationsStore"), savedLocationsStore);
-    ctx->setContextProperty(QStringLiteral("serialNumberService"), m_serialNumberService);
-    ctx->setContextProperty(QStringLiteral("addressDatabase"), m_addressDatabaseService);
-    ctx->setContextProperty(QStringLiteral("mapDownloadService"), m_mapDownloadService);
-    ctx->setContextProperty(QStringLiteral("umsLogStore"), umsLogStore);
-    ctx->setContextProperty(QStringLiteral("systemInfoService"), m_systemInfoService);
-    ctx->setContextProperty(QStringLiteral("odometerMilestoneService"), m_odometerMilestoneService);
 
     // Simulator service (created in sim mode, null otherwise)
     if (m_simulatorMode) {
         m_simulatorService = new SimulatorService(repo, m_navigationService, this);
-        ctx->setContextProperty(QStringLiteral("simulator"), m_simulatorService);
         ctx->setContextProperty(QStringLiteral("simulatorMode"), true);
     } else {
-        ctx->setContextProperty(QStringLiteral("simulator"), nullptr);
         ctx->setContextProperty(QStringLiteral("simulatorMode"), false);
     }
 

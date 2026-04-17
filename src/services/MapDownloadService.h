@@ -8,10 +8,16 @@
 #include <functional>
 #include "models/Enums.h"
 #include "models/MapMetadata.h"
+#include <QtQml/qqmlregistration.h>
+
+class QQmlEngine;
+class QJSEngine;
 
 class MapDownloadService : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(int status READ status NOTIFY statusChanged)
     Q_PROPERTY(double progress READ progress NOTIFY progressChanged)
     Q_PROPERTY(QString regionName READ regionName NOTIFY regionNameChanged)
@@ -26,6 +32,7 @@ class MapDownloadService : public QObject
 
 public:
     explicit MapDownloadService(bool simulatorMode, QObject *parent = nullptr);
+    static MapDownloadService *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     int status() const { return static_cast<int>(m_status); }
     double progress() const { return m_progress; }
@@ -123,4 +130,6 @@ private:
     AssetInfo m_routingAsset;
 
     static const QHash<QString, QString> s_stateToSlug;
+
+    static inline MapDownloadService *s_instance = nullptr;
 };

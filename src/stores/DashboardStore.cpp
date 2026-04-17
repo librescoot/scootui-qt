@@ -3,6 +3,7 @@
 DashboardStore::DashboardStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
+    s_instance = this;
 }
 
 SyncSettings DashboardStore::syncSettings() const

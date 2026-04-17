@@ -11,6 +11,7 @@
 #include <QVector>
 #include <atomic>
 #include <memory>
+#include <QtQml/qqmlregistration.h>
 
 struct AddressEntry {
     QString city;
@@ -21,9 +22,14 @@ struct AddressEntry {
     double longitude;
 };
 
+class QQmlEngine;
+class QJSEngine;
+
 class AddressDatabaseService : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(int status READ status NOTIFY statusChanged)
     Q_PROPERTY(double buildProgress READ buildProgress NOTIFY buildProgressChanged)
     Q_PROPERTY(int addressCount READ addressCount NOTIFY addressCountChanged)
@@ -34,6 +40,7 @@ public:
     Q_ENUM(Status)
 
     explicit AddressDatabaseService(QObject *parent = nullptr);
+    static AddressDatabaseService *create(QQmlEngine *, QJSEngine *) { return s_instance; }
     ~AddressDatabaseService();
 
     int status() const { return m_status; }
@@ -157,4 +164,6 @@ private:
 public:
     static const QString MbtilesPath;
     static const QString CachePath;
+
+    static inline AddressDatabaseService *s_instance = nullptr;
 };

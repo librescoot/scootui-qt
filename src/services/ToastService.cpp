@@ -4,6 +4,7 @@
 ToastService::ToastService(QObject *parent)
     : QObject(parent)
 {
+    s_instance = this;
 }
 
 QVariantList ToastService::toasts() const

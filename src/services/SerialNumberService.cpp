@@ -6,6 +6,7 @@
 SerialNumberService::SerialNumberService(QObject *parent)
     : QObject(parent)
 {
+    s_instance = this;
     readSerialNumber();
 }
 

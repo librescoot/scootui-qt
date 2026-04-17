@@ -5,10 +5,16 @@
 #include <QTimer>
 #include <QElapsedTimer>
 #include <QEasingCurve>
+#include <QtQml/qqmlregistration.h>
+
+class QQmlEngine;
+class QJSEngine;
 
 class VehicleStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(int blinkerState READ blinkerState NOTIFY blinkerStateChanged)
     Q_PROPERTY(int blinkerSwitch READ blinkerSwitch NOTIFY blinkerSwitchChanged)
     Q_PROPERTY(qreal blinkOpacity READ blinkOpacity NOTIFY blinkOpacityChanged)
@@ -29,6 +35,7 @@ class VehicleStore : public SyncableStore
 public:
     explicit VehicleStore(MdbRepository *repo, QObject *parent = nullptr);
     ~VehicleStore() override;
+    static VehicleStore *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     int blinkerState() const { return static_cast<int>(m_blinkerState); }
     int blinkerSwitch() const { return static_cast<int>(m_blinkerSwitch); }
@@ -108,4 +115,6 @@ private:
     ScootEnums::Toggle m_isUnableToDrive = ScootEnums::Toggle::Off;
     bool m_hopOnActive = false;
     ScootEnums::Toggle m_mainPower = ScootEnums::Toggle::Off;
+
+    static inline VehicleStore *s_instance = nullptr;
 };

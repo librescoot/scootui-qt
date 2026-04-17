@@ -3,14 +3,20 @@
 #include <QObject>
 #include <QSet>
 #include <QString>
+#include <QtQml/qqmlregistration.h>
 
 class EngineStore;
 class VehicleStore;
 class ConnectionStore;
 
+class QQmlEngine;
+class QJSEngine;
+
 class OdometerMilestoneService : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(double currentKm READ currentKm NOTIFY milestoneReached)
     Q_PROPERTY(int currentIntensity READ currentIntensity NOTIFY milestoneReached)
     Q_PROPERTY(QString currentTag READ currentTag NOTIFY milestoneReached)
@@ -65,4 +71,6 @@ private:
     QString easterEggsPath() const;
     bool loadEasterEggsEnabled() const;
     void saveEasterEggsEnabled(bool enabled);
+
+    static inline OdometerMilestoneService *s_instance = nullptr;
 };

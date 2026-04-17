@@ -1,14 +1,15 @@
 import QtQuick
+import ScootUI 1.0
 
 Item {
     id: versionOverlay
     anchors.fill: parent
 
-    property bool bothBrakes: typeof vehicleStore !== "undefined"
-                              ? (vehicleStore.brakeLeft === 0 && vehicleStore.brakeRight === 0)
+    property bool bothBrakes: true
+                              ? (VehicleStore.brakeLeft === 0 && VehicleStore.brakeRight === 0)
                               : false
-    property bool canShow: typeof vehicleStore !== "undefined" && typeof menuStore !== "undefined"
-                           ? (vehicleStore.state === 4 && !menuStore.isOpen)
+    property bool canShow: true
+                           ? (VehicleStore.state === 4 && !MenuStore.isOpen)
                            : false
     property bool showOverlay: false
 
@@ -22,8 +23,8 @@ Item {
     }
 
     onShowOverlayChanged: {
-        if (showOverlay && typeof systemInfoService !== "undefined")
-            systemInfoService.loadVersions()
+        if (showOverlay && true)
+            SystemInfoService.loadVersions()
     }
 
     Timer {
@@ -42,23 +43,24 @@ Item {
 
     // Positioned bottom-right
     Rectangle {
+        id: versionCard
         anchors.bottom: parent.bottom
         anchors.right: parent.right
         anchors.bottomMargin: 80
         anchors.rightMargin: 20
         width: infoColumn.width + 24
         height: infoColumn.height + 24
-        radius: themeStore.radiusCard
+        radius: ThemeStore.radiusCard
 
-        color: typeof themeStore !== "undefined" && themeStore.isDark
+        color: ThemeStore.isDark
                ? "#B3000000"   // black 0.7 opacity
                : "#B3FFFFFF"   // white 0.7 opacity
         border.width: 1.5
-        border.color: typeof themeStore !== "undefined" && themeStore.isDark
+        border.color: ThemeStore.isDark
                       ? "#FFFFFF"
                       : "#000000"
 
-        property color textColor: typeof themeStore !== "undefined" && themeStore.isDark
+        property color textColor: ThemeStore.isDark
                                   ? "#FFFFFF" : "#000000"
 
         Column {
@@ -67,72 +69,67 @@ Item {
             spacing: 4
 
             Text {
-                text: "MDB: " + (typeof systemInfoService !== "undefined"
-                      ? systemInfoService.mdbVersion : "unknown")
-                font.pixelSize: themeStore.fontBody
-                color: parent.parent.textColor
+                text: "MDB: " + (SystemInfoService.mdbVersion)
+                font.pixelSize: ThemeStore.fontBody
+                color: versionCard.textColor
             }
 
             Text {
-                text: "DBC: " + (typeof systemInfoService !== "undefined"
-                      ? systemInfoService.dbcVersion : "unknown")
-                font.pixelSize: themeStore.fontBody
-                color: parent.parent.textColor
+                text: "DBC: " + (SystemInfoService.dbcVersion)
+                font.pixelSize: ThemeStore.fontBody
+                color: versionCard.textColor
             }
 
             Text {
-                text: "nRF: " + (typeof systemInfoService !== "undefined"
-                      ? systemInfoService.nrfVersion : "unknown")
-                font.pixelSize: themeStore.fontBody
-                color: parent.parent.textColor
+                text: "nRF: " + (SystemInfoService.nrfVersion)
+                font.pixelSize: ThemeStore.fontBody
+                color: versionCard.textColor
             }
 
             Text {
-                text: "ECU: " + (typeof systemInfoService !== "undefined"
-                      ? systemInfoService.ecuVersion : "unknown")
-                font.pixelSize: themeStore.fontBody
-                color: parent.parent.textColor
+                text: "ECU: " + (SystemInfoService.ecuVersion)
+                font.pixelSize: ThemeStore.fontBody
+                color: versionCard.textColor
             }
 
             // Divider
             Rectangle {
                 width: parent.width
                 height: 1
-                color: parent.parent.textColor
+                color: versionCard.textColor
                 opacity: 0.3
             }
 
             Text {
-                text: "AUX: " + (typeof auxBatteryStore !== "undefined"
-                      ? auxBatteryStore.voltage + "mV " + auxBatteryStore.charge + "%"
+                text: "AUX: " + (true
+                      ? AuxBatteryStore.voltage + "mV " + AuxBatteryStore.charge + "%"
                       : "unknown")
-                font.pixelSize: themeStore.fontBody
-                color: parent.parent.textColor
+                font.pixelSize: ThemeStore.fontBody
+                color: versionCard.textColor
             }
 
             Text {
-                text: "CBB: " + (typeof cbBatteryStore !== "undefined"
-                      ? cbBatteryStore.charge + "%"
+                text: "CBB: " + (true
+                      ? CbBatteryStore.charge + "%"
                       : "unknown")
-                font.pixelSize: themeStore.fontBody
-                color: parent.parent.textColor
+                font.pixelSize: ThemeStore.fontBody
+                color: versionCard.textColor
             }
 
             // Serial number
             Rectangle {
-                visible: typeof serialNumberService !== "undefined" && serialNumberService.available
+                visible: SerialNumberService.available
                 width: parent.width
                 height: 1
-                color: parent.parent.textColor
+                color: versionCard.textColor
                 opacity: 0.3
             }
 
             Text {
-                visible: typeof serialNumberService !== "undefined" && serialNumberService.available
-                text: "S/N: " + (typeof serialNumberService !== "undefined"
-                      ? serialNumberService.serialNumber : "")
-                font.pixelSize: themeStore.fontBody
-                color: parent.parent.textColor
+                visible: SerialNumberService.available
+                text: "S/N: " + (SerialNumberService.serialNumber)
+                font.pixelSize: ThemeStore.fontBody
+                color: versionCard.textColor
             }
         }
     }

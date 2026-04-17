@@ -1,5 +1,6 @@
 import QtQuick
 import "../widgets/components"
+import ScootUI 1.0
 
 // Full-screen lock overlay shown while hop-on / hop-off mode is engaged.
 // The display backlight is OFF underneath this overlay (set by HopOnStore
@@ -17,11 +18,11 @@ Item {
     // HopOnStore.Mode.Locked == 2
     readonly property int modeLocked: 2
 
-    property int mode: typeof hopOnStore !== "undefined" ? hopOnStore.mode : 0
+    property int mode: HopOnStore.mode
 
     visible: mode === modeLocked
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: ThemeStore.isDark
     readonly property color scrimColor:    isDark ? "#000000" : "#FFFFFF"
     readonly property color cardColor:     isDark ? "#CC000000" : "#CCFFFFFF"
     readonly property color cardBorder:    isDark ? "#4DFFFFFF" : "#4D000000"
@@ -48,7 +49,7 @@ Item {
             color: lockOverlay.cardColor
             border.width: 1
             border.color: lockOverlay.cardBorder
-            radius: typeof themeStore !== "undefined" ? themeStore.radiusModal : 16
+            radius: ThemeStore.radiusModal
 
             Column {
                 id: cardContent
@@ -63,14 +64,14 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: MaterialIcon.iconLock
                     font.family: "Material Icons"
-                    font.pixelSize: typeof themeStore !== "undefined" ? themeStore.fontHero : 48
+                    font.pixelSize: ThemeStore.fontHero
                     color: lockOverlay.textPrimary
                 }
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.hopOnLockedTitle : "Hop-on active"
-                    font.pixelSize: typeof themeStore !== "undefined" ? themeStore.fontHeading : 28
+                    text: Translations.hopOnLockedTitle
+                    font.pixelSize: ThemeStore.fontHeading
                     font.weight: Font.Bold
                     color: lockOverlay.textPrimary
                     horizontalAlignment: Text.AlignHCenter
@@ -80,8 +81,8 @@ Item {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.hopOnLockedHint : "Press your combo to unlock"
-                    font.pixelSize: typeof themeStore !== "undefined" ? themeStore.fontBody : 18
+                    text: Translations.hopOnLockedHint
+                    font.pixelSize: ThemeStore.fontBody
                     color: lockOverlay.textSecondary
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap

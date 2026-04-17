@@ -22,6 +22,7 @@ HopOnStore::HopOnStore(VehicleStore *vehicle,
     , m_dashboard(dashboard)
     , m_repo(repo)
 {
+    s_instance = this;
     m_idleTimer.setSingleShot(true);
     m_idleTimer.setInterval(kIdleTimeoutMs);
     connect(&m_idleTimer, &QTimer::timeout, this, &HopOnStore::onIdleTimeout);

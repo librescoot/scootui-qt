@@ -5,6 +5,7 @@
 AutoStandbyStore::AutoStandbyStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
+    s_instance = this;
     m_tickTimer.setInterval(1000);
     m_tickTimer.setSingleShot(false);
     connect(&m_tickTimer, &QTimer::timeout, this, &AutoStandbyStore::recomputeRemaining);

@@ -4,6 +4,7 @@
 #include "models/Enums.h"
 
 #include <QSet>
+#include <QtQml/qqmlregistration.h>
 
 class BatteryStore : public SyncableStore
 {
@@ -88,4 +89,27 @@ private:
     QString m_manufacturingDate;
     QString m_firmwareVersion;
     QSet<int> m_faults;
+};
+
+class QQmlEngine;
+class QJSEngine;
+
+struct Battery0StoreForeign {
+    Q_GADGET
+    QML_FOREIGN(BatteryStore)
+    QML_SINGLETON
+    QML_NAMED_ELEMENT(Battery0Store)
+public:
+    static BatteryStore *create(QQmlEngine *, QJSEngine *) { return s_instance; }
+    static inline BatteryStore *s_instance = nullptr;
+};
+
+struct Battery1StoreForeign {
+    Q_GADGET
+    QML_FOREIGN(BatteryStore)
+    QML_SINGLETON
+    QML_NAMED_ELEMENT(Battery1Store)
+public:
+    static BatteryStore *create(QQmlEngine *, QJSEngine *) { return s_instance; }
+    static inline BatteryStore *s_instance = nullptr;
 };
