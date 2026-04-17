@@ -69,6 +69,16 @@ extern QElapsedTimer g_bootTimer;
 #define BOOT_MARK(what) \
     qDebug().nospace().noquote() << QStringLiteral("[boot +%1ms] %2").arg(g_bootTimer.elapsed(), 5).arg(QStringLiteral(what))
 
+// Tiny QObject wrapper exposed to QML so Component.onCompleted handlers
+// can log "[boot +Nms]" markers aligned with the C++ BOOT_MARK output.
+// Remove alongside the BOOT_MARK call sites once we're done measuring.
+class BootTimer : public QObject {
+    Q_OBJECT
+public:
+    explicit BootTimer(QObject *parent = nullptr) : QObject(parent) {}
+    Q_INVOKABLE qint64 elapsed() const { return g_bootTimer.elapsed(); }
+};
+
 #ifdef Q_OS_LINUX
 #include <QSocketNotifier>
 #include <sys/socket.h>
@@ -422,6 +432,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Register context properties
     auto *ctx = engine.rootContext();
+    ctx->setContextProperty(QStringLiteral("bootTimer"), new BootTimer(this));
     ctx->setContextProperty(QStringLiteral("engineStore"), engineStore);
     ctx->setContextProperty(QStringLiteral("vehicleStore"), vehicleStore);
     ctx->setContextProperty(QStringLiteral("battery0Store"), battery0Store);
@@ -605,3 +616,7 @@ void Application::setupSignalHandlers()
     }
 #endif
 }
+
+// BootTimer's Q_OBJECT class is defined inline above; AUTOMOC needs
+// this include to pick it up from the .cpp.
+#include "Application.moc"

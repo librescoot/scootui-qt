@@ -10,6 +10,9 @@ Rectangle {
     id: clusterScreen
     color: themeStore.backgroundColor
 
+    Component.onCompleted: if (typeof bootTimer !== "undefined")
+        console.log("[boot +" + bootTimer.elapsed() + "ms] ClusterScreen completed")
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0

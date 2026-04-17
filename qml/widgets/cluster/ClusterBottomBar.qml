@@ -5,6 +5,9 @@ Item {
     id: clusterBottom
     height: 60
 
+    Component.onCompleted: if (typeof bootTimer !== "undefined")
+        console.log("[boot +" + bootTimer.elapsed() + "ms] ClusterBottomBar completed")
+
     readonly property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : 0
     readonly property int blinkerState: typeof vehicleStore !== "undefined" ? vehicleStore.blinkerState : 0
     readonly property int unableToDrive: typeof vehicleStore !== "undefined" ? vehicleStore.isUnableToDrive : 0

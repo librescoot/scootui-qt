@@ -6,6 +6,9 @@ Rectangle {
     color: typeof themeStore !== "undefined" ? themeStore.backgroundColor : "black"
     implicitHeight: Math.max(leftCol.height, centerItem.childrenRect.height, rightCol.height) + 8
 
+    Component.onCompleted: if (typeof bootTimer !== "undefined")
+        console.log("[boot +" + bootTimer.elapsed() + "ms] UnifiedBottomStatusBar completed")
+
     default property alias centerContent: centerItem.data
 
     readonly property real tripDistance: typeof tripStore !== "undefined" ? tripStore.distance : 0
