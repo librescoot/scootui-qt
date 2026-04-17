@@ -1,5 +1,4 @@
 import QtQuick
-import "../indicators"
 import ScootUI 1.0
 
 Item {
