@@ -15,6 +15,7 @@ Item {
         }
         return typeof engineStore !== "undefined" ? engineStore.speed : 0
     }
+    readonly property bool ecuStale: typeof engineStore !== "undefined" && engineStore.faultCode === 20
 
     // Tight bounding rect metrics for pixel-perfect sizing
     TextMetrics {
@@ -39,7 +40,7 @@ Item {
         Text {
             id: speedText
             anchors.horizontalCenter: parent.horizontalCenter
-            text: Math.floor(speed).toString()
+            text: speedCenter.ecuStale ? "—" : Math.floor(speed).toString()
             font.pixelSize: themeStore.fontXL
             font.weight: Font.Bold
             color: themeStore.textColor

@@ -19,6 +19,8 @@ class EngineStore : public SyncableStore
     Q_PROPERTY(QString firmwareVersion READ firmwareVersion NOTIFY firmwareVersionChanged)
     Q_PROPERTY(double odometer READ odometer NOTIFY odometerChanged)
     Q_PROPERTY(double temperature READ temperature NOTIFY temperatureChanged)
+    Q_PROPERTY(int faultCode READ faultCode NOTIFY faultCodeChanged)
+    Q_PROPERTY(QString faultDescription READ faultDescription NOTIFY faultDescriptionChanged)
 
 public:
     explicit EngineStore(MdbRepository *repo, QObject *parent = nullptr);
@@ -36,6 +38,8 @@ public:
     QString firmwareVersion() const { return m_firmwareVersion; }
     double odometer() const { return m_odometer; }
     double temperature() const { return m_temperature; }
+    int faultCode() const { return m_faultCode; }
+    QString faultDescription() const { return m_faultDescription; }
 
 signals:
     void powerStateChanged();
@@ -50,6 +54,8 @@ signals:
     void firmwareVersionChanged();
     void odometerChanged();
     void temperatureChanged();
+    void faultCodeChanged();
+    void faultDescriptionChanged();
 
 protected:
     SyncSettings syncSettings() const override;
@@ -69,4 +75,6 @@ private:
     QString m_firmwareVersion;
     double m_odometer = 0;
     double m_temperature = 0;
+    int m_faultCode = 0;
+    QString m_faultDescription;
 };

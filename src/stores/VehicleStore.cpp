@@ -58,6 +58,7 @@ SyncSettings VehicleStore::syncSettings() const
             {QStringLiteral("hornButton"), QStringLiteral("horn-button")},
             {QStringLiteral("isUnableToDrive"), QStringLiteral("unable-to-drive")},
             {QStringLiteral("hopOnActive"), QStringLiteral("hop-on-active")},
+            {QStringLiteral("mainPower"), QStringLiteral("main-power")},
         },
         {},
         {}
@@ -131,6 +132,9 @@ void VehicleStore::applyFieldUpdate(const QString &variable, const QString &valu
     } else if (variable == QLatin1String("hop-on-active")) {
         bool v = (value == QLatin1String("true"));
         if (v != m_hopOnActive) { m_hopOnActive = v; emit hopOnActiveChanged(); }
+    } else if (variable == QLatin1String("main-power")) {
+        auto v = ScootEnums::parseToggle(value);
+        if (v != m_mainPower) { m_mainPower = v; emit mainPowerChanged(); }
     }
 }
 

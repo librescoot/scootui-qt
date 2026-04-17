@@ -7,6 +7,7 @@ Item {
     // Properties from stores
     readonly property real targetSpeed: typeof engineStore !== "undefined" ? engineStore.speed : 0
     readonly property real motorCurrent: typeof engineStore !== "undefined" ? engineStore.motorCurrent : 0
+    readonly property bool ecuStale: typeof engineStore !== "undefined" && engineStore.faultCode === 20
     readonly property bool isDark: themeStore.isDark
 
     // Internal animated speed
@@ -221,7 +222,7 @@ Item {
         id: speedText
         anchors.horizontalCenter: parent.horizontalCenter
         y: parent.height / 2 - height / 2
-        text: Math.floor(speedometer.animatedSpeed).toString()
+        text: speedometer.ecuStale ? "—" : Math.floor(speedometer.animatedSpeed).toString()
         font.pixelSize: themeStore.fontDisplay
         font.weight: Font.Bold
         color: speedometer.isDark ? "#FFFFFF" : "#000000"

@@ -23,6 +23,8 @@ SyncSettings EngineStore::syncSettings() const
             {QStringLiteral("firmwareVersion"), QStringLiteral("fw-version")},
             {QStringLiteral("odometer"), QStringLiteral("odometer")},
             {QStringLiteral("temperature"), QStringLiteral("temperature")},
+            {QStringLiteral("faultCode"), QStringLiteral("fault:code")},
+            {QStringLiteral("faultDescription"), QStringLiteral("fault:description")},
         },
         {}, // no set fields
         {}  // no discriminator
@@ -69,5 +71,10 @@ void EngineStore::applyFieldUpdate(const QString &variable, const QString &value
     } else if (variable == QLatin1String("temperature")) {
         auto v = value.toDouble();
         if (v != m_temperature) { m_temperature = v; emit temperatureChanged(); }
+    } else if (variable == QLatin1String("fault:code")) {
+        auto v = value.toInt();
+        if (v != m_faultCode) { m_faultCode = v; emit faultCodeChanged(); }
+    } else if (variable == QLatin1String("fault:description")) {
+        if (value != m_faultDescription) { m_faultDescription = value; emit faultDescriptionChanged(); }
     }
 }

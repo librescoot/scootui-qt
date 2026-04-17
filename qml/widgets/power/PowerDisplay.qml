@@ -6,6 +6,7 @@ Item {
 
     readonly property real motorCurrent: typeof engineStore !== "undefined" ? engineStore.motorCurrent : 0
     readonly property real motorVoltage: typeof engineStore !== "undefined" ? engineStore.motorVoltage : 0
+    readonly property bool ecuStale: typeof engineStore !== "undefined" && engineStore.faultCode === 20
 
     // 0 = kW (default), 1 = Amps
     readonly property int displayMode: typeof settingsStore !== "undefined" ? settingsStore.powerDisplayMode : 0
@@ -124,6 +125,7 @@ Item {
             font.pixelSize: themeStore.fontBody
             color: themeStore.textHint
             text: {
+                if (ecuStale) return "—"
                 var absVal = Math.abs(displayValue)
                 if (absVal < 0.01) return "0 " + unit
                 if (isAmpsMode) return displayValue.toFixed(0) + " " + unit

@@ -24,6 +24,7 @@ class VehicleStore : public SyncableStore
     Q_PROPERTY(int hornButton READ hornButton NOTIFY hornButtonChanged)
     Q_PROPERTY(int isUnableToDrive READ isUnableToDrive NOTIFY isUnableToDriveChanged)
     Q_PROPERTY(bool hopOnActive READ hopOnActive NOTIFY hopOnActiveChanged)
+    Q_PROPERTY(int mainPower READ mainPower NOTIFY mainPowerChanged)
 
 public:
     explicit VehicleStore(MdbRepository *repo, QObject *parent = nullptr);
@@ -44,6 +45,7 @@ public:
     int hornButton() const { return static_cast<int>(m_hornButton); }
     int isUnableToDrive() const { return static_cast<int>(m_isUnableToDrive); }
     bool hopOnActive() const { return m_hopOnActive; }
+    int mainPower() const { return static_cast<int>(m_mainPower); }
 
     // Helper getters for QML
     Q_INVOKABLE bool isParked() const { return m_state == ScootEnums::VehicleState::Parked; }
@@ -68,6 +70,7 @@ signals:
     void hornButtonChanged();
     void isUnableToDriveChanged();
     void hopOnActiveChanged();
+    void mainPowerChanged();
 
 protected:
     SyncSettings syncSettings() const override;
@@ -104,4 +107,5 @@ private:
     ScootEnums::Toggle m_hornButton = ScootEnums::Toggle::Off;
     ScootEnums::Toggle m_isUnableToDrive = ScootEnums::Toggle::Off;
     bool m_hopOnActive = false;
+    ScootEnums::Toggle m_mainPower = ScootEnums::Toggle::Off;
 };
