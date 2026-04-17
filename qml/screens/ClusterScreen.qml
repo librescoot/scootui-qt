@@ -23,9 +23,14 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            // First child — paints behind the speedometer + widgets above.
-            MilestoneConfettiLayer {
+            // Rare and event-driven — don't hold up the first paint.
+            // Confetti only fires on km milestones, TBT is only visible
+            // during active navigation. Both incubate asynchronously
+            // after the cluster is rendered.
+            Loader {
                 anchors.fill: parent
+                asynchronous: true
+                sourceComponent: Component { MilestoneConfettiLayer { anchors.fill: parent } }
             }
 
             SpeedometerDisplay {
@@ -33,12 +38,20 @@ Rectangle {
                 anchors.fill: parent
             }
 
-            TurnByTurnWidget {
-                id: tbtWidget
+            Loader {
+                id: tbtLoader
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
                 z: 10
+                asynchronous: true
+                sourceComponent: Component {
+                    TurnByTurnWidget {
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                    }
+                }
             }
 
             ColumnLayout {
@@ -46,10 +59,11 @@ Rectangle {
                 anchors.margins: 8
                 spacing: 0
 
-                // Spacer to avoid overlap with TurnByTurnWidget if it's visible
+                // Spacer to avoid overlap with TurnByTurnWidget if it's visible.
+                // tbtLoader.item is null until async incubation completes.
                 Item {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: tbtWidget.visible ? tbtWidget.height : 0
+                    Layout.preferredHeight: tbtLoader.item && tbtLoader.item.visible ? tbtLoader.item.height : 0
                 }
 
                 BlinkerRow {
