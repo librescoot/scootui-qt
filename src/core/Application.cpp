@@ -183,10 +183,9 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Address database (for destination code lookup). initialize() kicks off
     // a QtConcurrent build job that takes several seconds and competes for
-    // CPU with the rest of createStores. Defer it to the first event-loop
-    // tick so publishReady() fires without waiting on trie construction.
+    // CPU with the rest of createStores. Its singleShot is queued after
+    // MapService's below, so the map style reload gets the event loop first.
     m_addressDatabaseService = new AddressDatabaseService(this);
-    QTimer::singleShot(0, m_addressDatabaseService, &AddressDatabaseService::initialize);
 
     // M7: Navigation service
     m_navigationService = new NavigationService(gpsStore, navigationStore, vehicleStore,
@@ -209,6 +208,11 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // Map service (A2)
     m_mapService = new MapService(gpsStore, engineStore, m_navigationService,
                                    settingsStore, themeStore, speedLimitStore, this);
+
+    // Queue AddressDb init now that MapService has queued its own startup
+    // reload: we want the map style ready before the trie builder wakes up
+    // and starts competing for CPU.
+    QTimer::singleShot(0, m_addressDatabaseService, &AddressDatabaseService::initialize);
 
     // Wire MapService's dead-reckoned position into NavigationService so
     // TBT and off-route detection update smoothly between GPS samples.
