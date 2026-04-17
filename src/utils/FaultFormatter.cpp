@@ -88,3 +88,41 @@ QString FaultFormatter::getMultipleFaultsTitle(const QList<int> &codes, Translat
         return tr->faultMultipleCritical();
     return tr->faultMultipleBattery();
 }
+
+// ECU faults: all codes treated as critical except E14 (throttle held at power-up,
+// auto-clears on release). E15 is filtered at CAN ingest in ecu-service.
+FaultSeverity FaultFormatter::getEcuSeverity(int code)
+{
+    switch (code) {
+    case 14:
+        return FaultSeverity::Warning;
+    default:
+        return FaultSeverity::Critical;
+    }
+}
+
+QString FaultFormatter::getEcuDescription(int code, Translations *tr)
+{
+    switch (code) {
+    case 1:  return tr->faultEcuBatteryOverVoltage();
+    case 2:  return tr->faultEcuBatteryUnderVoltage();
+    case 3:  return tr->faultEcuMotorShortCircuit();
+    case 4:  return tr->faultEcuMotorStalled();
+    case 5:  return tr->faultEcuHallSensor();
+    case 6:  return tr->faultEcuMosfet();
+    case 7:  return tr->faultEcuMotorOpenCircuit();
+    case 10: return tr->faultEcuSelfCheck();
+    case 11: return tr->faultEcuOverTemperature();
+    case 12: return tr->faultEcuThrottleAbnormal();
+    case 13: return tr->faultEcuMotorTemperature();
+    case 14: return tr->faultEcuThrottleAtPowerUp();
+    case 16: return tr->faultEcuInternal15v();
+    case 20: return tr->faultEcuCommLost();
+    default: return tr->faultUnknown();
+    }
+}
+
+QString FaultFormatter::formatEcuFault(int code, Translations *tr)
+{
+    return QStringLiteral("E%1: %2").arg(code).arg(getEcuDescription(code, tr));
+}

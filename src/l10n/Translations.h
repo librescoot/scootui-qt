@@ -329,6 +329,22 @@ class Translations : public QObject
     Q_PROPERTY(QString faultMultipleCritical READ faultMultipleCritical NOTIFY languageChanged)
     Q_PROPERTY(QString faultMultipleBattery READ faultMultipleBattery NOTIFY languageChanged)
 
+    // ECU fault codes (Exx)
+    Q_PROPERTY(QString faultEcuBatteryOverVoltage READ faultEcuBatteryOverVoltage NOTIFY languageChanged)
+    Q_PROPERTY(QString faultEcuBatteryUnderVoltage READ faultEcuBatteryUnderVoltage NOTIFY languageChanged)
+    Q_PROPERTY(QString faultEcuMotorShortCircuit READ faultEcuMotorShortCircuit NOTIFY languageChanged)
+    Q_PROPERTY(QString faultEcuMotorStalled READ faultEcuMotorStalled NOTIFY languageChanged)
+    Q_PROPERTY(QString faultEcuHallSensor READ faultEcuHallSensor NOTIFY languageChanged)
+    Q_PROPERTY(QString faultEcuMosfet READ faultEcuMosfet NOTIFY languageChanged)
+    Q_PROPERTY(QString faultEcuMotorOpenCircuit READ faultEcuMotorOpenCircuit NOTIFY languageChanged)
+    Q_PROPERTY(QString faultEcuSelfCheck READ faultEcuSelfCheck NOTIFY languageChanged)
+    Q_PROPERTY(QString faultEcuOverTemperature READ faultEcuOverTemperature NOTIFY languageChanged)
+    Q_PROPERTY(QString faultEcuThrottleAbnormal READ faultEcuThrottleAbnormal NOTIFY languageChanged)
+    Q_PROPERTY(QString faultEcuMotorTemperature READ faultEcuMotorTemperature NOTIFY languageChanged)
+    Q_PROPERTY(QString faultEcuThrottleAtPowerUp READ faultEcuThrottleAtPowerUp NOTIFY languageChanged)
+    Q_PROPERTY(QString faultEcuInternal15v READ faultEcuInternal15v NOTIFY languageChanged)
+    Q_PROPERTY(QString faultEcuCommLost READ faultEcuCommLost NOTIFY languageChanged)
+
     // Status bar & odometer
     Q_PROPERTY(QString statusBarDuration READ statusBarDuration NOTIFY languageChanged)
     Q_PROPERTY(QString statusBarAvgSpeed READ statusBarAvgSpeed NOTIFY languageChanged)
@@ -685,6 +701,22 @@ public:
     QString faultUnknown() const { return lookup("faultUnknown"); }
     QString faultMultipleCritical() const { return lookup("faultMultipleCritical"); }
     QString faultMultipleBattery() const { return lookup("faultMultipleBattery"); }
+
+    // ECU fault codes
+    QString faultEcuBatteryOverVoltage() const { return lookup("faultEcuBatteryOverVoltage"); }
+    QString faultEcuBatteryUnderVoltage() const { return lookup("faultEcuBatteryUnderVoltage"); }
+    QString faultEcuMotorShortCircuit() const { return lookup("faultEcuMotorShortCircuit"); }
+    QString faultEcuMotorStalled() const { return lookup("faultEcuMotorStalled"); }
+    QString faultEcuHallSensor() const { return lookup("faultEcuHallSensor"); }
+    QString faultEcuMosfet() const { return lookup("faultEcuMosfet"); }
+    QString faultEcuMotorOpenCircuit() const { return lookup("faultEcuMotorOpenCircuit"); }
+    QString faultEcuSelfCheck() const { return lookup("faultEcuSelfCheck"); }
+    QString faultEcuOverTemperature() const { return lookup("faultEcuOverTemperature"); }
+    QString faultEcuThrottleAbnormal() const { return lookup("faultEcuThrottleAbnormal"); }
+    QString faultEcuMotorTemperature() const { return lookup("faultEcuMotorTemperature"); }
+    QString faultEcuThrottleAtPowerUp() const { return lookup("faultEcuThrottleAtPowerUp"); }
+    QString faultEcuInternal15v() const { return lookup("faultEcuInternal15v"); }
+    QString faultEcuCommLost() const { return lookup("faultEcuCommLost"); }
 
     // Status bar & odometer
     QString statusBarDuration() const { return lookup("statusBarDuration"); }

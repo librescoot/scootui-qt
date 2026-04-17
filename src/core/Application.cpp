@@ -312,6 +312,19 @@ void Application::createStores(QQmlApplicationEngine &engine)
     connectFaultMonitor(battery0Store);
     connectFaultMonitor(battery1Store);
 
+    // ECU fault monitoring — mirrors the battery pattern but with "E" prefix and
+    // different code→description mapping. Single-code, no fault set.
+    connect(engineStore, &EngineStore::faultCodeChanged, this, [this, engineStore]() {
+        int code = engineStore->faultCode();
+        if (code == 0)
+            return;
+        QString msg = FaultFormatter::formatEcuFault(code, m_translations);
+        if (FaultFormatter::getEcuSeverity(code) == FaultSeverity::Critical)
+            m_toastService->showError(msg);
+        else
+            m_toastService->showWarning(msg);
+    });
+
     // Wire UMS log polling to USB status
     connect(usbStore, &UsbStore::statusChanged, this, [usbStore, umsLogStore]() {
         const QString &status = usbStore->status();

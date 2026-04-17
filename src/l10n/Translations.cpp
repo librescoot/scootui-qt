@@ -962,6 +962,50 @@ void Translations::initStrings()
     en[QStringLiteral("faultMultipleBattery")] = QStringLiteral("Multiple Battery Issues");
     de[QStringLiteral("faultMultipleBattery")] = QStringLiteral("Mehrere Batterieprobleme");
 
+    // ECU fault codes (Exx)
+
+    en[QStringLiteral("faultEcuBatteryOverVoltage")] = QStringLiteral("Battery over-voltage");
+    de[QStringLiteral("faultEcuBatteryOverVoltage")] = QStringLiteral("Batterie-\u00DCberspannung");
+
+    en[QStringLiteral("faultEcuBatteryUnderVoltage")] = QStringLiteral("Battery under-voltage");
+    de[QStringLiteral("faultEcuBatteryUnderVoltage")] = QStringLiteral("Batterie-Unterspannung");
+
+    en[QStringLiteral("faultEcuMotorShortCircuit")] = QStringLiteral("Motor short-circuit");
+    de[QStringLiteral("faultEcuMotorShortCircuit")] = QStringLiteral("Motor-Kurzschluss");
+
+    en[QStringLiteral("faultEcuMotorStalled")] = QStringLiteral("Motor stalled");
+    de[QStringLiteral("faultEcuMotorStalled")] = QStringLiteral("Motor blockiert");
+
+    en[QStringLiteral("faultEcuHallSensor")] = QStringLiteral("Hall sensor fault");
+    de[QStringLiteral("faultEcuHallSensor")] = QStringLiteral("Hallsensor-Fehler");
+
+    en[QStringLiteral("faultEcuMosfet")] = QStringLiteral("MOSFET fault");
+    de[QStringLiteral("faultEcuMosfet")] = QStringLiteral("MOSFET-Fehler");
+
+    en[QStringLiteral("faultEcuMotorOpenCircuit")] = QStringLiteral("Motor open-circuit");
+    de[QStringLiteral("faultEcuMotorOpenCircuit")] = QStringLiteral("Motor-Leitungsbruch");
+
+    en[QStringLiteral("faultEcuSelfCheck")] = QStringLiteral("Self-check error");
+    de[QStringLiteral("faultEcuSelfCheck")] = QStringLiteral("Selbsttest-Fehler");
+
+    en[QStringLiteral("faultEcuOverTemperature")] = QStringLiteral("Controller over-temperature");
+    de[QStringLiteral("faultEcuOverTemperature")] = QStringLiteral("Steuerger\u00E4t-\u00DCbertemperatur");
+
+    en[QStringLiteral("faultEcuThrottleAbnormal")] = QStringLiteral("Throttle fault");
+    de[QStringLiteral("faultEcuThrottleAbnormal")] = QStringLiteral("Gasgriff-Fehler");
+
+    en[QStringLiteral("faultEcuMotorTemperature")] = QStringLiteral("Motor over-temperature");
+    de[QStringLiteral("faultEcuMotorTemperature")] = QStringLiteral("Motor-\u00DCbertemperatur");
+
+    en[QStringLiteral("faultEcuThrottleAtPowerUp")] = QStringLiteral("Throttle held at power-up");
+    de[QStringLiteral("faultEcuThrottleAtPowerUp")] = QStringLiteral("Gasgriff beim Einschalten aktiv");
+
+    en[QStringLiteral("faultEcuInternal15v")] = QStringLiteral("Internal 15V fault");
+    de[QStringLiteral("faultEcuInternal15v")] = QStringLiteral("Interner 15V-Fehler");
+
+    en[QStringLiteral("faultEcuCommLost")] = QStringLiteral("ECU communication lost");
+    de[QStringLiteral("faultEcuCommLost")] = QStringLiteral("ECU-Kommunikation unterbrochen");
+
     // -----------------------------------------------------------------------
     // Status bar & odometer
     // -----------------------------------------------------------------------
