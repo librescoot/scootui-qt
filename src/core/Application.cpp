@@ -57,10 +57,17 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFileSystemWatcher>
 #include <QProcess>
 #include <QFile>
 #include <QTimer>
+
+// Shared boot timer defined in main.cpp — markers added at startup
+// checkpoints so we can see where time goes on a live DBC.
+extern QElapsedTimer g_bootTimer;
+#define BOOT_MARK(what) \
+    qDebug().nospace().noquote() << QStringLiteral("[boot +%1ms] %2").arg(g_bootTimer.elapsed(), 5).arg(QStringLiteral(what))
 
 #ifdef Q_OS_LINUX
 #include <QSocketNotifier>
@@ -132,8 +139,11 @@ bool Application::initialize(QQmlApplicationEngine &engine)
 
     qmlRegisterUncreatableMetaObject(ScootEnums::staticMetaObject, "ScootUI", 1, 0, "Scooter", "");
 
+    BOOT_MARK("createStores() start");
     createStores(engine);
+    BOOT_MARK("createStores() done");
     registerContextProperties(engine);
+    BOOT_MARK("registerContextProperties() done");
     setupSignalHandlers();
 
     return true;
@@ -172,6 +182,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // New stores
     auto *connectionStore = new ConnectionStore(repo, this);
     auto *dashboardStore = new DashboardStore(repo, this);
+    BOOT_MARK("stores constructed");
 
     // M5: Services
     m_settingsService = new SettingsService(repo, this);
@@ -469,12 +480,15 @@ void Application::createStores(QQmlApplicationEngine &engine)
                 settingsStore, otaStore, usbStore, speedLimitStore,
                 autoStandbyStore, cbBatteryStore, auxBatteryStore, dashboardStore};
 
+    BOOT_MARK("services wired");
+
     // Start all syncable stores (registers their channels with the repo)
     for (auto *store : m_stores) {
         if (auto *syncable = qobject_cast<SyncableStore*>(store)) {
             syncable->start();
         }
     }
+    BOOT_MARK("stores started");
 
     // Register infrequently-polled channels not covered by any store
     repo->registerPollChannel(QStringLiteral("system"), 30000);
@@ -485,6 +499,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     if (auto *redisRepo = qobject_cast<RedisMdbRepository*>(repo)) {
         redisRepo->startWorker();
     }
+    BOOT_MARK("redis worker started");
 
     // Debug: log battery store state after initial sync
     qDebug() << "Battery0 after start: present=" << battery0Store->present()
@@ -514,7 +529,9 @@ void Application::createStores(QQmlApplicationEngine &engine)
         if (connected)
             publishReady();
     });
+    BOOT_MARK("publishReady() calling");
     publishReady();
+    BOOT_MARK("publishReady() returned");
 
     qDebug() << "All stores created and started (M5: menu, settings, translations, auto-theme, toast, map, nav-availability, saved-locations, serial-number)";
 }
