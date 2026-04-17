@@ -1,16 +1,17 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI 1.0
 
 Item {
     id: debugOverlay
     anchors.fill: parent
     z: 50
-    visible: typeof dashboardStore !== "undefined" && dashboardStore.debugMode === "overlay"
+    visible: DashboardStore.debugMode === "overlay"
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
-    readonly property color panelBg: isDark ? Qt.rgba(0, 0, 0, 0.6) : Qt.rgba(1, 1, 1, 0.6)
-    readonly property color defaultBorder: isDark ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(0, 0, 0, 0.26)
-    readonly property color textColor: isDark ? "#FFFFFF" : "#000000"
+    readonly property bool isDark: ThemeStore.isDark
+    readonly property color panelBg: debugOverlay.isDark ? Qt.rgba(0, 0, 0, 0.6) : Qt.rgba(1, 1, 1, 0.6)
+    readonly property color defaultBorder: debugOverlay.isDark ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(0, 0, 0, 0.26)
+    readonly property color textColor: debugOverlay.isDark ? "#FFFFFF" : "#000000"
 
     // --- Enum int values (must match Enums.h order) ---
     // VehicleState
@@ -63,22 +64,22 @@ Item {
     // --- Color helpers ---
     function stateColor(st) {
         switch (st) {
-            case stReadyToDrive: return "#4CAF50"  // green
-            case stStandBy: return "#2196F3"        // blue
-            case stParked: return "#FF9800"          // orange
-            case stUnknown: case stOff: return "#9E9E9E" // grey
-            case stBooting: return "#9C27B0"         // purple
-            case stShuttingDown: return "#F44336"    // red
-            case stHibernating: return "#3F51B5"     // indigo
-            case stHibernatingImminent: return "#E91E63" // pink
-            case stSuspending: return "#F44336"      // red
-            case stSuspendingImminent: return "#E91E63"  // pink
-            case stUpdating: return "#FFEB3B"        // yellow
-            case stWaitingHibernation: case stWaitingHibernationAdv:
+            case debugOverlay.stReadyToDrive: return "#4CAF50"  // green
+            case debugOverlay.stStandBy: return "#2196F3"        // blue
+            case debugOverlay.stParked: return "#FF9800"          // orange
+            case debugOverlay.stUnknown: case debugOverlay.stOff: return "#9E9E9E" // grey
+            case debugOverlay.stBooting: return "#9C27B0"         // purple
+            case debugOverlay.stShuttingDown: return "#F44336"    // red
+            case debugOverlay.stHibernating: return "#3F51B5"     // indigo
+            case debugOverlay.stHibernatingImminent: return "#E91E63" // pink
+            case debugOverlay.stSuspending: return "#F44336"      // red
+            case debugOverlay.stSuspendingImminent: return "#E91E63"  // pink
+            case debugOverlay.stUpdating: return "#FFEB3B"        // yellow
+            case debugOverlay.stWaitingHibernation: case debugOverlay.stWaitingHibernationAdv:
                 return "#673AB7"                     // deep purple
-            case stWaitingHibernationSeatbox: case stWaitingSeatbox:
+            case debugOverlay.stWaitingHibernationSeatbox: case debugOverlay.stWaitingSeatbox:
                 return "#9C27B0"                     // purple
-            case stWaitingHibernationConfirm:
+            case debugOverlay.stWaitingHibernationConfirm:
                 return "#311B92"                     // deep purple 900
             default: return "#9E9E9E"
         }
@@ -86,10 +87,10 @@ Item {
 
     function gpsStateColor(st) {
         switch (st) {
-            case gpsOff: return "#9E9E9E"
-            case gpsSearching: return "#FFEB3B"
-            case gpsFix: return "#4CAF50"
-            case gpsError: return "#F44336"
+            case debugOverlay.gpsOff: return "#9E9E9E"
+            case debugOverlay.gpsSearching: return "#FFEB3B"
+            case debugOverlay.gpsFix: return "#4CAF50"
+            case debugOverlay.gpsError: return "#F44336"
             default: return "#9E9E9E"
         }
     }
@@ -121,14 +122,14 @@ Item {
     readonly property var auxChargeStatusNames: ["NotCharging", "FloatCharge", "AbsorptionCharge", "BulkCharge"]
 
     // Safe accessors
-    function vs(prop) { return typeof vehicleStore !== "undefined" ? vehicleStore[prop] : 0 }
-    function es(prop) { return typeof engineStore !== "undefined" ? engineStore[prop] : 0 }
-    function gs(prop) { return typeof gpsStore !== "undefined" ? gpsStore[prop] : 0 }
-    function is_(prop) { return typeof internetStore !== "undefined" ? internetStore[prop] : 0 }
-    function b0(prop) { return typeof battery0Store !== "undefined" ? battery0Store[prop] : 0 }
-    function b1(prop) { return typeof battery1Store !== "undefined" ? battery1Store[prop] : 0 }
-    function aux(prop) { return typeof auxBatteryStore !== "undefined" ? auxBatteryStore[prop] : 0 }
-    function cb(prop) { return typeof cbBatteryStore !== "undefined" ? cbBatteryStore[prop] : 0 }
+    function vs(prop) { return true ? VehicleStore[prop] : 0 }
+    function es(prop) { return true ? EngineStore[prop] : 0 }
+    function gs(prop) { return true ? GpsStore[prop] : 0 }
+    function is_(prop) { return true ? InternetStore[prop] : 0 }
+    function b0(prop) { return true ? Battery0Store[prop] : 0 }
+    function b1(prop) { return true ? Battery1Store[prop] : 0 }
+    function aux(prop) { return true ? AuxBatteryStore[prop] : 0 }
+    function cb(prop) { return true ? CbBatteryStore[prop] : 0 }
 
     // =====================================================================
     // 1. Vehicle State — centered, below status bar
@@ -139,14 +140,14 @@ Item {
         width: vehStateText.width + 20
         height: vehStateText.height + 10
         radius: 4
-        color: panelBg
+        color: debugOverlay.panelBg
         border.width: 1.5
-        border.color: stateColor(vs("state"))
+        border.color: debugOverlay.stateColor(debugOverlay.vs("state"))
 
         Text {
             id: vehStateText
             anchors.centerIn: parent
-            text: typeof vehicleStore !== "undefined" ? vehicleStore.stateRaw : "?"
+            text: VehicleStore.stateRaw
             font.pixelSize: 12
             font.bold: true
             color: debugOverlay.textColor
@@ -160,8 +161,8 @@ Item {
         x: 60; y: 50
         width: leftBlinkCol.width + 20
         height: leftBlinkCol.height + 10
-        radius: 4; color: panelBg
-        border.width: 1.5; border.color: defaultBorder
+        radius: 4; color: debugOverlay.panelBg
+        border.width: 1.5; border.color: debugOverlay.defaultBorder
 
         Column {
             id: leftBlinkCol
@@ -171,8 +172,8 @@ Item {
                 spacing: 0
                 Text { text: "BLINK: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: enumName(vs("blinkerSwitch"), blinkerSwitchNames) + "/" +
-                          enumName(vs("blinkerState"), blinkerStateNames)
+                    text: debugOverlay.enumName(debugOverlay.vs("blinkerSwitch"), debugOverlay.blinkerSwitchNames) + "/" +
+                          debugOverlay.enumName(debugOverlay.vs("blinkerState"), debugOverlay.blinkerStateNames)
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -180,7 +181,7 @@ Item {
                 spacing: 0
                 Text { text: "BRAKE: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: enumName(vs("brakeLeft"), toggleNames)
+                    text: debugOverlay.enumName(debugOverlay.vs("brakeLeft"), debugOverlay.toggleNames)
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -196,8 +197,8 @@ Item {
         y: 50
         width: rightBlinkCol.width + 20
         height: rightBlinkCol.height + 10
-        radius: 4; color: panelBg
-        border.width: 1.5; border.color: defaultBorder
+        radius: 4; color: debugOverlay.panelBg
+        border.width: 1.5; border.color: debugOverlay.defaultBorder
 
         Column {
             id: rightBlinkCol
@@ -207,8 +208,8 @@ Item {
                 spacing: 0
                 Text { text: "BLINK: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: enumName(vs("blinkerSwitch"), blinkerSwitchNames) + "/" +
-                          enumName(vs("blinkerState"), blinkerStateNames)
+                    text: debugOverlay.enumName(debugOverlay.vs("blinkerSwitch"), debugOverlay.blinkerSwitchNames) + "/" +
+                          debugOverlay.enumName(debugOverlay.vs("blinkerState"), debugOverlay.blinkerStateNames)
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -216,7 +217,7 @@ Item {
                 spacing: 0
                 Text { text: "BRAKE: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: enumName(vs("brakeRight"), toggleNames)
+                    text: debugOverlay.enumName(debugOverlay.vs("brakeRight"), debugOverlay.toggleNames)
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -230,8 +231,8 @@ Item {
         x: 10; y: 100
         width: gpsCol.width + 20
         height: gpsCol.height + 10
-        radius: 4; color: panelBg
-        border.width: 1.5; border.color: gpsStateColor(gs("gpsState"))
+        radius: 4; color: debugOverlay.panelBg
+        border.width: 1.5; border.color: debugOverlay.gpsStateColor(debugOverlay.gs("gpsState"))
 
         Column {
             id: gpsCol
@@ -241,7 +242,7 @@ Item {
                 spacing: 0
                 Text { text: "GPS: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: enumName(gs("gpsState"), gpsStateNames)
+                    text: debugOverlay.enumName(debugOverlay.gs("gpsState"), debugOverlay.gpsStateNames)
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -249,7 +250,7 @@ Item {
                 spacing: 0
                 Text { text: "LAT: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof gpsStore !== "undefined" ? gpsStore.latitude.toFixed(5) : "?"
+                    text: true ? GpsStore.latitude.toFixed(5) : "?"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -257,7 +258,7 @@ Item {
                 spacing: 0
                 Text { text: "LON: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof gpsStore !== "undefined" ? gpsStore.longitude.toFixed(5) : "?"
+                    text: true ? GpsStore.longitude.toFixed(5) : "?"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -265,7 +266,7 @@ Item {
                 spacing: 0
                 Text { text: "SPD: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: (typeof gpsStore !== "undefined" ? gpsStore.speed.toFixed(1) : "?") + " km/h"
+                    text: (true ? GpsStore.speed.toFixed(1) : "?") + " km/h"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -281,9 +282,9 @@ Item {
         y: 100
         width: inetCol.width + 20
         height: inetCol.height + 10
-        radius: 4; color: panelBg
+        radius: 4; color: debugOverlay.panelBg
         border.width: 1.5
-        border.color: is_("status") === csConnected ? "#2196F3" : defaultBorder
+        border.color: debugOverlay.is_("status") === debugOverlay.csConnected ? "#2196F3" : debugOverlay.defaultBorder
 
         Column {
             id: inetCol
@@ -293,7 +294,7 @@ Item {
                 spacing: 0
                 Text { text: "MODEM: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: enumName(is_("modemState"), modemStateNames)
+                    text: debugOverlay.enumName(debugOverlay.is_("modemState"), debugOverlay.modemStateNames)
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -301,7 +302,7 @@ Item {
                 spacing: 0
                 Text { text: "CLOUD: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: enumName(is_("unuCloud"), connectionStatusNames)
+                    text: debugOverlay.enumName(debugOverlay.is_("unuCloud"), debugOverlay.connectionStatusNames)
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -309,7 +310,7 @@ Item {
                 spacing: 0
                 Text { text: "SIGNAL: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: is_("signalQuality") + "%"
+                    text: debugOverlay.is_("signalQuality") + "%"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -317,7 +318,7 @@ Item {
                 spacing: 0
                 Text { text: "TECH: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof internetStore !== "undefined" ? internetStore.accessTech : "?"
+                    text: InternetStore.accessTech
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -331,8 +332,8 @@ Item {
         x: 10; y: 220
         width: dashCol.width + 20
         height: dashCol.height + 10
-        radius: 4; color: panelBg
-        border.width: 1.5; border.color: defaultBorder
+        radius: 4; color: debugOverlay.panelBg
+        border.width: 1.5; border.color: debugOverlay.defaultBorder
 
         Column {
             id: dashCol
@@ -342,7 +343,7 @@ Item {
                 spacing: 0
                 Text { text: "THM: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof settingsStore !== "undefined" ? settingsStore.theme : "N/A"
+                    text: SettingsStore.theme
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -356,9 +357,9 @@ Item {
         x: 10; y: 260
         width: engCol.width + 20
         height: engCol.height + 10
-        radius: 4; color: panelBg
+        radius: 4; color: debugOverlay.panelBg
         border.width: 1.5
-        border.color: es("powerState") === toggleOn ? "#2196F3" : defaultBorder
+        border.color: debugOverlay.es("powerState") === debugOverlay.toggleOn ? "#2196F3" : debugOverlay.defaultBorder
 
         Column {
             id: engCol
@@ -368,7 +369,7 @@ Item {
                 spacing: 0
                 Text { text: "THR: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: enumName(es("throttle"), toggleNames)
+                    text: debugOverlay.enumName(debugOverlay.es("throttle"), debugOverlay.toggleNames)
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -376,7 +377,7 @@ Item {
                 spacing: 0
                 Text { text: "RPM: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof engineStore !== "undefined" ? Math.floor(engineStore.rpm).toString() : "?"
+                    text: true ? Math.floor(EngineStore.rpm).toString() : "?"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -384,8 +385,8 @@ Item {
                 spacing: 0
                 Text { text: "PWR: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof engineStore !== "undefined"
-                          ? (engineStore.motorVoltage * engineStore.motorCurrent / 1000000).toFixed(0) + " W"
+                    text: true
+                          ? (EngineStore.motorVoltage * EngineStore.motorCurrent / 1000000).toFixed(0) + " W"
                           : "?"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
@@ -394,7 +395,7 @@ Item {
                 spacing: 0
                 Text { text: "EBS: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: enumName(es("kers"), toggleNames)
+                    text: debugOverlay.enumName(debugOverlay.es("kers"), debugOverlay.toggleNames)
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -410,8 +411,8 @@ Item {
         y: 260
         width: motorCol.width + 20
         height: motorCol.height + 10
-        radius: 4; color: panelBg
-        border.width: 1.5; border.color: defaultBorder
+        radius: 4; color: debugOverlay.panelBg
+        border.width: 1.5; border.color: debugOverlay.defaultBorder
 
         Column {
             id: motorCol
@@ -421,8 +422,8 @@ Item {
                 spacing: 0
                 Text { text: "MOTOR V: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof engineStore !== "undefined"
-                          ? (engineStore.motorVoltage / 1000).toFixed(1) + " V" : "?"
+                    text: true
+                          ? (EngineStore.motorVoltage / 1000).toFixed(1) + " V" : "?"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -430,8 +431,8 @@ Item {
                 spacing: 0
                 Text { text: "MOTOR I: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof engineStore !== "undefined"
-                          ? (engineStore.motorCurrent / 1000).toFixed(1) + " A" : "?"
+                    text: true
+                          ? (EngineStore.motorCurrent / 1000).toFixed(1) + " A" : "?"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -439,8 +440,8 @@ Item {
                 spacing: 0
                 Text { text: "TEMP: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof engineStore !== "undefined"
-                          ? engineStore.temperature.toFixed(1) + "\u00B0C" : "?"
+                    text: true
+                          ? EngineStore.temperature.toFixed(1) + "\u00B0C" : "?"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -462,41 +463,42 @@ Item {
 
             // Battery 0
             Rectangle {
-                property bool present: typeof battery0Store !== "undefined" && battery0Store.present
-                property int charge: b0("charge")
+                id: batt0Card
+                property bool present: Battery0Store.present
+                property int charge: debugOverlay.b0("charge")
                 width: b0Col.width + 20
                 height: b0Col.height + 10
-                radius: 4; color: panelBg
+                radius: 4; color: debugOverlay.panelBg
                 border.width: 1.5
-                border.color: present ? batteryChargeColor(charge) : "#9E9E9E"
+                border.color: batt0Card.present ? debugOverlay.batteryChargeColor(batt0Card.charge) : "#9E9E9E"
 
                 Column {
                     id: b0Col
                     anchors.centerIn: parent
                     spacing: 1
                     Text {
-                        visible: parent.parent.present
-                        text: "B0: " + b0("charge") + "% " +
-                              (b0("voltage") / 1000).toFixed(1) + "V " +
-                              (b0("current") / 1000).toFixed(1) + "A"
+                        visible: batt0Card.present
+                        text: "B0: " + debugOverlay.b0("charge") + "% " +
+                              (debugOverlay.b0("voltage") / 1000).toFixed(1) + "V " +
+                              (debugOverlay.b0("current") / 1000).toFixed(1) + "A"
                         font.pixelSize: 10; font.bold: true
-                        color: parent.parent.present ? batteryChargeColor(parent.parent.charge) : "#9E9E9E"
+                        color: batt0Card.present ? debugOverlay.batteryChargeColor(batt0Card.charge) : "#9E9E9E"
                     }
                     Row {
-                        visible: parent.parent.present
+                        visible: batt0Card.present
                         spacing: 0
                         Text {
-                            text: enumName(b0("batteryState"), batteryStateNames)
+                            text: debugOverlay.enumName(debugOverlay.b0("batteryState"), debugOverlay.batteryStateNames)
                             font.pixelSize: 9; font.bold: true; color: debugOverlay.textColor
                         }
                         Text {
-                            text: " - " + b0("cycleCount") + " cyc - fw " +
-                                  (typeof battery0Store !== "undefined" ? battery0Store.firmwareVersion : "?")
+                            text: " - " + debugOverlay.b0("cycleCount") + " cyc - fw " +
+                                  (Battery0Store.firmwareVersion)
                             font.pixelSize: 9; color: "#9E9E9E"
                         }
                     }
                     Text {
-                        visible: !parent.parent.present
+                        visible: !batt0Card.present
                         text: "B0: --"
                         font.pixelSize: 10; font.bold: true; color: "#9E9E9E"
                     }
@@ -505,41 +507,42 @@ Item {
 
             // Battery 1
             Rectangle {
-                property bool present: typeof battery1Store !== "undefined" && battery1Store.present
-                property int charge: b1("charge")
+                id: batt1Card
+                property bool present: Battery1Store.present
+                property int charge: debugOverlay.b1("charge")
                 width: b1Col.width + 20
                 height: b1Col.height + 10
-                radius: 4; color: panelBg
+                radius: 4; color: debugOverlay.panelBg
                 border.width: 1.5
-                border.color: present ? batteryChargeColor(charge) : "#9E9E9E"
+                border.color: batt1Card.present ? debugOverlay.batteryChargeColor(batt1Card.charge) : "#9E9E9E"
 
                 Column {
                     id: b1Col
                     anchors.centerIn: parent
                     spacing: 1
                     Text {
-                        visible: parent.parent.present
-                        text: "B1: " + b1("charge") + "% " +
-                              (b1("voltage") / 1000).toFixed(1) + "V " +
-                              (b1("current") / 1000).toFixed(1) + "A"
+                        visible: batt1Card.present
+                        text: "B1: " + debugOverlay.b1("charge") + "% " +
+                              (debugOverlay.b1("voltage") / 1000).toFixed(1) + "V " +
+                              (debugOverlay.b1("current") / 1000).toFixed(1) + "A"
                         font.pixelSize: 10; font.bold: true
-                        color: parent.parent.present ? batteryChargeColor(parent.parent.charge) : "#9E9E9E"
+                        color: batt1Card.present ? debugOverlay.batteryChargeColor(batt1Card.charge) : "#9E9E9E"
                     }
                     Row {
-                        visible: parent.parent.present
+                        visible: batt1Card.present
                         spacing: 0
                         Text {
-                            text: enumName(b1("batteryState"), batteryStateNames)
+                            text: debugOverlay.enumName(debugOverlay.b1("batteryState"), debugOverlay.batteryStateNames)
                             font.pixelSize: 9; font.bold: true; color: debugOverlay.textColor
                         }
                         Text {
-                            text: " - " + b1("cycleCount") + " cyc - fw " +
-                                  (typeof battery1Store !== "undefined" ? battery1Store.firmwareVersion : "?")
+                            text: " - " + debugOverlay.b1("cycleCount") + " cyc - fw " +
+                                  (Battery1Store.firmwareVersion)
                             font.pixelSize: 9; color: "#9E9E9E"
                         }
                     }
                     Text {
-                        visible: !parent.parent.present
+                        visible: !batt1Card.present
                         text: "B1: --"
                         font.pixelSize: 10; font.bold: true; color: "#9E9E9E"
                     }
@@ -556,22 +559,22 @@ Item {
             Rectangle {
                 width: cbCol.width + 20
                 height: cbCol.height + 10
-                radius: 4; color: panelBg
-                border.width: 1.5; border.color: defaultBorder
+                radius: 4; color: debugOverlay.panelBg
+                border.width: 1.5; border.color: debugOverlay.defaultBorder
 
                 Column {
                     id: cbCol
                     anchors.centerIn: parent
                     spacing: 1
                     Text {
-                        text: "CBB " + cb("charge") + "% " +
-                              (cb("cellVoltage") / 1000000).toFixed(2) + "V " +
-                              (cb("current") / 1000).toFixed(2) + "mA"
+                        text: "CBB " + debugOverlay.cb("charge") + "% " +
+                              (debugOverlay.cb("cellVoltage") / 1000000).toFixed(2) + "V " +
+                              (debugOverlay.cb("current") / 1000).toFixed(2) + "mA"
                         font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                     }
                     Text {
-                        text: enumName(cb("chargeStatus"), ["Charging", "NotCharging"]) +
-                              " / SoH " + cb("stateOfHealth") + "%"
+                        text: debugOverlay.enumName(debugOverlay.cb("chargeStatus"), ["Charging", "NotCharging"]) +
+                              " / SoH " + debugOverlay.cb("stateOfHealth") + "%"
                         font.pixelSize: 9; color: "#9E9E9E"
                     }
                 }
@@ -581,20 +584,20 @@ Item {
             Rectangle {
                 width: auxCol.width + 20
                 height: auxCol.height + 10
-                radius: 4; color: panelBg
-                border.width: 1.5; border.color: defaultBorder
+                radius: 4; color: debugOverlay.panelBg
+                border.width: 1.5; border.color: debugOverlay.defaultBorder
 
                 Column {
                     id: auxCol
                     anchors.centerIn: parent
                     spacing: 1
                     Text {
-                        text: "AUX " + aux("charge") + "% " +
-                              (aux("voltage") / 1000).toFixed(1) + "V"
+                        text: "AUX " + debugOverlay.aux("charge") + "% " +
+                              (debugOverlay.aux("voltage") / 1000).toFixed(1) + "V"
                         font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                     }
                     Text {
-                        text: enumName(aux("chargeStatus"), auxChargeStatusNames)
+                        text: debugOverlay.enumName(debugOverlay.aux("chargeStatus"), debugOverlay.auxChargeStatusNames)
                         font.pixelSize: 9; color: "#9E9E9E"
                     }
                 }

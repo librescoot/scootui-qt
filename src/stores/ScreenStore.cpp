@@ -4,6 +4,7 @@
 ScreenStore::ScreenStore(SettingsStore *settings, QObject *parent)
     : QObject(parent)
 {
+    s_instance = this;
     applyMode(settings->mode());
     connect(settings, &SettingsStore::modeChanged, this, [this, settings]() {
         applyMode(settings->mode());

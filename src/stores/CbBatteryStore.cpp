@@ -3,6 +3,7 @@
 CbBatteryStore::CbBatteryStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
+    s_instance = this;
 }
 
 SyncSettings CbBatteryStore::syncSettings() const

@@ -5,6 +5,7 @@
 VehicleStore::VehicleStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
+    s_instance = this;
     if (m_repo) {
         m_repo->subscribe(QStringLiteral("buttons"), [this](const QString &ch, const QString &msg) {
             onButtonEvent(ch, msg);

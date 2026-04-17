@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QTimer>
+#include <QtQml/qqmlregistration.h>
 
 class ThemeStore;
 class VehicleStore;
@@ -10,9 +11,14 @@ class DashboardStore;
 class MdbRepository;
 class SettingsService;
 
+class QQmlEngine;
+class QJSEngine;
+
 class ShortcutMenuStore : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(bool visible READ visible NOTIFY visibleChanged)
     Q_PROPERTY(int selectedIndex READ selectedIndex NOTIFY selectionChanged)
     Q_PROPERTY(bool confirming READ confirming NOTIFY confirmingChanged)
@@ -22,6 +28,7 @@ public:
                                ScreenStore *screen, DashboardStore *dashboard,
                                MdbRepository *repo, SettingsService *settingsService,
                                QObject *parent = nullptr);
+    static ShortcutMenuStore *create(QQmlEngine *, QJSEngine *) { return s_instance; }
     ~ShortcutMenuStore() override;
 
     bool visible() const { return m_visible; }
@@ -68,4 +75,6 @@ private:
     static constexpr int ITEM_COUNT = 4;
     static constexpr int ITEM_CYCLE_MS = 750;
     static constexpr int CONFIRM_TIMEOUT_MS = 3000;
+
+    static inline ShortcutMenuStore *s_instance = nullptr;
 };

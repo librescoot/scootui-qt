@@ -3,6 +3,7 @@
 NavigationStore::NavigationStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
+    s_instance = this;
 }
 
 SyncSettings NavigationStore::syncSettings() const

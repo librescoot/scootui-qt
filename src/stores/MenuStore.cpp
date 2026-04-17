@@ -29,6 +29,7 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
     , m_settingsService(settingsService)
     , m_repo(repo)
 {
+    s_instance = this;
     // Rebuild menu when settings or language change
     connect(m_settings, &SettingsStore::themeChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::languageChanged, this, &MenuStore::rebuildMenuTree);

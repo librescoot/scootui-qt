@@ -1,10 +1,16 @@
 #pragma once
 
 #include "SyncableStore.h"
+#include <QtQml/qqmlregistration.h>
+
+class QQmlEngine;
+class QJSEngine;
 
 class NavigationStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(QString latitude READ latitude NOTIFY latitudeChanged)
     Q_PROPERTY(QString longitude READ longitude NOTIFY longitudeChanged)
     Q_PROPERTY(QString address READ address NOTIFY addressChanged)
@@ -13,6 +19,7 @@ class NavigationStore : public SyncableStore
 
 public:
     explicit NavigationStore(MdbRepository *repo, QObject *parent = nullptr);
+    static NavigationStore *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     QString latitude() const { return m_latitude; }
     QString longitude() const { return m_longitude; }
@@ -40,4 +47,6 @@ private:
     QString m_address;
     QString m_timestamp;
     QString m_destination;
+
+    static inline NavigationStore *s_instance = nullptr;
 };

@@ -9,6 +9,7 @@ SettingsService::SettingsService(MdbRepository *repo, QObject *parent)
     : QObject(parent)
     , m_repo(repo)
 {
+    s_instance = this;
 }
 
 void SettingsService::writeSetting(const QString &key, const QString &value)

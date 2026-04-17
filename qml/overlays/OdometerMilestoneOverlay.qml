@@ -13,10 +13,12 @@ Item {
     property string tag: ""
     property bool active: false
 
-    readonly property int currentScreen: screenStore && screenStore.currentScreen !== undefined
-                                         ? screenStore.currentScreen : 0
-    readonly property bool allowedScreen: currentScreen === Scooter.ScreenMode.Cluster
-                                       || currentScreen === Scooter.ScreenMode.Map
+    readonly property int currentScreen: ScreenStore && ScreenStore.currentScreen !== undefined
+                                         ? ScreenStore.currentScreen : 0
+    readonly property int screenModeCluster: 0
+    readonly property int screenModeMap: 1
+    readonly property bool allowedScreen: root.currentScreen === root.screenModeCluster
+                                       || root.currentScreen === root.screenModeMap
 
     // Theme per tag.
     readonly property var themeMap: ({
@@ -38,11 +40,11 @@ Item {
     }
 
     Connections {
-        target: odometerMilestoneService ? odometerMilestoneService : null
+        target: OdometerMilestoneService ? OdometerMilestoneService : null
         function onMilestoneReached(km, intens, tag) {
             if (!root.allowedScreen) {
-                if (typeof odometerMilestoneService !== "undefined")
-                    odometerMilestoneService.dismiss()
+                if (true)
+                    OdometerMilestoneService.dismiss()
                 return
             }
             root.milestoneKm = km
@@ -58,8 +60,8 @@ Item {
         id: dismissTimer
         onTriggered: {
             root.active = false
-            if (typeof odometerMilestoneService !== "undefined")
-                odometerMilestoneService.dismiss()
+            if (true)
+                OdometerMilestoneService.dismiss()
         }
     }
 
@@ -67,7 +69,7 @@ Item {
         id: card
         width: contentRow.implicitWidth + 24
         height: contentRow.implicitHeight + 12
-        radius: themeStore && themeStore.radiusCard !== undefined ? themeStore.radiusCard : 12
+        radius: ThemeStore && ThemeStore.radiusCard !== undefined ? ThemeStore.radiusCard : 12
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.rightMargin: 4
@@ -98,13 +100,13 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.theme.icon
                     color: root.theme.fg
-                    font.pixelSize: themeStore && themeStore.fontCaption !== undefined ? themeStore.fontCaption : 12
+                    font.pixelSize: ThemeStore && ThemeStore.fontCaption !== undefined ? ThemeStore.fontCaption : 12
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.theme.title
                     color: root.theme.fg
-                    font.pixelSize: themeStore && themeStore.fontCaption !== undefined ? themeStore.fontCaption : 12
+                    font.pixelSize: ThemeStore && ThemeStore.fontCaption !== undefined ? ThemeStore.fontCaption : 12
                     font.weight: Font.Medium
                 }
             }
@@ -112,7 +114,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: root.formatKm(root.milestoneKm)
                 color: root.theme.fg
-                font.pixelSize: themeStore && themeStore.fontBody !== undefined ? themeStore.fontBody : 16
+                font.pixelSize: ThemeStore && ThemeStore.fontBody !== undefined ? ThemeStore.fontBody : 16
                 font.weight: Font.Bold
             }
         }

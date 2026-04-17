@@ -4,6 +4,7 @@
 #include <QVariantList>
 #include <QTimer>
 #include <QUuid>
+#include <QtQml/qqmlregistration.h>
 
 struct ToastEntry {
     QString id;
@@ -12,13 +13,19 @@ struct ToastEntry {
     bool permanent;
 };
 
+class QQmlEngine;
+class QJSEngine;
+
 class ToastService : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(QVariantList toasts READ toasts NOTIFY toastsChanged)
 
 public:
     explicit ToastService(QObject *parent = nullptr);
+    static ToastService *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     QVariantList toasts() const;
 
@@ -39,4 +46,6 @@ private:
     void scheduleRemoval(const QString &id, int ms);
 
     QList<ToastEntry> m_toasts;
+
+    static inline ToastService *s_instance = nullptr;
 };

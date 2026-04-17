@@ -1,11 +1,12 @@
 import QtQuick
+import ScootUI 1.0
 
 Item {
     id: toastOverlay
     anchors.fill: parent
     z: 900
 
-    property var toastModel: typeof toastService !== "undefined" ? toastService.toasts : []
+    property var toastModel: true ? ToastService.toasts : []
 
     Column {
         anchors.top: parent.top
@@ -18,17 +19,18 @@ Item {
 
             delegate: Rectangle {
                 id: toastItem
+                required property var modelData
                 width: Math.min(toastText.implicitWidth + 32, toastOverlay.width - 40)
                 height: toastText.implicitHeight + 16
-                radius: themeStore.radiusCard
+                radius: ThemeStore.radiusCard
                 opacity: 0
 
                 color: {
-                    switch (modelData.type) {
+                    switch (toastItem.modelData.type) {
                         case "error": return "#D32F2F"
                         case "warning": return "#F57C00"
                         case "success": return "#2E7D32"
-                        default: return "#1976D2"   // info
+                        default: return "#1976D2"
                     }
                 }
 
@@ -36,9 +38,9 @@ Item {
                     id: toastText
                     anchors.centerIn: parent
                     width: Math.min(implicitWidth, toastOverlay.width - 72)
-                    text: modelData.message
-                    color: modelData.type === "warning" ? "#000000" : "white"
-                    font.pixelSize: themeStore.fontBody
+                    text: toastItem.modelData.message
+                    color: toastItem.modelData.type === "warning" ? "#000000" : "white"
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Medium
                     wrapMode: Text.WordWrap
                     horizontalAlignment: Text.AlignHCenter

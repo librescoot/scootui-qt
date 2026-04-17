@@ -3,6 +3,7 @@
 AuxBatteryStore::AuxBatteryStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
+    s_instance = this;
 }
 
 SyncSettings AuxBatteryStore::syncSettings() const

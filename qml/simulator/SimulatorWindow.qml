@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import ScootUI 1.0
 
 ApplicationWindow {
     id: simWindow
@@ -27,7 +28,7 @@ ApplicationWindow {
                 text: "Screenshot"
                 Layout.fillWidth: true
                 color: "#607D8B"
-                onClicked: simulator.takeScreenshot()
+                onClicked: SimulatorService.takeScreenshot()
             }
 
             // ---- Screen ----
@@ -40,25 +41,25 @@ ApplicationWindow {
                     text: "Cluster"; small: true
                     ButtonGroup.group: screenGroup
                     checkable: true; checked: true
-                    onClicked: screenStore.setScreen(0)
+                    onClicked: ScreenStore.setScreen(0)
                 }
                 SimButton {
                     text: "Map"; small: true
                     ButtonGroup.group: screenGroup
                     checkable: true
-                    onClicked: screenStore.setScreen(1)
+                    onClicked: ScreenStore.setScreen(1)
                 }
                 SimButton {
                     text: "Debug"; small: true
                     ButtonGroup.group: screenGroup
                     checkable: true
-                    onClicked: screenStore.setScreen(3)
+                    onClicked: ScreenStore.setScreen(3)
                 }
                 SimButton {
                     text: "About"; small: true
                     ButtonGroup.group: screenGroup
                     checkable: true
-                    onClicked: screenStore.setScreen(4)
+                    onClicked: ScreenStore.setScreen(4)
                 }
             }
 
@@ -70,19 +71,19 @@ ApplicationWindow {
                     text: "Dark"; small: true
                     ButtonGroup.group: themeGroup
                     checkable: true; checked: true
-                    onClicked: simulator.setTheme("dark")
+                    onClicked: SimulatorService.setTheme("dark")
                 }
                 SimButton {
                     text: "Light"; small: true
                     ButtonGroup.group: themeGroup
                     checkable: true
-                    onClicked: simulator.setTheme("light")
+                    onClicked: SimulatorService.setTheme("light")
                 }
                 SimButton {
                     text: "Auto"; small: true
                     ButtonGroup.group: themeGroup
                     checkable: true
-                    onClicked: simulator.setTheme("auto")
+                    onClicked: SimulatorService.setTheme("auto")
                 }
                 Item { Layout.preferredWidth: 8 }
                 SimLabel { text: "Lang" }
@@ -91,13 +92,13 @@ ApplicationWindow {
                     text: "EN"; small: true
                     ButtonGroup.group: langGroup
                     checkable: true; checked: true
-                    onClicked: simulator.setLanguage("en")
+                    onClicked: SimulatorService.setLanguage("en")
                 }
                 SimButton {
                     text: "DE"; small: true
                     ButtonGroup.group: langGroup
                     checkable: true
-                    onClicked: simulator.setLanguage("de")
+                    onClicked: SimulatorService.setLanguage("de")
                 }
             }
 
@@ -107,7 +108,7 @@ ApplicationWindow {
                 Switch {
                     checked: false
                     palette.highlight: "#2196F3"
-                    onToggled: simulator.setTrafficOverlay(checked)
+                    onToggled: SimulatorService.setTrafficOverlay(checked)
                 }
             }
 
@@ -120,12 +121,12 @@ ApplicationWindow {
                 SimButton {
                     text: "Disconnect"
                     color: "#f44336"
-                    onClicked: connectionStore.simulateUsbDisconnect(true)
+                    onClicked: ConnectionStore.simulateUsbDisconnect(true)
                 }
                 SimButton {
                     text: "Reconnect"
                     color: "#4caf50"
-                    onClicked: connectionStore.simulateUsbDisconnect(false)
+                    onClicked: ConnectionStore.simulateUsbDisconnect(false)
                 }
             }
 
@@ -136,23 +137,23 @@ ApplicationWindow {
                     text: "Activate"
                     color: "#2196F3"
                     onClicked: {
-                        simulator.setUsbStatus("active")
-                        simulator.setUsbMode("ums")
+                        SimulatorService.setUsbStatus("active")
+                        SimulatorService.setUsbMode("ums")
                     }
                 }
                 SimButton {
                     text: "Processing"
                     color: "#ff9800"
                     onClicked: {
-                        simulator.setUsbStatus("processing")
+                        SimulatorService.setUsbStatus("processing")
                     }
                 }
                 SimButton {
                     text: "Exit"
                     color: "#f44336"
                     onClicked: {
-                        simulator.setUsbStatus("idle")
-                        simulator.setUsbMode("normal")
+                        SimulatorService.setUsbStatus("idle")
+                        SimulatorService.setUsbMode("normal")
                     }
                 }
             }
@@ -166,15 +167,15 @@ ApplicationWindow {
                 columnSpacing: 4
                 rowSpacing: 4
 
-                SimButton { text: "Parked"; onClicked: simulator.loadPreset("parked") }
-                SimButton { text: "Ready"; onClicked: simulator.loadPreset("ready") }
-                SimButton { text: "Driving"; onClicked: simulator.loadPreset("driving") }
-                SimButton { text: "Fast"; onClicked: simulator.loadPreset("driving-fast") }
-                SimButton { text: "Low Batt"; color: "#ff6b35"; onClicked: simulator.loadPreset("low-battery") }
-                SimButton { text: "Charging"; color: "#4caf50"; onClicked: simulator.loadPreset("charging") }
-                SimButton { text: "No GPS"; onClicked: simulator.loadPreset("no-gps") }
-                SimButton { text: "Offline"; onClicked: simulator.loadPreset("offline") }
-                SimButton { text: "1 Battery"; onClicked: simulator.loadPreset("single-battery") }
+                SimButton { text: "Parked"; onClicked: SimulatorService.loadPreset("parked") }
+                SimButton { text: "Ready"; onClicked: SimulatorService.loadPreset("ready") }
+                SimButton { text: "Driving"; onClicked: SimulatorService.loadPreset("driving") }
+                SimButton { text: "Fast"; onClicked: SimulatorService.loadPreset("driving-fast") }
+                SimButton { text: "Low Batt"; color: "#ff6b35"; onClicked: SimulatorService.loadPreset("low-battery") }
+                SimButton { text: "Charging"; color: "#4caf50"; onClicked: SimulatorService.loadPreset("charging") }
+                SimButton { text: "No GPS"; onClicked: SimulatorService.loadPreset("no-gps") }
+                SimButton { text: "Offline"; onClicked: SimulatorService.loadPreset("offline") }
+                SimButton { text: "1 Battery"; onClicked: SimulatorService.loadPreset("single-battery") }
             }
 
             // ---- Routes ----
@@ -187,25 +188,25 @@ ApplicationWindow {
                 SimButton {
                     text: "Charlottenburg \u2192 Moabit"
                     Layout.fillWidth: true
-                    onClicked: simulator.loadTestRoute(1)
+                    onClicked: SimulatorService.loadTestRoute(1)
                 }
                 SimButton {
                     text: "Mitte \u2192 Moabit"
                     Layout.fillWidth: true
-                    onClicked: simulator.loadTestRoute(2)
+                    onClicked: SimulatorService.loadTestRoute(2)
                 }
                 SimButton {
                     text: "Tempelhof \u2192 Friedrichshain"
                     Layout.fillWidth: true
-                    onClicked: simulator.loadTestRoute(3)
+                    onClicked: SimulatorService.loadTestRoute(3)
                 }
                 SimButton {
                     text: "Clear Route"
                     Layout.fillWidth: true
                     color: "#f44336"
                     onClicked: {
-                        if (typeof navigationService !== "undefined") {
-                            navigationService.clearNavigation()
+                        if (true) {
+                            NavigationService.clearNavigation()
                         }
                     }
                 }
@@ -224,7 +225,7 @@ ApplicationWindow {
                             "shutting-down", "booting", "hibernating",
                             "waiting-hibernation", "updating"]
                     currentIndex: 0
-                    onActivated: simulator.setVehicleState(currentText)
+                    onActivated: SimulatorService.setVehicleState(currentText)
 
                     palette.button: "#333"
                     palette.buttonText: "white"
@@ -242,7 +243,7 @@ ApplicationWindow {
                     checked: true
                     text: checked ? "Down" : "Up"
                     palette.highlight: "#2196F3"
-                    onToggled: simulator.setKickstand(checked ? "down" : "up")
+                    onToggled: SimulatorService.setKickstand(checked ? "down" : "up")
                 }
             }
 
@@ -254,25 +255,25 @@ ApplicationWindow {
                     text: "Off"; small: true
                     ButtonGroup.group: blinkerGroup
                     checkable: true; checked: true
-                    onClicked: simulator.setBlinkerState("off")
+                    onClicked: SimulatorService.setBlinkerState("off")
                 }
                 SimButton {
                     text: "L"; small: true
                     ButtonGroup.group: blinkerGroup
                     checkable: true
-                    onClicked: simulator.setBlinkerState("left")
+                    onClicked: SimulatorService.setBlinkerState("left")
                 }
                 SimButton {
                     text: "R"; small: true
                     ButtonGroup.group: blinkerGroup
                     checkable: true
-                    onClicked: simulator.setBlinkerState("right")
+                    onClicked: SimulatorService.setBlinkerState("right")
                 }
                 SimButton {
                     text: "Both"; small: true
                     ButtonGroup.group: blinkerGroup
                     checkable: true
-                    onClicked: simulator.setBlinkerState("both")
+                    onClicked: SimulatorService.setBlinkerState("both")
                 }
             }
 
@@ -284,13 +285,13 @@ ApplicationWindow {
                 SimLabel { text: "Brakes" }
                 SimButton {
                     text: "Left Brake"
-                    onPressed: simulator.setBrakeLeft(true)
-                    onReleased: simulator.setBrakeLeft(false)
+                    onPressed: SimulatorService.setBrakeLeft(true)
+                    onReleased: SimulatorService.setBrakeLeft(false)
                 }
                 SimButton {
                     text: "Right Brake"
-                    onPressed: simulator.setBrakeRight(true)
-                    onReleased: simulator.setBrakeRight(false)
+                    onPressed: SimulatorService.setBrakeRight(true)
+                    onReleased: SimulatorService.setBrakeRight(false)
                 }
             }
 
@@ -299,14 +300,14 @@ ApplicationWindow {
                 SimLabel { text: "Buttons" }
                 SimButton {
                     text: "Seatbox"
-                    onPressed: simulator.setSeatboxButton(true)
-                    onReleased: simulator.setSeatboxButton(false)
+                    onPressed: SimulatorService.setSeatboxButton(true)
+                    onReleased: SimulatorService.setSeatboxButton(false)
                 }
                 SimButton {
                     text: "Horn"
                     color: "#ff9800"
-                    onPressed: simulator.setHornButton(true)
-                    onReleased: simulator.setHornButton(false)
+                    onPressed: SimulatorService.setHornButton(true)
+                    onReleased: SimulatorService.setHornButton(false)
                 }
             }
 
@@ -314,16 +315,16 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 SimLabel { text: "Locks" }
                 SimButton {
-                    text: "S-Box Open"; small: true; onClicked: simulator.setSeatboxLock("open")
+                    text: "S-Box Open"; small: true; onClicked: SimulatorService.setSeatboxLock("open")
                 }
                 SimButton {
-                    text: "S-Box Close"; small: true; onClicked: simulator.setSeatboxLock("closed")
+                    text: "S-Box Close"; small: true; onClicked: SimulatorService.setSeatboxLock("closed")
                 }
                 SimButton {
-                    text: "H-Bar Lock"; small: true; onClicked: simulator.setHandlebarLock("locked")
+                    text: "H-Bar Lock"; small: true; onClicked: SimulatorService.setHandlebarLock("locked")
                 }
                 SimButton {
-                    text: "H-Bar Unlock"; small: true; onClicked: simulator.setHandlebarLock("unlocked")
+                    text: "H-Bar Unlock"; small: true; onClicked: SimulatorService.setHandlebarLock("unlocked")
                 }
             }
 
@@ -335,34 +336,33 @@ ApplicationWindow {
                 SimLabel { text: "Trigger" }
                 SimButton {
                     text: "60s"; small: true
-                    onClicked: simulator.setAutoStandbyDeadline(60)
+                    onClicked: SimulatorService.setAutoStandbyDeadline(60)
                 }
                 SimButton {
                     text: "30s"; small: true
-                    onClicked: simulator.setAutoStandbyDeadline(30)
+                    onClicked: SimulatorService.setAutoStandbyDeadline(30)
                 }
                 SimButton {
                     text: "10s"; small: true
-                    onClicked: simulator.setAutoStandbyDeadline(10)
+                    onClicked: SimulatorService.setAutoStandbyDeadline(10)
                 }
                 SimButton {
                     text: "Clear"; small: true; color: "#f44336"
-                    onClicked: simulator.clearAutoStandbyDeadline()
+                    onClicked: SimulatorService.clearAutoStandbyDeadline()
                 }
             }
 
             SimSliderRow {
                 label: "Timeout"
                 from: 0; to: 1800; value: 900; unit: "s"; decimals: 0
-                onMoved: function(v) { simulator.setAutoStandbySetting(Math.round(v)) }
+                onMoved: function(v) { SimulatorService.setAutoStandbySetting(Math.round(v)) }
             }
 
             Text {
                 Layout.fillWidth: true
-                visible: typeof autoStandbyStore !== "undefined"
-                         && autoStandbyStore.remainingSeconds > 0
-                text: "Remaining: " + autoStandbyStore.remainingSeconds + "s"
-                color: autoStandbyStore.remainingSeconds <= 60 ? "#FF9800" : "#4caf50"
+                visible: AutoStandbyStore.remainingSeconds > 0
+                text: "Remaining: " + AutoStandbyStore.remainingSeconds + "s"
+                color: AutoStandbyStore.remainingSeconds <= 60 ? "#FF9800" : "#4caf50"
                 font.pixelSize: 12
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -373,13 +373,13 @@ ApplicationWindow {
             SimSliderRow {
                 label: "Speed"
                 from: 0; to: 55; value: 0; unit: "km/h"; decimals: 0
-                onMoved: function(v) { simulator.setSpeed(v); simulator.setGpsSpeed(v) }
+                onMoved: function(v) { SimulatorService.setSpeed(v); SimulatorService.setGpsSpeed(v) }
             }
 
             SimSliderRow {
                 label: "Temp"
                 from: -10; to: 120; value: 25; unit: "\u00B0C"; decimals: 0
-                onMoved: function(v) { simulator.setEngineTemperature(v) }
+                onMoved: function(v) { SimulatorService.setEngineTemperature(v) }
             }
 
             RowLayout {
@@ -392,9 +392,9 @@ ApplicationWindow {
                     font.pixelSize: 12
                     onEditingFinished: {
                         var v = parseFloat(text)
-                        if (!isNaN(v)) simulator.setOdometer(v)
+                        if (!isNaN(v)) SimulatorService.setOdometer(v)
                     }
-                    Component.onCompleted: simulator.setOdometer(0)
+                    Component.onCompleted: SimulatorService.setOdometer(0)
                 }
                 Text { text: "km"; color: "#999"; font.pixelSize: 12 }
             }
@@ -407,14 +407,13 @@ ApplicationWindow {
                     color: "#CCC"
                     font.pixelSize: 12
                     text: {
-                        var trip = (typeof tripStore !== "undefined" && tripStore.distance !== undefined)
-                                    ? (tripStore.distance / 1000).toFixed(2) + " km" : "—"
-                        var ms = (typeof odometerMilestoneService !== "undefined"
-                                  && odometerMilestoneService.currentKm !== undefined
-                                  && odometerMilestoneService.currentKm > 0)
-                                    ? odometerMilestoneService.currentKm.toFixed(1) + " km"
-                                      + (odometerMilestoneService.currentTag
-                                         ? " [" + odometerMilestoneService.currentTag + "]"
+                        var trip = (TripStore.distance !== undefined)
+                                    ? (TripStore.distance / 1000).toFixed(2) + " km" : "—"
+                        var ms = (OdometerMilestoneService.currentKm !== undefined
+                                  && OdometerMilestoneService.currentKm > 0)
+                                    ? OdometerMilestoneService.currentKm.toFixed(1) + " km"
+                                      + (OdometerMilestoneService.currentTag
+                                         ? " [" + OdometerMilestoneService.currentTag + "]"
                                          : "")
                                     : "—"
                         return "trip " + trip + " · last " + ms
@@ -426,11 +425,10 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 Text { text: "Easter eggs"; Layout.preferredWidth: 100; color: "#CCC"; font.pixelSize: 12 }
                 CheckBox {
-                    checked: typeof odometerMilestoneService !== "undefined"
-                             && odometerMilestoneService.easterEggsEnabled
+                    checked: OdometerMilestoneService.easterEggsEnabled
                     onToggled: {
-                        if (typeof odometerMilestoneService !== "undefined")
-                            odometerMilestoneService.easterEggsEnabled = checked
+                        if (true)
+                            OdometerMilestoneService.easterEggsEnabled = checked
                     }
                 }
                 Text {
@@ -445,13 +443,13 @@ ApplicationWindow {
             SimSliderRow {
                 label: "Motor Current"
                 from: -10000; to: 80000; value: 0; unit: "mA"; decimals: 0
-                onMoved: function(v) { simulator.setMotorCurrent(v) }
+                onMoved: function(v) { SimulatorService.setMotorCurrent(v) }
             }
 
             SimSliderRow {
                 label: "Motor Voltage"
                 from: 0; to: 60000; value: 54000; unit: "mV"; decimals: 0
-                onMoved: function(v) { simulator.setMotorVoltage(v) }
+                onMoved: function(v) { SimulatorService.setMotorVoltage(v) }
             }
 
             // ---- Auto-drive ----
@@ -460,13 +458,13 @@ ApplicationWindow {
             RowLayout {
                 Layout.fillWidth: true
                 SimButton {
-                    text: simulator.autoDriveActive ? "Stop" : "Start"
-                    color: simulator.autoDriveActive ? "#f44336" : "#4caf50"
+                    text: SimulatorService.autoDriveActive ? "Stop" : "Start"
+                    color: SimulatorService.autoDriveActive ? "#f44336" : "#4caf50"
                     onClicked: {
-                        if (simulator.autoDriveActive)
-                            simulator.stopAutoDrive()
+                        if (SimulatorService.autoDriveActive)
+                            SimulatorService.stopAutoDrive()
                         else
-                            simulator.startAutoDrive(autoDriveSpeedSlider.value)
+                            SimulatorService.startAutoDrive(autoDriveSpeedSlider.value)
                     }
                 }
                 Slider {
@@ -474,8 +472,8 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     from: 5; to: 55; value: 25; stepSize: 1
                     onMoved: {
-                        if (simulator.autoDriveActive)
-                            simulator.startAutoDrive(value)
+                        if (SimulatorService.autoDriveActive)
+                            SimulatorService.startAutoDrive(value)
                     }
                 }
                 Text {
@@ -487,8 +485,8 @@ ApplicationWindow {
             }
 
             Text {
-                visible: simulator.autoDriveActive
-                text: "Driving at " + simulator.autoDriveSpeed.toFixed(1) + " km/h"
+                visible: SimulatorService.autoDriveActive
+                text: "Driving at " + SimulatorService.autoDriveSpeed.toFixed(1) + " km/h"
                 color: "#4caf50"
                 font.pixelSize: 12
                 Layout.alignment: Qt.AlignHCenter
@@ -503,14 +501,14 @@ ApplicationWindow {
                 Switch {
                     checked: true
                     palette.highlight: "#2196F3"
-                    onToggled: simulator.setBatteryPresent(0, checked)
+                    onToggled: SimulatorService.setBatteryPresent(0, checked)
                 }
                 SimLabel { text: "State" }
                 ComboBox {
                     Layout.fillWidth: true
                     model: ["active", "idle", "asleep", "unknown"]
                     currentIndex: 0
-                    onActivated: simulator.setBatteryState(0, currentText)
+                    onActivated: SimulatorService.setBatteryState(0, currentText)
                     palette.button: "#333"; palette.buttonText: "white"
                     palette.window: "#333"; palette.windowText: "white"
                 }
@@ -519,13 +517,13 @@ ApplicationWindow {
             SimSliderRow {
                 label: "Charge"
                 from: 0; to: 100; value: 80; unit: "%"; decimals: 0
-                onMoved: function(v) { simulator.setBatteryCharge(0, Math.round(v)) }
+                onMoved: function(v) { SimulatorService.setBatteryCharge(0, Math.round(v)) }
             }
 
             SimSliderRow {
                 label: "Temp"
                 from: -20; to: 60; value: 25; unit: "\u00B0C"; decimals: 0
-                onMoved: function(v) { simulator.setBatteryTemperature(0, Math.round(v)) }
+                onMoved: function(v) { SimulatorService.setBatteryTemperature(0, Math.round(v)) }
             }
 
             // ---- Battery 1 ----
@@ -537,14 +535,14 @@ ApplicationWindow {
                 Switch {
                     checked: true
                     palette.highlight: "#2196F3"
-                    onToggled: simulator.setBatteryPresent(1, checked)
+                    onToggled: SimulatorService.setBatteryPresent(1, checked)
                 }
                 SimLabel { text: "State" }
                 ComboBox {
                     Layout.fillWidth: true
                     model: ["active", "idle", "asleep", "unknown"]
                     currentIndex: 0
-                    onActivated: simulator.setBatteryState(1, currentText)
+                    onActivated: SimulatorService.setBatteryState(1, currentText)
                     palette.button: "#333"; palette.buttonText: "white"
                     palette.window: "#333"; palette.windowText: "white"
                 }
@@ -553,7 +551,7 @@ ApplicationWindow {
             SimSliderRow {
                 label: "Charge"
                 from: 0; to: 100; value: 75; unit: "%"; decimals: 0
-                onMoved: function(v) { simulator.setBatteryCharge(1, Math.round(v)) }
+                onMoved: function(v) { SimulatorService.setBatteryCharge(1, Math.round(v)) }
             }
 
             // ---- GPS ----
@@ -563,11 +561,11 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 SimLabel { text: "Freeze position" }
                 Switch {
-                    checked: simulator.gpsFrozen
+                    checked: SimulatorService.gpsFrozen
                     onToggled: {
-                        simulator.gpsFrozen = checked
-                        if (typeof mapService !== "undefined")
-                            mapService.deadReckoningPaused = checked
+                        SimulatorService.gpsFrozen = checked
+                        if (true)
+                            MapService.deadReckoningPaused = checked
                     }
                     palette.button: "#333"
                 }
@@ -580,7 +578,7 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     model: ["fix-established", "searching", "off", "error"]
                     currentIndex: 0
-                    onActivated: simulator.setGpsState(currentText)
+                    onActivated: SimulatorService.setGpsState(currentText)
                     palette.button: "#333"; palette.buttonText: "white"
                     palette.window: "#333"; palette.windowText: "white"
                 }
@@ -596,7 +594,7 @@ ApplicationWindow {
                     color: "white"
                     font.pixelSize: 12
                     background: Rectangle { color: "#333"; radius: 3 }
-                    onEditingFinished: simulator.setGpsPosition(
+                    onEditingFinished: SimulatorService.setGpsPosition(
                         parseFloat(text), parseFloat(lngField.text))
                 }
                 SimLabel { text: "Lng" }
@@ -607,7 +605,7 @@ ApplicationWindow {
                     color: "white"
                     font.pixelSize: 12
                     background: Rectangle { color: "#333"; radius: 3 }
-                    onEditingFinished: simulator.setGpsPosition(
+                    onEditingFinished: SimulatorService.setGpsPosition(
                         parseFloat(latField.text), parseFloat(text))
                 }
             }
@@ -615,7 +613,7 @@ ApplicationWindow {
             SimSliderRow {
                 label: "Course"
                 from: 0; to: 359; value: 0; unit: "\u00B0"; decimals: 0
-                onMoved: function(v) { simulator.setGpsCourse(v) }
+                onMoved: function(v) { SimulatorService.setGpsCourse(v) }
             }
 
             // ---- Internet ----
@@ -628,7 +626,7 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     model: ["connected", "disconnected", "off"]
                     currentIndex: 0
-                    onActivated: simulator.setModemState(currentText)
+                    onActivated: SimulatorService.setModemState(currentText)
                     palette.button: "#333"; palette.buttonText: "white"
                     palette.window: "#333"; palette.windowText: "white"
                 }
@@ -637,7 +635,7 @@ ApplicationWindow {
             SimSliderRow {
                 label: "Signal"
                 from: 0; to: 100; value: 75; unit: "%"; decimals: 0
-                onMoved: function(v) { simulator.setSignalQuality(Math.round(v)) }
+                onMoved: function(v) { SimulatorService.setSignalQuality(Math.round(v)) }
             }
 
             RowLayout {
@@ -647,10 +645,12 @@ ApplicationWindow {
                 Repeater {
                     model: ["LTE", "UMTS", "EDGE", "GSM"]
                     SimButton {
+                        required property var modelData
+                        required property int index
                         text: modelData; small: true
                         ButtonGroup.group: techGroup
                         checkable: true; checked: index === 0
-                        onClicked: simulator.setAccessTech(modelData)
+                        onClicked: SimulatorService.setAccessTech(modelData)
                     }
                 }
             }
@@ -660,11 +660,11 @@ ApplicationWindow {
                 SimLabel { text: "Cloud" }
                 SimButton {
                     text: "Connected"; small: true
-                    onClicked: simulator.setCloudConnection("connected")
+                    onClicked: SimulatorService.setCloudConnection("connected")
                 }
                 SimButton {
                     text: "Disconnected"; small: true
-                    onClicked: simulator.setCloudConnection("disconnected")
+                    onClicked: SimulatorService.setCloudConnection("disconnected")
                 }
             }
 
@@ -676,11 +676,11 @@ ApplicationWindow {
                 SimLabel { text: "Status" }
                 SimButton {
                     text: "Connected"; small: true
-                    onClicked: simulator.setBluetoothStatus("connected")
+                    onClicked: SimulatorService.setBluetoothStatus("connected")
                 }
                 SimButton {
                     text: "Disconnected"; small: true
-                    onClicked: simulator.setBluetoothStatus("disconnected")
+                    onClicked: SimulatorService.setBluetoothStatus("disconnected")
                 }
             }
 
@@ -715,28 +715,30 @@ ApplicationWindow {
     }
 
     component SimButton: Button {
+        id: simBtn
         property bool small: false
         property color color: "#555"
-        Layout.fillWidth: !small
-        Layout.preferredWidth: small ? 48 : -1
-        Layout.preferredHeight: small ? 28 : 32
-        font.pixelSize: small ? 11 : 12
+        Layout.fillWidth: !simBtn.small
+        Layout.preferredWidth: simBtn.small ? 48 : -1
+        Layout.preferredHeight: simBtn.small ? 28 : 32
+        font.pixelSize: simBtn.small ? 11 : 12
         background: Rectangle {
-            color: parent.down ? Qt.lighter(parent.color, 1.3)
-                   : parent.checked ? "#2196F3"
-                   : parent.color
+            color: simBtn.down ? Qt.lighter(simBtn.color, 1.3)
+                   : simBtn.checked ? "#2196F3"
+                   : simBtn.color
             radius: 4
         }
         contentItem: Text {
-            text: parent.text
+            text: simBtn.text
             color: "white"
-            font: parent.font
+            font: simBtn.font
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
         }
     }
 
     component SimSliderRow: RowLayout {
+        id: sliderRow
         property alias label: sliderLabel.text
         property alias from: slider.from
         property alias to: slider.to
@@ -750,11 +752,11 @@ ApplicationWindow {
         Slider {
             id: slider
             Layout.fillWidth: true
-            stepSize: decimals === 0 ? 1 : 0.1
-            onMoved: parent.moved(value)
+            stepSize: sliderRow.decimals === 0 ? 1 : 0.1
+            onMoved: sliderRow.moved(value)
         }
         Text {
-            text: (decimals === 0 ? Math.round(slider.value) : slider.value.toFixed(decimals)) + unit
+            text: (sliderRow.decimals === 0 ? Math.round(slider.value) : slider.value.toFixed(sliderRow.decimals)) + sliderRow.unit
             color: "#ccc"
             font.pixelSize: 11
             Layout.preferredWidth: 52

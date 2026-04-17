@@ -116,6 +116,7 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
     , m_speedLimit(speedLimit)
     , m_tickTimer(new QTimer(this))
 {
+    s_instance = this;
     // reloadMbtiles() opens a SQLite connection for the mbtiles validation
     // probe and parses two JSON style files to rewrite tile:// URLs. That's
     // a few hundred ms on iMX6 for work nothing else waits on during

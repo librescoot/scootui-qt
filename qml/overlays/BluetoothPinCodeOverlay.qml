@@ -1,4 +1,5 @@
 import QtQuick
+import ScootUI 1.0
 
 Item {
     id: btPinOverlay
@@ -6,15 +7,15 @@ Item {
 
     property string currentPin: ""
 
-    property bool hopOn: typeof vehicleStore !== "undefined" && vehicleStore.hopOnActive
+    property bool hopOn: VehicleStore.hopOnActive
 
     visible: currentPin !== "" && !hopOn
 
     Connections {
-        target: typeof bluetoothStore !== "undefined" ? bluetoothStore : null
+        target: BluetoothStore
 
         function onPinCodeChanged() {
-            var pin = bluetoothStore.pinCode
+            var pin = BluetoothStore.pinCode
             if (pin !== "") {
                 btPinOverlay.currentPin = pin
                 dismissTimer.restart()
@@ -45,15 +46,15 @@ Item {
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: translations.blePinPrompt
-                font.pixelSize: themeStore.fontTitle
+                text: Translations.blePinPrompt
+                font.pixelSize: ThemeStore.fontTitle
                 color: "#FFFFFF"
             }
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: btPinOverlay.currentPin
-                font.pixelSize: themeStore.fontPin
+                font.pixelSize: ThemeStore.fontPin
                 font.weight: Font.Bold
                 font.letterSpacing: 14
                 color: "#FFFFFF"

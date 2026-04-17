@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import "../components"
+import ScootUI 1.0
 
 Item {
     id: tbtWidget
@@ -10,10 +11,10 @@ Item {
             ? Math.min(parent ? parent.height * 0.75 : Number.MAX_VALUE,
                        Math.max(contentCol.implicitHeight + 24, 96))
             : 0
-    visible: typeof navigationService !== "undefined" && navigationService.isNavigating
-             && navigationService.currentManeuverDistance > 0
+    visible: NavigationService.isNavigating
+             && NavigationService.currentManeuverDistance > 0
 
-    property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    property bool isDark: ThemeStore.isDark
 
     // Maneuver type enum values (must match ManeuverType in C++)
     readonly property int mtOther: 0
@@ -102,10 +103,8 @@ Item {
                 Layout.preferredWidth: 80
                 Layout.preferredHeight: 80
 
-                property int mType: typeof navigationService !== "undefined"
-                                    ? navigationService.currentManeuverType : 0
-                property double mDist: typeof navigationService !== "undefined"
-                                       ? navigationService.currentManeuverDistance : 0
+                property int mType: NavigationService.currentManeuverType
+                property double mDist: NavigationService.currentManeuverDistance
                 property bool isRoundabout: (mType === mtRoundaboutEnter || mType === mtRoundaboutExit)
                                             && mDist <= iconThreshold(mType)
 
@@ -113,8 +112,8 @@ Item {
                     anchors.centerIn: parent
                     active: parent.isRoundabout
                     sourceComponent: RoundaboutIcon {
-                        exitNumber: typeof navigationService !== "undefined"
-                                    ? Math.max(1, navigationService.roundaboutExitCount) : 1
+                        exitNumber: true
+                                    ? Math.max(1, NavigationService.roundaboutExitCount) : 1
                         isDark: tbtWidget.isDark
                         size: 64
                     }
@@ -126,7 +125,7 @@ Item {
                     text: parent.mDist <= iconThreshold(parent.mType)
                           ? maneuverIcon(parent.mType) : MaterialIcon.iconStraight
                     font.family: "Material Icons"
-                    font.pixelSize: themeStore.fontHero
+                    font.pixelSize: ThemeStore.fontHero
                     color: isDark ? "white" : "#212121"
                 }
             }
@@ -144,9 +143,9 @@ Item {
                 // Distance indicator
                 Text {
                     Layout.fillWidth: true
-                    text: typeof navigationService !== "undefined"
-                          ? formatDistance(navigationService.currentManeuverDistance) : ""
-                    font.pixelSize: themeStore.fontBody
+                    text: true
+                          ? formatDistance(NavigationService.currentManeuverDistance) : ""
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Bold
                     color: isDark ? "white" : "#212121"
                     lineHeight: 1.0
@@ -155,9 +154,8 @@ Item {
                 // Main instruction text (verbal) — wraps freely; widget grows to fit
                 Text {
                     Layout.fillWidth: true
-                    text: typeof navigationService !== "undefined"
-                          ? navigationService.currentVerbalInstruction : ""
-                    font.pixelSize: themeStore.fontBody
+                    text: NavigationService.currentVerbalInstruction
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: isDark ? Font.Normal : Font.Medium
                     color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     wrapMode: Text.WordWrap
@@ -167,26 +165,25 @@ Item {
                 // Next instruction preview
                 RowLayout {
                     Layout.fillWidth: true
-                    visible: typeof navigationService !== "undefined" && navigationService.showNextPreview
+                    visible: NavigationService.showNextPreview
                     spacing: 4
 
                     Text {
                         text: "Then"
-                        font.pixelSize: themeStore.fontBody
+                        font.pixelSize: ThemeStore.fontBody
                         color: isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
                     }
                     Text {
-                        text: typeof navigationService !== "undefined"
-                              ? maneuverIcon(navigationService.nextManeuverType) : ""
+                        text: true
+                              ? maneuverIcon(NavigationService.nextManeuverType) : ""
                         font.family: "Material Icons"
-                        font.pixelSize: themeStore.fontBody
+                        font.pixelSize: ThemeStore.fontBody
                         color: isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
                     }
                     Text {
                         Layout.fillWidth: true
-                        text: typeof navigationService !== "undefined"
-                              ? navigationService.nextStreetName : ""
-                        font.pixelSize: themeStore.fontBody
+                        text: NavigationService.nextStreetName
+                        font.pixelSize: ThemeStore.fontBody
                         color: isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
                         elide: Text.ElideRight
                     }
@@ -204,7 +201,7 @@ Item {
             implicitWidth: timeRow.width + 16
             implicitHeight: timeRow.height + 8
             color: isDark ? Qt.rgba(0, 0, 0, 0.95) : Qt.rgba(1, 1, 1, 0.98)
-            radius: themeStore.radiusCard
+            radius: ThemeStore.radiusCard
 
             // Left and Bottom borders
             Rectangle { anchors.left: parent.left; width: 1; height: parent.height; color: isDark ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.12) }
@@ -220,8 +217,8 @@ Item {
                     spacing: 4
                     Text { text: MaterialIcon.iconSpeed; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
-                        text: typeof navigationService !== "undefined"
-                              ? formatDistance(navigationService.distanceToDestination) : ""
+                        text: true
+                              ? formatDistance(NavigationService.distanceToDestination) : ""
                         font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
                 }
@@ -231,8 +228,8 @@ Item {
                     spacing: 4
                     Text { text: MaterialIcon.iconTimer; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
-                        text: typeof navigationService !== "undefined" && navigationService.remainingDuration > 0
-                              ? Math.ceil(navigationService.remainingDuration / 60) + "m"
+                        text: NavigationService.remainingDuration > 0
+                              ? Math.ceil(NavigationService.remainingDuration / 60) + "m"
                               : ""
                         font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
@@ -243,7 +240,7 @@ Item {
                     spacing: 4
                     Text { text: MaterialIcon.iconFlag; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
-                        text: typeof navigationService !== "undefined" ? navigationService.eta : ""
+                        text: NavigationService.eta
                         font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
                 }

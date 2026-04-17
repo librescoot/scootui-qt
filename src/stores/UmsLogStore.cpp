@@ -3,6 +3,7 @@
 UmsLogStore::UmsLogStore(MdbRepository *repo, QObject *parent)
     : QObject(parent), m_repo(repo)
 {
+    s_instance = this;
     m_timer.setInterval(500);
     connect(&m_timer, &QTimer::timeout, this, &UmsLogStore::poll);
 }
