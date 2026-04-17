@@ -65,8 +65,11 @@
 #ifdef Q_OS_LINUX
 #include <QSocketNotifier>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <signal.h>
 #include <unistd.h>
+#include <string.h>
+#include <stddef.h>
 
 static int s_sigTermFd[2];
 
@@ -74,6 +77,25 @@ static void sigTermHandler(int)
 {
     char a = 1;
     ::write(s_sigTermFd[0], &a, sizeof(a));
+}
+
+static void sdNotifyReady()
+{
+    const char *sockPath = ::getenv("NOTIFY_SOCKET");
+    if (!sockPath) return;
+
+    int fd = ::socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+    if (fd < 0) return;
+
+    struct sockaddr_un addr = {};
+    addr.sun_family = AF_UNIX;
+    ::strncpy(addr.sun_path, sockPath, sizeof(addr.sun_path) - 1);
+    if (addr.sun_path[0] == '@')
+        addr.sun_path[0] = '\0';
+
+    ::sendto(fd, "READY=1", 7, 0, (struct sockaddr *)&addr,
+             offsetof(struct sockaddr_un, sun_path) + ::strlen(sockPath));
+    ::close(fd);
 }
 #endif
 
@@ -472,6 +494,14 @@ void Application::createStores(QQmlApplicationEngine &engine)
                       m_serialNumberService->serialNumber());
         }
         repo->dashboardReady();
+#ifdef Q_OS_LINUX
+        // Only signal systemd once — subsequent calls are reconnect events.
+        static bool notified = false;
+        if (!notified) {
+            sdNotifyReady();
+            notified = true;
+        }
+#endif
     };
     connect(repo, &MdbRepository::connectionStateChanged, this, [publishReady](bool connected) {
         if (connected)
