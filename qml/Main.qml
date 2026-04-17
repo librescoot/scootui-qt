@@ -1,9 +1,5 @@
 import QtQuick
 import ScootUI 1.0
-import "screens"
-import "widgets/blinker"
-import "widgets/shutdown"
-import "overlays"
 
 Window {
     id: root
