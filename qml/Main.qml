@@ -168,13 +168,15 @@ Window {
     Component { id: navSetupComponent; NavigationSetupScreen {} }
     Component { id: destinationComponent; DestinationScreen {} }
 
-    // Overlays (bottom to top stacking order)
-
-    // Debug overlay (floating, lowest z)
-    DebugOverlay {
-        anchors.fill: parent
-        z: 50
-    }
+    // Overlays (bottom to top stacking order).
+    //
+    // The two that can render in the first few seconds of boot (blinker
+    // while idle-ready, toast if redis is slow to connect) are
+    // instantiated eagerly. Everything else is wrapped in an async
+    // Loader so engine.load() doesn't pay their instantiation cost on
+    // the main thread — they load across the frames after first paint.
+    // Each overlay's own `visible` binding still governs what shows
+    // when; the Loader just controls when it exists.
 
     BlinkerOverlay {
         anchors.fill: parent
@@ -184,66 +186,102 @@ Window {
                      ? screenLoader.item.bottomBarHeight : 48
     }
 
-    MenuOverlay {
-        anchors.fill: parent
-        z: 200
-        blurSource: screenLoader
-    }
-
-    ShortcutMenuOverlay {
-        anchors.fill: parent
-        z: 300
-        blurSource: screenLoader
-    }
-
-    // Toast notifications
     ToastOverlay {
         anchors.fill: parent
         z: 900
     }
 
-    OdometerMilestoneOverlay {
+    Loader {
+        anchors.fill: parent
+        z: 50
+        asynchronous: true
+        sourceComponent: Component { DebugOverlay { anchors.fill: parent } }
+    }
+
+    Loader {
+        anchors.fill: parent
+        z: 200
+        asynchronous: true
+        sourceComponent: Component {
+            MenuOverlay {
+                anchors.fill: parent
+                blurSource: screenLoader
+            }
+        }
+    }
+
+    Loader {
+        anchors.fill: parent
+        z: 300
+        asynchronous: true
+        sourceComponent: Component {
+            ShortcutMenuOverlay {
+                anchors.fill: parent
+                blurSource: screenLoader
+            }
+        }
+    }
+
+    Loader {
         anchors.fill: parent
         z: 920
+        asynchronous: true
+        sourceComponent: Component { OdometerMilestoneOverlay { anchors.fill: parent } }
     }
 
-    AutoLockCountdownOverlay {
+    Loader {
         anchors.fill: parent
         z: 950
+        asynchronous: true
+        sourceComponent: Component { AutoLockCountdownOverlay { anchors.fill: parent } }
     }
 
-    HopOnLearnOverlay {
+    Loader {
         anchors.fill: parent
         z: 970
+        asynchronous: true
+        sourceComponent: Component { HopOnLearnOverlay { anchors.fill: parent } }
     }
 
-    HopOnLockOverlay {
+    Loader {
         anchors.fill: parent
         z: 980
+        asynchronous: true
+        sourceComponent: Component { HopOnLockOverlay { anchors.fill: parent } }
     }
 
-    ShutdownOverlay {
+    Loader {
         anchors.fill: parent
         z: 1000
+        asynchronous: true
+        sourceComponent: Component { ShutdownOverlay { anchors.fill: parent } }
     }
 
-    UmsOverlay {
+    Loader {
         anchors.fill: parent
         z: 1100
+        asynchronous: true
+        sourceComponent: Component { UmsOverlay { anchors.fill: parent } }
     }
 
-    VersionOverlay {
+    Loader {
         anchors.fill: parent
         z: 1150
+        asynchronous: true
+        sourceComponent: Component { VersionOverlay { anchors.fill: parent } }
     }
 
-    ManualHibernationOverlay {
+    Loader {
         anchors.fill: parent
         z: 1200
+        asynchronous: true
+        sourceComponent: Component { ManualHibernationOverlay { anchors.fill: parent } }
     }
 
-    BluetoothPinCodeOverlay {
+    Loader {
         anchors.fill: parent
         z: 1300
+        asynchronous: true
+        sourceComponent: Component { BluetoothPinCodeOverlay { anchors.fill: parent } }
     }
 }
