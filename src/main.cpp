@@ -31,19 +31,19 @@ int main(int argc, char *argv[])
     app.setApplicationVersion(QStringLiteral("1.0.0"));
 
     // Load bundled Roboto fonts (matching Flutter's default Material font)
-    QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/Roboto-Regular.ttf"));
+    QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/subset/Roboto-Regular.ttf"));
     BOOT_MARK("font: Roboto-Regular");
-    QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/Roboto-Bold.ttf"));
+    QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/subset/Roboto-Bold.ttf"));
     BOOT_MARK("font: Roboto-Bold");
-    QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/Roboto-Medium.ttf"));
+    QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/subset/Roboto-Medium.ttf"));
     BOOT_MARK("font: Roboto-Medium");
-    QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/Roboto-Light.ttf"));
+    QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/subset/Roboto-Light.ttf"));
     BOOT_MARK("font: Roboto-Light");
-    QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/RobotoCondensed-Bold.ttf"));
+    QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/subset/RobotoCondensed-Bold.ttf"));
     BOOT_MARK("font: RobotoCondensed-Bold");
-    QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/RobotoCondensed-Regular.ttf"));
+    QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/subset/RobotoCondensed-Regular.ttf"));
     BOOT_MARK("font: RobotoCondensed-Regular");
-    QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/MaterialIcons-Regular.otf"));
+    QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/subset/MaterialIcons-Regular.otf"));
     BOOT_MARK("font: MaterialIcons");
 
     // Set Roboto as default application font
