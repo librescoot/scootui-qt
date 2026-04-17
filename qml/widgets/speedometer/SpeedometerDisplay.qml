@@ -4,6 +4,9 @@ import "../indicators"
 Item {
     id: speedometer
 
+    Component.onCompleted: if (typeof bootTimer !== "undefined")
+        console.log("[boot +" + bootTimer.elapsed() + "ms] SpeedometerDisplay completed")
+
     // Properties from stores
     readonly property real targetSpeed: typeof engineStore !== "undefined" ? engineStore.speed : 0
     readonly property real motorCurrent: typeof engineStore !== "undefined" ? engineStore.motorCurrent : 0

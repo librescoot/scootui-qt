@@ -6,6 +6,9 @@ Row {
     spacing: 3
     height: 24
 
+    Component.onCompleted: if (typeof bootTimer !== "undefined")
+        console.log("[boot +" + bootTimer.elapsed() + "ms] BatteryDisplay completed")
+
     // Theme-aware icon color (matches Flutter's ColorFilter.mode srcIn)
     readonly property color iconColor: typeof themeStore !== "undefined" && !themeStore.isDark
                                         ? "#000000" : "#FFFFFF"

@@ -7,6 +7,9 @@ Rectangle {
     color: "transparent"
     height: 40
 
+    Component.onCompleted: if (typeof bootTimer !== "undefined")
+        console.log("[boot +" + bootTimer.elapsed() + "ms] TopStatusBar completed")
+
     // Bottom border
     Rectangle {
         anchors.bottom: parent.bottom
