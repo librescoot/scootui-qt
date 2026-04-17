@@ -181,9 +181,12 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_serialNumberService = new SerialNumberService(this);
     m_systemInfoService = new SystemInfoService(repo, this);
 
-    // Address database (for destination code lookup)
+    // Address database (for destination code lookup). initialize() kicks off
+    // a QtConcurrent build job that takes several seconds and competes for
+    // CPU with the rest of createStores. Defer it to the first event-loop
+    // tick so publishReady() fires without waiting on trie construction.
     m_addressDatabaseService = new AddressDatabaseService(this);
-    m_addressDatabaseService->initialize();
+    QTimer::singleShot(0, m_addressDatabaseService, &AddressDatabaseService::initialize);
 
     // M7: Navigation service
     m_navigationService = new NavigationService(gpsStore, navigationStore, vehicleStore,
