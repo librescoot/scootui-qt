@@ -7,7 +7,7 @@ set(CMAKE_AUTOMOC ON)
 
 option(DESKTOP_MODE "Build for desktop development with simulator panel (QMapLibre optional)" OFF)
 
-find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Qml Svg Network Sql Concurrent)
+find_package(Qt6 6.7 REQUIRED COMPONENTS Quick Qml Svg Network Sql Concurrent)
 find_package(ZLIB REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(HIREDIS REQUIRED hiredis)
@@ -47,7 +47,7 @@ if(DESKTOP_MODE)
     message(STATUS "Desktop mode enabled - simulator panel available")
 endif()
 
-qt_standard_project_setup(REQUIRES 6.4)
+qt_standard_project_setup(REQUIRES 6.7)
 
 set(CPP_SOURCES
     src/main.cpp
