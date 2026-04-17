@@ -7,8 +7,12 @@ set(CMAKE_AUTOMOC ON)
 
 option(DESKTOP_MODE "Build for desktop development with simulator panel (QMapLibre optional)" OFF)
 
-find_package(Qt6 6.7 REQUIRED COMPONENTS Quick Qml Svg Network Sql Concurrent QuickLayouts QuickEffects)
+find_package(Qt6 6.7 REQUIRED COMPONENTS Quick Qml Svg Network Sql Concurrent QuickLayouts)
 find_package(Qt6QuickParticlesPrivate 6.7 REQUIRED)
+# QuickEffects (MultiEffect) isn't exported with cmake config by the Yocto
+# qtdeclarative recipe, so we don't link its private headers at build time.
+# Every QML file that uses MultiEffect gets QT_QML_SKIP_TYPE_COMPILER below
+# so it loads the runtime QML plugin via the VM, same as pre-qmltc main.
 find_package(ZLIB REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(HIREDIS REQUIRED hiredis)
@@ -281,6 +285,26 @@ set_source_files_properties(
 set_source_files_properties(qml/simulator/SimulatorWindow.qml
     PROPERTIES QT_QML_SKIP_TYPE_COMPILER TRUE)
 
+# MultiEffect (QtQuick.Effects) lives in the Qt6QuickEffects module whose
+# cmake config isn't shipped by the Yocto qtdeclarative recipe, so qmltc
+# code that would #include qquickmultieffect_p.h fails to build on target.
+# Skip each MultiEffect-using leaf plus the cascade of types that embed one.
+set_source_files_properties(
+    qml/widgets/components/FrostedGlass.qml
+    qml/widgets/components/SvgIcon.qml
+    qml/widgets/components/TintedImage.qml
+    qml/widgets/indicators/StatusIndicators.qml
+    qml/widgets/status_bars/BatteryIcon.qml
+    qml/widgets/status_bars/BatteryDisplay.qml
+    qml/widgets/status_bars/TopStatusBar.qml
+    qml/overlays/MenuOverlay.qml
+    qml/overlays/ShortcutMenuOverlay.qml
+    qml/overlays/HopOnLearnOverlay.qml
+    qml/screens/AboutScreen.qml
+    qml/screens/NavigationSetupScreen.qml
+    qml/screens/AddressSelectionScreen.qml
+    PROPERTIES QT_QML_SKIP_TYPE_COMPILER TRUE)
+
 qt_add_qml_module(scootui
     URI ScootUI
     VERSION 1.0
@@ -377,7 +401,6 @@ target_link_libraries(scootui PRIVATE
     Qt6::Quick
     Qt6::QuickPrivate
     Qt6::QuickLayoutsPrivate
-    Qt6::QuickEffectsPrivate
     Qt6::QuickParticlesPrivate
     Qt6::Svg
     Qt6::Network
