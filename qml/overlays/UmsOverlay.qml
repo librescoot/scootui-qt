@@ -1,5 +1,4 @@
 import QtQuick
-import "../widgets/components"
 import ScootUI 1.0
 
 Item {

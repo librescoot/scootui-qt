@@ -1,12 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
-import "../widgets/speedometer"
-import "../widgets/status_bars"
-import "../widgets/cluster"
-import "../widgets/indicators"
-import "../widgets/navigation"
-import "../widgets/components"
 import ScootUI 1.0
+
 Rectangle {
     id: clusterScreen
     color: ThemeStore.backgroundColor

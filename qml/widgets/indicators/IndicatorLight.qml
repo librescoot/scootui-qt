@@ -22,7 +22,7 @@ Item {
                              ? indicatorLight.blinkSource
                              : blinkOpacity) : 1.0
 
-        property real blinkOpacity: 0
+        property real blinkOpacity
 
         SequentialAnimation on blinkOpacity {
             running: blinking && active && indicatorLight.blinkSource < 0

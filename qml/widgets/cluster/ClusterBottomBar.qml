@@ -1,5 +1,4 @@
 import QtQuick
-import "../power"
 import ScootUI 1.0
 
 Item {
