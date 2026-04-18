@@ -6,6 +6,7 @@
 ShutdownStore::ShutdownStore(QObject *parent)
     : QObject(parent)
 {
+    s_instance = this;
 }
 
 void ShutdownStore::connectToVehicle(VehicleStore *vehicle)

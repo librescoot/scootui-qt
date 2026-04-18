@@ -2,10 +2,16 @@
 
 #include "SyncableStore.h"
 #include "models/Enums.h"
+#include <QtQml/qqmlregistration.h>
+
+class QQmlEngine;
+class QJSEngine;
 
 class SettingsStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(QString theme READ theme NOTIFY themeChanged)
     Q_PROPERTY(QString mode READ mode NOTIFY modeChanged)
     Q_PROPERTY(bool showRawSpeed READ showRawSpeed NOTIFY showRawSpeedChanged)
@@ -32,6 +38,7 @@ class SettingsStore : public SyncableStore
 
 public:
     explicit SettingsStore(MdbRepository *repo, QObject *parent = nullptr);
+    static SettingsStore *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     QString theme() const { return m_theme; }
     QString mode() const { return m_mode; }
@@ -136,4 +143,6 @@ private:
     QString m_mapAutoDownload = QStringLiteral("false");
     // @schema dashboard.map.traffic-overlay
     QString m_mapTrafficOverlay = QStringLiteral("false");
+
+    static inline SettingsStore *s_instance = nullptr;
 };

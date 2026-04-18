@@ -1,15 +1,16 @@
 import QtQuick
+import ScootUI 1.0
 
 Item {
     id: blinkerOverlay
     anchors.fill: parent
 
-    readonly property int blinkerState: typeof vehicleStore !== "undefined" ? vehicleStore.blinkerState : 0
-    readonly property bool overlayEnabled: typeof settingsStore !== "undefined"
-                                           ? settingsStore.blinkerStyle === "overlay" : false
+    readonly property int blinkerState: VehicleStore.blinkerState
+    readonly property bool overlayEnabled: true
+                                           ? SettingsStore.blinkerStyle === "overlay" : false
     readonly property bool showLeft: overlayEnabled && blinkerState === 1
     readonly property bool showRight: overlayEnabled && blinkerState === 2
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: ThemeStore.isDark
 
     // Insets to center the arrow on the content area between status bars
     property real topInset: 0
@@ -18,8 +19,8 @@ Item {
     visible: showLeft || showRight
 
     // Shared blink clock from VehicleStore (scaled to 0.8 max)
-    readonly property real blinkOpacity: typeof vehicleStore !== "undefined"
-                                         ? vehicleStore.blinkOpacity * 0.8 : 0
+    readonly property real blinkOpacity: true
+                                         ? VehicleStore.blinkOpacity * 0.8 : 0
 
     // Large arrow icon centered on the content area between status bars
     Item {

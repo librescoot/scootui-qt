@@ -2,10 +2,16 @@
 
 #include <QObject>
 #include <QHash>
+#include <QtQml/qqmlregistration.h>
+
+class QQmlEngine;
+class QJSEngine;
 
 class Translations : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
 
     // Menu strings
     Q_PROPERTY(QString menuTitle READ menuTitle NOTIFY languageChanged)
@@ -387,6 +393,7 @@ class Translations : public QObject
 
 public:
     explicit Translations(QObject *parent = nullptr);
+    static Translations *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     Q_INVOKABLE void setLanguage(const QString &lang);
     QString language() const { return m_language; }
@@ -765,4 +772,6 @@ private:
 
     QString m_language = QStringLiteral("en");
     QHash<QString, QHash<QString, QString>> m_strings;
+
+    static inline Translations *s_instance = nullptr;
 };

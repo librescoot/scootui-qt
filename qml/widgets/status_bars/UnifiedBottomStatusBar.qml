@@ -1,9 +1,10 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI 1.0
 
 Rectangle {
     id: bottomBar
-    color: typeof themeStore !== "undefined" ? themeStore.backgroundColor : "black"
+    color: ThemeStore.backgroundColor
     implicitHeight: Math.max(leftCol.height, centerItem.childrenRect.height, rightCol.height) + 8
 
     Component.onCompleted: if (typeof bootTimer !== "undefined")
@@ -11,17 +12,17 @@ Rectangle {
 
     default property alias centerContent: centerItem.data
 
-    readonly property real tripDistance: typeof tripStore !== "undefined" ? tripStore.distance : 0
-    readonly property int tripDuration: typeof tripStore !== "undefined" ? tripStore.duration : 0
-    readonly property real avgSpeed: typeof tripStore !== "undefined" ? tripStore.averageSpeed : 0
-    readonly property real odometer: typeof engineStore !== "undefined" ? engineStore.odometer : 0
+    readonly property real tripDistance: TripStore.distance
+    readonly property int tripDuration: TripStore.duration
+    readonly property real avgSpeed: TripStore.averageSpeed
+    readonly property real odometer: EngineStore.odometer
 
     // Top border
     Rectangle {
         anchors.top: parent.top
         width: parent.width
         height: 1
-        color: themeStore.borderColor
+        color: ThemeStore.borderColor
     }
 
     // Left side
@@ -37,17 +38,17 @@ Rectangle {
             spacing: 0
             Text {
                 text: "Duration"
-                font.pixelSize: themeStore.fontCaption
+                font.pixelSize: ThemeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
                 font.capitalization: Font.AllUppercase
-                color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
+                color: ThemeStore.isDark ? "#99FFFFFF" : "#8A000000"
             }
             Text {
                 text: formatDuration(tripDuration)
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 font.weight: Font.Bold
-                color: themeStore.textColor
+                color: ThemeStore.textColor
             }
         }
 
@@ -55,25 +56,25 @@ Rectangle {
             spacing: 0
             Text {
                 text: "Avg"
-                font.pixelSize: themeStore.fontCaption
+                font.pixelSize: ThemeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
                 font.capitalization: Font.AllUppercase
-                color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
+                color: ThemeStore.isDark ? "#99FFFFFF" : "#8A000000"
             }
             Row {
                 spacing: 2
                 Text {
                     id: avgValue
                     text: avgSpeed.toFixed(1)
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Bold
-                    color: themeStore.textColor
+                    color: ThemeStore.textColor
                 }
                 Text {
                     text: "km/h"
-                    font.pixelSize: themeStore.fontCaption
-                    color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
+                    font.pixelSize: ThemeStore.fontCaption
+                    color: ThemeStore.isDark ? "#99FFFFFF" : "#8A000000"
                     anchors.baseline: avgValue.baseline
                 }
             }
@@ -104,18 +105,18 @@ Rectangle {
             Text {
                 anchors.right: parent.right
                 text: "Trip"
-                font.pixelSize: themeStore.fontCaption
+                font.pixelSize: ThemeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
                 font.capitalization: Font.AllUppercase
-                color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
+                color: ThemeStore.isDark ? "#99FFFFFF" : "#8A000000"
             }
             Text {
                 anchors.right: parent.right
                 text: (tripDistance).toFixed(1)
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 font.weight: Font.Bold
-                color: themeStore.textColor
+                color: ThemeStore.textColor
             }
         }
 
@@ -124,11 +125,11 @@ Rectangle {
             Text {
                 anchors.right: parent.right
                 text: "Total"
-                font.pixelSize: themeStore.fontCaption
+                font.pixelSize: ThemeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
                 font.capitalization: Font.AllUppercase
-                color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
+                color: ThemeStore.isDark ? "#99FFFFFF" : "#8A000000"
             }
             Row {
                 anchors.right: parent.right
@@ -136,14 +137,14 @@ Rectangle {
                 Text {
                     id: totalValue
                     text: (Math.floor(odometer / 100) / 10).toFixed(1)
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Bold
-                    color: themeStore.textColor
+                    color: ThemeStore.textColor
                 }
                 Text {
                     text: "km"
-                    font.pixelSize: themeStore.fontCaption
-                    color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
+                    font.pixelSize: ThemeStore.fontCaption
+                    color: ThemeStore.isDark ? "#99FFFFFF" : "#8A000000"
                     anchors.baseline: totalValue.baseline
                 }
             }

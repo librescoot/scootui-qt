@@ -5,6 +5,7 @@
 #include <QElapsedTimer>
 #include <QVariantList>
 #include <QPair>
+#include <QtQml/qqmlregistration.h>
 
 class GpsStore;
 class EngineStore;
@@ -13,9 +14,14 @@ class SettingsStore;
 class ThemeStore;
 class SpeedLimitStore;
 
+class QQmlEngine;
+class QJSEngine;
+
 class MapService : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
 
     Q_PROPERTY(double mapLatitude READ mapLatitude NOTIFY mapLatitudeChanged)
     Q_PROPERTY(double mapLongitude READ mapLongitude NOTIFY mapLongitudeChanged)
@@ -37,6 +43,7 @@ public:
                         NavigationService *navigation, SettingsStore *settings,
                         ThemeStore *theme, SpeedLimitStore *speedLimit,
                         QObject *parent = nullptr);
+    static MapService *create(QQmlEngine *, QJSEngine *) { return s_instance; }
     ~MapService() override;
 
     void reloadMbtiles();
@@ -244,4 +251,6 @@ private:
     double m_smoothedTarget = 0;
     double m_displayBearing = 0;
     double m_lastRawHeading = 0;
+
+    static inline MapService *s_instance = nullptr;
 };

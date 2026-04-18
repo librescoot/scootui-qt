@@ -1,14 +1,15 @@
 import QtQuick
+import ScootUI 1.0
 
 Item {
     id: vehicleMarker
     width: 100
     height: 100
 
-    property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
-    property bool isNavigating: typeof navigationService !== "undefined" ? navigationService.isNavigating : false
-    property bool hasRecentFix: typeof gpsStore !== "undefined" ? gpsStore.hasRecentFix : true
-    property double eph: typeof gpsStore !== "undefined" ? gpsStore.eph : 10
+    property bool isDark: ThemeStore.isDark
+    property bool isNavigating: NavigationService.isNavigating
+    property bool hasRecentFix: GpsStore.hasRecentFix
+    property double eph: GpsStore.eph
 
     // Scale eph (meters) to a circle diameter in pixels.
     // At eph=5 → tight ~30px, at eph=50 → large ~60px. Clamped.
@@ -39,7 +40,6 @@ Item {
         color: "transparent"
         border.width: 2
         border.color: Qt.rgba(0.5, 0.5, 0.5, 0.6)
-        opacity: 0
         visible: !hasRecentFix
 
         SequentialAnimation on opacity {
@@ -67,7 +67,6 @@ Item {
         color: "transparent"
         border.width: 2
         border.color: Qt.rgba(0.5, 0.5, 0.5, 0.6)
-        opacity: 0
         visible: !hasRecentFix
 
         SequentialAnimation on opacity {

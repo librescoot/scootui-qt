@@ -48,6 +48,7 @@ OdometerMilestoneService::OdometerMilestoneService(EngineStore *engineStore,
     , m_vehicleStore(vehicleStore)
     , m_connectionStore(connectionStore)
 {
+    s_instance = this;
     m_lastCelebrated = loadLastMilestone();
     // Easter eggs are unlocked by a gesture on the About screen and
     // persisted so they stay on across restarts until the gesture toggles

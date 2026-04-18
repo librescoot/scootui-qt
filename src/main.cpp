@@ -59,6 +59,10 @@ int main(int argc, char *argv[])
     // Ensure QMapLibre QML modules (MapLibre.Location) are found
     engine.addImportPath(QStringLiteral("/usr/local/qml"));
     engine.addImportPath(QStringLiteral("/usr/qml"));
+    // qt_add_qml_module places the ScootUI qmldir under RESOURCE_PREFIX "/" so
+    // the module lives at qrc:/ScootUI/qmldir. Qt's default import path list
+    // covers qrc:/qt/qml and qrc:/qt-project.org/imports but not bare qrc:/.
+    engine.addImportPath(QStringLiteral("qrc:/"));
 
     Application application;
     BOOT_MARK("Application::initialize starting");

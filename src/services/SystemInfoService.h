@@ -4,11 +4,17 @@
 #include <QVariantList>
 
 #include "../repositories/MdbRepository.h"
+#include <QtQml/qqmlregistration.h>
 
 // Loads firmware version data from Redis and exposes it for QML display.
+class QQmlEngine;
+class QJSEngine;
+
 class SystemInfoService : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(QVariantList versionRows READ versionRows NOTIFY versionRowsChanged)
     Q_PROPERTY(QString mdbVersion READ mdbVersion NOTIFY versionRowsChanged)
     Q_PROPERTY(QString dbcVersion READ dbcVersion NOTIFY versionRowsChanged)
@@ -17,6 +23,7 @@ class SystemInfoService : public QObject
 
 public:
     explicit SystemInfoService(MdbRepository *repo, QObject *parent = nullptr);
+    static SystemInfoService *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     QVariantList versionRows() const { return m_versionRows; }
     QString mdbVersion() const { return m_mdbVersion; }
@@ -37,4 +44,6 @@ private:
     QString m_dbcVersion;
     QString m_nrfVersion;
     QString m_ecuVersion;
+
+    static inline SystemInfoService *s_instance = nullptr;
 };

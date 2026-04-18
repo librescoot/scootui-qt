@@ -2,10 +2,16 @@
 
 #include "SyncableStore.h"
 #include "models/Enums.h"
+#include <QtQml/qqmlregistration.h>
+
+class QQmlEngine;
+class QJSEngine;
 
 class InternetStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(int modemState READ modemState NOTIFY modemStateChanged)
     Q_PROPERTY(int unuCloud READ unuCloud NOTIFY unuCloudChanged)
     Q_PROPERTY(int status READ status NOTIFY statusChanged)
@@ -18,6 +24,7 @@ class InternetStore : public SyncableStore
 
 public:
     explicit InternetStore(MdbRepository *repo, QObject *parent = nullptr);
+    static InternetStore *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     int modemState() const { return static_cast<int>(m_modemState); }
     int unuCloud() const { return static_cast<int>(m_unuCloud); }
@@ -54,4 +61,6 @@ private:
     QString m_simImei;
     QString m_simImsi;
     QString m_simIccid;
+
+    static inline InternetStore *s_instance = nullptr;
 };

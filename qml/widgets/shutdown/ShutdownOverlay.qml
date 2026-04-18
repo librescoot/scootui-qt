@@ -1,5 +1,5 @@
 import QtQuick
-import "../components"
+import ScootUI 1.0
 
 Item {
     id: shutdownOverlay
@@ -27,7 +27,7 @@ Item {
         Text {
             text: "Shutting down..."
             color: "white"
-            font.pixelSize: themeStore.fontBody
+            font.pixelSize: ThemeStore.fontBody
             font.weight: Font.Bold
             anchors.horizontalCenter: parent.horizontalCenter
         }
@@ -35,20 +35,19 @@ Item {
 
     // OTA status during shutdown (centered, persistent after fade)
     readonly property string otaActiveStatus: {
-        if (typeof otaStore === "undefined") return "idle"
-        return otaStore.dbcStatus !== "idle" ? otaStore.dbcStatus : otaStore.mdbStatus
+        if (false) return "idle"
+        return OtaStore.dbcStatus !== "idle" ? OtaStore.dbcStatus : OtaStore.mdbStatus
     }
     readonly property string otaActiveVersion: {
-        if (typeof otaStore === "undefined") return ""
-        return otaStore.dbcStatus !== "idle" ? otaStore.dbcUpdateVersion : otaStore.mdbUpdateVersion
+        if (false) return ""
+        return OtaStore.dbcStatus !== "idle" ? OtaStore.dbcUpdateVersion : OtaStore.mdbUpdateVersion
     }
 
     Column {
         anchors.centerIn: parent
         spacing: 16
         visible: overlay.opacity > 0.9
-                 && typeof otaStore !== "undefined"
-                 && otaStore.isActive
+                 && OtaStore.isActive
 
         OtaStatusIcon {
             anchors.horizontalCenter: parent.horizontalCenter
@@ -61,9 +60,9 @@ Item {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             color: Qt.rgba(1, 1, 1, 0.8)
-            font.pixelSize: themeStore.fontBody
+            font.pixelSize: ThemeStore.fontBody
             text: {
-                var tr = typeof translations !== "undefined" ? translations : null
+                var tr = Translations
                 switch (shutdownOverlay.otaActiveStatus) {
                     case "downloading": return tr ? tr.otaDownloadingUpdates : "Downloading update..."
                     case "preparing": return tr ? tr.otaPreparingUpdate : "Preparing update..."
@@ -76,7 +75,7 @@ Item {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            font.pixelSize: themeStore.fontBody
+            font.pixelSize: ThemeStore.fontBody
             color: Qt.rgba(1, 1, 1, 0.5)
             visible: shutdownOverlay.otaActiveVersion !== ""
             text: shutdownOverlay.otaActiveVersion
@@ -88,8 +87,8 @@ Item {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             color: Qt.rgba(1, 1, 1, 0.6)
-            font.pixelSize: themeStore.fontBody
-            text: typeof translations !== "undefined" ? translations.otaScooterWillTurnOff : "Your scooter will turn off when done.\nYou can unlock it again at any point."
+            font.pixelSize: ThemeStore.fontBody
+            text: Translations.otaScooterWillTurnOff
             visible: {
                 var s = shutdownOverlay.otaActiveStatus
                 return s !== "idle" && s !== "error" && s !== "error-failed"
@@ -98,12 +97,12 @@ Item {
     }
 
     Connections {
-        target: typeof shutdownStore !== "undefined" ? shutdownStore : null
+        target: ShutdownStore
 
         function onShuttingDownChanged() {
-            if (shutdownStore.isShuttingDown && !shutdownStore.showBlackout) {
+            if (ShutdownStore.isShuttingDown && !ShutdownStore.showBlackout) {
                 shutdownAnim.start()
-            } else if (!shutdownStore.isShuttingDown) {
+            } else if (!ShutdownStore.isShuttingDown) {
                 shutdownAnim.stop()
                 blackoutAnim.stop()
                 overlay.opacity = 0
@@ -111,7 +110,7 @@ Item {
         }
 
         function onShowBlackoutChanged() {
-            if (shutdownStore.showBlackout) {
+            if (ShutdownStore.showBlackout) {
                 shutdownAnim.stop()
                 blackoutAnim.start()
             }

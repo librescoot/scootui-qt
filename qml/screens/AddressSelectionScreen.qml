@@ -1,19 +1,18 @@
 import QtQuick
 import QtQuick.Layouts
-import "../widgets/status_bars"
-import "../widgets/components"
+import ScootUI 1.0
 
 Rectangle {
     id: addressScreen
-    color: typeof themeStore !== "undefined" && themeStore.isDark ? "black" : "white"
+    color: ThemeStore.isDark ? "black" : "white"
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
-    readonly property color textPrimary: isDark ? "#FFFFFF" : "#000000"
-    readonly property color textSecondary: isDark ? "#99FFFFFF" : "#8A000000"
-    readonly property color textTertiary: isDark ? "#4DFFFFFF" : "#1F000000"
-    readonly property color surfaceColor: isDark ? "#1E1E1E" : "#F5F5F5"
-    readonly property color selectedBg: isDark ? "#3DFFFFFF" : "#1F000000"
-    readonly property color borderColor: isDark ? "#1AFFFFFF" : "#1F000000"
+    readonly property bool isDark: ThemeStore.isDark
+    readonly property color textPrimary: addressScreen.isDark ? "#FFFFFF" : "#000000"
+    readonly property color textSecondary: addressScreen.isDark ? "#99FFFFFF" : "#8A000000"
+    readonly property color textTertiary: addressScreen.isDark ? "#4DFFFFFF" : "#1F000000"
+    readonly property color surfaceColor: addressScreen.isDark ? "#1E1E1E" : "#F5F5F5"
+    readonly property color selectedBg: addressScreen.isDark ? "#3DFFFFFF" : "#1F000000"
+    readonly property color borderColor: addressScreen.isDark ? "#1AFFFFFF" : "#1F000000"
     readonly property color errorColor: "#EF5350"
     readonly property color goColor: "#4CAF50"
 
@@ -24,7 +23,7 @@ Rectangle {
     readonly property int statusReady: 3
     readonly property int statusError: 4
 
-    readonly property int dbStatus: typeof addressDatabase !== "undefined" ? addressDatabase.status : statusError
+    readonly property int dbStatus: AddressDatabaseService.status
 
     // Phase constants
     readonly property int phaseLoading: 0
@@ -39,7 +38,7 @@ Rectangle {
     readonly property int maxListItems: 8
 
     // State
-    property int phase: phaseLoading
+    property int phase: addressScreen.phaseLoading
     property string cityPrefix: ""
     property string streetPrefix: ""
     property var validChars: []
@@ -56,61 +55,61 @@ Rectangle {
 
     // When database becomes ready, start city letter input
     onDbStatusChanged: {
-        if (dbStatus === statusReady) {
+        if (addressScreen.dbStatus === addressScreen.statusReady) {
             enterCityLetters("")
         }
     }
 
     Component.onCompleted: {
-        if (dbStatus === statusReady) {
+        if (addressScreen.dbStatus === addressScreen.statusReady) {
             enterCityLetters("")
-        } else if (dbStatus === statusIdle || dbStatus === statusError) {
-            if (typeof addressDatabase !== "undefined")
-                addressDatabase.initialize()
+        } else if (addressScreen.dbStatus === addressScreen.statusIdle || addressScreen.dbStatus === addressScreen.statusError) {
+            if (true)
+                AddressDatabaseService.initialize()
         }
     }
 
     // --- Phase transition functions ---
 
     function enterCityLetters(prefix) {
-        phase = phaseCityLetters
-        cityPrefix = prefix
-        charIndex = 0
+        addressScreen.phase = addressScreen.phaseCityLetters
+        addressScreen.cityPrefix = prefix
+        addressScreen.charIndex = 0
         refreshValidChars()
     }
 
     function enterCityList(autoSelect) {
-        phase = phaseCityList
-        listIndex = 0
-        itemList = addressDatabase.getMatchingCities(cityPrefix)
-        if (autoSelect !== false && itemList.length === 1) {
+        addressScreen.phase = addressScreen.phaseCityList
+        addressScreen.listIndex = 0
+        addressScreen.itemList = AddressDatabaseService.getMatchingCities(addressScreen.cityPrefix)
+        if (autoSelect !== false && addressScreen.itemList.length === 1) {
             selectCity(0)
         }
     }
 
     function enterStreetLetters(prefix) {
-        phase = phaseStreetLetters
-        streetPrefix = prefix
-        charIndex = 0
+        addressScreen.phase = addressScreen.phaseStreetLetters
+        addressScreen.streetPrefix = prefix
+        addressScreen.charIndex = 0
         refreshValidChars()
     }
 
     function enterStreetList(autoSelect) {
-        phase = phaseStreetList
-        listIndex = 0
-        itemList = addressDatabase.getMatchingStreets(selectedCity, streetPrefix)
-        if (autoSelect !== false && itemList.length === 1) {
+        addressScreen.phase = addressScreen.phaseStreetList
+        addressScreen.listIndex = 0
+        addressScreen.itemList = AddressDatabaseService.getMatchingStreets(addressScreen.selectedCity, addressScreen.streetPrefix)
+        if (autoSelect !== false && addressScreen.itemList.length === 1) {
             selectStreet(0)
         }
     }
 
     function enterHouseNumbers() {
-        loadingHouseNumbers = true
-        addressDatabase.queryHouseNumbers(selectedCity, selectedStreet, selectedPostcode)
+        addressScreen.loadingHouseNumbers = true
+        AddressDatabaseService.queryHouseNumbers(addressScreen.selectedCity, addressScreen.selectedStreet, addressScreen.selectedPostcode)
     }
 
     Connections {
-        target: typeof addressDatabase !== "undefined" ? addressDatabase : null
+        target: AddressDatabaseService
 
         function onHouseNumbersReady(houses) {
             addressScreen.loadingHouseNumbers = false
@@ -121,7 +120,7 @@ Rectangle {
                     addressScreen.destLng = houses[0].longitude
                 } else {
                     addressScreen.selectedHouse = ""
-                    var coords = addressDatabase.getStreetCoordinates(
+                    var coords = AddressDatabaseService.getStreetCoordinates(
                         addressScreen.selectedCity, addressScreen.selectedStreet)
                     addressScreen.destLat = coords.latitude || 0
                     addressScreen.destLng = coords.longitude || 0
@@ -136,46 +135,46 @@ Rectangle {
     }
 
     function enterConfirm() {
-        phase = phaseConfirm
+        addressScreen.phase = addressScreen.phaseConfirm
     }
 
     // --- Char carousel logic ---
 
     function refreshValidChars() {
-        if (phase === phaseCityLetters) {
-            validChars = addressDatabase.getValidCityChars(cityPrefix)
-        } else if (phase === phaseStreetLetters) {
-            validChars = addressDatabase.getValidStreetChars(selectedCity, streetPrefix)
+        if (addressScreen.phase === addressScreen.phaseCityLetters) {
+            addressScreen.validChars = AddressDatabaseService.getValidCityChars(addressScreen.cityPrefix)
+        } else if (addressScreen.phase === addressScreen.phaseStreetLetters) {
+            addressScreen.validChars = AddressDatabaseService.getValidStreetChars(addressScreen.selectedCity, addressScreen.streetPrefix)
         }
-        charIndex = 0
+        addressScreen.charIndex = 0
     }
 
     function cycleChar() {
-        if (validChars.length === 0) return
-        charIndex = (charIndex + 1) % validChars.length
+        if (addressScreen.validChars.length === 0) return
+        addressScreen.charIndex = (addressScreen.charIndex + 1) % addressScreen.validChars.length
     }
 
     function selectCurrentChar() {
-        if (validChars.length === 0) return
+        if (addressScreen.validChars.length === 0) return
 
-        var ch = validChars[charIndex]
-        if (phase === phaseCityLetters) {
-            cityPrefix += ch
-            var cityCount = addressDatabase.getCityCount(cityPrefix)
-            if (cityCount <= maxListItems && cityCount > 0) {
+        var ch = addressScreen.validChars[addressScreen.charIndex]
+        if (addressScreen.phase === addressScreen.phaseCityLetters) {
+            addressScreen.cityPrefix += ch
+            var cityCount = AddressDatabaseService.getCityCount(addressScreen.cityPrefix)
+            if (cityCount <= addressScreen.maxListItems && cityCount > 0) {
                 enterCityList()
             } else if (cityCount === 0) {
-                cityPrefix = cityPrefix.slice(0, -1)
+                addressScreen.cityPrefix = addressScreen.cityPrefix.slice(0, -1)
             } else {
                 refreshValidChars()
             }
-        } else if (phase === phaseStreetLetters) {
-            streetPrefix += ch
-            var streetCount = addressDatabase.getStreetCount(selectedCity, streetPrefix)
-            if (streetCount <= maxListItems && streetCount > 0) {
+        } else if (addressScreen.phase === addressScreen.phaseStreetLetters) {
+            addressScreen.streetPrefix += ch
+            var streetCount = AddressDatabaseService.getStreetCount(addressScreen.selectedCity, addressScreen.streetPrefix)
+            if (streetCount <= addressScreen.maxListItems && streetCount > 0) {
                 enterStreetList()
             } else if (streetCount === 0) {
-                streetPrefix = streetPrefix.slice(0, -1)
+                addressScreen.streetPrefix = addressScreen.streetPrefix.slice(0, -1)
             } else {
                 refreshValidChars()
             }
@@ -183,17 +182,17 @@ Rectangle {
     }
 
     function backspace() {
-        if (phase === phaseCityLetters) {
-            if (cityPrefix.length > 0) {
-                cityPrefix = cityPrefix.slice(0, -1)
+        if (addressScreen.phase === addressScreen.phaseCityLetters) {
+            if (addressScreen.cityPrefix.length > 0) {
+                addressScreen.cityPrefix = addressScreen.cityPrefix.slice(0, -1)
                 refreshValidChars()
             } else {
-                if (typeof screenStore !== "undefined")
-                    screenStore.setScreen(1)
+                if (true)
+                    ScreenStore.setScreen(1)
             }
-        } else if (phase === phaseStreetLetters) {
-            if (streetPrefix.length > 0) {
-                streetPrefix = streetPrefix.slice(0, -1)
+        } else if (addressScreen.phase === addressScreen.phaseStreetLetters) {
+            if (addressScreen.streetPrefix.length > 0) {
+                addressScreen.streetPrefix = addressScreen.streetPrefix.slice(0, -1)
                 refreshValidChars()
             } else {
                 enterCityList(false)
@@ -204,58 +203,58 @@ Rectangle {
     // --- List selection logic ---
 
     function cycleListItem() {
-        if (itemList.length === 0) return
-        listIndex = (listIndex + 1) % itemList.length
+        if (addressScreen.itemList.length === 0) return
+        addressScreen.listIndex = (addressScreen.listIndex + 1) % addressScreen.itemList.length
     }
 
     function selectCity(index) {
-        if (index === undefined) index = listIndex
-        if (index < 0 || index >= itemList.length) return
-        selectedCity = itemList[index]
-        streetPrefix = ""
+        if (index === undefined) index = addressScreen.listIndex
+        if (index < 0 || index >= addressScreen.itemList.length) return
+        addressScreen.selectedCity = addressScreen.itemList[index]
+        addressScreen.streetPrefix = ""
         enterStreetLetters("")
     }
 
     function selectStreet(index) {
-        if (index === undefined) index = listIndex
-        if (index < 0 || index >= itemList.length) return
-        var entry = itemList[index]
-        selectedStreet = entry.street
-        selectedPostcode = entry.postcode || ""
+        if (index === undefined) index = addressScreen.listIndex
+        if (index < 0 || index >= addressScreen.itemList.length) return
+        var entry = addressScreen.itemList[index]
+        addressScreen.selectedStreet = entry.street
+        addressScreen.selectedPostcode = entry.postcode || ""
         enterHouseNumbers()
     }
 
     function selectHouseNumber() {
-        if (listIndex < 0 || listIndex >= itemList.length) return
-        var entry = itemList[listIndex]
-        selectedHouse = entry.housenumber
-        destLat = entry.latitude
-        destLng = entry.longitude
+        if (addressScreen.listIndex < 0 || addressScreen.listIndex >= addressScreen.itemList.length) return
+        var entry = addressScreen.itemList[addressScreen.listIndex]
+        addressScreen.selectedHouse = entry.housenumber
+        addressScreen.destLat = entry.latitude
+        addressScreen.destLng = entry.longitude
         enterConfirm()
     }
 
     function confirmAndNavigate() {
-        var addressLabel = selectedStreet
-        if (selectedHouse !== "")
-            addressLabel += " " + selectedHouse
-        addressLabel += ", " + selectedCity
+        var addressLabel = addressScreen.selectedStreet
+        if (addressScreen.selectedHouse !== "")
+            addressLabel += " " + addressScreen.selectedHouse
+        addressLabel += ", " + addressScreen.selectedCity
 
-        if (typeof navigationService !== "undefined") {
-            navigationService.setDestination(destLat, destLng, addressLabel)
+        if (true) {
+            NavigationService.setDestination(addressScreen.destLat, addressScreen.destLng, addressLabel)
         }
-        if (typeof screenStore !== "undefined") {
-            screenStore.setScreen(1)
+        if (true) {
+            ScreenStore.setScreen(1)
         }
     }
 
     function matchCountText() {
-        var tr = typeof translations !== "undefined" ? translations : null
-        if (phase === phaseCityLetters) {
-            var count = addressDatabase.getCityCount(cityPrefix)
+        var tr = Translations
+        if (addressScreen.phase === addressScreen.phaseCityLetters) {
+            var count = AddressDatabaseService.getCityCount(addressScreen.cityPrefix)
             var label = tr ? tr.navCities : "cities"
             return count + " " + label
-        } else if (phase === phaseStreetLetters) {
-            var scount = addressDatabase.getStreetCount(selectedCity, streetPrefix)
+        } else if (addressScreen.phase === addressScreen.phaseStreetLetters) {
+            var scount = AddressDatabaseService.getStreetCount(addressScreen.selectedCity, addressScreen.streetPrefix)
             var slabel = tr ? tr.navStreets : "streets"
             return scount + " " + slabel
         }
@@ -265,7 +264,7 @@ Rectangle {
     // --- Input handling ---
 
     Connections {
-        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        target: InputHandler
 
         function onLeftTap() {
             if (addressScreen.loadingHouseNumbers) return
@@ -306,13 +305,13 @@ Rectangle {
         function onRightTap() {
             if (addressScreen.loadingHouseNumbers) return
             if (addressScreen.dbStatus === addressScreen.statusBuilding) {
-                if (typeof addressDatabase !== "undefined")
-                    addressDatabase.cancelBuild()
+                if (true)
+                    AddressDatabaseService.cancelBuild()
                 return
             }
             if (addressScreen.dbStatus !== addressScreen.statusReady) {
-                if (typeof screenStore !== "undefined")
-                    screenStore.setScreen(1)
+                if (true)
+                    ScreenStore.setScreen(1)
                 return
             }
 
@@ -358,7 +357,7 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: 8
             text: {
-                var tr = typeof translations !== "undefined" ? translations : null
+                var tr = Translations
                 switch (addressScreen.phase) {
                 case addressScreen.phaseCityLetters: return tr ? tr.navEnterCity : "Enter City"
                 case addressScreen.phaseCityList: return tr ? tr.navSelectCity : "Select City"
@@ -369,8 +368,8 @@ Rectangle {
                 default: return "Destination"
                 }
             }
-            color: textPrimary
-            font.pixelSize: themeStore.fontTitle
+            color: addressScreen.textPrimary
+            font.pixelSize: ThemeStore.fontTitle
             font.weight: Font.Bold
         }
 
@@ -378,30 +377,31 @@ Rectangle {
         Text {
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: 2
-            visible: phase > phaseLoading
+            visible: addressScreen.phase > addressScreen.phaseLoading
             text: {
-                var parts = []
+                var result = ""
+                var sep = " › "
                 if (addressScreen.selectedCity !== "")
-                    parts.push(addressScreen.selectedCity)
+                    result += addressScreen.selectedCity
                 else if (addressScreen.cityPrefix !== "")
-                    parts.push(addressScreen.cityPrefix + "_")
+                    result += addressScreen.cityPrefix + "_"
 
                 if (addressScreen.phase >= addressScreen.phaseStreetLetters) {
                     if (addressScreen.selectedStreet !== "")
-                        parts.push(addressScreen.selectedStreet)
+                        result += (result ? sep : "") + addressScreen.selectedStreet
                     else if (addressScreen.streetPrefix !== "")
-                        parts.push(addressScreen.streetPrefix + "_")
+                        result += (result ? sep : "") + addressScreen.streetPrefix + "_"
                 }
 
                 if (addressScreen.phase === addressScreen.phaseCityLetters ||
                     addressScreen.phase === addressScreen.phaseStreetLetters) {
-                    parts.push(addressScreen.matchCountText())
+                    result += (result ? sep : "") + addressScreen.matchCountText()
                 }
 
-                return parts.join(" › ")
+                return result
             }
-            color: textSecondary
-            font.pixelSize: themeStore.fontBody
+            color: addressScreen.textSecondary
+            font.pixelSize: ThemeStore.fontBody
         }
 
         // --- Content area ---
@@ -413,65 +413,65 @@ Rectangle {
             ColumnLayout {
                 anchors.centerIn: parent
                 spacing: 16
-                visible: dbStatus === statusLoading || dbStatus === statusBuilding
+                visible: addressScreen.dbStatus === addressScreen.statusLoading || addressScreen.dbStatus === addressScreen.statusBuilding
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
-                    text: typeof addressDatabase !== "undefined" ? addressDatabase.statusMessage : ""
-                    color: textPrimary
-                    font.pixelSize: themeStore.fontBody
+                    text: AddressDatabaseService.statusMessage
+                    color: addressScreen.textPrimary
+                    font.pixelSize: ThemeStore.fontBody
                 }
 
                 Rectangle {
                     Layout.alignment: Qt.AlignHCenter
-                    visible: dbStatus === statusBuilding
-                    width: 200
-                    height: 6
-                    radius: themeStore.radiusBar
-                    color: surfaceColor
+                    visible: addressScreen.dbStatus === addressScreen.statusBuilding
+                    Layout.preferredWidth: 200
+                    Layout.preferredHeight: 6
+                    radius: ThemeStore.radiusBar
+                    color: addressScreen.surfaceColor
 
                     Rectangle {
-                        width: parent.width * (typeof addressDatabase !== "undefined" ? addressDatabase.buildProgress : 0)
+                        width: parent.width * (AddressDatabaseService.buildProgress)
                         height: parent.height
-                        radius: themeStore.radiusBar
-                        color: textPrimary
+                        radius: ThemeStore.radiusBar
+                        color: addressScreen.textPrimary
                     }
                 }
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
-                    visible: dbStatus === statusBuilding
-                    text: typeof addressDatabase !== "undefined"
-                          ? Math.round(addressDatabase.buildProgress * 100) + "%"
+                    visible: addressScreen.dbStatus === addressScreen.statusBuilding
+                    text: true
+                          ? Math.round(AddressDatabaseService.buildProgress * 100) + "%"
                           : "0%"
-                    color: textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    color: addressScreen.textSecondary
+                    font.pixelSize: ThemeStore.fontBody
                 }
             }
 
             // --- Loading house numbers ---
             Text {
                 anchors.centerIn: parent
-                visible: loadingHouseNumbers
-                text: typeof translations !== "undefined" ? translations.navLoadingHouseNumbers : "Loading..."
-                color: textSecondary
-                font.pixelSize: themeStore.fontBody
+                visible: addressScreen.loadingHouseNumbers
+                text: Translations.navLoadingHouseNumbers
+                color: addressScreen.textSecondary
+                font.pixelSize: ThemeStore.fontBody
             }
 
             // --- Error state ---
             Text {
                 anchors.centerIn: parent
-                visible: dbStatus === statusError
-                text: typeof addressDatabase !== "undefined" ? addressDatabase.statusMessage : "Address database unavailable"
-                color: errorColor
-                font.pixelSize: themeStore.fontBody
+                visible: addressScreen.dbStatus === addressScreen.statusError
+                text: AddressDatabaseService.statusMessage
+                color: addressScreen.errorColor
+                font.pixelSize: ThemeStore.fontBody
             }
 
             // --- Letter carousel (Phase 1 and 3) ---
             ColumnLayout {
                 anchors.centerIn: parent
                 spacing: 20
-                visible: (phase === phaseCityLetters || phase === phaseStreetLetters) && dbStatus === statusReady
+                visible: (addressScreen.phase === addressScreen.phaseCityLetters || addressScreen.phase === addressScreen.phaseStreetLetters) && addressScreen.dbStatus === addressScreen.statusReady
 
                 // Current prefix display
                 Text {
@@ -481,9 +481,9 @@ Rectangle {
                             ? addressScreen.cityPrefix : addressScreen.streetPrefix
                         return prefix + "_"
                     }
-                    font.pixelSize: themeStore.fontHeading
+                    font.pixelSize: ThemeStore.fontHeading
                     font.weight: Font.Bold
-                    color: textPrimary
+                    color: addressScreen.textPrimary
                     font.letterSpacing: 2
                 }
 
@@ -514,30 +514,32 @@ Rectangle {
                         }
 
                         delegate: Rectangle {
+                            id: charTile
+                            required property var modelData
                             // Smooth gradient: 56 → 48 → 42 → 36
-                            readonly property int tileSize: modelData.isCurrent ? 56
-                                : Math.max(36, 56 - modelData.distance * 8)
+                            readonly property int tileSize: charTile.modelData.isCurrent ? 56
+                                : Math.max(36, 56 - charTile.modelData.distance * 8)
                             width: tileSize
                             height: tileSize
-                            radius: themeStore.radiusCard
-                            color: surfaceColor
-                            border.width: modelData.isCurrent ? 2 : 0
-                            border.color: isDark ? "#CCFFFFFF" : "#CC000000"
+                            radius: ThemeStore.radiusCard
+                            color: ThemeStore.isDark ? "#1E1E1E" : "#F5F5F5"
+                            border.width: charTile.modelData.isCurrent ? 2 : 0
+                            border.color: ThemeStore.isDark ? "#CCFFFFFF" : "#CC000000"
                             anchors.verticalCenter: parent.verticalCenter
 
                             Text {
                                 anchors.centerIn: parent
                                 text: {
-                                    var c = modelData.char
+                                    var c = charTile.modelData.char
                                     if (c === " ") return "␣"
                                     return c.toUpperCase()
                                 }
                                 // Smooth font: 24 → 20 → 17 → 14
-                                font.pixelSize: modelData.isCurrent ? 24
-                                    : Math.max(14, 24 - modelData.distance * 4)
-                                font.weight: modelData.isCurrent ? Font.Bold : Font.Normal
-                                color: textPrimary
-                                opacity: modelData.isCurrent ? 1.0 : Math.max(0.35, 1.0 - modelData.distance * 0.25)
+                                font.pixelSize: charTile.modelData.isCurrent ? 24
+                                    : Math.max(14, 24 - charTile.modelData.distance * 4)
+                                font.weight: charTile.modelData.isCurrent ? Font.Bold : Font.Normal
+                                color: ThemeStore.isDark ? "#FFFFFF" : "#000000"
+                                opacity: charTile.modelData.isCurrent ? 1.0 : Math.max(0.35, 1.0 - charTile.modelData.distance * 0.25)
                             }
                         }
                     }
@@ -548,8 +550,8 @@ Rectangle {
                     Layout.alignment: Qt.AlignHCenter
                     visible: addressScreen.validChars.length > 1
                     text: (addressScreen.charIndex + 1) + " / " + addressScreen.validChars.length
-                    color: textTertiary
-                    font.pixelSize: themeStore.fontBody
+                    color: addressScreen.textTertiary
+                    font.pixelSize: ThemeStore.fontBody
                 }
 
                 // No valid chars message
@@ -559,9 +561,9 @@ Rectangle {
                         addressScreen.phase === addressScreen.phaseCityLetters
                             ? addressScreen.cityPrefix.length > 0
                             : addressScreen.streetPrefix.length > 0)
-                    text: typeof translations !== "undefined" ? translations.navNoMatches : "No matches"
-                    color: errorColor
-                    font.pixelSize: themeStore.fontBody
+                    text: Translations.navNoMatches
+                    color: addressScreen.errorColor
+                    font.pixelSize: ThemeStore.fontBody
                 }
             }
 
@@ -572,7 +574,7 @@ Rectangle {
                 anchors.rightMargin: 40
                 anchors.topMargin: 4
                 anchors.bottomMargin: 4
-                visible: phase === phaseCityList || phase === phaseStreetList || phase === phaseHouseNumbers
+                visible: addressScreen.phase === addressScreen.phaseCityList || addressScreen.phase === addressScreen.phaseStreetList || addressScreen.phase === addressScreen.phaseHouseNumbers
 
                 ColumnLayout {
                     anchors.centerIn: parent
@@ -595,10 +597,12 @@ Rectangle {
                         }
 
                         delegate: Rectangle {
+                            id: listItem
+                            required property var modelData
                             Layout.fillWidth: true
                             Layout.preferredHeight: 40
-                            radius: themeStore.radiusCard
-                            color: modelData.selected ? selectedBg : "transparent"
+                            radius: ThemeStore.radiusCard
+                            color: listItem.modelData.selected ? (ThemeStore.isDark ? "#3DFFFFFF" : "#1F000000") : "transparent"
 
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
@@ -607,7 +611,7 @@ Rectangle {
                                 anchors.leftMargin: 16
                                 anchors.rightMargin: 16
                                 text: {
-                                    var item = modelData.item
+                                    var item = listItem.modelData.item
                                     if (item === undefined || item === null) return ""
                                     if (addressScreen.phase === addressScreen.phaseHouseNumbers) {
                                         return item.housenumber || ""
@@ -624,9 +628,9 @@ Rectangle {
                                     }
                                     return typeof item === "string" ? item : ""
                                 }
-                                color: textPrimary
-                                font.pixelSize: themeStore.fontBody
-                                font.weight: modelData.selected ? Font.Bold : Font.Normal
+                                color: ThemeStore.isDark ? "#FFFFFF" : "#000000"
+                                font.pixelSize: ThemeStore.fontBody
+                                font.weight: listItem.modelData.selected ? Font.Bold : Font.Normal
                                 elide: Text.ElideRight
                             }
                         }
@@ -641,15 +645,15 @@ Rectangle {
                     height: 30
                     visible: addressScreen.listIndex > 0
                     gradient: Gradient {
-                        GradientStop { position: 0.0; color: isDark ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.9) }
-                        GradientStop { position: 1.0; color: isDark ? Qt.rgba(0, 0, 0, 0.0) : Qt.rgba(1, 1, 1, 0.0) }
+                        GradientStop { position: 0.0; color: addressScreen.isDark ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.9) }
+                        GradientStop { position: 1.0; color: addressScreen.isDark ? Qt.rgba(0, 0, 0, 0.0) : Qt.rgba(1, 1, 1, 0.0) }
                     }
                     Text {
                         anchors.centerIn: parent
                         text: MaterialIcon.iconKeyboardArrowUp
                         font.family: "Material Icons"
-                        font.pixelSize: themeStore.fontTitle
-                        color: textSecondary
+                        font.pixelSize: ThemeStore.fontTitle
+                        color: addressScreen.textSecondary
                     }
                 }
 
@@ -661,15 +665,15 @@ Rectangle {
                     height: 30
                     visible: addressScreen.listIndex < addressScreen.itemList.length - 1
                     gradient: Gradient {
-                        GradientStop { position: 0.0; color: isDark ? Qt.rgba(0, 0, 0, 0.0) : Qt.rgba(1, 1, 1, 0.0) }
-                        GradientStop { position: 1.0; color: isDark ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.9) }
+                        GradientStop { position: 0.0; color: addressScreen.isDark ? Qt.rgba(0, 0, 0, 0.0) : Qt.rgba(1, 1, 1, 0.0) }
+                        GradientStop { position: 1.0; color: addressScreen.isDark ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.9) }
                     }
                     Text {
                         anchors.centerIn: parent
                         text: MaterialIcon.iconKeyboardArrowDown
                         font.family: "Material Icons"
-                        font.pixelSize: themeStore.fontTitle
-                        color: textSecondary
+                        font.pixelSize: ThemeStore.fontTitle
+                        color: addressScreen.textSecondary
                     }
                 }
             }
@@ -679,14 +683,13 @@ Rectangle {
                 anchors.centerIn: parent
                 width: parent.width - 40
                 spacing: 8
-                visible: phase === phaseConfirm
+                visible: addressScreen.phase === addressScreen.phaseConfirm
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
-                    text: typeof translations !== "undefined"
-                        ? translations.navConfirmDest : "DESTINATION"
-                    color: textTertiary
-                    font.pixelSize: themeStore.fontBody
+                    text: Translations.navConfirmDest
+                    color: addressScreen.textTertiary
+                    font.pixelSize: ThemeStore.fontBody
                     font.letterSpacing: 1
                 }
 
@@ -699,9 +702,9 @@ Rectangle {
                             label += " " + addressScreen.selectedHouse
                         return label
                     }
-                    font.pixelSize: themeStore.fontHeading
+                    font.pixelSize: ThemeStore.fontHeading
                     font.weight: Font.Bold
-                    color: textPrimary
+                    color: addressScreen.textPrimary
                 }
 
                 Text {
@@ -713,8 +716,8 @@ Rectangle {
                         label += addressScreen.selectedCity
                         return label
                     }
-                    font.pixelSize: themeStore.fontTitle
-                    color: textSecondary
+                    font.pixelSize: ThemeStore.fontTitle
+                    color: addressScreen.textSecondary
                 }
             }
         }
@@ -729,7 +732,7 @@ Rectangle {
                 anchors.top: parent.top
                 width: parent.width
                 height: 1
-                color: borderColor
+                color: addressScreen.borderColor
             }
 
             ControlHints {
@@ -739,17 +742,17 @@ Rectangle {
                 anchors.bottom: parent.bottom
 
                 leftAction: {
-                    if (dbStatus !== statusReady) return ""
-                    var tr = typeof translations !== "undefined" ? translations : null
+                    if (addressScreen.dbStatus !== addressScreen.statusReady) return ""
+                    var tr = Translations
                     if (addressScreen.phase === addressScreen.phaseConfirm)
                         return tr ? tr.controlBack : "Back"
                     return tr ? tr.controlScroll : "Scroll"
                 }
                 rightAction: {
-                    var tr = typeof translations !== "undefined" ? translations : null
-                    if (dbStatus === statusBuilding)
+                    var tr = Translations
+                    if (addressScreen.dbStatus === addressScreen.statusBuilding)
                         return tr ? tr.controlCancel : "Cancel"
-                    if (dbStatus !== statusReady)
+                    if (addressScreen.dbStatus !== addressScreen.statusReady)
                         return tr ? tr.controlBack : "Close"
                     if (addressScreen.phase === addressScreen.phaseConfirm)
                         return tr ? tr.navGo : "Go!"

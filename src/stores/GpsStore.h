@@ -3,10 +3,16 @@
 #include "SyncableStore.h"
 #include "models/Enums.h"
 #include <QElapsedTimer>
+#include <QtQml/qqmlregistration.h>
+
+class QQmlEngine;
+class QJSEngine;
 
 class GpsStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(double latitude READ latitude NOTIFY latitudeChanged)
     Q_PROPERTY(double longitude READ longitude NOTIFY longitudeChanged)
     Q_PROPERTY(double course READ course NOTIFY courseChanged)
@@ -33,6 +39,7 @@ class GpsStore : public SyncableStore
 
 public:
     explicit GpsStore(MdbRepository *repo, QObject *parent = nullptr);
+    static GpsStore *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     double latitude() const { return m_latitude; }
     double longitude() const { return m_longitude; }
@@ -119,4 +126,6 @@ private:
     QString m_timestamp;
     QElapsedTimer m_timestampAge;
     ScootEnums::GpsState m_gpsState = ScootEnums::GpsState::Off;
+
+    static inline GpsStore *s_instance = nullptr;
 };

@@ -4,6 +4,7 @@
 #include <QStringList>
 #include <QString>
 #include <QTimer>
+#include <QtQml/qqmlregistration.h>
 
 class VehicleStore;
 class SettingsStore;
@@ -35,9 +36,14 @@ class MdbRepository;
  * Activation is from the menu only (see MenuStore). Unlock is by pressing
  * the stored combo while Locked.
  */
+class QQmlEngine;
+class QJSEngine;
+
 class HopOnStore : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(int mode READ mode NOTIFY modeChanged)
     Q_PROPERTY(QStringList capturedTokens READ capturedTokens NOTIFY capturedTokensChanged)
     Q_PROPERTY(int idleMillisRemaining READ idleMillisRemaining NOTIFY idleMillisRemainingChanged)
@@ -67,6 +73,7 @@ public:
                         DashboardStore *dashboard,
                         MdbRepository *repo,
                         QObject *parent = nullptr);
+    static HopOnStore *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     int mode() const { return static_cast<int>(m_mode); }
     QStringList capturedTokens() const { return m_buffer; }
@@ -137,4 +144,6 @@ private:
     int m_lastHornButton = -1;
     int m_lastBlinkerSwitch = -1;
     int m_lastSeatboxButton = -1;
+
+    static inline HopOnStore *s_instance = nullptr;
 };

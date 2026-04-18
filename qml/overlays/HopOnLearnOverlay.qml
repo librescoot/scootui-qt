@@ -1,5 +1,5 @@
 import QtQuick
-import "../widgets/components"
+import ScootUI 1.0
 
 // Full-screen overlay for the hop-on combo learning flow.
 // Shows a live row of chips, one per captured token, growing left-to-right
@@ -13,13 +13,13 @@ Item {
     // HopOnStore.Mode.Learning == 1
     readonly property int modeLearning: 1
 
-    property int mode: typeof hopOnStore !== "undefined" ? hopOnStore.mode : 0
-    property var tokens: typeof hopOnStore !== "undefined" ? hopOnStore.capturedTokens : []
-    property int idleMs: typeof hopOnStore !== "undefined" ? hopOnStore.idleMillisRemaining : 0
+    property int mode: HopOnStore.mode
+    property var tokens: true ? HopOnStore.capturedTokens : []
+    property int idleMs: HopOnStore.idleMillisRemaining
 
     visible: mode === modeLearning
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: ThemeStore.isDark
     readonly property color scrimColor:    isDark ? "#000000" : "#FFFFFF"
     readonly property color cardColor:     isDark ? "#CC000000" : "#CCFFFFFF"
     readonly property color cardBorder:    isDark ? "#4DFFFFFF" : "#4D000000"
@@ -59,7 +59,7 @@ Item {
             color: learnOverlay.cardColor
             border.width: 1
             border.color: learnOverlay.cardBorder
-            radius: typeof themeStore !== "undefined" ? themeStore.radiusModal : 16
+            radius: ThemeStore.radiusModal
 
             Column {
                 id: cardContent
@@ -73,8 +73,8 @@ Item {
                 // Title
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.hopOnLearnTitle : "Press your sequence"
-                    font.pixelSize: typeof themeStore !== "undefined" ? themeStore.fontHeading : 28
+                    text: Translations.hopOnLearnTitle
+                    font.pixelSize: ThemeStore.fontHeading
                     font.weight: Font.Bold
                     color: learnOverlay.textPrimary
                     horizontalAlignment: Text.AlignHCenter
@@ -114,6 +114,8 @@ Item {
                         Repeater {
                             model: learnOverlay.tokens
                             delegate: Rectangle {
+                                id: tokenChip
+                                required property var modelData
                                 width: 40
                                 height: 40
                                 radius: 20
@@ -121,7 +123,6 @@ Item {
                                 border.color: learnOverlay.accentColor
                                 border.width: 1
 
-                                // Fade-in for the most recent chip
                                 opacity: 0
                                 Component.onCompleted: opacity = 1
                                 Behavior on opacity { NumberAnimation { duration: 150 } }
@@ -130,8 +131,9 @@ Item {
                                     anchors.centerIn: parent
                                     width: 24
                                     height: 24
-                                    sourceSize: Qt.size(24, 24)
-                                    source: learnOverlay.iconFor(modelData)
+                                    sourceSize.width: 24
+                                    sourceSize.height: 24
+                                    source: learnOverlay.iconFor(tokenChip.modelData)
                                     tintColor: learnOverlay.textPrimary
                                 }
                             }
@@ -143,7 +145,7 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: Math.ceil(learnOverlay.idleMs / 1000) + " s"
-                    font.pixelSize: typeof themeStore !== "undefined" ? themeStore.fontHero : 48
+                    font.pixelSize: ThemeStore.fontHero
                     font.weight: Font.Bold
                     color: learnOverlay.accentColor
                 }
@@ -151,8 +153,8 @@ Item {
                 // Hint
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.hopOnLearnHint : "Saves 5 s after the last press."
-                    font.pixelSize: typeof themeStore !== "undefined" ? themeStore.fontBody : 18
+                    text: Translations.hopOnLearnHint
+                    font.pixelSize: ThemeStore.fontBody
                     color: learnOverlay.textSecondary
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap

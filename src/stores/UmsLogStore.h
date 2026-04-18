@@ -5,14 +5,21 @@
 #include <QTimer>
 
 #include "../repositories/MdbRepository.h"
+#include <QtQml/qqmlregistration.h>
+
+class QQmlEngine;
+class QJSEngine;
 
 class UmsLogStore : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(QStringList logEntries READ logEntries NOTIFY logEntriesChanged)
 
 public:
     explicit UmsLogStore(MdbRepository *repo, QObject *parent = nullptr);
+    static UmsLogStore *create(QQmlEngine *, QJSEngine *) { return s_instance; }
 
     QStringList logEntries() const { return m_logEntries; }
 
@@ -30,4 +37,6 @@ private:
     MdbRepository *m_repo;
     QTimer m_timer;
     QStringList m_logEntries;
+
+    static inline UmsLogStore *s_instance = nullptr;
 };
