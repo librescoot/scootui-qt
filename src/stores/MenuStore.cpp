@@ -16,6 +16,8 @@
 #include "repositories/MdbRepository.h"
 #include "core/AppConfig.h"
 
+#include <QDebug>
+
 MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
                      ThemeStore *theme, TripStore *trip,
                      Translations *translations, SettingsService *settingsService,
@@ -623,10 +625,23 @@ void MenuStore::toggle()
 }
 void MenuStore::open()
 {
-    if (!m_vehicle->isParked()) return;
-    if (m_isOpen) return;
-    if (m_hopOn && m_hopOn->mode() != HopOnStore::Idle) return;
+    qDebug() << "MenuStore: open requested, vehicleState" << m_vehicle->state()
+             << "isOpen" << m_isOpen << "hopOnMode" << (m_hopOn ? m_hopOn->mode() : -1);
 
+    if (!m_vehicle->isParked()) {
+        qDebug() << "MenuStore: open dropped - not parked, vehicleState" << m_vehicle->state();
+        return;
+    }
+    if (m_isOpen) {
+        qDebug() << "MenuStore: open dropped - already open";
+        return;
+    }
+    if (m_hopOn && m_hopOn->mode() != HopOnStore::Idle) {
+        qDebug() << "MenuStore: open dropped - hop-on not idle, mode" << m_hopOn->mode();
+        return;
+    }
+
+    qDebug() << "MenuStore: opening menu";
     m_isOpen = true;
     m_pathStack.clear();
     m_indexStack.clear();

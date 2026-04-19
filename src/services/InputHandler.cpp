@@ -2,6 +2,8 @@
 #include "stores/VehicleStore.h"
 #include "repositories/MdbRepository.h"
 
+#include <QDebug>
+
 namespace {
 constexpr char kInputEventsChannel[] = "input-events";
 }
@@ -34,19 +36,28 @@ void InputHandler::onInputEvent(const QString &message)
     if (parts.size() < 3 || parts[0] != QLatin1String("brake"))
         return;
 
-    if (!m_vehicle->isParked())
-        return;
-
     const QString &side = parts[1];
     const QString &gesture = parts[2];
+    const bool isDoubleTap = (gesture == QLatin1String("double-tap"));
+
+    if (isDoubleTap)
+        qDebug() << "InputHandler: received" << message << "vehicleState" << m_vehicle->state();
+
+    if (!m_vehicle->isParked()) {
+        if (isDoubleTap)
+            qDebug() << "InputHandler: dropped" << message << "- not parked, vehicleState" << m_vehicle->state();
+        return;
+    }
 
     if (side == QLatin1String("left")) {
         if (gesture == QLatin1String("tap"))
             emit leftTap();
         else if (gesture == QLatin1String("long-tap"))
             emit leftHold();
-        else if (gesture == QLatin1String("double-tap"))
+        else if (gesture == QLatin1String("double-tap")) {
+            qDebug() << "InputHandler: emitting leftDoubleTap";
             emit leftDoubleTap();
+        }
     } else if (side == QLatin1String("right")) {
         if (gesture == QLatin1String("tap"))
             emit rightTap();

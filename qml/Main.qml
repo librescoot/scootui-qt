@@ -109,11 +109,29 @@ Window {
 
     // Double-tap left brake opens menu on main screens
     Connections {
+        id: doubleTapMenuOpener
         target: typeof inputHandler !== "undefined" ? inputHandler : null
         enabled: typeof menuStore !== "undefined" && !menuStore.isOpen
                  && (root.currentScreen === Scooter.ScreenMode.Cluster
                      || root.currentScreen === Scooter.ScreenMode.Map)
-        function onLeftDoubleTap() { menuStore.open() }
+        function onLeftDoubleTap() {
+            console.log("MENU: onLeftDoubleTap (currentScreen=" + root.currentScreen
+                        + ", isOpen=" + menuStore.isOpen
+                        + ", showMaintenance=" + root.showMaintenance + ")")
+            menuStore.open()
+        }
+    }
+
+    // Trace double-taps that miss the opener (Connections disabled because of
+    // screen or isOpen). This fires whenever the opener's gate is false.
+    Connections {
+        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        enabled: !doubleTapMenuOpener.enabled
+        function onLeftDoubleTap() {
+            console.log("MENU: leftDoubleTap dropped by QML gate (currentScreen=" + root.currentScreen
+                        + ", isOpen=" + (typeof menuStore !== "undefined" ? menuStore.isOpen : "?")
+                        + ", showMaintenance=" + root.showMaintenance + ")")
+        }
     }
 
     // Wire maintenanceShowConnectionInfo into loaded MaintenanceScreen
