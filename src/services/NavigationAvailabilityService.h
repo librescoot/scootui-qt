@@ -37,6 +37,7 @@ private:
     MdbRepository *m_repo;
     QNetworkAccessManager *m_nam;
     QTimer m_retryTimer;
+    int m_retryDelayMs = 1000;
     bool m_mapsAvailable = false;
     bool m_routingAvailable = false;
 };

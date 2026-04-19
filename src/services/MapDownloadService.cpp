@@ -222,6 +222,9 @@ void MapDownloadService::doResolveSlug(double lat, double lng)
 
     QNetworkRequest req{QUrl{url}};
     req.setRawHeader("User-Agent", "LibreScoot/1.0");
+    // s_stateToSlug only knows German state names; force Nominatim to return
+    // those regardless of the device's system locale.
+    req.setRawHeader("Accept-Language", "de");
     req.setTransferTimeout(10000);
 
     auto *reply = m_nam->get(req);

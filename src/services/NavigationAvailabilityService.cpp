@@ -30,6 +30,10 @@ NavigationAvailabilityService::NavigationAvailabilityService(SettingsStore *sett
 
 void NavigationAvailabilityService::recheck()
 {
+    // External trigger (settings change, modem up): reset backoff so we
+    // don't sit on a 30s retry when the environment just changed.
+    m_retryTimer.stop();
+    m_retryDelayMs = 1000;
     checkMaps();
     checkRouting();
 }
@@ -53,7 +57,7 @@ void NavigationAvailabilityService::checkRouting()
         url = QLatin1String(AppConfig::valhallaOnDeviceEndpoint);
 
     QNetworkRequest req(QUrl(url + QStringLiteral("status")));
-    req.setTransferTimeout(3000);
+    req.setTransferTimeout(5000);
 
     auto *reply = m_nam->get(req);
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
@@ -64,17 +68,24 @@ void NavigationAvailabilityService::checkRouting()
             publishToRedis();
             emit availabilityChanged();
         }
-        if (!available)
+        if (!available) {
             scheduleRetry();
-        else
+        } else {
             m_retryTimer.stop();
+            m_retryDelayMs = 1000;
+        }
     });
 }
 
 void NavigationAvailabilityService::scheduleRetry()
 {
-    if (!m_retryTimer.isActive())
-        m_retryTimer.start(5000);
+    if (m_retryTimer.isActive())
+        return;
+    m_retryTimer.start(m_retryDelayMs);
+    // Exponential backoff: 1s → 2s → 4s → … capped at 30s so a long-down
+    // valhalla doesn't keep spinning at 5 Hz, while a startup race still
+    // recovers within a second or two.
+    m_retryDelayMs = qMin(m_retryDelayMs * 2, 30000);
 }
 
 void NavigationAvailabilityService::publishToRedis()
