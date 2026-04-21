@@ -242,7 +242,9 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter
             }
 
-            // Turn-by-turn widget (top, full width)
+            // Turn-by-turn widget (top, full width). Height follows the
+            // widget's implicitHeight, which is bounded by the text's
+            // maximumLineCount — no need to clamp against the parent.
             TurnByTurnWidget {
                 anchors.top: parent.top
                 anchors.left: parent.left

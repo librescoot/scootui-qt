@@ -27,9 +27,8 @@ Rectangle {
             Layout.fillHeight: true
 
             // Rare and event-driven — don't hold up the first paint.
-            // Confetti only fires on km milestones, TBT is only visible
-            // during active navigation. Both incubate asynchronously
-            // after the cluster is rendered.
+            // Confetti only fires on km milestones; both layers incubate
+            // asynchronously after the cluster is rendered.
             Loader {
                 anchors.fill: parent
                 asynchronous: true
@@ -41,30 +40,21 @@ Rectangle {
                 anchors.fill: parent
             }
 
-            Loader {
-                id: tbtLoader
-                anchors.fill: parent
-                z: 10
-                asynchronous: true
-                sourceComponent: Component {
-                    TurnByTurnWidget {
-                        anchors.top: parent.top
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                    }
-                }
-            }
-
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 8
                 spacing: 0
 
-                // Spacer to avoid overlap with TurnByTurnWidget if it's visible.
-                // tbtLoader.item is null until async incubation completes.
-                Item {
+                // TBT docks here during navigation; the layout reserves zero
+                // height when idle or still incubating.
+                Loader {
+                    id: tbtLoader
                     Layout.fillWidth: true
-                    Layout.preferredHeight: tbtLoader.item && tbtLoader.item.visible ? tbtLoader.item.height : 0
+                    Layout.preferredHeight: (item && item.visible) ? item.implicitHeight : 0
+                    asynchronous: true
+                    sourceComponent: Component {
+                        TurnByTurnWidget { anchors.fill: parent }
+                    }
                 }
 
                 BlinkerRow {
