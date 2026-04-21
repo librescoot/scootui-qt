@@ -472,8 +472,22 @@ void NavigationService::updateNavigationState()
     auto [snapped, segIdx, distFromRoute] =
         RouteHelpers::findClosestPointOnRoute(pos, m_route.waypoints);
     m_snappedPosition = snapped;
-    m_currentSegmentIndex = segIdx;
     m_distanceFromRoute = distFromRoute;
+
+    // findClosestPointOnRoute does a global nearest-point scan with no memory
+    // of the previous tick. DR wobble (MapService intentionally lets its own
+    // segment tracker snap backwards for wrong-turn recovery) can flip the
+    // nearest segment to an earlier one even while the rider is moving forward,
+    // which un-filters an already-passed maneuver and makes TBT show it with
+    // growing distance. Only advance the tracker forward. Accept a backward
+    // jump only when the rider has clearly separated from the old projection
+    // (distFromRoute > OnRouteTolerance), which covers gross DR corrections;
+    // true off-route detours trip OffRouteTolerance and reroute resets the
+    // tracker anyway.
+    if (segIdx > m_currentSegmentIndex
+        || distFromRoute > OnRouteTolerance) {
+        m_currentSegmentIndex = segIdx;
+    }
 
     // Arrival detection
     if (m_distanceToDestination < ArrivalProximity) {
