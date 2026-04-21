@@ -693,7 +693,14 @@ void MapService::onDeadReckoningTick()
             m_drTravelled += distMeters;
         }
 
-        if (!m_routeShape.isEmpty() && m_currentRouteSegment >= 0) {
+        // Route-locked DR (projection + snap) must not use the old route shape
+        // while off-route: the stale geometry pulls the marker back and, with
+        // globally-nearest segment selection, often *behind* the rider. Until
+        // the reroute lands with a new shape, fall back to straight-line DR.
+        bool haveRouteShape = !m_routeShape.isEmpty() && m_currentRouteSegment >= 0;
+        bool useRouteShape = haveRouteShape && !m_navigation->isOffRoute();
+
+        if (useRouteShape) {
             projectPositionAlongRoute(distMeters);
         } else {
             double heading = m_gps->course();
@@ -710,7 +717,7 @@ void MapService::onDeadReckoningTick()
         }
 
         // ----- Snap DR back onto the route line after GPS correction -----
-        if (!stationary && !m_routeShape.isEmpty() && m_currentRouteSegment >= 0) {
+        if (!stationary && useRouteShape) {
             snapToRouteLine();
         }
     }
@@ -1004,7 +1011,8 @@ void MapService::updateBearing(double dt)
     double speedKmh = m_engine->speed();
 
     bool onRoute = !m_routeShape.isEmpty() && m_currentRouteSegment >= 0
-                   && m_navigation->isNavigating();
+                   && m_navigation->isNavigating()
+                   && !m_navigation->isOffRoute();
     bool hasFix = m_gps->hasRecentFix();
     double gpsCourse = m_gps->course();
 
