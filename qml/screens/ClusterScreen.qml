@@ -43,9 +43,7 @@ Rectangle {
 
             Loader {
                 id: tbtLoader
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
+                anchors.fill: parent
                 z: 10
                 asynchronous: true
                 sourceComponent: Component {
