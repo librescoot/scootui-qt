@@ -313,8 +313,10 @@ qt_add_qml_module(scootui
         assets/icons/librescoot-internet-modem-connected-3.svg
         assets/icons/librescoot-internet-modem-connected-4.svg
         assets/icons/librescoot-ota-status-downloading.svg
+        assets/icons/librescoot-ota-status-preparing.svg
         assets/icons/librescoot-ota-status-installing.svg
         assets/icons/librescoot-ota-status-waiting-for-reboot.svg
+        assets/icons/librescoot-ota-status-error.svg
         assets/icons/speedlimit_none.svg
         assets/icons/speedlimit_unknown.svg
         assets/icons/speedlimit_blank.svg

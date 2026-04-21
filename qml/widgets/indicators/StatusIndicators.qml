@@ -256,15 +256,16 @@ Row {
                         case "downloading":
                             return "qrc:/ScootUI/assets/icons/librescoot-ota-status-downloading.svg"
                         case "preparing":
+                            return "qrc:/ScootUI/assets/icons/librescoot-ota-status-preparing.svg"
                         case "installing":
                             return "qrc:/ScootUI/assets/icons/librescoot-ota-status-installing.svg"
                         case "pending-reboot":
                         case "rebooting":
-                        case "reboot-failed":
                             return "qrc:/ScootUI/assets/icons/librescoot-ota-status-waiting-for-reboot.svg"
                         case "error":
                         case "error-failed":
-                            return "qrc:/ScootUI/assets/icons/librescoot-ota-status-downloading.svg"
+                        case "reboot-failed":
+                            return "qrc:/ScootUI/assets/icons/librescoot-ota-status-error.svg"
                         default:
                             return ""
                     }
@@ -275,16 +276,6 @@ Row {
                 anchors.fill: parent
                 colorization: 1.0
                 colorizationColor: statusIndicators.iconColor
-            }
-
-            // Error overlay (original colors for dark, inverted for light)
-            Image {
-                anchors.fill: parent
-                sourceSize: Qt.size(24, 24)
-                source: (typeof themeStore !== "undefined" && themeStore.isDark)
-                    ? "qrc:/ScootUI/assets/icons/librescoot-overlay-error.svg"
-                    : "qrc:/ScootUI/assets/icons/librescoot-overlay-error-light.svg"
-                visible: otaDbcStatus === "error" || otaDbcStatus === "error-failed"
             }
         }
 
