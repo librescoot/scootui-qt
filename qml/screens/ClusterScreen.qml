@@ -41,33 +41,23 @@ Rectangle {
                 anchors.fill: parent
             }
 
-            Loader {
-                id: tbtLoader
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                height: item ? item.height : 0
-                z: 10
-                asynchronous: true
-                sourceComponent: Component {
-                    TurnByTurnWidget {
-                        anchors.top: parent.top
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                    }
-                }
-            }
-
             ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 8
                 spacing: 0
 
-                // Spacer to avoid overlap with TurnByTurnWidget if it's visible.
-                // tbtLoader.item is null until async incubation completes.
-                Item {
+                // TBT docks here during navigation; the layout reserves zero
+                // height when idle or still incubating. Publishing implicitHeight
+                // from the widget removes the need for a sibling spacer to read
+                // tbtLoader.item.height.
+                Loader {
+                    id: tbtLoader
                     Layout.fillWidth: true
-                    Layout.preferredHeight: tbtLoader.item && tbtLoader.item.visible ? tbtLoader.item.height : 0
+                    Layout.preferredHeight: (item && item.visible) ? item.implicitHeight : 0
+                    asynchronous: true
+                    sourceComponent: Component {
+                        TurnByTurnWidget { anchors.fill: parent }
+                    }
                 }
 
                 BlinkerRow {
