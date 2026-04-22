@@ -4,9 +4,11 @@ import "../components"
 
 Item {
     id: tbtWidget
-    // Size to content. Floor at 96 keeps the layout stable when idle; the
-    // instruction text self-caps at maximumLineCount, so there's no runaway.
-    height: visible ? Math.max(contentCol.implicitHeight + 24, 96) : 0
+    // Natural size from content, floored at 96 for a stable idle footprint.
+    // Instruction text self-caps at maximumLineCount so the floor never gets
+    // overshot by a runaway string. Publishing as implicitHeight lets Layout
+    // containers read the widget's size without an external binding.
+    implicitHeight: Math.max(contentCol.implicitHeight + 24, 96)
     visible: typeof navigationService !== "undefined" && navigationService.isNavigating
              && navigationService.currentManeuverDistance > 0
 
