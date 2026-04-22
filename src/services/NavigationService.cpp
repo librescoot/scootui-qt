@@ -99,6 +99,13 @@ void NavigationService::setMapService(MapService *map)
     if (m_map) {
         connect(m_map, &MapService::vehiclePositionChanged,
                 this, &NavigationService::onVehiclePositionChanged);
+        // Segment updates arrive from MapService's GPS-edge matcher AND
+        // from DR-tick advancement. Both route through routeProjectionChanged;
+        // re-use the same throttled update path so TBT reflects matcher
+        // decisions promptly (instead of waiting up to 200 ms for the next
+        // DR tick to elapse).
+        connect(m_map, &MapService::routeProjectionChanged,
+                this, &NavigationService::onVehiclePositionChanged);
     }
 }
 
@@ -468,26 +475,27 @@ void NavigationService::updateNavigationState()
     // Distance to destination
     m_distanceToDestination = pos.distanceTo(m_destination);
 
-    // Find position on route
-    auto [snapped, segIdx, distFromRoute] =
-        RouteHelpers::findClosestPointOnRoute(pos, m_route.waypoints);
-    m_snappedPosition = snapped;
-    m_distanceFromRoute = distFromRoute;
-
-    // findClosestPointOnRoute does a global nearest-point scan with no memory
-    // of the previous tick. DR wobble (MapService intentionally lets its own
-    // segment tracker snap backwards for wrong-turn recovery) can flip the
-    // nearest segment to an earlier one even while the rider is moving forward,
-    // which un-filters an already-passed maneuver and makes TBT show it with
-    // growing distance. Only advance the tracker forward. Accept a backward
-    // jump only when the rider has clearly separated from the old projection
-    // (distFromRoute > OnRouteTolerance), which covers gross DR corrections;
-    // true off-route detours trip OffRouteTolerance and reroute resets the
-    // tracker anyway.
-    if (segIdx > m_currentSegmentIndex
-        || distFromRoute > OnRouteTolerance) {
-        m_currentSegmentIndex = segIdx;
+    // Route projection is authoritative on MapService (trajectory-aware
+    // matcher). Prefer its values so TBT, off-route detection, and the
+    // upcoming-instruction walker all share one source of truth. Fall back
+    // to local global-nearest only when MapService state isn't available
+    // (startup, no route yet, etc).
+    int segIdx;
+    double distFromRoute;
+    if (m_map && m_map->hasVehiclePosition() &&
+        m_map->currentRouteSegment() >= 0) {
+        segIdx = m_map->currentRouteSegment();
+        distFromRoute = m_map->distanceFromRoute();
+        m_snappedPosition = {m_map->snappedLatitude(), m_map->snappedLongitude()};
+    } else {
+        auto [snapped, idx, dist] =
+            RouteHelpers::findClosestPointOnRoute(pos, m_route.waypoints);
+        segIdx = idx;
+        distFromRoute = dist;
+        m_snappedPosition = snapped;
     }
+    m_distanceFromRoute = distFromRoute;
+    m_currentSegmentIndex = segIdx;
 
     // Arrival detection
     if (m_distanceToDestination < ArrivalProximity) {
@@ -530,9 +538,14 @@ void NavigationService::updateNavigationState()
         emit instructionChanged();
     }
 
-    // Calculate remaining duration from upcoming instructions (matching Flutter logic)
+    // Remaining duration = (time to reach the next maneuver at the CURRENT
+    // segment's speed) + (full durations of that maneuver and all after).
+    // The current-segment speed is the one for the step we're traversing NOW
+    // (the maneuver at firstIdx-1 if present, else the whole-route average).
+    // Prior versions used the upcoming maneuver's own speed for the approach
+    // leg — wrong leg, can skew ETA noticeably at road-class transitions.
+    // kDurationPadFactor still applies on read for the optimism correction.
     if (!upcoming.isEmpty()) {
-        // Find the index of the first upcoming instruction in the full route
         int firstIdx = -1;
         for (int i = 0; i < m_route.instructions.size(); ++i) {
             if (m_route.instructions[i].originalShapeIndex ==
@@ -542,20 +555,24 @@ void NavigationService::updateNavigationState()
             }
         }
         if (firstIdx >= 0) {
-            const auto &original = m_route.instructions[firstIdx];
             double remaining = 0;
 
-            // Sum durations of all instructions after the first upcoming
-            for (int i = firstIdx + 1; i < m_route.instructions.size(); ++i)
+            // Full duration of the upcoming maneuver + all that follow
+            for (int i = firstIdx; i < m_route.instructions.size(); ++i)
                 remaining += m_route.instructions[i].duration;
 
-            // Estimate time to reach the first upcoming maneuver proportionally
-            if (original.distance > 0) {
-                double speed = original.duration / original.distance; // s/m
-                remaining += upcoming.first().distance * speed;
+            // Time to reach the upcoming maneuver from current position,
+            // using the speed of the step we're currently on.
+            double sPerM = 0;
+            if (firstIdx > 0) {
+                const auto &cur = m_route.instructions[firstIdx - 1];
+                if (cur.distance > 0)
+                    sPerM = cur.duration / cur.distance;
             }
-            // Add the full duration of the first upcoming instruction's segment
-            remaining += original.duration;
+            if (sPerM <= 0 && m_route.distance > 0) {
+                sPerM = m_route.duration / m_route.distance;
+            }
+            remaining += upcoming.first().distance * sPerM;
 
             m_remainingDuration = remaining;
         }
