@@ -10,7 +10,9 @@ Item {
     // containers read the widget's size without an external binding.
     implicitHeight: Math.max(contentCol.implicitHeight + 24, 96)
     visible: typeof navigationService !== "undefined" && navigationService.isNavigating
-             && navigationService.currentManeuverDistance > 0
+             && (navigationService.currentManeuverDistance > 0
+                 || navigationService.currentIsStart
+                 || navigationService.currentIsArrive)
 
     property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
 
@@ -35,12 +37,16 @@ Item {
     readonly property int mtRoundaboutEnter: 17
     readonly property int mtRoundaboutExit: 18
     readonly property int mtFerry: 19
+    readonly property int mtArrive: 20
+    readonly property int mtArriveRight: 21
+    readonly property int mtArriveLeft: 22
 
     function iconThreshold(maneuverType) {
         switch (maneuverType) {
             case mtUTurn: case mtUTurnRight: return 600
             case mtRoundaboutEnter: case mtRoundaboutExit:
             case mtTurnSharpLeft: case mtTurnSharpRight: return 500
+            case mtArrive: case mtArriveRight: case mtArriveLeft: return 500
             case mtTurnLeft: case mtTurnRight:
             case mtExitLeft: case mtExitRight: return 400
             case mtTurnSlightLeft: case mtTurnSlightRight:
@@ -78,6 +84,8 @@ Item {
             case mtExitRight:                         return MaterialIcon.iconTurnSlightRight
             case mtMergeStraight: case mtMergeLeft: case mtMergeRight:
                                                       return MaterialIcon.iconMerge
+            case mtArrive: case mtArriveRight: case mtArriveLeft:
+                                                      return MaterialIcon.iconFlag
             case mtKeepStraight: case mtFerry:        return MaterialIcon.iconStraight
             default:                                  return MaterialIcon.iconStraight
         }
@@ -147,9 +155,12 @@ Item {
                 Layout.bottomMargin: 8
                 spacing: 4
 
-                // Distance indicator
+                // Distance indicator. Hidden for kStart-family ("head on X")
+                // because the rider is AT the start and 0 m is noise.
                 Text {
                     Layout.fillWidth: true
+                    visible: typeof navigationService === "undefined"
+                             || !navigationService.currentIsStart
                     text: typeof navigationService !== "undefined"
                           ? formatDistance(navigationService.currentManeuverDistance) : ""
                     font.pixelSize: themeStore.fontBody

@@ -74,26 +74,43 @@ inline std::tuple<LatLng, int, double> findClosestPointOnRoute(
 // originalShapeIndex. Great-circle distance to the maneuver point
 // understates long curvy approaches by 30-50 %; along-route matches what
 // the voice line actually means by "300 m to turn".
+//
+// `hideStart` skips any maneuver flagged `isStart` (Valhalla kStart-family).
+// Those sit at shape[0]; once the rider has driven away, they stop being
+// useful as a TBT banner — the caller flips this true after the tracker
+// advances past segment 0 or a short elapsed timer expires.
 inline QList<RouteInstruction> findUpcomingInstructions(
     const LatLng &snappedPos,
     const Route &route,
     int currentSegmentIndex,
-    int maxInstructions = 3)
+    int maxInstructions = 3,
+    bool hideStart = false)
 {
     QList<RouteInstruction> result;
     const auto &shape = route.waypoints;
 
     for (const auto &instr : route.instructions) {
-        // Strictly ahead — a maneuver at the current segment start is already
-        // behind the snapped position and should not be surfaced as upcoming.
-        if (instr.originalShapeIndex <= currentSegmentIndex)
+        // Strictly-behind filter: a maneuver at a shape index lower than the
+        // current segment start has been passed. We allow equality ("at the
+        // current segment") so kStart can appear as the first upcoming at
+        // trip start (currentSegmentIndex=0, originalShapeIndex=0) and
+        // kDestination can appear as "Arrive now" in the final moment.
+        if (instr.originalShapeIndex < currentSegmentIndex)
+            continue;
+
+        if (hideStart && instr.isStart)
             continue;
 
         RouteInstruction adjusted = instr;
 
         double along = 0;
-        if (currentSegmentIndex >= 0 &&
-            currentSegmentIndex + 1 < shape.size()) {
+        if (instr.originalShapeIndex == currentSegmentIndex) {
+            // Maneuver is AT the current segment start — we're on top of it.
+            // Report 0 so the UI can render "now" rather than a stale
+            // remainder of the previous segment.
+            along = 0;
+        } else if (currentSegmentIndex >= 0 &&
+                   currentSegmentIndex + 1 < shape.size()) {
             along = snappedPos.distanceTo(shape[currentSegmentIndex + 1]);
             int lastShapeIdx = std::min(instr.originalShapeIndex,
                                          static_cast<int>(shape.size()) - 1);
@@ -171,14 +188,11 @@ inline Route parseRouteResponse(const QByteArray &data)
         RouteInstruction instr;
 
         int typeCode = obj[QStringLiteral("type")].toInt();
-        // Skip kStart/kStartRight/kStartLeft (1-3) and kDestination/*Right/*Left (4-6).
-        // These bookend every Valhalla route as placeholders — not real turns. When
-        // kept, kStart at originalShapeIndex=0 becomes the first "upcoming maneuver"
-        // until currentSegment advances past the first real turn, showing a growing
-        // "straight ahead" distance counter at trip start.
-        if (typeCode >= 1 && typeCode <= 6)
-            continue;
         instr.type = mapValhallaType(typeCode);
+        // kStart/kStartRight/kStartLeft flag — lets the UI hide the distance
+        // counter (it would just say 0 m) and lets the caller drop this
+        // maneuver a few seconds into the trip.
+        instr.isStart = (typeCode >= 1 && typeCode <= 3);
         instr.distance = obj[QStringLiteral("length")].toDouble() * 1000.0; // km → m
         instr.duration = obj[QStringLiteral("time")].toDouble();
         instr.originalShapeIndex = obj[QStringLiteral("begin_shape_index")].toInt();

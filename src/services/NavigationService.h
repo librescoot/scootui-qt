@@ -36,6 +36,8 @@ class NavigationService : public QObject
     Q_PROPERTY(QString currentStreetName READ currentStreetName NOTIFY instructionChanged)
     Q_PROPERTY(QString currentVerbalInstruction READ currentVerbalInstruction NOTIFY instructionChanged)
     Q_PROPERTY(QString currentInstructionText READ currentInstructionText NOTIFY instructionChanged)
+    Q_PROPERTY(bool currentIsStart READ currentIsStart NOTIFY instructionChanged)
+    Q_PROPERTY(bool currentIsArrive READ currentIsArrive NOTIFY instructionChanged)
 
     // Next instruction (preview)
     Q_PROPERTY(int nextManeuverType READ nextManeuverType NOTIFY instructionChanged)
@@ -77,6 +79,8 @@ public:
     QString currentStreetName() const;
     QString currentVerbalInstruction() const;
     QString currentInstructionText() const;
+    bool currentIsStart() const;
+    bool currentIsArrive() const;
     int roundaboutExitCount() const;
 
     int nextManeuverType() const;
@@ -165,7 +169,17 @@ private:
     // route snapping + upcoming-instruction walk, and QML bindings churn
     // faster than they can be meaningfully consumed.
     QElapsedTimer m_lastDrUpdate;
+    // Elapsed since the current route was calculated. Used as a safety
+    // valve to drop kStart-family maneuvers if the segment tracker hasn't
+    // advanced past segment 0 for a while (rider stationary after setting
+    // destination, or segment 0 is longer than typical).
+    QElapsedTimer m_routeStartedAt;
     static constexpr int DrUpdateMinIntervalMs = 200;  // 5 Hz
+    // How long the kStart banner lingers before being dropped if the rider
+    // hasn't advanced past segment 0 yet. Matches "a few seconds" — long
+    // enough to read the initial heading, short enough to get out of the
+    // way when the first real maneuver arrives.
+    static constexpr int StartMaxLingerMs = 8000;
 
     NavigationStatus m_status = NavigationStatus::Idle;
     Route m_route;
