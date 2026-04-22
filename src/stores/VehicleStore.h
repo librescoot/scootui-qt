@@ -4,7 +4,6 @@
 #include "models/Enums.h"
 #include <QTimer>
 #include <QElapsedTimer>
-#include <QEasingCurve>
 
 class VehicleStore : public SyncableStore
 {
@@ -85,9 +84,8 @@ private:
 
     QTimer m_blinkTimer;
     QElapsedTimer m_blinkElapsed;
-    QEasingCurve m_blinkEasing{QEasingCurve::InOutExpo};
     qreal m_blinkOpacity = 0.0;
-    qint64 m_blinkPhaseOffset = 0; // ms offset into 800ms cycle when animation started
+    qint64 m_blinkPhaseOffset = 0; // ms offset into 800ms cycle, reset when start_nanos arrives
 
     ScootEnums::BlinkerState m_blinkerState = ScootEnums::BlinkerState::Off;
     ScootEnums::BlinkerSwitch m_blinkerSwitch = ScootEnums::BlinkerSwitch::Off;
