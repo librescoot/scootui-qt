@@ -16,6 +16,7 @@ class ShortcutMenuStore : public QObject
     Q_PROPERTY(bool visible READ visible NOTIFY visibleChanged)
     Q_PROPERTY(int selectedIndex READ selectedIndex NOTIFY selectionChanged)
     Q_PROPERTY(bool confirming READ confirming NOTIFY confirmingChanged)
+    Q_PROPERTY(int confirmTimeoutMs READ confirmTimeoutMs CONSTANT)
 
 public:
     explicit ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
@@ -27,6 +28,7 @@ public:
     bool visible() const { return m_visible; }
     int selectedIndex() const { return m_selectedIndex; }
     bool confirming() const { return m_confirming; }
+    int confirmTimeoutMs() const { return CONFIRM_TIMEOUT_MS; }
 
     Q_INVOKABLE void show();
     Q_INVOKABLE void hide();

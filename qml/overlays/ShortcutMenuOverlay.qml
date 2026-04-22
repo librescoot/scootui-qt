@@ -126,31 +126,31 @@ Item {
                 radius: themeStore.radiusBar
                 color: isDark ? "#3DFFFFFF" : "#1F000000"
 
-                // Active progress bar (shrinks from 1.0 to 0.0 over 1s)
+                // Active progress bar (shrinks from 1.0 to 0.0 over confirm timeout)
                 Rectangle {
                     anchors.left: parent.left
                     height: parent.height
                     radius: themeStore.radiusBar
                     color: "#FF9800"
-                    width: parent.width * (1.0 - confirmTimer.progress)
+                    width: parent.width * (1.0 - confirmProgress)
+
+                    property real confirmProgress: 0
+
+                    NumberAnimation on confirmProgress {
+                        id: confirmAnim
+                        from: 0
+                        to: 1
+                        duration: shortcutMenuStore.confirmTimeoutMs
+                    }
                 }
             }
         }
 
-        // Confirmation timer (1s duration matching CONFIRM_TIMEOUT_MS)
-        Timer {
-            id: confirmTimer
-            property real progress: 0
-            interval: 16
-            running: shortcutMenuStore.confirming
-            repeat: true
-            onTriggered: {
-                progress = Math.min(progress + 0.016, 1.0)
-            }
-        }
-
         onVisibleChanged: {
-            if (visible) confirmTimer.progress = 0
+            if (visible) {
+                confirmAnim.stop()
+                confirmAnim.start()
+            }
         }
     }
 }
