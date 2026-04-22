@@ -56,7 +56,7 @@ fi
 
 MATERIAL_COUNT=$(echo "${MATERIAL_CODEPOINTS}" | wc -l)
 # Always include U+0020 (space) as a fallback glyph.
-MATERIAL_UNICODES="0020,$(echo "${MATERIAL_CODEPOINTS}" | paste -sd ,)"
+MATERIAL_UNICODES="0020,$(echo "${MATERIAL_CODEPOINTS}" | paste -s -d , -)"
 
 # Roboto/RobotoCondensed: Basic Latin + Latin-1 Supplement.
 # Covers ASCII + German umlauts (ä ö ü ß and caps) + common symbols (° © ±).
@@ -84,8 +84,15 @@ subset() {
         --no-ignore-missing-glyphs \
         --output-file="${output}"
     local size_before size_after
-    size_before=$(stat -c %s "${input}")
-    size_after=$(stat -c %s "${output}")
+    if stat -c %s "${input}" >/dev/null 2>&1; then
+        # GNU stat
+        size_before=$(stat -c %s "${input}")
+        size_after=$(stat -c %s "${output}")
+    else
+        # BSD stat (macOS)
+        size_before=$(stat -f %z "${input}")
+        size_after=$(stat -f %z "${output}")
+    fi
     printf "  %-32s  %8d -> %6d bytes  (%2d%% of original)\n" \
         "${basename}" \
         "${size_before}" "${size_after}" \

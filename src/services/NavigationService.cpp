@@ -169,6 +169,21 @@ QString NavigationService::currentInstructionText() const
     return m_upcomingInstructions.first().instructionText;
 }
 
+bool NavigationService::currentIsStart() const
+{
+    if (m_upcomingInstructions.isEmpty()) return false;
+    return m_upcomingInstructions.first().isStart;
+}
+
+bool NavigationService::currentIsArrive() const
+{
+    if (m_upcomingInstructions.isEmpty()) return false;
+    auto t = m_upcomingInstructions.first().type;
+    return t == ManeuverType::Arrive ||
+           t == ManeuverType::ArriveRight ||
+           t == ManeuverType::ArriveLeft;
+}
+
 int NavigationService::roundaboutExitCount() const
 {
     if (m_upcomingInstructions.isEmpty()) return 0;
@@ -393,6 +408,7 @@ void NavigationService::onRouteCalculated(const Route &route)
     m_remainingDuration = route.duration;
     m_currentSegmentIndex = 0;
     m_wasArrived = false;
+    m_routeStartedAt.restart();
 
     if (!m_destination.isValid() && !route.waypoints.isEmpty()) {
         m_destination = route.waypoints.last();
@@ -533,8 +549,16 @@ void NavigationService::updateNavigationState()
     // along-route distance starts from the projection onto the current
     // segment. For the fallback path where MapService state isn't available,
     // m_snappedPosition was set to the local global-nearest projection above.
+    //
+    // hideStart: drop the kStart-family maneuver once the rider has either
+    // advanced past segment 0 (they're genuinely moving along the route) or
+    // been sitting in segment 0 for more than StartMaxLingerMs (the route
+    // was calculated but they haven't started, or segment 0 is very long).
+    bool hideStart = (m_currentSegmentIndex > 0) ||
+                     (m_routeStartedAt.isValid() &&
+                      m_routeStartedAt.elapsed() > StartMaxLingerMs);
     auto upcoming = RouteHelpers::findUpcomingInstructions(
-        m_snappedPosition, m_route, m_currentSegmentIndex, 3);
+        m_snappedPosition, m_route, m_currentSegmentIndex, 3, hideStart);
 
     if (upcoming != m_upcomingInstructions) {
         m_upcomingInstructions = upcoming;
