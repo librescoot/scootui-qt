@@ -4,12 +4,9 @@ import "../components"
 
 Item {
     id: tbtWidget
-    // Grow downward to fit the instruction, capped at ~75% of the parent so it
-    // never eats the whole screen. Floor at 96 keeps the layout stable when idle.
-    height: visible
-            ? Math.min(parent ? parent.height * 0.75 : Number.MAX_VALUE,
-                       Math.max(contentCol.implicitHeight + 24, 96))
-            : 0
+    // Size to content. Floor at 96 keeps the layout stable when idle; the
+    // instruction text self-caps at maximumLineCount, so there's no runaway.
+    height: visible ? Math.max(contentCol.implicitHeight + 24, 96) : 0
     visible: typeof navigationService !== "undefined" && navigationService.isNavigating
              && navigationService.currentManeuverDistance > 0
 
@@ -152,7 +149,8 @@ Item {
                     lineHeight: 1.0
                 }
 
-                // Main instruction text (verbal) — wraps freely; widget grows to fit
+                // Main instruction text (verbal) — wraps up to 3 lines so a
+                // runaway instruction can't blow out the banner height.
                 Text {
                     Layout.fillWidth: true
                     text: typeof navigationService !== "undefined"
@@ -161,6 +159,8 @@ Item {
                     font.weight: isDark ? Font.Normal : Font.Medium
                     color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     wrapMode: Text.WordWrap
+                    maximumLineCount: 3
+                    elide: Text.ElideRight
                     lineHeight: 1.2
                 }
 
