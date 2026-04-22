@@ -27,10 +27,15 @@ Rectangle {
 
     property int currentGpsState: typeof gpsStore !== "undefined" ? gpsStore.gpsState : 0
     property bool hasGpsFix: currentGpsState === gpsFixEstablished
+    property bool hasRecentFix: typeof gpsStore !== "undefined" ? gpsStore.hasRecentFix : false
     property bool mapReady: typeof mapService !== "undefined" && mapService.isReady
+    property bool hasRoute: typeof navigationService !== "undefined" && navigationService.hasRoute
 
-    // Show GPS waiting screen when no fix and map not ready (Flutter: MapOffline + !fixEstablished)
-    property bool showWaitingForGps: !hasGpsFix && !mapReady
+    // Full-screen "waiting for GPS" takes over only when there's no position
+    // we can do anything useful with: no recent fix AND no route to dead-
+    // reckon along. If we have a route, we keep the map and DR along it —
+    // the vehicle marker grays out on its own (via hasRecentFix).
+    property bool showWaitingForGps: !hasRecentFix && !hasRoute
 
     ColumnLayout {
         anchors.fill: parent
