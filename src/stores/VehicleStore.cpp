@@ -1,4 +1,5 @@
 #include "VehicleStore.h"
+#include "BlinkerCurve.h"
 #include <QDateTime>
 #include <QDebug>
 
@@ -73,8 +74,10 @@ void VehicleStore::applyFieldUpdate(const QString &variable, const QString &valu
             m_blinkerState = v;
             emit blinkerStateChanged();
             if (v != ScootEnums::BlinkerState::Off) {
-                // Request start_nanos to compute correct phase; animation starts in its handler.
-                // Falls back to phase 0 if start_nanos arrives after this or is unavailable.
+                // Start the animation immediately at phase 0, then re-sync when
+                // blinker:start_nanos arrives via HGET (typically a few ms on
+                // local Redis). For the ~1-2 frames before resync the arrow is
+                // at opacity ~0 anyway, so the correction isn't visible.
                 m_blinkPhaseOffset = 0;
                 m_blinkElapsed.start();
                 m_blinkTimer.start();
@@ -93,8 +96,8 @@ void VehicleStore::applyFieldUpdate(const QString &variable, const QString &valu
         if (startNanos > 0 && m_blinkerState != ScootEnums::BlinkerState::Off) {
             qint64 startMs = startNanos / 1000000LL;
             qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
-            m_blinkPhaseOffset = (nowMs - startMs) % 800;
-            // Restart elapsed timer so phase is counted from now with the computed offset
+            qint64 phase = ((nowMs - startMs) % blinker::kCycleMs + blinker::kCycleMs) % blinker::kCycleMs;
+            m_blinkPhaseOffset = phase;
             m_blinkElapsed.start();
         }
     } else if (variable == QLatin1String("blinker:switch")) {
@@ -231,21 +234,10 @@ void VehicleStore::setBrake(bool isLeft, ScootEnums::Toggle value)
 
 void VehicleStore::updateBlinkClock()
 {
-    constexpr int FADE_IN = 250;
-    constexpr int FADE_OUT = 250;
-    constexpr int PAUSE = 300;
-    constexpr int CYCLE = FADE_IN + FADE_OUT + PAUSE; // 800ms, matches vehicle-service blinkerInterval
-
-    const int phase = static_cast<int>((m_blinkElapsed.elapsed() + m_blinkPhaseOffset) % CYCLE);
-    qreal opacity;
-
-    if (phase < FADE_IN) {
-        opacity = m_blinkEasing.valueForProgress(phase / qreal(FADE_IN));
-    } else if (phase < FADE_IN + FADE_OUT) {
-        opacity = 1.0 - m_blinkEasing.valueForProgress((phase - FADE_IN) / qreal(FADE_OUT));
-    } else {
-        opacity = 0.0;
-    }
+    // Sample the real hardware fade curve (fade10-blink) so the on-screen
+    // arrow fades with exactly the shape and duration of the physical lamp.
+    const qint64 phase = (m_blinkElapsed.elapsed() + m_blinkPhaseOffset) % blinker::kCycleMs;
+    const qreal opacity = blinker::sample(static_cast<int>(phase));
 
     if (!qFuzzyCompare(1.0 + opacity, 1.0 + m_blinkOpacity)) {
         m_blinkOpacity = opacity;
