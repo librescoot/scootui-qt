@@ -64,24 +64,50 @@ inline std::tuple<LatLng, int, double> findClosestPointOnRoute(
     return {bestPoint, bestIndex, bestDist};
 }
 
-// Find upcoming instructions from current segment position
-// Returns up to maxInstructions instructions ahead
+// Find upcoming instructions from current segment position.
+// `snappedPos` is expected to be the rider's position projected onto the
+// current segment; `currentSegmentIndex` indexes into `route.waypoints`
+// (segment S runs from waypoints[S] to waypoints[S+1]).
+//
+// Distances are computed ALONG the route shape — remainder of the current
+// segment plus the length of each intervening segment up to the maneuver's
+// originalShapeIndex. Great-circle distance to the maneuver point
+// understates long curvy approaches by 30-50 %; along-route matches what
+// the voice line actually means by "300 m to turn".
 inline QList<RouteInstruction> findUpcomingInstructions(
-    const LatLng &currentPosition,
+    const LatLng &snappedPos,
     const Route &route,
     int currentSegmentIndex,
     int maxInstructions = 3)
 {
     QList<RouteInstruction> result;
+    const auto &shape = route.waypoints;
 
     for (const auto &instr : route.instructions) {
-        if (instr.originalShapeIndex >= currentSegmentIndex) {
-            RouteInstruction adjusted = instr;
-            // Recalculate distance from current position to instruction start
-            adjusted.distance = currentPosition.distanceTo(instr.location);
-            result.append(adjusted);
-            if (result.size() >= maxInstructions) break;
+        // Strictly ahead — a maneuver at the current segment start is already
+        // behind the snapped position and should not be surfaced as upcoming.
+        if (instr.originalShapeIndex <= currentSegmentIndex)
+            continue;
+
+        RouteInstruction adjusted = instr;
+
+        double along = 0;
+        if (currentSegmentIndex >= 0 &&
+            currentSegmentIndex + 1 < shape.size()) {
+            along = snappedPos.distanceTo(shape[currentSegmentIndex + 1]);
+            int lastShapeIdx = std::min(instr.originalShapeIndex,
+                                         static_cast<int>(shape.size()) - 1);
+            for (int i = currentSegmentIndex + 1; i < lastShapeIdx; ++i)
+                along += shape[i].distanceTo(shape[i + 1]);
+        } else {
+            // Fallback: no valid segment state — use great-circle to keep
+            // something sane in the UI rather than emit 0.
+            along = snappedPos.distanceTo(instr.location);
         }
+        adjusted.distance = along;
+
+        result.append(adjusted);
+        if (result.size() >= maxInstructions) break;
     }
 
     return result;

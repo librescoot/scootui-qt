@@ -529,9 +529,12 @@ void NavigationService::updateNavigationState()
         setStatus(NavigationStatus::Navigating);
     }
 
-    // Find upcoming instructions
+    // Find upcoming instructions. Pass the snapped position (not raw pos) so
+    // along-route distance starts from the projection onto the current
+    // segment. For the fallback path where MapService state isn't available,
+    // m_snappedPosition was set to the local global-nearest projection above.
     auto upcoming = RouteHelpers::findUpcomingInstructions(
-        pos, m_route, m_currentSegmentIndex, 3);
+        m_snappedPosition, m_route, m_currentSegmentIndex, 3);
 
     if (upcoming != m_upcomingInstructions) {
         m_upcomingInstructions = upcoming;
