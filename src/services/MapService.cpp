@@ -295,6 +295,7 @@ void MapService::setRouteWaypoints(const QVariantList &waypoints)
     } else {
         m_currentRouteSegment = 0;
     }
+    m_maxReachedSegment = m_currentRouteSegment;
 
     updateRouteGeoJson();
     refreshRouteProjection();
@@ -321,6 +322,7 @@ void MapService::clearRoute()
 {
     m_routeShape.clear();
     m_currentRouteSegment = -1;
+    m_maxReachedSegment = -1;
 
     m_routeCoordinates.clear();
     emit routeCoordinatesChanged();
@@ -481,8 +483,11 @@ void MapService::onGpsPositionChanged()
                 }
                 accept = (m.cost + SwitchHysteresis < curCost);
             }
-            if (accept)
+            if (accept) {
                 m_currentRouteSegment = m.index;
+                m_maxReachedSegment = std::max(m_maxReachedSegment,
+                                                m_currentRouteSegment);
+            }
         }
     }
 
@@ -904,6 +909,7 @@ void MapService::projectPositionAlongRoute(double distMeters)
     }
 
     m_currentRouteSegment = seg;
+    m_maxReachedSegment = std::max(m_maxReachedSegment, m_currentRouteSegment);
 }
 
 // ---------------------------------------------------------------------------
@@ -1214,11 +1220,15 @@ MapService::SegmentMatch MapService::matchRouteSegment(double lat, double lng,
         hi = std::min(n - 1, currentSegment + MatchWindowFwd + 1);
     }
 
-    // Best unbiased (pure perpendicular) — needed as a sanity fallback when
-    // every windowed candidate fails the direction test hard.
-    int bestPureIdx = -1;
-    double bestPureDist = std::numeric_limits<double>::max();
-    double bestPureLat = 0, bestPureLng = 0;
+    // High-water mark gate: once the rider has reached a segment, we don't
+    // regress below it. Mid-turn the previous segment's endpoint is often
+    // geometrically closest; without this gate the matcher would snap back.
+    // Only relevant once we have a non-negative HWM (i.e. matched at least
+    // once since the route was loaded).
+    if (m_maxReachedSegment >= 0)
+        lo = std::max(lo, m_maxReachedSegment);
+    if (lo >= hi)
+        return best;
 
     for (int i = lo; i < hi; ++i) {
         const auto &A = m_routeShape[i];
@@ -1227,13 +1237,6 @@ MapService::SegmentMatch MapService::matchRouteSegment(double lat, double lng,
         double sLat, sLng, perpDist;
         projectOntoSegment(lat, lng, A.first, A.second, B.first, B.second,
                            sLat, sLng, perpDist);
-
-        if (perpDist < bestPureDist) {
-            bestPureDist = perpDist;
-            bestPureIdx = i;
-            bestPureLat = sLat;
-            bestPureLng = sLng;
-        }
 
         double cost = perpDist;
 
@@ -1265,26 +1268,6 @@ MapService::SegmentMatch MapService::matchRouteSegment(double lat, double lng,
             best.snappedLat = sLat;
             best.snappedLng = sLng;
         }
-    }
-
-    // Acceptance: if the unbiased best is beyond the acceptance distance,
-    // we're off-route; signal that by returning the pure-nearest result
-    // but let the caller decide (distFromRoute handles off-route gating).
-    if (bestPureIdx < 0)
-        return best;
-
-    // Prefer the trajectory-weighted pick by default. Exception: if the
-    // weighted winner is hilariously far from the pure winner AND the pure
-    // winner is very close, fall through to the pure winner (safety against
-    // the hysteresis pinning us to a distant current segment after a big
-    // DR jump).
-    if (best.index >= 0 && bestPureDist < 10.0 &&
-        best.perpDist - bestPureDist > 40.0) {
-        best.index = bestPureIdx;
-        best.perpDist = bestPureDist;
-        best.snappedLat = bestPureLat;
-        best.snappedLng = bestPureLng;
-        best.cost = bestPureDist;
     }
 
     return best;

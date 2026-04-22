@@ -262,6 +262,10 @@ private:
     bool m_hasInitialPosition = false;
     bool m_deadReckoningPaused = false;
     int m_currentRouteSegment = -1;
+    // High-water mark — furthest segment index the rider has reached on the
+    // current route shape. The matcher is gated against regressing below it;
+    // forward jumps (shortcuts) are still allowed. Reset on new route / clear.
+    int m_maxReachedSegment = -1;
 
     // Route-projection state (exposed to NavigationService via Q_PROPERTY)
     double m_snappedLat = 0;
