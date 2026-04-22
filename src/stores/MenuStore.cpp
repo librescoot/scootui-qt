@@ -57,6 +57,13 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
     });
 
     rebuildMenuTree();
+
+    // Reset dashboard:menu-open at startup so a prior crash can't leave it stuck at "true"
+    if (m_repo) {
+        m_repo->set(QStringLiteral("dashboard"),
+                    QStringLiteral("menu-open"),
+                    QStringLiteral("false"));
+    }
 }
 
 MenuStore::~MenuStore() = default;
@@ -648,6 +655,11 @@ void MenuStore::open()
     m_selectedIndex = 0;
     m_openedAt.start();
     rebuildMenuTree();
+    if (m_repo) {
+        m_repo->set(QStringLiteral("dashboard"),
+                    QStringLiteral("menu-open"),
+                    QStringLiteral("true"));
+    }
     emit isOpenChanged();
 }
 
@@ -658,6 +670,11 @@ void MenuStore::close()
     m_selectedIndex = 0;
     m_pathStack.clear();
     m_indexStack.clear();
+    if (m_repo) {
+        m_repo->set(QStringLiteral("dashboard"),
+                    QStringLiteral("menu-open"),
+                    QStringLiteral("false"));
+    }
     emit isOpenChanged();
     emitMenuChanged();
 }
