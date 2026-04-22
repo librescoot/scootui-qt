@@ -1292,9 +1292,8 @@ MapService::SegmentMatch MapService::matchRouteSegment(double lat, double lng,
 
 void MapService::refreshRouteProjection()
 {
-    if (m_routeShape.size() < 2 || m_currentRouteSegment < 0
-        || m_currentRouteSegment >= m_routeShape.size() - 1) {
-        // No route or segment lost — clear projection
+    if (m_routeShape.size() < 2) {
+        // No route — clear projection
         bool changed = (m_lastEmittedSegment != -1 ||
                         m_lastEmittedDistFromRoute != 0);
         m_snappedLat = 0;
@@ -1310,12 +1309,29 @@ void MapService::refreshRouteProjection()
         return;
     }
 
-    const auto &A = m_routeShape[m_currentRouteSegment];
-    const auto &B = m_routeShape[m_currentRouteSegment + 1];
-    double sLat, sLng, dist;
-    projectOntoSegment(m_drLatitude, m_drLongitude,
-                       A.first, A.second, B.first, B.second,
-                       sLat, sLng, dist);
+    // distFromRoute / snappedPos are true-nearest-to-any-segment, NOT
+    // projection onto m_currentRouteSegment. The matcher's segment pick is a
+    // directional/identity concept (which leg of the route are we "on"); the
+    // perpendicular distance is a pure-geometry concept. Keeping them
+    // independent means off-route recovery still works when the rider
+    // rejoins the route at a different segment than where they left —
+    // otherwise distFromRoute would stay large (stuck projecting onto the
+    // frozen pre-off-route segment) and isOffRoute hysteresis never clears.
+    double sLat = m_drLatitude, sLng = m_drLongitude;
+    double dist = std::numeric_limits<double>::max();
+    for (int i = 0; i < m_routeShape.size() - 1; ++i) {
+        const auto &A = m_routeShape[i];
+        const auto &B = m_routeShape[i + 1];
+        double candLat, candLng, candDist;
+        projectOntoSegment(m_drLatitude, m_drLongitude,
+                           A.first, A.second, B.first, B.second,
+                           candLat, candLng, candDist);
+        if (candDist < dist) {
+            dist = candDist;
+            sLat = candLat;
+            sLng = candLng;
+        }
+    }
 
     m_snappedLat = sLat;
     m_snappedLng = sLng;
