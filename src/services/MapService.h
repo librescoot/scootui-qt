@@ -31,6 +31,10 @@ class MapService : public QObject
     Q_PROPERTY(double vehicleLatitude READ vehicleLatitude NOTIFY vehiclePositionChanged)
     Q_PROPERTY(double vehicleLongitude READ vehicleLongitude NOTIFY vehiclePositionChanged)
     Q_PROPERTY(bool hasVehiclePosition READ hasVehiclePosition NOTIFY vehiclePositionChanged)
+    Q_PROPERTY(int currentRouteSegment READ currentRouteSegment NOTIFY routeProjectionChanged)
+    Q_PROPERTY(double snappedLatitude READ snappedLatitude NOTIFY routeProjectionChanged)
+    Q_PROPERTY(double snappedLongitude READ snappedLongitude NOTIFY routeProjectionChanged)
+    Q_PROPERTY(double distanceFromRoute READ distanceFromRoute NOTIFY routeProjectionChanged)
 
 public:
     explicit MapService(GpsStore *gps, EngineStore *engine,
@@ -59,6 +63,16 @@ public:
     double vehicleLongitude() const { return m_drLongitude; }
     bool hasVehiclePosition() const { return m_hasInitialPosition; }
 
+    // Route-projection state — authoritative source for NavigationService.
+    // currentRouteSegment is the index of the polyline segment the rider is
+    // matched to (not just geometrically nearest — trajectory-aware, so
+    // opposite-direction close-by segments don't pull us back on U-turns).
+    // -1 when no route or off-route.
+    int currentRouteSegment() const { return m_currentRouteSegment; }
+    double snappedLatitude() const { return m_snappedLat; }
+    double snappedLongitude() const { return m_snappedLng; }
+    double distanceFromRoute() const { return m_distFromRoute; }
+
     void setRouteWaypoints(const QVariantList &waypoints);
     void clearRoute();
     void updateRouteFromNavigation();
@@ -76,6 +90,7 @@ signals:
     void isOutOfCoverageChanged();
     void deadReckoningPausedChanged();
     void vehiclePositionChanged();
+    void routeProjectionChanged();
 
 private slots:
     void onDeadReckoningTick();
@@ -92,7 +107,6 @@ private:
     void projectPositionStraight(double distMeters, double headingDeg);
     void blendGpsCorrection(double dt);
     void snapToRouteLine();
-    void applyLatencyCompensation(double speedMs, double headingDeg);
 
     // Dynamic zoom
     void updateDynamicZoom(double dt);
@@ -119,8 +133,26 @@ private:
     void loadMbtilesBounds();
     void checkOutOfCoverage();
 
-    // Snap to closest route segment and return index, or -1 if off route
-    int findClosestSegment(double lat, double lng) const;
+    // Trajectory-aware segment matcher. Combines perpendicular distance,
+    // direction-of-travel alignment, and a hysteresis bias toward the current
+    // segment. On U-turns / sharp turns the direction penalty keeps us from
+    // snapping back to a geometrically-nearer opposite-direction segment.
+    // Returns {-1, 0, 0, 0} when no valid match (no route, off-route, etc).
+    struct SegmentMatch {
+        int index = -1;
+        double snappedLat = 0;
+        double snappedLng = 0;
+        double perpDist = 0;       // m
+        double cost = 0;           // combined (distance + direction + hysteresis)
+    };
+    SegmentMatch matchRouteSegment(double lat, double lng,
+                                    double trajectoryBearing,
+                                    bool haveTrajectory,
+                                    int currentSegment) const;
+
+    // Recompute m_snappedLat/Lng/m_distFromRoute from current DR position
+    // and m_currentRouteSegment. Emits routeProjectionChanged if values moved.
+    void refreshRouteProjection();
 
     // Bearing along the current route segment, or -1 if not on route
     double routeSegmentBearing() const;
@@ -168,6 +200,26 @@ private:
     // Vehicle offset
     static constexpr double VehicleOffsetPx = 120.0;
 
+    // Trajectory-aware segment matching
+    static constexpr int MatchWindowBack = 10;
+    static constexpr int MatchWindowFwd = 10;
+    static constexpr double MatchAcceptanceDistance = 120.0;   // m — beyond this, don't even try
+    static constexpr double MinSpeedForTrajectoryKmh = 3.0;    // below this, direction is unreliable
+    static constexpr double ReverseDirectionPenalty = 50.0;    // m-equivalent for > 90° mismatch
+    static constexpr double ReverseSlopePerDeg = 0.5;          // m/deg above 90°
+    static constexpr double SoftDirectionFactor = 0.15;        // m/deg ≤ 90°
+    static constexpr double CurrentSegmentBonus = 5.0;         // m handicap to current (prefer stability)
+    static constexpr double BackwardStepPenalty = 3.0;         // m/step for going backward
+    static constexpr double ForwardStepPenalty = 0.5;          // m/step for skipping ahead
+    static constexpr double SwitchHysteresis = 2.0;            // new must beat current by this much
+    static constexpr double SnappedPosEpsilon = 0.5;           // m — don't emit below this
+
+    // Last-emitted projection state, for change detection on routeProjectionChanged
+    mutable double m_lastEmittedSnapLat = 0;
+    mutable double m_lastEmittedSnapLng = 0;
+    mutable double m_lastEmittedDistFromRoute = -1;
+    mutable int m_lastEmittedSegment = -2;
+
     // --- Store pointers ---
     GpsStore *m_gps;
     EngineStore *m_engine;
@@ -210,6 +262,11 @@ private:
     bool m_hasInitialPosition = false;
     bool m_deadReckoningPaused = false;
     int m_currentRouteSegment = -1;
+
+    // Route-projection state (exposed to NavigationService via Q_PROPERTY)
+    double m_snappedLat = 0;
+    double m_snappedLng = 0;
+    double m_distFromRoute = 0;
 
     // Odometer-primary DR bookkeeping
     bool m_odoSeeded = false;

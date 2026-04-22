@@ -99,6 +99,44 @@ static double distanceToSegment(double lat, double lon,
     return std::hypot(px, py);
 }
 
+// Closest point on segment A→B to (lat, lng) in the local equirectangular
+// frame. Writes the snapped coordinate and the perpendicular distance in m.
+static void projectOntoSegment(double lat, double lng,
+                                double aLat, double aLon,
+                                double bLat, double bLon,
+                                double &outLat, double &outLng, double &outDist)
+{
+    double cosLat = std::cos(lat * DegToRad);
+    double ax = (aLon - lng) * EarthRadius * cosLat * DegToRad;
+    double ay = (aLat - lat) * EarthRadius * DegToRad;
+    double bx = (bLon - lng) * EarthRadius * cosLat * DegToRad;
+    double by = (bLat - lat) * EarthRadius * DegToRad;
+    double dx = bx - ax;
+    double dy = by - ay;
+    double lenSq = dx * dx + dy * dy;
+    if (lenSq < 1e-6) {
+        outLat = aLat;
+        outLng = aLon;
+        outDist = std::hypot(ax, ay);
+        return;
+    }
+    double t = std::clamp((-ax * dx - ay * dy) / lenSq, 0.0, 1.0);
+    double px = ax + t * dx;
+    double py = ay + t * dy;
+    outDist = std::hypot(px, py);
+    outLat = lat + (py / EarthRadius) * RadToDeg;
+    outLng = lng + (px / (EarthRadius * cosLat)) * RadToDeg;
+}
+
+// Signed angular difference in degrees, wrapped to [-180, 180].
+static double signedAngleDiff(double a, double b)
+{
+    double d = std::fmod(a - b, 360.0);
+    if (d > 180.0) d -= 360.0;
+    if (d < -180.0) d += 360.0;
+    return d;
+}
+
 // ---------------------------------------------------------------------------
 // Construction
 // ---------------------------------------------------------------------------
@@ -240,10 +278,26 @@ void MapService::setRouteWaypoints(const QVariantList &waypoints)
     qDebug() << "MapService: stored waypoints:" << m_routeCoordinates.size();
     emit routeCoordinatesChanged();
 
-    // Reset segment tracking
-    m_currentRouteSegment = 0;
+    // Reset segment tracking. If we already have a DR position, seed the
+    // initial match using trajectory-aware matching — Valhalla's reroute
+    // starts its shape at the current position, so segment 0 is usually
+    // right, but the trajectory check guards against unusual cases where
+    // the new shape doesn't begin exactly at the rider's current location.
+    if (m_hasInitialPosition && m_routeShape.size() >= 2) {
+        double speedKmh = m_engine->speed();
+        bool haveTrajectory = speedKmh >= MinSpeedForTrajectoryKmh;
+        SegmentMatch seeded = matchRouteSegment(m_drLatitude, m_drLongitude,
+                                                 m_displayBearing, haveTrajectory,
+                                                 -1);
+        m_currentRouteSegment = (seeded.index >= 0 &&
+                                  seeded.perpDist < MatchAcceptanceDistance)
+                                ? seeded.index : 0;
+    } else {
+        m_currentRouteSegment = 0;
+    }
 
     updateRouteGeoJson();
+    refreshRouteProjection();
 }
 
 void MapService::updateRouteFromNavigation()
@@ -272,6 +326,7 @@ void MapService::clearRoute()
     emit routeCoordinatesChanged();
 
     updateRouteGeoJson();
+    refreshRouteProjection();
 
     m_targetZoom = DefaultZoom;
 
@@ -382,18 +437,57 @@ void MapService::onGpsPositionChanged()
     m_lastGpsLatitude = gpsLat;
     m_lastGpsLongitude = gpsLng;
 
-    // Re-evaluate which route segment we're on using the real GPS position.
-    // Previously this was locked monotonic (forward-only) to suppress jitter
-    // in roundabouts, but that left DR stuck on an earlier segment after a
-    // wrong-turn recovery until the next reroute replaced the shape.
-    // findClosestSegment returns the globally nearest segment; the subsequent
-    // snap + blend steps handle any residual jitter. Skip while stationary so
-    // GPS noise can't bounce m_currentRouteSegment along a nearby route leg.
-    if (!stationary && m_routeShape.size() >= 2) {
-        int seg = findClosestSegment(gpsLat, gpsLng);
-        if (seg >= 0)
-            m_currentRouteSegment = seg;
+    // Re-evaluate the route segment using trajectory-aware matching: combines
+    // perpendicular distance, travel-direction alignment, and hysteresis bias
+    // toward the current segment. Prevents the marker from snapping backward
+    // on U-turns / sharp turns just because some earlier segment happens to
+    // be geometrically closer. Skip while stationary (GPS noise would bounce
+    // us between nearby segments) and while off-route (the stale shape isn't
+    // meaningful — DR uses straight-line projection during that window).
+    if (!stationary && m_routeShape.size() >= 2 &&
+        !(m_navigation && m_navigation->isOffRoute())) {
+        double speedKmh = m_engine->speed();
+        bool haveTrajectory = speedKmh >= MinSpeedForTrajectoryKmh;
+        double trajectoryBearing = m_displayBearing;
+
+        SegmentMatch m = matchRouteSegment(gpsLat, gpsLng,
+                                            trajectoryBearing, haveTrajectory,
+                                            m_currentRouteSegment);
+        if (m.index >= 0 && m.perpDist < MatchAcceptanceDistance) {
+            bool accept = false;
+            if (m_currentRouteSegment < 0 ||
+                m_currentRouteSegment >= m_routeShape.size() - 1) {
+                // No prior — take whatever matcher suggests
+                accept = true;
+            } else if (m.index == m_currentRouteSegment) {
+                accept = false;  // no change
+            } else {
+                // Require a meaningful cost improvement to switch segments
+                const auto &A = m_routeShape[m_currentRouteSegment];
+                const auto &B = m_routeShape[m_currentRouteSegment + 1];
+                double sLat, sLng, curDist;
+                projectOntoSegment(gpsLat, gpsLng,
+                                   A.first, A.second, B.first, B.second,
+                                   sLat, sLng, curDist);
+                double curCost = curDist - CurrentSegmentBonus;
+                if (haveTrajectory) {
+                    double segBearing = bearingBetween(A.first, A.second,
+                                                        B.first, B.second);
+                    double diff = std::abs(signedAngleDiff(trajectoryBearing, segBearing));
+                    if (diff > 90.0)
+                        curCost += ReverseDirectionPenalty + (diff - 90.0) * ReverseSlopePerDeg;
+                    else
+                        curCost += diff * SoftDirectionFactor;
+                }
+                accept = (m.cost + SwitchHysteresis < curCost);
+            }
+            if (accept)
+                m_currentRouteSegment = m.index;
+        }
     }
+
+    // Refresh projection state exposed to NavigationService
+    refreshRouteProjection();
 
     // Check if GPS position is outside mbtiles bounds
     checkOutOfCoverage();
@@ -720,6 +814,13 @@ void MapService::onDeadReckoningTick()
         if (!stationary && useRouteShape) {
             snapToRouteLine();
         }
+
+        // Refresh the projection state NavigationService consumes. Cheap,
+        // tracks segment advancement done inside projectPositionAlongRoute
+        // as well as blend/snap shifts. Emits routeProjectionChanged only
+        // on meaningful change.
+        if (haveRouteShape)
+            refreshRouteProjection();
     }
 
     // ----- Latency compensation -----
@@ -891,16 +992,6 @@ void MapService::snapToRouteLine()
     double alongTrackFrac = (ex * dx + ey * dy) / lenSq;
     m_gpsErrorLatitude  = alongTrackFrac * dy / (EarthRadius * DegToRad);
     m_gpsErrorLongitude = alongTrackFrac * dx / (EarthRadius * errorCosLat * DegToRad);
-}
-
-// ---------------------------------------------------------------------------
-// Latency compensation (projects displayed position forward)
-// ---------------------------------------------------------------------------
-
-void MapService::applyLatencyCompensation(double /*speedMs*/, double /*headingDeg*/)
-{
-    // Actual projection done inline in onDeadReckoningTick for clarity.
-    // This method is a placeholder for any additional latency logic.
 }
 
 // ---------------------------------------------------------------------------
@@ -1098,28 +1189,171 @@ double MapService::normalizeAngle(double angle)
 }
 
 // ---------------------------------------------------------------------------
-// Find closest route segment
+// Trajectory-aware segment matcher
 // ---------------------------------------------------------------------------
 
-int MapService::findClosestSegment(double lat, double lng) const
+MapService::SegmentMatch MapService::matchRouteSegment(double lat, double lng,
+                                                        double trajectoryBearing,
+                                                        bool haveTrajectory,
+                                                        int currentSegment) const
 {
-    if (m_routeShape.size() < 2)
-        return -1;
+    SegmentMatch best;
+    const int n = m_routeShape.size();
+    if (n < 2)
+        return best;
 
-    int bestIdx = 0;
-    double bestDist = std::numeric_limits<double>::max();
+    int lo, hi;
+    if (currentSegment < 0 || currentSegment >= n - 1) {
+        // Cold start or segment state lost — full scan, but only accept
+        // results within MatchAcceptanceDistance (prevents a random far
+        // match when off-route).
+        lo = 0;
+        hi = n - 1;
+    } else {
+        lo = std::max(0, currentSegment - MatchWindowBack);
+        hi = std::min(n - 1, currentSegment + MatchWindowFwd + 1);
+    }
 
-    for (int i = 0; i < m_routeShape.size() - 1; ++i) {
-        double d = distanceToSegment(lat, lng,
-                                     m_routeShape[i].first,   m_routeShape[i].second,
-                                     m_routeShape[i+1].first, m_routeShape[i+1].second);
-        if (d < bestDist) {
-            bestDist = d;
-            bestIdx = i;
+    // Best unbiased (pure perpendicular) — needed as a sanity fallback when
+    // every windowed candidate fails the direction test hard.
+    int bestPureIdx = -1;
+    double bestPureDist = std::numeric_limits<double>::max();
+    double bestPureLat = 0, bestPureLng = 0;
+
+    for (int i = lo; i < hi; ++i) {
+        const auto &A = m_routeShape[i];
+        const auto &B = m_routeShape[i + 1];
+
+        double sLat, sLng, perpDist;
+        projectOntoSegment(lat, lng, A.first, A.second, B.first, B.second,
+                           sLat, sLng, perpDist);
+
+        if (perpDist < bestPureDist) {
+            bestPureDist = perpDist;
+            bestPureIdx = i;
+            bestPureLat = sLat;
+            bestPureLng = sLng;
+        }
+
+        double cost = perpDist;
+
+        if (haveTrajectory) {
+            double segBearing = bearingBetween(A.first, A.second, B.first, B.second);
+            double diff = std::abs(signedAngleDiff(trajectoryBearing, segBearing));
+            if (diff > 90.0) {
+                cost += ReverseDirectionPenalty + (diff - 90.0) * ReverseSlopePerDeg;
+            } else {
+                cost += diff * SoftDirectionFactor;
+            }
+        }
+
+        if (currentSegment >= 0) {
+            int delta = i - currentSegment;
+            if (delta == 0) {
+                cost -= CurrentSegmentBonus;
+            } else if (delta < 0) {
+                cost += (-delta) * BackwardStepPenalty;
+            } else {
+                cost += delta * ForwardStepPenalty;
+            }
+        }
+
+        if (best.index < 0 || cost < best.cost) {
+            best.index = i;
+            best.cost = cost;
+            best.perpDist = perpDist;
+            best.snappedLat = sLat;
+            best.snappedLng = sLng;
         }
     }
 
-    return bestIdx;
+    // Acceptance: if the unbiased best is beyond the acceptance distance,
+    // we're off-route; signal that by returning the pure-nearest result
+    // but let the caller decide (distFromRoute handles off-route gating).
+    if (bestPureIdx < 0)
+        return best;
+
+    // Prefer the trajectory-weighted pick by default. Exception: if the
+    // weighted winner is hilariously far from the pure winner AND the pure
+    // winner is very close, fall through to the pure winner (safety against
+    // the hysteresis pinning us to a distant current segment after a big
+    // DR jump).
+    if (best.index >= 0 && bestPureDist < 10.0 &&
+        best.perpDist - bestPureDist > 40.0) {
+        best.index = bestPureIdx;
+        best.perpDist = bestPureDist;
+        best.snappedLat = bestPureLat;
+        best.snappedLng = bestPureLng;
+        best.cost = bestPureDist;
+    }
+
+    return best;
+}
+
+void MapService::refreshRouteProjection()
+{
+    if (m_routeShape.size() < 2) {
+        // No route — clear projection
+        bool changed = (m_lastEmittedSegment != -1 ||
+                        m_lastEmittedDistFromRoute != 0);
+        m_snappedLat = 0;
+        m_snappedLng = 0;
+        m_distFromRoute = 0;
+        if (changed) {
+            m_lastEmittedSegment = -1;
+            m_lastEmittedSnapLat = 0;
+            m_lastEmittedSnapLng = 0;
+            m_lastEmittedDistFromRoute = 0;
+            emit routeProjectionChanged();
+        }
+        return;
+    }
+
+    // distFromRoute / snappedPos are true-nearest-to-any-segment, NOT
+    // projection onto m_currentRouteSegment. The matcher's segment pick is a
+    // directional/identity concept (which leg of the route are we "on"); the
+    // perpendicular distance is a pure-geometry concept. Keeping them
+    // independent means off-route recovery still works when the rider
+    // rejoins the route at a different segment than where they left —
+    // otherwise distFromRoute would stay large (stuck projecting onto the
+    // frozen pre-off-route segment) and isOffRoute hysteresis never clears.
+    double sLat = m_drLatitude, sLng = m_drLongitude;
+    double dist = std::numeric_limits<double>::max();
+    for (int i = 0; i < m_routeShape.size() - 1; ++i) {
+        const auto &A = m_routeShape[i];
+        const auto &B = m_routeShape[i + 1];
+        double candLat, candLng, candDist;
+        projectOntoSegment(m_drLatitude, m_drLongitude,
+                           A.first, A.second, B.first, B.second,
+                           candLat, candLng, candDist);
+        if (candDist < dist) {
+            dist = candDist;
+            sLat = candLat;
+            sLng = candLng;
+        }
+    }
+
+    m_snappedLat = sLat;
+    m_snappedLng = sLng;
+    m_distFromRoute = dist;
+
+    // Emit only if the change is meaningful (segment change or snap-pos
+    // moved > SnappedPosEpsilon meters or distFromRoute shifted > epsilon).
+    bool segChanged = (m_currentRouteSegment != m_lastEmittedSegment);
+    double dLat = sLat - m_lastEmittedSnapLat;
+    double dLng = sLng - m_lastEmittedSnapLng;
+    double moved = haversineDistance(m_lastEmittedSnapLat, m_lastEmittedSnapLng, sLat, sLng);
+    bool posChanged = moved > SnappedPosEpsilon;
+    bool distChanged = std::abs(dist - m_lastEmittedDistFromRoute) > SnappedPosEpsilon;
+
+    if (segChanged || posChanged || distChanged) {
+        m_lastEmittedSegment = m_currentRouteSegment;
+        m_lastEmittedSnapLat = sLat;
+        m_lastEmittedSnapLng = sLng;
+        m_lastEmittedDistFromRoute = dist;
+        emit routeProjectionChanged();
+    }
+    (void)dLat; (void)dLng;
 }
 
 // ---------------------------------------------------------------------------

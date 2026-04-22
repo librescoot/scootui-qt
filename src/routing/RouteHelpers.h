@@ -145,6 +145,13 @@ inline Route parseRouteResponse(const QByteArray &data)
         RouteInstruction instr;
 
         int typeCode = obj[QStringLiteral("type")].toInt();
+        // Skip kStart/kStartRight/kStartLeft (1-3) and kDestination/*Right/*Left (4-6).
+        // These bookend every Valhalla route as placeholders — not real turns. When
+        // kept, kStart at originalShapeIndex=0 becomes the first "upcoming maneuver"
+        // until currentSegment advances past the first real turn, showing a growing
+        // "straight ahead" distance counter at trip start.
+        if (typeCode >= 1 && typeCode <= 6)
+            continue;
         instr.type = mapValhallaType(typeCode);
         instr.distance = obj[QStringLiteral("length")].toDouble() * 1000.0; // km → m
         instr.duration = obj[QStringLiteral("time")].toDouble();
