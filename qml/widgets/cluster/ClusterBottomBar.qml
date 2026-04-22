@@ -12,15 +12,20 @@ Item {
     readonly property int blinkerState: typeof vehicleStore !== "undefined" ? vehicleStore.blinkerState : 0
     readonly property int unableToDrive: typeof vehicleStore !== "undefined" ? vehicleStore.isUnableToDrive : 0
     readonly property int mainPower: typeof vehicleStore !== "undefined" ? vehicleStore.mainPower : 1
+    readonly property int seatboxLock: typeof vehicleStore !== "undefined" ? vehicleStore.seatboxLock : 1
     readonly property int faultCode: typeof engineStore !== "undefined" ? engineStore.faultCode : 0
     readonly property int battery0State: typeof battery0Store !== "undefined" ? battery0Store.batteryState : 0
     readonly property bool battery0Present: typeof battery0Store !== "undefined" && battery0Store.present
     readonly property bool usbDisconnected: typeof connectionStore !== "undefined" && connectionStore.usingBackupConnection
 
-    // VehicleState: Parked = 4, ReadyToDrive = 2. BlinkerState.Both = 3. Toggle.On = 0, Off = 1. BatteryState.Active = 3.
+    // VehicleState: Parked = 4, ReadyToDrive = 2. BlinkerState.Both = 3. Toggle.On = 0, Off = 1.
+    // BatteryState.Active = 3. SeatboxLock: Open = 0, Closed = 1.
+    // Opening the seatbox cuts the 48V bus, so main-power going off while parked is
+    // expected then — suppress the "power lost" anomaly branch unless the seatbox is closed.
     readonly property bool engineFault: unableToDrive === 0
                                       || faultCode > 0
                                       || (mainPower === 1
+                                          && seatboxLock === 1
                                           && (vehicleState === 4
                                               || vehicleState === 2
                                               || (battery0State === 3 && battery0Present)))
