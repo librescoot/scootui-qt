@@ -45,7 +45,10 @@ Item {
             case mtExitLeft: case mtExitRight: return 400
             case mtTurnSlightLeft: case mtTurnSlightRight:
             case mtMergeStraight: case mtMergeLeft: case mtMergeRight: return 300
-            case mtKeepStraight: case mtKeepLeft: case mtKeepRight: return 150
+            // Fork-style lane pick — needs lane-shift time, more than a
+            // gentle bend. ~18 s at 50 km/h to spot the fork and reposition.
+            case mtKeepLeft: case mtKeepRight: return 250
+            case mtKeepStraight: return 150
             default: return 1000
         }
     }
@@ -63,8 +66,12 @@ Item {
             case mtTurnSharpLeft:                     return MaterialIcon.iconTurnSharpLeft
             case mtTurnRight:                         return MaterialIcon.iconTurnRight
             case mtTurnSharpRight:                    return MaterialIcon.iconTurnSharpRight
-            case mtTurnSlightLeft: case mtKeepLeft:   return MaterialIcon.iconTurnSlightLeft
-            case mtTurnSlightRight: case mtKeepRight: return MaterialIcon.iconTurnSlightRight
+            case mtTurnSlightLeft:                    return MaterialIcon.iconTurnSlightLeft
+            case mtTurnSlightRight:                   return MaterialIcon.iconTurnSlightRight
+            // Keep* is a fork/lane pick, not a turn. Fork arrow reads as
+            // "split in the road" rather than "bend a bit".
+            case mtKeepLeft:                          return MaterialIcon.iconForkLeft
+            case mtKeepRight:                         return MaterialIcon.iconForkRight
             case mtUTurn:                             return MaterialIcon.iconUTurnLeft
             case mtUTurnRight:                        return MaterialIcon.iconUTurnRight
             case mtExitLeft:                          return MaterialIcon.iconTurnSlightLeft

@@ -26,6 +26,8 @@ QtObject {
     readonly property string iconUTurnRight:      String.fromCodePoint(0xf0596)
     readonly property string iconStraight:        String.fromCodePoint(0xf0574)
     readonly property string iconMerge:           String.fromCodePoint(0xf053b)
+    readonly property string iconForkLeft:        String.fromCodePoint(0xf050b)
+    readonly property string iconForkRight:       String.fromCodePoint(0xf050c)
     readonly property string iconNavigation:      "\ue41e"
     readonly property string iconPlace:           "\ue4c9"
     readonly property string iconLocationOff:     "\ue3aa"
