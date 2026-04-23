@@ -389,3 +389,45 @@ void HiredisWorker::doLrange(const QString &key, int start, int stop)
     if (reply) freeReplyObject(reply);
     emit lrangeResult(key, values);
 }
+
+void HiredisWorker::doXrevrange(const QString &key, int count)
+{
+    QVariantList entries;
+    if (!ensureConnected()) {
+        emit streamResult(key, entries);
+        return;
+    }
+
+    redisReply *reply = static_cast<redisReply *>(
+        redisCommand(m_ctx, "XREVRANGE %s + - COUNT %d",
+                     key.toUtf8().constData(), count));
+    if (reply && reply->type == REDIS_REPLY_ARRAY) {
+        for (size_t i = 0; i < reply->elements; ++i) {
+            redisReply *entry = reply->element[i];
+            if (!entry || entry->type != REDIS_REPLY_ARRAY || entry->elements != 2)
+                continue;
+            redisReply *idReply = entry->element[0];
+            redisReply *fieldsReply = entry->element[1];
+            if (!idReply || idReply->type != REDIS_REPLY_STRING)
+                continue;
+            if (!fieldsReply || fieldsReply->type != REDIS_REPLY_ARRAY)
+                continue;
+            QVariantMap fields;
+            for (size_t j = 0; j + 1 < fieldsReply->elements; j += 2) {
+                redisReply *k = fieldsReply->element[j];
+                redisReply *v = fieldsReply->element[j + 1];
+                if (!k || !v) continue;
+                fields.insert(
+                    QString::fromUtf8(k->str, k->len),
+                    QString::fromUtf8(v->str, v->len));
+            }
+            QVariantMap entryMap;
+            entryMap.insert(QStringLiteral("id"),
+                            QString::fromUtf8(idReply->str, idReply->len));
+            entryMap.insert(QStringLiteral("fields"), fields);
+            entries.append(entryMap);
+        }
+    }
+    if (reply) freeReplyObject(reply);
+    emit streamResult(key, entries);
+}

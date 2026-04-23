@@ -58,3 +58,14 @@ void ScreenStore::closeNavigationSetup()
 {
     setScreen(static_cast<int>(m_screenBeforeNavSetup));
 }
+
+void ScreenStore::showFaults()
+{
+    m_screenBeforeFaults = m_currentScreen;
+    setScreen(static_cast<int>(ScootEnums::ScreenMode::Faults));
+}
+
+void ScreenStore::closeFaults()
+{
+    setScreen(static_cast<int>(m_screenBeforeFaults));
+}

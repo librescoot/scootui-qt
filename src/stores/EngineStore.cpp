@@ -26,9 +26,24 @@ SyncSettings EngineStore::syncSettings() const
             {QStringLiteral("faultCode"), QStringLiteral("fault:code")},
             {QStringLiteral("faultDescription"), QStringLiteral("fault:description")},
         },
-        {}, // no set fields
+        {
+            {QStringLiteral("fault"), QStringLiteral("engine-ecu:fault"), 5000},
+        },
         {}  // no discriminator
     };
+}
+
+void EngineStore::applySetUpdate(const QString &name, const QStringList &members)
+{
+    if (name == QLatin1String("fault")) {
+        QSet<int> newFaults;
+        for (const auto &m : members)
+            newFaults.insert(m.toInt());
+        if (newFaults != m_faults) {
+            m_faults = newFaults;
+            emit faultsChanged();
+        }
+    }
 }
 
 void EngineStore::applyFieldUpdate(const QString &variable, const QString &value)

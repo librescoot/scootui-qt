@@ -23,6 +23,8 @@ public:
     Q_INVOKABLE void closeAbout();
     Q_INVOKABLE void showNavigationSetup(int setupMode = 2);
     Q_INVOKABLE void closeNavigationSetup();
+    Q_INVOKABLE void showFaults();
+    Q_INVOKABLE void closeFaults();
 
     int setupMode() const { return m_setupMode; }
 
@@ -36,5 +38,6 @@ private:
     ScootEnums::ScreenMode m_currentScreen = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeAbout = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeNavSetup = ScootEnums::ScreenMode::Cluster;
+    ScootEnums::ScreenMode m_screenBeforeFaults = ScootEnums::ScreenMode::Cluster;
     int m_setupMode = 2; // Both by default
 };

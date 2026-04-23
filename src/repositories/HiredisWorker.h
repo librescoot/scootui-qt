@@ -7,6 +7,7 @@
 #include <QHash>
 #include <QString>
 #include <QStringList>
+#include <QVariantList>
 
 struct redisContext;
 
@@ -58,6 +59,7 @@ public slots:
     // Results emitted via signals
     void doGetSetMembers(const QString &setKey);
     void doLrange(const QString &key, int start, int stop);
+    void doXrevrange(const QString &key, int count);
 
 signals:
     // Emitted on the worker thread; received on the main thread via queued connection
@@ -66,6 +68,8 @@ signals:
     void connectionChanged(bool connected, bool usingBackup);
     void setMembersResult(const QString &setKey, const QStringList &members);
     void lrangeResult(const QString &key, const QStringList &values);
+    // Each entry is a QVariantMap with keys "id" (QString) and "fields" (QVariantMap).
+    void streamResult(const QString &key, const QVariantList &entries);
 
 private:
     bool ensureConnected();

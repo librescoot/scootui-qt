@@ -96,6 +96,15 @@ void RedisMdbRepository::startWorker()
         m_lrangeResults[key] = values;
     }, Qt::QueuedConnection);
 
+    connect(m_worker, &HiredisWorker::streamResult,
+            this, [this](const QString &key, const QVariantList &entries) {
+        {
+            QMutexLocker lock(&m_resultMutex);
+            m_streamResults[key] = entries;
+        }
+        emit streamFetched(key, entries);
+    }, Qt::QueuedConnection);
+
     m_workerThread->start();
     // Pub/sub is set up in onWorkerConnectionChanged when the worker first connects,
     // so it connects to the same host the worker chose (primary or backup).
@@ -229,6 +238,18 @@ QStringList RedisMdbRepository::lrange(const QString &key, int start, int stop)
     }
     QMutexLocker lock(&m_resultMutex);
     return m_lrangeResults.value(key);
+}
+
+QVariantList RedisMdbRepository::xrevrange(const QString &key, int count)
+{
+    if (m_worker) {
+        auto *w = m_worker;
+        QMetaObject::invokeMethod(w, [w, key, count]() {
+            w->doXrevrange(key, count);
+        }, Qt::QueuedConnection);
+    }
+    QMutexLocker lock(&m_resultMutex);
+    return m_streamResults.value(key);
 }
 
 // Pub/sub (subscribe/unsubscribe)
