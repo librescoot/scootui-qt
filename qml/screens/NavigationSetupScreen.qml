@@ -101,25 +101,53 @@ Rectangle {
         }
     }
 
-    // Input handling
+    // Scroll state for brake-lever input.
+    readonly property bool canScrollDown: flickable.contentHeight > flickable.height
+                                           && flickable.contentY + flickable.height < flickable.contentHeight - 2
+    readonly property bool canScrollUp: flickable.contentY > 2
+
+    function triggerDownload() {
+        if (!canDownload || !hasDownloadService)
+            return
+        var needsDisplay = (mode === 0 || mode === 2) && !mapsOk
+        var needsRouting = (mode === 1 || mode === 2) && !routingOk
+        if (!needsDisplay && !needsRouting && dlUpdateAvailable) {
+            needsDisplay = mode === 0 || mode === 2
+            needsRouting = mode === 1 || mode === 2
+        }
+        mapDownloadService.startDownload(gpsLat, gpsLng, needsDisplay, needsRouting)
+    }
+
+    function closeSelf() {
+        if (typeof screenStore !== "undefined")
+            screenStore.closeNavigationSetup()
+    }
+
+    // Input handling: left scrolls through content and falls through to Back
+    // once there's nothing left to scroll; right is the primary action
+    // (Download) or Back as a fallback when no action is available.
     Connections {
         target: typeof inputHandler !== "undefined" ? inputHandler : null
-        function onRightTap() {
-            if (typeof screenStore !== "undefined") {
-                screenStore.closeNavigationSetup()
+        function onLeftTap() {
+            if (navSetupScreen.canScrollDown) {
+                scrollAnim.to = Math.min(flickable.contentY + 100,
+                                          flickable.contentHeight - flickable.height)
+                scrollAnim.restart()
+            } else {
+                navSetupScreen.closeSelf()
             }
         }
-        function onLeftTap() {
-            if (canDownload && hasDownloadService) {
-                var needsDisplay = (mode === 0 || mode === 2) && !mapsOk
-                var needsRouting = (mode === 1 || mode === 2) && !routingOk
-                if (!needsDisplay && !needsRouting && dlUpdateAvailable) {
-                    // Update: re-download both
-                    needsDisplay = mode === 0 || mode === 2
-                    needsRouting = mode === 1 || mode === 2
-                }
-                mapDownloadService.startDownload(gpsLat, gpsLng, needsDisplay, needsRouting)
+        function onLeftHold() {
+            if (navSetupScreen.canScrollUp) {
+                scrollAnim.to = Math.max(flickable.contentY - 100, 0)
+                scrollAnim.restart()
             }
+        }
+        function onRightTap() {
+            if (navSetupScreen.canDownload)
+                navSetupScreen.triggerDownload()
+            else
+                navSetupScreen.closeSelf()
         }
     }
 
@@ -142,7 +170,28 @@ Rectangle {
             Layout.preferredHeight: 40
         }
 
-        Item { Layout.fillHeight: true; Layout.maximumHeight: 16 }
+        Flickable {
+            id: flickable
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            contentHeight: scrollContent.implicitHeight
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+
+            NumberAnimation {
+                id: scrollAnim
+                target: flickable
+                property: "contentY"
+                duration: 200
+                easing.type: Easing.OutCubic
+            }
+
+        ColumnLayout {
+            id: scrollContent
+            width: flickable.width
+            spacing: 0
+
+        Item { Layout.preferredWidth: 1; Layout.preferredHeight: 16 }
 
         // Title
         Text {
@@ -153,7 +202,7 @@ Rectangle {
             font.weight: Font.Bold
         }
 
-        Item { Layout.preferredHeight: 16 }
+        Item { Layout.preferredWidth: 1; Layout.preferredHeight: 16 }
 
         // Status rows
         ColumnLayout {
@@ -409,7 +458,9 @@ Rectangle {
             font.pixelSize: themeStore.fontBody
         }
 
-        Item { Layout.fillHeight: true }
+        Item { Layout.preferredWidth: 1; Layout.preferredHeight: 16 }
+        }  // scrollContent
+        }  // Flickable
 
         // Footer separator
         Rectangle {
@@ -418,11 +469,17 @@ Rectangle {
             color: isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.12)
         }
 
-        // Control hints
+        // Control hints. Left reflects its next effect (Scroll while there's
+        // content below, then falls through to Back). Right is the primary
+        // action (Download) when one is available, otherwise Back.
         ControlHints {
             Layout.fillWidth: true
-            leftAction: navSetupScreen.canDownload ? navSetupScreen.downloadButtonLabel : ""
-            rightAction: typeof translations !== "undefined" ? translations.controlBack : "Back"
+            leftAction: navSetupScreen.canScrollDown
+                ? (typeof translations !== "undefined" ? translations.aboutScrollAction : "Scroll")
+                : (typeof translations !== "undefined" ? translations.controlBack : "Back")
+            rightAction: navSetupScreen.canDownload
+                ? navSetupScreen.downloadButtonLabel
+                : (typeof translations !== "undefined" ? translations.controlBack : "Back")
         }
     }
 }
