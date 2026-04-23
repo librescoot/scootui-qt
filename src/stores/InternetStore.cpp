@@ -21,7 +21,7 @@ SyncSettings InternetStore::syncSettings() const
             {QStringLiteral("simIccid"), QStringLiteral("sim-iccid")},
         },
         {
-            {QStringLiteral("fault"), QStringLiteral("internet:fault"), 0},
+            {QStringLiteral("fault"), QStringLiteral("internet:fault"), 5000},
         },
         {}
     };

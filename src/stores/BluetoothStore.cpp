@@ -18,7 +18,7 @@ SyncSettings BluetoothStore::syncSettings() const
             {QStringLiteral("lastUpdate"), QStringLiteral("last-update")},
         },
         {
-            {QStringLiteral("fault"), QStringLiteral("ble:fault"), 0},
+            {QStringLiteral("fault"), QStringLiteral("ble:fault"), 5000},
         },
         {}
     };

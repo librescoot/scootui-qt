@@ -27,7 +27,7 @@ SyncSettings EngineStore::syncSettings() const
             {QStringLiteral("faultDescription"), QStringLiteral("fault:description")},
         },
         {
-            {QStringLiteral("fault"), QStringLiteral("engine-ecu:fault"), 0},
+            {QStringLiteral("fault"), QStringLiteral("engine-ecu:fault"), 5000},
         },
         {}  // no discriminator
     };

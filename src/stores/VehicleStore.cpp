@@ -62,7 +62,7 @@ SyncSettings VehicleStore::syncSettings() const
             {QStringLiteral("mainPower"), QStringLiteral("main-power")},
         },
         {
-            {QStringLiteral("fault"), QStringLiteral("vehicle:fault"), 0},
+            {QStringLiteral("fault"), QStringLiteral("vehicle:fault"), 5000},
         },
         {}
     };
