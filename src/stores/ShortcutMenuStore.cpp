@@ -182,10 +182,12 @@ void ShortcutMenuStore::toggleView()
 
 void ShortcutMenuStore::cycleTheme()
 {
-    if (m_theme->isDark()) {
+    if (m_theme->isAutoMode()) {
+        m_settingsService->updateTheme(QStringLiteral("dark"));
+    } else if (m_theme->isDark()) {
         m_settingsService->updateTheme(QStringLiteral("light"));
     } else {
-        m_settingsService->updateTheme(QStringLiteral("dark"));
+        m_settingsService->updateTheme(QStringLiteral("auto"));
     }
 }
 
