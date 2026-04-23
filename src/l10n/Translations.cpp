@@ -262,8 +262,8 @@ void Translations::initStrings()
     en[QStringLiteral("menuHopOnActivateTop")] = QStringLiteral("Activate Hop-on");
     de[QStringLiteral("menuHopOnActivateTop")] = QStringLiteral("Hop-on aktivieren");
 
-    en[QStringLiteral("menuHopOnRelearn")] = QStringLiteral("Set new combo");
-    de[QStringLiteral("menuHopOnRelearn")] = QStringLiteral("Neue Kombi lernen");
+    en[QStringLiteral("menuHopOnRelearn")] = QStringLiteral("Set new combo…");
+    de[QStringLiteral("menuHopOnRelearn")] = QStringLiteral("Neue Tastenkombination anlernen…");
 
     en[QStringLiteral("menuHopOnDisable")] = QStringLiteral("Disable hop-on");
     de[QStringLiteral("menuHopOnDisable")] = QStringLiteral("Hop-on deaktivieren");
@@ -292,8 +292,8 @@ void Translations::initStrings()
     en[QStringLiteral("menuSwitchToMap")] = QStringLiteral("Switch to Map View");
     de[QStringLiteral("menuSwitchToMap")] = QStringLiteral("Zur Kartenansicht");
 
-    en[QStringLiteral("menuEnterDestinationCode")] = QStringLiteral("Enter Address");
-    de[QStringLiteral("menuEnterDestinationCode")] = QStringLiteral("Adresse eingeben");
+    en[QStringLiteral("menuEnterDestinationCode")] = QStringLiteral("Enter Address…");
+    de[QStringLiteral("menuEnterDestinationCode")] = QStringLiteral("Adresse eingeben…");
 
     en[QStringLiteral("menuDeleteLocation")] = QStringLiteral("Delete Location");
     de[QStringLiteral("menuDeleteLocation")] = QStringLiteral("Ort l\u00F6schen");
@@ -584,8 +584,8 @@ void Translations::initStrings()
     en[QStringLiteral("menuSaveLocation")] = QStringLiteral("Save Current Location");
     de[QStringLiteral("menuSaveLocation")] = QStringLiteral("Aktuellen Standort speichern");
 
-    en[QStringLiteral("menuNavSetup")] = QStringLiteral("Navigation Setup");
-    de[QStringLiteral("menuNavSetup")] = QStringLiteral("Navigationseinrichtung");
+    en[QStringLiteral("menuNavSetup")] = QStringLiteral("Maps & Routing…");
+    de[QStringLiteral("menuNavSetup")] = QStringLiteral("Karten & Routing…");
 
     en[QStringLiteral("plymouthToggled")] = QStringLiteral("Boot theme changed");
     de[QStringLiteral("plymouthToggled")] = QStringLiteral("Startdesign ge\u00E4ndert");
