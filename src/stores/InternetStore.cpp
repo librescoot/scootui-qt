@@ -20,8 +20,24 @@ SyncSettings InternetStore::syncSettings() const
             {QStringLiteral("simImsi"), QStringLiteral("sim-imsi")},
             {QStringLiteral("simIccid"), QStringLiteral("sim-iccid")},
         },
-        {}, {}
+        {
+            {QStringLiteral("fault"), QStringLiteral("internet:fault"), 0},
+        },
+        {}
     };
+}
+
+void InternetStore::applySetUpdate(const QString &name, const QStringList &members)
+{
+    if (name == QLatin1String("fault")) {
+        QSet<int> newFaults;
+        for (const auto &m : members)
+            newFaults.insert(m.toInt());
+        if (newFaults != m_faults) {
+            m_faults = newFaults;
+            emit faultsChanged();
+        }
+    }
 }
 
 void InternetStore::applyFieldUpdate(const QString &variable, const QString &value)

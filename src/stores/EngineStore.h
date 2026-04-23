@@ -3,6 +3,8 @@
 #include "SyncableStore.h"
 #include "models/Enums.h"
 
+#include <QSet>
+
 class EngineStore : public SyncableStore
 {
     Q_OBJECT
@@ -21,6 +23,7 @@ class EngineStore : public SyncableStore
     Q_PROPERTY(double temperature READ temperature NOTIFY temperatureChanged)
     Q_PROPERTY(int faultCode READ faultCode NOTIFY faultCodeChanged)
     Q_PROPERTY(QString faultDescription READ faultDescription NOTIFY faultDescriptionChanged)
+    Q_PROPERTY(QList<int> faults READ faults NOTIFY faultsChanged)
 
 public:
     explicit EngineStore(MdbRepository *repo, QObject *parent = nullptr);
@@ -40,6 +43,7 @@ public:
     double temperature() const { return m_temperature; }
     int faultCode() const { return m_faultCode; }
     QString faultDescription() const { return m_faultDescription; }
+    QList<int> faults() const { return m_faults.values(); }
 
 signals:
     void powerStateChanged();
@@ -56,10 +60,12 @@ signals:
     void temperatureChanged();
     void faultCodeChanged();
     void faultDescriptionChanged();
+    void faultsChanged();
 
 protected:
     SyncSettings syncSettings() const override;
     void applyFieldUpdate(const QString &variable, const QString &value) override;
+    void applySetUpdate(const QString &name, const QStringList &members) override;
 
 private:
     ScootEnums::Toggle m_powerState = ScootEnums::Toggle::Off;
@@ -77,4 +83,5 @@ private:
     double m_temperature = 0;
     int m_faultCode = 0;
     QString m_faultDescription;
+    QSet<int> m_faults;
 };

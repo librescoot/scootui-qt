@@ -4,6 +4,7 @@
 #include "models/Enums.h"
 #include <QTimer>
 #include <QElapsedTimer>
+#include <QSet>
 
 class VehicleStore : public SyncableStore
 {
@@ -24,6 +25,7 @@ class VehicleStore : public SyncableStore
     Q_PROPERTY(int isUnableToDrive READ isUnableToDrive NOTIFY isUnableToDriveChanged)
     Q_PROPERTY(bool hopOnActive READ hopOnActive NOTIFY hopOnActiveChanged)
     Q_PROPERTY(int mainPower READ mainPower NOTIFY mainPowerChanged)
+    Q_PROPERTY(QList<int> faults READ faults NOTIFY faultsChanged)
 
 public:
     explicit VehicleStore(MdbRepository *repo, QObject *parent = nullptr);
@@ -45,6 +47,7 @@ public:
     int isUnableToDrive() const { return static_cast<int>(m_isUnableToDrive); }
     bool hopOnActive() const { return m_hopOnActive; }
     int mainPower() const { return static_cast<int>(m_mainPower); }
+    QList<int> faults() const { return m_faults.values(); }
 
     // Helper getters for QML
     Q_INVOKABLE bool isParked() const { return m_state == ScootEnums::VehicleState::Parked; }
@@ -70,10 +73,12 @@ signals:
     void isUnableToDriveChanged();
     void hopOnActiveChanged();
     void mainPowerChanged();
+    void faultsChanged();
 
 protected:
     SyncSettings syncSettings() const override;
     void applyFieldUpdate(const QString &variable, const QString &value) override;
+    void applySetUpdate(const QString &name, const QStringList &members) override;
 
 private:
     void onButtonEvent(const QString &channel, const QString &message);
@@ -106,4 +111,5 @@ private:
     ScootEnums::Toggle m_isUnableToDrive = ScootEnums::Toggle::Off;
     bool m_hopOnActive = false;
     ScootEnums::Toggle m_mainPower = ScootEnums::Toggle::Off;
+    QSet<int> m_faults;
 };
