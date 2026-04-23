@@ -126,3 +126,46 @@ QString FaultFormatter::formatEcuFault(int code, Translations *tr)
 {
     return QStringLiteral("E%1: %2").arg(code).arg(getEcuDescription(code, tr));
 }
+
+QString FaultFormatter::sourceLabel(const QString &source)
+{
+    if (source == QLatin1String("battery:0")) return QStringLiteral("BAT0");
+    if (source == QLatin1String("battery:1")) return QStringLiteral("BAT1");
+    if (source == QLatin1String("engine-ecu")) return QStringLiteral("ECU");
+    if (source == QLatin1String("vehicle"))    return QStringLiteral("VEH");
+    if (source == QLatin1String("ble"))        return QStringLiteral("BLE");
+    if (source == QLatin1String("internet"))   return QStringLiteral("NET");
+    if (source == QLatin1String("keycard"))    return QStringLiteral("KEY");
+    if (source == QLatin1String("pm"))         return QStringLiteral("PM");
+    if (source == QLatin1String("ota"))        return QStringLiteral("OTA");
+    return source.toUpper();
+}
+
+QString FaultFormatter::codeLabel(const QString &source, int code)
+{
+    if (source == QLatin1String("battery:0") || source == QLatin1String("battery:1"))
+        return QStringLiteral("B%1").arg(code);
+    if (source == QLatin1String("engine-ecu"))
+        return QStringLiteral("E%1").arg(code);
+    return QStringLiteral("#%1").arg(code);
+}
+
+QString FaultFormatter::describeFault(const QString &source, int code, Translations *tr)
+{
+    if (source == QLatin1String("battery:0") || source == QLatin1String("battery:1"))
+        return getDescription(code, tr);
+    if (source == QLatin1String("engine-ecu"))
+        return getEcuDescription(code, tr);
+    return QString();
+}
+
+FaultSeverity FaultFormatter::faultSeverity(const QString &source, int code)
+{
+    if (source == QLatin1String("battery:0") || source == QLatin1String("battery:1"))
+        return getSeverity(code);
+    if (source == QLatin1String("engine-ecu"))
+        return getEcuSeverity(code);
+    if (source == QLatin1String("vehicle"))
+        return FaultSeverity::Critical;
+    return FaultSeverity::Warning;
+}
