@@ -37,6 +37,7 @@ public:
     void removeFromSet(const QString &setKey, const QString &member) override;
     void hdel(const QString &key, const QString &field) override;
     QStringList lrange(const QString &key, int start, int stop) override;
+    QVariantList xrevrange(const QString &key, int count) override;
 
     bool isConnected() const override { return m_connected; }
     bool isUsingBackupConnection() const override { return m_usingBackup; }
@@ -94,4 +95,5 @@ private:
     QMutex m_resultMutex;
     QHash<QString, QStringList> m_setResults;
     QHash<QString, QStringList> m_lrangeResults;
+    QHash<QString, QVariantList> m_streamResults;
 };

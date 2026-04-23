@@ -119,6 +119,12 @@ QStringList InMemoryMdbRepository::lrange(const QString &key, int start, int sto
     return {};
 }
 
+QVariantList InMemoryMdbRepository::xrevrange(const QString &key, int count)
+{
+    Q_UNUSED(key) Q_UNUSED(count)
+    return {};
+}
+
 void InMemoryMdbRepository::notifySubscribers(const QString &channel, const QString &variable)
 {
     const auto it = m_subscribers.constFind(channel);

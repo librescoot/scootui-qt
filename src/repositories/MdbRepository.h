@@ -4,6 +4,7 @@
 #include <QString>
 #include <QStringList>
 #include <QHash>
+#include <QVariantList>
 #include <functional>
 
 using FieldMap = QHash<QString, QString>;
@@ -35,6 +36,12 @@ public:
     virtual void hdel(const QString &key, const QString &field) = 0;
     virtual QStringList lrange(const QString &key, int start, int stop) = 0;
 
+    // Read recent entries from a Redis Stream via XREVRANGE (newest first).
+    // Returns the result of the *previous* call (cache-backed, async fetch
+    // pattern); callers poll on a timer. Each entry is a QVariantMap with
+    // keys "id" (QString, e.g. "1745328712345-0") and "fields" (QVariantMap).
+    virtual QVariantList xrevrange(const QString &key, int count) = 0;
+
     // Connection state queries (for stores that need initial state)
     virtual bool isConnected() const { return false; }
     virtual bool isUsingBackupConnection() const { return false; }
@@ -57,4 +64,6 @@ signals:
     void fieldsUpdated(const QString &channel, const FieldMap &fields);
     // Emitted when a single field has been fetched (e.g. via HGET after pub/sub)
     void fieldFetched(const QString &channel, const QString &field, const QString &value);
+    // Emitted after an xrevrange call completes. Entries are as described in xrevrange().
+    void streamFetched(const QString &key, const QVariantList &entries);
 };
