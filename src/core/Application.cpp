@@ -24,6 +24,8 @@
 #include "stores/ScreenStore.h"
 #include "stores/MenuStore.h"
 #include "stores/HopOnStore.h"
+#include "stores/FaultEventStore.h"
+#include "stores/FaultsStore.h"
 #include "stores/TripStore.h"
 #include "stores/ShutdownStore.h"
 #include "stores/LocaleStore.h"
@@ -421,6 +423,25 @@ void Application::createStores(QQmlApplicationEngine &engine)
     menuStore->setHopOnStore(hopOnStore);
     menuStore->setMapDownloadService(m_mapDownloadService);
 
+    // Fault aggregation: stream tail + union of per-service active-fault sets.
+    auto *faultEventStore = new FaultEventStore(repo, this);
+    auto *faultsStore = new FaultsStore(battery0Store, battery1Store, engineStore,
+                                         vehicleStore, bluetoothStore, internetStore,
+                                         faultEventStore, m_translations, this);
+    menuStore->setFaultsStore(faultsStore);
+
+    // Speed up polling while the faults screen is open, slow it back down
+    // when it closes so the active-count badge still refreshes without
+    // hammering Redis.
+    connect(screenStore, &ScreenStore::currentScreenChanged, this,
+            [screenStore, faultEventStore]() {
+        if (screenStore->currentScreen() == static_cast<int>(ScootEnums::ScreenMode::Faults))
+            faultEventStore->setPollIntervalMs(5000);
+        else
+            faultEventStore->setPollIntervalMs(30000);
+    });
+    faultEventStore->start();
+
     // M5: ShortcutMenuStore
     auto *shortcutMenuStore = new ShortcutMenuStore(themeStore, vehicleStore, screenStore, dashboardStore, repo, m_settingsService, this);
 
@@ -474,6 +495,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("umsLogStore"), umsLogStore);
     ctx->setContextProperty(QStringLiteral("systemInfoService"), m_systemInfoService);
     ctx->setContextProperty(QStringLiteral("odometerMilestoneService"), m_odometerMilestoneService);
+    ctx->setContextProperty(QStringLiteral("faultsStore"), faultsStore);
 
     // Simulator service (created in sim mode, null otherwise)
     if (m_simulatorMode) {

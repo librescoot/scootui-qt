@@ -107,6 +107,8 @@ set(CPP_SOURCES
     src/routing/ValhallaClient.cpp
     src/l10n/Translations.cpp
     src/utils/FaultFormatter.cpp
+    src/stores/FaultEventStore.cpp
+    src/stores/FaultsStore.cpp
 )
 
 set(CPP_HEADERS
@@ -174,6 +176,8 @@ set(CPP_HEADERS
     src/routing/ValhallaClient.h
     src/l10n/Translations.h
     src/utils/FaultFormatter.h
+    src/stores/FaultEventStore.h
+    src/stores/FaultsStore.h
 )
 
 # Simulator sources (always compiled, only activated at runtime in sim mode)
@@ -197,6 +201,7 @@ set(QML_FILES
     qml/screens/AddressSelectionScreen.qml
     qml/screens/NavigationSetupScreen.qml
     qml/screens/DestinationScreen.qml
+    qml/screens/FaultsScreen.qml
     qml/widgets/navigation/TurnByTurnWidget.qml
     qml/widgets/navigation/NavigationStatusOverlay.qml
     qml/widgets/navigation/RoundaboutIcon.qml

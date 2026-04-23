@@ -133,6 +133,18 @@ void Translations::initStrings()
     en[QStringLiteral("menuEnterUms")] = QStringLiteral("Enter Update mode");
     de[QStringLiteral("menuEnterUms")] = QStringLiteral("Update-Modus starten");
 
+    en[QStringLiteral("menuFaults")] = QStringLiteral("Faults");
+    de[QStringLiteral("menuFaults")] = QStringLiteral("Fehler");
+
+    en[QStringLiteral("faultsEmpty")] = QStringLiteral("No faults recorded");
+    de[QStringLiteral("faultsEmpty")] = QStringLiteral("Keine Fehler erfasst");
+
+    en[QStringLiteral("faultActive")] = QStringLiteral("active");
+    de[QStringLiteral("faultActive")] = QStringLiteral("aktiv");
+
+    en[QStringLiteral("faultCleared")] = QStringLiteral("cleared");
+    de[QStringLiteral("faultCleared")] = QStringLiteral("behoben");
+
     en[QStringLiteral("menuResetTrip")] = QStringLiteral("Reset Trip Statistics");
     de[QStringLiteral("menuResetTrip")] = QStringLiteral("Reisestatistik zur\u00FCcksetzen");
 

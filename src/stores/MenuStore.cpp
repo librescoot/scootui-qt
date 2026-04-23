@@ -8,6 +8,7 @@
 #include "SavedLocationsStore.h"
 #include "InternetStore.h"
 #include "HopOnStore.h"
+#include "FaultsStore.h"
 #include "l10n/Translations.h"
 #include "services/SettingsService.h"
 #include "services/NavigationService.h"
@@ -118,6 +119,15 @@ void MenuStore::setMapDownloadService(MapDownloadService *svc)
     m_mapDownload = svc;
     if (m_mapDownload) {
         connect(m_mapDownload, &MapDownloadService::updateAvailableChanged,
+                this, &MenuStore::rebuildMenuTree);
+    }
+}
+
+void MenuStore::setFaultsStore(FaultsStore *store)
+{
+    m_faults = store;
+    if (m_faults) {
+        connect(m_faults, &FaultsStore::entriesChanged,
                 this, &MenuStore::rebuildMenuTree);
     }
 }
@@ -501,6 +511,19 @@ void MenuStore::rebuildMenuTree()
         close();
     }));
 
+    // Faults entry under settings — always visible, shows "(N)" when active > 0.
+    {
+        const int activeFaults = m_faults ? m_faults->activeCount() : 0;
+        QString label = tr->menuFaults();
+        if (activeFaults > 0)
+            label = QStringLiteral("%1 (%2)").arg(label).arg(activeFaults);
+        systemNode->addChild(MenuNode::action(QStringLiteral("faults"), label, [this]() {
+            close();
+            if (m_screenStore)
+                m_screenStore->showFaults();
+        }));
+    }
+
     // === Top-level actions ===
     m_rootNode->addChild(MenuNode::action(QStringLiteral("reset_trip"), tr->menuResetTrip(), [this, trip]() {
         trip->reset();
@@ -513,6 +536,18 @@ void MenuStore::rebuildMenuTree()
             m_screenStore->showAbout();
         }
     }));
+
+    // Root-menu faults entry — only shown when at least one fault is active.
+    if (m_faults && m_faults->activeCount() > 0) {
+        const QString label = QStringLiteral("%1 (%2)")
+                                .arg(tr->menuFaults())
+                                .arg(m_faults->activeCount());
+        m_rootNode->addChild(MenuNode::action(QStringLiteral("faults_root"), label, [this]() {
+            close();
+            if (m_screenStore)
+                m_screenStore->showFaults();
+        }));
+    }
 
     m_rootNode->addChild(MenuNode::action(QStringLiteral("exit"), tr->menuExit(), [this]() {
         close();
