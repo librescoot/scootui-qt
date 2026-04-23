@@ -170,6 +170,7 @@ Window {
                 case Scooter.ScreenMode.NavigationSetup: comp = navSetupComponent;    name = "navSetup";    break
                 case Scooter.ScreenMode.Destination:     comp = destinationComponent; name = "destination"; break
                 case Scooter.ScreenMode.Faults:          comp = faultsComponent;      name = "faults";      break
+                case Scooter.ScreenMode.UpdateModeInfo:  comp = umsInfoComponent;     name = "umsInfo";     break
                 default:                                    comp = clusterComponent;     name = "cluster(default)"; break
             }
             console.log("SCREEN: " + name + " (screen=" + screen + ")")
@@ -187,6 +188,7 @@ Window {
     Component { id: navSetupComponent; NavigationSetupScreen {} }
     Component { id: destinationComponent; DestinationScreen {} }
     Component { id: faultsComponent; FaultsScreen {} }
+    Component { id: umsInfoComponent; UpdateModeInfoScreen {} }
 
     // Overlays (bottom to top stacking order).
     //

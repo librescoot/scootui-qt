@@ -202,6 +202,7 @@ set(QML_FILES
     qml/screens/NavigationSetupScreen.qml
     qml/screens/DestinationScreen.qml
     qml/screens/FaultsScreen.qml
+    qml/screens/UpdateModeInfoScreen.qml
     qml/widgets/navigation/TurnByTurnWidget.qml
     qml/widgets/navigation/NavigationStatusOverlay.qml
     qml/widgets/navigation/RoundaboutIcon.qml
@@ -328,6 +329,7 @@ qt_add_qml_module(scootui
         assets/icons/librescoot-logo.png
         assets/icons/librescoot-logotype.svg
         assets/icons/nav-setup-qr.png
+        assets/icons/ums-docs-qr.png
         assets/routes/route1.json
         assets/routes/route2.json
         assets/routes/route3.json

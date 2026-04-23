@@ -69,3 +69,20 @@ void ScreenStore::closeFaults()
 {
     setScreen(static_cast<int>(m_screenBeforeFaults));
 }
+
+void ScreenStore::showUpdateModeInfo()
+{
+    m_screenBeforeUpdateModeInfo = m_currentScreen;
+    setScreen(static_cast<int>(ScootEnums::ScreenMode::UpdateModeInfo));
+}
+
+void ScreenStore::closeUpdateModeInfo()
+{
+    setScreen(static_cast<int>(m_screenBeforeUpdateModeInfo));
+}
+
+void ScreenStore::confirmUpdateMode()
+{
+    emit umsModeRequested();
+    setScreen(static_cast<int>(m_screenBeforeUpdateModeInfo));
+}

@@ -442,6 +442,14 @@ void Application::createStores(QQmlApplicationEngine &engine)
     });
     faultEventStore->start();
 
+    // UMS entry confirmation from the Update Mode info screen. The info
+    // screen handles the Back/Start prompt in QML; on Start it emits this
+    // signal, and we flip usb:mode so vehicle-service / ums-service kick in.
+    connect(screenStore, &ScreenStore::umsModeRequested, this, [repo]() {
+        repo->set(QStringLiteral("usb"), QStringLiteral("mode"),
+                  QStringLiteral("ums-by-dbc"));
+    });
+
     // M5: ShortcutMenuStore
     auto *shortcutMenuStore = new ShortcutMenuStore(themeStore, vehicleStore, screenStore, dashboardStore, repo, m_settingsService, this);
 

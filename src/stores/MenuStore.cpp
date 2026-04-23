@@ -506,9 +506,10 @@ void MenuStore::rebuildMenuTree()
     // System
     auto *systemNode = MenuNode::submenu(QStringLiteral("settings_system"), tr->menuSystem());
     settingsNode->addChild(systemNode);
-    systemNode->addChild(MenuNode::action(QStringLiteral("enter_ums"), tr->menuEnterUms(), [this, repo]() {
-        repo->set(QStringLiteral("usb"), QStringLiteral("mode"), QStringLiteral("ums-by-dbc"));
+    systemNode->addChild(MenuNode::action(QStringLiteral("enter_ums"), tr->menuEnterUms(), [this]() {
         close();
+        if (m_screenStore)
+            m_screenStore->showUpdateModeInfo();
     }));
 
     // Faults entry under settings — always visible, shows "(N)" when active > 0.

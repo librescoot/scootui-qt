@@ -130,8 +130,39 @@ void Translations::initStrings()
     en[QStringLiteral("menuSystem")] = QStringLiteral("System");
     de[QStringLiteral("menuSystem")] = QStringLiteral("System");
 
-    en[QStringLiteral("menuEnterUms")] = QStringLiteral("Enter Update mode");
-    de[QStringLiteral("menuEnterUms")] = QStringLiteral("Update-Modus starten");
+    en[QStringLiteral("menuEnterUms")] = QStringLiteral("Update Mode…");
+    de[QStringLiteral("menuEnterUms")] = QStringLiteral("Update-Modus…");
+
+    en[QStringLiteral("updateModeTitle")] = QStringLiteral("Update Mode");
+    de[QStringLiteral("updateModeTitle")] = QStringLiteral("Update-Modus");
+
+    en[QStringLiteral("updateModeBody1")] = QStringLiteral(
+        "Update Mode lets you install updates offline, read logs, and change settings.");
+    de[QStringLiteral("updateModeBody1")] = QStringLiteral(
+        "Im Update-Modus kannst du Updates offline installieren, Logs auslesen und Einstellungen ändern.");
+
+    en[QStringLiteral("updateModeBody2")] = QStringLiteral(
+        "Open the footwell cover (four screws), unplug the DBC's USB cable from the MDB — "
+        "you might need a screwdriver — and connect your computer with a USB Mini-B cable. "
+        "The scooter then appears as a USB drive.");
+    de[QStringLiteral("updateModeBody2")] = QStringLiteral(
+        "Die Fußraumabdeckung öffnen (vier Schrauben), das USB-Kabel der DBC vom MDB abziehen "
+        "(ggf. mit Schraubenzieher) und den Computer per USB-Mini-B-Kabel mit der MDB verbinden. "
+        "Der Scooter erscheint dann als USB-Laufwerk.");
+
+    en[QStringLiteral("updateModeBody3")] = QStringLiteral(
+        "The scooter stays parked while Update Mode is active. When you disconnect the cable "
+        "— or hold the left brake — it processes the files and returns to normal.");
+    de[QStringLiteral("updateModeBody3")] = QStringLiteral(
+        "Während des Update-Modus bleibt der Scooter geparkt. Sobald du das Kabel abziehst "
+        "– oder die linke Bremse gedrückt hältst – werden die Dateien verarbeitet "
+        "und der Scooter ist wieder fahrbereit.");
+
+    en[QStringLiteral("updateModeScanHint")] = QStringLiteral("Scan for full instructions");
+    de[QStringLiteral("updateModeScanHint")] = QStringLiteral("Scannen für mehr Info");
+
+    en[QStringLiteral("updateModeStart")] = QStringLiteral("Start");
+    de[QStringLiteral("updateModeStart")] = QStringLiteral("Starten");
 
     en[QStringLiteral("menuFaults")] = QStringLiteral("Faults");
     de[QStringLiteral("menuFaults")] = QStringLiteral("Fehler");

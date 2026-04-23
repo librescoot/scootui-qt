@@ -25,12 +25,18 @@ public:
     Q_INVOKABLE void closeNavigationSetup();
     Q_INVOKABLE void showFaults();
     Q_INVOKABLE void closeFaults();
+    Q_INVOKABLE void showUpdateModeInfo();
+    Q_INVOKABLE void closeUpdateModeInfo();
+    // Confirms UMS entry: emits umsModeRequested (handled in Application
+    // which owns the repo pointer) and closes the info screen.
+    Q_INVOKABLE void confirmUpdateMode();
 
     int setupMode() const { return m_setupMode; }
 
 signals:
     void currentScreenChanged();
     void setupModeChanged();
+    void umsModeRequested();
 
 private:
     void applyMode(const QString &mode);
@@ -39,5 +45,6 @@ private:
     ScootEnums::ScreenMode m_screenBeforeAbout = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeNavSetup = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeFaults = ScootEnums::ScreenMode::Cluster;
+    ScootEnums::ScreenMode m_screenBeforeUpdateModeInfo = ScootEnums::ScreenMode::Cluster;
     int m_setupMode = 2; // Both by default
 };

@@ -43,6 +43,12 @@ class Translations : public QObject
     Q_PROPERTY(QString faultsEmpty READ faultsEmpty NOTIFY languageChanged)
     Q_PROPERTY(QString faultActive READ faultActive NOTIFY languageChanged)
     Q_PROPERTY(QString faultCleared READ faultCleared NOTIFY languageChanged)
+    Q_PROPERTY(QString updateModeTitle READ updateModeTitle NOTIFY languageChanged)
+    Q_PROPERTY(QString updateModeBody1 READ updateModeBody1 NOTIFY languageChanged)
+    Q_PROPERTY(QString updateModeBody2 READ updateModeBody2 NOTIFY languageChanged)
+    Q_PROPERTY(QString updateModeBody3 READ updateModeBody3 NOTIFY languageChanged)
+    Q_PROPERTY(QString updateModeScanHint READ updateModeScanHint NOTIFY languageChanged)
+    Q_PROPERTY(QString updateModeStart READ updateModeStart NOTIFY languageChanged)
     Q_PROPERTY(QString menuResetTrip READ menuResetTrip NOTIFY languageChanged)
     Q_PROPERTY(QString menuAbout READ menuAbout NOTIFY languageChanged)
     Q_PROPERTY(QString menuExit READ menuExit NOTIFY languageChanged)
@@ -431,6 +437,12 @@ public:
     QString faultsEmpty() const { return lookup("faultsEmpty"); }
     QString faultActive() const { return lookup("faultActive"); }
     QString faultCleared() const { return lookup("faultCleared"); }
+    QString updateModeTitle() const { return lookup("updateModeTitle"); }
+    QString updateModeBody1() const { return lookup("updateModeBody1"); }
+    QString updateModeBody2() const { return lookup("updateModeBody2"); }
+    QString updateModeBody3() const { return lookup("updateModeBody3"); }
+    QString updateModeScanHint() const { return lookup("updateModeScanHint"); }
+    QString updateModeStart() const { return lookup("updateModeStart"); }
     QString menuResetTrip() const { return lookup("menuResetTrip"); }
     QString menuAbout() const { return lookup("menuAbout"); }
     QString menuExit() const { return lookup("menuExit"); }
