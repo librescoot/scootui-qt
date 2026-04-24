@@ -38,6 +38,7 @@ class NavigationService : public QObject
     Q_PROPERTY(QString currentInstructionText READ currentInstructionText NOTIFY instructionChanged)
     Q_PROPERTY(bool currentIsStart READ currentIsStart NOTIFY instructionChanged)
     Q_PROPERTY(bool currentIsArrive READ currentIsArrive NOTIFY instructionChanged)
+    Q_PROPERTY(bool hasCurrentManeuver READ hasCurrentManeuver NOTIFY instructionChanged)
 
     // Next instruction (preview)
     Q_PROPERTY(int nextManeuverType READ nextManeuverType NOTIFY instructionChanged)
@@ -81,6 +82,7 @@ public:
     QString currentInstructionText() const;
     bool currentIsStart() const;
     bool currentIsArrive() const;
+    bool hasCurrentManeuver() const { return !m_upcomingInstructions.isEmpty(); }
     int roundaboutExitCount() const;
 
     int nextManeuverType() const;
@@ -156,6 +158,19 @@ private:
     static constexpr double NextPreviewShow    = 290.0;   // show preview when next distance <= this
     static constexpr double NextPreviewHide    = 310.0;   // hide preview when next distance >= this
 
+    // Post-transition confirmation window: show the just-passed maneuver's
+    // verbal_post ("Continue for 300 m on Oak") for a brief moment after the
+    // rider crosses the maneuver, provided the next turn is far enough away
+    // that the confirmation doesn't crowd out its alert text.
+    static constexpr int    PostWindowMs        = 6000;
+    static constexpr double PostMinUpcomingGap  = 400.0;  // next must be > this to show post
+    // Arrival text switches from future-tense alert ("You will arrive") to
+    // past-tense instruction ("You have arrived") once we're practically on
+    // top of the destination. Matches the arrival-zone radius the rest of
+    // the status machine uses but tightened so the text flip happens after
+    // the rider has effectively reached the pin.
+    static constexpr double ArrivalTextSwitch   = 30.0;
+
     GpsStore *m_gps;
     NavigationStore *m_nav;
     VehicleStore *m_vehicle;
@@ -203,6 +218,15 @@ private:
     int m_currentVerbalInstrShapeIdx = -1;
     bool m_nextPreviewShown = false;
     int m_nextPreviewInstrShapeIdx = -1;
+
+    // Post-transition confirmation: the last maneuver we were tracking,
+    // captured at the moment the rider crossed its shape index. Exposed
+    // to currentVerbalInstruction() as a short-lived override so we can
+    // surface Valhalla's "Continue for X m on Oak" line after the turn.
+    RouteInstruction m_lastPassedManeuver;
+    bool m_hasLastPassedManeuver = false;
+    QElapsedTimer m_lastPassedAt;
+    int m_prevLeadingShapeIdx = -1;
 
     QTimer *m_navDataDebounce = nullptr;
 };

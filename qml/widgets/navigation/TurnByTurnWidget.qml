@@ -9,10 +9,12 @@ Item {
     // overshot by a runaway string. Publishing as implicitHeight lets Layout
     // containers read the widget's size without an external binding.
     implicitHeight: Math.max(contentCol.implicitHeight + 24, 96)
+    // Show whenever we have any upcoming maneuver. The previous gate hid the
+    // banner at distance=0 for regular turns (only kStart/Arrive were kept
+    // visible there), which blanked the banner at the exact shape index of
+    // every turn — precisely when the rider needs the "execute now" cue.
     visible: typeof navigationService !== "undefined" && navigationService.isNavigating
-             && (navigationService.currentManeuverDistance > 0
-                 || navigationService.currentIsStart
-                 || navigationService.currentIsArrive)
+             && navigationService.hasCurrentManeuver
 
     property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
 
@@ -204,8 +206,18 @@ Item {
                     }
                     Text {
                         Layout.fillWidth: true
-                        text: typeof navigationService !== "undefined"
-                              ? navigationService.nextStreetName : ""
+                        // Arrive maneuvers have no street name — Valhalla
+                        // emits "You have arrived" as the instruction, not
+                        // a street. Fall back to "arrive" so the preview
+                        // reads "Then [flag] arrive" rather than a bare flag.
+                        text: {
+                            if (typeof navigationService === "undefined") return ""
+                            var nt = navigationService.nextManeuverType
+                            var name = navigationService.nextStreetName
+                            var isArrive = (nt === mtArrive || nt === mtArriveRight || nt === mtArriveLeft)
+                            if (name && name.length > 0) return name
+                            return isArrive ? "arrive" : ""
+                        }
                         font.pixelSize: themeStore.fontBody
                         color: isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
                         elide: Text.ElideRight

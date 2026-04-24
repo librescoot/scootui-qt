@@ -164,15 +164,74 @@ QString NavigationService::currentVerbalInstruction() const
     if (m_upcomingInstructions.isEmpty()) return {};
     const auto &instr = m_upcomingInstructions.first();
 
-    // Stage is advanced by updateVerbalStage(); read it here.
-    switch (m_currentVerbalStage) {
-    case 0: return instr.verbalAlertInstruction;
-    case 1: return instr.verbalPreTransitionInstruction;
-    default:
-        return instr.verbalSuccinctInstruction.isEmpty()
-                   ? instr.instructionText
-                   : instr.verbalSuccinctInstruction;
+    auto pick = [&](std::initializer_list<const QString *> candidates) -> QString {
+        for (const auto *s : candidates)
+            if (!s->isEmpty()) return *s;
+        return {};
+    };
+
+    // Post-transition confirmation override. For a few seconds after the
+    // rider crosses a maneuver, Valhalla's verbal_post ("Continue for 300 m
+    // on Oak") is the most useful thing to show — better than the next
+    // maneuver's far-off alert. Only surface it when the upcoming maneuver
+    // is still comfortably far away; otherwise we'd be covering its alert.
+    if (m_hasLastPassedManeuver
+        && !m_lastPassedManeuver.verbalPostTransitionInstruction.isEmpty()
+        && m_lastPassedAt.isValid()
+        && m_lastPassedAt.elapsed() < PostWindowMs
+        && instr.distance > PostMinUpcomingGap) {
+        return m_lastPassedManeuver.verbalPostTransitionInstruction;
     }
+
+    // Arrival family: verbal_pre and instruction both say "You have arrived"
+    // (past tense) — wrong while still approaching. verbal_alert emits the
+    // future-tense variant. Flip to past tense only once we're effectively
+    // on top of the destination.
+    bool isArriveFamily = (instr.type == ManeuverType::Arrive ||
+                           instr.type == ManeuverType::ArriveRight ||
+                           instr.type == ManeuverType::ArriveLeft);
+    if (isArriveFamily) {
+        if (instr.distance > ArrivalTextSwitch) {
+            return pick({&instr.verbalAlertInstruction,
+                         &instr.verbalPreTransitionInstruction,
+                         &instr.instructionText,
+                         &instr.verbalSuccinctInstruction});
+        }
+        return pick({&instr.instructionText,
+                     &instr.verbalPreTransitionInstruction,
+                     &instr.verbalAlertInstruction,
+                     &instr.verbalSuccinctInstruction});
+    }
+
+    // Start family: rider is at t=0 on segment 0. Valhalla's succ/pre tend
+    // to stuff a "Then turn…" tail in, which duplicates the separate next-
+    // preview row. instruction ("Drive north on X.") is the cleanest.
+    if (instr.isStart) {
+        return pick({&instr.instructionText,
+                     &instr.verbalPreTransitionInstruction,
+                     &instr.verbalSuccinctInstruction,
+                     &instr.verbalAlertInstruction});
+    }
+
+    // Regular maneuvers: distance-based stage with hysteresis set in
+    // updateVerbalStage(). Only two bands of actual text: alert at far
+    // range, pre everywhere else. verbal_succinct ("Turn left.") is
+    // designed for voice prompts at the last moment; as persistent banner
+    // text it's strictly less informative than verbal_pre ("Turn left onto
+    // Zur Marktflagge."), and flipping between the two at the 50 m
+    // boundary makes the banner feel churny. Keep the stage machine intact
+    // for any future voice layer; the banner just ignores stage 2's
+    // succinct preference.
+    if (m_currentVerbalStage == 0) {
+        return pick({&instr.verbalAlertInstruction,
+                     &instr.verbalPreTransitionInstruction,
+                     &instr.instructionText,
+                     &instr.verbalSuccinctInstruction});
+    }
+    return pick({&instr.verbalPreTransitionInstruction,
+                 &instr.verbalAlertInstruction,
+                 &instr.instructionText,
+                 &instr.verbalSuccinctInstruction});
 }
 
 QString NavigationService::currentInstructionText() const
@@ -322,6 +381,8 @@ void NavigationService::clearNavigation()
     m_isOffRoute = false;
     m_wasArrived = false;
     m_currentSegmentIndex = 0;
+    m_hasLastPassedManeuver = false;
+    m_prevLeadingShapeIdx = -1;
 
     setStatus(NavigationStatus::Idle);
     emit routeChanged();
@@ -456,6 +517,8 @@ void NavigationService::onRouteCalculated(const Route &route)
     m_currentSegmentIndex = 0;
     m_wasArrived = false;
     m_routeStartedAt.restart();
+    m_hasLastPassedManeuver = false;
+    m_prevLeadingShapeIdx = -1;
 
     if (!m_destination.isValid() && !route.waypoints.isEmpty()) {
         m_destination = route.waypoints.last();
@@ -600,6 +663,24 @@ void NavigationService::updateNavigationState()
                       m_routeStartedAt.elapsed() > StartMaxLingerMs);
     auto upcoming = RouteHelpers::findUpcomingInstructions(
         m_snappedPosition, m_route, m_currentSegmentIndex, 3, hideStart);
+
+    // Post-transition tracking: if the leading-maneuver shape index has
+    // advanced since last tick, the previous leading maneuver has just been
+    // crossed. Stash it (with its verbal_post) so the verbal-text picker can
+    // surface "Continue for X m on Oak" briefly before the next alert lands.
+    int newLeadingShape = upcoming.isEmpty() ? -1 : upcoming.first().originalShapeIndex;
+    if (m_prevLeadingShapeIdx >= 0
+        && newLeadingShape != m_prevLeadingShapeIdx
+        && !m_upcomingInstructions.isEmpty()) {
+        // The prior leading instruction is what just got passed.
+        const RouteInstruction &justPassed = m_upcomingInstructions.first();
+        if (justPassed.originalShapeIndex == m_prevLeadingShapeIdx && !justPassed.isStart) {
+            m_lastPassedManeuver = justPassed;
+            m_hasLastPassedManeuver = true;
+            m_lastPassedAt.start();
+        }
+    }
+    m_prevLeadingShapeIdx = newLeadingShape;
 
     if (upcoming != m_upcomingInstructions) {
         m_upcomingInstructions = upcoming;

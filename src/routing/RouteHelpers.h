@@ -215,6 +215,8 @@ inline Route parseRouteResponse(const QByteArray &data)
             obj[QStringLiteral("verbal_pre_transition_instruction")].toString();
         instr.verbalSuccinctInstruction =
             obj[QStringLiteral("verbal_succinct_transition_instruction")].toString();
+        instr.verbalPostTransitionInstruction =
+            obj[QStringLiteral("verbal_post_transition_instruction")].toString();
         instr.verbalMultiCue = obj[QStringLiteral("verbal_multi_cue")].toBool();
 
         // Roundabout

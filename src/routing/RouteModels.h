@@ -88,6 +88,11 @@ struct RouteInstruction {
     QString verbalAlertInstruction;
     QString verbalPreTransitionInstruction;
     QString verbalSuccinctInstruction;
+    // Valhalla verbal_post_transition_instruction: a short confirmation meant
+    // to be spoken just after the maneuver ("Continue for 300 m on Oak").
+    // We surface it as banner text for a few seconds after crossing the
+    // maneuver so the rider has a beat of reassurance before the next alert.
+    QString verbalPostTransitionInstruction;
     bool verbalMultiCue = false;
     int roundaboutExitCount = 0;
     double bearingBefore = 0;
