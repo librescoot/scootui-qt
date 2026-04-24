@@ -197,68 +197,86 @@ QVariantMap NavigationService::currentRoundaboutRender() const
     if (m_upcomingInstructions.isEmpty())
         return result;
 
-    const RouteInstruction &enter = m_upcomingInstructions.first();
-    if (enter.type != ManeuverType::RoundaboutEnter)
+    const RouteInstruction &current = m_upcomingInstructions.first();
+    if (current.type != ManeuverType::RoundaboutEnter &&
+        current.type != ManeuverType::RoundaboutExit)
         return result;
 
-    const int enterIdx = enter.originalShapeIndex;
-
-    // Find the following RoundaboutExit maneuver to determine the end of the
-    // arc through the roundabout. Walk forward through the route instructions.
-    int exitIdx = -1;
+    // Find the Enter/Exit pair in m_route.instructions so the same icon works
+    // while approaching (current=Enter) and while inside the ring (current=Exit).
     int enterInstrIdx = -1;
+    int exitInstrIdx = -1;
     for (int i = 0; i < m_route.instructions.size(); ++i) {
-        if (m_route.instructions[i].originalShapeIndex == enterIdx &&
-            m_route.instructions[i].type == ManeuverType::RoundaboutEnter) {
-            enterInstrIdx = i;
+        if (m_route.instructions[i].originalShapeIndex == current.originalShapeIndex &&
+            m_route.instructions[i].type == current.type) {
+            if (current.type == ManeuverType::RoundaboutEnter) {
+                enterInstrIdx = i;
+                for (int j = i + 1; j < m_route.instructions.size(); ++j) {
+                    if (m_route.instructions[j].type == ManeuverType::RoundaboutExit) {
+                        exitInstrIdx = j;
+                        break;
+                    }
+                }
+            } else {
+                exitInstrIdx = i;
+                for (int j = i - 1; j >= 0; --j) {
+                    if (m_route.instructions[j].type == ManeuverType::RoundaboutEnter) {
+                        enterInstrIdx = j;
+                        break;
+                    }
+                }
+            }
             break;
         }
     }
-    if (enterInstrIdx >= 0) {
-        for (int i = enterInstrIdx + 1; i < m_route.instructions.size(); ++i) {
-            if (m_route.instructions[i].type == ManeuverType::RoundaboutExit) {
-                exitIdx = m_route.instructions[i].originalShapeIndex;
-                break;
-            }
-        }
-    }
+    if (enterInstrIdx < 0 || exitInstrIdx < 0)
+        return result;
 
-    if (exitIdx < 0) {
-        // Fallback: take a single segment beyond the enter point.
-        exitIdx = enterIdx + 1;
-    }
+    const int enterIdx = m_route.instructions[enterInstrIdx].originalShapeIndex;
+    const int exitIdx = m_route.instructions[exitInstrIdx].originalShapeIndex;
 
-    // Clamp to valid waypoint range.
+    // Clamp and sanity.
     if (enterIdx < 0 || enterIdx >= m_route.waypoints.size())
         return result;
-    if (exitIdx >= m_route.waypoints.size())
-        exitIdx = m_route.waypoints.size() - 1;
-    if (exitIdx <= enterIdx)
+    if (exitIdx <= enterIdx || exitIdx >= m_route.waypoints.size())
         return result;
 
-    QList<LatLng> pathPoints;
-    pathPoints.reserve(exitIdx - enterIdx + 1);
+    // Arc points on the ring itself — used for the circle fit.
+    QList<LatLng> arcPoints;
+    arcPoints.reserve(exitIdx - enterIdx + 1);
     for (int i = enterIdx; i <= exitIdx; ++i)
+        arcPoints.append(m_route.waypoints[i]);
+
+    if (arcPoints.size() < 2)
+        return result;
+
+    // Display path extends ~8 waypoints either side of the arc so the icon
+    // shows the approach stub coming in and the exit stub going out in white,
+    // not just the on-ring arc.
+    constexpr int kStubPoints = 8;
+    const int pathStart = std::max(0, enterIdx - kStubPoints);
+    const int pathEnd = std::min(static_cast<int>(m_route.waypoints.size()) - 1,
+                                   exitIdx + kStubPoints);
+    QList<LatLng> pathPoints;
+    pathPoints.reserve(pathEnd - pathStart + 1);
+    for (int i = pathStart; i <= pathEnd; ++i)
         pathPoints.append(m_route.waypoints[i]);
 
-    if (pathPoints.size() < 2)
-        return result;
-
-    // Fit a circle through three arc points (first, middle, last) in a local
-    // east/north metric frame — gives the ring centroid instead of the arc
-    // midpoint so the icon actually frames the roundabout. Mean fallback if
-    // the three points are collinear or if we have fewer than three points.
+    // Fit a circle through three on-ring arc points (first, middle, last) in a
+    // local east/north metric frame — gives the ring centroid instead of the
+    // arc midpoint so the icon actually frames the roundabout. Mean fallback
+    // if the three points are collinear or if we have fewer than three points.
     double centerLat, centerLon;
     auto meanFallback = [&](double &lat, double &lon) {
         double latSum = 0, lonSum = 0;
-        for (const auto &p : pathPoints) { latSum += p.latitude; lonSum += p.longitude; }
-        lat = latSum / pathPoints.size();
-        lon = lonSum / pathPoints.size();
+        for (const auto &p : arcPoints) { latSum += p.latitude; lonSum += p.longitude; }
+        lat = latSum / arcPoints.size();
+        lon = lonSum / arcPoints.size();
     };
-    if (pathPoints.size() >= 3) {
-        const LatLng &A = pathPoints.first();
-        const LatLng &B = pathPoints[pathPoints.size() / 2];
-        const LatLng &C = pathPoints.last();
+    if (arcPoints.size() >= 3) {
+        const LatLng &A = arcPoints.first();
+        const LatLng &B = arcPoints[arcPoints.size() / 2];
+        const LatLng &C = arcPoints.last();
         const double cosLat0 = std::cos(A.latitude * M_PI / 180.0);
         const auto toEN = [&](const LatLng &p) {
             return QPointF((p.longitude - A.longitude) * 111320.0 * cosLat0,
@@ -293,7 +311,10 @@ QVariantMap NavigationService::currentRoundaboutRender() const
 
     result[QStringLiteral("centerLat")] = centerLat;
     result[QStringLiteral("centerLon")] = centerLon;
-    result[QStringLiteral("bearingDeg")] = enter.bearingBefore;
+    // Always orient by the approach bearing so the icon stays stable from the
+    // Enter maneuver through the Exit maneuver (we'd otherwise rotate as the
+    // scooter tracks around the ring).
+    result[QStringLiteral("bearingDeg")] = m_route.instructions[enterInstrIdx].bearingBefore;
     result[QStringLiteral("path")] = path;
     return result;
 }

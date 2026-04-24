@@ -7,7 +7,7 @@ Item {
     property real size: 64
     property bool isDark: true
     property var renderData: null  // {centerLat, centerLon, bearingDeg, path}
-    property real bboxMeters: 100  // ~50m roundabout + 25m of each exit stub
+    property real bboxMeters: 140  // ~60m roundabout + ~40m of each exit stub
 
     width: size
     height: size
@@ -49,10 +49,12 @@ Item {
         var dLon = lon - renderData.centerLon
         var eastM = dLon * 111320 * Math.cos(renderData.centerLat * Math.PI / 180)
         var northM = dLat * 111320
-        // Rotate so bearing points up. Bearing is clockwise-from-north in deg.
-        var b = (renderData.bearingDeg || 0) * Math.PI / 180
+        // Rotate so the approach road sits at the top of the icon and the
+        // ring falls below it — matches how the scooter's rider experiences
+        // the approach. Bearing is clockwise-from-north in degrees; the +180°
+        // flip inverts the rotation relative to the bearing-up convention.
+        var b = ((renderData.bearingDeg || 0) + 180) * Math.PI / 180
         var cosB = Math.cos(b), sinB = Math.sin(b)
-        // Rotate (east, north) by +bearing so the approach vector points up.
         var rotE = eastM * cosB - northM * sinB
         var rotN = eastM * sinB + northM * cosB
         var pxPerMeter = size / bboxMeters
