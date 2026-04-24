@@ -136,6 +136,7 @@ Item {
         var w = size, h = size
         var tip, prev
         var found = false
+        var clippedToBoundary = false
         for (var i = p.length - 1; i >= 1; i--) {
             var pa = project(p[i - 1][0], p[i - 1][1])
             var pb = project(p[i][0], p[i][1])
@@ -152,6 +153,7 @@ Item {
                 tip = Qt.point(pa.x + t * dx0, pa.y + t * dy0)
                 prev = pa
                 found = true
+                clippedToBoundary = true
                 break
             }
         }
@@ -164,15 +166,24 @@ Item {
         var len = Math.sqrt(dx * dx + dy * dy)
         if (len < 1) return null
         var ux = dx / len, uy = dy / len
-        var aLen = 13, aWid = 10
-        var base = Qt.point(tip.x - aLen * ux, tip.y - aLen * uy)
-        return { tip: tip, base: base, ux: ux, uy: uy, aLen: aLen, aWid: aWid }
+        // When the tip came from clipping the path against the canvas edge,
+        // pull it back a bit so the mitered chevron point has room to render
+        // inside the canvas rather than disappearing off the edge.
+        if (clippedToBoundary) {
+            var tipMargin = 5
+            tip = Qt.point(tip.x - tipMargin * ux, tip.y - tipMargin * uy)
+        }
+        // Open-chevron arrow head: two strokes meeting at the tip with a
+        // mitered point and flat wing-ends — same stroke width as the shaft.
+        var aLen = 9   // wing length back from tip
+        var aWid = 8   // wing perpendicular offset
+        return { tip: tip, ux: ux, uy: uy, aLen: aLen, aWid: aWid }
     }
 
-    // Polyline points truncated at the arrow base: include every projected
-    // path waypoint that still sits before the base along the path direction,
-    // then finish at the base itself. When arrowEnd() can't be computed,
-    // fall back to the full projected path.
+    // Polyline points terminating at the arrow tip. Include every projected
+    // path waypoint that still sits before the tip along the path direction,
+    // then finish at the tip itself. Fall back to the full projected path
+    // when arrowEnd() can't be computed.
     function polylinePoints() {
         if (!renderData || !renderData.path) return []
         var p = renderData.path
@@ -187,11 +198,11 @@ Item {
         var pts = []
         for (var i = 0; i < p.length; i++) {
             var pt = project(p[i][0], p[i][1])
-            var ahead = (pt.x - ae.base.x) * ae.ux + (pt.y - ae.base.y) * ae.uy
+            var ahead = (pt.x - ae.tip.x) * ae.ux + (pt.y - ae.tip.y) * ae.uy
             if (ahead >= 0) break
             pts.push(pt)
         }
-        pts.push(ae.base)
+        pts.push(ae.tip)
         return pts
     }
 
@@ -260,7 +271,7 @@ Item {
                 strokeColor: root.isDark ? "white" : "#212121"
                 strokeWidth: 5
                 fillColor: "transparent"
-                capStyle: ShapePath.RoundCap
+                capStyle: ShapePath.FlatCap
                 joinStyle: ShapePath.RoundJoin
                 startX: {
                     var pts = root.polylinePoints()
@@ -305,13 +316,26 @@ Item {
             ctx.reset()
             var ae = root.arrowEnd()
             if (!ae) return
+            // Two stroked wings meeting at the tip — same stroke width as
+            // the shaft so the whole arrow reads as pen strokes of uniform
+            // thickness: the shaft (polyline) comes up to the tip, and the
+            // wings spread outward-and-back from there.
+            var ux = ae.ux, uy = ae.uy
+            var tx = ae.tip.x, ty = ae.tip.y
+            var outLX = tx - ae.aLen * ux + ae.aWid * uy
+            var outLY = ty - ae.aLen * uy - ae.aWid * ux
+            var outRX = tx - ae.aLen * ux - ae.aWid * uy
+            var outRY = ty - ae.aLen * uy + ae.aWid * ux
             ctx.beginPath()
-            ctx.moveTo(ae.tip.x, ae.tip.y)
-            ctx.lineTo(ae.base.x + ae.aWid * ae.uy, ae.base.y - ae.aWid * ae.ux)
-            ctx.lineTo(ae.base.x - ae.aWid * ae.uy, ae.base.y + ae.aWid * ae.ux)
-            ctx.closePath()
-            ctx.fillStyle = root.isDark ? "white" : "#212121"
-            ctx.fill()
+            ctx.moveTo(outLX, outLY)
+            ctx.lineTo(tx, ty)
+            ctx.lineTo(outRX, outRY)
+            ctx.lineWidth = 5
+            ctx.lineCap = "butt"
+            ctx.lineJoin = "miter"
+            ctx.miterLimit = 10
+            ctx.strokeStyle = root.isDark ? "white" : "#212121"
+            ctx.stroke()
         }
     }
 
