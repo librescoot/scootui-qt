@@ -267,6 +267,21 @@ void ValhallaClient::handleHealthReply(QNetworkReply *reply, bool /*forced*/)
     bool ok = (reply->error() == QNetworkReply::NoError);
     emit statusChecked(ok);
 
+    if (ok) {
+        QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+        if (doc.isObject()) {
+            auto v = doc.object().value(QStringLiteral("tileset_last_modified"));
+            qint64 ts = v.isDouble() ? static_cast<qint64>(v.toDouble()) : v.toVariant().toLongLong();
+            if (ts > 0) {
+                QDateTime dt = QDateTime::fromSecsSinceEpoch(ts, Qt::UTC);
+                if (dt != m_tilesetLastModified) {
+                    m_tilesetLastModified = dt;
+                    emit tilesetLastModifiedChanged();
+                }
+            }
+        }
+    }
+
     bool wasHealthy = m_isHealthy;
     if (ok) {
         m_probeBackoffMs = HealthProbeBackoffMinMs;

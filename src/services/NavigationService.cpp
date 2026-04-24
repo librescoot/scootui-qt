@@ -12,11 +12,25 @@
 
 #include <QDebug>
 #include <QDateTime>
+#include <QUrl>
 
 namespace {
-// Valhalla's motor_scooter estimates tend to run optimistic in practice
-// (ignores typical urban friction: pedestrians, bike-lane shifts, lights).
+// Stock Valhalla uses the posted OSM maxspeed verbatim as the routing
+// speed, which is wildly optimistic in dense urban areas. The tile build
+// pipeline in librescoot/valhalla-tiles was switched on 2026-04-24 to
+// post-process tiles with valhalla_assign_speeds + the OpenStreetMapSpeeds
+// default_speeds.json, producing realistic edge speeds that no longer
+// need client-side compensation.
+//
+// Tiles built *before* that cutoff still overreport. We pad those, but
+// only when we're talking to a local Valhalla — a remote endpoint
+// (FOSSGIS, self-hosted) is assumed to already have realistic speeds.
+//
+// TODO: remove this pad and kPadCutoffUtc around 2026-05-24 once all
+// deployed scooters have picked up tiles built after the cutoff.
 constexpr double kDurationPadFactor = 1.20;
+const QDateTime kPadCutoffUtc =
+    QDateTime(QDate(2026, 4, 24), QTime(0, 0), Qt::UTC);
 }
 
 NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
@@ -208,15 +222,31 @@ bool NavigationService::showNextPreview() const
 
 double NavigationService::remainingDuration() const
 {
-    return m_remainingDuration * kDurationPadFactor;
+    return m_remainingDuration * durationPadFactor();
 }
 
 QString NavigationService::eta() const
 {
     if (!m_route.isValid() || m_remainingDuration <= 0) return {};
     QDateTime arrival = QDateTime::currentDateTime().addSecs(
-        static_cast<qint64>(m_remainingDuration * kDurationPadFactor));
+        static_cast<qint64>(m_remainingDuration * durationPadFactor()));
     return arrival.toString(QStringLiteral("HH:mm"));
+}
+
+double NavigationService::durationPadFactor() const
+{
+    if (!m_valhalla)
+        return kDurationPadFactor;
+
+    const bool local =
+        QUrl(m_valhalla->endpoint()).host() == QStringLiteral("127.0.0.1");
+    if (!local)
+        return 1.0;
+
+    const QDateTime ts = m_valhalla->tilesetLastModified();
+    if (!ts.isValid())
+        return kDurationPadFactor; // default to pad when unknown
+    return ts < kPadCutoffUtc ? kDurationPadFactor : 1.0;
 }
 
 // --- Actions ---

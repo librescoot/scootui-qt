@@ -93,6 +93,11 @@ public:
     double remainingDuration() const;
     QString eta() const;
 
+    // 1.20 for a local Valhalla whose tiles pre-date the default_speeds.json
+    // rollout (see NavigationService.cpp). 1.0 for a remote endpoint or
+    // post-rollout tiles. Default-to-pad when /status hasn't succeeded yet.
+    double durationPadFactor() const;
+
     Q_INVOKABLE void setDestination(double lat, double lng, const QString &address = {});
     Q_INVOKABLE void clearNavigation();
     Q_INVOKABLE void setRoute(const Route &route);

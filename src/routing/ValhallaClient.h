@@ -4,6 +4,7 @@
 #include <QNetworkAccessManager>
 #include <QPointer>
 #include <QTimer>
+#include <QDateTime>
 #include <QElapsedTimer>
 #include "RouteModels.h"
 
@@ -33,9 +34,15 @@ public:
     explicit ValhallaClient(QObject *parent = nullptr);
 
     void setEndpoint(const QString &url);
+    QString endpoint() const { return m_endpoint; }
     void setLanguage(const QString &lang);
 
     bool isHealthy() const { return m_isHealthy; }
+
+    // Build date of the currently-loaded tileset, as reported by /status.
+    // Invalid QDateTime if /status has never succeeded or the field was
+    // missing. Updated on every successful health probe.
+    QDateTime tilesetLastModified() const { return m_tilesetLastModified; }
 
     // Single entry point. Coalesces rapid callers via DebounceIntervalMs; latest
     // (from, to, reason) wins. Governance applied at dispatch time.
@@ -68,6 +75,7 @@ signals:
     void statusChecked(bool available);
     void requestRejected(ValhallaClient::Reason reason, ValhallaClient::RejectionCause cause);
     void healthChanged();
+    void tilesetLastModifiedChanged();
 
 private:
     enum class DispatchResult {
@@ -126,6 +134,7 @@ private:
     int m_probeBackoffMs = HealthProbeBackoffMinMs;
     QTimer m_healthTimer;
     QPointer<QNetworkReply> m_healthReply;
+    QDateTime m_tilesetLastModified;
 
     // Single-shot deadline for a user request stuck in NotYetHealthy.
     QTimer m_userRequestDeadline;
