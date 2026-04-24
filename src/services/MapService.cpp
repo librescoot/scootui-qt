@@ -385,8 +385,19 @@ void MapService::onGpsPositionChanged()
         m_lastGpsLongitude = gpsLng;
         m_gpsErrorLatitude = 0;
         m_gpsErrorLongitude = 0;
-        m_smoothedTarget = m_gps->course();
-        m_displayBearing = m_gps->course();
+        // Seed bearing: prefer the first route segment's bearing when a
+        // route is already loaded so the map points the right way while
+        // stationary at boot. updateBearing freezes below 1 km/h, so a bad
+        // seed from GPS course (typically 0 when stationary) would persist
+        // until the rider accelerated past the freeze threshold.
+        double seedBearing = m_gps->course();
+        if (m_routeShape.size() >= 2) {
+            double rb = bearingBetween(m_routeShape[0].first,  m_routeShape[0].second,
+                                        m_routeShape[1].first,  m_routeShape[1].second);
+            seedBearing = rb;
+        }
+        m_smoothedTarget = seedBearing;
+        m_displayBearing = seedBearing;
 
         m_mapLatitude = gpsLat;
         m_mapLongitude = gpsLng;
