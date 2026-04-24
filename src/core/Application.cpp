@@ -631,9 +631,13 @@ void Application::setupSignalHandlers()
             if (m_shutdownStore) {
                 m_shutdownStore->forceBlackout();
             }
-            // Blackout fade is 600ms; quit just after so systemd doesn't
-            // spend the rest of its TimeoutStopSec waiting to SIGKILL us.
-            QTimer::singleShot(700, &QCoreApplication::quit);
+            // Hold the black frame for ~2s before exiting. imx-drm does a
+            // lastclose/master-release modeset when we exit, which shows up
+            // as a visible "no-signal" flash on the DPI panel. The DBC's
+            // VBUS is cut 5s after vehicle-service enters ShuttingDown; by
+            // waiting 2s we let other DBC services finish and keep the
+            // flash hidden behind the power rail going away.
+            QTimer::singleShot(2000, &QCoreApplication::quit);
         });
 
         struct sigaction sa;
