@@ -62,7 +62,10 @@ enum class ManeuverType {
     MergeRight,
     RoundaboutEnter,
     RoundaboutExit,
-    Ferry
+    Ferry,
+    Arrive,
+    ArriveRight,
+    ArriveLeft
 };
 
 enum class NavigationStatus {
@@ -89,6 +92,12 @@ struct RouteInstruction {
     int roundaboutExitCount = 0;
     double bearingBefore = 0;
     double bearingAfter = 0;
+    // True for Valhalla kStart / kStartRight / kStartLeft — the "head [dir]
+    // on X" maneuver that every route opens with. Sits at shape[0], so its
+    // along-route distance to itself is zero; callers use this flag to hide
+    // the distance counter, and to drop the maneuver once the rider has
+    // actually started moving.
+    bool isStart = false;
 
     bool operator==(const RouteInstruction &o) const {
         return type == o.type && originalShapeIndex == o.originalShapeIndex &&
@@ -157,6 +166,22 @@ inline QList<LatLng> decodePolyline(const QString &encoded, int precision = 6) {
 // Map Valhalla maneuver type code to our ManeuverType
 inline ManeuverType mapValhallaType(int type) {
     switch (type) {
+    // kStart / kStartRight / kStartLeft — used to be filtered at parse time
+    // because the old distance formula (great-circle to origin) climbed as
+    // the rider moved away. With along-route distance from the snapped pos,
+    // the start-family now reports distance 0 at trip start (we're AT the
+    // origin) and the caller hides the counter / drops them after a few
+    // seconds of driving. Direction of the initial move is preserved so the
+    // icon shows a straight / right / left arrow.
+    case 1:   return ManeuverType::KeepStraight;
+    case 2:   return ManeuverType::TurnRight;
+    case 3:   return ManeuverType::TurnLeft;
+    // kDestination / kDestinationRight / kDestinationLeft — the final
+    // maneuver at shape[last]. Counts down to arrival along the final
+    // segment and gives the rider a side cue for parking.
+    case 4:   return ManeuverType::Arrive;
+    case 5:   return ManeuverType::ArriveRight;
+    case 6:   return ManeuverType::ArriveLeft;
     case 7: case 8: case 17: return ManeuverType::KeepStraight;
     case 9:   return ManeuverType::TurnSlightRight;
     case 10:  return ManeuverType::TurnRight;
