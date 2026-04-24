@@ -206,6 +206,7 @@ set(QML_FILES
     qml/widgets/navigation/TurnByTurnWidget.qml
     qml/widgets/navigation/NavigationStatusOverlay.qml
     qml/widgets/navigation/RoundaboutIcon.qml
+    qml/widgets/navigation/RoundaboutIconFromMap.qml
     qml/widgets/speedometer/SpeedometerDisplay.qml
     qml/widgets/status_bars/TopStatusBar.qml
     qml/widgets/status_bars/BatteryDisplay.qml

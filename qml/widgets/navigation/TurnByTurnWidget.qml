@@ -118,9 +118,9 @@ Item {
                 Loader {
                     anchors.centerIn: parent
                     active: parent.isRoundabout
-                    sourceComponent: RoundaboutIcon {
-                        exitNumber: typeof navigationService !== "undefined"
-                                    ? Math.max(1, navigationService.roundaboutExitCount) : 1
+                    sourceComponent: RoundaboutIconFromMap {
+                        renderData: typeof navigationService !== "undefined"
+                                    ? navigationService.currentRoundaboutRender : null
                         isDark: tbtWidget.isDark
                         size: 64
                     }
