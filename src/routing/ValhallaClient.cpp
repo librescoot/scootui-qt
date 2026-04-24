@@ -19,6 +19,19 @@ ValhallaClient::ValhallaClient(QObject *parent)
     m_healthTimer.setSingleShot(true);
     connect(&m_healthTimer, &QTimer::timeout, this, &ValhallaClient::runHealthProbe);
 
+    m_userRequestDeadline.setSingleShot(true);
+    m_userRequestDeadline.setInterval(UserRequestTimeoutMs);
+    connect(&m_userRequestDeadline, &QTimer::timeout, this, [this]() {
+        // Race: probe may have succeeded and dispatched between timer fire
+        // and handler run. Only surface the error if we're still queued.
+        if (!m_hasPending || m_hasBeenHealthy || !isUserReason(m_pendingReason))
+            return;
+        Reason reason = m_pendingReason;
+        m_hasPending = false;
+        qDebug() << "ValhallaClient: user request timed out waiting for healthy probe";
+        emit requestRejected(reason, RejectionCause::Unhealthy);
+    });
+
     m_sinceLastReroute.start();
     m_sinceLastDispatch.start();
 
@@ -74,6 +87,7 @@ void ValhallaClient::cancelPending()
 {
     m_hasPending = false;
     m_debounce.stop();
+    m_userRequestDeadline.stop();
     if (m_activeReply) {
         m_activeReply->disconnect(this);
         m_activeReply->abort();
@@ -128,6 +142,7 @@ void ValhallaClient::dispatchPending()
         LatLng to = m_pendingTo;
         Reason reason = m_pendingReason;
         m_hasPending = false;
+        m_userRequestDeadline.stop();
 
         sendRouteRequest(from, to);
 
@@ -141,8 +156,11 @@ void ValhallaClient::dispatchPending()
     }
     case DispatchResult::NotYetHealthy:
         // Keep pending; when the health probe flips to healthy it will
-        // call dispatchPending() again.
+        // call dispatchPending() again. Arm the deadline so we don't
+        // hang forever if the server is genuinely down.
         qDebug() << "ValhallaClient: deferring user request until first healthy probe";
+        if (!m_userRequestDeadline.isActive())
+            m_userRequestDeadline.start();
         break;
     case DispatchResult::Rejected: {
         qDebug() << "ValhallaClient: rejecting"
@@ -150,6 +168,7 @@ void ValhallaClient::dispatchPending()
                  << "cause" << static_cast<int>(cause);
         Reason rejectedReason = m_pendingReason;
         m_hasPending = false;
+        m_userRequestDeadline.stop();
         emit requestRejected(rejectedReason, cause);
         break;
     }

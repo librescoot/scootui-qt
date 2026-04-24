@@ -446,11 +446,19 @@ void NavigationService::onRequestRejected(ValhallaClient::Reason reason,
         reason == ValhallaClient::Reason::Destination ||
         reason == ValhallaClient::Reason::LanguageChange;
 
-    if (userReason && cause == ValhallaClient::RejectionCause::RateLimited) {
-        m_errorMessage = QStringLiteral("Too many routing requests");
-        setStatus(NavigationStatus::Error);
-        emit errorChanged();
-        return;
+    if (userReason) {
+        if (cause == ValhallaClient::RejectionCause::RateLimited) {
+            m_errorMessage = QStringLiteral("Too many routing requests");
+            setStatus(NavigationStatus::Error);
+            emit errorChanged();
+            return;
+        }
+        if (cause == ValhallaClient::RejectionCause::Unhealthy) {
+            m_errorMessage = QStringLiteral("Cannot reach routing server");
+            setStatus(NavigationStatus::Error);
+            emit errorChanged();
+            return;
+        }
     }
 
     // Auto rejections (Reroute/Recovery) silently drop; the next trigger

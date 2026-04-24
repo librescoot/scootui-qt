@@ -56,6 +56,10 @@ public:
     static constexpr int HealthProbeBackoffMaxMs   = 10000;
     static constexpr int HealthProbeTimeoutMs      = 3000;
     static constexpr int HealthCacheMs             = 60000;
+    // A user-initiated request that stays queued waiting for the first
+    // healthy probe gives up after this long and surfaces an error to the
+    // user instead of hanging on "Calculating" indefinitely.
+    static constexpr int UserRequestTimeoutMs      = 20000;
 
 signals:
     void routeCalculated(const Route &route);
@@ -122,4 +126,7 @@ private:
     int m_probeBackoffMs = HealthProbeBackoffMinMs;
     QTimer m_healthTimer;
     QPointer<QNetworkReply> m_healthReply;
+
+    // Single-shot deadline for a user request stuck in NotYetHealthy.
+    QTimer m_userRequestDeadline;
 };
