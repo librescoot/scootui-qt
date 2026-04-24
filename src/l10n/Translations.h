@@ -62,7 +62,9 @@ class Translations : public QObject
     Q_PROPERTY(QString menuNavRouting READ menuNavRouting NOTIFY languageChanged)
     Q_PROPERTY(QString menuMapUpdateCheck READ menuMapUpdateCheck NOTIFY languageChanged)
     Q_PROPERTY(QString menuMapAutoDownload READ menuMapAutoDownload NOTIFY languageChanged)
-    Q_PROPERTY(QString menuOnlineOsm READ menuOnlineOsm NOTIFY languageChanged)
+    Q_PROPERTY(QString menuBlinker READ menuBlinker NOTIFY languageChanged)
+    Q_PROPERTY(QString menuBlinkerHeader READ menuBlinkerHeader NOTIFY languageChanged)
+    Q_PROPERTY(QString menuDbcBlinkerLed READ menuDbcBlinkerLed NOTIFY languageChanged)
 
     // Menu headers
     Q_PROPERTY(QString menuNavigationHeader READ menuNavigationHeader NOTIFY languageChanged)
@@ -83,6 +85,9 @@ class Translations : public QObject
     Q_PROPERTY(QString menuHopOnDisable READ menuHopOnDisable NOTIFY languageChanged)
     Q_PROPERTY(QString hopOnLearnTitle READ hopOnLearnTitle NOTIFY languageChanged)
     Q_PROPERTY(QString hopOnLearnHint READ hopOnLearnHint NOTIFY languageChanged)
+    Q_PROPERTY(QString hopOnInfoTitle READ hopOnInfoTitle NOTIFY languageChanged)
+    Q_PROPERTY(QString hopOnInfoBody1 READ hopOnInfoBody1 NOTIFY languageChanged)
+    Q_PROPERTY(QString hopOnInfoBody2 READ hopOnInfoBody2 NOTIFY languageChanged)
     Q_PROPERTY(QString hopOnLockedTitle READ hopOnLockedTitle NOTIFY languageChanged)
     Q_PROPERTY(QString hopOnLockedHint READ hopOnLockedHint NOTIFY languageChanged)
     Q_PROPERTY(QString hopOnSavedToast READ hopOnSavedToast NOTIFY languageChanged)
@@ -459,7 +464,9 @@ public:
     QString menuNavRouting() const { return lookup("menuNavRouting"); }
     QString menuMapUpdateCheck() const { return lookup("menuMapUpdateCheck"); }
     QString menuMapAutoDownload() const { return lookup("menuMapAutoDownload"); }
-    QString menuOnlineOsm() const { return lookup("menuOnlineOsm"); }
+    QString menuBlinker() const { return lookup("menuBlinker"); }
+    QString menuBlinkerHeader() const { return lookup("menuBlinkerHeader"); }
+    QString menuDbcBlinkerLed() const { return lookup("menuDbcBlinkerLed"); }
 
     // Menu headers
     QString menuNavigationHeader() const { return lookup("menuNavigationHeader"); }
@@ -480,6 +487,9 @@ public:
     QString menuHopOnDisable() const { return lookup("menuHopOnDisable"); }
     QString hopOnLearnTitle() const { return lookup("hopOnLearnTitle"); }
     QString hopOnLearnHint() const { return lookup("hopOnLearnHint"); }
+    QString hopOnInfoTitle() const { return lookup("hopOnInfoTitle"); }
+    QString hopOnInfoBody1() const { return lookup("hopOnInfoBody1"); }
+    QString hopOnInfoBody2() const { return lookup("hopOnInfoBody2"); }
     QString hopOnLockedTitle() const { return lookup("hopOnLockedTitle"); }
     QString hopOnLockedHint() const { return lookup("hopOnLockedHint"); }
     QString hopOnSavedToast() const { return lookup("hopOnSavedToast"); }

@@ -20,6 +20,7 @@ SyncSettings SettingsStore::syncSettings() const
             {QStringLiteral("language"), QStringLiteral("dashboard.language")},
             {QStringLiteral("powerDisplayMode"), QStringLiteral("dashboard.power-display-mode")},
             {QStringLiteral("blinkerStyle"), QStringLiteral("dashboard.blinker-style")},
+            {QStringLiteral("dbcBlinkerLed"), QStringLiteral("scooter.dbc-blinker-led")},
             {QStringLiteral("dualBattery"), QStringLiteral("scooter.dual-battery")},
             {QStringLiteral("showGps"), QStringLiteral("dashboard.show-gps")},
             {QStringLiteral("showBluetooth"), QStringLiteral("dashboard.show-bluetooth")},
@@ -63,6 +64,8 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
         if (v != m_powerDisplayMode) { m_powerDisplayMode = v; emit powerDisplayModeChanged(); }
     } else if (variable == QLatin1String("dashboard.blinker-style")) {
         if (value != m_blinkerStyle) { m_blinkerStyle = value; emit blinkerStyleChanged(); }
+    } else if (variable == QLatin1String("scooter.dbc-blinker-led")) {
+        if (value != m_dbcBlinkerLed) { m_dbcBlinkerLed = value; emit dbcBlinkerLedChanged(); }
     } else if (variable == QLatin1String("scooter.dual-battery")) {
         if (value != m_dualBattery) { m_dualBattery = value; emit dualBatteryChanged(); }
     } else if (variable == QLatin1String("dashboard.show-gps")) {

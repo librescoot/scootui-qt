@@ -205,6 +205,7 @@ set(QML_FILES
     qml/screens/DestinationScreen.qml
     qml/screens/FaultsScreen.qml
     qml/screens/UpdateModeInfoScreen.qml
+    qml/screens/HopOnInfoScreen.qml
     qml/widgets/navigation/TurnByTurnWidget.qml
     qml/widgets/navigation/NavigationStatusOverlay.qml
     qml/widgets/navigation/RoundaboutIcon.qml

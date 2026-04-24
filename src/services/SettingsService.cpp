@@ -46,6 +46,12 @@ void SettingsService::updateBlinkerStyle(const QString &style)
     writeSetting(QStringLiteral("dashboard.blinker-style"), style);
 }
 
+void SettingsService::updateDbcBlinkerLed(bool enabled)
+{
+    writeSetting(QStringLiteral("scooter.dbc-blinker-led"),
+                 enabled ? QStringLiteral("enabled") : QStringLiteral("disabled"));
+}
+
 void SettingsService::updateDualBattery(bool enabled)
 {
     writeSetting(QStringLiteral("scooter.dual-battery"), enabled ? QStringLiteral("true") : QStringLiteral("false"));

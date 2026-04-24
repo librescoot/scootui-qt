@@ -16,6 +16,7 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(QString language READ language NOTIFY languageChanged)
     Q_PROPERTY(int powerDisplayMode READ powerDisplayMode NOTIFY powerDisplayModeChanged)
     Q_PROPERTY(QString blinkerStyle READ blinkerStyle NOTIFY blinkerStyleChanged)
+    Q_PROPERTY(bool dbcBlinkerLed READ dbcBlinkerLed NOTIFY dbcBlinkerLedChanged)
     Q_PROPERTY(bool dualBattery READ dualBattery NOTIFY dualBatteryChanged)
     Q_PROPERTY(QString showGps READ showGps NOTIFY showGpsChanged)
     Q_PROPERTY(QString showBluetooth READ showBluetooth NOTIFY showBluetoothChanged)
@@ -43,6 +44,7 @@ public:
     QString language() const { return m_language; }
     int powerDisplayMode() const { return static_cast<int>(m_powerDisplayMode); }
     QString blinkerStyle() const { return m_blinkerStyle; }
+    bool dbcBlinkerLed() const { return m_dbcBlinkerLed == QLatin1String("enabled"); }
     bool dualBattery() const { return m_dualBattery == QLatin1String("true"); }
     QString showGps() const { return m_showGps; }
     QString showBluetooth() const { return m_showBluetooth; }
@@ -72,6 +74,7 @@ signals:
     void languageChanged();
     void powerDisplayModeChanged();
     void blinkerStyleChanged();
+    void dbcBlinkerLedChanged();
     void dualBatteryChanged();
     void showGpsChanged();
     void showBluetoothChanged();
@@ -108,6 +111,8 @@ private:
     ScootEnums::PowerDisplayMode m_powerDisplayMode = ScootEnums::PowerDisplayMode::Kw;
     // @schema dashboard.blinker-style
     QString m_blinkerStyle = QStringLiteral("icon");
+    // @schema scooter.dbc-blinker-led
+    QString m_dbcBlinkerLed = QStringLiteral("disabled");
     // @schema scooter.dual-battery
     QString m_dualBattery = QStringLiteral("false");
     // @schema dashboard.show-gps

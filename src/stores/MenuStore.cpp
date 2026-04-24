@@ -363,7 +363,7 @@ void MenuStore::rebuildMenuTree()
                                            QStringLiteral("SETTINGS"));
     m_rootNode->addChild(settingsNode);
 
-    // Theme (inline cycle: Auto → Dark → Light)
+    // Theme (inline cycle: Auto → Dark → Light) — kept at top, used often.
     {
         int themeIdx = isAutoTheme ? 0 : (isDark ? 1 : 2);
         settingsNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_theme"),
@@ -374,14 +374,35 @@ void MenuStore::rebuildMenuTree()
             }, themeIdx));
     }
 
-    // Language (inline cycle: English → Deutsch)
-    {
-        int langIdx = (currentLang == QLatin1String("de")) ? 1 : 0;
-        settingsNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_language"),
-            tr->menuLanguage(), {
-                {QStringLiteral("English"), [svc]() { svc->updateLanguage(QStringLiteral("en")); }},
-                {QStringLiteral("Deutsch"), [svc]() { svc->updateLanguage(QStringLiteral("de")); }},
-            }, langIdx));
+    // Hop-on — learning / disabling the combo. Promoted to near the top
+    // since it's a discoverable feature riders will want to find.
+    // First-run (no combo): opens the info screen so the rider understands
+    // what's about to happen. 'Set new combo…' from the combo-present
+    // submenu still jumps straight to the learning overlay.
+    if (m_hopOn) {
+        if (!m_hopOn->hasCombo()) {
+            settingsNode->addChild(MenuNode::action(QStringLiteral("settings_hop_on"),
+                tr->menuHopOn(), [this]() {
+                    close();
+                    if (m_screenStore)
+                        m_screenStore->showHopOnInfo();
+                }));
+        } else {
+            auto *hopNode = MenuNode::submenu(QStringLiteral("settings_hop_on"),
+                tr->menuHopOn(), tr->menuHopOnHeader());
+            settingsNode->addChild(hopNode);
+
+            hopNode->addChild(MenuNode::action(QStringLiteral("settings_hop_on_relearn"),
+                tr->menuHopOnRelearn(), [this]() {
+                    close();
+                    m_hopOn->startLearning();
+                }));
+            hopNode->addChild(MenuNode::action(QStringLiteral("settings_hop_on_disable"),
+                tr->menuHopOnDisable(), [this]() {
+                    m_hopOn->disable();
+                    close();
+                }));
+        }
     }
 
     // Status Bar (flat list of inline cycle settings)
@@ -460,13 +481,13 @@ void MenuStore::rebuildMenuTree()
             }, mapType == 1 ? 1 : 0));
     }
 
-    // Navigation Routing (inline cycle: Online OSM → Offline)
+    // Navigation Routing (inline cycle: Online → Offline)
     {
         QString vUrl = settings->valhallaUrl();
         bool isOnlineRouting = (vUrl == QLatin1String(AppConfig::valhallaOnlineEndpoint));
         mapNavNode->addChild(MenuNode::cycleSetting(QStringLiteral("navigation_routing"),
             tr->menuNavRouting(), {
-                {tr->menuOnlineOsm(), [svc]() { svc->updateValhallaEndpoint(QLatin1String(AppConfig::valhallaOnlineEndpoint)); }},
+                {tr->menuOnline(), [svc]() { svc->updateValhallaEndpoint(QLatin1String(AppConfig::valhallaOnlineEndpoint)); }},
                 {tr->menuOffline(), [svc]() { svc->updateValhallaEndpoint(QLatin1String(AppConfig::valhallaOnDeviceEndpoint)); }},
             }, isOnlineRouting ? 0 : 1));
     }
@@ -487,25 +508,27 @@ void MenuStore::rebuildMenuTree()
             [svc, autoDownload]() { svc->updateMapAutoDownload(!autoDownload); }));
     }
 
-    // Blinker Style (inline cycle: Icon → Overlay)
+    // Blinker submenu (style + DBC LED)
     {
+        auto *blinkerNode = MenuNode::submenu(QStringLiteral("settings_blinker"),
+                                              tr->menuBlinker(),
+                                              tr->menuBlinkerHeader());
+        settingsNode->addChild(blinkerNode);
+
+        // Blinker Style (inline cycle: Icon → Overlay)
         QString bStyle = settings->blinkerStyle();
         int blinkerIdx = (bStyle == QLatin1String("overlay")) ? 1 : 0;
-        settingsNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_blinker_style"),
+        blinkerNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_blinker_style"),
             tr->menuBlinkerStyle(), {
                 {tr->menuBlinkerIcon(), [svc]() { svc->updateBlinkerStyle(QStringLiteral("icon")); }},
                 {tr->menuBlinkerOverlay(), [svc]() { svc->updateBlinkerStyle(QStringLiteral("overlay")); }},
             }, blinkerIdx));
-    }
 
-    // Battery Mode (inline cycle: Single → Dual)
-    {
-        bool dualBatt = settings->dualBattery();
-        settingsNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_battery_mode"),
-            tr->menuBatteryMode(), {
-                {tr->menuBatterySingle(), [svc]() { svc->updateDualBattery(false); }},
-                {tr->menuBatteryDual(), [svc]() { svc->updateDualBattery(true); }},
-            }, dualBatt ? 1 : 0));
+        // DBC Blinker LED (toggle) — physical LED on the DBC board.
+        bool dbcLedOn = settings->dbcBlinkerLed();
+        blinkerNode->addChild(MenuNode::setting(QStringLiteral("settings_dbc_blinker_led"),
+            tr->menuDbcBlinkerLed(), dbcLedOn ? 1 : 0,
+            [svc, dbcLedOn]() { svc->updateDbcBlinkerLed(!dbcLedOn); }));
     }
 
     // Alarm
@@ -534,35 +557,31 @@ void MenuStore::rebuildMenuTree()
             }, durIdx));
     }
 
-    // Hop-on — learning / disabling the combo
-    if (m_hopOn) {
-        if (!m_hopOn->hasCombo()) {
-            settingsNode->addChild(MenuNode::action(QStringLiteral("settings_hop_on"),
-                tr->menuHopOn(), [this]() {
-                    close();
-                    m_hopOn->startLearning();
-                }));
-        } else {
-            auto *hopNode = MenuNode::submenu(QStringLiteral("settings_hop_on"),
-                tr->menuHopOn(), tr->menuHopOnHeader());
-            settingsNode->addChild(hopNode);
-
-            hopNode->addChild(MenuNode::action(QStringLiteral("settings_hop_on_relearn"),
-                tr->menuHopOnRelearn(), [this]() {
-                    close();
-                    m_hopOn->startLearning();
-                }));
-            hopNode->addChild(MenuNode::action(QStringLiteral("settings_hop_on_disable"),
-                tr->menuHopOnDisable(), [this]() {
-                    m_hopOn->disable();
-                    close();
-                }));
-        }
-    }
-
-    // System
+    // System — rarely-touched knobs (Language, Battery Mode) live here
+    // alongside the service entries (Update Mode, Faults).
     auto *systemNode = MenuNode::submenu(QStringLiteral("settings_system"), tr->menuSystem());
     settingsNode->addChild(systemNode);
+
+    // Language (inline cycle: English → Deutsch)
+    {
+        int langIdx = (currentLang == QLatin1String("de")) ? 1 : 0;
+        systemNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_language"),
+            tr->menuLanguage(), {
+                {QStringLiteral("English"), [svc]() { svc->updateLanguage(QStringLiteral("en")); }},
+                {QStringLiteral("Deutsch"), [svc]() { svc->updateLanguage(QStringLiteral("de")); }},
+            }, langIdx));
+    }
+
+    // Battery Mode (inline cycle: Single → Dual) — set-once on install.
+    {
+        bool dualBatt = settings->dualBattery();
+        systemNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_battery_mode"),
+            tr->menuBatteryMode(), {
+                {tr->menuBatterySingle(), [svc]() { svc->updateDualBattery(false); }},
+                {tr->menuBatteryDual(), [svc]() { svc->updateDualBattery(true); }},
+            }, dualBatt ? 1 : 0));
+    }
+
     systemNode->addChild(MenuNode::action(QStringLiteral("enter_ums"), tr->menuEnterUms(), [this]() {
         close();
         if (m_screenStore)

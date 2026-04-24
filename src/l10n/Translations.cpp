@@ -200,6 +200,15 @@ void Translations::initStrings()
     en[QStringLiteral("menuOnline")] = QStringLiteral("Online");
     de[QStringLiteral("menuOnline")] = QStringLiteral("Online");
 
+    en[QStringLiteral("menuBlinker")] = QStringLiteral("Blinker");
+    de[QStringLiteral("menuBlinker")] = QStringLiteral("Blinker");
+
+    en[QStringLiteral("menuBlinkerHeader")] = QStringLiteral("BLINKER");
+    de[QStringLiteral("menuBlinkerHeader")] = QStringLiteral("BLINKER");
+
+    en[QStringLiteral("menuDbcBlinkerLed")] = QStringLiteral("DBC Blinker LED");
+    de[QStringLiteral("menuDbcBlinkerLed")] = QStringLiteral("DBC-Blinker-LED");
+
     en[QStringLiteral("menuOffline")] = QStringLiteral("Offline");
     de[QStringLiteral("menuOffline")] = QStringLiteral("Offline");
 
@@ -211,9 +220,6 @@ void Translations::initStrings()
 
     en[QStringLiteral("menuMapAutoDownload")] = QStringLiteral("Auto-download Maps");
     de[QStringLiteral("menuMapAutoDownload")] = QStringLiteral("Karten auto. laden");
-
-    en[QStringLiteral("menuOnlineOsm")] = QStringLiteral("Online (OpenStreetMap)");
-    de[QStringLiteral("menuOnlineOsm")] = QStringLiteral("Online (OpenStreetMap)");
 
     // -----------------------------------------------------------------------
     // Menu headers
@@ -270,6 +276,23 @@ void Translations::initStrings()
 
     en[QStringLiteral("hopOnLearnHint")] = QStringLiteral("Saves 5 s after the last press. Touch nothing to abort.");
     de[QStringLiteral("hopOnLearnHint")] = QStringLiteral("Speichert 5 s nach dem letzten Druck. Nichts berühren = abbrechen.");
+
+    en[QStringLiteral("hopOnInfoTitle")] = QStringLiteral("Hop On / Hop Off");
+    de[QStringLiteral("hopOnInfoTitle")] = QStringLiteral("Hop-on / Hop-off");
+
+    en[QStringLiteral("hopOnInfoBody1")] = QStringLiteral(
+        "Lock and unlock the scooter with a custom combo on the brakes, horn, "
+        "blinker switch, and seatbox button.");
+    de[QStringLiteral("hopOnInfoBody1")] = QStringLiteral(
+        "Sperre und entsperre den Scooter mit einer eigenen Kombi aus Bremsen, "
+        "Hupe, Blinker und Sitzfachknopf.");
+
+    en[QStringLiteral("hopOnInfoBody2")] = QStringLiteral(
+        "Tap Start, then press your sequence. It saves 5 seconds after the "
+        "last press. Press nothing to back out.");
+    de[QStringLiteral("hopOnInfoBody2")] = QStringLiteral(
+        "Auf Start tippen, dann die Sequenz drücken. Nach 5 Sekunden Pause "
+        "ist sie gespeichert. Nichts drücken bricht ab.");
 
     en[QStringLiteral("hopOnLockedTitle")] = QStringLiteral("Hop-on active");
     de[QStringLiteral("hopOnLockedTitle")] = QStringLiteral("Hop-on aktiv");

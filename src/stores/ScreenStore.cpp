@@ -86,3 +86,14 @@ void ScreenStore::confirmUpdateMode()
     emit umsModeRequested();
     setScreen(static_cast<int>(m_screenBeforeUpdateModeInfo));
 }
+
+void ScreenStore::showHopOnInfo()
+{
+    m_screenBeforeHopOnInfo = m_currentScreen;
+    setScreen(static_cast<int>(ScootEnums::ScreenMode::HopOnInfo));
+}
+
+void ScreenStore::closeHopOnInfo()
+{
+    setScreen(static_cast<int>(m_screenBeforeHopOnInfo));
+}
