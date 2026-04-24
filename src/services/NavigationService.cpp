@@ -309,13 +309,51 @@ QVariantMap NavigationService::currentRoundaboutRender() const
         path.append(QVariant(p));
     }
 
+    // On-ring arc points separately, so QML can filter the surrounding
+    // street geometry to only roads whose endpoints touch the ring.
+    QVariantList arcPath;
+    arcPath.reserve(arcPoints.size());
+    double ringRadius = 0.0;
+    const double cosLatC2 = std::cos(centerLat * M_PI / 180.0);
+    for (const auto &pt : arcPoints) {
+        QVariantList p;
+        p << pt.latitude << pt.longitude;
+        arcPath.append(QVariant(p));
+        const double dE = (pt.longitude - centerLon) * 111320.0 * cosLatC2;
+        const double dN = (pt.latitude - centerLat) * 111320.0;
+        const double r = std::hypot(dE, dN);
+        if (r > ringRadius) ringRadius = r;
+    }
+
     result[QStringLiteral("centerLat")] = centerLat;
     result[QStringLiteral("centerLon")] = centerLon;
-    // Always orient by the approach bearing so the icon stays stable from the
-    // Enter maneuver through the Exit maneuver (we'd otherwise rotate as the
-    // scooter tracks around the ring).
-    result[QStringLiteral("bearingDeg")] = m_route.instructions[enterInstrIdx].bearingBefore;
+    // Orient heading-up, like the main heading-up map: rotate so the forward
+    // direction along the approach road sits at screen-top, and the approach
+    // road itself runs vertically up the icon into the ring. Use the chord
+    // from pathStart to the entry node as "forward direction" — smoother than
+    // Valhalla's bearingBefore, which is the heading at the first on-ring
+    // segment and already curving into the ring.
+    double rotationDeg;
+    if (pathStart < enterIdx) {
+        const LatLng &back = m_route.waypoints[pathStart];
+        const LatLng &entryWp = m_route.waypoints[enterIdx];
+        const double cosLatC = std::cos(centerLat * M_PI / 180.0);
+        const double dE = (entryWp.longitude - back.longitude) * 111320.0 * cosLatC;
+        const double dN = (entryWp.latitude - back.latitude) * 111320.0;
+        if (std::hypot(dE, dN) > 1.0) {
+            rotationDeg = std::atan2(dE, dN) * 180.0 / M_PI;
+        } else {
+            rotationDeg = m_route.instructions[enterInstrIdx].bearingBefore;
+        }
+    } else {
+        rotationDeg = m_route.instructions[enterInstrIdx].bearingBefore;
+    }
+    while (rotationDeg < 0.0) rotationDeg += 360.0;
+    while (rotationDeg >= 360.0) rotationDeg -= 360.0;
+    result[QStringLiteral("bearingDeg")] = rotationDeg;
     result[QStringLiteral("path")] = path;
+    result[QStringLiteral("arcPath")] = arcPath;
+    result[QStringLiteral("ringRadius")] = ringRadius;
     return result;
 }
 
