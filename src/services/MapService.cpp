@@ -422,8 +422,11 @@ void MapService::onGpsPositionChanged()
         m_gpsErrorLatitude = 0;
         m_gpsErrorLongitude = 0;
         m_isSnapping = false;
-    } else if (!stationary && error > SnapThreshold) {
-        // Large jump: animated snap over SnapAnimationDuration
+    } else if (!stationary && error > SnapThreshold
+               && !(m_navigation && (m_navigation->isOffRoute() || m_navigation->isRerouting()))) {
+        // Large jump while on-route: animated snap over SnapAnimationDuration.
+        // Off-route / rerouting windows fall through to gradual blending so
+        // the marker doesn't bounce between stale-route and real-GPS poses.
         m_isSnapping = true;
         m_snapProgress = 0;
         m_snapStartLat = m_drLatitude;
@@ -447,7 +450,7 @@ void MapService::onGpsPositionChanged()
     // us between nearby segments) and while off-route (the stale shape isn't
     // meaningful — DR uses straight-line projection during that window).
     if (!stationary && m_routeShape.size() >= 2 &&
-        !(m_navigation && m_navigation->isOffRoute())) {
+        !(m_navigation && (m_navigation->isOffRoute() || m_navigation->isRerouting()))) {
         double speedKmh = m_engine->speed();
         bool haveTrajectory = speedKmh >= MinSpeedForTrajectoryKmh;
         double trajectoryBearing = m_displayBearing;
@@ -797,13 +800,15 @@ void MapService::onDeadReckoningTick()
         // globally-nearest segment selection, often *behind* the rider. Until
         // the reroute lands with a new shape, fall back to straight-line DR.
         bool haveRouteShape = !m_routeShape.isEmpty() && m_currentRouteSegment >= 0;
-        bool useRouteShape = haveRouteShape && !m_navigation->isOffRoute();
+        bool useRouteShape = haveRouteShape && !m_navigation->isOffRoute()
+                                             && !m_navigation->isRerouting();
 
         if (useRouteShape) {
             projectPositionAlongRoute(distMeters);
         } else {
-            double heading = m_gps->course();
-            projectPositionStraight(distMeters, heading);
+            // Use the smoothed display bearing rather than raw GPS course so DR
+            // doesn't drift along a stale heading if the GPS fix is old.
+            projectPositionStraight(distMeters, m_displayBearing);
         }
 
         // ----- GPS correction blending (only when GPS fix is recent) -----
@@ -1112,6 +1117,11 @@ void MapService::updateBearing(double dt)
                    && !m_navigation->isOffRoute();
     bool hasFix = m_gps->hasRecentFix();
     double gpsCourse = m_gps->course();
+
+    // Off-route with a stale GPS fix: nothing to steer by. Hold the last
+    // smoothed bearing rather than snapping to a stale gpsCourse.
+    if (!onRoute && !hasFix)
+        return;
 
     double rawHeading;
     if (onRoute && !hasFix) {

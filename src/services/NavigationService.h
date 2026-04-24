@@ -21,6 +21,7 @@ class NavigationService : public QObject
     // Navigation status
     Q_PROPERTY(int status READ status NOTIFY statusChanged)
     Q_PROPERTY(bool isNavigating READ isNavigating NOTIFY statusChanged)
+    Q_PROPERTY(bool isRerouting READ isRerouting NOTIFY statusChanged)
     Q_PROPERTY(bool hasRoute READ hasRoute NOTIFY routeChanged)
     Q_PROPERTY(QString errorMessage READ errorMessage NOTIFY errorChanged)
 
@@ -63,6 +64,7 @@ public:
 
     int status() const { return static_cast<int>(m_status); }
     bool isNavigating() const { return m_status == NavigationStatus::Navigating; }
+    bool isRerouting() const { return m_status == NavigationStatus::Rerouting; }
     bool hasRoute() const { return m_route.isValid(); }
     QString errorMessage() const { return m_errorMessage; }
 
