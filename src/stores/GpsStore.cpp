@@ -8,12 +8,14 @@ GpsStore::GpsStore(MdbRepository *repo, QObject *parent)
 SyncSettings GpsStore::syncSettings() const
 {
     return SyncSettings{
-        // Poll twice per second so the age compensation in MapService has a
-        // smaller consumer-side phase-lag residual to project over. Receiver
-        // NMEA buffer is still the dominant latency component (~300 ms);
-        // polling faster than the modem's 1 Hz publish rate just trims the
-        // poll phase from up-to-1 s to up-to-500 ms.
-        QStringLiteral("gps"), 500,
+        // Poll at 4 Hz. modem-service publishes GPS at 1 Hz, so polling
+        // faster than the source bounds consumer-side phase lag at ~250 ms
+        // worst case (125 ms average). The receiver NMEA buffer (~300 ms)
+        // then dominates, and the input-side age compensation in MapService
+        // projects over the combined residual — a smaller extrapolation
+        // than at lower poll rates gives a cleaner correction.
+        // HGETALL on the local Redis socket at 4 Hz is negligible load.
+        QStringLiteral("gps"), 250,
         {
             {QStringLiteral("latitude"), QStringLiteral("latitude")},
             {QStringLiteral("longitude"), QStringLiteral("longitude")},
