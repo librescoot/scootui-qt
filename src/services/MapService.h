@@ -169,7 +169,13 @@ private:
 
     // Dead reckoning
     static constexpr double TickIntervalMs = 66.0;
-    static constexpr double LatencyCompensationSec = 0.15;
+    // Output-side compensation covers only render-path latency now that the
+    // GPS sample itself is age-corrected on input. Was 0.15 s.
+    static constexpr double LatencyCompensationSec = 0.05;
+    // SIMcom NMEA receiver buffer — approximate fix age between receiver
+    // measurement and modem-service publish. Added to the consumer-side age
+    // from GpsStore::timestampAgeMs to estimate the actual fix age.
+    static constexpr double GpsReceiverBufferMs = 300.0;
 
     // Odometer-primary DR: odometer (100 m steps, meters) is the truth.
     // Speed acts as feedforward between odometer edges; a bounded catchup

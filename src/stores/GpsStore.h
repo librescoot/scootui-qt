@@ -67,6 +67,13 @@ public:
             && m_timestampAge.elapsed() <= RecentFixThresholdMs;
     }
 
+    // Milliseconds since we last saw a new GPS timestamp field. Does NOT
+    // include receiver-side NMEA buffering — callers who want an estimate
+    // of the fix age should add that buffer themselves.
+    qint64 timestampAgeMs() const {
+        return m_timestampAge.isValid() ? m_timestampAge.elapsed() : 0;
+    }
+
     static constexpr qint64 RecentFixThresholdMs = 20000;
 
 signals:

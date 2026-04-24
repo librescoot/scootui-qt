@@ -406,14 +406,25 @@ void MapService::onGpsPositionChanged()
         return;
     }
 
-    // Compute GPS error (distance from DR position to new GPS fix)
-    double error = haversineDistance(m_drLatitude, m_drLongitude, gpsLat, gpsLng);
-
-    // While ECU reports stationary, GPS jitter would drag DR off the true
-    // position. Only accept GPS input that's big enough to be a real teleport
-    // (vehicle moved while DR was paused, app resume, etc.).
     double ecuSpeedMs = m_engine->speed() * (1000.0 / 3600.0);
     bool stationary = ecuSpeedMs < StationarySpeedMs;
+
+    // Input-side age compensation: the GPS fix represents where the rider
+    // WAS some time ago (receiver NMEA buffer + consumer age). Project it
+    // forward along the smoothed display bearing so subsequent blending
+    // pulls DR toward "where GPS thinks we are NOW" rather than backwards
+    // in time. Skip while stationary — integrating noise just drifts DR.
+    if (!stationary) {
+        double ageMs = static_cast<double>(m_gps->timestampAgeMs()) + GpsReceiverBufferMs;
+        if (ageMs > 0) {
+            projectForward(gpsLat, gpsLng, m_displayBearing,
+                           ecuSpeedMs * (ageMs / 1000.0),
+                           gpsLat, gpsLng);
+        }
+    }
+
+    // Compute GPS error (distance from DR position to compensated GPS fix)
+    double error = haversineDistance(m_drLatitude, m_drLongitude, gpsLat, gpsLng);
 
     if (error > SnapUpperThreshold) {
         // Extreme error: immediate reset
