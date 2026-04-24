@@ -200,6 +200,11 @@ ApplicationWindow {
                     onClicked: simulator.loadTestRoute(3)
                 }
                 SimButton {
+                    text: "Bersarinplatz (roundabout)"
+                    Layout.fillWidth: true
+                    onClicked: simulator.loadTestRoute(4)
+                }
+                SimButton {
                     text: "Clear Route"
                     Layout.fillWidth: true
                     color: "#f44336"
