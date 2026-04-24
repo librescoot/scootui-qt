@@ -4,13 +4,13 @@
 #include <QTimer>
 #include <QElapsedTimer>
 #include "routing/RouteModels.h"
+#include "routing/ValhallaClient.h"
 
 class GpsStore;
 class NavigationStore;
 class VehicleStore;
 class SettingsStore;
 class SpeedLimitStore;
-class ValhallaClient;
 class MdbRepository;
 class MapService;
 
@@ -117,11 +117,11 @@ private slots:
     void onVehicleStateChanged();
     void onRouteCalculated(const Route &route);
     void onRouteError(const QString &error);
+    void onRequestRejected(ValhallaClient::Reason reason,
+                           ValhallaClient::RejectionCause cause);
     void onVehiclePositionChanged();
 
 private:
-    void calculateRoute();
-    void reroute();
     void updateNavigationState();
     void setStatus(NavigationStatus status);
     LatLng currentPosition() const;     // DR position when available, else raw GPS
@@ -133,7 +133,6 @@ private:
     static constexpr double OffRouteTolerance = 60.0;
     static constexpr double OnRouteTolerance = 35.0;
     static constexpr double ShutdownProximity = 250.0;
-    static constexpr int RerouteCooldownMs = 15000;
 
     GpsStore *m_gps;
     NavigationStore *m_nav;
@@ -164,8 +163,6 @@ private:
     LatLng m_snappedPosition;
     int m_currentSegmentIndex = 0;
 
-    QElapsedTimer m_lastRerouteTime;
-    int m_rateLimitBackoffMs = 0;
     bool m_wasArrived = false;
 
     QTimer *m_navDataDebounce = nullptr;

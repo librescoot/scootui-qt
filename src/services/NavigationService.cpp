@@ -45,12 +45,8 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
             this, &NavigationService::onRouteCalculated);
     connect(m_valhalla, &ValhallaClient::routeError,
             this, &NavigationService::onRouteError);
-    connect(m_valhalla, &ValhallaClient::rateLimited, this, [this]() {
-        // Back off for 60s on 429 to avoid hammering the server
-        m_lastRerouteTime.restart();
-        m_rateLimitBackoffMs = qMin(qMax(m_rateLimitBackoffMs * 2, 30000), 120000);
-        qDebug() << "Rate limited, backing off for" << m_rateLimitBackoffMs << "ms";
-    });
+    connect(m_valhalla, &ValhallaClient::requestRejected,
+            this, &NavigationService::onRequestRejected);
 
     // Listen to GPS updates
     connect(gps, &GpsStore::latitudeChanged, this, &NavigationService::onGpsChanged);
@@ -84,11 +80,12 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
     // Listen to language changes — recalculate route to get translated directions
     connect(settings, &SettingsStore::languageChanged, this, [this]() {
         m_valhalla->setLanguage(m_settings->language());
-        if (isNavigating())
-            calculateRoute();
+        if (isNavigating() && hasValidGps() && m_destination.isValid()) {
+            m_valhalla->requestRoute(currentGpsPosition(), m_destination,
+                                     ValhallaClient::Reason::LanguageChange);
+        }
     });
 
-    m_lastRerouteTime.start();
     m_lastDrUpdate.start();
 }
 
@@ -254,11 +251,22 @@ void NavigationService::setDestination(double lat, double lng, const QString &ad
                 QString::number(lng, 'f', 6));
     m_repo->publish(QStringLiteral("navigation"), QStringLiteral("updated"));
 
-    calculateRoute();
+    if (!hasValidGps()) {
+        qDebug() << "NavigationService: waiting for GPS fix before calculating route";
+        return;
+    }
+    LatLng from = currentGpsPosition();
+    if (!from.isValid()) {
+        qDebug() << "NavigationService: GPS position is (0,0)";
+        return;
+    }
+    setStatus(NavigationStatus::Calculating);
+    m_valhalla->requestRoute(from, m_destination, ValhallaClient::Reason::Destination);
 }
 
 void NavigationService::clearNavigation()
 {
+    m_valhalla->cancelPending();
     m_route = Route();
     m_destination = {};
     m_destAddress.clear();
@@ -323,7 +331,11 @@ void NavigationService::onGpsChanged()
             if (dist < ArrivalProximity) {
                 clearNavigation();
             } else {
-                calculateRoute();
+                LatLng from = currentGpsPosition();
+                if (from.isValid()) {
+                    m_valhalla->requestRoute(from, m_destination,
+                                             ValhallaClient::Reason::Recovery);
+                }
             }
         }
     }
@@ -365,7 +377,12 @@ void NavigationService::onNavigationDataChanged()
     emit destinationChanged();
 
     if (hasValidGps()) {
-        calculateRoute();
+        LatLng from = currentGpsPosition();
+        if (from.isValid()) {
+            setStatus(NavigationStatus::Calculating);
+            m_valhalla->requestRoute(from, m_destination,
+                                     ValhallaClient::Reason::Destination);
+        }
     } else {
         qDebug() << "NavigationService: waiting for GPS fix before calculating route";
     }
@@ -421,49 +438,28 @@ void NavigationService::onRouteError(const QString &error)
     qWarning() << "NavigationService: route error -" << error;
 }
 
+void NavigationService::onRequestRejected(ValhallaClient::Reason reason,
+                                           ValhallaClient::RejectionCause cause)
+{
+    const bool userReason =
+        reason == ValhallaClient::Reason::Initial ||
+        reason == ValhallaClient::Reason::Destination ||
+        reason == ValhallaClient::Reason::LanguageChange;
+
+    if (userReason && cause == ValhallaClient::RejectionCause::RateLimited) {
+        m_errorMessage = QStringLiteral("Too many routing requests");
+        setStatus(NavigationStatus::Error);
+        emit errorChanged();
+        return;
+    }
+
+    // Auto rejections (Reroute/Recovery) silently drop; the next trigger
+    // (GPS edge, DR tick) will retry when the gate reopens.
+    qDebug() << "NavigationService: request rejected reason=" << static_cast<int>(reason)
+             << "cause=" << static_cast<int>(cause);
+}
+
 // --- Internal ---
-
-void NavigationService::calculateRoute()
-{
-    if (!m_destination.isValid()) {
-        qWarning() << "NavigationService::calculateRoute: invalid destination"
-                    << m_destination.latitude << m_destination.longitude;
-        return;
-    }
-
-    if (!hasValidGps()) {
-        qDebug() << "NavigationService: no recent GPS fix — gpsState:" << m_gps->gpsState()
-                 << "lat:" << m_gps->latitude() << "lng:" << m_gps->longitude()
-                 << "timestamp:" << m_gps->timestamp();
-        return;
-    }
-
-    LatLng from = currentGpsPosition();
-    if (!from.isValid()) {
-        qDebug() << "NavigationService: GPS position is (0,0)";
-        return;
-    }
-
-    qDebug() << "NavigationService: calculating route from"
-             << from.latitude << from.longitude << "to"
-             << m_destination.latitude << m_destination.longitude;
-    setStatus(NavigationStatus::Calculating);
-    m_valhalla->calculateRoute(from, m_destination);
-}
-
-void NavigationService::reroute()
-{
-    int cooldown = qMax(RerouteCooldownMs, m_rateLimitBackoffMs);
-    if (m_lastRerouteTime.elapsed() < cooldown) return;
-    m_lastRerouteTime.restart();
-    m_rateLimitBackoffMs = 0;
-
-    qDebug() << "NavigationService: rerouting (off-route)";
-    setStatus(NavigationStatus::Rerouting);
-
-    LatLng from = currentGpsPosition();
-    m_valhalla->calculateRoute(from, m_destination);
-}
 
 void NavigationService::updateNavigationState()
 {
@@ -522,9 +518,16 @@ void NavigationService::updateNavigationState()
         m_isOffRoute = distFromRoute > OffRouteTolerance;
     }
 
-    // Reroute while off-route — reroute() enforces cooldown and handles hung requests
+    // Reroute while off-route — ValhallaClient enforces cooldown/backoff.
+    // Status flips to Rerouting regardless of accept; if the client rejects,
+    // onRequestRejected handles the error path.
     if (m_isOffRoute) {
-        reroute();
+        LatLng from = currentGpsPosition();
+        if (from.isValid() && m_destination.isValid()) {
+            m_valhalla->requestRoute(from, m_destination,
+                                     ValhallaClient::Reason::Reroute);
+            setStatus(NavigationStatus::Rerouting);
+        }
     } else if (!m_isOffRoute && m_status == NavigationStatus::Error) {
         setStatus(NavigationStatus::Navigating);
     }
