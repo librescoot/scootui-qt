@@ -34,6 +34,8 @@ class MapService : public QObject
     Q_PROPERTY(int currentRouteSegment READ currentRouteSegment NOTIFY routeProjectionChanged)
     Q_PROPERTY(double snappedLatitude READ snappedLatitude NOTIFY routeProjectionChanged)
     Q_PROPERTY(double snappedLongitude READ snappedLongitude NOTIFY routeProjectionChanged)
+    Q_PROPERTY(double segmentSnappedLatitude READ segmentSnappedLatitude NOTIFY routeProjectionChanged)
+    Q_PROPERTY(double segmentSnappedLongitude READ segmentSnappedLongitude NOTIFY routeProjectionChanged)
     Q_PROPERTY(double distanceFromRoute READ distanceFromRoute NOTIFY routeProjectionChanged)
 
 public:
@@ -68,9 +70,15 @@ public:
     // matched to (not just geometrically nearest — trajectory-aware, so
     // opposite-direction close-by segments don't pull us back on U-turns).
     // -1 when no route or off-route.
+    // snappedLatitude/Longitude = global-nearest projection across all route
+    // segments (used for off-route hysteresis and the distFromRoute value).
+    // segmentSnappedLatitude/Longitude = projection onto the matcher's
+    // current segment specifically (used for TBT along-route distance).
     int currentRouteSegment() const { return m_currentRouteSegment; }
     double snappedLatitude() const { return m_snappedLat; }
     double snappedLongitude() const { return m_snappedLng; }
+    double segmentSnappedLatitude() const { return m_segmentSnappedLat; }
+    double segmentSnappedLongitude() const { return m_segmentSnappedLng; }
     double distanceFromRoute() const { return m_distFromRoute; }
 
     void setRouteWaypoints(const QVariantList &waypoints);
@@ -271,6 +279,8 @@ private:
     double m_snappedLat = 0;
     double m_snappedLng = 0;
     double m_distFromRoute = 0;
+    double m_segmentSnappedLat = 0;
+    double m_segmentSnappedLng = 0;
 
     // Odometer-primary DR bookkeeping
     bool m_odoSeeded = false;

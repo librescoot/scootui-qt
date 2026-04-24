@@ -486,7 +486,7 @@ void NavigationService::updateNavigationState()
         m_map->currentRouteSegment() >= 0) {
         segIdx = m_map->currentRouteSegment();
         distFromRoute = m_map->distanceFromRoute();
-        m_snappedPosition = {m_map->snappedLatitude(), m_map->snappedLongitude()};
+        m_snappedPosition = {m_map->segmentSnappedLatitude(), m_map->segmentSnappedLongitude()};
     } else {
         auto [snapped, idx, dist] =
             RouteHelpers::findClosestPointOnRoute(pos, m_route.waypoints);

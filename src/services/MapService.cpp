@@ -1278,10 +1278,14 @@ void MapService::refreshRouteProjection()
     if (m_routeShape.size() < 2) {
         // No route — clear projection
         bool changed = (m_lastEmittedSegment != -1 ||
-                        m_lastEmittedDistFromRoute != 0);
+                        m_lastEmittedDistFromRoute != 0 ||
+                        m_segmentSnappedLat != 0 ||
+                        m_segmentSnappedLng != 0);
         m_snappedLat = 0;
         m_snappedLng = 0;
         m_distFromRoute = 0;
+        m_segmentSnappedLat = 0;
+        m_segmentSnappedLng = 0;
         if (changed) {
             m_lastEmittedSegment = -1;
             m_lastEmittedSnapLat = 0;
@@ -1319,6 +1323,27 @@ void MapService::refreshRouteProjection()
     m_snappedLat = sLat;
     m_snappedLng = sLng;
     m_distFromRoute = dist;
+
+    // Segment-aligned projection: snap DR position onto the matcher's current
+    // segment specifically (not the geometrically nearest). NavigationService
+    // uses this for the along-route walker so that TBT distance-to-next-turn
+    // stays consistent with the segment index even when the matcher and the
+    // global-nearest disagree (HWM gate, direction penalty, post-reroute).
+    if (m_currentRouteSegment >= 0 &&
+        m_currentRouteSegment + 1 < m_routeShape.size()) {
+        const auto &A = m_routeShape[m_currentRouteSegment];
+        const auto &B = m_routeShape[m_currentRouteSegment + 1];
+        double segLat, segLng, segDist;
+        projectOntoSegment(m_drLatitude, m_drLongitude,
+                           A.first, A.second, B.first, B.second,
+                           segLat, segLng, segDist);
+        m_segmentSnappedLat = segLat;
+        m_segmentSnappedLng = segLng;
+        (void)segDist;
+    } else {
+        m_segmentSnappedLat = m_drLatitude;
+        m_segmentSnappedLng = m_drLongitude;
+    }
 
     // Emit only if the change is meaningful (segment change or snap-pos
     // moved > SnappedPosEpsilon meters or distFromRoute shifted > epsilon).
