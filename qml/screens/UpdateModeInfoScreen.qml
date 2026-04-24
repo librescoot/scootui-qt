@@ -32,114 +32,133 @@ Rectangle {
         function onRightTap() { updateModeScreen.confirmEnter() }
     }
 
-    ColumnLayout {
+    Column {
         anchors.fill: parent
-        spacing: 0
 
         TopStatusBar {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 40
+            id: topBar
+            width: parent.width
+            height: 40
         }
 
-        Item { Layout.preferredWidth: 1; Layout.preferredHeight: 12 }
+        // Scrollable body — Flickable sits between the top bar and the
+        // fixed footer so long translations can overflow without shoving
+        // the control hints off the bottom of the screen.
+        Flickable {
+            id: flickable
+            width: parent.width
+            height: parent.height - topBar.height - footer.height
+            contentHeight: bodyColumn.implicitHeight
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
 
-        Text {
-            Layout.alignment: Qt.AlignHCenter
-            text: typeof translations !== "undefined"
-                  ? translations.updateModeTitle : "Update Mode"
-            color: updateModeScreen.textPrimary
-            font.pixelSize: themeStore.fontTitle
-            font.weight: Font.Bold
+            Column {
+                id: bodyColumn
+                width: flickable.width
+                spacing: 8
+
+                Item { width: 1; height: 12 }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: typeof translations !== "undefined"
+                          ? translations.updateModeTitle : "Update Mode"
+                    color: updateModeScreen.textPrimary
+                    font.pixelSize: themeStore.fontTitle
+                    font.weight: Font.Bold
+                }
+
+                Item { width: 1; height: 4 }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: flickable.width - 48
+                    text: typeof translations !== "undefined"
+                          ? translations.updateModeBody1
+                          : "Update Mode lets you install updates offline, read logs, and change settings."
+                    color: updateModeScreen.textPrimary
+                    font.pixelSize: themeStore.fontBody
+                    lineHeight: 1.3
+                    lineHeightMode: Text.ProportionalHeight
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: flickable.width - 48
+                    text: typeof translations !== "undefined"
+                          ? translations.updateModeBody2 : ""
+                    color: updateModeScreen.textSecondary
+                    font.pixelSize: themeStore.fontCaption
+                    lineHeight: 1.3
+                    lineHeightMode: Text.ProportionalHeight
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: flickable.width - 48
+                    text: typeof translations !== "undefined"
+                          ? translations.updateModeBody3 : ""
+                    color: updateModeScreen.textSecondary
+                    font.pixelSize: themeStore.fontCaption
+                    lineHeight: 1.3
+                    lineHeightMode: Text.ProportionalHeight
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                }
+
+                Item { width: 1; height: 4 }
+
+                Image {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    source: "qrc:/ScootUI/assets/icons/ums-docs-qr.png"
+                    sourceSize.width: 110
+                    sourceSize.height: 110
+                    width: 110
+                    height: 110
+                    visible: status === Image.Ready
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: typeof translations !== "undefined"
+                          ? translations.updateModeScanHint : "Scan for full instructions"
+                    color: updateModeScreen.textSecondary
+                    font.pixelSize: themeStore.fontMicro
+                }
+
+                Item { width: 1; height: 8 }
+            }
         }
 
-        Item { Layout.preferredWidth: 1; Layout.preferredHeight: 12 }
-
-        Text {
-            Layout.alignment: Qt.AlignHCenter
-            Layout.leftMargin: 24
-            Layout.rightMargin: 24
-            Layout.maximumWidth: parent.width - 48
-            text: typeof translations !== "undefined"
-                  ? translations.updateModeBody1
-                  : "Update Mode lets you install updates offline, read logs, and change settings."
-            color: updateModeScreen.textPrimary
-            font.pixelSize: themeStore.fontBody
-            lineHeight: 1.3
-            lineHeightMode: Text.ProportionalHeight
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-        }
-
-        Item { Layout.preferredWidth: 1; Layout.preferredHeight: 8 }
-
-        Text {
-            Layout.alignment: Qt.AlignHCenter
-            Layout.leftMargin: 24
-            Layout.rightMargin: 24
-            Layout.maximumWidth: parent.width - 48
-            text: typeof translations !== "undefined"
-                  ? translations.updateModeBody2 : ""
-            color: updateModeScreen.textSecondary
-            font.pixelSize: themeStore.fontCaption
-            lineHeight: 1.3
-            lineHeightMode: Text.ProportionalHeight
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-        }
-
-        Item { Layout.preferredWidth: 1; Layout.preferredHeight: 8 }
-
-        Text {
-            Layout.alignment: Qt.AlignHCenter
-            Layout.leftMargin: 24
-            Layout.rightMargin: 24
-            Layout.maximumWidth: parent.width - 48
-            text: typeof translations !== "undefined"
-                  ? translations.updateModeBody3 : ""
-            color: updateModeScreen.textSecondary
-            font.pixelSize: themeStore.fontCaption
-            lineHeight: 1.3
-            lineHeightMode: Text.ProportionalHeight
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-        }
-
-        Item { Layout.fillHeight: true; Layout.maximumHeight: 12 }
-
-        Image {
-            Layout.alignment: Qt.AlignHCenter
-            source: "qrc:/ScootUI/assets/icons/ums-docs-qr.png"
-            sourceSize.width: 110
-            sourceSize.height: 110
-            width: 110
-            height: 110
-            visible: status === Image.Ready
-        }
-
-        Item { Layout.preferredWidth: 1; Layout.preferredHeight: 4 }
-
-        Text {
-            Layout.alignment: Qt.AlignHCenter
-            text: typeof translations !== "undefined"
-                  ? translations.updateModeScanHint : "Scan for full instructions"
-            color: updateModeScreen.textSecondary
-            font.pixelSize: themeStore.fontMicro
-        }
-
-        Item { Layout.preferredWidth: 1; Layout.preferredHeight: 8 }
-
+        // Non-scrolling footer. Divider + ControlHints are pinned above the
+        // bottom edge so the rider always sees the brake bindings.
         Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 1
-            color: updateModeScreen.dividerColor
-        }
+            id: footer
+            width: parent.width
+            height: controlHints.height + 1
+            color: updateModeScreen.isDark ? "black" : "white"
 
-        ControlHints {
-            Layout.fillWidth: true
-            leftAction: typeof translations !== "undefined"
-                        ? translations.controlBack : "Back"
-            rightAction: typeof translations !== "undefined"
-                         ? translations.updateModeStart : "Start"
+            Rectangle {
+                anchors.top: parent.top
+                width: parent.width
+                height: 1
+                color: updateModeScreen.dividerColor
+            }
+
+            ControlHints {
+                id: controlHints
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                leftAction: typeof translations !== "undefined"
+                            ? translations.controlBack : "Back"
+                rightAction: typeof translations !== "undefined"
+                             ? translations.updateModeStart : "Start"
+            }
         }
     }
 }
