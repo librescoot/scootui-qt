@@ -125,6 +125,8 @@ private slots:
 
 private:
     void updateNavigationState();
+    void updateVerbalStage(const RouteInstruction &first);
+    void updateNextPreviewState();
     void setStatus(NavigationStatus status);
     LatLng currentPosition() const;     // DR position when available, else raw GPS
     LatLng currentGpsPosition() const;  // raw GPS only (for rerouting)
@@ -135,6 +137,15 @@ private:
     static constexpr double OffRouteTolerance = 60.0;
     static constexpr double OnRouteTolerance = 35.0;
     static constexpr double ShutdownProximity = 250.0;
+
+    // Verbal-instruction stage thresholds. Hysteresis bands prevent
+    // text-flip oscillation when DR distance jitters around a boundary.
+    static constexpr double VerbalAlertEnter   = 310.0;   // pre -> alert when distance >= this
+    static constexpr double VerbalAlertExit    = 290.0;   // alert -> pre when distance <= this
+    static constexpr double VerbalSuccinctEnter = 47.0;   // pre -> succinct when distance <= this
+    static constexpr double VerbalSuccinctExit  = 53.0;   // succinct -> pre when distance >= this
+    static constexpr double NextPreviewShow    = 290.0;   // show preview when next distance <= this
+    static constexpr double NextPreviewHide    = 310.0;   // hide preview when next distance >= this
 
     GpsStore *m_gps;
     NavigationStore *m_nav;
@@ -166,6 +177,13 @@ private:
     int m_currentSegmentIndex = 0;
 
     bool m_wasArrived = false;
+
+    // TBT stage hysteresis: reset whenever the leading maneuver changes.
+    //   0 = alert (>300m), 1 = pre-transition, 2 = succinct (<=50m)
+    int m_currentVerbalStage = 0;
+    int m_currentVerbalInstrShapeIdx = -1;
+    bool m_nextPreviewShown = false;
+    int m_nextPreviewInstrShapeIdx = -1;
 
     QTimer *m_navDataDebounce = nullptr;
 };

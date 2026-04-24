@@ -150,14 +150,15 @@ QString NavigationService::currentVerbalInstruction() const
     if (m_upcomingInstructions.isEmpty()) return {};
     const auto &instr = m_upcomingInstructions.first();
 
-    // Choose verbal instruction based on distance
-    if (instr.distance > 300)
-        return instr.verbalAlertInstruction;
-    if (instr.distance > 50)
-        return instr.verbalPreTransitionInstruction;
-    return instr.verbalSuccinctInstruction.isEmpty()
-               ? instr.instructionText
-               : instr.verbalSuccinctInstruction;
+    // Stage is advanced by updateVerbalStage(); read it here.
+    switch (m_currentVerbalStage) {
+    case 0: return instr.verbalAlertInstruction;
+    case 1: return instr.verbalPreTransitionInstruction;
+    default:
+        return instr.verbalSuccinctInstruction.isEmpty()
+                   ? instr.instructionText
+                   : instr.verbalSuccinctInstruction;
+    }
 }
 
 QString NavigationService::currentInstructionText() const
@@ -201,9 +202,8 @@ bool NavigationService::hasNextInstruction() const
 bool NavigationService::showNextPreview() const
 {
     if (m_upcomingInstructions.size() < 2) return false;
-    const auto &next = m_upcomingInstructions[1];
-    // Show preview if next maneuver is within 300m and not multi-cue
-    return next.distance < 300 && !m_upcomingInstructions.first().verbalMultiCue;
+    // State flipped by updateNextPreviewState(); multi-cue suppresses.
+    return m_nextPreviewShown && !m_upcomingInstructions.first().verbalMultiCue;
 }
 
 double NavigationService::remainingDuration() const
@@ -552,6 +552,12 @@ void NavigationService::updateNavigationState()
         emit instructionChanged();
     }
 
+    // Update verbal-stage and next-preview hysteresis state before any
+    // property reader observes the instruction change.
+    if (!m_upcomingInstructions.isEmpty())
+        updateVerbalStage(m_upcomingInstructions.first());
+    updateNextPreviewState();
+
     // Remaining duration = (time to reach the next maneuver at the CURRENT
     // segment's speed) + (full durations of that maneuver and all after).
     // The current-segment speed is the one for the step we're traversing NOW
@@ -600,6 +606,53 @@ void NavigationService::setStatus(NavigationStatus status)
     if (m_status != status) {
         m_status = status;
         emit statusChanged();
+    }
+}
+
+void NavigationService::updateVerbalStage(const RouteInstruction &first)
+{
+    // Reset on maneuver change: seed the stage from the current distance
+    // against hard thresholds so we don't start in the wrong bucket.
+    if (first.originalShapeIndex != m_currentVerbalInstrShapeIdx) {
+        m_currentVerbalInstrShapeIdx = first.originalShapeIndex;
+        if (first.distance > 300.0)       m_currentVerbalStage = 0;
+        else if (first.distance > 50.0)   m_currentVerbalStage = 1;
+        else                              m_currentVerbalStage = 2;
+        return;
+    }
+
+    const double d = first.distance;
+    switch (m_currentVerbalStage) {
+    case 0: // alert
+        if (d <= VerbalAlertExit) m_currentVerbalStage = 1;
+        break;
+    case 1: // pre-transition
+        if (d <= VerbalSuccinctEnter)       m_currentVerbalStage = 2;
+        else if (d >= VerbalAlertEnter)     m_currentVerbalStage = 0;
+        break;
+    case 2: // succinct
+        if (d >= VerbalSuccinctExit) m_currentVerbalStage = 1;
+        break;
+    }
+}
+
+void NavigationService::updateNextPreviewState()
+{
+    if (m_upcomingInstructions.size() < 2) {
+        m_nextPreviewShown = false;
+        m_nextPreviewInstrShapeIdx = -1;
+        return;
+    }
+    const auto &next = m_upcomingInstructions[1];
+    if (next.originalShapeIndex != m_nextPreviewInstrShapeIdx) {
+        m_nextPreviewInstrShapeIdx = next.originalShapeIndex;
+        m_nextPreviewShown = next.distance < 300.0;
+        return;
+    }
+    if (m_nextPreviewShown) {
+        if (next.distance >= NextPreviewHide) m_nextPreviewShown = false;
+    } else {
+        if (next.distance <= NextPreviewShow) m_nextPreviewShown = true;
     }
 }
 
