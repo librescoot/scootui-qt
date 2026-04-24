@@ -20,11 +20,11 @@ Canvas {
 
         var cx = size / 2;
         var cy = size / 2;
-        var ringRadius = size * 0.27;
+        var ringRadius = size * 0.22;
         var ringWidth = size * 0.08;
-        var stubLength = size * 0.15;
-        var entryStubLength = size * 0.28;
-        var exitStubLength = size * 0.34;
+        var stubLength = size * 0.12;
+        var entryStubLength = size * 0.22;
+        var exitStubLength = size * 0.25;
         var stubWidth = size * 0.1;
 
         var activeColor = isDark ? "rgba(255,255,255,1.0)" : "rgba(51,51,51,1.0)";
