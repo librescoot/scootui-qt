@@ -15,7 +15,12 @@ Item {
     property real topInset: 0
     property real bottomInset: 0
 
-    visible: showLeft || showRight
+    // The fullscreen arrow is a riding aid — it should not paint over content
+    // screens (About, Update Mode, Faults, etc.) where the rider is parked.
+    // Main.qml binds this to (currentScreen ∈ {Cluster, Map}).
+    property bool screenAllowed: true
+
+    visible: screenAllowed && (showLeft || showRight)
 
     // Shared blink clock from VehicleStore (scaled to 0.8 max)
     readonly property real blinkOpacity: typeof vehicleStore !== "undefined"

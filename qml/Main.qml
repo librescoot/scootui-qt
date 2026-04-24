@@ -206,6 +206,8 @@ Window {
         topInset: 40
         bottomInset: screenLoader.item && typeof screenLoader.item.bottomBarHeight === "number"
                      ? screenLoader.item.bottomBarHeight : 48
+        screenAllowed: root.currentScreen === Scooter.ScreenMode.Cluster
+                       || root.currentScreen === Scooter.ScreenMode.Map
     }
 
     ToastOverlay {
