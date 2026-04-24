@@ -16,6 +16,7 @@ class SettingsService;
 class MdbRepository;
 class NavigationService;
 class SavedLocationsStore;
+class RecentDestinationsStore;
 class ScreenStore;
 class NavigationAvailabilityService;
 class InternetStore;
@@ -42,6 +43,7 @@ public:
 
     void setNavigationService(NavigationService *svc);
     void setSavedLocationsStore(SavedLocationsStore *store);
+    void setRecentDestinationsStore(RecentDestinationsStore *store);
     void setScreenStore(ScreenStore *store);
     void setNavigationAvailabilityService(NavigationAvailabilityService *svc);
     void setInternetStore(InternetStore *store);
@@ -85,6 +87,7 @@ private:
     MdbRepository *m_repo;
     NavigationService *m_navigationService = nullptr;
     SavedLocationsStore *m_savedLocations = nullptr;
+    RecentDestinationsStore *m_recentDestinations = nullptr;
     ScreenStore *m_screenStore = nullptr;
     NavigationAvailabilityService *m_navAvailability = nullptr;
     InternetStore *m_internet = nullptr;

@@ -6,6 +6,7 @@
 #include "TripStore.h"
 #include "ScreenStore.h"
 #include "SavedLocationsStore.h"
+#include "RecentDestinationsStore.h"
 #include "InternetStore.h"
 #include "HopOnStore.h"
 #include "FaultsStore.h"
@@ -79,6 +80,16 @@ void MenuStore::setSavedLocationsStore(SavedLocationsStore *store)
     m_savedLocations = store;
     if (m_savedLocations) {
         connect(m_savedLocations, &SavedLocationsStore::locationsChanged,
+                this, &MenuStore::rebuildMenuTree);
+    }
+    rebuildMenuTree();
+}
+
+void MenuStore::setRecentDestinationsStore(RecentDestinationsStore *store)
+{
+    m_recentDestinations = store;
+    if (m_recentDestinations) {
+        connect(m_recentDestinations, &RecentDestinationsStore::destinationsChanged,
                 this, &MenuStore::rebuildMenuTree);
     }
     rebuildMenuTree();
@@ -243,6 +254,52 @@ void MenuStore::rebuildMenuTree()
             close();
             if (m_screenStore) m_screenStore->setScreen(7); // AddressSelection
         }));
+
+    // Recent destinations submenu (nested under Navigation) — last 10
+    // destinations the rider has navigated to. Each gets a sub-submenu
+    // with Start Navigation / Save to favorites / Delete.
+    if (m_recentDestinations && m_recentDestinations->count() > 0) {
+        auto *recentNode = MenuNode::submenu(QStringLiteral("recent_destinations"),
+                                              tr->menuRecentDestinations());
+        navNode->addChild(recentNode);
+
+        auto dests = m_recentDestinations->destinations();
+        for (const auto &destVar : dests) {
+            auto dest = destVar.toMap();
+            int destId = dest[QStringLiteral("id")].toInt();
+            QString label = dest[QStringLiteral("label")].toString();
+            if (label.isEmpty())
+                label = QStringLiteral("%1, %2").arg(
+                    dest[QStringLiteral("latitude")].toDouble(), 0, 'f', 5).arg(
+                    dest[QStringLiteral("longitude")].toDouble(), 0, 'f', 5);
+
+            auto *destNode = MenuNode::submenu(
+                QStringLiteral("recent_dest_%1").arg(destId), label);
+            recentNode->addChild(destNode);
+
+            destNode->addChild(MenuNode::action(
+                QStringLiteral("start_recent_%1").arg(destId),
+                tr->menuStartNavigation(),
+                [this, destId]() {
+                    m_recentDestinations->navigateToRecent(destId);
+                    close();
+                }));
+
+            destNode->addChild(MenuNode::action(
+                QStringLiteral("save_recent_%1").arg(destId),
+                tr->menuSaveToFavorites(),
+                [this, destId]() {
+                    m_recentDestinations->promoteToSaved(destId);
+                }));
+
+            destNode->addChild(MenuNode::action(
+                QStringLiteral("delete_recent_%1").arg(destId),
+                tr->menuDeleteLocation(),
+                [this, destId]() {
+                    m_recentDestinations->deleteRecent(destId);
+                }));
+        }
+    }
 
     // Saved locations submenu (nested under Navigation)
     if (m_savedLocations) {

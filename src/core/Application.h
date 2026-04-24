@@ -19,6 +19,7 @@ class BluetoothHealthMonitor;
 class HandlebarLockMonitor;
 class NavigationAvailabilityService;
 class SavedLocationsService;
+class RecentDestinationsService;
 class SerialNumberService;
 class AddressDatabaseService;
 class SystemInfoService;
@@ -59,6 +60,7 @@ private:
     HandlebarLockMonitor *m_handlebarLockMonitor = nullptr;
     NavigationAvailabilityService *m_navAvailability = nullptr;
     SavedLocationsService *m_savedLocationsService = nullptr;
+    RecentDestinationsService *m_recentDestinationsService = nullptr;
     SerialNumberService *m_serialNumberService = nullptr;
     AddressDatabaseService *m_addressDatabaseService = nullptr;
     SystemInfoService *m_systemInfoService = nullptr;

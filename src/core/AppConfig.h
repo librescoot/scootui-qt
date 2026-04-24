@@ -31,6 +31,7 @@ struct AppConfig {
 
     // Settings keys
     static constexpr const char* savedLocationsPrefix = "dashboard.saved-locations";
+    static constexpr const char* recentDestinationsPrefix = "dashboard.recent-destinations";
     static constexpr const char* languageSettingKey = "dashboard.language";
     static constexpr const char* mapsAvailableKey = "dashboard.maps-available";
     static constexpr const char* navigationAvailableKey = "dashboard.navigation-available";

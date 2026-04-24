@@ -83,6 +83,7 @@ set(CPP_SOURCES
     src/stores/ConnectionStore.cpp
     src/stores/DashboardStore.cpp
     src/stores/SavedLocationsStore.cpp
+    src/stores/RecentDestinationsStore.cpp
     src/services/SettingsService.cpp
     src/services/AutoThemeService.cpp
     src/services/GestureSynth.cpp
@@ -95,6 +96,7 @@ set(CPP_SOURCES
     src/services/HandlebarLockMonitor.cpp
     src/services/NavigationAvailabilityService.cpp
     src/services/SavedLocationsService.cpp
+    src/services/RecentDestinationsService.cpp
     src/services/ReverseGeocodingService.cpp
     src/services/SerialNumberService.cpp
     src/services/AddressDatabaseService.cpp

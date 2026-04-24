@@ -509,6 +509,7 @@ void NavigationService::setDestination(double lat, double lng, const QString &ad
     m_destination = {lat, lng};
     m_destAddress = address;
     emit destinationChanged();
+    emit destinationRequested(lat, lng, address);
 
     // Write to Redis for other services
     QString timestamp = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);

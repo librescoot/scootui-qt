@@ -33,6 +33,7 @@
 #include "stores/ConnectionStore.h"
 #include "stores/DashboardStore.h"
 #include "stores/SavedLocationsStore.h"
+#include "stores/RecentDestinationsStore.h"
 #include "services/SettingsService.h"
 #include "services/AutoThemeService.h"
 #include "services/InputHandler.h"
@@ -44,6 +45,7 @@
 #include "services/HandlebarLockMonitor.h"
 #include "services/NavigationAvailabilityService.h"
 #include "services/SavedLocationsService.h"
+#include "services/RecentDestinationsService.h"
 #include "services/SerialNumberService.h"
 #include "services/AddressDatabaseService.h"
 #include "services/MapDownloadService.h"
@@ -324,6 +326,14 @@ void Application::createStores(QQmlApplicationEngine &engine)
         repo, m_savedLocationsService, gpsStore, m_roadInfoService,
         m_navigationService, m_toastService, this);
 
+    // Recent destinations — auto-capture every nav request, keep last 10.
+    m_recentDestinationsService = new RecentDestinationsService(repo, this);
+    auto *recentDestinationsStore = new RecentDestinationsStore(
+        repo, m_recentDestinationsService, m_savedLocationsService,
+        m_navigationService, m_toastService, this);
+    connect(m_navigationService, &NavigationService::destinationRequested,
+            recentDestinationsStore, &RecentDestinationsStore::push);
+
     // Monitoring services (B3, B4)
     m_lowTempMonitor = new LowTemperatureMonitor(engineStore, battery0Store,
                                                    cbBatteryStore, m_toastService, m_translations, this);
@@ -411,6 +421,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Wire saved locations, screen store, navigation, and availability into menu
     menuStore->setSavedLocationsStore(savedLocationsStore);
+    menuStore->setRecentDestinationsStore(recentDestinationsStore);
     menuStore->setScreenStore(screenStore);
     menuStore->setNavigationService(m_navigationService);
     menuStore->setNavigationAvailabilityService(m_navAvailability);
@@ -497,6 +508,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("inputHandler"), m_inputHandler);
     ctx->setContextProperty(QStringLiteral("navAvailabilityService"), m_navAvailability);
     ctx->setContextProperty(QStringLiteral("savedLocationsStore"), savedLocationsStore);
+    ctx->setContextProperty(QStringLiteral("recentDestinationsStore"), recentDestinationsStore);
     ctx->setContextProperty(QStringLiteral("serialNumberService"), m_serialNumberService);
     ctx->setContextProperty(QStringLiteral("addressDatabase"), m_addressDatabaseService);
     ctx->setContextProperty(QStringLiteral("roadInfoService"), m_roadInfoService);

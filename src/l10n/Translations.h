@@ -191,6 +191,8 @@ class Translations : public QObject
     Q_PROPERTY(QString savedLocationsFailed READ savedLocationsFailed NOTIFY languageChanged)
     Q_PROPERTY(QString menuSavedLocations READ menuSavedLocations NOTIFY languageChanged)
     Q_PROPERTY(QString menuSaveLocation READ menuSaveLocation NOTIFY languageChanged)
+    Q_PROPERTY(QString menuRecentDestinations READ menuRecentDestinations NOTIFY languageChanged)
+    Q_PROPERTY(QString menuSaveToFavorites READ menuSaveToFavorites NOTIFY languageChanged)
     Q_PROPERTY(QString menuNavSetup READ menuNavSetup NOTIFY languageChanged)
     Q_PROPERTY(QString plymouthToggled READ plymouthToggled NOTIFY languageChanged)
 
@@ -576,6 +578,8 @@ public:
     QString savedLocationsFailed() const { return lookup("savedLocationsFailed"); }
     QString menuSavedLocations() const { return lookup("menuSavedLocations"); }
     QString menuSaveLocation() const { return lookup("menuSaveLocation"); }
+    QString menuRecentDestinations() const { return lookup("menuRecentDestinations"); }
+    QString menuSaveToFavorites() const { return lookup("menuSaveToFavorites"); }
     QString menuNavSetup() const { return lookup("menuNavSetup"); }
     QString plymouthToggled() const { return lookup("plymouthToggled"); }
 

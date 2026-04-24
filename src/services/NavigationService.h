@@ -124,6 +124,11 @@ signals:
     void routeChanged();
     void errorChanged();
     void destinationChanged();
+    // Fired once every time a user explicitly requests navigation to a
+    // point. Unlike destinationChanged (which is also emitted on route
+    // recalculation), this carries the full triple so recent-destinations
+    // bookkeeping can stay decoupled from the service itself.
+    void destinationRequested(double latitude, double longitude, const QString &label);
     void instructionChanged();
     void positionChanged();
 
