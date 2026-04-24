@@ -506,6 +506,28 @@ void NavigationService::setDestination(double lat, double lng, const QString &ad
         return;
     }
 
+    // Tear down any prior route/arrival state before starting a new one.
+    // Without this the old polyline, arrival pill, and stale distances
+    // linger on the map until the new route comes back from the router.
+    m_valhalla->cancelPending();
+    m_route = Route();
+    m_upcomingInstructions.clear();
+    m_distanceToDestination = 0;
+    m_remainingDuration = 0;
+    m_distanceFromRoute = 0;
+    m_isOffRoute = false;
+    m_wasArrived = false;
+    m_currentSegmentIndex = 0;
+    m_hasLastPassedManeuver = false;
+    m_prevLeadingShapeIdx = -1;
+    if (m_status == NavigationStatus::Arrived || m_status == NavigationStatus::Navigating
+        || m_status == NavigationStatus::Rerouting) {
+        setStatus(NavigationStatus::Idle);
+    }
+    emit routeChanged();
+    emit instructionChanged();
+    emit positionChanged();
+
     m_destination = {lat, lng};
     m_destAddress = address;
     emit destinationChanged();
