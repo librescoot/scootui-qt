@@ -54,7 +54,10 @@ for key in "${VISIBLE_KEYS[@]}"; do
     done
     if ! $found; then
         echo "ERROR: user-visible setting '$key' has no @schema annotation in $SRC"
-        ((ERRORS++))
+        # Use `:` so set -e doesn't exit when post-increment returns 0
+        # (((x++)) evaluates to the PRE-increment value; under set -e a 0
+        # return status aborts the script before we finish counting).
+        : $((ERRORS++))
     fi
 done
 
@@ -69,7 +72,7 @@ for ak in "${ANNOTATED_KEYS[@]}"; do
     done
     if ! $found; then
         echo "WARNING: @schema annotation '$ak' is not a user-visible setting in schema"
-        ((WARNINGS++))
+        : $((WARNINGS++))
     fi
 done
 
