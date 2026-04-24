@@ -1051,18 +1051,13 @@ void MapService::updateDynamicZoom(double dt)
 
 double MapService::computeTargetZoom() const
 {
-    if (!m_navigation->hasRoute() || !m_navigation->isNavigating())
+    if (!m_navigation->hasRoute())
         return DefaultZoom;
 
-    double dist = distanceToNextManeuver();
-    if (dist <= 0)
+    const bool rerouting = m_navigation->isRerouting();
+    const bool navigating = m_navigation->isNavigating();
+    if (!navigating && !rerouting)
         return DefaultZoom;
-
-    // Multi-turn look-ahead: if a second maneuver is within 150m, use the closer one
-    double dist2 = distanceToSecondManeuver();
-    if (dist2 > 0 && dist2 < MultiTurnLookAheadMeters) {
-        dist = std::min(dist, dist2);
-    }
 
     // Logarithmic zoom formula:
     //   zoom = MaxZoom - (MaxZoom - MinZoom) * log2(dist / 50) / log2(2000 / 50)
@@ -1070,6 +1065,27 @@ double MapService::computeTargetZoom() const
     constexpr double NearDist = 50.0;
     constexpr double FarDist = 2000.0;
     constexpr double LogRange = 5.3219; // log2(2000/50) ~ log2(40)
+
+    double dist;
+    if (rerouting || m_navigation->isOffRoute()) {
+        // Off-route / rerouting: frame rider + nearest rejoin point using the
+        // perpendicular distance to the route (global-nearest). Distance to
+        // next maneuver is meaningless here — the rider isn't tracking toward
+        // it — and Rerouting status used to fall through to DefaultZoom.
+        dist = m_distFromRoute;
+        if (dist <= 0)
+            return DefaultZoom;
+    } else {
+        dist = distanceToNextManeuver();
+        if (dist <= 0)
+            return DefaultZoom;
+
+        // Multi-turn look-ahead: if a second maneuver is within 150m, use the closer one
+        double dist2 = distanceToSecondManeuver();
+        if (dist2 > 0 && dist2 < MultiTurnLookAheadMeters) {
+            dist = std::min(dist, dist2);
+        }
+    }
 
     if (dist <= NearDist)
         return MaxZoom;
