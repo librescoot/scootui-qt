@@ -569,6 +569,8 @@ void SimulatorService::loadTestRoute(int index)
             address = QStringLiteral("Boxhagener Str. 105, Friedrichshain");
         else if (index == 4)
             address = QStringLiteral("Zur Marktflagge, Berlin");
+        else if (index == 5)
+            address = QStringLiteral("Karl-Marx-Allee, Friedrichshain");
         else
             address = QStringLiteral("Invalidenstraße, Moabit");
         m_repo->set(QStringLiteral("navigation"), QStringLiteral("address"), address);

@@ -7,6 +7,8 @@
 #include <QFile>
 #include <QSqlDatabase>
 #include <QSqlQuery>
+#include <QVariantList>
+#include <QVariantMap>
 #include <QtMath>
 #include <algorithm>
 
@@ -383,4 +385,132 @@ QString RoadInfoService::lookupNearestAddress(double lat, double lon)
     }
 
     return name;
+}
+
+QVariantList RoadInfoService::streetsInBbox(double minLat, double minLon,
+                                              double maxLat, double maxLon)
+{
+    QVariantList result;
+    if (!m_dbOpen)
+        return result;
+
+    // Tile range. latToTileY() returns TMS Y (Y=0 at bottom), so larger lat
+    // maps to larger tile Y.
+    int txMin = lonToTileX(minLon, QueryZoom);
+    int txMax = lonToTileX(maxLon, QueryZoom);
+    int tyMin = latToTileY(minLat, QueryZoom);
+    int tyMax = latToTileY(maxLat, QueryZoom);
+    if (txMin > txMax) std::swap(txMin, txMax);
+    if (tyMin > tyMax) std::swap(tyMin, tyMax);
+
+    const double n = std::pow(2.0, QueryZoom);
+
+    for (int tx = txMin; tx <= txMax; ++tx) {
+        for (int ty = tyMin; ty <= tyMax; ++ty) {
+            quint64 cacheKey = (static_cast<quint64>(tx) << 32)
+                               | static_cast<quint64>(static_cast<uint32_t>(ty));
+
+            VectorTile::Tile *tile = nullptr;
+            if (m_tileCache.contains(cacheKey)) {
+                tile = &m_tileCache[cacheKey];
+                m_cacheOrder.removeOne(cacheKey);
+                m_cacheOrder.append(cacheKey);
+            } else {
+                QSqlDatabase db = QSqlDatabase::database(m_dbConnectionName);
+                QSqlQuery query(db);
+                query.prepare(QStringLiteral(
+                    "SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?"));
+                query.addBindValue(QueryZoom);
+                query.addBindValue(tx);
+                query.addBindValue(ty);
+
+                if (!query.exec() || !query.next())
+                    continue;
+
+                QByteArray tileData = query.value(0).toByteArray();
+                QByteArray decompressed = VectorTile::gunzip(tileData);
+                if (decompressed.isEmpty())
+                    continue;
+
+                while (m_cacheOrder.size() >= MaxCachedTiles) {
+                    quint64 evict = m_cacheOrder.takeFirst();
+                    m_tileCache.remove(evict);
+                }
+
+                m_tileCache.insert(cacheKey, VectorTile::parse(decompressed));
+                m_cacheOrder.append(cacheKey);
+                tile = &m_tileCache[cacheKey];
+            }
+
+            // Find streets layer
+            const VectorTile::Layer *streetsLayer = nullptr;
+            for (const auto &layer : tile->layers) {
+                if (layer.name == QLatin1String("streets")) {
+                    streetsLayer = &layer;
+                    break;
+                }
+            }
+            if (!streetsLayer || streetsLayer->features.isEmpty())
+                continue;
+
+            const double extent = streetsLayer->extent;
+
+            for (const auto &feature : streetsLayer->features) {
+                if (feature.type != 2) // LINESTRING only
+                    continue;
+
+                QString kind = feature.properties.value(QStringLiteral("kind"));
+                QString roundaboutStr = feature.properties.value(
+                    QStringLiteral("junction_roundabout"));
+                bool isRoundabout = (roundaboutStr == QLatin1String("true") ||
+                                     roundaboutStr == QLatin1String("1"));
+
+                // Filter to vehicle road types or roundabouts.
+                if (!s_roadTypes.contains(kind) && !isRoundabout)
+                    continue;
+
+                QVector<QPointF> tilePoints = VectorTile::decodeLineString(feature.geometry);
+                if (tilePoints.isEmpty())
+                    continue;
+
+                // Decode to lat/lon and compute feature bbox for quick filter.
+                QVariantList points;
+                points.reserve(tilePoints.size());
+                double fMinLat = std::numeric_limits<double>::max();
+                double fMaxLat = -std::numeric_limits<double>::max();
+                double fMinLon = std::numeric_limits<double>::max();
+                double fMaxLon = -std::numeric_limits<double>::max();
+
+                for (const auto &tp : tilePoints) {
+                    double lon = (tx + tp.x() / extent) / n * 360.0 - 180.0;
+                    double yMerc = 1.0 - (ty + 1.0 - tp.y() / extent) / n;
+                    double lat = std::atan(std::sinh(M_PI * (1.0 - 2.0 * yMerc)))
+                                 * 180.0 / M_PI;
+                    QVariantList pt;
+                    pt << lat << lon;
+                    points.append(QVariant(pt));
+                    fMinLat = std::min(fMinLat, lat);
+                    fMaxLat = std::max(fMaxLat, lat);
+                    fMinLon = std::min(fMinLon, lon);
+                    fMaxLon = std::max(fMaxLon, lon);
+                }
+
+                // Bbox intersection test.
+                if (fMaxLat < minLat || fMinLat > maxLat ||
+                    fMaxLon < minLon || fMinLon > maxLon)
+                    continue;
+
+                QString name = feature.properties.value(QStringLiteral("name"));
+
+                QVariantMap entry;
+                entry[QStringLiteral("points")] = points;
+                entry[QStringLiteral("kind")] = kind;
+                entry[QStringLiteral("roundabout")] = isRoundabout;
+                entry[QStringLiteral("name")] = name;
+                result.append(entry);
+            }
+        }
+    }
+
+    return result;
 }

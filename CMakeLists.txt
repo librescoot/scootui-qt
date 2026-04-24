@@ -206,6 +206,7 @@ set(QML_FILES
     qml/widgets/navigation/TurnByTurnWidget.qml
     qml/widgets/navigation/NavigationStatusOverlay.qml
     qml/widgets/navigation/RoundaboutIcon.qml
+    qml/widgets/navigation/RoundaboutIconFromMap.qml
     qml/widgets/speedometer/SpeedometerDisplay.qml
     qml/widgets/status_bars/TopStatusBar.qml
     qml/widgets/status_bars/BatteryDisplay.qml
@@ -334,6 +335,7 @@ qt_add_qml_module(scootui
         assets/routes/route2.json
         assets/routes/route3.json
         assets/routes/route4.json
+        assets/routes/route5.json
         # Subsetted copies; see scripts/subset-fonts.sh and the originals in
         # assets/fonts/ if you need to regenerate after a font update.
         assets/fonts/subset/Roboto-Regular.ttf
