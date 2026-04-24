@@ -164,7 +164,7 @@ Item {
         var len = Math.sqrt(dx * dx + dy * dy)
         if (len < 1) return null
         var ux = dx / len, uy = dy / len
-        var aLen = 10, aWid = 7
+        var aLen = 13, aWid = 10
         var base = Qt.point(tip.x - aLen * ux, tip.y - aLen * uy)
         return { tip: tip, base: base, ux: ux, uy: uy, aLen: aLen, aWid: aWid }
     }
