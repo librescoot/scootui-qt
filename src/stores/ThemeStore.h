@@ -42,6 +42,13 @@ class ThemeStore : public QObject
     Q_PROPERTY(QColor powerBarBg READ powerBarBg NOTIFY themeChanged)
     Q_PROPERTY(QColor powerZeroMark READ powerZeroMark NOTIFY themeChanged)
 
+    // Semantic status colors (theme-independent — deep shades, white text on top)
+    Q_PROPERTY(QColor statusSuccess READ statusSuccess CONSTANT)
+    Q_PROPERTY(QColor statusWarning READ statusWarning CONSTANT)
+    Q_PROPERTY(QColor statusError   READ statusError   CONSTANT)
+    Q_PROPERTY(QColor statusNeutral READ statusNeutral CONSTANT)
+    Q_PROPERTY(QColor statusInfo    READ statusInfo    CONSTANT)
+
 public:
     explicit ThemeStore(SettingsStore *settings, QObject *parent = nullptr);
 
@@ -59,6 +66,13 @@ public:
     QColor arcBackground() const { return m_isDark ? QColor(0x42,0x42,0x42) : QColor(0xE0,0xE0,0xE0); }
     QColor powerBarBg() const { return m_isDark ? QColor(0x42,0x42,0x42) : QColor(0xE0,0xE0,0xE0); }
     QColor powerZeroMark() const { return m_isDark ? QColor(255,255,255,102) : QColor(0,0,0,97); }
+
+    // Material 800/900 — readable with white text in both themes
+    QColor statusSuccess() const { return QColor(0x2E,0x7D,0x32); }  // Green 800
+    QColor statusWarning() const { return QColor(0xE6,0x51,0x00); }  // Orange 900
+    QColor statusError()   const { return QColor(0xC6,0x28,0x28); }  // Red 800
+    QColor statusNeutral() const { return QColor(0x42,0x42,0x42); }  // Grey 800
+    QColor statusInfo()    const { return QColor(0x15,0x65,0xC0); }  // Blue 800
 
     Q_INVOKABLE void setTheme(const QString &theme);
 

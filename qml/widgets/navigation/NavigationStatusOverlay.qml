@@ -33,9 +33,9 @@ Item {
         color: {
             switch (navStatusOverlay.navStatus) {
                 case statusCalculating:
-                case statusRerouting: return "#E65100"  // orange
-                case statusArrived: return "#2E7D32"    // green
-                case statusError: return "#C62828"      // red
+                case statusRerouting: return themeStore.statusNeutral
+                case statusArrived: return themeStore.statusSuccess
+                case statusError: return themeStore.statusError
                 default: return "transparent"
             }
         }
@@ -64,7 +64,7 @@ Item {
                     color: {
                         switch (navStatusOverlay.navStatus) {
                             case statusCalculating:
-                            case statusRerouting: return "#E65100"
+                            case statusRerouting: return themeStore.statusNeutral
                             default: return "transparent"
                         }
                     }
@@ -125,7 +125,7 @@ Item {
         width: offRouteRow.width + 20
         height: offRouteRow.height + 12
         radius: height / 2
-        color: "#E65100"
+        color: themeStore.statusWarning
         opacity: 0.85
         visible: navStatusOverlay.navStatus === statusNavigating &&
                  typeof navigationService !== "undefined" && navigationService.isOffRoute
