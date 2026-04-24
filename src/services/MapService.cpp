@@ -464,6 +464,15 @@ void MapService::onGpsPositionChanged()
     m_lastGpsLatitude = gpsLat;
     m_lastGpsLongitude = gpsLng;
 
+    // Off-route -> on-route transition: unlock the HWM so the matcher can
+    // land on any segment when the rider re-acquires the route. Without
+    // this, an overshoot-and-reverse back to a segment behind the old HWM
+    // leaves the matcher stuck on a segment the rider has already left.
+    bool nowOffRoute = m_navigation && m_navigation->isOffRoute();
+    if (m_lastWasOffRoute && !nowOffRoute)
+        m_maxReachedSegment = -1;
+    m_lastWasOffRoute = nowOffRoute;
+
     // Re-evaluate the route segment using trajectory-aware matching: combines
     // perpendicular distance, travel-direction alignment, and hysteresis bias
     // toward the current segment. Prevents the marker from snapping backward

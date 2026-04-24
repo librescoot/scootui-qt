@@ -278,8 +278,12 @@ private:
     int m_currentRouteSegment = -1;
     // High-water mark — furthest segment index the rider has reached on the
     // current route shape. The matcher is gated against regressing below it;
-    // forward jumps (shortcuts) are still allowed. Reset on new route / clear.
+    // forward jumps (shortcuts) are still allowed. Reset on new route / clear
+    // and on off-route -> on-route transition (overshoot-and-reverse rejoin).
     int m_maxReachedSegment = -1;
+    // Tracks the previous isOffRoute value across GPS edges so we can detect
+    // the re-acquire transition and relax the HWM gate.
+    bool m_lastWasOffRoute = false;
 
     // Route-projection state (exposed to NavigationService via Q_PROPERTY)
     double m_snappedLat = 0;
