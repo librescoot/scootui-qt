@@ -75,7 +75,7 @@ Item {
                 antialiasing: true
                 property var feat: modelData
                 ShapePath {
-                    strokeColor: root.isDark ? Qt.rgba(1, 1, 1, 0.35) : Qt.rgba(0, 0, 0, 0.30)
+                    strokeColor: root.isDark ? "#606060" : "#a0a0a0"
                     strokeWidth: (feat && (feat.kind === "primary" || feat.kind === "secondary")) ? 5 : 3
                     fillColor: "transparent"
                     capStyle: ShapePath.RoundCap

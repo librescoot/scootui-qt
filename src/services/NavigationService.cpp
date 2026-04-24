@@ -12,9 +12,11 @@
 
 #include <QDebug>
 #include <QDateTime>
+#include <QPointF>
 #include <QUrl>
 #include <QVariantList>
 #include <QVariantMap>
+#include <cmath>
 
 namespace {
 // Stock Valhalla uses the posted OSM maxspeed verbatim as the routing
@@ -242,13 +244,44 @@ QVariantMap NavigationService::currentRoundaboutRender() const
     if (pathPoints.size() < 2)
         return result;
 
-    double latSum = 0, lonSum = 0;
-    for (const auto &p : pathPoints) {
-        latSum += p.latitude;
-        lonSum += p.longitude;
+    // Fit a circle through three arc points (first, middle, last) in a local
+    // east/north metric frame — gives the ring centroid instead of the arc
+    // midpoint so the icon actually frames the roundabout. Mean fallback if
+    // the three points are collinear or if we have fewer than three points.
+    double centerLat, centerLon;
+    auto meanFallback = [&](double &lat, double &lon) {
+        double latSum = 0, lonSum = 0;
+        for (const auto &p : pathPoints) { latSum += p.latitude; lonSum += p.longitude; }
+        lat = latSum / pathPoints.size();
+        lon = lonSum / pathPoints.size();
+    };
+    if (pathPoints.size() >= 3) {
+        const LatLng &A = pathPoints.first();
+        const LatLng &B = pathPoints[pathPoints.size() / 2];
+        const LatLng &C = pathPoints.last();
+        const double cosLat0 = std::cos(A.latitude * M_PI / 180.0);
+        const auto toEN = [&](const LatLng &p) {
+            return QPointF((p.longitude - A.longitude) * 111320.0 * cosLat0,
+                           (p.latitude - A.latitude) * 111320.0);
+        };
+        const QPointF a = toEN(A), b = toEN(B), c = toEN(C);
+        const double d = 2.0 * (a.x() * (b.y() - c.y()) +
+                                b.x() * (c.y() - a.y()) +
+                                c.x() * (a.y() - b.y()));
+        if (std::abs(d) > 1e-6) {
+            const double aSq = a.x() * a.x() + a.y() * a.y();
+            const double bSq = b.x() * b.x() + b.y() * b.y();
+            const double cSq = c.x() * c.x() + c.y() * c.y();
+            const double ux = (aSq * (b.y() - c.y()) + bSq * (c.y() - a.y()) + cSq * (a.y() - b.y())) / d;
+            const double uy = (aSq * (c.x() - b.x()) + bSq * (a.x() - c.x()) + cSq * (b.x() - a.x())) / d;
+            centerLat = A.latitude + uy / 111320.0;
+            centerLon = A.longitude + ux / (111320.0 * cosLat0);
+        } else {
+            meanFallback(centerLat, centerLon);
+        }
+    } else {
+        meanFallback(centerLat, centerLon);
     }
-    double centerLat = latSum / pathPoints.size();
-    double centerLon = lonSum / pathPoints.size();
 
     QVariantList path;
     path.reserve(pathPoints.size());
