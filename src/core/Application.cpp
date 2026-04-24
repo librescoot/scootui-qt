@@ -499,6 +499,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("savedLocationsStore"), savedLocationsStore);
     ctx->setContextProperty(QStringLiteral("serialNumberService"), m_serialNumberService);
     ctx->setContextProperty(QStringLiteral("addressDatabase"), m_addressDatabaseService);
+    ctx->setContextProperty(QStringLiteral("roadInfoService"), m_roadInfoService);
     ctx->setContextProperty(QStringLiteral("mapDownloadService"), m_mapDownloadService);
     ctx->setContextProperty(QStringLiteral("umsLogStore"), umsLogStore);
     ctx->setContextProperty(QStringLiteral("systemInfoService"), m_systemInfoService);

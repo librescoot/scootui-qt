@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QTimer>
 #include <QElapsedTimer>
+#include <QVariantMap>
 #include "routing/RouteModels.h"
 #include "routing/ValhallaClient.h"
 
@@ -55,6 +56,7 @@ class NavigationService : public QObject
 
     // Roundabout
     Q_PROPERTY(int roundaboutExitCount READ roundaboutExitCount NOTIFY instructionChanged)
+    Q_PROPERTY(QVariantMap currentRoundaboutRender READ currentRoundaboutRender NOTIFY instructionChanged)
 
 public:
     explicit NavigationService(GpsStore *gps, NavigationStore *nav,
@@ -78,6 +80,7 @@ public:
     QString currentVerbalInstruction() const;
     QString currentInstructionText() const;
     int roundaboutExitCount() const;
+    QVariantMap currentRoundaboutRender() const;
 
     int nextManeuverType() const;
     double nextManeuverDistance() const;

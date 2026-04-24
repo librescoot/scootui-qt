@@ -13,6 +13,8 @@
 #include <QDebug>
 #include <QDateTime>
 #include <QUrl>
+#include <QVariantList>
+#include <QVariantMap>
 
 namespace {
 // Stock Valhalla uses the posted OSM maxspeed verbatim as the routing
@@ -185,6 +187,82 @@ int NavigationService::roundaboutExitCount() const
 {
     if (m_upcomingInstructions.isEmpty()) return 0;
     return m_upcomingInstructions.first().roundaboutExitCount;
+}
+
+QVariantMap NavigationService::currentRoundaboutRender() const
+{
+    QVariantMap result;
+    if (m_upcomingInstructions.isEmpty())
+        return result;
+
+    const RouteInstruction &enter = m_upcomingInstructions.first();
+    if (enter.type != ManeuverType::RoundaboutEnter)
+        return result;
+
+    const int enterIdx = enter.originalShapeIndex;
+
+    // Find the following RoundaboutExit maneuver to determine the end of the
+    // arc through the roundabout. Walk forward through the route instructions.
+    int exitIdx = -1;
+    int enterInstrIdx = -1;
+    for (int i = 0; i < m_route.instructions.size(); ++i) {
+        if (m_route.instructions[i].originalShapeIndex == enterIdx &&
+            m_route.instructions[i].type == ManeuverType::RoundaboutEnter) {
+            enterInstrIdx = i;
+            break;
+        }
+    }
+    if (enterInstrIdx >= 0) {
+        for (int i = enterInstrIdx + 1; i < m_route.instructions.size(); ++i) {
+            if (m_route.instructions[i].type == ManeuverType::RoundaboutExit) {
+                exitIdx = m_route.instructions[i].originalShapeIndex;
+                break;
+            }
+        }
+    }
+
+    if (exitIdx < 0) {
+        // Fallback: take a single segment beyond the enter point.
+        exitIdx = enterIdx + 1;
+    }
+
+    // Clamp to valid waypoint range.
+    if (enterIdx < 0 || enterIdx >= m_route.waypoints.size())
+        return result;
+    if (exitIdx >= m_route.waypoints.size())
+        exitIdx = m_route.waypoints.size() - 1;
+    if (exitIdx <= enterIdx)
+        return result;
+
+    QList<LatLng> pathPoints;
+    pathPoints.reserve(exitIdx - enterIdx + 1);
+    for (int i = enterIdx; i <= exitIdx; ++i)
+        pathPoints.append(m_route.waypoints[i]);
+
+    if (pathPoints.size() < 2)
+        return result;
+
+    double latSum = 0, lonSum = 0;
+    for (const auto &p : pathPoints) {
+        latSum += p.latitude;
+        lonSum += p.longitude;
+    }
+    double centerLat = latSum / pathPoints.size();
+    double centerLon = lonSum / pathPoints.size();
+
+    QVariantList path;
+    path.reserve(pathPoints.size());
+    for (const auto &pt : pathPoints) {
+        QVariantList p;
+        p << pt.latitude << pt.longitude;
+        path.append(QVariant(p));
+    }
+
+    result[QStringLiteral("centerLat")] = centerLat;
+    result[QStringLiteral("centerLon")] = centerLon;
+    result[QStringLiteral("bearingDeg")] = enter.bearingBefore;
+    result[QStringLiteral("path")] = path;
+    return result;
 }
 
 // --- Next instruction (preview) ---

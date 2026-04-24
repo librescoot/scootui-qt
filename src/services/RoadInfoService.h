@@ -4,6 +4,7 @@
 #include <QElapsedTimer>
 #include <QHash>
 #include <QList>
+#include <QVariantList>
 #include "VectorTileDecoder.h"
 
 class GpsStore;
@@ -22,6 +23,15 @@ public:
 
     // Look up the nearest address label from the offline addresses tile layer
     QString lookupNearestAddress(double lat, double lon);
+
+    // Return all street linestrings whose bounding box intersects the given
+    // geographic bbox, at zoom QueryZoom. Each entry is a QVariantMap:
+    //   { points: [[lat, lon], ...],
+    //     kind: "residential"|"primary"|...,
+    //     roundabout: bool,
+    //     name: string }
+    Q_INVOKABLE QVariantList streetsInBbox(double minLat, double minLon,
+                                             double maxLat, double maxLon);
 
 private slots:
     void onGpsChanged();
