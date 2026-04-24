@@ -137,26 +137,23 @@ void Translations::initStrings()
     de[QStringLiteral("updateModeTitle")] = QStringLiteral("Update-Modus");
 
     en[QStringLiteral("updateModeBody1")] = QStringLiteral(
-        "Update Mode lets you install updates offline, read logs, and change settings.");
+        "Connect your laptop over USB — the scooter mounts as a drive. "
+        "Drop updates on, pull logs off.");
     de[QStringLiteral("updateModeBody1")] = QStringLiteral(
-        "Im Update-Modus kannst du Updates offline installieren, Logs auslesen und Einstellungen ändern.");
+        "Laptop per USB anschließen — der Scooter erscheint als Laufwerk. "
+        "Updates drauf, Logs runter.");
 
     en[QStringLiteral("updateModeBody2")] = QStringLiteral(
-        "Open the footwell cover (four screws), unplug the DBC's USB cable from the MDB — "
-        "you might need a screwdriver — and connect your computer with a USB Mini-B cable. "
-        "The scooter then appears as a USB drive.");
+        "Open the footwell (four screws). Unplug the DBC's USB cable from the MDB "
+        "(a screwdriver helps). Connect your laptop with a USB Mini-B cable.");
     de[QStringLiteral("updateModeBody2")] = QStringLiteral(
-        "Die Fußraumabdeckung öffnen (vier Schrauben), das USB-Kabel der DBC vom MDB abziehen "
-        "(ggf. mit Schraubenzieher) und den Computer per USB-Mini-B-Kabel mit der MDB verbinden. "
-        "Der Scooter erscheint dann als USB-Laufwerk.");
+        "Fußraumabdeckung öffnen (vier Schrauben). USB-Kabel der DBC vom MDB abziehen "
+        "(Schraubenzieher hilft). Laptop per USB-Mini-B-Kabel anschließen.");
 
     en[QStringLiteral("updateModeBody3")] = QStringLiteral(
-        "The scooter stays parked while Update Mode is active. When you disconnect the cable "
-        "— or hold the left brake — it processes the files and returns to normal.");
+        "Scooter stays parked. Unplug the cable or hold the left brake when you're done.");
     de[QStringLiteral("updateModeBody3")] = QStringLiteral(
-        "Während des Update-Modus bleibt der Scooter geparkt. Sobald du das Kabel abziehst "
-        "– oder die linke Bremse gedrückt hältst – werden die Dateien verarbeitet "
-        "und der Scooter ist wieder fahrbereit.");
+        "Scooter bleibt geparkt. Kabel ziehen oder linke Bremse halten, wenn du fertig bist.");
 
     en[QStringLiteral("updateModeScanHint")] = QStringLiteral("Scan for full instructions");
     de[QStringLiteral("updateModeScanHint")] = QStringLiteral("Scannen für mehr Info");
