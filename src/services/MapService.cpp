@@ -296,6 +296,7 @@ void MapService::setRouteWaypoints(const QVariantList &waypoints)
         m_currentRouteSegment = 0;
     }
     m_maxReachedSegment = m_currentRouteSegment;
+    m_lastRouteBearing = -1;
 
     updateRouteGeoJson();
     refreshRouteProjection();
@@ -323,6 +324,7 @@ void MapService::clearRoute()
     m_routeShape.clear();
     m_currentRouteSegment = -1;
     m_maxReachedSegment = -1;
+    m_lastRouteBearing = -1;
 
     m_routeCoordinates.clear();
     emit routeCoordinatesChanged();
@@ -422,13 +424,25 @@ void MapService::onGpsPositionChanged()
 
     // Input-side age compensation: the GPS fix represents where the rider
     // WAS some time ago (receiver NMEA buffer + consumer age). Project it
-    // forward along the smoothed display bearing so subsequent blending
+    // forward along the rider's motion direction so subsequent blending
     // pulls DR toward "where GPS thinks we are NOW" rather than backwards
-    // in time. Skip while stationary — integrating noise just drifts DR.
+    // in time. On-route we use the route segment bearing — aligned with
+    // DR's projectPositionAlongRoute advance and immune to the camera
+    // bearing's smoothing lag, which would otherwise inject a sideways
+    // component into the error vector and send DR zig-zagging through
+    // every turn. Off-route we fall back to the smoothed display bearing.
     if (!stationary) {
         double ageMs = static_cast<double>(m_gps->timestampAgeMs()) + GpsReceiverBufferMs;
         if (ageMs > 0) {
-            projectForward(gpsLat, gpsLng, m_displayBearing,
+            double motionBearing = m_displayBearing;
+            bool onRouteForAge = !m_routeShape.isEmpty() && m_currentRouteSegment >= 0
+                                 && m_navigation && m_navigation->isNavigating()
+                                 && !m_navigation->isOffRoute();
+            if (onRouteForAge) {
+                double rb = routeSegmentBearing();
+                if (rb >= 0) motionBearing = rb;
+            }
+            projectForward(gpsLat, gpsLng, motionBearing,
                            ecuSpeedMs * (ageMs / 1000.0),
                            gpsLat, gpsLng);
         }
@@ -864,22 +878,38 @@ void MapService::onDeadReckoningTick()
             refreshRouteProjection();
     }
 
+    // ----- Update bearing & zoom first (needed for offset calculation) -----
+    // Order matters: compensation below projects the marker forward along
+    // the current heading. Running updateBearing first means the snap at a
+    // segment boundary lands in this tick instead of next, so compensation
+    // uses the new-segment direction rather than the previous tick's stale
+    // one. Without this swap, the compensation vector flips direction a
+    // tick late and the displayed marker jerks sideways through every turn.
+    updateBearing(dt);
+    updateDynamicZoom(dt);
+
     // ----- Latency compensation -----
     // Project the displayed position forward to compensate for GPS latency,
-    // without modifying the internal DR state.
-    // Use the current display bearing (already smoothed) rather than raw GPS
-    // course so the compensation direction matches what the map shows.
+    // without modifying the internal DR state. Compensation direction is
+    // the rider's actual motion direction. On-route that's the current
+    // route segment bearing — rock-steady within a segment, flipping
+    // cleanly at waypoint boundaries (same instant DR advances). Off-route
+    // or routeless, fall back to the smoothed display bearing.
+    double compensationBearing = m_displayBearing;
+    bool onRouteForComp = !m_routeShape.isEmpty() && m_currentRouteSegment >= 0
+                          && m_navigation->isNavigating()
+                          && !m_navigation->isOffRoute();
+    if (onRouteForComp) {
+        double rb = routeSegmentBearing();
+        if (rb >= 0) compensationBearing = rb;
+    }
     double compensatedLat = m_drLatitude;
     double compensatedLng = m_drLongitude;
     if (speedMs > 0.5) {
-        projectForward(m_drLatitude, m_drLongitude, m_displayBearing,
+        projectForward(m_drLatitude, m_drLongitude, compensationBearing,
                        speedMs * LatencyCompensationSec,
                        compensatedLat, compensatedLng);
     }
-
-    // ----- Update bearing & zoom first (needed for offset calculation) -----
-    updateBearing(dt);
-    updateDynamicZoom(dt);
 
     // ----- Update camera position -----
     // Expose the vehicle position directly; the QML layer uses
@@ -1017,8 +1047,12 @@ void MapService::snapToRouteLine()
     if (lenSq < 1e-6)
         return;
 
-    // t = projection of origin onto segment; clamp to [0, 1]
-    double t = std::clamp((-ax * dx - ay * dy) / lenSq, 0.0, 1.0);
+    // Foot of perpendicular onto the infinite line through A-B. Clamping t
+    // to [0, 1] would tuck DR back to the segment endpoint when blend pushes
+    // it a hair past B mid-tick — producing the forward-then-step-back jitter
+    // at every waypoint crossing. projectPositionAlongRoute advances the
+    // segment index on the next tick, so this only needs cross-track pull.
+    double t = (-ax * dx - ay * dy) / lenSq;
     double projX = ax + t * dx;  // meters east of DR position
     double projY = ay + t * dy;  // meters north of DR position
 
@@ -1176,14 +1210,15 @@ void MapService::updateBearing(double dt)
         double rb = routeSegmentBearing();
         rawHeading = (rb >= 0) ? rb : gpsCourse;
     } else if (onRoute && hasFix) {
-        // GPS on route: blend 70% GPS + 30% route to reduce jitter
+        // On-route: route geometry is authoritative. gpsCourse lags through
+        // turns (reported ≤1 Hz; between updates it still shows the pre-turn
+        // direction), and any blend with the stale course dragged
+        // m_smoothedTarget back toward the old bearing for a beat after a
+        // turn-snap — the map would swing forward, bounce partway back, then
+        // settle. If the rider genuinely deviates, off-route detection kicks
+        // in and the else branch takes over with pure gpsCourse.
         double rb = routeSegmentBearing();
-        if (rb >= 0) {
-            double diff = normalizeAngle(rb - gpsCourse);
-            rawHeading = gpsCourse + diff * 0.3;
-        } else {
-            rawHeading = gpsCourse;
-        }
+        rawHeading = (rb >= 0) ? rb : gpsCourse;
     } else {
         // No route: blend GPS course with road bearing from vector tiles
         double rb = m_speedLimit->roadBearing();
@@ -1212,12 +1247,33 @@ void MapService::updateBearing(double dt)
         return;
     }
 
-    // Stage 1: exponential blend toward target (matches Flutter)
-    // Each frame moves a proportion of remaining distance, not a fixed step
-    double targetDelta = normalizeAngle(rawHeading - m_smoothedTarget);
-    double targetBlend = std::min(1.0, TargetSmoothRate * dt * dampFactor);
-    m_smoothedTarget += targetDelta * targetBlend;
-    m_smoothedTarget = std::fmod(m_smoothedTarget + 360.0, 360.0);
+    // Turn-snap: the route segment bearing jumped (segment boundary with a
+    // real corner). Skip stage 1's speed-weighted exponential blend — just
+    // jump the target to the new segment so stage 2 below can animate
+    // m_displayBearing toward it at MaxBearingRate. ~0.8 s for a 90° turn,
+    // still noticeably snappy but no longer a hard camera cut.
+    double rbNow = onRoute ? routeSegmentBearing() : -1;
+    bool justSnapped = false;
+    if (onRoute && rbNow >= 0 && m_lastRouteBearing >= 0) {
+        double bearingJump = std::abs(normalizeAngle(rbNow - m_lastRouteBearing));
+        if (bearingJump >= TurnSnapDeltaDeg) {
+            m_smoothedTarget = std::fmod(rbNow + 360.0, 360.0);
+            justSnapped = true;
+        }
+    }
+    m_lastRouteBearing = rbNow;
+
+    // Stage 1: exponential blend toward target (matches Flutter).
+    // Skip when we just turn-snapped this tick so m_smoothedTarget doesn't
+    // immediately get dragged back toward rawHeading (which still reflects
+    // the blended pre-turn gpsCourse for a beat).
+    if (!justSnapped) {
+        double targetDelta = normalizeAngle(rawHeading - m_smoothedTarget);
+        // Each frame moves a proportion of remaining distance, not a fixed step
+        double targetBlend = std::min(1.0, TargetSmoothRate * dt * dampFactor);
+        m_smoothedTarget += targetDelta * targetBlend;
+        m_smoothedTarget = std::fmod(m_smoothedTarget + 360.0, 360.0);
+    }
 
     // Stage 2: duration-based interpolation (matches Flutter)
     // Tries to complete rotation in RotationAnimDuration seconds, capped at MaxBearingRate

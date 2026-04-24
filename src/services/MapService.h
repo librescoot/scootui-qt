@@ -210,6 +210,11 @@ private:
     static constexpr double TargetSmoothRate = 8.0;      // exponential blend rate per second
     static constexpr double MaxBearingRate = 110.0;       // deg/sec max approach speed
     static constexpr double RotationAnimDuration = 1.0;   // seconds to complete rotation
+    // On-route turn snap: when the route bearing jumps at a segment boundary,
+    // bypass the speed-weighted smoothing and snap to the new heading so the
+    // map turns with the rider instead of lagging through the corner.
+    static constexpr double TurnSnapDeltaDeg = 30.0;
+
 
     // Vehicle offset
     static constexpr double VehicleOffsetPx = 120.0;
@@ -325,4 +330,8 @@ private:
     double m_smoothedTarget = 0;
     double m_displayBearing = 0;
     double m_lastRawHeading = 0;
+    // Last route-segment bearing observed by updateBearing; used to detect
+    // segment-boundary bearing jumps for the turn-snap fast path. -1 means
+    // unseeded (first tick, or off-route).
+    double m_lastRouteBearing = -1;
 };
