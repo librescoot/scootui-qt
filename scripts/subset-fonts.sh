@@ -58,11 +58,31 @@ MATERIAL_COUNT=$(echo "${MATERIAL_CODEPOINTS}" | wc -l)
 # Always include U+0020 (space) as a fallback glyph.
 MATERIAL_UNICODES="0020,$(echo "${MATERIAL_CODEPOINTS}" | paste -s -d , -)"
 
-# Roboto/RobotoCondensed: Basic Latin + Latin-1 Supplement.
-# Covers ASCII + German umlauts (ä ö ü ß and caps) + common symbols (° © ±).
+# Roboto/RobotoCondensed:
+#   - Basic Latin (ASCII): 0020-007E
+#   - Latin-1 Supplement: 00A0-00FF
+#       umlauts (ä ö ü ß + caps), common symbols (° © ± ·, etc.)
+#   - Curated typography glyphs used in translations and widgets:
+#       2013 en-dash (–), 2014 em-dash (—)
+#       2018/2019 curly single quotes (‘ ’)
+#       201C/201D curly double quotes (“ ”)
+#       201E German opening double quote („)
+#       2022 bullet (•)
+#       2026 horizontal ellipsis (…)
+#       203A single right guillemet (›) — address breadcrumb separator
+#       2264 less-or-equal (≤) — battery display
+#
+# Roboto does not ship glyphs for → ↔ ⊥ ␣ ─ (used in arrow/scale widgets);
+# those rely on Qt's font fallback at render time.
+#
+# Keep this as a curated list rather than a wide range (like 2000-206F)
+# so the subset stays small. When adding a new non-ASCII glyph to UI
+# strings or widgets, check whether Roboto has it (see above), extend
+# this list if so, and re-run the subsetter.
+#
 # If map-data place names in Polish/Czech/Hungarian appear on-screen we'll
-# need to widen this to Latin Extended-A (0100-017F, adds ~5 KB/variant).
-ROBOTO_UNICODES="0020-007E,00A0-00FF"
+# need to add Latin Extended-A (0100-017F, adds ~5 KB/variant).
+ROBOTO_UNICODES="0020-007E,00A0-00FF,2013,2014,2018,2019,201C,201D,201E,2022,2026,203A,2264"
 
 echo "=== scootui-qt font subsetter ==="
 echo "MaterialIcon codepoints (${MATERIAL_COUNT} used):"
