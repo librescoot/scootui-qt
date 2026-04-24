@@ -77,6 +77,7 @@ Rectangle {
         cityPrefix = prefix
         charIndex = 0
         refreshValidChars()
+        _autoPickIfSingle()
     }
 
     function enterCityList(autoSelect) {
@@ -93,6 +94,7 @@ Rectangle {
         streetPrefix = prefix
         charIndex = 0
         refreshValidChars()
+        _autoPickIfSingle()
     }
 
     function enterStreetList(autoSelect) {
@@ -101,6 +103,17 @@ Rectangle {
         itemList = addressDatabase.getMatchingStreets(selectedCity, streetPrefix)
         if (autoSelect !== false && itemList.length === 1) {
             selectStreet(0)
+        }
+    }
+
+    // When a letter-input state has only one valid next character, pick it
+    // automatically so the rider doesn't have to confirm a one-option
+    // carousel. This recurses via selectCurrentChar, so a stretch of
+    // deterministic characters (e.g. "Berli…n") is typed out in one go.
+    function _autoPickIfSingle() {
+        if ((phase === phaseCityLetters || phase === phaseStreetLetters)
+            && validChars.length === 1) {
+            selectCurrentChar()
         }
     }
 
@@ -168,6 +181,7 @@ Rectangle {
                 cityPrefix = cityPrefix.slice(0, -1)
             } else {
                 refreshValidChars()
+                _autoPickIfSingle()
             }
         } else if (phase === phaseStreetLetters) {
             streetPrefix += ch
@@ -178,26 +192,102 @@ Rectangle {
                 streetPrefix = streetPrefix.slice(0, -1)
             } else {
                 refreshValidChars()
+                _autoPickIfSingle()
             }
         }
     }
 
-    function backspace() {
+    // Go back one logical step from the current phase. When the state we
+    // would land in is itself a single-option state (a list with one item
+    // or a carousel with one valid char — i.e. one the forward path would
+    // auto-advance past), skip through it so the back path mirrors the
+    // forward path.
+    function stepBack() {
         if (phase === phaseCityLetters) {
-            if (cityPrefix.length > 0) {
-                cityPrefix = cityPrefix.slice(0, -1)
-                refreshValidChars()
-            } else {
-                if (typeof screenStore !== "undefined")
-                    screenStore.setScreen(1)
-            }
+            _backFromCityLetters()
+        } else if (phase === phaseCityList) {
+            _backFromCityList()
         } else if (phase === phaseStreetLetters) {
-            if (streetPrefix.length > 0) {
-                streetPrefix = streetPrefix.slice(0, -1)
-                refreshValidChars()
-            } else {
-                enterCityList(false)
+            _backFromStreetLetters()
+        } else if (phase === phaseStreetList) {
+            _backFromStreetList()
+        } else if (phase === phaseHouseNumbers || phase === phaseConfirm) {
+            _backFromHouseOrConfirm()
+        }
+    }
+
+    function _backFromCityLetters() {
+        if (cityPrefix.length === 0) {
+            if (typeof screenStore !== "undefined")
+                screenStore.setScreen(1)
+            return
+        }
+        cityPrefix = cityPrefix.slice(0, -1)
+        refreshValidChars()
+        if (cityPrefix.length > 0 && validChars.length === 1) {
+            _backFromCityLetters()
+        }
+    }
+
+    function _backFromCityList() {
+        if (itemList.length === 1 && cityPrefix.length > 0) {
+            cityPrefix = cityPrefix.slice(0, -1)
+        }
+        phase = phaseCityLetters
+        refreshValidChars()
+        if (cityPrefix.length > 0 && validChars.length === 1) {
+            _backFromCityLetters()
+        }
+    }
+
+    function _backFromStreetLetters() {
+        if (streetPrefix.length > 0) {
+            streetPrefix = streetPrefix.slice(0, -1)
+            refreshValidChars()
+            if (streetPrefix.length > 0 && validChars.length === 1) {
+                _backFromStreetLetters()
             }
+            return
+        }
+        var cities = addressDatabase.getMatchingCities(cityPrefix)
+        if (cities.length === 1 && cityPrefix.length > 0) {
+            cityPrefix = cityPrefix.slice(0, -1)
+            phase = phaseCityLetters
+            refreshValidChars()
+            if (cityPrefix.length > 0 && validChars.length === 1) {
+                _backFromCityLetters()
+            }
+        } else {
+            itemList = cities
+            phase = phaseCityList
+            listIndex = 0
+        }
+    }
+
+    function _backFromStreetList() {
+        if (itemList.length === 1 && streetPrefix.length > 0) {
+            streetPrefix = streetPrefix.slice(0, -1)
+        }
+        phase = phaseStreetLetters
+        refreshValidChars()
+        if (streetPrefix.length > 0 && validChars.length === 1) {
+            _backFromStreetLetters()
+        }
+    }
+
+    function _backFromHouseOrConfirm() {
+        var streets = addressDatabase.getMatchingStreets(selectedCity, streetPrefix)
+        if (streets.length === 1 && streetPrefix.length > 0) {
+            streetPrefix = streetPrefix.slice(0, -1)
+            phase = phaseStreetLetters
+            refreshValidChars()
+            if (streetPrefix.length > 0 && validChars.length === 1) {
+                _backFromStreetLetters()
+            }
+        } else {
+            itemList = streets
+            phase = phaseStreetList
+            listIndex = 0
         }
     }
 
@@ -281,26 +371,7 @@ Rectangle {
 
         function onLeftHold() {
             if (addressScreen.loadingHouseNumbers) return
-            switch (addressScreen.phase) {
-            case addressScreen.phaseCityLetters:
-                addressScreen.backspace()
-                break
-            case addressScreen.phaseCityList:
-                addressScreen.enterCityLetters(addressScreen.cityPrefix)
-                break
-            case addressScreen.phaseStreetLetters:
-                addressScreen.backspace()
-                break
-            case addressScreen.phaseStreetList:
-                addressScreen.enterStreetLetters(addressScreen.streetPrefix)
-                break
-            case addressScreen.phaseHouseNumbers:
-                addressScreen.enterStreetList(false)
-                break
-            case addressScreen.phaseConfirm:
-                addressScreen.enterStreetList(false)
-                break
-            }
+            addressScreen.stepBack()
         }
 
         function onRightTap() {
