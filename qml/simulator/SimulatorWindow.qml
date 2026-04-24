@@ -111,50 +111,44 @@ ApplicationWindow {
                 }
             }
 
-            // ---- Connection ----
-            SectionHeader { text: "Connection" }
+            // ---- Auto-drive ----
+            SectionHeader { text: "Auto-Drive" }
 
             RowLayout {
                 Layout.fillWidth: true
-                SimLabel { text: "USB" }
                 SimButton {
-                    text: "Disconnect"
-                    color: "#f44336"
-                    onClicked: connectionStore.simulateUsbDisconnect(true)
+                    text: simulator.autoDriveActive ? "Stop" : "Start"
+                    color: simulator.autoDriveActive ? "#f44336" : "#4caf50"
+                    onClicked: {
+                        if (simulator.autoDriveActive)
+                            simulator.stopAutoDrive()
+                        else
+                            simulator.startAutoDrive(autoDriveSpeedSlider.value)
+                    }
                 }
-                SimButton {
-                    text: "Reconnect"
-                    color: "#4caf50"
-                    onClicked: connectionStore.simulateUsbDisconnect(false)
+                Slider {
+                    id: autoDriveSpeedSlider
+                    Layout.fillWidth: true
+                    from: 5; to: 55; value: 25; stepSize: 1
+                    onMoved: {
+                        if (simulator.autoDriveActive)
+                            simulator.startAutoDrive(value)
+                    }
+                }
+                Text {
+                    text: Math.round(autoDriveSpeedSlider.value) + " km/h"
+                    color: "#ccc"
+                    font.pixelSize: 11
+                    Layout.preferredWidth: 48
                 }
             }
 
-            RowLayout {
-                Layout.fillWidth: true
-                SimLabel { text: "UMS" }
-                SimButton {
-                    text: "Activate"
-                    color: "#2196F3"
-                    onClicked: {
-                        simulator.setUsbStatus("active")
-                        simulator.setUsbMode("ums")
-                    }
-                }
-                SimButton {
-                    text: "Processing"
-                    color: "#ff9800"
-                    onClicked: {
-                        simulator.setUsbStatus("processing")
-                    }
-                }
-                SimButton {
-                    text: "Exit"
-                    color: "#f44336"
-                    onClicked: {
-                        simulator.setUsbStatus("idle")
-                        simulator.setUsbMode("normal")
-                    }
-                }
+            Text {
+                visible: simulator.autoDriveActive
+                text: "Driving at " + simulator.autoDriveSpeed.toFixed(1) + " km/h"
+                color: "#4caf50"
+                font.pixelSize: 12
+                Layout.alignment: Qt.AlignHCenter
             }
 
             // ---- Presets ----
@@ -198,6 +192,11 @@ ApplicationWindow {
                     text: "Tempelhof \u2192 Friedrichshain"
                     Layout.fillWidth: true
                     onClicked: simulator.loadTestRoute(3)
+                }
+                SimButton {
+                    text: "Short (Richard-Ermisch)"
+                    Layout.fillWidth: true
+                    onClicked: simulator.loadTestRoute(4)
                 }
                 SimButton {
                     text: "Clear Route"
@@ -454,44 +453,50 @@ ApplicationWindow {
                 onMoved: function(v) { simulator.setMotorVoltage(v) }
             }
 
-            // ---- Auto-drive ----
-            SectionHeader { text: "Auto-Drive" }
+            // ---- Connection ----
+            SectionHeader { text: "Connection" }
 
             RowLayout {
                 Layout.fillWidth: true
+                SimLabel { text: "USB" }
                 SimButton {
-                    text: simulator.autoDriveActive ? "Stop" : "Start"
-                    color: simulator.autoDriveActive ? "#f44336" : "#4caf50"
-                    onClicked: {
-                        if (simulator.autoDriveActive)
-                            simulator.stopAutoDrive()
-                        else
-                            simulator.startAutoDrive(autoDriveSpeedSlider.value)
-                    }
+                    text: "Disconnect"
+                    color: "#f44336"
+                    onClicked: connectionStore.simulateUsbDisconnect(true)
                 }
-                Slider {
-                    id: autoDriveSpeedSlider
-                    Layout.fillWidth: true
-                    from: 5; to: 55; value: 25; stepSize: 1
-                    onMoved: {
-                        if (simulator.autoDriveActive)
-                            simulator.startAutoDrive(value)
-                    }
-                }
-                Text {
-                    text: Math.round(autoDriveSpeedSlider.value) + " km/h"
-                    color: "#ccc"
-                    font.pixelSize: 11
-                    Layout.preferredWidth: 48
+                SimButton {
+                    text: "Reconnect"
+                    color: "#4caf50"
+                    onClicked: connectionStore.simulateUsbDisconnect(false)
                 }
             }
 
-            Text {
-                visible: simulator.autoDriveActive
-                text: "Driving at " + simulator.autoDriveSpeed.toFixed(1) + " km/h"
-                color: "#4caf50"
-                font.pixelSize: 12
-                Layout.alignment: Qt.AlignHCenter
+            RowLayout {
+                Layout.fillWidth: true
+                SimLabel { text: "UMS" }
+                SimButton {
+                    text: "Activate"
+                    color: "#2196F3"
+                    onClicked: {
+                        simulator.setUsbStatus("active")
+                        simulator.setUsbMode("ums")
+                    }
+                }
+                SimButton {
+                    text: "Processing"
+                    color: "#ff9800"
+                    onClicked: {
+                        simulator.setUsbStatus("processing")
+                    }
+                }
+                SimButton {
+                    text: "Exit"
+                    color: "#f44336"
+                    onClicked: {
+                        simulator.setUsbStatus("idle")
+                        simulator.setUsbMode("normal")
+                    }
+                }
             }
 
             // ---- Battery 0 ----

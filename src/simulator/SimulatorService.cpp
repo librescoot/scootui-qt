@@ -32,7 +32,12 @@ SimulatorService::SimulatorService(MdbRepository *repo, NavigationService *nav, 
     });
 
     m_autoDriveTimer = new QTimer(this);
-    m_autoDriveTimer->setInterval(100); // 10 Hz
+    // Match real hardware: modem-service publishes GPS at 1 Hz on the
+    // scooter. Running the sim at 10 Hz created a rate mismatch with
+    // MapService's 15 Hz DR tick and GpsStore's 4 Hz poll that manifested
+    // as per-poll forward-then-back marker jitter. 1 Hz sim tick keeps the
+    // ratios the same as production.
+    m_autoDriveTimer->setInterval(1000); // 1 Hz — matches production modem-service
     connect(m_autoDriveTimer, &QTimer::timeout, this, &SimulatorService::autoDriveTick);
 
     // Keep GPS timestamp fresh so hasRecentFix stays true while parked
@@ -515,6 +520,13 @@ void SimulatorService::loadTestRoute(int index)
         return;
     }
 
+    // Park the vehicle before loading. Without this, residual speed from a
+    // prior preset ("Driving", "Fast") keeps DR marching forward after the
+    // route lands — TBT appears to cycle through maneuvers on its own.
+    stopAutoDrive();
+    setSpeed(0);
+    setGpsSpeed(0);
+
     QByteArray data = file.readAll();
     Route route = RouteHelpers::parseRouteResponse(data);
     if (route.isValid()) {
@@ -555,6 +567,8 @@ void SimulatorService::loadTestRoute(int index)
         QString address;
         if (index == 3)
             address = QStringLiteral("Boxhagener Str. 105, Friedrichshain");
+        else if (index == 4)
+            address = QStringLiteral("Zur Marktflagge, Berlin");
         else
             address = QStringLiteral("Invalidenstraße, Moabit");
         m_repo->set(QStringLiteral("navigation"), QStringLiteral("address"), address);
@@ -603,8 +617,9 @@ void SimulatorService::stopAutoDrive()
 
 void SimulatorService::autoDriveTick()
 {
-    // Smooth acceleration/deceleration
-    const double accel = 0.5; // km/h per tick (5 km/h/s)
+    // Smooth acceleration/deceleration. Tick is 1 Hz (production GPS rate),
+    // so we accelerate at 5 km/h/s = 5 km/h per tick.
+    const double accel = 5.0; // km/h per tick
     if (m_autoDriveSpeed < m_autoDriveTargetSpeed)
         m_autoDriveSpeed = qMin(m_autoDriveSpeed + accel, m_autoDriveTargetSpeed);
     else if (m_autoDriveSpeed > m_autoDriveTargetSpeed)
@@ -614,7 +629,7 @@ void SimulatorService::autoDriveTick()
     setSpeed(m_autoDriveSpeed);
     setGpsSpeed(m_autoDriveSpeed);
 
-    const double dt = 0.1; // seconds per tick
+    const double dt = 1.0; // seconds per tick (1 Hz)
     const double speedMs = m_autoDriveSpeed / 3.6;
     double distRemaining = speedMs * dt; // meters to travel this tick
 
@@ -648,7 +663,7 @@ void SimulatorService::autoDriveTick()
             qDebug() << "Simulator: reached end of route";
             m_autoDriveTargetSpeed = 0;
         }
-    } else {
+    } else if (!m_route.isValid()) {
         // No route: move along bearing with gentle curve (fallback)
         const double distKm = speedMs * dt / 1000.0;
         const double bearingRad = qDegreesToRadians(m_autoDriveBearing);
@@ -656,6 +671,10 @@ void SimulatorService::autoDriveTick()
         m_autoDriveLng += (distKm * qSin(bearingRad)) / (111.32 * qCos(qDegreesToRadians(m_autoDriveLat)));
         m_autoDriveBearing = fmod(m_autoDriveBearing + 0.1, 360.0);
     }
+    // Route exhausted: hold position. The straight-line fallback kept
+    // marching past the destination while speed decayed to zero, which
+    // dragged DR forward/back against the route-end cap and produced
+    // visible jitter on arrival.
 
     setGpsPosition(m_autoDriveLat, m_autoDriveLng);
     setGpsCourse(m_autoDriveBearing);
