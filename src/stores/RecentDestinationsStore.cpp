@@ -111,33 +111,51 @@ void RecentDestinationsStore::push(double lat, double lng, const QString &label)
 
 void RecentDestinationsStore::navigateToRecent(int id)
 {
+    // Snapshot first — setDestination re-enters push() (which reassigns
+    // m_destinations), invalidating the iterator and the QString
+    // reference if we hadn't COW-copied the label.
+    double lat = 0, lng = 0;
+    QString label;
+    bool found = false;
     for (const auto &d : m_destinations) {
         if (d.id == id) {
-            // Bump timestamp by re-saving before the nav call — push() itself
-            // will then match it via proximity and just update the time.
-            m_nav->setDestination(d.latitude, d.longitude, d.label);
-            return;
+            lat = d.latitude;
+            lng = d.longitude;
+            label = d.label;
+            found = true;
+            break;
         }
     }
+    if (found)
+        m_nav->setDestination(lat, lng, label);
 }
 
 void RecentDestinationsStore::promoteToSaved(int id)
 {
+    double lat = 0, lng = 0;
+    QString label;
+    bool found = false;
     for (const auto &d : m_destinations) {
         if (d.id == id) {
-            SavedLocation s;
-            s.latitude = d.latitude;
-            s.longitude = d.longitude;
-            s.label = d.label;
-            if (m_savedService->save(s)) {
-                m_service->remove(id);
-                m_toast->showSuccess(QStringLiteral("Saved to favorites"));
-                load();
-            } else {
-                m_toast->showError(QStringLiteral("Could not save"));
-            }
-            return;
+            lat = d.latitude;
+            lng = d.longitude;
+            label = d.label;
+            found = true;
+            break;
         }
+    }
+    if (!found) return;
+
+    SavedLocation s;
+    s.latitude = lat;
+    s.longitude = lng;
+    s.label = label;
+    if (m_savedService->save(s)) {
+        m_service->remove(id);
+        m_toast->showSuccess(QStringLiteral("Saved to favorites"));
+        load();
+    } else {
+        m_toast->showError(QStringLiteral("Could not save"));
     }
 }
 
