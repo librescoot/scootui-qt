@@ -247,8 +247,8 @@ void Translations::initStrings()
     en[QStringLiteral("menuToggleHazardLights")] = QStringLiteral("Toggle Hazard Lights");
     de[QStringLiteral("menuToggleHazardLights")] = QStringLiteral("Warnblinker umschalten");
 
-    en[QStringLiteral("menuHopOn")] = QStringLiteral("Hop On / Off");
-    de[QStringLiteral("menuHopOn")] = QStringLiteral("Hop-on / -off");
+    en[QStringLiteral("menuHopOn")] = QStringLiteral("Hop On / Hop Off\u2026");
+    de[QStringLiteral("menuHopOn")] = QStringLiteral("Hop-on / Hop-off\u2026");
 
     en[QStringLiteral("menuHopOnHeader")] = QStringLiteral("HOP ON");
     de[QStringLiteral("menuHopOnHeader")] = QStringLiteral("HOP ON");
@@ -734,17 +734,34 @@ void Translations::initStrings()
     en[QStringLiteral("navSetupRoutingEngine")] = QStringLiteral("Routing engine");
     de[QStringLiteral("navSetupRoutingEngine")] = QStringLiteral("Routing-Engine");
 
-    en[QStringLiteral("navSetupNoRoutingBody")] = QStringLiteral("Map display and routing are independent. Display tiles can be local (offline .mbtiles) or online. Routing requires a Valhalla engine \u2014 local (needs routing maps) or a remote server.");
-    de[QStringLiteral("navSetupNoRoutingBody")] = QStringLiteral("Kartenanzeige und Routing sind unabh\u00E4ngig. Kartenkacheln k\u00F6nnen lokal (offline .mbtiles) oder online sein. F\u00FCr Routing wird eine Valhalla-Engine ben\u00F6tigt \u2014 lokal (Routing-Karten erforderlich) oder ein Remote-Server.");
+    en[QStringLiteral("navSetupNoRoutingBody")] = QStringLiteral(
+        "Map tiles render the map, routing plans the directions. "
+        "Download both packs for your region to use navigation offline.");
+    de[QStringLiteral("navSetupNoRoutingBody")] = QStringLiteral(
+        "Kartenkacheln zeigen die Karte, Routing plant die Route. "
+        "Karten- und Routing-Daten f\u00FCr deine Region laden.");
 
     en[QStringLiteral("navSetupScanForInstructions")] = QStringLiteral("Scan for setup instructions");
-    de[QStringLiteral("navSetupScanForInstructions")] = QStringLiteral("F\u00FCr Anleitung scannen");
+    de[QStringLiteral("navSetupScanForInstructions")] = QStringLiteral("Anleitung scannen");
 
-    en[QStringLiteral("navSetupDisplayMapsBody")] = QStringLiteral("Download offline display maps for your region. These are used to render the map on screen without an internet connection.");
-    de[QStringLiteral("navSetupDisplayMapsBody")] = QStringLiteral("Offline-Kartenkacheln f\u00FCr Ihre Region herunterladen. Diese werden verwendet, um die Karte ohne Internetverbindung anzuzeigen.");
+    en[QStringLiteral("navSetupAllSet")] = QStringLiteral(
+        "Offline maps and routing are ready for your region. Navigate anywhere, no data connection needed.");
+    de[QStringLiteral("navSetupAllSet")] = QStringLiteral(
+        "Offline-Karten und Routing sind für deine Region bereit. Navigieren geht ohne Internet.");
 
-    en[QStringLiteral("navSetupRoutingBody")] = QStringLiteral("Download routing maps for your region. These are used by the on-device Valhalla routing engine to calculate routes offline.");
-    de[QStringLiteral("navSetupRoutingBody")] = QStringLiteral("Routing-Karten f\u00FCr Ihre Region herunterladen. Diese werden von der Valhalla-Routing-Engine auf dem Ger\u00E4t verwendet, um Routen offline zu berechnen.");
+    en[QStringLiteral("navSetupDisplayMapsBody")] = QStringLiteral(
+        "Offline map tiles render the map without internet. "
+        "Download the map pack for your region.");
+    de[QStringLiteral("navSetupDisplayMapsBody")] = QStringLiteral(
+        "Offline-Kartenkacheln zeigen die Karte ohne Internet. "
+        "Kartendaten f\u00FCr deine Region laden.");
+
+    en[QStringLiteral("navSetupRoutingBody")] = QStringLiteral(
+        "Offline routing plans directions on the scooter without a data connection. "
+        "Download the routing pack for your region.");
+    de[QStringLiteral("navSetupRoutingBody")] = QStringLiteral(
+        "Offline-Routing berechnet Routen direkt auf dem Scooter, ohne Internet. "
+        "Routing-Daten f\u00FCr deine Region laden.");
 
     en[QStringLiteral("navSetupCheckingUpdates")] = QStringLiteral("Checking for updates...");
     de[QStringLiteral("navSetupCheckingUpdates")] = QStringLiteral("Suche nach Updates...");

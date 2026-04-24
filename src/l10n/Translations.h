@@ -246,6 +246,7 @@ class Translations : public QObject
     Q_PROPERTY(QString navSetupRoutingEngine READ navSetupRoutingEngine NOTIFY languageChanged)
     Q_PROPERTY(QString navSetupNoRoutingBody READ navSetupNoRoutingBody NOTIFY languageChanged)
     Q_PROPERTY(QString navSetupScanForInstructions READ navSetupScanForInstructions NOTIFY languageChanged)
+    Q_PROPERTY(QString navSetupAllSet READ navSetupAllSet NOTIFY languageChanged)
     Q_PROPERTY(QString navSetupDisplayMapsBody READ navSetupDisplayMapsBody NOTIFY languageChanged)
     Q_PROPERTY(QString navSetupRoutingBody READ navSetupRoutingBody NOTIFY languageChanged)
     Q_PROPERTY(QString navSetupCheckingUpdates READ navSetupCheckingUpdates NOTIFY languageChanged)
@@ -629,6 +630,7 @@ public:
     QString navSetupRoutingEngine() const { return lookup("navSetupRoutingEngine"); }
     QString navSetupNoRoutingBody() const { return lookup("navSetupNoRoutingBody"); }
     QString navSetupScanForInstructions() const { return lookup("navSetupScanForInstructions"); }
+    QString navSetupAllSet() const { return lookup("navSetupAllSet"); }
     QString navSetupDisplayMapsBody() const { return lookup("navSetupDisplayMapsBody"); }
     QString navSetupRoutingBody() const { return lookup("navSetupRoutingBody"); }
     QString navSetupCheckingUpdates() const { return lookup("navSetupCheckingUpdates"); }

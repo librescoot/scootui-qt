@@ -62,7 +62,25 @@ Rectangle {
         return mapDownloadService.hasPartialDisplayDownload || mapDownloadService.hasPartialRoutingDownload
     }
 
+    // What the download button will actually fetch given the current mode and
+    // component health. Mode 0/1 force a single component; mode 2 fetches
+    // whatever is missing. If both are fine but an update is available, we
+    // refresh whichever the mode asks for. Used by both the size label and
+    // the download trigger so they can't drift.
+    readonly property bool willDownloadDisplay: {
+        if (showDisplayRow && !mapsOk) return true
+        if (dlUpdateAvailable && showDisplayRow) return true
+        return false
+    }
+    readonly property bool willDownloadRouting: {
+        if (showRoutingRow && !routingOk) return true
+        if (dlUpdateAvailable && showRoutingRow) return true
+        return false
+    }
+    readonly property bool willDownloadAnything: willDownloadDisplay || willDownloadRouting
+
     readonly property bool canDownload: dlStatus === statusIdle && isOnline && hasGps
+                                         && willDownloadAnything
     readonly property string downloadButtonLabel: {
         if (dlUpdateAvailable)
             return typeof translations !== "undefined" ? translations.navSetupUpdateButton : "Update"
@@ -109,13 +127,7 @@ Rectangle {
     function triggerDownload() {
         if (!canDownload || !hasDownloadService)
             return
-        var needsDisplay = (mode === 0 || mode === 2) && !mapsOk
-        var needsRouting = (mode === 1 || mode === 2) && !routingOk
-        if (!needsDisplay && !needsRouting && dlUpdateAvailable) {
-            needsDisplay = mode === 0 || mode === 2
-            needsRouting = mode === 1 || mode === 2
-        }
-        mapDownloadService.startDownload(gpsLat, gpsLng, needsDisplay, needsRouting)
+        mapDownloadService.startDownload(gpsLat, gpsLng, willDownloadDisplay, willDownloadRouting)
     }
 
     function closeSelf() {
@@ -191,57 +203,100 @@ Rectangle {
             width: flickable.width
             spacing: 0
 
-        Item { Layout.preferredWidth: 1; Layout.preferredHeight: 16 }
+        Item { Layout.preferredWidth: 1; Layout.preferredHeight: 12 }
 
-        // Title
-        Text {
-            Layout.alignment: Qt.AlignHCenter
-            text: navSetupScreen.titleText
-            color: navSetupScreen.textPrimary
-            font.pixelSize: themeStore.fontTitle
-            font.weight: Font.Bold
-        }
+        // Top row: title + status rows on the left, QR + scan hint on the
+        // right. Matches the Update Mode layout so content screens with QR
+        // codes are consistent.
+        Item {
+            id: topRow
+            Layout.fillWidth: true
+            Layout.preferredHeight: Math.max(topLeft.implicitHeight, topRight.implicitHeight)
 
-        Item { Layout.preferredWidth: 1; Layout.preferredHeight: 16 }
+            Column {
+                id: topLeft
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.leftMargin: 24
+                anchors.right: topRight.left
+                anchors.rightMargin: 16
+                spacing: 12
 
-        // Status rows
-        ColumnLayout {
-            Layout.alignment: Qt.AlignHCenter
-            spacing: 8
-
-            // Local display maps row
-            RowLayout {
-                visible: navSetupScreen.showDisplayRow
-                Layout.alignment: Qt.AlignHCenter
-                spacing: 8
                 Text {
-                    text: navSetupScreen.mapsOk ? MaterialIcon.iconCheckCircleOutline : MaterialIcon.iconCancel
-                    font.family: "Material Icons"
-                    font.pixelSize: themeStore.fontBody
-                    color: navSetupScreen.mapsOk ? navSetupScreen.checkColor : navSetupScreen.crossColor
-                }
-                Text {
-                    text: typeof translations !== "undefined" ? translations.navSetupLocalDisplayMaps : "Offline display maps"
+                    width: parent.width
+                    text: navSetupScreen.titleText
                     color: navSetupScreen.textPrimary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: themeStore.fontTitle
+                    font.weight: Font.Bold
+                    wrapMode: Text.WordWrap
+                }
+
+                Column {
+                    spacing: 6
+
+                    Row {
+                        visible: navSetupScreen.showDisplayRow
+                        spacing: 8
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: navSetupScreen.mapsOk ? MaterialIcon.iconCheckCircleOutline : MaterialIcon.iconCancel
+                            font.family: "Material Icons"
+                            font.pixelSize: themeStore.fontBody
+                            color: navSetupScreen.mapsOk ? navSetupScreen.checkColor : navSetupScreen.crossColor
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: typeof translations !== "undefined" ? translations.navSetupLocalDisplayMaps : "Offline display maps"
+                            color: navSetupScreen.textPrimary
+                            font.pixelSize: themeStore.fontBody
+                        }
+                    }
+
+                    Row {
+                        visible: navSetupScreen.showRoutingRow
+                        spacing: 8
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: navSetupScreen.routingOk ? MaterialIcon.iconCheckCircleOutline : MaterialIcon.iconCancel
+                            font.family: "Material Icons"
+                            font.pixelSize: themeStore.fontBody
+                            color: navSetupScreen.routingOk ? navSetupScreen.checkColor : navSetupScreen.crossColor
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: typeof translations !== "undefined" ? translations.navSetupRoutingEngine : "Routing engine"
+                            color: navSetupScreen.textPrimary
+                            font.pixelSize: themeStore.fontBody
+                        }
+                    }
                 }
             }
 
-            // Routing service row
-            RowLayout {
-                visible: navSetupScreen.showRoutingRow
-                Layout.alignment: Qt.AlignHCenter
-                spacing: 8
-                Text {
-                    text: navSetupScreen.routingOk ? MaterialIcon.iconCheckCircleOutline : MaterialIcon.iconCancel
-                    font.family: "Material Icons"
-                    font.pixelSize: themeStore.fontBody
-                    color: navSetupScreen.routingOk ? navSetupScreen.checkColor : navSetupScreen.crossColor
+            Column {
+                id: topRight
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.rightMargin: 12
+                spacing: 4
+
+                Image {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    source: "qrc:/ScootUI/assets/icons/nav-setup-qr.png"
+                    sourceSize.width: 110
+                    sourceSize.height: 110
+                    width: 110
+                    height: 110
+                    visible: status === Image.Ready
                 }
+
                 Text {
-                    text: typeof translations !== "undefined" ? translations.navSetupRoutingEngine : "Routing engine"
-                    color: navSetupScreen.textPrimary
-                    font.pixelSize: themeStore.fontBody
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 110
+                    horizontalAlignment: Text.AlignHCenter
+                    text: typeof translations !== "undefined" ? translations.navSetupScanForInstructions : "Scan for setup instructions"
+                    color: navSetupScreen.textSecondary
+                    font.pixelSize: themeStore.fontMicro
+                    wrapMode: Text.WordWrap
                 }
             }
         }
@@ -290,15 +345,17 @@ Rectangle {
                     font.pixelSize: themeStore.fontBody
                 }
 
-                // Region resolved - show name with estimated size
+                // Region resolved — name + size of what will actually download.
+                // Hidden when nothing needs downloading (the "all set" state
+                // shows an informational body instead).
                 Text {
-                    visible: navSetupScreen.dlRegion !== ""
+                    visible: navSetupScreen.dlRegion !== "" && navSetupScreen.willDownloadAnything
                     Layout.alignment: Qt.AlignHCenter
                     text: {
                         var total = 0
                         if (navSetupScreen.hasDownloadService) {
-                            if (navSetupScreen.showDisplayRow) total += mapDownloadService.estimatedDisplayBytes
-                            if (navSetupScreen.showRoutingRow) total += mapDownloadService.estimatedRoutingBytes
+                            if (navSetupScreen.willDownloadDisplay) total += mapDownloadService.estimatedDisplayBytes
+                            if (navSetupScreen.willDownloadRouting) total += mapDownloadService.estimatedRoutingBytes
                         }
                         var sizeMB = Math.round(total / 1048576)
                         return navSetupScreen.dlRegion + " (" + sizeMB + " MB)"
@@ -416,7 +473,11 @@ Rectangle {
 
         Item { Layout.preferredHeight: 10 }
 
-        // Body text (depends on mode)
+        // Body text — picks the description that matches the actual
+        // download. In mode 2 with only one side missing, avoid the "both
+        // packs" phrasing. When nothing needs downloading (proactive visit
+        // from the Navigation submenu with everything installed), show the
+        // "all set" message instead.
         Text {
             Layout.alignment: Qt.AlignHCenter
             Layout.leftMargin: 40
@@ -424,9 +485,13 @@ Rectangle {
             Layout.maximumWidth: parent.width - 80
             text: {
                 if (typeof translations === "undefined") return ""
-                if (mode === 0) return translations.navSetupDisplayMapsBody
-                if (mode === 1) return translations.navSetupRoutingBody
-                return translations.navSetupNoRoutingBody
+                if (!navSetupScreen.willDownloadAnything)
+                    return translations.navSetupAllSet
+                if (navSetupScreen.willDownloadDisplay && navSetupScreen.willDownloadRouting)
+                    return translations.navSetupNoRoutingBody
+                if (navSetupScreen.willDownloadDisplay)
+                    return translations.navSetupDisplayMapsBody
+                return translations.navSetupRoutingBody
             }
             color: navSetupScreen.textSecondary
             font.pixelSize: themeStore.fontBody
@@ -434,28 +499,6 @@ Rectangle {
             lineHeightMode: Text.ProportionalHeight
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
-        }
-
-        Item { Layout.preferredHeight: 12 }
-
-        // QR code
-        Image {
-            Layout.alignment: Qt.AlignHCenter
-            source: "qrc:/ScootUI/assets/icons/nav-setup-qr.png"
-            sourceSize.width: 110
-            sourceSize.height: 110
-            width: 110
-            height: 110
-            visible: status === Image.Ready
-        }
-
-        Item { Layout.preferredHeight: 8 }
-
-        Text {
-            Layout.alignment: Qt.AlignHCenter
-            text: typeof translations !== "undefined" ? translations.navSetupScanForInstructions : "Scan for setup instructions"
-            color: navSetupScreen.textSecondary
-            font.pixelSize: themeStore.fontBody
         }
 
         Item { Layout.preferredWidth: 1; Layout.preferredHeight: 16 }
@@ -469,17 +512,23 @@ Rectangle {
             color: isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.12)
         }
 
-        // Control hints. Left reflects its next effect (Scroll while there's
-        // content below, then falls through to Back). Right is the primary
-        // action (Download) when one is available, otherwise Back.
+        // Control hints. Left reflects its next effect (Scroll while there
+        // is content below, then falls through to Back). Right is the
+        // primary action (Download/Update/Resume) when one is available,
+        // otherwise Back — but suppressed to empty when the left brake
+        // would already say Back (no point repeating it).
         ControlHints {
             Layout.fillWidth: true
             leftAction: navSetupScreen.canScrollDown
-                ? (typeof translations !== "undefined" ? translations.aboutScrollAction : "Scroll")
+                ? (typeof translations !== "undefined" ? translations.controlScroll : "Scroll")
                 : (typeof translations !== "undefined" ? translations.controlBack : "Back")
-            rightAction: navSetupScreen.canDownload
-                ? navSetupScreen.downloadButtonLabel
-                : (typeof translations !== "undefined" ? translations.controlBack : "Back")
+            rightAction: {
+                if (navSetupScreen.canDownload)
+                    return navSetupScreen.downloadButtonLabel
+                if (!navSetupScreen.canScrollDown)
+                    return ""
+                return typeof translations !== "undefined" ? translations.controlBack : "Back"
+            }
         }
     }
 }
