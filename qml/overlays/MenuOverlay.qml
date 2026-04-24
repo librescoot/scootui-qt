@@ -77,7 +77,13 @@ Item {
                     valueLabel: modelData.valueLabel !== undefined ? modelData.valueLabel : ""
                 }
 
-                // Ensure selected item is fully visible outside gradient overlays
+                // Keep the selected item clear of the 40 px gradient indicators
+                // at the top and bottom. The gradients hide themselves once
+                // there's no more content to indicate, so we must clamp the
+                // resulting contentY to the natural [0, max] range — otherwise
+                // the last item lands 40 px above the bottom edge with blank
+                // space below it, and wrapping back to index 0 places the
+                // first item 40 px below the top edge.
                 onCurrentIndexChanged: {
                     var gradientHeight = 40
                     var item = menuList.itemAtIndex(currentIndex)
@@ -89,11 +95,14 @@ Item {
                     var itemBottom = itemTop + item.height
                     var viewHeight = menuList.height
 
+                    var target = menuList.contentY
                     if (itemBottom > viewHeight - gradientHeight) {
-                        menuList.contentY = item.y + item.height - viewHeight + gradientHeight
+                        target = item.y + item.height - viewHeight + gradientHeight
                     } else if (itemTop < gradientHeight) {
-                        menuList.contentY = item.y - gradientHeight
+                        target = item.y - gradientHeight
                     }
+                    var maxContentY = Math.max(0, menuList.contentHeight - viewHeight)
+                    menuList.contentY = Math.max(0, Math.min(maxContentY, target))
                 }
             }
 
