@@ -8,27 +8,33 @@ ScootUI Qt is the dashboard application for the LibreScoot electric scooter firm
 
 - **Real-time Telemetry Display**
   - Speed, power output, battery levels, odometer, trip meter
-  - GPS status, connectivity indicators, and system warnings
+  - GPS status, connectivity indicators, fault display
+  - Configurable power readout (kW or amps) and battery readout (% or range estimate)
 
 - **Multiple View Modes**
   - Cluster view with speedometer and vehicle status
   - Map view with 3D-tilted navigation
-  - Destination selection and navigation setup screens
-  - OTA update interface
+  - Destination selection with address search, recent destinations, saved locations
+  - Navigation setup, OTA update interface, fault list, hop-on flow
 
 - **Navigation**
   - Vector map rendering via QMapLibre
   - Turn-by-turn directions with Valhalla routing
   - Speed limit indicators and road name display
   - Auto-rotating map with heading tracking
+  - Off-route detection and automatic rerouting
+  - Reverse geocoding for tap-to-navigate
+  - Optional traffic overlay; offline + online tile sources
 
 - **System Integration**
   - Connects to the scooter's main data bus (Redis-based MDB)
   - Handles battery, engine, GPS, Bluetooth, and other vehicle systems
-  - Support for over-the-air (OTA) updates
+  - Support for over-the-air (OTA) updates with multi-mode boot flow
+  - Map pack management with optional auto-download
 
 - **Adaptable Design**
   - Light and dark themes with auto-switching based on ambient light
+  - Semantic color tokens via `ThemeStore` for fonts, radii, and status colors
   - Configurable blinker overlay styles
   - Multi-language support
 
@@ -45,6 +51,7 @@ ScootUI Qt is the dashboard application for the LibreScoot electric scooter firm
 ### Prerequisites
 
 - Qt 6.4+ with Quick, Qml, Svg, Network, Sql, Concurrent modules
+  (Qt 6.9.x recommended; matches the desktop dev script default)
 - QMapLibre (optional in desktop mode, required for target)
 - CMake 3.16+
 
@@ -106,7 +113,17 @@ src/
 
 qml/
   screens/        Main UI screens (cluster, map, destination, OTA, ...)
-  widgets/        Reusable UI components (speedometer, status bars, blinker, ...)
+  widgets/        Reusable UI components, grouped by subsystem
+    blinker/       Blinker overlays
+    cluster/       Cluster screen widgets
+    components/    Shared building blocks (icons, hints, frosted glass, ...)
+    indicators/    Status indicators, speed limit, road name
+    map/           Map view, vehicle marker, scale bar, north indicator
+    navigation/    TBT, route progress, status pill, roundabout icon
+    power/         Power display
+    shutdown/      Shutdown overlay
+    speedometer/   Speedometer arc
+    status_bars/   Battery, top/bottom bars
   overlays/       Modal overlays (menu, toast, bluetooth PIN, ...)
   simulator/      Simulator control panel (desktop mode only)
   theme/          Theme definitions
@@ -130,26 +147,35 @@ assets/
 
 ### Runtime Settings (Redis)
 
-Settings are stored in the `settings` Redis hash and can be modified at runtime.
+Settings are stored in the `settings` Redis hash and can be modified at runtime. The source of truth is the settings schema; each key handled here carries a `// @schema <key>` annotation in `src/stores/SettingsStore.h`, and `scripts/check-schema-coverage.sh` enforces coverage in CI.
 
 #### Dashboard Display
 
 | Key | Values | Default | Description |
 |-----|--------|---------|-------------|
+| `dashboard.mode` | `speedometer`, `cluster`, `map` | `speedometer` | Active screen on boot |
 | `dashboard.show-raw-speed` | `true`, `false` | `false` | Show uncorrected ECU speed |
+| `dashboard.battery-display-mode` | `percentage`, `range` | `percentage` | Battery readout style |
+| `dashboard.power-display-mode` | `kw`, `amps` | `kw` | Power readout style |
 | `dashboard.show-gps` | `always`, `active-or-error`, `error`, `never` | `error` | GPS icon visibility |
 | `dashboard.show-bluetooth` | `always`, `active-or-error`, `error`, `never` | `active-or-error` | Bluetooth icon visibility |
 | `dashboard.show-cloud` | `always`, `active-or-error`, `error`, `never` | `error` | Cloud connection icon visibility |
 | `dashboard.show-internet` | `always`, `active-or-error`, `error`, `never` | `always` | Cellular icon visibility |
+| `dashboard.show-clock` | `always`, `never` | `always` | Clock visibility |
 | `dashboard.theme` | `light`, `dark`, `auto` | `auto` | UI theme |
 | `dashboard.blinker-style` | `default`, `overlay` | `default` | Blinker indicator style |
 | `dashboard.language` | `en`, `de`, ... | `en` | UI language |
+| `dashboard.hop-on-combo` | pipe-delimited token list (e.g. `LB|RB|HORN`) | _(unset)_ | Custom hop-on unlock combo; managed by the hop-on UI |
 
 #### Map & Navigation
 
 | Key | Values | Default | Description |
 |-----|--------|---------|-------------|
 | `dashboard.map.type` | `online`, `offline` | `offline` | Map tile source |
+| `dashboard.map.render-mode` | `vector`, `raster` | `vector` | Map renderer |
+| `dashboard.map.traffic-overlay` | `true`, `false` | `false` | Show live traffic overlay |
+| `dashboard.maps.check-for-updates` | `true`, `false` | `true` | Periodically check for offline map updates |
+| `dashboard.maps.auto-download` | `true`, `false` | `false` | Download map updates without user action |
 | `dashboard.valhalla-url` | URL | `http://localhost:8002/` | Valhalla routing endpoint |
 
 **Examples:**
@@ -164,15 +190,23 @@ redis-cli hset settings dashboard.map.type online
 redis-cli hset settings dashboard.blinker-style overlay
 ```
 
+## Theming
+
+`ThemeStore` exposes shared design tokens to QML — font scale, border radii, theme-aware text/surface/border colors, and theme-independent status colors (`statusSuccess`, `statusWarning`, `statusError`, `statusNeutral`, `statusInfo`). Use these instead of hardcoding hex literals.
+
 ## Screens
 
-- **Cluster Screen** - Main dashboard with speedometer, battery status, and indicator lights
-- **Map Screen** - 3D navigation view with turn-by-turn directions
-- **Destination Screen** - Saved locations and destination selection
-- **Navigation Setup** - Route preview and confirmation
-- **About Screen** - Version and system information
-- **Maintenance Screen** - Diagnostic information
-- **OTA Screen** - System update interface
+- **Cluster Screen** — speedometer, battery status, indicator lights
+- **Map Screen** — 3D navigation view with turn-by-turn directions
+- **Destination Screen** — saved locations, recent destinations, address search entry
+- **Address Selection** — typeahead search with reverse geocoding
+- **Navigation Setup** — route preview, distance, ETA, confirmation
+- **Faults Screen** — active fault list with severity and component info
+- **Hop On Info** — handover/anti-theft pairing flow
+- **Update Mode Info** — explainer for OTA boot modes
+- **OTA Background** — system update interface
+- **About Screen** — version and system information
+- **Maintenance Screen** — diagnostic information
 
 ## Contributing
 
