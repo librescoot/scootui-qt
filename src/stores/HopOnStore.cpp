@@ -344,6 +344,24 @@ void HopOnStore::onHopOnActiveChanged()
         m_buffer.clear();
         emit capturedTokensChanged();
         setMode(Idle);
+        return;
+    }
+
+    // Inverse case: vehicle-service still has hop-on engaged while we came
+    // up Idle. This happens when the dashboard crashes/restarts mid-lock —
+    // without re-entering Locked here, MenuStore::open() would let the user
+    // navigate the menu while the scooter is supposed to be locked.
+    // We require a stored combo to restore Locked mode; otherwise the user
+    // would have no way to unlock the dashboard.
+    if (m_vehicle->hopOnActive() && m_mode == Idle && !combo().isEmpty()) {
+        qDebug() << "HopOn: vehicle-service has hop-on active on startup, restoring Locked mode";
+        if (m_dashboard)
+            m_dashboard->setBacklightEnabled(true);
+        m_backlightTimer.start();
+        m_buffer.clear();
+        emit capturedTokensChanged();
+        setMode(Locked);
+        resetIdleCountdown();
     }
 }
 
