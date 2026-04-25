@@ -3,7 +3,6 @@
 #include "SyncableStore.h"
 #include "models/Enums.h"
 #include <QTimer>
-#include <QElapsedTimer>
 #include <QSet>
 
 class VehicleStore : public SyncableStore
@@ -88,9 +87,12 @@ private:
     static constexpr int BRAKE_DEBOUNCE_MS = 20;
 
     QTimer m_blinkTimer;
-    QElapsedTimer m_blinkElapsed;
     qreal m_blinkOpacity = 0.0;
-    qint64 m_blinkPhaseOffset = 0; // ms offset into 800ms cycle, reset when start_nanos arrives
+    // Wall-clock anchor (ms since epoch) for the cycle schedule. Vehicle-service
+    // uses time.Now() (wall clock) for absolute scheduling, so we track the same
+    // clock — using a monotonic source here would drift relative to the LED
+    // schedule across NTP corrections / suspend-resume.
+    qint64 m_blinkStartMs = 0;
 
     ScootEnums::BlinkerState m_blinkerState = ScootEnums::BlinkerState::Off;
     ScootEnums::BlinkerSwitch m_blinkerSwitch = ScootEnums::BlinkerSwitch::Off;
