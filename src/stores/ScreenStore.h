@@ -4,6 +4,7 @@
 #include "models/Enums.h"
 
 class SettingsStore;
+class MdbRepository;
 
 class ScreenStore : public QObject
 {
@@ -11,7 +12,13 @@ class ScreenStore : public QObject
     Q_PROPERTY(int currentScreen READ currentScreen NOTIFY currentScreenChanged)
 
 public:
-    explicit ScreenStore(SettingsStore *settings, QObject *parent = nullptr);
+    explicit ScreenStore(SettingsStore *settings, MdbRepository *repo,
+                         QObject *parent = nullptr);
+
+    // Brake-navigated screens drive their own UI via brake-lever taps; while
+    // any of them is up we mirror MenuStore's dashboard:menu-open=true so
+    // vehicle-service suppresses brake-light LED cues for the navigation taps.
+    static bool isBrakeNavigated(ScootEnums::ScreenMode mode);
 
     int currentScreen() const { return static_cast<int>(m_currentScreen); }
     ScootEnums::ScreenMode currentScreenMode() const { return m_currentScreen; }
@@ -42,7 +49,9 @@ signals:
 
 private:
     void applyMode(const QString &mode);
+    void publishMenuOpen();
 
+    MdbRepository *m_repo;
     ScootEnums::ScreenMode m_currentScreen = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeAbout = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeNavSetup = ScootEnums::ScreenMode::Cluster;

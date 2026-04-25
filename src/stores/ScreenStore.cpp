@@ -1,13 +1,39 @@
 #include "ScreenStore.h"
 #include "SettingsStore.h"
+#include "../repositories/MdbRepository.h"
 
-ScreenStore::ScreenStore(SettingsStore *settings, QObject *parent)
+ScreenStore::ScreenStore(SettingsStore *settings, MdbRepository *repo, QObject *parent)
     : QObject(parent)
+    , m_repo(repo)
 {
     applyMode(settings->mode());
     connect(settings, &SettingsStore::modeChanged, this, [this, settings]() {
         applyMode(settings->mode());
     });
+}
+
+bool ScreenStore::isBrakeNavigated(ScootEnums::ScreenMode mode)
+{
+    switch (mode) {
+    case ScootEnums::ScreenMode::About:
+    case ScootEnums::ScreenMode::AddressSelection:
+    case ScootEnums::ScreenMode::NavigationSetup:
+    case ScootEnums::ScreenMode::Destination:
+    case ScootEnums::ScreenMode::Faults:
+    case ScootEnums::ScreenMode::UpdateModeInfo:
+    case ScootEnums::ScreenMode::HopOnInfo:
+        return true;
+    default:
+        return false;
+    }
+}
+
+void ScreenStore::publishMenuOpen()
+{
+    if (!m_repo) return;
+    m_repo->set(QStringLiteral("dashboard"), QStringLiteral("menu-open"),
+                isBrakeNavigated(m_currentScreen) ? QStringLiteral("true")
+                                                 : QStringLiteral("false"));
 }
 
 void ScreenStore::applyMode(const QString &mode)
@@ -20,6 +46,7 @@ void ScreenStore::applyMode(const QString &mode)
 
     if (target != m_currentScreen) {
         m_currentScreen = target;
+        publishMenuOpen();
         emit currentScreenChanged();
     }
 }
@@ -29,6 +56,7 @@ void ScreenStore::setScreen(int screen)
     auto mode = static_cast<ScootEnums::ScreenMode>(screen);
     if (mode != m_currentScreen) {
         m_currentScreen = mode;
+        publishMenuOpen();
         emit currentScreenChanged();
     }
 }
