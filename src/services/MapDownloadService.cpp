@@ -122,6 +122,7 @@ void MapDownloadService::cancel()
     m_progress = 0.0;
     m_downloadedBytes = 0;
     m_totalBytes = 0;
+    m_completedBytes = 0;
     emit progressChanged();
     setStatus(ScootEnums::MapDownloadStatus::Idle);
 }
@@ -340,6 +341,7 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
         setStatus(ScootEnums::MapDownloadStatus::Downloading);
         m_totalBytes = totalNeeded;
         m_downloadedBytes = 0;
+        m_completedBytes = 0;
         emit progressChanged();
 
         if (needsDisplay) {
@@ -386,18 +388,22 @@ void MapDownloadService::doDownloadFile(const QString &url, const QString &destP
 
     m_currentReply = m_nam->get(req);
 
-    connect(m_currentReply, &QNetworkReply::readyRead, this, [this, existingSize]() {
+    // m_currentFile->size() already includes any existingSize because the file
+    // is opened in Append mode for resumes; m_completedBytes carries the bytes
+    // from previously-finished files in this session (e.g. display done, now
+    // downloading routing). Together they give the cumulative session bytes.
+    connect(m_currentReply, &QNetworkReply::readyRead, this, [this]() {
         if (m_currentFile && m_currentReply) {
             QByteArray data = m_currentReply->readAll();
             m_currentFile->write(data);
-            m_downloadedBytes = existingSize + m_currentFile->size();
+            m_downloadedBytes = m_completedBytes + m_currentFile->size();
             m_progress = m_totalBytes > 0 ? static_cast<double>(m_downloadedBytes) / m_totalBytes : 0.0;
             emit progressChanged();
         }
     });
 
     connect(m_currentReply, &QNetworkReply::finished, this,
-            [this, destPath, digest, isDisplay, existingSize]() {
+            [this, destPath, digest, isDisplay]() {
         auto *reply = m_currentReply;
         m_currentReply = nullptr;
 
@@ -496,6 +502,10 @@ void MapDownloadService::doInstall(const QString &tempPath, const QString &destP
     info.digest = digest;
     info.size = QFileInfo(destPath).size();
     info.publishedAt = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
+
+    // Roll the just-installed file into the cumulative session counter so
+    // the next file's progress starts from where this one ended, not 0.
+    m_completedBytes += info.size;
 
     if (isDisplay) {
         m_metadata.displayTiles = info;

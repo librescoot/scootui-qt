@@ -101,6 +101,9 @@ private:
     bool m_updateAvailable = false;
     qint64 m_downloadedBytes = 0;
     qint64 m_totalBytes = 0;
+    // Sum of fully-installed file sizes in the current download session.
+    // Carried across files so multi-pack downloads don't reset to 0% mid-way.
+    qint64 m_completedBytes = 0;
     qint64 m_estimatedDisplayBytes = 0;
     qint64 m_estimatedRoutingBytes = 0;
 
