@@ -79,6 +79,7 @@ private:
 
     // Helpers
     QString slugForState(const QString &state) const;
+    QString displayNameForSlug(const QString &slug) const;
     QString mapsDir() const;
     QString downloadDir() const;
     QString displayPartPath() const;

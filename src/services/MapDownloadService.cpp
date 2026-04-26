@@ -39,6 +39,9 @@ MapDownloadService::MapDownloadService(bool simulatorMode, QObject *parent)
     m_metadata = MapMetadata::load();
     if (!m_metadata.region.isEmpty()) {
         m_resolvedSlug = m_metadata.region;
+        // Restore friendly name so the QML's `dlRegion === ""` guard does not
+        // trigger a redundant Nominatim re-detect on every boot.
+        m_regionName = displayNameForSlug(m_resolvedSlug);
     }
     m_updateAvailable = m_metadata.updateAvailable;
 
@@ -544,6 +547,20 @@ void MapDownloadService::doFinishAll()
 QString MapDownloadService::slugForState(const QString &state) const
 {
     return s_stateToSlug.value(state);
+}
+
+QString MapDownloadService::displayNameForSlug(const QString &slug) const
+{
+    if (slug.isEmpty())
+        return {};
+    // Combined region: doResolveSlug uses the same friendly label.
+    if (slug == QLatin1String("berlin_brandenburg"))
+        return QStringLiteral("Berlin/Brandenburg");
+    for (auto it = s_stateToSlug.constBegin(); it != s_stateToSlug.constEnd(); ++it) {
+        if (it.value() == slug)
+            return it.key();
+    }
+    return slug;
 }
 
 QString MapDownloadService::mapsDir() const
