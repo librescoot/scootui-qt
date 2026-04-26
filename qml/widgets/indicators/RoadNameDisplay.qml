@@ -3,6 +3,7 @@ import QtQuick
 Rectangle {
     id: root
     property string roadName: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadName : ""
+    property string roadRefs: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadRefs : ""
     property string roadType: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadType : ""
     property real fontSize: themeStore.fontCaption
 
@@ -47,12 +48,14 @@ Rectangle {
     Text {
         id: label
         anchors.centerIn: parent
-        text: root.roadName
+        text: root.roadRefs.length > 0
+              ? root.roadName + " (" + root.roadRefs + ")"
+              : root.roadName
         font.pixelSize: root.fontSize
         font.weight: Font.Medium
         elide: Text.ElideRight
         maximumLineCount: 1
-        width: Math.min(implicitWidth, 140)
+        width: Math.min(implicitWidth, 200)
         color: {
             switch (root.roadType.toLowerCase()) {
                 case "motorway":

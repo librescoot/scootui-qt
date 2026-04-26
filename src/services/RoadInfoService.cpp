@@ -111,6 +111,7 @@ void RoadInfoService::countMissAndMaybeClear()
 {
     if (++m_consecutiveMisses >= ClearAfterMisses) {
         m_speedLimit->setRoadNameDirect(QString());
+        m_speedLimit->setRoadRefsDirect(QString());
         m_speedLimit->setRoadTypeDirect(QString());
         m_speedLimit->setSpeedLimitDirect(QString());
         m_speedLimit->setRoadBearingDirect(-1);
@@ -122,6 +123,7 @@ void RoadInfoService::onGpsChanged()
     if (!m_gps || !m_gps->hasGpsFix()) {
         m_consecutiveMisses = ClearAfterMisses;
         m_speedLimit->setRoadNameDirect(QString());
+        m_speedLimit->setRoadRefsDirect(QString());
         m_speedLimit->setRoadTypeDirect(QString());
         m_speedLimit->setSpeedLimitDirect(QString());
         m_speedLimit->setRoadBearingDirect(-1);
@@ -162,6 +164,8 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
     if (m_navigation && m_navigation->hasCurrentEdgeAttrs()) {
         m_consecutiveMisses = 0;
         m_speedLimit->setRoadNameDirect(m_navigation->currentEdgeName());
+        m_speedLimit->setRoadRefsDirect(
+            m_navigation->currentEdgeRefs().join(QStringLiteral(", ")));
         m_speedLimit->setRoadTypeDirect(m_navigation->currentEdgeRoadClass());
         int kph = m_navigation->currentEdgeSpeedLimitKph();
         m_speedLimit->setSpeedLimitDirect(
@@ -348,8 +352,19 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
     QString kind = chosen->feature->properties.value(QStringLiteral("kind"));
     QString maxspeed = chosen->feature->properties.value(QStringLiteral("maxspeed"));
 
+    // Tile `ref` is OSM-style semicolon-joined ("B 2;B 5"). Split, trim, and
+    // re-join with comma+space to match the route path's formatting.
+    QString refRaw = chosen->feature->properties.value(QStringLiteral("ref"));
+    QString refs;
+    if (!refRaw.isEmpty()) {
+        QStringList parts = refRaw.split(QLatin1Char(';'), Qt::SkipEmptyParts);
+        for (auto &p : parts) p = p.trimmed();
+        refs = parts.join(QStringLiteral(", "));
+    }
+
     m_speedLimit->setSpeedLimitDirect(maxspeed);
     m_speedLimit->setRoadNameDirect(name);
+    m_speedLimit->setRoadRefsDirect(refs);
     m_speedLimit->setRoadTypeDirect(kind);
 
     // Compute bearing of chosen segment
