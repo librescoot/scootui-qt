@@ -16,17 +16,32 @@ Item {
     readonly property real currentA: motorCurrent / 1000
     readonly property real powerKw: (motorVoltage * motorCurrent) / 1000000000
 
-    // Display values – double the scale when dual battery is enabled
+    // Regen scale stays fixed (doubled for dual-battery setups).
     readonly property bool isDualBattery: typeof settingsStore !== "undefined" && settingsStore.dualBattery
     readonly property real maxRegenA: isDualBattery ? 20 : 10
-    readonly property real maxDischargeA: isDualBattery ? 160 : 80
-    readonly property real boostThresholdA: isDualBattery ? 100 : 50
     readonly property real maxRegenKw: isDualBattery ? 1.08 : 0.54
-    readonly property real maxDischargeKw: isDualBattery ? 8.0 : 4.0
+    // Boost = above the motor's rated continuous output.
+    readonly property real boostThresholdA: isDualBattery ? 120 : 60
+    readonly property real boostThresholdKw: isDualBattery ? 5.4 : 2.7
+
+    // Discharge scale tracks the session high-water mark, with a floor so the
+    // bar isn't underscaled before the first hard pull. Resets each session.
+    readonly property real dischargeFloorA: 60
+    readonly property real dischargeFloorKw: 3.0
+    property real maxDischargeA: dischargeFloorA
+    property real maxDischargeKw: dischargeFloorKw
+
+    onCurrentAChanged: {
+        if (!ecuStale && currentA > maxDischargeA) maxDischargeA = currentA
+    }
+    onPowerKwChanged: {
+        if (!ecuStale && powerKw > maxDischargeKw) maxDischargeKw = powerKw
+    }
 
     readonly property real rawValue: isAmpsMode ? currentA : powerKw
     readonly property real maxRegen: isAmpsMode ? maxRegenA : maxRegenKw
     readonly property real maxDischarge: isAmpsMode ? maxDischargeA : maxDischargeKw
+    readonly property real boostThreshold: isAmpsMode ? boostThresholdA : boostThresholdKw
     readonly property string unit: isAmpsMode ? "A" : "kW"
 
     // Animated value
@@ -114,7 +129,7 @@ Item {
                 height: 6
                 radius: themeStore.radiusBar
                 width: Math.min(displayValue / maxDischarge, 1.0) * (parent.width / 2)
-                color: isAmpsMode && displayValue > boostThresholdA ? "#FB8C00" : "#1E88E5"
+                color: displayValue > boostThreshold ? "#FB8C00" : "#1E88E5"
             }
         }
 
