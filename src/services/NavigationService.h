@@ -80,6 +80,13 @@ public:
     int currentManeuverType() const;
     double currentManeuverDistance() const;
     QString currentStreetName() const;
+    // Street name of the road we're CURRENTLY on (most recent passed
+    // maneuver), as opposed to currentStreetName() which is the road we'll
+    // enter at the next maneuver. Used by RoadInfoService to bias the road
+    // name / speed limit lookup against the route — without this, an
+    // overlapping tunnel/bridge way at the same lat/lon can win the
+    // nearest-segment race against the surface road we're actually on.
+    QString currentSegmentStreetName() const;
     QString currentVerbalInstruction() const;
     QString currentInstructionText() const;
     bool currentIsStart() const;

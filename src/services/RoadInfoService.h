@@ -9,6 +9,7 @@
 
 class GpsStore;
 class SpeedLimitStore;
+class NavigationService;
 
 class RoadInfoService : public QObject
 {
@@ -16,6 +17,7 @@ class RoadInfoService : public QObject
 
 public:
     explicit RoadInfoService(GpsStore *gps, SpeedLimitStore *speedLimit,
+                              NavigationService *navigation,
                               QObject *parent = nullptr);
     ~RoadInfoService();
 
@@ -44,6 +46,7 @@ private:
 
     GpsStore *m_gps;
     SpeedLimitStore *m_speedLimit;
+    NavigationService *m_navigation;
 
     QElapsedTimer m_lastUpdate;
     bool m_dbOpen = false;

@@ -163,6 +163,21 @@ QString NavigationService::currentStreetName() const
     return m_upcomingInstructions.first().streetName;
 }
 
+QString NavigationService::currentSegmentStreetName() const
+{
+    if (!m_route.isValid()) return {};
+    QString result;
+    int bestShape = -1;
+    for (const auto &instr : m_route.instructions) {
+        if (instr.originalShapeIndex <= m_currentSegmentIndex &&
+            instr.originalShapeIndex > bestShape) {
+            bestShape = instr.originalShapeIndex;
+            result = instr.streetName;
+        }
+    }
+    return result;
+}
+
 QString NavigationService::currentVerbalInstruction() const
 {
     if (m_upcomingInstructions.isEmpty()) return {};

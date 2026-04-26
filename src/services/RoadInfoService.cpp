@@ -1,5 +1,6 @@
 #include "RoadInfoService.h"
 #include "AddressDatabaseService.h"
+#include "NavigationService.h"
 #include "stores/GpsStore.h"
 #include "stores/SpeedLimitStore.h"
 
@@ -21,10 +22,12 @@ static const QSet<QString> s_roadTypes = {
 };
 
 RoadInfoService::RoadInfoService(GpsStore *gps, SpeedLimitStore *speedLimit,
+                                   NavigationService *navigation,
                                    QObject *parent)
     : QObject(parent)
     , m_gps(gps)
     , m_speedLimit(speedLimit)
+    , m_navigation(navigation)
     , m_dbConnectionName(QStringLiteral("roadinfo_tiles"))
 {
     m_lastUpdate.start();
@@ -211,10 +214,19 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
     const double n = std::pow(2.0, QueryZoom);
     const double extent = streetsLayer->extent;
 
-    // Find nearest road feature and segment
-    double minDist = std::numeric_limits<double>::max();
-    const VectorTile::Feature *nearestFeature = nullptr;
-    double segLat1 = 0, segLon1 = 0, segLat2 = 0, segLon2 = 0;
+    // Build candidate list: for each linestring feature whose kind passes the
+    // vehicle-road filter, find the closest segment to the GPS point and its
+    // distance. We keep all candidates so a route-aware second pass can pick
+    // by name match instead of pure geometry — overlapping ways at the same
+    // lat/lon (Tiergarten Tunnel under Straße des 17. Juni) make the bare
+    // nearest-segment race effectively random.
+    struct Candidate {
+        const VectorTile::Feature *feature = nullptr;
+        double dist = std::numeric_limits<double>::max();
+        double segLat1 = 0, segLon1 = 0, segLat2 = 0, segLon2 = 0;
+        bool isTunnel = false;
+    };
+    QList<Candidate> candidates;
 
     for (const auto &feature : streetsLayer->features) {
         if (feature.type != 2) // LINESTRING only
@@ -226,6 +238,10 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
             continue;
 
         QVector<QPointF> tilePoints = VectorTile::decodeLineString(feature.geometry);
+
+        Candidate cand;
+        cand.feature = &feature;
+        cand.isTunnel = (feature.properties.value(QStringLiteral("tunnel")) == QLatin1String("true"));
 
         for (int i = 0; i < tilePoints.size() - 1; ++i) {
             // Convert tile coordinates to geographic (TMS: Y flipped within tile)
@@ -254,35 +270,76 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
             double distLat = lat - closestLat;
             double dist = distLon * distLon + distLat * distLat;
 
-            if (dist < minDist) {
-                minDist = dist;
-                nearestFeature = &feature;
-                segLat1 = lat1; segLon1 = lon1;
-                segLat2 = lat2; segLon2 = lon2;
+            if (dist < cand.dist) {
+                cand.dist = dist;
+                cand.segLat1 = lat1; cand.segLon1 = lon1;
+                cand.segLat2 = lat2; cand.segLon2 = lon2;
             }
         }
+
+        if (cand.feature && cand.dist < std::numeric_limits<double>::max())
+            candidates.append(cand);
     }
 
-    if (!nearestFeature) {
+    if (candidates.isEmpty()) {
         countMissAndMaybeClear();
         return;
     }
 
+    std::sort(candidates.begin(), candidates.end(),
+              [](const Candidate &a, const Candidate &b) { return a.dist < b.dist; });
+
+    const Candidate *chosen = nullptr;
+
+    // Route-aware: when navigating, prefer the closest candidate whose name
+    // matches the road we're currently driving along (per the route's last
+    // passed maneuver). This is what fixes the Tiergarten case — the tunnel
+    // and the surface road overlap geometrically, but only one matches the
+    // route's current edge name.
+    QString routeName = m_navigation
+        ? m_navigation->currentSegmentStreetName() : QString();
+    if (!routeName.isEmpty()) {
+        for (const auto &cand : candidates) {
+            const QString candName = cand.feature->properties.value(QStringLiteral("name"));
+            if (!candName.isEmpty() &&
+                candName.compare(routeName, Qt::CaseInsensitive) == 0) {
+                chosen = &cand;
+                break; // candidates are dist-sorted, first match is nearest
+            }
+        }
+    }
+
+    // Fallback: nearest, but if that nearest is a tunnel, prefer a non-tunnel
+    // alternative within ~2× its distance. Surface and tunnel ways at the
+    // same location project to virtually identical 2D distances; without this
+    // tie-break the choice flips with sub-meter GPS noise.
+    if (!chosen) {
+        chosen = &candidates.first();
+        if (chosen->isTunnel) {
+            for (const auto &cand : candidates) {
+                if (!cand.isTunnel && cand.dist < chosen->dist * 2.0) {
+                    chosen = &cand;
+                    break;
+                }
+            }
+        }
+    }
+
     m_consecutiveMisses = 0;
 
-    QString name = nearestFeature->properties.value(QStringLiteral("name"));
-    QString kind = nearestFeature->properties.value(QStringLiteral("kind"));
-    QString maxspeed = nearestFeature->properties.value(QStringLiteral("maxspeed"));
+    QString name = chosen->feature->properties.value(QStringLiteral("name"));
+    QString kind = chosen->feature->properties.value(QStringLiteral("kind"));
+    QString maxspeed = chosen->feature->properties.value(QStringLiteral("maxspeed"));
 
     m_speedLimit->setSpeedLimitDirect(maxspeed);
     m_speedLimit->setRoadNameDirect(name);
     m_speedLimit->setRoadTypeDirect(kind);
 
-    // Compute bearing of nearest segment
-    double dLon = (segLon2 - segLon1) * M_PI / 180.0;
-    double y = std::sin(dLon) * std::cos(segLat2 * M_PI / 180.0);
-    double x = std::cos(segLat1 * M_PI / 180.0) * std::sin(segLat2 * M_PI / 180.0) -
-               std::sin(segLat1 * M_PI / 180.0) * std::cos(segLat2 * M_PI / 180.0) * std::cos(dLon);
+    // Compute bearing of chosen segment
+    double dLon = (chosen->segLon2 - chosen->segLon1) * M_PI / 180.0;
+    double y = std::sin(dLon) * std::cos(chosen->segLat2 * M_PI / 180.0);
+    double x = std::cos(chosen->segLat1 * M_PI / 180.0) * std::sin(chosen->segLat2 * M_PI / 180.0) -
+               std::sin(chosen->segLat1 * M_PI / 180.0) * std::cos(chosen->segLat2 * M_PI / 180.0) * std::cos(dLon);
     double bearing = (std::abs(x) < 1e-10 && std::abs(y) < 1e-10)
         ? -1.0
         : std::fmod(std::atan2(y, x) * 180.0 / M_PI + 360.0, 360.0);

@@ -224,7 +224,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
     });
 
     // Road info service (extracts street name + speed limit from vector tiles)
-    m_roadInfoService = new RoadInfoService(gpsStore, speedLimitStore, this);
+    m_roadInfoService = new RoadInfoService(gpsStore, speedLimitStore,
+                                             m_navigationService, this);
 
     // Odometer milestone celebration (500 km, then every 1000 km)
     m_odometerMilestoneService = new OdometerMilestoneService(
