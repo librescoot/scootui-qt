@@ -61,11 +61,25 @@ Item {
         }
     }
 
+    // Thin space (U+2009) between value and unit per typographic convention.
     function formatDistance(meters) {
-        if (meters >= 1000) return (meters / 1000).toFixed(1) + " km"
-        if (meters >= 100) return (Math.round(meters / 100) * 100) + " m"
-        if (meters >= 10) return (Math.round(meters / 10) * 10) + " m"
-        return Math.round(meters) + " m"
+        if (meters >= 1000) return (meters / 1000).toFixed(1) + " km"
+        if (meters >= 100) return (Math.round(meters / 100) * 100) + " m"
+        if (meters >= 10) return (Math.round(meters / 10) * 10) + " m"
+        return Math.round(meters) + " m"
+    }
+
+    // Human-friendly remaining trip time. "min" — not bare "m" which reads
+    // as SI metres. For ≥1 h, splits into "X h Y min"; "Y min" is dropped
+    // when zero so a clean hour reads as "1 h", not "1 h 0 min".
+    function formatRemainingTime(seconds) {
+        if (seconds <= 0) return ""
+        var totalMin = Math.ceil(seconds / 60)
+        if (totalMin < 60) return totalMin + " min"
+        var h = Math.floor(totalMin / 60)
+        var m = totalMin % 60
+        if (m === 0) return h + " h"
+        return h + " h " + m + " min"
     }
 
     function maneuverIcon(maneuverType) {
@@ -245,11 +259,13 @@ Item {
             Row {
                 id: timeRow
                 anchors.centerIn: parent
-                spacing: 8
+                // Larger gap between the three metric groups so the eye reads
+                // them as separate. Inner icon→value gap stays tight (2 px).
+                spacing: 14
 
                 // Distance remaining
                 Row {
-                    spacing: 4
+                    spacing: 2
                     Text { text: MaterialIcon.iconSpeed; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
                         text: typeof navigationService !== "undefined"
@@ -260,19 +276,18 @@ Item {
 
                 // Time remaining
                 Row {
-                    spacing: 4
+                    spacing: 2
                     Text { text: MaterialIcon.iconTimer; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
-                        text: typeof navigationService !== "undefined" && navigationService.remainingDuration > 0
-                              ? Math.ceil(navigationService.remainingDuration / 60) + "m"
-                              : ""
+                        text: typeof navigationService !== "undefined"
+                              ? formatRemainingTime(navigationService.remainingDuration) : ""
                         font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
                 }
 
                 // ETA
                 Row {
-                    spacing: 4
+                    spacing: 2
                     Text { text: MaterialIcon.iconFlag; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
                         text: typeof navigationService !== "undefined" ? navigationService.eta : ""
