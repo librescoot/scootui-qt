@@ -62,6 +62,7 @@ SyncSettings SpeedLimitStore::syncSettings() const
         {
             {QStringLiteral("speedLimit"), QStringLiteral("speed-limit")},
             {QStringLiteral("roadName"), QStringLiteral("road-name")},
+            {QStringLiteral("roadRefs"), QStringLiteral("road-refs")},
             {QStringLiteral("roadType"), QStringLiteral("road-type")},
         },
         {}, {}
@@ -74,6 +75,8 @@ void SpeedLimitStore::applyFieldUpdate(const QString &variable, const QString &v
         if (value != m_speedLimit) { m_speedLimit = value; emit speedLimitChanged(); }
     } else if (variable == QLatin1String("road-name")) {
         if (value != m_roadName) { m_roadName = value; emit roadNameChanged(); }
+    } else if (variable == QLatin1String("road-refs")) {
+        if (value != m_roadRefs) { m_roadRefs = value; emit roadRefsChanged(); }
     } else if (variable == QLatin1String("road-type")) {
         if (value != m_roadType) { m_roadType = value; emit roadTypeChanged(); }
     }
@@ -88,6 +91,11 @@ void SpeedLimitStore::setSpeedLimitDirect(const QString &value)
 void SpeedLimitStore::setRoadNameDirect(const QString &value)
 {
     if (value != m_roadName) { m_roadName = value; emit roadNameChanged(); }
+}
+
+void SpeedLimitStore::setRoadRefsDirect(const QString &value)
+{
+    if (value != m_roadRefs) { m_roadRefs = value; emit roadRefsChanged(); }
 }
 
 void SpeedLimitStore::setRoadTypeDirect(const QString &value)

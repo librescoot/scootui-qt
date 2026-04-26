@@ -93,7 +93,8 @@ public:
     // if trace_attributes hasn't landed yet (or failed) — RoadInfoService
     // falls back to the tile path (with Layer 1's name-bias) in that case.
     bool hasCurrentEdgeAttrs() const;
-    QString currentEdgeName() const;          // first name (street name)
+    QString currentEdgeName() const;          // names[0] (street name)
+    QStringList currentEdgeRefs() const;      // names[1..] (e.g. {"B 2", "B 5"})
     QString currentEdgeRoadClass() const;     // motorway / primary / ...
     int     currentEdgeSpeedLimitKph() const; // 0 = no posted limit
     bool    currentEdgeIsTunnel() const;

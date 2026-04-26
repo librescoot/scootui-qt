@@ -194,6 +194,14 @@ QString NavigationService::currentEdgeName() const
     return names.isEmpty() ? QString() : names.first();
 }
 
+QStringList NavigationService::currentEdgeRefs() const
+{
+    if (!hasCurrentEdgeAttrs()) return {};
+    const auto &names = m_route.shapeAttrs[m_currentSegmentIndex].names;
+    if (names.size() <= 1) return {};
+    return names.mid(1);
+}
+
 QString NavigationService::currentEdgeRoadClass() const
 {
     if (!hasCurrentEdgeAttrs()) return {};
