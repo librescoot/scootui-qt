@@ -1262,9 +1262,16 @@ void MapService::updateBearing(double dt)
 {
     double speedKmh = m_engine->speed();
 
+    // m_drLocked couples rotation to the sticky-snap lock state — once the
+    // marker starts following GPS (break-away), the map rotation switches to
+    // GPS course too, so the two move together. Without this, a deviation
+    // between 12m (break-away) and 60m (off-route flag) leaves the map
+    // rotating to the stale route bearing while the marker drifts off it,
+    // which reads as the marker sliding sideways or backwards.
     bool onRoute = !m_routeShape.isEmpty() && m_currentRouteSegment >= 0
                    && m_navigation->isNavigating()
-                   && !m_navigation->isOffRoute();
+                   && !m_navigation->isOffRoute()
+                   && m_drLocked;
     bool hasFix = m_gps->hasRecentFix();
     double gpsCourse = m_gps->course();
 
