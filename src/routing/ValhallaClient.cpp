@@ -94,6 +94,17 @@ void ValhallaClient::cancelPending()
         m_activeReply->deleteLater();
         m_activeReply.clear();
     }
+    abortActiveTrace();
+}
+
+void ValhallaClient::abortActiveTrace()
+{
+    if (m_activeTraceReply) {
+        m_activeTraceReply->disconnect(this);
+        m_activeTraceReply->abort();
+        m_activeTraceReply->deleteLater();
+        m_activeTraceReply.clear();
+    }
 }
 
 ValhallaClient::DispatchResult ValhallaClient::canDispatch(Reason reason, RejectionCause &cause) const
@@ -185,6 +196,9 @@ void ValhallaClient::sendRouteRequest(const LatLng &from, const LatLng &to)
         m_activeReply->deleteLater();
         m_activeReply.clear();
     }
+    // Drop any in-flight trace_attributes too — it's about to be tied to a
+    // stale route. The next routeCalculated will trigger a fresh trace.
+    abortActiveTrace();
 
     QJsonObject request;
     QJsonArray locations;
@@ -361,7 +375,99 @@ void ValhallaClient::handleRouteReply(QNetworkReply *reply)
         m_rateLimitArmed = false;
         m_probeBackoffMs = HealthProbeBackoffMinMs;
         emit routeCalculated(route);
+        // Fire the lower-priority follow-up to enrich the route with
+        // per-edge speed_limit / tunnel / bridge / names. Async; if it
+        // fails or is rejected, RoadInfoService falls through to the
+        // tile path with Layer 1's route-name bias.
+        requestTraceAttributes(route.waypoints);
     } else {
         emit routeError(QStringLiteral("Failed to parse route response"));
     }
+}
+
+void ValhallaClient::requestTraceAttributes(const QList<LatLng> &shape)
+{
+    if (shape.size() < 2)
+        return;
+    // Lower-priority lane: yield to anything route-related. A queued route
+    // request means a fresh /route is moments away; an in-flight route reply
+    // means we'd race the route's own emission. Skip silently in either case.
+    if (m_hasPending || m_activeReply)
+        return;
+    // Same backoff/health gates as auto routes — never pile on after a 429,
+    // never hit a server we know is down.
+    if (rateLimitBackoffActive() || !m_isHealthy)
+        return;
+
+    abortActiveTrace();
+
+    QJsonObject req;
+    QJsonArray shapeArr;
+    for (const auto &p : shape) {
+        shapeArr.append(QJsonObject{
+            {QStringLiteral("lat"), p.latitude},
+            {QStringLiteral("lon"), p.longitude}
+        });
+    }
+    req[QStringLiteral("shape")] = shapeArr;
+    req[QStringLiteral("costing")] = QStringLiteral("motor_scooter");
+    // edge_walk treats the shape as a known polyline along graph edges, much
+    // cheaper than map_snap. Safe here because the polyline came from
+    // Valhalla's own /route response moments ago.
+    req[QStringLiteral("shape_match")] = QStringLiteral("edge_walk");
+    QJsonObject filters;
+    filters[QStringLiteral("action")] = QStringLiteral("include");
+    QJsonArray attrs;
+    attrs.append(QStringLiteral("edge.names"));
+    attrs.append(QStringLiteral("edge.speed_limit"));
+    attrs.append(QStringLiteral("edge.tunnel"));
+    attrs.append(QStringLiteral("edge.bridge"));
+    attrs.append(QStringLiteral("edge.road_class"));
+    attrs.append(QStringLiteral("edge.begin_shape_index"));
+    attrs.append(QStringLiteral("edge.end_shape_index"));
+    filters[QStringLiteral("attributes")] = attrs;
+    req[QStringLiteral("filters")] = filters;
+
+    QNetworkRequest httpReq(QUrl(m_endpoint + QStringLiteral("trace_attributes")));
+    httpReq.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+    httpReq.setTransferTimeout(15000);
+    QSslConfiguration ssl = httpReq.sslConfiguration();
+    ssl.setPeerVerifyMode(QSslSocket::VerifyNone);
+    httpReq.setSslConfiguration(ssl);
+
+    QByteArray body = QJsonDocument(req).toJson(QJsonDocument::Compact);
+    int segmentCount = shape.size() - 1;
+    auto *reply = m_nam.post(httpReq, body);
+    m_activeTraceReply = reply;
+    // Counts toward the per-user rate floor so a subsequent auto-reroute
+    // doesn't pile straight on top of the trace request.
+    m_sinceLastDispatch.restart();
+    m_firstAutoDispatch = false;
+    connect(reply, &QNetworkReply::finished, this, [this, reply, segmentCount]() {
+        handleTraceAttributesReply(reply, segmentCount);
+    });
+}
+
+void ValhallaClient::handleTraceAttributesReply(QNetworkReply *reply, int segmentCount)
+{
+    reply->deleteLater();
+    if (m_activeTraceReply == reply)
+        m_activeTraceReply.clear();
+
+    if (reply->error() != QNetworkReply::NoError) {
+        // Silent failure — no toast, no retry. Route already shipped without
+        // shapeAttrs and the consumer falls through to the tile path.
+        qDebug() << "ValhallaClient: trace_attributes failed:"
+                 << reply->errorString();
+        return;
+    }
+
+    QByteArray data = reply->readAll();
+    QList<EdgeAttrs> attrs =
+        RouteHelpers::parseTraceAttributesResponse(data, segmentCount);
+    if (attrs.isEmpty()) {
+        qDebug() << "ValhallaClient: trace_attributes returned no usable data";
+        return;
+    }
+    emit routeAttributesReady(attrs);
 }

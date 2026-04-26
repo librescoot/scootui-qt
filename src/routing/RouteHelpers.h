@@ -238,4 +238,61 @@ inline Route parseRouteResponse(const QByteArray &data)
     return route;
 }
 
+// Parse Valhalla /trace_attributes response into per-shape-segment EdgeAttrs.
+// Walks the `edges` array, fanning each edge's attributes across the shape
+// range [begin_shape_index, end_shape_index). The returned list is sized to
+// `segmentCount` (== waypoints.size() - 1) so a single index lookup gives the
+// edge for any shape segment; uncovered slots stay default-constructed.
+//
+// Returns empty list on parse error or if `edges` is missing — caller treats
+// that as "trace_attributes had no useful data, fall through to tile path".
+inline QList<EdgeAttrs> parseTraceAttributesResponse(const QByteArray &data,
+                                                       int segmentCount)
+{
+    QList<EdgeAttrs> result;
+    if (segmentCount <= 0)
+        return result;
+
+    QJsonParseError err;
+    QJsonDocument doc = QJsonDocument::fromJson(data, &err);
+    if (err.error != QJsonParseError::NoError) {
+        qWarning() << "parseTraceAttributesResponse: JSON parse error:" << err.errorString();
+        return result;
+    }
+
+    QJsonArray edges = doc.object().value(QStringLiteral("edges")).toArray();
+    if (edges.isEmpty())
+        return result;
+
+    result.resize(segmentCount);
+
+    for (const auto &eVal : edges) {
+        QJsonObject e = eVal.toObject();
+        int begin = e.value(QStringLiteral("begin_shape_index")).toInt(-1);
+        int end = e.value(QStringLiteral("end_shape_index")).toInt(-1);
+        if (begin < 0 || end <= begin)
+            continue;
+        // end_shape_index points one past the last shape vertex of the edge,
+        // so the segment range is [begin, end) — segment N covers shape N..N+1.
+        int segHi = std::min(end, segmentCount);
+        if (begin >= segHi)
+            continue;
+
+        EdgeAttrs attrs;
+        QJsonArray names = e.value(QStringLiteral("names")).toArray();
+        attrs.names.reserve(names.size());
+        for (const auto &n : names)
+            attrs.names.append(n.toString());
+        attrs.roadClass = e.value(QStringLiteral("road_class")).toString();
+        attrs.speedLimitKph = e.value(QStringLiteral("speed_limit")).toInt(0);
+        attrs.tunnel = e.value(QStringLiteral("tunnel")).toBool();
+        attrs.bridge = e.value(QStringLiteral("bridge")).toBool();
+
+        for (int i = begin; i < segHi; ++i)
+            result[i] = attrs;
+    }
+
+    return result;
+}
+
 } // namespace RouteHelpers

@@ -61,6 +61,8 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
     // Connect Valhalla signals
     connect(m_valhalla, &ValhallaClient::routeCalculated,
             this, &NavigationService::onRouteCalculated);
+    connect(m_valhalla, &ValhallaClient::routeAttributesReady,
+            this, &NavigationService::onRouteAttributesReady);
     connect(m_valhalla, &ValhallaClient::routeError,
             this, &NavigationService::onRouteError);
     connect(m_valhalla, &ValhallaClient::requestRejected,
@@ -176,6 +178,44 @@ QString NavigationService::currentSegmentStreetName() const
         }
     }
     return result;
+}
+
+bool NavigationService::hasCurrentEdgeAttrs() const
+{
+    return m_route.hasShapeAttrs() &&
+           m_currentSegmentIndex >= 0 &&
+           m_currentSegmentIndex < m_route.shapeAttrs.size();
+}
+
+QString NavigationService::currentEdgeName() const
+{
+    if (!hasCurrentEdgeAttrs()) return {};
+    const auto &names = m_route.shapeAttrs[m_currentSegmentIndex].names;
+    return names.isEmpty() ? QString() : names.first();
+}
+
+QString NavigationService::currentEdgeRoadClass() const
+{
+    if (!hasCurrentEdgeAttrs()) return {};
+    return m_route.shapeAttrs[m_currentSegmentIndex].roadClass;
+}
+
+int NavigationService::currentEdgeSpeedLimitKph() const
+{
+    if (!hasCurrentEdgeAttrs()) return 0;
+    return m_route.shapeAttrs[m_currentSegmentIndex].speedLimitKph;
+}
+
+bool NavigationService::currentEdgeIsTunnel() const
+{
+    if (!hasCurrentEdgeAttrs()) return false;
+    return m_route.shapeAttrs[m_currentSegmentIndex].tunnel;
+}
+
+bool NavigationService::currentEdgeIsBridge() const
+{
+    if (!hasCurrentEdgeAttrs()) return false;
+    return m_route.shapeAttrs[m_currentSegmentIndex].bridge;
 }
 
 QString NavigationService::currentVerbalInstruction() const
@@ -745,6 +785,22 @@ void NavigationService::onRouteCalculated(const Route &route)
              << route.waypoints.size() << "waypoints,"
              << route.instructions.size() << "instructions,"
              << (route.distance / 1000.0) << "km";
+}
+
+void NavigationService::onRouteAttributesReady(const QList<EdgeAttrs> &attrs)
+{
+    if (!m_route.isValid())
+        return;
+    int expected = m_route.waypoints.size() - 1;
+    if (attrs.size() != expected) {
+        qDebug() << "NavigationService: trace_attributes size mismatch — got"
+                 << attrs.size() << "want" << expected
+                 << "(ignoring, falling back to tile path)";
+        return;
+    }
+    m_route.shapeAttrs = attrs;
+    qDebug() << "NavigationService: route enriched with" << attrs.size()
+             << "edge attribute slots";
 }
 
 void NavigationService::onRouteError(const QString &error)
