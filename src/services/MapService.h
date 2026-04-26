@@ -115,6 +115,9 @@ private:
     void projectPositionStraight(double distMeters, double headingDeg);
     void blendGpsCorrection(double dt);
     void snapToRouteLine();
+    // Drives the m_drLocked state machine from m_distFromRoute. Must be
+    // called once per DR tick before snapToRouteLine.
+    void evaluateSnapLock();
 
     // Dynamic zoom
     void updateDynamicZoom(double dt);
@@ -190,6 +193,14 @@ private:
     static constexpr double SnapUpperThreshold = 500.0;
     static constexpr double SnapAnimationDuration = 1.0;
     static constexpr double LargeErrorThreshold = 15.0;
+
+    // Sticky route snap: per-tick snap is "on" while DR is locked to the
+    // route line, "off" while DR is following GPS freely. Hysteresis +
+    // sustained-dwell timers prevent GPS jitter from flipping the mode.
+    static constexpr double SnapBreakAwayDist = 12.0;  // m above which we start considering unlock
+    static constexpr int    SnapBreakAwayMs   = 1500;  // dwell required before unlocking
+    static constexpr double SnapReLockDist    = 6.0;   // m below which we start considering re-lock
+    static constexpr int    SnapReLockMs      = 2000;  // dwell required before re-locking
 
     // Dynamic zoom
     static constexpr double DefaultZoom = 16.0;
@@ -314,6 +325,10 @@ private:
     double m_snapStartLng = 0;
     double m_snapTargetLat = 0;
     double m_snapTargetLng = 0;
+
+    // Sticky route snap state
+    bool m_drLocked = true;
+    QElapsedTimer m_lockTransitionTimer;
 
     // --- Route shape for dead reckoning ---
     QList<QPair<double, double>> m_routeShape; // (lat, lng) pairs

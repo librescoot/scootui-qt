@@ -297,6 +297,11 @@ void MapService::setRouteWaypoints(const QVariantList &waypoints)
     }
     m_maxReachedSegment = m_currentRouteSegment;
     m_lastRouteBearing = -1;
+    // New shape: reset the snap-lock state machine. Reroute may land far from
+    // the rider, in which case break-away will trip again on its own; resetting
+    // avoids inheriting a stale "unlocked" state from the previous shape.
+    m_drLocked = true;
+    m_lockTransitionTimer.invalidate();
 
     updateRouteGeoJson();
     refreshRouteProjection();
@@ -325,6 +330,8 @@ void MapService::clearRoute()
     m_currentRouteSegment = -1;
     m_maxReachedSegment = -1;
     m_lastRouteBearing = -1;
+    m_drLocked = true;
+    m_lockTransitionTimer.invalidate();
 
     m_routeCoordinates.clear();
     emit routeCoordinatesChanged();
@@ -865,8 +872,17 @@ void MapService::onDeadReckoningTick()
             blendGpsCorrection(dt);
         }
 
+        // ----- Sticky-route snap state machine -----
+        // Decide whether to lock DR to the route line or let it follow GPS,
+        // based on a debounced view of m_distFromRoute. Prevents the marker
+        // from oscillating between snap and GPS-blend at small deviations.
+        // Uses last tick's m_distFromRoute (refreshed at the bottom of the
+        // tick) — 67 ms latency is irrelevant against the dwell windows.
+        if (useRouteShape)
+            evaluateSnapLock();
+
         // ----- Snap DR back onto the route line after GPS correction -----
-        if (!stationary && useRouteShape) {
+        if (!stationary && useRouteShape && m_drLocked) {
             snapToRouteLine();
         }
 
@@ -1018,6 +1034,59 @@ void MapService::blendGpsCorrection(double dt)
 
     m_gpsErrorLatitude *= (1.0 - factor);
     m_gpsErrorLongitude *= (1.0 - factor);
+}
+
+// ---------------------------------------------------------------------------
+// Sticky route snap state machine
+// ---------------------------------------------------------------------------
+
+void MapService::evaluateSnapLock()
+{
+    if (m_routeShape.size() < 2 || m_currentRouteSegment < 0)
+        return;
+    // Don't perturb in-flight snap animations — they own DR until they finish.
+    if (m_isSnapping)
+        return;
+
+    if (m_drLocked) {
+        // While locked, watch for sustained large cross-track distance. When
+        // the rider has been beyond SnapBreakAwayDist for SnapBreakAwayMs the
+        // snap releases and DR is allowed to follow GPS via blendGpsCorrection.
+        if (m_distFromRoute > SnapBreakAwayDist) {
+            if (!m_lockTransitionTimer.isValid()) {
+                m_lockTransitionTimer.start();
+            } else if (m_lockTransitionTimer.elapsed() >= SnapBreakAwayMs) {
+                m_drLocked = false;
+                m_lockTransitionTimer.invalidate();
+            }
+        } else {
+            m_lockTransitionTimer.invalidate();
+        }
+    } else {
+        // While unlocked, watch for sustained close cross-track. After
+        // SnapReLockDist for SnapReLockMs, kick off a sanfter re-lock — reuse
+        // the existing snap-animation pipeline so DR eases onto the segment
+        // perpendicular foot over SnapAnimationDuration instead of jumping.
+        if (m_distFromRoute < SnapReLockDist) {
+            if (!m_lockTransitionTimer.isValid()) {
+                m_lockTransitionTimer.start();
+            } else if (m_lockTransitionTimer.elapsed() >= SnapReLockMs) {
+                m_drLocked = true;
+                m_lockTransitionTimer.invalidate();
+
+                if (m_currentRouteSegment + 1 < m_routeShape.size()) {
+                    m_isSnapping = true;
+                    m_snapProgress = 0;
+                    m_snapStartLat = m_drLatitude;
+                    m_snapStartLng = m_drLongitude;
+                    m_snapTargetLat = m_segmentSnappedLat;
+                    m_snapTargetLng = m_segmentSnappedLng;
+                }
+            }
+        } else {
+            m_lockTransitionTimer.invalidate();
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
