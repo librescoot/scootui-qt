@@ -27,6 +27,7 @@ SyncSettings SettingsStore::syncSettings() const
             {QStringLiteral("showCloud"), QStringLiteral("dashboard.show-cloud")},
             {QStringLiteral("showInternet"), QStringLiteral("dashboard.show-internet")},
             {QStringLiteral("showClock"), QStringLiteral("dashboard.show-clock")},
+            {QStringLiteral("showTemperature"), QStringLiteral("dashboard.show-temperature")},
             {QStringLiteral("alarmEnabled"), QStringLiteral("alarm.enabled")},
             {QStringLiteral("alarmHonk"), QStringLiteral("alarm.honk")},
             {QStringLiteral("alarmDuration"), QStringLiteral("alarm.duration")},
@@ -78,6 +79,8 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
         if (value != m_showInternet) { m_showInternet = value; emit showInternetChanged(); }
     } else if (variable == QLatin1String("dashboard.show-clock")) {
         if (value != m_showClock) { m_showClock = value; emit showClockChanged(); }
+    } else if (variable == QLatin1String("dashboard.show-temperature")) {
+        if (value != m_showTemperature) { m_showTemperature = value; emit showTemperatureChanged(); }
     } else if (variable == QLatin1String("alarm.enabled")) {
         if (value != m_alarmEnabled) { m_alarmEnabled = value; emit alarmEnabledChanged(); }
     } else if (variable == QLatin1String("alarm.honk")) {

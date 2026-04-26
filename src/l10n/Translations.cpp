@@ -88,6 +88,9 @@ void Translations::initStrings()
     en[QStringLiteral("menuClock")] = QStringLiteral("Clock");
     de[QStringLiteral("menuClock")] = QStringLiteral("Uhr");
 
+    en[QStringLiteral("menuTemperature")] = QStringLiteral("Temperature");
+    de[QStringLiteral("menuTemperature")] = QStringLiteral("Temperatur");
+
     en[QStringLiteral("menuBlinkerStyle")] = QStringLiteral("Blinker Style");
     de[QStringLiteral("menuBlinkerStyle")] = QStringLiteral("Blinker-Stil");
 
@@ -336,6 +339,9 @@ void Translations::initStrings()
 
     en[QStringLiteral("optErrorOnly")] = QStringLiteral("Error Only");
     de[QStringLiteral("optErrorOnly")] = QStringLiteral("Nur Fehler");
+
+    en[QStringLiteral("optWarningOnly")] = QStringLiteral("Warning Only");
+    de[QStringLiteral("optWarningOnly")] = QStringLiteral("Nur Warnung");
 
     en[QStringLiteral("optNever")] = QStringLiteral("Never");
     de[QStringLiteral("optNever")] = QStringLiteral("Nie");

@@ -24,6 +24,8 @@ class Translations : public QObject
     Q_PROPERTY(QString menuCloudIcon READ menuCloudIcon NOTIFY languageChanged)
     Q_PROPERTY(QString menuInternetIcon READ menuInternetIcon NOTIFY languageChanged)
     Q_PROPERTY(QString menuClock READ menuClock NOTIFY languageChanged)
+    Q_PROPERTY(QString menuTemperature READ menuTemperature NOTIFY languageChanged)
+    Q_PROPERTY(QString optWarningOnly READ optWarningOnly NOTIFY languageChanged)
     Q_PROPERTY(QString menuBlinkerStyle READ menuBlinkerStyle NOTIFY languageChanged)
     Q_PROPERTY(QString menuBlinkerIcon READ menuBlinkerIcon NOTIFY languageChanged)
     Q_PROPERTY(QString menuBlinkerOverlay READ menuBlinkerOverlay NOTIFY languageChanged)
@@ -426,6 +428,8 @@ public:
     QString menuCloudIcon() const { return lookup("menuCloudIcon"); }
     QString menuInternetIcon() const { return lookup("menuInternetIcon"); }
     QString menuClock() const { return lookup("menuClock"); }
+    QString menuTemperature() const { return lookup("menuTemperature"); }
+    QString optWarningOnly() const { return lookup("optWarningOnly"); }
     QString menuBlinkerStyle() const { return lookup("menuBlinkerStyle"); }
     QString menuBlinkerIcon() const { return lookup("menuBlinkerIcon"); }
     QString menuBlinkerOverlay() const { return lookup("menuBlinkerOverlay"); }

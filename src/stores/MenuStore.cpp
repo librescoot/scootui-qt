@@ -47,6 +47,7 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
     connect(m_settings, &SettingsStore::showCloudChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::showInternetChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::showClockChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::showTemperatureChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::mapCheckForUpdatesChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::mapAutoDownloadChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_translations, &Translations::languageChanged, this, &MenuStore::rebuildMenuTree);
@@ -463,6 +464,21 @@ void MenuStore::rebuildMenuTree()
                 {tr->optAlways(), [svc]() { svc->updateShowClock(QStringLiteral("always")); }},
                 {tr->optNever(), [svc]() { svc->updateShowClock(QStringLiteral("never")); }},
             }, clkIdx));
+    }
+
+    // Temperature (inline cycle: Always → Warning → Never)
+    {
+        QString tempVal = settings->showTemperature();
+        if (tempVal.isEmpty()) tempVal = QStringLiteral("warning");
+        int tempIdx = 0;
+        if (tempVal == QLatin1String("warning")) tempIdx = 1;
+        else if (tempVal == QLatin1String("never")) tempIdx = 2;
+        statusBarNode->addChild(MenuNode::cycleSetting(QStringLiteral("status_temperature"),
+            tr->menuTemperature(), {
+                {tr->optAlways(), [svc]() { svc->updateShowTemperature(QStringLiteral("always")); }},
+                {tr->optWarningOnly(), [svc]() { svc->updateShowTemperature(QStringLiteral("warning")); }},
+                {tr->optNever(), [svc]() { svc->updateShowTemperature(QStringLiteral("never")); }},
+            }, tempIdx));
     }
 
     // Map & Navigation (flat list of inline cycle settings)

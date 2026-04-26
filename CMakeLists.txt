@@ -70,6 +70,7 @@ set(CPP_SOURCES
     src/stores/UmsLogStore.cpp
     src/stores/SpeedLimitStore.cpp
     src/stores/AutoStandbyStore.cpp
+    src/stores/ScooterStore.cpp
     src/stores/CbBatteryStore.cpp
     src/stores/AuxBatteryStore.cpp
     src/stores/ThemeStore.cpp

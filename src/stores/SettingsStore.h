@@ -23,6 +23,7 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(QString showCloud READ showCloud NOTIFY showCloudChanged)
     Q_PROPERTY(QString showInternet READ showInternet NOTIFY showInternetChanged)
     Q_PROPERTY(QString showClock READ showClock NOTIFY showClockChanged)
+    Q_PROPERTY(QString showTemperature READ showTemperature NOTIFY showTemperatureChanged)
     Q_PROPERTY(bool alarmEnabled READ alarmEnabled NOTIFY alarmEnabledChanged)
     Q_PROPERTY(bool alarmHonk READ alarmHonk NOTIFY alarmHonkChanged)
     Q_PROPERTY(QString alarmDuration READ alarmDuration NOTIFY alarmDurationChanged)
@@ -51,6 +52,7 @@ public:
     QString showCloud() const { return m_showCloud; }
     QString showInternet() const { return m_showInternet; }
     QString showClock() const { return m_showClock; }
+    QString showTemperature() const { return m_showTemperature; }
     bool alarmEnabled() const { return m_alarmEnabled == QLatin1String("true"); }
     bool alarmHonk() const { return m_alarmHonk == QLatin1String("true"); }
     QString alarmDuration() const { return m_alarmDuration; }
@@ -81,6 +83,7 @@ signals:
     void showCloudChanged();
     void showInternetChanged();
     void showClockChanged();
+    void showTemperatureChanged();
     void alarmEnabledChanged();
     void alarmHonkChanged();
     void alarmDurationChanged();
@@ -125,6 +128,10 @@ private:
     QString m_showInternet = QStringLiteral("always");
     // @schema dashboard.show-clock
     QString m_showClock = QStringLiteral("always");
+    // @schema dashboard.show-temperature
+    // Values: "always" (always show widget), "warning" (only when ambient
+    // temp <10 °C), "never" (hidden).
+    QString m_showTemperature = QStringLiteral("warning");
     // @schema alarm.enabled
     QString m_alarmEnabled = QStringLiteral("false");
     // @schema alarm.honk

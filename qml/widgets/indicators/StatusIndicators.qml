@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import "../components"
 
 Row {
     id: statusIndicators
@@ -294,6 +295,53 @@ Row {
                     return otaDbcInstallProgress
                 return ""
             }
+        }
+    }
+
+    // Ambient temperature (leftmost in RTL = last item). Always shows the
+    // value when visible; cold-state glyphs (frost, frost+warning) appear at
+    // <10 °C and <5 °C respectively. Visibility gated by show-temperature
+    // setting: always | warning (frost only) | never.
+    Row {
+        id: tempRow
+        spacing: 4
+        layoutDirection: Qt.LeftToRight
+
+        readonly property double temp: typeof scooterStore !== "undefined" ? scooterStore.temperature : 0
+        readonly property bool hasTemp: typeof scooterStore !== "undefined" && scooterStore.hasTemperature
+        readonly property string tempMode: typeof settingsStore !== "undefined"
+                                           ? settingsStore.showTemperature : "warning"
+        readonly property bool isFrost: hasTemp && temp < 10.0
+        readonly property bool isFrostWarning: hasTemp && temp < 5.0
+
+        visible: hasTemp && tempMode !== "never"
+                 && (tempMode === "always" || isFrost)
+
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: tempRow.hasTemp ? Math.round(tempRow.temp) + " °C" : ""
+            font.pixelSize: 14
+            font.weight: Font.DemiBold
+            font.features: {"tnum": 1}
+            color: statusIndicators.iconColor
+        }
+
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: tempRow.isFrost
+            text: MaterialIcon.iconAcUnit
+            font.family: "Material Icons"
+            font.pixelSize: 22
+            color: statusIndicators.iconColor
+        }
+
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: tempRow.isFrostWarning
+            text: MaterialIcon.iconWarningAmber
+            font.family: "Material Icons"
+            font.pixelSize: 22
+            color: statusIndicators.iconColor
         }
     }
 }

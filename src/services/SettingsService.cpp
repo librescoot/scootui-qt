@@ -82,6 +82,11 @@ void SettingsService::updateShowClock(const QString &mode)
     writeSetting(QStringLiteral("dashboard.show-clock"), mode);
 }
 
+void SettingsService::updateShowTemperature(const QString &mode)
+{
+    writeSetting(QStringLiteral("dashboard.show-temperature"), mode);
+}
+
 void SettingsService::updateAlarmEnabled(bool enabled)
 {
     writeSetting(QStringLiteral("alarm.enabled"), enabled ? QStringLiteral("true") : QStringLiteral("false"));

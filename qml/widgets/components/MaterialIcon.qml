@@ -53,6 +53,7 @@ QtObject {
     // Status / Info
     readonly property string iconErrorOutline:    "\ue238"
     readonly property string iconWarningAmber:    "\ue6cc"
+    readonly property string iconAcUnit:          "\ue037"
     readonly property string iconSpeed:           "\ue5e0"
     readonly property string iconTimer:           "\ue662"
     readonly property string iconFlag:            "\ue28e"
