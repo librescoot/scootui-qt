@@ -180,9 +180,12 @@ Rectangle {
                 }
             }
 
-            // Blinker icons (icon mode) — overlaid on map, below turn-by-turn
+            // Blinker icons (icon mode) — sit just below the turn-by-turn
+            // banner when navigating, otherwise hug the top of the map.
+            // Without this, the 56 px circles stack on top of the maneuver
+            // icon (left) and time-info pill (right) inside the banner.
             BlinkerRow {
-                anchors.top: parent.top
+                anchors.top: tbtWidget.visible ? tbtWidget.bottom : parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.leftMargin: 4
@@ -249,6 +252,7 @@ Rectangle {
 
             // Turn-by-turn widget (top, full width)
             TurnByTurnWidget {
+                id: tbtWidget
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
