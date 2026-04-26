@@ -36,7 +36,7 @@ Rectangle {
         Column {
             spacing: 0
             Text {
-                text: "Duration"
+                text: typeof translations !== "undefined" ? translations.statusBarDuration : "Duration"
                 font.pixelSize: themeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
@@ -54,7 +54,7 @@ Rectangle {
         Column {
             spacing: 0
             Text {
-                text: "Avg"
+                text: typeof translations !== "undefined" ? translations.statusBarAvgSpeed : "Avg"
                 font.pixelSize: themeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
@@ -103,7 +103,7 @@ Rectangle {
             spacing: 0
             Text {
                 anchors.right: parent.right
-                text: "Trip"
+                text: typeof translations !== "undefined" ? translations.statusBarTrip : "Trip"
                 font.pixelSize: themeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
@@ -123,7 +123,7 @@ Rectangle {
             spacing: 0
             Text {
                 anchors.right: parent.right
-                text: "Total"
+                text: typeof translations !== "undefined" ? translations.statusBarTotal : "Total"
                 font.pixelSize: themeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
