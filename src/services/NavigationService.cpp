@@ -763,8 +763,18 @@ void NavigationService::onRequestRejected(ValhallaClient::Reason reason,
         }
     }
 
-    // Auto rejections (Reroute/Recovery) silently drop; the next trigger
-    // (GPS edge, DR tick) will retry when the gate reopens.
+    // Auto rejections (Reroute/Recovery) silently drop the request; the next
+    // trigger (GPS edge, DR tick) will retry when the gate reopens. But the
+    // off-route handler already flipped status to Rerouting before the
+    // rejection landed — revert it so the "Recalculating route" toast doesn't
+    // hang forever when the user comes back onto the route or the gate stays
+    // closed. The off-route pill (status=Navigating && isOffRoute) covers the
+    // visible state if a deviation is still active.
+    if (reason == ValhallaClient::Reason::Reroute &&
+        m_status == NavigationStatus::Rerouting && m_route.isValid()) {
+        setStatus(NavigationStatus::Navigating);
+    }
+
     qDebug() << "NavigationService: request rejected reason=" << static_cast<int>(reason)
              << "cause=" << static_cast<int>(cause);
 }
