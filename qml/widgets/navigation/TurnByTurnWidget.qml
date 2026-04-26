@@ -90,10 +90,12 @@ Item {
             case mtTurnSharpRight:                    return MaterialIcon.iconTurnSharpRight
             case mtTurnSlightLeft:                    return MaterialIcon.iconTurnSlightLeft
             case mtTurnSlightRight:                   return MaterialIcon.iconTurnSlightRight
-            // Keep* is a fork/lane pick, not a turn. Fork arrow reads as
-            // "split in the road" rather than "bend a bit".
-            case mtKeepLeft:                          return MaterialIcon.iconForkLeft
-            case mtKeepRight:                         return MaterialIcon.iconForkRight
+            // Keep* main icon is rendered as a two-tone SVG (see Image block
+            // below); this Material glyph is only used for the small inline
+            // next-preview, where two-tone dimming wouldn't be readable
+            // anyway. Slight-turn reads cleanly at preview size.
+            case mtKeepLeft:                          return MaterialIcon.iconTurnSlightLeft
+            case mtKeepRight:                         return MaterialIcon.iconTurnSlightRight
             case mtUTurn:                             return MaterialIcon.iconUTurnLeft
             case mtUTurnRight:                        return MaterialIcon.iconUTurnRight
             case mtExitLeft:                          return MaterialIcon.iconTurnSlightLeft
@@ -138,6 +140,12 @@ Item {
                                        ? navigationService.currentManeuverDistance : 0
                 property bool isRoundabout: (mType === mtRoundaboutEnter || mType === mtRoundaboutExit)
                                             && mDist <= iconThreshold(mType)
+                // Keep L/R uses two-tone SVGs (active arm bright, inactive arm
+                // dimmed) so the rider sees which fork to take, not just that
+                // there is one. Only kicks in within the announce threshold —
+                // outside it the Text fallback shows a plain straight arrow.
+                property bool isKeepFork: (mType === mtKeepLeft || mType === mtKeepRight)
+                                          && mDist <= iconThreshold(mType)
 
                 Loader {
                     anchors.centerIn: parent
@@ -150,9 +158,28 @@ Item {
                     }
                 }
 
+                Image {
+                    anchors.centerIn: parent
+                    visible: parent.isKeepFork
+                    width: 64
+                    height: 64
+                    sourceSize.width: 64
+                    sourceSize.height: 64
+                    fillMode: Image.PreserveAspectFit
+                    source: {
+                        if (parent.mType === mtKeepLeft)
+                            return isDark ? "qrc:/ScootUI/assets/icons/librescoot-keep-left.svg"
+                                          : "qrc:/ScootUI/assets/icons/librescoot-keep-left-light.svg"
+                        if (parent.mType === mtKeepRight)
+                            return isDark ? "qrc:/ScootUI/assets/icons/librescoot-keep-right.svg"
+                                          : "qrc:/ScootUI/assets/icons/librescoot-keep-right-light.svg"
+                        return ""
+                    }
+                }
+
                 Text {
                     anchors.centerIn: parent
-                    visible: !parent.isRoundabout
+                    visible: !parent.isRoundabout && !parent.isKeepFork
                     text: parent.mDist <= iconThreshold(parent.mType)
                           ? maneuverIcon(parent.mType) : MaterialIcon.iconStraight
                     font.family: "Material Icons"
