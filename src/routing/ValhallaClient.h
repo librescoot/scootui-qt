@@ -70,6 +70,12 @@ public:
 
 signals:
     void routeCalculated(const Route &route);
+    // Per-shape-segment edge attributes from a follow-up /trace_attributes
+    // call. Fires after routeCalculated, asynchronously and only on success.
+    // A new /route request aborts any in-flight trace, so subscribers don't
+    // need to worry about stale traces overwriting fresh route data — the
+    // signal won't arrive in that case.
+    void routeAttributesReady(const QList<EdgeAttrs> &attrs);
     void routeError(const QString &error);
     void rateLimited();
     void statusChecked(bool available);
@@ -93,6 +99,13 @@ private:
     void sendRouteRequest(const LatLng &from, const LatLng &to);
     void handleRouteReply(QNetworkReply *reply);
 
+    // Lower-priority follow-up to a successful /route. Yields to any pending
+    // or in-flight /route request and to active rate-limit backoff. Failures
+    // are silent — subscribers fall back to the tile path.
+    void requestTraceAttributes(const QList<LatLng> &shape);
+    void handleTraceAttributesReply(QNetworkReply *reply, int segmentCount);
+    void abortActiveTrace();
+
     void scheduleHealthProbe(int delayMs);
     void runHealthProbe();
     void handleHealthReply(QNetworkReply *reply, bool forced);
@@ -113,6 +126,7 @@ private:
     bool m_hasPending = false;
 
     QPointer<QNetworkReply> m_activeReply;
+    QPointer<QNetworkReply> m_activeTraceReply;
 
     // 429 backoff
     int m_rateLimitBackoffMs = 0;

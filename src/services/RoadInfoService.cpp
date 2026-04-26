@@ -152,6 +152,23 @@ int RoadInfoService::latToTileY(double lat, int zoom)
 
 void RoadInfoService::updateRoadInfo(double lat, double lon)
 {
+    // Route-driven path: when Valhalla's per-edge attributes are available
+    // for the segment we're on, they are the authoritative source — same
+    // edges that decided the route, posted speed limit straight from the
+    // routing graph, tunnel/bridge state from the graph topology rather
+    // than from a 2D tile geometry race that can flip with sub-meter GPS
+    // noise. Bearing isn't set here; MapService uses routeSegmentBearing()
+    // when navigating, so the tile-derived roadBearing is unused anyway.
+    if (m_navigation && m_navigation->hasCurrentEdgeAttrs()) {
+        m_consecutiveMisses = 0;
+        m_speedLimit->setRoadNameDirect(m_navigation->currentEdgeName());
+        m_speedLimit->setRoadTypeDirect(m_navigation->currentEdgeRoadClass());
+        int kph = m_navigation->currentEdgeSpeedLimitKph();
+        m_speedLimit->setSpeedLimitDirect(
+            kph > 0 ? QString::number(kph) : QString());
+        return;
+    }
+
     if (!m_dbOpen)
         return;
 

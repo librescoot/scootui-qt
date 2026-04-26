@@ -87,6 +87,18 @@ public:
     // overlapping tunnel/bridge way at the same lat/lon can win the
     // nearest-segment race against the surface road we're actually on.
     QString currentSegmentStreetName() const;
+
+    // Per-edge metadata for the segment we're currently on, sourced from a
+    // Valhalla /trace_attributes follow-up. Returns false / empty defaults
+    // if trace_attributes hasn't landed yet (or failed) — RoadInfoService
+    // falls back to the tile path (with Layer 1's name-bias) in that case.
+    bool hasCurrentEdgeAttrs() const;
+    QString currentEdgeName() const;          // first name (street name)
+    QString currentEdgeRoadClass() const;     // motorway / primary / ...
+    int     currentEdgeSpeedLimitKph() const; // 0 = no posted limit
+    bool    currentEdgeIsTunnel() const;
+    bool    currentEdgeIsBridge() const;
+
     QString currentVerbalInstruction() const;
     QString currentInstructionText() const;
     bool currentIsStart() const;
@@ -144,6 +156,7 @@ private slots:
     void onNavigationDataChanged();
     void onVehicleStateChanged();
     void onRouteCalculated(const Route &route);
+    void onRouteAttributesReady(const QList<EdgeAttrs> &attrs);
     void onRouteError(const QString &error);
     void onRequestRejected(ValhallaClient::Reason reason,
                            ValhallaClient::RejectionCause cause);

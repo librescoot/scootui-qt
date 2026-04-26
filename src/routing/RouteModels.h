@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QString>
+#include <QStringList>
 #include <QList>
 #include <QVariantList>
 #include <cmath>
@@ -111,16 +112,33 @@ struct RouteInstruction {
     bool operator!=(const RouteInstruction &o) const { return !(*this == o); }
 };
 
+// Per-shape-segment edge metadata, populated by a follow-up Valhalla
+// /trace_attributes call after the primary /route response. Indexed by shape
+// segment (segment N runs from waypoints[N] to waypoints[N+1]). Empty when
+// trace_attributes hasn't completed (yet) or failed — callers must treat
+// empty as "no data, fall back to whatever we used before".
+struct EdgeAttrs {
+    QStringList names;       // [0] = street name, [1..] = refs (e.g. "B 2")
+    QString roadClass;       // motorway / primary / secondary / ... — same vocabulary as tile `kind`
+    int speedLimitKph = 0;   // 0 = unset (Valhalla had no posted limit)
+    bool tunnel = false;
+    bool bridge = false;
+};
+
 struct Route {
     QList<RouteInstruction> instructions;
     QList<LatLng> waypoints;
+    QList<EdgeAttrs> shapeAttrs;  // size == waypoints.size() - 1 when populated, else empty
     double distance = 0;   // total meters
     double duration = 0;   // total seconds
 
     bool isValid() const { return !waypoints.isEmpty() && !instructions.isEmpty(); }
+    bool hasShapeAttrs() const { return !shapeAttrs.isEmpty(); }
 };
 
 Q_DECLARE_METATYPE(Route)
+Q_DECLARE_METATYPE(EdgeAttrs)
+Q_DECLARE_METATYPE(QList<EdgeAttrs>)
 
 // Decode Google Polyline Algorithm (precision 6 for Valhalla)
 inline QList<LatLng> decodePolyline(const QString &encoded, int precision = 6) {
