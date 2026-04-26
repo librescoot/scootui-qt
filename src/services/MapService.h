@@ -203,7 +203,7 @@ private:
     static constexpr int    SnapReLockMs      = 2000;  // dwell required before re-locking
 
     // Dynamic zoom
-    static constexpr double DefaultZoom = 16.0;
+    static constexpr double DefaultZoom = 16.5;
     static constexpr double MinZoom = 15.0;
     static constexpr double MaxZoom = 17.5;
     static constexpr double ZoomHysteresis = 0.3;
