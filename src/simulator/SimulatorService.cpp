@@ -192,6 +192,17 @@ void SimulatorService::setEngineTemperature(double temp)
                 QString::number(temp, 'f', 1));
 }
 
+void SimulatorService::setAmbientTemperature(double temp)
+{
+    m_repo->set(QStringLiteral("scooter"), QStringLiteral("temperature"),
+                QString::number(temp, 'f', 1));
+}
+
+void SimulatorService::clearAmbientTemperature()
+{
+    m_repo->set(QStringLiteral("scooter"), QStringLiteral("temperature"), QString());
+}
+
 void SimulatorService::setMotorPower(bool on)
 {
     m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("state"),

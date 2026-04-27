@@ -391,6 +391,23 @@ ApplicationWindow {
                 onMoved: function(v) { simulator.setEngineTemperature(v) }
             }
 
+            // Ambient (dashboard) temperature drives the status-bar temp
+            // indicator. Range covers the boundaries where hysteresis matters
+            // (around 5 and 10 degC); Clear simulates the no-reading state.
+            RowLayout {
+                Layout.fillWidth: true
+                SimSliderRow {
+                    Layout.fillWidth: true
+                    label: "Ambient"
+                    from: -20; to: 50; value: 18.5; unit: "\u00B0C"; decimals: 1
+                    onMoved: function(v) { simulator.setAmbientTemperature(v) }
+                }
+                SimButton {
+                    text: "Clear"
+                    onClicked: simulator.clearAmbientTemperature()
+                }
+            }
+
             RowLayout {
                 Layout.fillWidth: true
                 Text { text: "Odometer"; Layout.preferredWidth: 100; color: "#CCC"; font.pixelSize: 12 }

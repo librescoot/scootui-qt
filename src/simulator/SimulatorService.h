@@ -48,6 +48,8 @@ public:
     Q_INVOKABLE void setSpeed(double speed);
     Q_INVOKABLE void setOdometer(double km);
     Q_INVOKABLE void setEngineTemperature(double temp);
+    Q_INVOKABLE void setAmbientTemperature(double temp);
+    Q_INVOKABLE void clearAmbientTemperature();
     Q_INVOKABLE void setMotorPower(bool on);
     Q_INVOKABLE void setMotorCurrent(double milliamps);
     Q_INVOKABLE void setMotorVoltage(double millivolts);
