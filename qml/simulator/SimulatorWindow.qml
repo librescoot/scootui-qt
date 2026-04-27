@@ -183,45 +183,42 @@ ApplicationWindow {
                 }
             }
 
-            SectionHeader { text: "Routes" }
-            GridLayout {
-                Layout.fillWidth: true
-                columns: 2
-                columnSpacing: 4
-                rowSpacing: 4
-                SimButton { text: "Charlottenburg → Moabit"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(1) }
-                SimButton { text: "Mitte → Moabit"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(2) }
-                SimButton { text: "Tempelhof → Friedrichshain"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(3) }
-                SimButton { text: "Short (Richard-Ermisch)"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(4) }
-                SimButton { text: "Bersarinplatz (roundabout)"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(5) }
-                SimButton { text: "Frankfurter Allee (U-turn)"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(6) }
+            SectionHeader {
+                text: "Routes"
                 SimButton {
-                    text: "Clear Route"; small: true
-                    Layout.fillWidth: true
-                    Layout.columnSpan: 2
-                    color: "#f44336"
+                    text: "Clear"; small: true; color: "#f44336"
                     onClicked: {
                         if (typeof navigationService !== "undefined")
                             navigationService.clearNavigation()
                     }
                 }
             }
-
-            SectionHeader { text: "Vehicle Presets" }
             GridLayout {
                 Layout.fillWidth: true
                 columns: 3
                 columnSpacing: 4
                 rowSpacing: 4
-                SimButton { text: "Parked"; small: true; onClicked: simulator.loadPreset("parked") }
-                SimButton { text: "Ready"; small: true; onClicked: simulator.loadPreset("ready") }
-                SimButton { text: "Driving"; small: true; onClicked: simulator.loadPreset("driving") }
-                SimButton { text: "Fast"; small: true; onClicked: simulator.loadPreset("driving-fast") }
-                SimButton { text: "Low Batt"; small: true; color: "#ff6b35"; onClicked: simulator.loadPreset("low-battery") }
-                SimButton { text: "Updating"; small: true; color: "#9c27b0"; onClicked: simulator.loadPreset("updating") }
-                SimButton { text: "No GPS"; small: true; onClicked: simulator.loadPreset("no-gps") }
-                SimButton { text: "Offline"; small: true; onClicked: simulator.loadPreset("offline") }
-                SimButton { text: "1 Battery"; small: true; onClicked: simulator.loadPreset("single-battery") }
+                SimButton { text: "C-burg → Moabit"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(1) }
+                SimButton { text: "Mitte → Moabit"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(2) }
+                SimButton { text: "Tempelhof → F'hain"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(3) }
+                SimButton { text: "Short"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(4) }
+                SimButton { text: "Roundabout"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(5) }
+                SimButton { text: "U-turn start"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(6) }
+            }
+
+            SectionHeader { text: "Vehicle Presets" }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 3
+                SimButton { text: "Parked"; small: true; Layout.fillWidth: true; onClicked: simulator.loadPreset("parked") }
+                SimButton { text: "Ready"; small: true; Layout.fillWidth: true; onClicked: simulator.loadPreset("ready") }
+                SimButton { text: "Driving"; small: true; Layout.fillWidth: true; onClicked: simulator.loadPreset("driving") }
+                SimButton { text: "Fast"; small: true; Layout.fillWidth: true; onClicked: simulator.loadPreset("driving-fast") }
+                SimButton { text: "LowBatt"; small: true; color: "#ff6b35"; Layout.fillWidth: true; onClicked: simulator.loadPreset("low-battery") }
+                SimButton { text: "Updating"; small: true; color: "#9c27b0"; Layout.fillWidth: true; onClicked: simulator.loadPreset("updating") }
+                SimButton { text: "NoGPS"; small: true; Layout.fillWidth: true; onClicked: simulator.loadPreset("no-gps") }
+                SimButton { text: "Offline"; small: true; Layout.fillWidth: true; onClicked: simulator.loadPreset("offline") }
+                SimButton { text: "1Batt"; small: true; Layout.fillWidth: true; onClicked: simulator.loadPreset("single-battery") }
             }
 
             SectionHeader { text: "Overrides" }
@@ -292,22 +289,16 @@ ApplicationWindow {
                 Text { text: "trip"; color: "#999"; font.pixelSize: 9 }
                 TextField {
                     id: tripDistField
-                    Layout.preferredWidth: 48
+                    Layout.preferredWidth: 44
                     text: "12.3"
                     color: "white"; font.pixelSize: 10
                     background: Rectangle { color: "#333"; radius: 3 }
                     onEditingFinished: parent.noteEdit("dist")
                 }
-                Item { Layout.fillWidth: true }
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 4
                 Text { text: "total"; color: "#999"; font.pixelSize: 9 }
                 TextField {
                     id: odometerOverrideField
-                    Layout.preferredWidth: 64
+                    Layout.preferredWidth: 52
                     text: "0.0"
                     color: "white"; font.pixelSize: 10
                     background: Rectangle { color: "#333"; radius: 3 }
@@ -317,13 +308,14 @@ ApplicationWindow {
                     }
                     Component.onCompleted: simulator.setOdometer(0)
                 }
-                Item { Layout.preferredWidth: 12 }
-                Text { text: "freeze trip"; color: "#999"; font.pixelSize: 9 }
                 Switch {
                     id: freezeTripSwitch
                     checked: false
-                    scale: 0.7
+                    scale: 0.6
+                    Layout.preferredWidth: 32
                     palette.highlight: "#2196F3"
+                    ToolTip.text: "Freeze trip timer"
+                    ToolTip.visible: hovered
                     onToggled: {
                         if (typeof tripStore === "undefined") return
                         if (checked) {
@@ -335,9 +327,8 @@ ApplicationWindow {
                         }
                     }
                 }
-                Item { Layout.fillWidth: true }
                 SimButton {
-                    text: "Clear all"; small: true; color: "#666"
+                    text: "Clear"; small: true; color: "#666"
                     onClicked: {
                         clockOverrideField.text = ""
                         simulator.clockOverride = ""
@@ -358,33 +349,20 @@ ApplicationWindow {
             }
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 4
-                SimLabel { text: "Main pwr" }
-                SimButton { text: "On"; small: true
-                    onClicked: simulator.setMainPower(true) }
-                SimButton { text: "Off"; small: true; color: "#f44336"
-                    onClicked: simulator.setMainPower(false) }
-                Item { Layout.preferredWidth: 4 }
-                SimLabel { text: "Motor" }
-                SimButton { text: "On"; small: true
-                    onClicked: simulator.setMotorPower(true) }
-                SimButton { text: "Off"; small: true; color: "#f44336"
-                    onClicked: simulator.setMotorPower(false) }
-            }
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 4
-                SimLabel { text: "KERS" }
-                SimButton { text: "On"; small: true
-                    onClicked: simulator.setKers(true) }
-                SimButton { text: "Off"; small: true; color: "#f44336"
-                    onClicked: simulator.setKers(false) }
-                Item { Layout.preferredWidth: 4 }
-                SimLabel { text: "Throttle" }
-                SimButton { text: "On"; small: true
-                    onClicked: simulator.setThrottle(true) }
-                SimButton { text: "Off"; small: true; color: "#f44336"
-                    onClicked: simulator.setThrottle(false) }
+                spacing: 3
+                Text { text: "main"; color: "#999"; font.pixelSize: 9 }
+                SimButton { text: "On"; small: true; onClicked: simulator.setMainPower(true) }
+                SimButton { text: "Off"; small: true; color: "#f44336"; onClicked: simulator.setMainPower(false) }
+                Text { text: "motor"; color: "#999"; font.pixelSize: 9 }
+                SimButton { text: "On"; small: true; onClicked: simulator.setMotorPower(true) }
+                SimButton { text: "Off"; small: true; color: "#f44336"; onClicked: simulator.setMotorPower(false) }
+                Text { text: "KERS"; color: "#999"; font.pixelSize: 9 }
+                SimButton { text: "On"; small: true; onClicked: simulator.setKers(true) }
+                SimButton { text: "Off"; small: true; color: "#f44336"; onClicked: simulator.setKers(false) }
+                Text { text: "thr"; color: "#999"; font.pixelSize: 9 }
+                SimButton { text: "On"; small: true; onClicked: simulator.setThrottle(true) }
+                SimButton { text: "Off"; small: true; color: "#f44336"; onClicked: simulator.setThrottle(false) }
+                Item { Layout.fillWidth: true }
             }
 
             CollapsibleSection {
@@ -477,10 +455,12 @@ ApplicationWindow {
 
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 6
-                SimLabel { text: "State" }
+                spacing: 4
+                Text { text: "state"; color: "#999"; font.pixelSize: 9 }
                 ComboBox {
                     Layout.fillWidth: true
+                    Layout.preferredHeight: 22
+                    font.pixelSize: 10
                     model: ["parked", "ready-to-drive", "stand-by", "off",
                             "shutting-down", "booting", "hibernating",
                             "waiting-hibernation", "updating"]
@@ -490,64 +470,38 @@ ApplicationWindow {
                     palette.window: "#333"; palette.windowText: "white"
                     palette.highlight: "#2196F3"
                 }
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 6
-                SimLabel { text: "Kickstand" }
+                Text { text: "k-stand"; color: "#999"; font.pixelSize: 9 }
                 Switch {
                     id: kickstandSwitch
                     checked: true
-                    text: checked ? "Down" : "Up"
+                    scale: 0.7
+                    Layout.preferredWidth: 36
                     palette.highlight: "#2196F3"
                     onToggled: simulator.setKickstand(checked ? "down" : "up")
-                }
-                Item { Layout.preferredWidth: 8 }
-                SimLabel { text: "Blinkers" }
-                ButtonGroup { id: blinkerGroup; exclusive: true }
-                SimButton {
-                    text: "Off"; small: true
-                    ButtonGroup.group: blinkerGroup
-                    checkable: true; checked: true
-                    onClicked: simulator.setBlinkerState("off")
-                }
-                SimButton {
-                    text: "L"; small: true
-                    ButtonGroup.group: blinkerGroup
-                    checkable: true
-                    onClicked: simulator.setBlinkerState("left")
-                }
-                SimButton {
-                    text: "R"; small: true
-                    ButtonGroup.group: blinkerGroup
-                    checkable: true
-                    onClicked: simulator.setBlinkerState("right")
-                }
-                SimButton {
-                    text: "Both"; small: true
-                    ButtonGroup.group: blinkerGroup
-                    checkable: true
-                    onClicked: simulator.setBlinkerState("both")
                 }
             }
 
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 6
-                SimLabel { text: "Brakes" }
+                spacing: 3
+                Text { text: "blink"; color: "#999"; font.pixelSize: 9 }
+                ButtonGroup { id: blinkerGroup; exclusive: true }
+                SimButton { text: "Off"; small: true; ButtonGroup.group: blinkerGroup; checkable: true; checked: true; onClicked: simulator.setBlinkerState("off") }
+                SimButton { text: "L"; small: true; ButtonGroup.group: blinkerGroup; checkable: true; onClicked: simulator.setBlinkerState("left") }
+                SimButton { text: "R"; small: true; ButtonGroup.group: blinkerGroup; checkable: true; onClicked: simulator.setBlinkerState("right") }
+                SimButton { text: "Both"; small: true; ButtonGroup.group: blinkerGroup; checkable: true; onClicked: simulator.setBlinkerState("both") }
+                Text { text: "brake"; color: "#999"; font.pixelSize: 9 }
                 SimButton {
-                    text: "Left"; small: true
+                    text: "L"; small: true
                     onPressed: simulator.setBrakeLeft(true)
                     onReleased: simulator.setBrakeLeft(false)
                 }
                 SimButton {
-                    text: "Right"; small: true
+                    text: "R"; small: true
                     onPressed: simulator.setBrakeRight(true)
                     onReleased: simulator.setBrakeRight(false)
                 }
-                Item { Layout.preferredWidth: 8 }
-                SimLabel { text: "Buttons" }
+                Text { text: "btn"; color: "#999"; font.pixelSize: 9 }
                 SimButton {
                     text: "S-Box"; small: true
                     onPressed: simulator.setSeatboxButton(true)
@@ -558,6 +512,7 @@ ApplicationWindow {
                     onPressed: simulator.setHornButton(true)
                     onReleased: simulator.setHornButton(false)
                 }
+                Item { Layout.fillWidth: true }
             }
 
             RowLayout {
@@ -1615,20 +1570,32 @@ ApplicationWindow {
     }
     }
 
-    component SectionHeader: Item {
+    component SectionHeader: RowLayout {
         property alias text: headerText.text
+        default property alias rightContent: rightHolder.children
         Layout.fillWidth: true
-        Layout.topMargin: 4
-        Layout.preferredHeight: 12
+        Layout.topMargin: 8
+        Layout.bottomMargin: 0
+        spacing: 6
         Text {
             id: headerText
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
             color: "#2196F3"
             font.pixelSize: 9
             font.bold: true
             font.letterSpacing: 0.5
             font.capitalization: Font.AllUppercase
+        }
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 1
+            Layout.alignment: Qt.AlignVCenter
+            color: "#3a3a3a"
+        }
+        Item {
+            id: rightHolder
+            implicitWidth: childrenRect.width
+            implicitHeight: childrenRect.height
+            Layout.preferredHeight: 22
         }
     }
 
