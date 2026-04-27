@@ -41,6 +41,12 @@ FieldMap InMemoryMdbRepository::getAll(const QString &channel)
     return m_storage.value(channel);
 }
 
+void InMemoryMdbRepository::requestAll(const QString &channel)
+{
+    if (m_storage.contains(channel))
+        emit fieldsUpdated(channel, m_storage.value(channel));
+}
+
 void InMemoryMdbRepository::set(const QString &channel, const QString &variable,
                                  const QString &value, bool publish)
 {
