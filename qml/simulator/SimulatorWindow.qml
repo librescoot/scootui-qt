@@ -25,10 +25,6 @@ ApplicationWindow {
             width: scroll.availableWidth
             spacing: 8
 
-            // ====================================================
-            // TOP — daily-driver controls
-            // ====================================================
-
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 6
@@ -205,10 +201,6 @@ ApplicationWindow {
                     }
                 }
             }
-
-            // ====================================================
-            // MIDDLE — vehicle presets, overrides, common injection
-            // ====================================================
 
             SectionHeader { text: "Vehicle Presets" }
             GridLayout {
@@ -413,6 +405,92 @@ ApplicationWindow {
                     onClicked: simulator.setThrottle(false) }
             }
 
+            CollapsibleSection {
+                title: "Engine (extras)"
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+                    SimSliderRow {
+                        label: "Eng T"
+                        from: -10; to: 120; value: 25; unit: "°C"; decimals: 0
+                        onMoved: function(v) { simulator.setEngineTemperature(v) }
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        SimSliderRow {
+                            Layout.fillWidth: true
+                            label: "Ambient"
+                            from: -20; to: 50; value: 18.5; unit: "°C"; decimals: 1
+                            onMoved: function(v) { simulator.setAmbientTemperature(v) }
+                        }
+                        SimButton {
+                            text: "Clear"; small: true
+                            onClicked: simulator.clearAmbientTemperature()
+                        }
+                    }
+                    SimSliderRow {
+                        label: "Motor I"
+                        from: -10000; to: 80000; value: 0; unit: "mA"; decimals: 0
+                        onMoved: function(v) { simulator.setMotorCurrent(v) }
+                    }
+                    SimSliderRow {
+                        label: "Motor V"
+                        from: 0; to: 60000; value: 54000; unit: "mV"; decimals: 0
+                        onMoved: function(v) { simulator.setMotorVoltage(v) }
+                    }
+                    SimSliderRow {
+                        label: "RPM"
+                        from: 0; to: 8000; value: 0; unit: ""; decimals: 0
+                        onMoved: function(v) { simulator.setRpm(v) }
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        SimLabel { text: "Easter" }
+                        CheckBox {
+                            checked: typeof odometerMilestoneService !== "undefined"
+                                     && odometerMilestoneService.easterEggsEnabled
+                            onToggled: {
+                                if (typeof odometerMilestoneService !== "undefined")
+                                    odometerMilestoneService.easterEggsEnabled = checked
+                            }
+                        }
+                        Text {
+                            Layout.fillWidth: true
+                            text: "666, 1024, 1234.5, 1337, 3133.7, 8008.5, 9999.9"
+                            color: "#888"
+                            font.pixelSize: 10
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        SimLabel { text: "Fault" }
+                        TextField {
+                            id: faultCodeField
+                            Layout.preferredWidth: 64
+                            text: "0"; placeholderText: "code"
+                            color: "white"; font.pixelSize: 11
+                            background: Rectangle { color: "#333"; radius: 3 }
+                        }
+                        TextField {
+                            id: faultDescField
+                            Layout.fillWidth: true
+                            placeholderText: "description"
+                            color: "white"; font.pixelSize: 11
+                            background: Rectangle { color: "#333"; radius: 3 }
+                        }
+                        SimButton {
+                            text: "Set"; small: true
+                            onClicked: simulator.setEngineFault(parseInt(faultCodeField.text) || 0,
+                                                                faultDescField.text)
+                        }
+                    }
+                }
+            }
+
             SectionHeader { text: "Vehicle State" }
 
             RowLayout {
@@ -518,6 +596,38 @@ ApplicationWindow {
                 }
             }
 
+            CollapsibleSection {
+                title: "Vehicle (deep)"
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        SimLabel { text: "H-Bar pos" }
+                        SimButton { text: "On-place"; small: true
+                            onClicked: simulator.setHandlebarPosition("on-place") }
+                        SimButton { text: "Off-place"; small: true
+                            onClicked: simulator.setHandlebarPosition("off-place") }
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        SimLabel { text: "Drive" }
+                        SimButton { text: "Unable"; small: true; color: "#f44336"
+                            onClicked: simulator.setUnableToDrive(true) }
+                        SimButton { text: "Able"; small: true
+                            onClicked: simulator.setUnableToDrive(false) }
+                        Item { Layout.preferredWidth: 8 }
+                        SimLabel { text: "Hop-on" }
+                        SimButton { text: "Active"; small: true
+                            onClicked: simulator.setHopOnActive(true) }
+                        SimButton { text: "Idle"; small: true
+                            onClicked: simulator.setHopOnActive(false) }
+                    }
+                }
+            }
+
             SectionHeader { text: "GPS" }
             RowLayout {
                 Layout.fillWidth: true
@@ -570,6 +680,73 @@ ApplicationWindow {
                 label: "Course"
                 from: 0; to: 359; value: 0; unit: "°"; decimals: 0
                 onMoved: function(v) { simulator.setGpsCourse(v) }
+            }
+
+            CollapsibleSection {
+                title: "GPS (deep)"
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+                    SimSliderRow {
+                        label: "Alt"
+                        from: -50; to: 1500; value: 34; unit: "m"; decimals: 0
+                        onMoved: function(v) { simulator.setGpsAltitude(v) }
+                    }
+                    SimSliderRow {
+                        label: "Hdop"
+                        from: 0; to: 25; value: 1.0; unit: ""; decimals: 1
+                        onMoved: function(v) { simulator.setGpsHdop(v) }
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        SimLabel { text: "Sats" }
+                        Text { text: "used"; color: "#999"; font.pixelSize: 11 }
+                        TextField {
+                            id: satsUsedField
+                            Layout.preferredWidth: 48
+                            text: "8"
+                            color: "white"; font.pixelSize: 11
+                            background: Rectangle { color: "#333"; radius: 3 }
+                        }
+                        Text { text: "vis"; color: "#999"; font.pixelSize: 11 }
+                        TextField {
+                            id: satsVisField
+                            Layout.preferredWidth: 48
+                            text: "12"
+                            color: "white"; font.pixelSize: 11
+                            background: Rectangle { color: "#333"; radius: 3 }
+                        }
+                        SimButton {
+                            text: "Set"; small: true
+                            onClicked: simulator.setGpsSatellites(parseInt(satsUsedField.text) || 0,
+                                                                  parseInt(satsVisField.text) || 0)
+                        }
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        SimLabel { text: "Field" }
+                        TextField {
+                            id: gpsFieldName
+                            Layout.preferredWidth: 100
+                            placeholderText: "field"
+                            color: "white"; font.pixelSize: 11
+                            background: Rectangle { color: "#333"; radius: 3 }
+                        }
+                        TextField {
+                            id: gpsFieldValue
+                            Layout.fillWidth: true
+                            placeholderText: "value"
+                            color: "white"; font.pixelSize: 11
+                            background: Rectangle { color: "#333"; radius: 3 }
+                        }
+                        SimButton {
+                            text: "Set"; small: true
+                            onClicked: simulator.setGpsField(gpsFieldName.text, gpsFieldValue.text)
+                        }
+                    }
+                }
             }
 
             SectionHeader { text: "Battery" }
@@ -631,6 +808,131 @@ ApplicationWindow {
                     color: "#ccc"; font.pixelSize: 11
                     Layout.preferredWidth: 36
                     horizontalAlignment: Text.AlignRight
+                }
+            }
+
+            CollapsibleSection {
+                title: "Battery (deep)"
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+                    Repeater {
+                        model: 2
+                        delegate: ColumnLayout {
+                            id: slotCol
+                            required property int index
+                            Layout.fillWidth: true
+                            spacing: 4
+                            property int slot: index
+                            Text {
+                                text: "Slot " + slotCol.slot
+                                color: "#ccc"; font.pixelSize: 11; font.bold: true
+                            }
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 4
+                                SimLabel { text: "V (mV)" }
+                                TextField {
+                                    Layout.preferredWidth: 80
+                                    text: "54000"
+                                    color: "white"; font.pixelSize: 11
+                                    background: Rectangle { color: "#333"; radius: 3 }
+                                    onEditingFinished: simulator.setBatteryVoltage(slotCol.slot,
+                                                                                   parseInt(text) || 0)
+                                }
+                                SimLabel { text: "I (mA)" }
+                                TextField {
+                                    Layout.preferredWidth: 80
+                                    text: "0"
+                                    color: "white"; font.pixelSize: 11
+                                    background: Rectangle { color: "#333"; radius: 3 }
+                                    onEditingFinished: simulator.setBatteryCurrent(slotCol.slot,
+                                                                                   parseInt(text) || 0)
+                                }
+                                SimSliderRow {
+                                    Layout.fillWidth: true
+                                    label: "T"
+                                    from: -20; to: 60; value: 25; unit: "°C"; decimals: 0
+                                    onMoved: function(v) {
+                                        simulator.setBatteryTemperature(slotCol.slot, Math.round(v))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            CollapsibleSection {
+                title: "CB / Aux Battery"
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+                    Text { text: "CB battery"; color: "#ccc"; font.pixelSize: 11; font.bold: true }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        SimLabel { text: "Present" }
+                        Switch {
+                            checked: true
+                            palette.highlight: "#2196F3"
+                            onToggled: simulator.setCbBatteryField("present", checked ? "true" : "false")
+                        }
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        SimLabel { text: "Charge" }
+                        TextField {
+                            Layout.preferredWidth: 64
+                            text: "95"
+                            color: "white"; font.pixelSize: 11
+                            background: Rectangle { color: "#333"; radius: 3 }
+                            onEditingFinished: simulator.setCbBatteryField("charge", text)
+                        }
+                        SimLabel { text: "Temp" }
+                        TextField {
+                            Layout.preferredWidth: 64
+                            text: "23"
+                            color: "white"; font.pixelSize: 11
+                            background: Rectangle { color: "#333"; radius: 3 }
+                            onEditingFinished: simulator.setCbBatteryField("temperature", text)
+                        }
+                    }
+                    Text { text: "Aux battery"; color: "#ccc"; font.pixelSize: 11; font.bold: true }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        SimLabel { text: "Voltage" }
+                        TextField {
+                            Layout.preferredWidth: 80
+                            text: "12500"; placeholderText: "mV"
+                            color: "white"; font.pixelSize: 11
+                            background: Rectangle { color: "#333"; radius: 3 }
+                            onEditingFinished: simulator.setAuxBatteryField("voltage", text)
+                        }
+                        SimLabel { text: "Charge" }
+                        TextField {
+                            Layout.preferredWidth: 64
+                            text: "100"
+                            color: "white"; font.pixelSize: 11
+                            background: Rectangle { color: "#333"; radius: 3 }
+                            onEditingFinished: simulator.setAuxBatteryField("charge", text)
+                        }
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        SimLabel { text: "Status" }
+                        SimButton { text: "not-charging"; small: true
+                            onClicked: simulator.setAuxBatteryField("charge-status", "not-charging") }
+                        SimButton { text: "bulk"; small: true
+                            onClicked: simulator.setAuxBatteryField("charge-status", "bulk-charge") }
+                        SimButton { text: "absorb"; small: true
+                            onClicked: simulator.setAuxBatteryField("charge-status", "absorption-charge") }
+                        SimButton { text: "float"; small: true
+                            onClicked: simulator.setAuxBatteryField("charge-status", "float-charge") }
+                    }
                 }
             }
 
@@ -831,182 +1133,6 @@ ApplicationWindow {
                 }
             }
 
-            // ====================================================
-            // BOTTOM — collapsible long-tail
-            // ====================================================
-
-            CollapsibleSection {
-                title: "Auto-Lock"
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 6
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-                        SimLabel { text: "Trigger" }
-                        SimButton { text: "60s"; small: true; onClicked: simulator.setAutoStandbyDeadline(60) }
-                        SimButton { text: "30s"; small: true; onClicked: simulator.setAutoStandbyDeadline(30) }
-                        SimButton { text: "10s"; small: true; onClicked: simulator.setAutoStandbyDeadline(10) }
-                        SimButton { text: "Clear"; small: true; color: "#f44336"
-                            onClicked: simulator.clearAutoStandbyDeadline() }
-                    }
-                    SimSliderRow {
-                        label: "Timeout"
-                        from: 0; to: 1800; value: 900; unit: "s"; decimals: 0
-                        onMoved: function(v) { simulator.setAutoStandbySetting(Math.round(v)) }
-                    }
-                    Text {
-                        Layout.fillWidth: true
-                        visible: typeof autoStandbyStore !== "undefined"
-                                 && autoStandbyStore.remainingSeconds > 0
-                        text: "Remaining: " + (typeof autoStandbyStore !== "undefined"
-                              ? autoStandbyStore.remainingSeconds : 0) + "s"
-                        color: typeof autoStandbyStore !== "undefined"
-                               && autoStandbyStore.remainingSeconds <= 60 ? "#FF9800" : "#4caf50"
-                        font.pixelSize: 11
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-                }
-            }
-
-            CollapsibleSection {
-                title: "Engine (extras)"
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 6
-                    SimSliderRow {
-                        label: "Eng T"
-                        from: -10; to: 120; value: 25; unit: "°C"; decimals: 0
-                        onMoved: function(v) { simulator.setEngineTemperature(v) }
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 6
-                        SimSliderRow {
-                            Layout.fillWidth: true
-                            label: "Ambient"
-                            from: -20; to: 50; value: 18.5; unit: "°C"; decimals: 1
-                            onMoved: function(v) { simulator.setAmbientTemperature(v) }
-                        }
-                        SimButton {
-                            text: "Clear"; small: true
-                            onClicked: simulator.clearAmbientTemperature()
-                        }
-                    }
-                    SimSliderRow {
-                        label: "Motor I"
-                        from: -10000; to: 80000; value: 0; unit: "mA"; decimals: 0
-                        onMoved: function(v) { simulator.setMotorCurrent(v) }
-                    }
-                    SimSliderRow {
-                        label: "Motor V"
-                        from: 0; to: 60000; value: 54000; unit: "mV"; decimals: 0
-                        onMoved: function(v) { simulator.setMotorVoltage(v) }
-                    }
-                    SimSliderRow {
-                        label: "RPM"
-                        from: 0; to: 8000; value: 0; unit: ""; decimals: 0
-                        onMoved: function(v) { simulator.setRpm(v) }
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 6
-                        SimLabel { text: "Easter" }
-                        CheckBox {
-                            checked: typeof odometerMilestoneService !== "undefined"
-                                     && odometerMilestoneService.easterEggsEnabled
-                            onToggled: {
-                                if (typeof odometerMilestoneService !== "undefined")
-                                    odometerMilestoneService.easterEggsEnabled = checked
-                            }
-                        }
-                        Text {
-                            Layout.fillWidth: true
-                            text: "666, 1024, 1234.5, 1337, 3133.7, 8008.5, 9999.9"
-                            color: "#888"
-                            font.pixelSize: 10
-                            wrapMode: Text.WordWrap
-                        }
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 6
-                        SimLabel { text: "Fault" }
-                        TextField {
-                            id: faultCodeField
-                            Layout.preferredWidth: 64
-                            text: "0"; placeholderText: "code"
-                            color: "white"; font.pixelSize: 11
-                            background: Rectangle { color: "#333"; radius: 3 }
-                        }
-                        TextField {
-                            id: faultDescField
-                            Layout.fillWidth: true
-                            placeholderText: "description"
-                            color: "white"; font.pixelSize: 11
-                            background: Rectangle { color: "#333"; radius: 3 }
-                        }
-                        SimButton {
-                            text: "Set"; small: true
-                            onClicked: simulator.setEngineFault(parseInt(faultCodeField.text) || 0,
-                                                                faultDescField.text)
-                        }
-                    }
-                }
-            }
-
-            CollapsibleSection {
-                title: "Battery (deep)"
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 6
-                    Repeater {
-                        model: 2
-                        delegate: ColumnLayout {
-                            id: slotCol
-                            required property int index
-                            Layout.fillWidth: true
-                            spacing: 4
-                            property int slot: index
-                            Text {
-                                text: "Slot " + slotCol.slot
-                                color: "#ccc"; font.pixelSize: 11; font.bold: true
-                            }
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: 4
-                                SimLabel { text: "V (mV)" }
-                                TextField {
-                                    Layout.preferredWidth: 80
-                                    text: "54000"
-                                    color: "white"; font.pixelSize: 11
-                                    background: Rectangle { color: "#333"; radius: 3 }
-                                    onEditingFinished: simulator.setBatteryVoltage(slotCol.slot,
-                                                                                   parseInt(text) || 0)
-                                }
-                                SimLabel { text: "I (mA)" }
-                                TextField {
-                                    Layout.preferredWidth: 80
-                                    text: "0"
-                                    color: "white"; font.pixelSize: 11
-                                    background: Rectangle { color: "#333"; radius: 3 }
-                                    onEditingFinished: simulator.setBatteryCurrent(slotCol.slot,
-                                                                                   parseInt(text) || 0)
-                                }
-                                SimSliderRow {
-                                    Layout.fillWidth: true
-                                    label: "T"
-                                    from: -20; to: 60; value: 25; unit: "°C"; decimals: 0
-                                    onMoved: function(v) {
-                                        simulator.setBatteryTemperature(slotCol.slot, Math.round(v))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
             CollapsibleSection {
                 title: "Bluetooth (deep)"
                 ColumnLayout {
@@ -1128,68 +1254,88 @@ ApplicationWindow {
             }
 
             CollapsibleSection {
-                title: "GPS (deep)"
+                title: "USB / UMS (deep)"
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 6
-                    SimSliderRow {
-                        label: "Alt"
-                        from: -50; to: 1500; value: 34; unit: "m"; decimals: 0
-                        onMoved: function(v) { simulator.setGpsAltitude(v) }
-                    }
-                    SimSliderRow {
-                        label: "Hdop"
-                        from: 0; to: 25; value: 1.0; unit: ""; decimals: 1
-                        onMoved: function(v) { simulator.setGpsHdop(v) }
-                    }
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 6
-                        SimLabel { text: "Sats" }
-                        Text { text: "used"; color: "#999"; font.pixelSize: 11 }
+                        SimLabel { text: "Step" }
                         TextField {
-                            id: satsUsedField
-                            Layout.preferredWidth: 48
-                            text: "8"
-                            color: "white"; font.pixelSize: 11
-                            background: Rectangle { color: "#333"; radius: 3 }
-                        }
-                        Text { text: "vis"; color: "#999"; font.pixelSize: 11 }
-                        TextField {
-                            id: satsVisField
-                            Layout.preferredWidth: 48
-                            text: "12"
-                            color: "white"; font.pixelSize: 11
-                            background: Rectangle { color: "#333"; radius: 3 }
-                        }
-                        SimButton {
-                            text: "Set"; small: true
-                            onClicked: simulator.setGpsSatellites(parseInt(satsUsedField.text) || 0,
-                                                                  parseInt(satsVisField.text) || 0)
-                        }
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 6
-                        SimLabel { text: "Field" }
-                        TextField {
-                            id: gpsFieldName
-                            Layout.preferredWidth: 100
-                            placeholderText: "field"
-                            color: "white"; font.pixelSize: 11
-                            background: Rectangle { color: "#333"; radius: 3 }
-                        }
-                        TextField {
-                            id: gpsFieldValue
                             Layout.fillWidth: true
-                            placeholderText: "value"
+                            placeholderText: "step name"
+                            color: "white"; font.pixelSize: 11
+                            background: Rectangle { color: "#333"; radius: 3 }
+                            onEditingFinished: simulator.setUsbStep(text)
+                        }
+                    }
+                    SimSliderRow {
+                        label: "Progress"
+                        from: 0; to: 100; value: 0; unit: "%"; decimals: 0
+                        onMoved: function(v) { simulator.setUsbProgress(Math.round(v)) }
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        SimLabel { text: "Detail" }
+                        TextField {
+                            Layout.fillWidth: true
+                            placeholderText: "detail line"
+                            color: "white"; font.pixelSize: 11
+                            background: Rectangle { color: "#333"; radius: 3 }
+                            onEditingFinished: simulator.setUsbDetail(text)
+                        }
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        SimLabel { text: "Log" }
+                        TextField {
+                            id: umsLogField
+                            Layout.fillWidth: true
+                            placeholderText: "log line"
                             color: "white"; font.pixelSize: 11
                             background: Rectangle { color: "#333"; radius: 3 }
                         }
                         SimButton {
-                            text: "Set"; small: true
-                            onClicked: simulator.setGpsField(gpsFieldName.text, gpsFieldValue.text)
+                            text: "Push"; small: true
+                            onClicked: { simulator.pushUmsLog(umsLogField.text); umsLogField.text = "" }
                         }
+                    }
+                }
+            }
+
+            CollapsibleSection {
+                title: "Auto-Lock"
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        SimLabel { text: "Trigger" }
+                        SimButton { text: "60s"; small: true; onClicked: simulator.setAutoStandbyDeadline(60) }
+                        SimButton { text: "30s"; small: true; onClicked: simulator.setAutoStandbyDeadline(30) }
+                        SimButton { text: "10s"; small: true; onClicked: simulator.setAutoStandbyDeadline(10) }
+                        SimButton { text: "Clear"; small: true; color: "#f44336"
+                            onClicked: simulator.clearAutoStandbyDeadline() }
+                    }
+                    SimSliderRow {
+                        label: "Timeout"
+                        from: 0; to: 1800; value: 900; unit: "s"; decimals: 0
+                        onMoved: function(v) { simulator.setAutoStandbySetting(Math.round(v)) }
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        visible: typeof autoStandbyStore !== "undefined"
+                                 && autoStandbyStore.remainingSeconds > 0
+                        text: "Remaining: " + (typeof autoStandbyStore !== "undefined"
+                              ? autoStandbyStore.remainingSeconds : 0) + "s"
+                        color: typeof autoStandbyStore !== "undefined"
+                               && autoStandbyStore.remainingSeconds <= 60 ? "#FF9800" : "#4caf50"
+                        font.pixelSize: 11
+                        horizontalAlignment: Text.AlignHCenter
                     }
                 }
             }
@@ -1345,164 +1491,6 @@ ApplicationWindow {
             }
 
             CollapsibleSection {
-                title: "Vehicle (deep)"
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 6
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-                        SimLabel { text: "H-Bar pos" }
-                        SimButton { text: "On-place"; small: true
-                            onClicked: simulator.setHandlebarPosition("on-place") }
-                        SimButton { text: "Off-place"; small: true
-                            onClicked: simulator.setHandlebarPosition("off-place") }
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-                        SimLabel { text: "Drive" }
-                        SimButton { text: "Unable"; small: true; color: "#f44336"
-                            onClicked: simulator.setUnableToDrive(true) }
-                        SimButton { text: "Able"; small: true
-                            onClicked: simulator.setUnableToDrive(false) }
-                        Item { Layout.preferredWidth: 8 }
-                        SimLabel { text: "Hop-on" }
-                        SimButton { text: "Active"; small: true
-                            onClicked: simulator.setHopOnActive(true) }
-                        SimButton { text: "Idle"; small: true
-                            onClicked: simulator.setHopOnActive(false) }
-                    }
-                }
-            }
-
-            CollapsibleSection {
-                title: "USB / UMS (deep)"
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 6
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 6
-                        SimLabel { text: "Step" }
-                        TextField {
-                            Layout.fillWidth: true
-                            placeholderText: "step name"
-                            color: "white"; font.pixelSize: 11
-                            background: Rectangle { color: "#333"; radius: 3 }
-                            onEditingFinished: simulator.setUsbStep(text)
-                        }
-                    }
-                    SimSliderRow {
-                        label: "Progress"
-                        from: 0; to: 100; value: 0; unit: "%"; decimals: 0
-                        onMoved: function(v) { simulator.setUsbProgress(Math.round(v)) }
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 6
-                        SimLabel { text: "Detail" }
-                        TextField {
-                            Layout.fillWidth: true
-                            placeholderText: "detail line"
-                            color: "white"; font.pixelSize: 11
-                            background: Rectangle { color: "#333"; radius: 3 }
-                            onEditingFinished: simulator.setUsbDetail(text)
-                        }
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 6
-                        SimLabel { text: "Log" }
-                        TextField {
-                            id: umsLogField
-                            Layout.fillWidth: true
-                            placeholderText: "log line"
-                            color: "white"; font.pixelSize: 11
-                            background: Rectangle { color: "#333"; radius: 3 }
-                        }
-                        SimButton {
-                            text: "Push"; small: true
-                            onClicked: { simulator.pushUmsLog(umsLogField.text); umsLogField.text = "" }
-                        }
-                    }
-                }
-            }
-
-            CollapsibleSection {
-                title: "CB / Aux Battery"
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 6
-                    Text { text: "CB battery"; color: "#ccc"; font.pixelSize: 11; font.bold: true }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-                        SimLabel { text: "Present" }
-                        Switch {
-                            checked: true
-                            palette.highlight: "#2196F3"
-                            onToggled: simulator.setCbBatteryField("present", checked ? "true" : "false")
-                        }
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 6
-                        SimLabel { text: "Charge" }
-                        TextField {
-                            Layout.preferredWidth: 64
-                            text: "95"
-                            color: "white"; font.pixelSize: 11
-                            background: Rectangle { color: "#333"; radius: 3 }
-                            onEditingFinished: simulator.setCbBatteryField("charge", text)
-                        }
-                        SimLabel { text: "Temp" }
-                        TextField {
-                            Layout.preferredWidth: 64
-                            text: "23"
-                            color: "white"; font.pixelSize: 11
-                            background: Rectangle { color: "#333"; radius: 3 }
-                            onEditingFinished: simulator.setCbBatteryField("temperature", text)
-                        }
-                    }
-                    Text { text: "Aux battery"; color: "#ccc"; font.pixelSize: 11; font.bold: true }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 6
-                        SimLabel { text: "Voltage" }
-                        TextField {
-                            Layout.preferredWidth: 80
-                            text: "12500"; placeholderText: "mV"
-                            color: "white"; font.pixelSize: 11
-                            background: Rectangle { color: "#333"; radius: 3 }
-                            onEditingFinished: simulator.setAuxBatteryField("voltage", text)
-                        }
-                        SimLabel { text: "Charge" }
-                        TextField {
-                            Layout.preferredWidth: 64
-                            text: "100"
-                            color: "white"; font.pixelSize: 11
-                            background: Rectangle { color: "#333"; radius: 3 }
-                            onEditingFinished: simulator.setAuxBatteryField("charge", text)
-                        }
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-                        SimLabel { text: "Status" }
-                        SimButton { text: "not-charging"; small: true
-                            onClicked: simulator.setAuxBatteryField("charge-status", "not-charging") }
-                        SimButton { text: "bulk"; small: true
-                            onClicked: simulator.setAuxBatteryField("charge-status", "bulk-charge") }
-                        SimButton { text: "absorb"; small: true
-                            onClicked: simulator.setAuxBatteryField("charge-status", "absorption-charge") }
-                        SimButton { text: "float"; small: true
-                            onClicked: simulator.setAuxBatteryField("charge-status", "float-charge") }
-                    }
-                }
-            }
-
-            CollapsibleSection {
                 title: "Dashboard / Theme service"
                 ColumnLayout {
                     Layout.fillWidth: true
@@ -1640,10 +1628,6 @@ ApplicationWindow {
             Item { Layout.preferredHeight: 16 }
         }
     }
-
-    // ====================================================
-    // Reusable components
-    // ====================================================
 
     component SectionHeader: Rectangle {
         property alias text: headerText.text
