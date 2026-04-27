@@ -580,6 +580,7 @@ void SimulatorService::setTheme(const QString &theme)
 
 void SimulatorService::setLanguage(const QString &lang)
 {
+    m_language = lang;
     m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.language"), lang);
 }
 
@@ -793,11 +794,20 @@ void SimulatorService::loadPreset(const QString &name)
 
 void SimulatorService::loadTestRoute(int index)
 {
-    QString path = QStringLiteral(":/ScootUI/assets/routes/route") + QString::number(index) + QStringLiteral(".json");
+    const QString suffix = m_language.startsWith(QLatin1String("de"))
+        ? QStringLiteral("_de") : QString();
+    QString path = QStringLiteral(":/ScootUI/assets/routes/route")
+        + QString::number(index) + suffix + QStringLiteral(".json");
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
-        qWarning() << "Simulator: Failed to open route file" << path;
-        return;
+        // Fall back to English if the localised variant isn't present
+        path = QStringLiteral(":/ScootUI/assets/routes/route")
+            + QString::number(index) + QStringLiteral(".json");
+        file.setFileName(path);
+        if (!file.open(QIODevice::ReadOnly)) {
+            qWarning() << "Simulator: Failed to open route file" << path;
+            return;
+        }
     }
 
     // Park the vehicle before loading. Without this, residual speed from a

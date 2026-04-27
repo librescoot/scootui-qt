@@ -346,6 +346,12 @@ qt_add_qml_module(scootui
         assets/routes/route4.json
         assets/routes/route5.json
         assets/routes/route6.json
+        assets/routes/route1_de.json
+        assets/routes/route2_de.json
+        assets/routes/route3_de.json
+        assets/routes/route4_de.json
+        assets/routes/route5_de.json
+        assets/routes/route6_de.json
         # Subsetted copies; see scripts/subset-fonts.sh and the originals in
         # assets/fonts/ if you need to regenerate after a font update.
         assets/fonts/subset/Roboto-Regular.ttf

@@ -204,6 +204,7 @@ private:
     double m_autoDriveBearing = 0;
     Route m_route;
     int m_routeWaypointIndex = 0;
+    QString m_language = QStringLiteral("en");
     double m_batteryCharge0 = 80;
     double m_batteryCharge1 = 80;
     double m_odometer = 1234.5;
