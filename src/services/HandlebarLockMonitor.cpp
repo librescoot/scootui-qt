@@ -21,14 +21,14 @@ HandlebarLockMonitor::HandlebarLockMonitor(VehicleStore *vehicle, ToastService *
         bool activeState = (state == ScootEnums::VehicleState::ReadyToDrive ||
                             state == ScootEnums::VehicleState::Parked);
         if (activeState &&
-            m_vehicle->handleBarLockSensor() == static_cast<int>(ScootEnums::HandleBarLockSensor::Locked)) {
+            m_vehicle->handleBarLockState() == static_cast<int>(ScootEnums::HandleBarLockSensor::Locked)) {
             m_showing = true;
             m_toast->showPermanentWarning(m_translations->warningHandlebarLocked(), ToastId);
         }
     });
 
     connect(m_vehicle, &VehicleStore::stateChanged, this, &HandlebarLockMonitor::evaluate);
-    connect(m_vehicle, &VehicleStore::handleBarLockSensorChanged, this, &HandlebarLockMonitor::evaluate);
+    connect(m_vehicle, &VehicleStore::handleBarLockStateChanged, this, &HandlebarLockMonitor::evaluate);
 }
 
 void HandlebarLockMonitor::evaluate()
@@ -36,7 +36,7 @@ void HandlebarLockMonitor::evaluate()
     auto state = static_cast<ScootEnums::VehicleState>(m_vehicle->state());
     bool activeState = (state == ScootEnums::VehicleState::ReadyToDrive ||
                         state == ScootEnums::VehicleState::Parked);
-    auto lockSensor = static_cast<ScootEnums::HandleBarLockSensor>(m_vehicle->handleBarLockSensor());
+    auto lockSensor = static_cast<ScootEnums::HandleBarLockSensor>(m_vehicle->handleBarLockState());
 
     if (lockSensor == ScootEnums::HandleBarLockSensor::Unknown)
         return;

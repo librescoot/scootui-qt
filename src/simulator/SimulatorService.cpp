@@ -161,6 +161,7 @@ void SimulatorService::setSeatboxLock(const QString &state)
 void SimulatorService::setHandlebarLock(const QString &state)
 {
     m_repo->set(QStringLiteral("vehicle"), QStringLiteral("handlebar:lock-sensor"), state);
+    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("handlebar:lock-state"), state);
 }
 
 void SimulatorService::setHornButton(bool pressed)
