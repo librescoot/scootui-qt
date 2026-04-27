@@ -55,6 +55,10 @@ public slots:
     // Fetch a single field from a hash (queued from main thread)
     void doHget(const QString &channel, const QString &field);
 
+    // Fetch all fields of a hash on demand (HGETALL, queued from main thread).
+    // Emits fieldsUpdated on the worker thread when the response arrives.
+    void doHgetAll(const QString &channel);
+
     // Read operations that need a return value (queued from main thread)
     // Results emitted via signals
     void doGetSetMembers(const QString &setKey);

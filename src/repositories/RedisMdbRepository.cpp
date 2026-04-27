@@ -56,6 +56,16 @@ void RedisMdbRepository::requestField(const QString &channel, const QString &fie
     }
 }
 
+void RedisMdbRepository::requestAll(const QString &channel)
+{
+    if (m_worker) {
+        auto *w = m_worker;
+        QMetaObject::invokeMethod(w, [w, channel]() {
+            w->doHgetAll(channel);
+        }, Qt::QueuedConnection);
+    }
+}
+
 void RedisMdbRepository::startWorker()
 {
     if (!m_worker) return;

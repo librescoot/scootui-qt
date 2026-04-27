@@ -255,6 +255,12 @@ void HiredisWorker::doHget(const QString &channel, const QString &field)
     freeReplyObject(reply);
 }
 
+void HiredisWorker::doHgetAll(const QString &channel)
+{
+    if (!ensureConnected()) return;
+    pollChannel(channel);
+}
+
 // Write operations
 
 void HiredisWorker::doSet(const QString &channel, const QString &variable,

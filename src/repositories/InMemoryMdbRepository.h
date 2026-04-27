@@ -19,6 +19,7 @@ public:
 
     QString get(const QString &channel, const QString &variable) override;
     FieldMap getAll(const QString &channel) override;
+    void requestAll(const QString &channel) override;
     void set(const QString &channel, const QString &variable,
              const QString &value, bool publish = true) override;
     void publish(const QString &channel, const QString &message) override;

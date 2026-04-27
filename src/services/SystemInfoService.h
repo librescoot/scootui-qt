@@ -31,6 +31,8 @@ signals:
     void versionRowsChanged();
 
 private:
+    void recomputeVersions();
+
     MdbRepository *m_repo;
     QVariantList m_versionRows; // [{label, value}, ...]
     QString m_mdbVersion;

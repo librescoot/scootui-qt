@@ -52,6 +52,10 @@ public:
     // Fetch a single field immediately (e.g. after pub/sub notification)
     virtual void requestField(const QString &channel, const QString &field) { Q_UNUSED(channel); Q_UNUSED(field); }
 
+    // Fetch all fields of a hash immediately (HGETALL on demand). Result arrives
+    // asynchronously via fieldsUpdated, same path the periodic poller uses.
+    virtual void requestAll(const QString &channel) { Q_UNUSED(channel); }
+
     // Re-emit current connection state so late listeners can sync
     void notifyConnectionState() { emit connectionStateChanged(isConnected()); }
 

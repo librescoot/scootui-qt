@@ -5,9 +5,31 @@
 SystemInfoService::SystemInfoService(MdbRepository *repo, QObject *parent)
     : QObject(parent), m_repo(repo)
 {
+    connect(m_repo, &MdbRepository::fieldsUpdated,
+            this, [this](const QString &channel, const FieldMap &) {
+        if (channel == QLatin1String("system")
+            || channel == QLatin1String("version:mdb")
+            || channel == QLatin1String("version:dbc")
+            || channel == QLatin1String("engine-ecu")) {
+            recomputeVersions();
+        }
+    });
 }
 
 void SystemInfoService::loadVersions()
+{
+    // Force an immediate refresh so the AboutScreen doesn't have to wait up to
+    // 30s for the next scheduled poll. Results arrive asynchronously and trigger
+    // recomputeVersions() via the fieldsUpdated subscription.
+    m_repo->requestAll(QStringLiteral("system"));
+    m_repo->requestAll(QStringLiteral("version:mdb"));
+    m_repo->requestAll(QStringLiteral("version:dbc"));
+    m_repo->requestAll(QStringLiteral("engine-ecu"));
+
+    recomputeVersions();
+}
+
+void SystemInfoService::recomputeVersions()
 {
     FieldMap system = m_repo->getAll(QStringLiteral("system"));
     FieldMap mdbVer = m_repo->getAll(QStringLiteral("version:mdb"));
@@ -44,19 +66,29 @@ void SystemInfoService::loadVersions()
     // Individual version strings for direct QML binding
     auto ver = [](const QString &v) { return v.isEmpty() ? QStringLiteral("unknown") : v; };
 
-    if (mdbVer.contains(QStringLiteral("version")))
-        m_mdbVersion = ver(mdbVer.value(QStringLiteral("version")));
-    else
-        m_mdbVersion = ver(system.value(QStringLiteral("mdb-version")));
+    QString mdbVersion = mdbVer.contains(QStringLiteral("version"))
+        ? ver(mdbVer.value(QStringLiteral("version")))
+        : ver(system.value(QStringLiteral("mdb-version")));
 
-    if (dbcVer.contains(QStringLiteral("version")))
-        m_dbcVersion = ver(dbcVer.value(QStringLiteral("version")));
-    else
-        m_dbcVersion = ver(system.value(QStringLiteral("dbc-version")));
+    QString dbcVersion = dbcVer.contains(QStringLiteral("version"))
+        ? ver(dbcVer.value(QStringLiteral("version")))
+        : ver(system.value(QStringLiteral("dbc-version")));
 
-    m_nrfVersion = ver(nrf);
-    m_ecuVersion = ver(ecu);
+    QString nrfVersion = ver(nrf);
+    QString ecuVersion = ver(ecu);
+
+    if (rows == m_versionRows
+        && mdbVersion == m_mdbVersion
+        && dbcVersion == m_dbcVersion
+        && nrfVersion == m_nrfVersion
+        && ecuVersion == m_ecuVersion) {
+        return;
+    }
 
     m_versionRows = rows;
+    m_mdbVersion = mdbVersion;
+    m_dbcVersion = dbcVersion;
+    m_nrfVersion = nrfVersion;
+    m_ecuVersion = ecuVersion;
     emit versionRowsChanged();
 }
