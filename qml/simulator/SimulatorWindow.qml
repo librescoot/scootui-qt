@@ -204,6 +204,11 @@ ApplicationWindow {
                     onClicked: simulator.loadTestRoute(5)
                 }
                 SimButton {
+                    text: "Frankfurter Allee (U-turn)"
+                    Layout.fillWidth: true
+                    onClicked: simulator.loadTestRoute(6)
+                }
+                SimButton {
                     text: "Clear Route"
                     Layout.fillWidth: true
                     color: "#f44336"
