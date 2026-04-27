@@ -1,21 +1,85 @@
 #include "GpsStore.h"
 
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonValue>
+
+namespace {
+constexpr auto kTpvChannel = "gps:tpv";
+}
+
 GpsStore::GpsStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
 }
 
+GpsStore::~GpsStore()
+{
+    if (m_tpvSubscribed) {
+        m_repo->unsubscribe(QStringLiteral("gps:tpv"));
+        m_tpvSubscribed = false;
+    }
+}
+
+void GpsStore::start()
+{
+    SyncableStore::start();
+
+    // Subscribe to the gps:tpv pub/sub channel for full TPV snapshots pushed
+    // by modem-service. This bypasses the HGETALL polling roundtrip — every
+    // message is a complete view of the GPS state. The base-class poll is
+    // kept as a low-rate safety net (see syncSettings) and to prime initial
+    // state on startup before the first push arrives.
+    m_repo->subscribe(QStringLiteral("gps:tpv"),
+                      [this](const QString &, const QString &message) {
+                          applySnapshot(message);
+                      });
+    m_tpvSubscribed = true;
+}
+
+void GpsStore::stop()
+{
+    if (m_tpvSubscribed) {
+        m_repo->unsubscribe(QStringLiteral("gps:tpv"));
+        m_tpvSubscribed = false;
+    }
+    SyncableStore::stop();
+}
+
+void GpsStore::applySnapshot(const QString &payload)
+{
+    QJsonParseError err{};
+    const auto doc = QJsonDocument::fromJson(payload.toUtf8(), &err);
+    if (err.error != QJsonParseError::NoError || !doc.isObject())
+        return;
+
+    const auto obj = doc.object();
+    for (auto it = obj.constBegin(); it != obj.constEnd(); ++it) {
+        const QString &key = it.key();
+        const QJsonValue v = it.value();
+        QString s;
+        if (v.isString())
+            s = v.toString();
+        else if (v.isBool())
+            s = v.toBool() ? QStringLiteral("true") : QStringLiteral("false");
+        else if (v.isDouble())
+            s = QString::number(v.toDouble(), 'f', -1);
+        else
+            continue;
+        applyFieldUpdate(key, s);
+    }
+}
+
 SyncSettings GpsStore::syncSettings() const
 {
     return SyncSettings{
-        // Poll at 4 Hz. modem-service publishes GPS at 1 Hz, so polling
-        // faster than the source bounds consumer-side phase lag at ~250 ms
-        // worst case (125 ms average). The receiver NMEA buffer (~300 ms)
-        // then dominates, and the input-side age compensation in MapService
-        // projects over the combined residual — a smaller extrapolation
-        // than at lower poll rates gives a cleaner correction.
-        // HGETALL on the local Redis socket at 4 Hz is negligible load.
-        QStringLiteral("gps"), 250,
+        // Pub/sub via gps:tpv (subscribed in start()) carries pushed TPV
+        // snapshots at 1 Hz. The HGETALL poll here is a low-rate safety net
+        // — it covers the brief window between subscribe and the first push,
+        // and absorbs any rare missed messages. 5 s is well within the staleness
+        // tolerances downstream (MapService age compensation, hasRecentFix at
+        // 20 s).
+        QStringLiteral("gps"), 5000,
         {
             {QStringLiteral("latitude"), QStringLiteral("latitude")},
             {QStringLiteral("longitude"), QStringLiteral("longitude")},

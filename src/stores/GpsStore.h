@@ -36,6 +36,10 @@ class GpsStore : public SyncableStore
 
 public:
     explicit GpsStore(MdbRepository *repo, QObject *parent = nullptr);
+    ~GpsStore() override;
+
+    void start() override;
+    void stop() override;
 
     double latitude() const { return m_latitude; }
     double longitude() const { return m_longitude; }
@@ -119,6 +123,8 @@ protected:
     void applyFieldUpdate(const QString &variable, const QString &value) override;
 
 private:
+    void applySnapshot(const QString &payload);
+    bool m_tpvSubscribed = false;
     double m_latitude = 0;
     double m_longitude = 0;
     double m_course = 0;
