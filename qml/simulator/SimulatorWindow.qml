@@ -604,8 +604,8 @@ ApplicationWindow {
                 SimLabel { text: "MDB" }
                 ComboBox {
                     Layout.fillWidth: true
-                    model: ["idle", "checking", "downloading", "verifying",
-                            "installing", "rebooting", "complete", "error"]
+                    model: ["idle", "downloading", "preparing", "installing",
+                            "pending-reboot", "error"]
                     currentIndex: 0
                     onActivated: simulator.setOtaStatus("mdb", currentText)
                     palette.button: "#333"; palette.buttonText: "white"
@@ -614,12 +614,44 @@ ApplicationWindow {
                 SimLabel { text: "DBC" }
                 ComboBox {
                     Layout.fillWidth: true
-                    model: ["idle", "checking", "downloading", "verifying",
-                            "installing", "rebooting", "complete", "error"]
+                    model: ["idle", "downloading", "preparing", "installing",
+                            "pending-reboot", "error"]
                     currentIndex: 0
                     onActivated: simulator.setOtaStatus("dbc", currentText)
                     palette.button: "#333"; palette.buttonText: "white"
                     palette.window: "#333"; palette.windowText: "white"
+                }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+                SimLabel { text: "Method" }
+                ButtonGroup { id: otaMethodMdbGroup; exclusive: true }
+                SimButton {
+                    text: "MDB delta"; small: true
+                    ButtonGroup.group: otaMethodMdbGroup
+                    checkable: true
+                    onClicked: simulator.setOtaUpdateMethod("mdb", "delta")
+                }
+                SimButton {
+                    text: "MDB full"; small: true
+                    ButtonGroup.group: otaMethodMdbGroup
+                    checkable: true
+                    onClicked: simulator.setOtaUpdateMethod("mdb", "full")
+                }
+                Item { Layout.preferredWidth: 8 }
+                ButtonGroup { id: otaMethodDbcGroup; exclusive: true }
+                SimButton {
+                    text: "DBC delta"; small: true
+                    ButtonGroup.group: otaMethodDbcGroup
+                    checkable: true
+                    onClicked: simulator.setOtaUpdateMethod("dbc", "delta")
+                }
+                SimButton {
+                    text: "DBC full"; small: true
+                    ButtonGroup.group: otaMethodDbcGroup
+                    checkable: true
+                    onClicked: simulator.setOtaUpdateMethod("dbc", "full")
                 }
             }
             RowLayout {
@@ -664,11 +696,20 @@ ApplicationWindow {
                         simulator.setOtaUpdateVersion("dbc", "v0.99.0")
                     }
                 }
+                ComboBox {
+                    id: otaErrorCombo
+                    Layout.preferredWidth: 130
+                    model: ["file-not-found", "invalid-file", "download-failed",
+                            "install-failed", "reboot-failed", "delta-failed"]
+                    currentIndex: 2
+                    palette.button: "#333"; palette.buttonText: "white"
+                    palette.window: "#333"; palette.windowText: "white"
+                }
                 SimButton {
-                    text: "Trigger Error"; small: true; color: "#ff9800"
+                    text: "Trigger Error (MDB)"; small: true; color: "#ff9800"
                     onClicked: {
-                        simulator.setOtaError("mdb", "download_failed")
-                        simulator.setOtaErrorMessage("mdb", "Connection reset")
+                        simulator.setOtaError("mdb", otaErrorCombo.currentText)
+                        simulator.setOtaErrorMessage("mdb", "Simulated " + otaErrorCombo.currentText)
                     }
                 }
                 SimButton {
