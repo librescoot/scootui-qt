@@ -120,7 +120,11 @@ void RoadInfoService::countMissAndMaybeClear()
 
 void RoadInfoService::onGpsChanged()
 {
-    if (!m_gps || !m_gps->hasGpsFix()) {
+    // Use hasValidGps (non-zero coords) rather than hasGpsFix — modem-service
+    // flips gps.state to "searching" on transient TPV mode 0/1 reports while
+    // the last lat/lng stay live in Redis, and we don't want to wipe the
+    // road-info pill every time that happens.
+    if (!m_gps || !m_gps->hasValidGps()) {
         m_consecutiveMisses = ClearAfterMisses;
         m_speedLimit->setRoadNameDirect(QString());
         m_speedLimit->setRoadRefsDirect(QString());

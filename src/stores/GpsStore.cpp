@@ -47,10 +47,20 @@ void GpsStore::applyFieldUpdate(const QString &variable, const QString &value)
 {
     if (variable == QLatin1String("latitude")) {
         auto v = value.toDouble();
-        if (v != m_latitude) { m_latitude = v; emit latitudeChanged(); }
+        if (v != m_latitude) {
+            bool wasValid = hasValidGps();
+            m_latitude = v;
+            emit latitudeChanged();
+            if (hasValidGps() != wasValid) emit hasValidGpsChanged();
+        }
     } else if (variable == QLatin1String("longitude")) {
         auto v = value.toDouble();
-        if (v != m_longitude) { m_longitude = v; emit longitudeChanged(); }
+        if (v != m_longitude) {
+            bool wasValid = hasValidGps();
+            m_longitude = v;
+            emit longitudeChanged();
+            if (hasValidGps() != wasValid) emit hasValidGpsChanged();
+        }
     } else if (variable == QLatin1String("course")) {
         auto v = value.toDouble();
         if (v != m_course) { m_course = v; emit courseChanged(); }

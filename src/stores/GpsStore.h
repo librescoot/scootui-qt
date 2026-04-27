@@ -30,6 +30,7 @@ class GpsStore : public SyncableStore
     Q_PROPERTY(QString lastTtffMode READ lastTtffMode NOTIFY lastTtffModeChanged)
     Q_PROPERTY(bool hasRecentFix READ hasRecentFix NOTIFY timestampChanged)
     Q_PROPERTY(bool hasTimestamp READ hasTimestamp NOTIFY timestampChanged)
+    Q_PROPERTY(bool hasValidGps READ hasValidGps NOTIFY hasValidGpsChanged)
 
 public:
     explicit GpsStore(MdbRepository *repo, QObject *parent = nullptr);
@@ -58,6 +59,13 @@ public:
 
     bool hasTimestamp() const { return !m_timestamp.isEmpty(); }
     bool hasGpsFix() const { return m_gpsState == ScootEnums::GpsState::FixEstablished; }
+
+    // True when we have any non-zero coordinate. Decoupled from the gps.state
+    // field, which modem-service flips to "searching" on transient TPV mode
+    // 0/1 reports while leaving the last-known lat/lng in Redis untouched —
+    // so the marker keeps drawing on the map but a strict gpsState check
+    // would say "no GPS" for the duration of every blip.
+    bool hasValidGps() const { return m_latitude != 0.0 || m_longitude != 0.0; }
 
     // True when the GPS daemon reports fix-established AND the timestamp
     // field has been updated within the last 20 seconds (monotonic clock,
@@ -98,6 +106,7 @@ signals:
     void modeChanged();
     void lastTtffSecondsChanged();
     void lastTtffModeChanged();
+    void hasValidGpsChanged();
 
 protected:
     SyncSettings syncSettings() const override;

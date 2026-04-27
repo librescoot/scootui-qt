@@ -1095,8 +1095,5 @@ LatLng NavigationService::currentPosition() const
 bool NavigationService::hasValidGps() const
 {
     if (!m_gps) return false;
-    // Accept any non-zero position — don't require FixEstablished or recent
-    // timestamp, as the GPS daemon may be slow to update state even though
-    // we already have usable coordinates (visible on the map).
-    return m_gps->latitude() != 0 || m_gps->longitude() != 0;
+    return m_gps->hasValidGps();
 }

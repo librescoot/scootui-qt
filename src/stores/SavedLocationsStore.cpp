@@ -63,14 +63,12 @@ void SavedLocationsStore::load()
 
 void SavedLocationsStore::saveCurrentLocation()
 {
-    // Validate GPS — accept any non-zero position even without FixEstablished,
-    // as the GPS daemon may be slow to update state
-    double lat = m_gps->latitude();
-    double lng = m_gps->longitude();
-    if (lat == 0 && lng == 0) {
+    if (!m_gps->hasValidGps()) {
         m_toast->showError(QStringLiteral("No GPS position available"));
         return;
     }
+    double lat = m_gps->latitude();
+    double lng = m_gps->longitude();
 
     if (m_locations.size() >= SavedLocationsService::MaxLocations) {
         m_toast->showError(QStringLiteral("Maximum saved locations reached"));

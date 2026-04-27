@@ -46,8 +46,12 @@ Rectangle {
     // Connectivity
     readonly property bool isOnline: typeof internetStore !== "undefined"
                                       ? internetStore.modemState === 2 : false // ModemState::Connected
+    // hasValidGps: any non-zero coordinate. The gps.state field flaps to
+    // "searching" on transient TPV mode 0/1 while lat/lng stay valid in
+    // Redis — gating the menu on FixEstablished surfaced "Waiting for GPS
+    // fix" mid-navigation when we plainly knew where we were.
     readonly property bool hasGps: typeof gpsStore !== "undefined"
-                                    ? gpsStore.gpsState === 2 : false // GpsState::FixEstablished
+                                    ? gpsStore.hasValidGps : false
     readonly property double gpsLat: typeof gpsStore !== "undefined" ? gpsStore.latitude : 0
     readonly property double gpsLng: typeof gpsStore !== "undefined" ? gpsStore.longitude : 0
 
