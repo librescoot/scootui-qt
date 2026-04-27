@@ -30,6 +30,7 @@ NavigationAvailabilityService::NavigationAvailabilityService(SettingsStore *sett
 
 void NavigationAvailabilityService::recheck()
 {
+    if (m_overrideActive) return;
     // External trigger (settings change, modem up): reset backoff so we
     // don't sit on a 30s retry when the environment just changed.
     m_retryTimer.stop();
@@ -38,8 +39,33 @@ void NavigationAvailabilityService::recheck()
     checkRouting();
 }
 
+void NavigationAvailabilityService::setOverride(bool maps, bool routing)
+{
+    m_overrideActive = true;
+    m_retryTimer.stop();
+    bool changed = false;
+    if (maps != m_mapsAvailable) {
+        m_mapsAvailable = maps;
+        changed = true;
+    }
+    if (routing != m_routingAvailable) {
+        m_routingAvailable = routing;
+        changed = true;
+    }
+    publishToRedis();
+    if (changed) emit availabilityChanged();
+}
+
+void NavigationAvailabilityService::clearOverride()
+{
+    if (!m_overrideActive) return;
+    m_overrideActive = false;
+    recheck();
+}
+
 void NavigationAvailabilityService::checkMaps()
 {
+    if (m_overrideActive) return;
     // Check local directory first (desktop/simulator), then device path
     bool available = QFile::exists(QStringLiteral("map.mbtiles"))
                   || QFile::exists(QStringLiteral("/data/maps/map.mbtiles"));
@@ -52,6 +78,7 @@ void NavigationAvailabilityService::checkMaps()
 
 void NavigationAvailabilityService::checkRouting()
 {
+    if (m_overrideActive) return;
     QString url = m_settings->valhallaUrl();
     if (url.isEmpty())
         url = QLatin1String(AppConfig::valhallaOnDeviceEndpoint);

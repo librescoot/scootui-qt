@@ -22,6 +22,8 @@ public:
     bool routingAvailable() const { return m_routingAvailable; }
 
     Q_INVOKABLE void recheck();
+    Q_INVOKABLE void setOverride(bool maps, bool routing);
+    Q_INVOKABLE void clearOverride();
 
 signals:
     void availabilityChanged();
@@ -40,4 +42,5 @@ private:
     int m_retryDelayMs = 1000;
     bool m_mapsAvailable = false;
     bool m_routingAvailable = false;
+    bool m_overrideActive = false;
 };

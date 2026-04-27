@@ -13,10 +13,106 @@ ApplicationWindow {
     x: Screen.width / 2 - (480 + width + 20) / 2 + 480 + 20
     y: Math.max(0, Screen.height / 2 - height / 2)
 
-    ScrollView {
-        id: scroll
+    ColumnLayout {
         anchors.fill: parent
         anchors.margins: 8
+        spacing: 8
+
+        // Pinned header — Screenshot, Screen picker, Theme/Lang stay visible
+        // regardless of scroll position so a screenshot is always one click away.
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 6
+            SimButton {
+                text: "Screenshot"
+                color: "#607D8B"
+                onClicked: simulator.takeScreenshot()
+            }
+            Item { Layout.fillWidth: true }
+            Text {
+                text: "ScootUI Simulator"
+                color: "#888"
+                font.pixelSize: 11
+            }
+        }
+
+        SectionHeader { text: "Screen" }
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 4
+            ButtonGroup { id: screenGroup; exclusive: true }
+            SimButton {
+                text: "Cluster"; small: true
+                ButtonGroup.group: screenGroup
+                checkable: true; checked: true
+                onClicked: screenStore.setScreen(0)
+            }
+            SimButton {
+                text: "Map"; small: true
+                ButtonGroup.group: screenGroup
+                checkable: true
+                onClicked: screenStore.setScreen(1)
+            }
+            SimButton {
+                text: "Debug"; small: true
+                ButtonGroup.group: screenGroup
+                checkable: true
+                onClicked: screenStore.setScreen(3)
+            }
+            SimButton {
+                text: "About"; small: true
+                ButtonGroup.group: screenGroup
+                checkable: true
+                onClicked: screenStore.setScreen(4)
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 4
+            SimLabel { text: "Theme" }
+            ButtonGroup { id: themeGroup; exclusive: true }
+            SimButton {
+                text: "Dark"; small: true
+                ButtonGroup.group: themeGroup
+                checkable: true; checked: true
+                onClicked: simulator.setTheme("dark")
+            }
+            SimButton {
+                text: "Light"; small: true
+                ButtonGroup.group: themeGroup
+                checkable: true
+                onClicked: simulator.setTheme("light")
+            }
+            SimButton {
+                text: "Auto"; small: true
+                ButtonGroup.group: themeGroup
+                checkable: true
+                onClicked: simulator.setTheme("auto")
+            }
+            Item { Layout.preferredWidth: 8 }
+            SimLabel { text: "Lang" }
+            ButtonGroup { id: langGroup; exclusive: true }
+            SimButton {
+                text: "EN"; small: true
+                ButtonGroup.group: langGroup
+                checkable: true; checked: true
+                onClicked: simulator.setLanguage("en")
+            }
+            SimButton {
+                text: "DE"; small: true
+                ButtonGroup.group: langGroup
+                checkable: true
+                onClicked: simulator.setLanguage("de")
+            }
+        }
+
+        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: "#444" }
+
+    ScrollView {
+        id: scroll
+        Layout.fillWidth: true
+        Layout.fillHeight: true
         contentWidth: availableWidth
         clip: true
 
@@ -24,93 +120,6 @@ ApplicationWindow {
             id: rootLayout
             width: scroll.availableWidth
             spacing: 8
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 6
-                SimButton {
-                    text: "Screenshot"
-                    color: "#607D8B"
-                    onClicked: simulator.takeScreenshot()
-                }
-                Item { Layout.fillWidth: true }
-                Text {
-                    text: "ScootUI Simulator"
-                    color: "#888"
-                    font.pixelSize: 11
-                }
-            }
-
-            SectionHeader { text: "Screen" }
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 4
-                ButtonGroup { id: screenGroup; exclusive: true }
-                SimButton {
-                    text: "Cluster"; small: true
-                    ButtonGroup.group: screenGroup
-                    checkable: true; checked: true
-                    onClicked: screenStore.setScreen(0)
-                }
-                SimButton {
-                    text: "Map"; small: true
-                    ButtonGroup.group: screenGroup
-                    checkable: true
-                    onClicked: screenStore.setScreen(1)
-                }
-                SimButton {
-                    text: "Debug"; small: true
-                    ButtonGroup.group: screenGroup
-                    checkable: true
-                    onClicked: screenStore.setScreen(3)
-                }
-                SimButton {
-                    text: "About"; small: true
-                    ButtonGroup.group: screenGroup
-                    checkable: true
-                    onClicked: screenStore.setScreen(4)
-                }
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 4
-                SimLabel { text: "Theme" }
-                ButtonGroup { id: themeGroup; exclusive: true }
-                SimButton {
-                    text: "Dark"; small: true
-                    ButtonGroup.group: themeGroup
-                    checkable: true; checked: true
-                    onClicked: simulator.setTheme("dark")
-                }
-                SimButton {
-                    text: "Light"; small: true
-                    ButtonGroup.group: themeGroup
-                    checkable: true
-                    onClicked: simulator.setTheme("light")
-                }
-                SimButton {
-                    text: "Auto"; small: true
-                    ButtonGroup.group: themeGroup
-                    checkable: true
-                    onClicked: simulator.setTheme("auto")
-                }
-                Item { Layout.preferredWidth: 8 }
-                SimLabel { text: "Lang" }
-                ButtonGroup { id: langGroup; exclusive: true }
-                SimButton {
-                    text: "EN"; small: true
-                    ButtonGroup.group: langGroup
-                    checkable: true; checked: true
-                    onClicked: simulator.setLanguage("en")
-                }
-                SimButton {
-                    text: "DE"; small: true
-                    ButtonGroup.group: langGroup
-                    checkable: true
-                    onClicked: simulator.setLanguage("de")
-                }
-            }
 
             SectionHeader { text: "Auto-Drive" }
             RowLayout {
@@ -152,6 +161,42 @@ ApplicationWindow {
                 color: "#4caf50"
                 font.pixelSize: 11
                 horizontalAlignment: Text.AlignHCenter
+            }
+
+            SectionHeader { text: "Nav availability" }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+                SimLabel { text: "Maps" }
+                Switch {
+                    id: mapsAvailSwitch
+                    checked: typeof navAvailabilityService !== "undefined"
+                             && navAvailabilityService.localDisplayMapsAvailable
+                    palette.highlight: "#2196F3"
+                    onToggled: {
+                        if (typeof navAvailabilityService !== "undefined")
+                            navAvailabilityService.setOverride(checked, routingAvailSwitch.checked)
+                    }
+                }
+                SimLabel { text: "Routing" }
+                Switch {
+                    id: routingAvailSwitch
+                    checked: typeof navAvailabilityService !== "undefined"
+                             && navAvailabilityService.routingAvailable
+                    palette.highlight: "#2196F3"
+                    onToggled: {
+                        if (typeof navAvailabilityService !== "undefined")
+                            navAvailabilityService.setOverride(mapsAvailSwitch.checked, checked)
+                    }
+                }
+                Item { Layout.fillWidth: true }
+                SimButton {
+                    text: "Auto"; small: true; color: "#666"
+                    onClicked: {
+                        if (typeof navAvailabilityService !== "undefined")
+                            navAvailabilityService.clearOverride()
+                    }
+                }
             }
 
             SectionHeader { text: "Routes" }
@@ -342,9 +387,38 @@ ApplicationWindow {
                         onClicked: {
                             if (typeof tripStore !== "undefined")
                                 tripStore.clearOverride()
+                            freezeTripSwitch.checked = false
                         }
                     }
                 }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+                SimLabel { text: "Freeze" }
+                Switch {
+                    id: freezeTripSwitch
+                    checked: false
+                    palette.highlight: "#2196F3"
+                    onToggled: {
+                        if (typeof tripStore === "undefined") return
+                        if (checked) {
+                            tripStore.setOverride(tripStore.distance,
+                                                  tripStore.duration,
+                                                  tripStore.averageSpeed)
+                        } else {
+                            tripStore.clearOverride()
+                        }
+                    }
+                }
+                Text {
+                    text: freezeTripSwitch.checked ? "Trip timer pinned"
+                                                   : "Trip timer running"
+                    color: freezeTripSwitch.checked ? "#2196F3" : "#888"
+                    font.pixelSize: 11
+                }
+                Item { Layout.fillWidth: true }
             }
 
             RowLayout {
@@ -1558,23 +1632,6 @@ ApplicationWindow {
                             Component.onCompleted: simulator.setSystemField("nrf-fw-version", text)
                         }
                     }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 6
-                        SimLabel { text: "ECU" }
-                        TextField {
-                            Layout.fillWidth: true
-                            // Bosch ECU reports an 8-char uppercase hex
-                            // (uint32 from CAN). Real value not currently
-                            // surfaced on deep-blue; placeholder until we
-                            // can read one off a live ECU.
-                            text: "DEADBEEF"
-                            color: "white"; font.pixelSize: 11
-                            background: Rectangle { color: "#333"; radius: 3 }
-                            onEditingFinished: simulator.setEcuVersion(text)
-                            Component.onCompleted: simulator.setEcuVersion(text)
-                        }
-                    }
                 }
             }
 
@@ -1649,6 +1706,7 @@ ApplicationWindow {
 
             Item { Layout.preferredHeight: 16 }
         }
+    }
     }
 
     component SectionHeader: Rectangle {
