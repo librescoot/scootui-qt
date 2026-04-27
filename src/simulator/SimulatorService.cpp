@@ -748,6 +748,10 @@ void SimulatorService::loadPreset(const QString &name)
         loadPreset(QStringLiteral("parked"));
         setVehicleState(QStringLiteral("ready-to-drive"));
         setKickstand(QStringLiteral("up"));
+        setMainPower(true);
+        setMotorPower(true);
+        setKers(true);
+        setThrottle(true);
     } else if (name == QLatin1String("driving")) {
         loadPreset(QStringLiteral("ready"));
         startAutoDrive(25);
