@@ -298,9 +298,10 @@ Row {
         }
     }
 
-    // Ambient temperature (leftmost in RTL = last item). Always shows the
-    // value when visible; cold-state glyphs (frost, frost+warning) appear at
-    // <10 °C and <5 °C respectively. Visibility gated by show-temperature
+    // Ambient temperature (leftmost in RTL = last item). Cold-state glyphs
+    // sit on the left of the digits: snowflake when < 10 °C, snowflake +
+    // warning when < 5 °C. Hysteresis lives in ScooterStore so a jittering
+    // sensor can't flip-flop the row. Visibility gated by show-temperature
     // setting: always | warning (frost only) | never.
     Row {
         id: tempRow
@@ -317,30 +318,30 @@ Row {
         visible: hasTemp && tempMode !== "never"
                  && (tempMode === "always" || isFrost)
 
-        Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: tempRow.hasTemp ? Math.round(tempRow.temp) + " °" : ""
-            font.pixelSize: themeStore.fontBody
-            font.letterSpacing: -1.1
-            font.features: {"tnum": 1}
-            color: statusIndicators.iconColor
-        }
-
-        Text {
-            anchors.verticalCenter: parent.verticalCenter
+        // Cold glyph: plain snowflake in the cold band, severe_cold
+        // (snowflake + !) once we drop below the warning threshold.
+        Item {
             visible: tempRow.isFrost
-            text: MaterialIcon.iconAcUnit
-            font.family: "Material Icons"
-            font.pixelSize: 24
-            color: statusIndicators.iconColor
+            width: visible ? 24 : 0
+            height: 24
+            anchors.verticalCenter: parent.verticalCenter
+            Text {
+                anchors.centerIn: parent
+                text: tempRow.isFrostWarning ? MaterialIcon.iconSevereCold
+                                             : MaterialIcon.iconSnowflake
+                font.family: "Material Icons"
+                font.pixelSize: 24
+                color: statusIndicators.iconColor
+            }
         }
 
         Text {
             anchors.verticalCenter: parent.verticalCenter
-            visible: tempRow.isFrostWarning
-            text: MaterialIcon.iconWarningAmber
-            font.family: "Material Icons"
-            font.pixelSize: 24
+            // U+200A HAIR SPACE between number and degree sign.
+            text: tempRow.hasTemp ? Math.round(tempRow.temp) + " °" : ""
+            font.pixelSize: 14
+            font.letterSpacing: -0.5
+            font.features: {"tnum": 1}
             color: statusIndicators.iconColor
         }
     }

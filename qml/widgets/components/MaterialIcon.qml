@@ -53,7 +53,8 @@ QtObject {
     // Status / Info
     readonly property string iconErrorOutline:    "\ue238"
     readonly property string iconWarningAmber:    "\ue6cc"
-    readonly property string iconAcUnit:          "\ue037"
+    readonly property string iconSnowflake:       "\ue037" // legacy "ac_unit" \u2014 same glyph
+    readonly property string iconSevereCold:      String.fromCodePoint(0xf07c2)
     readonly property string iconSpeed:           "\ue5e0"
     readonly property string iconTimer:           "\ue662"
     readonly property string iconFlag:            "\ue28e"

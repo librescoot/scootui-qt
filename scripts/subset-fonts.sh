@@ -63,9 +63,10 @@ MATERIAL_UNICODES="0020,$(echo "${MATERIAL_CODEPOINTS}" | paste -s -d , -)"
 #   - Latin-1 Supplement: 00A0-00FF
 #       umlauts (ä ö ü ß + caps), common symbols (° © ± ·, etc.)
 #   - Curated typography glyphs used in translations and widgets:
+#       200A hair space ( ) — separator between number and ° in temp display
 #       2013 en-dash (–), 2014 em-dash (—)
-#       2018/2019 curly single quotes (‘ ’)
-#       201C/201D curly double quotes (“ ”)
+#       2018/2019 curly single quotes (‘ ‘)
+#       201C/201D curly double quotes (“ “)
 #       201E German opening double quote („)
 #       2022 bullet (•)
 #       2026 horizontal ellipsis (…)
@@ -82,7 +83,7 @@ MATERIAL_UNICODES="0020,$(echo "${MATERIAL_CODEPOINTS}" | paste -s -d , -)"
 #
 # If map-data place names in Polish/Czech/Hungarian appear on-screen we'll
 # need to add Latin Extended-A (0100-017F, adds ~5 KB/variant).
-ROBOTO_UNICODES="0020-007E,00A0-00FF,2013,2014,2018,2019,201C,201D,201E,2022,2026,203A,2264"
+ROBOTO_UNICODES="0020-007E,00A0-00FF,200A,2013,2014,2018,2019,201C,201D,201E,2022,2026,203A,2264"
 
 echo "=== scootui-qt font subsetter ==="
 echo "MaterialIcon codepoints (${MATERIAL_COUNT} used):"
