@@ -231,8 +231,8 @@ private:
     static constexpr double VehicleOffsetPx = 120.0;
 
     // Trajectory-aware segment matching
-    static constexpr int MatchWindowBack = 10;
-    static constexpr int MatchWindowFwd = 10;
+    static constexpr int MatchWindowBack = 30;
+    static constexpr int MatchWindowFwd = 100;
     static constexpr double MatchAcceptanceDistance = 120.0;   // m — beyond this, don't even try
     static constexpr double MinSpeedForTrajectoryKmh = 3.0;    // below this, direction is unreliable
     static constexpr double ReverseDirectionPenalty = 50.0;    // m-equivalent for > 90° mismatch
