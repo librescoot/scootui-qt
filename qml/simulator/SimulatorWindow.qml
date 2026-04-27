@@ -1525,10 +1525,11 @@ ApplicationWindow {
                         SimLabel { text: "MDB" }
                         TextField {
                             Layout.fillWidth: true
-                            text: "v1.0.0-sim"
+                            text: "stable-v1.0.0"
                             color: "white"; font.pixelSize: 11
                             background: Rectangle { color: "#333"; radius: 3 }
                             onEditingFinished: simulator.setMdbVersion(text)
+                            Component.onCompleted: simulator.setMdbVersion(text)
                         }
                     }
                     RowLayout {
@@ -1537,10 +1538,11 @@ ApplicationWindow {
                         SimLabel { text: "DBC" }
                         TextField {
                             Layout.fillWidth: true
-                            text: "v1.0.0-sim"
+                            text: "stable-v1.0.0"
                             color: "white"; font.pixelSize: 11
                             background: Rectangle { color: "#333"; radius: 3 }
                             onEditingFinished: simulator.setDbcVersion(text)
+                            Component.onCompleted: simulator.setDbcVersion(text)
                         }
                     }
                     RowLayout {
@@ -1549,10 +1551,28 @@ ApplicationWindow {
                         SimLabel { text: "nRF" }
                         TextField {
                             Layout.fillWidth: true
-                            text: "v0.5.0-sim"
+                            text: "v2.3.0-ls"
                             color: "white"; font.pixelSize: 11
                             background: Rectangle { color: "#333"; radius: 3 }
                             onEditingFinished: simulator.setSystemField("nrf-fw-version", text)
+                            Component.onCompleted: simulator.setSystemField("nrf-fw-version", text)
+                        }
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        SimLabel { text: "ECU" }
+                        TextField {
+                            Layout.fillWidth: true
+                            // Bosch ECU reports an 8-char uppercase hex
+                            // (uint32 from CAN). Real value not currently
+                            // surfaced on deep-blue; placeholder until we
+                            // can read one off a live ECU.
+                            text: "DEADBEEF"
+                            color: "white"; font.pixelSize: 11
+                            background: Rectangle { color: "#333"; radius: 3 }
+                            onEditingFinished: simulator.setEcuVersion(text)
+                            Component.onCompleted: simulator.setEcuVersion(text)
                         }
                     }
                 }

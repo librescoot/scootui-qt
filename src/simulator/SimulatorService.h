@@ -151,6 +151,7 @@ public:
     Q_INVOKABLE void setSystemField(const QString &field, const QString &value);
     Q_INVOKABLE void setMdbVersion(const QString &version);
     Q_INVOKABLE void setDbcVersion(const QString &version);
+    Q_INVOKABLE void setEcuVersion(const QString &version);
 
     // Generic raw injection (channel + field + value)
     Q_INVOKABLE void setRaw(const QString &channel, const QString &field, const QString &value);

@@ -637,6 +637,11 @@ void SimulatorService::setDbcVersion(const QString &version)
     m_repo->set(QStringLiteral("version:dbc"), QStringLiteral("version"), version);
 }
 
+void SimulatorService::setEcuVersion(const QString &version)
+{
+    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("fw-version"), version);
+}
+
 void SimulatorService::setRaw(const QString &channel, const QString &field, const QString &value)
 {
     if (channel.isEmpty() || field.isEmpty()) return;
