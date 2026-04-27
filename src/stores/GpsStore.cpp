@@ -38,6 +38,8 @@ SyncSettings GpsStore::syncSettings() const
             {QStringLiteral("mode"), QStringLiteral("mode")},
             {QStringLiteral("last_ttff_seconds"), QStringLiteral("last_ttff_seconds")},
             {QStringLiteral("last_ttff_mode"), QStringLiteral("last_ttff_mode")},
+            {QStringLiteral("active"), QStringLiteral("active")},
+            {QStringLiteral("connected"), QStringLiteral("connected")},
         },
         {}, {}
     };
@@ -113,5 +115,11 @@ void GpsStore::applyFieldUpdate(const QString &variable, const QString &value)
         if (v != m_lastTtffSeconds) { m_lastTtffSeconds = v; emit lastTtffSecondsChanged(); }
     } else if (variable == QLatin1String("last_ttff_mode")) {
         if (value != m_lastTtffMode) { m_lastTtffMode = value; emit lastTtffModeChanged(); }
+    } else if (variable == QLatin1String("active")) {
+        bool v = (value.compare(QLatin1String("true"), Qt::CaseInsensitive) == 0);
+        if (v != m_active) { m_active = v; emit activeChanged(); }
+    } else if (variable == QLatin1String("connected")) {
+        bool v = (value.compare(QLatin1String("true"), Qt::CaseInsensitive) == 0);
+        if (v != m_connected) { m_connected = v; emit connectedChanged(); }
     }
 }

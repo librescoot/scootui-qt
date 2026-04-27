@@ -31,6 +31,8 @@ class GpsStore : public SyncableStore
     Q_PROPERTY(bool hasRecentFix READ hasRecentFix NOTIFY timestampChanged)
     Q_PROPERTY(bool hasTimestamp READ hasTimestamp NOTIFY timestampChanged)
     Q_PROPERTY(bool hasValidGps READ hasValidGps NOTIFY hasValidGpsChanged)
+    Q_PROPERTY(bool active READ active NOTIFY activeChanged)
+    Q_PROPERTY(bool connected READ connected NOTIFY connectedChanged)
 
 public:
     explicit GpsStore(MdbRepository *repo, QObject *parent = nullptr);
@@ -56,6 +58,8 @@ public:
     QString updated() const { return m_updated; }
     QString timestamp() const { return m_timestamp; }
     int gpsState() const { return static_cast<int>(m_gpsState); }
+    bool active() const { return m_active; }
+    bool connected() const { return m_connected; }
 
     bool hasTimestamp() const { return !m_timestamp.isEmpty(); }
     bool hasGpsFix() const { return m_gpsState == ScootEnums::GpsState::FixEstablished; }
@@ -107,6 +111,8 @@ signals:
     void lastTtffSecondsChanged();
     void lastTtffModeChanged();
     void hasValidGpsChanged();
+    void activeChanged();
+    void connectedChanged();
 
 protected:
     SyncSettings syncSettings() const override;
@@ -135,4 +141,6 @@ private:
     QString m_timestamp;
     QElapsedTimer m_timestampAge;
     ScootEnums::GpsState m_gpsState = ScootEnums::GpsState::Off;
+    bool m_active = false;
+    bool m_connected = false;
 };

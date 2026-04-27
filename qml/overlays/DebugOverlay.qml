@@ -224,7 +224,8 @@ Item {
     }
 
     // =====================================================================
-    // 4. GPS — below blinker/brake panels
+    // 4. GPS — below blinker/brake panels. Mirrors the full Redis `gps` hash
+    // so debugging covers everything modem-service publishes.
     // =====================================================================
     Rectangle {
         x: 10; y: 100
@@ -237,37 +238,61 @@ Item {
             id: gpsCol
             anchors.centerIn: parent
             spacing: 1
-            Row {
-                spacing: 0
-                Text { text: "GPS: "; font.pixelSize: 10; color: "#9E9E9E" }
-                Text {
-                    text: enumName(gs("gpsState"), gpsStateNames)
-                    font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
-                }
+
+            Text {
+                text: "GPS: " + enumName(gs("gpsState"), gpsStateNames) +
+                      "  FIX: " + (gs("fix") || "—") +
+                      "  MODE: " + (gs("mode") || "—")
+                font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
             }
-            Row {
-                spacing: 0
-                Text { text: "LAT: "; font.pixelSize: 10; color: "#9E9E9E" }
-                Text {
-                    text: typeof gpsStore !== "undefined" ? gpsStore.latitude.toFixed(5) : "?"
-                    font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
-                }
+            Text {
+                text: "LAT: " + Number(gs("latitude")).toFixed(5) +
+                      "  LON: " + Number(gs("longitude")).toFixed(5)
+                font.pixelSize: 10; color: debugOverlay.textColor
             }
-            Row {
-                spacing: 0
-                Text { text: "LON: "; font.pixelSize: 10; color: "#9E9E9E" }
-                Text {
-                    text: typeof gpsStore !== "undefined" ? gpsStore.longitude.toFixed(5) : "?"
-                    font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
-                }
+            Text {
+                text: "ALT: " + Number(gs("altitude")).toFixed(1) + "m" +
+                      "  CRS: " + Number(gs("course")).toFixed(0) + "°" +
+                      "  SPD: " + Number(gs("speed")).toFixed(1) + " km/h"
+                font.pixelSize: 10; color: debugOverlay.textColor
             }
-            Row {
-                spacing: 0
-                Text { text: "SPD: "; font.pixelSize: 10; color: "#9E9E9E" }
-                Text {
-                    text: (typeof gpsStore !== "undefined" ? gpsStore.speed.toFixed(1) : "?") + " km/h"
-                    font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
-                }
+            Text {
+                text: "SATS: " + gs("satellitesUsed") + "/" + gs("satellitesVisible") +
+                      "  SNR: " + Number(gs("snr")).toFixed(1) + " dB"
+                font.pixelSize: 10; color: debugOverlay.textColor
+            }
+            Text {
+                text: "HDOP: " + Number(gs("hdop")).toFixed(1) +
+                      "  VDOP: " + Number(gs("vdop")).toFixed(1) +
+                      "  PDOP: " + Number(gs("pdop")).toFixed(1)
+                font.pixelSize: 10; color: debugOverlay.textColor
+            }
+            Text {
+                text: "EPH: " + Number(gs("eph")).toFixed(1) + "m" +
+                      "  EPT: " + Number(gs("ept")).toFixed(3) + "s" +
+                      "  EPS: " + Number(gs("eps")).toFixed(1)
+                font.pixelSize: 10; color: debugOverlay.textColor
+            }
+            Text {
+                text: "TTFF: " + Number(gs("lastTtffSeconds")).toFixed(1) + "s" +
+                      " (" + (gs("lastTtffMode") || "—") + ")"
+                font.pixelSize: 10; color: debugOverlay.textColor
+            }
+            Text {
+                text: "TS:  " + (gs("timestamp") || "—")
+                font.pixelSize: 9; color: "#9E9E9E"
+            }
+            Text {
+                text: "UPD: " + (gs("updated") || "—")
+                font.pixelSize: 9; color: "#9E9E9E"
+            }
+            Text {
+                text: "flags:" +
+                      " valid:" + (gs("hasValidGps") ? "Y" : "N") +
+                      " recent:" + (gs("hasRecentFix") ? "Y" : "N") +
+                      " act:" + (gs("active") ? "Y" : "N") +
+                      " conn:" + (gs("connected") ? "Y" : "N")
+                font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
             }
         }
     }
@@ -328,7 +353,7 @@ Item {
     // 6. Dashboard Info — left column, below GPS
     // =====================================================================
     Rectangle {
-        x: 10; y: 220
+        x: 10; y: 250
         width: dashCol.width + 20
         height: dashCol.height + 10
         radius: 4; color: panelBg
@@ -353,7 +378,7 @@ Item {
     // 7. Engine — left column, below dashboard info
     // =====================================================================
     Rectangle {
-        x: 10; y: 260
+        x: 10; y: 290
         width: engCol.width + 20
         height: engCol.height + 10
         radius: 4; color: panelBg
@@ -402,12 +427,12 @@ Item {
     }
 
     // =====================================================================
-    // 8. Motor details — top: 260, right: 10
+    // 8. Motor details — right side, alongside engine
     // =====================================================================
     Rectangle {
         anchors.right: parent.right
         anchors.rightMargin: 10
-        y: 260
+        y: 290
         width: motorCol.width + 20
         height: motorCol.height + 10
         radius: 4; color: panelBg
