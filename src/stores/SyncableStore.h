@@ -39,8 +39,8 @@ public:
     explicit SyncableStore(MdbRepository *repo, QObject *parent = nullptr);
     ~SyncableStore() override;
 
-    void start();
-    void stop();
+    virtual void start();
+    virtual void stop();
     void refreshAllFields();
 
 protected:
