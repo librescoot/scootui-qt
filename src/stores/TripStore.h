@@ -43,8 +43,8 @@ private:
     QTimer *m_tickTimer = nullptr;
     QElapsedTimer m_elapsed;
     bool m_tracking = false;
-    bool m_resetPending = true;
-    qint64 m_accumulatedMs = 0;
+    bool m_resetPending = true;  // reset on first ReadyToDrive after boot/lock
+    qint64 m_accumulatedMs = 0;  // ms from completed active periods this session
     double m_distance = 0;
     int m_duration = 0;
     double m_averageSpeed = 0;

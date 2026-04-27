@@ -78,6 +78,7 @@ void TripStore::onTick()
 
     double speed = m_engine->speed();
 
+    // Distance: speed (km/h) * 1 second = speed/3600 km
     m_distance += speed / 3600.0;
     emit distanceChanged();
 
