@@ -150,42 +150,22 @@ Rectangle {
                 width: flickable.width
                 spacing: 0
 
-                Item { width: 1; height: 40 }
-
-                // Logo + logotype
-                Row {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    spacing: 16
+                // Header is always black, even in light mode, so the logo's
+                // baked-in flame and white wordmark stay readable.
+                Rectangle {
+                    width: parent.width
+                    height: 130
+                    color: "black"
 
                     Image {
-                        source: "qrc:/ScootUI/assets/icons/librescoot-logo.png"
-                        width: 64
-                        height: 64
-                        fillMode: Image.PreserveAspectFit
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-
-                    Column {
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 4
-
-                        TintedImage {
-                            source: "qrc:/ScootUI/assets/icons/librescoot-logotype.svg"
-                            tintColor: aboutScreen.textPrimary
-                            width: 180
-                            height: 36
-                        }
-
-                        Text {
-                            text: "sqtui"
-                            color: aboutScreen.textSecondary
-                            font.pixelSize: themeStore.fontBody
-                            font.letterSpacing: 1.0
-                        }
+                        anchors.centerIn: parent
+                        source: "qrc:/ScootUI/assets/icons/librescoot-logo-small.png"
+                        width: 240
+                        height: 70
                     }
                 }
 
-                Item { width: 1; height: 8 }
+                Item { width: 1; height: 16 }
 
                 // FOSS description
                 Text {
