@@ -15,6 +15,7 @@ class SimulatorService : public QObject
     Q_PROPERTY(double autoDriveSpeed READ autoDriveSpeed NOTIFY autoDriveSpeedChanged)
     Q_PROPERTY(bool simulatorMode READ simulatorMode CONSTANT)
     Q_PROPERTY(bool gpsFrozen READ gpsFrozen WRITE setGpsFrozen NOTIFY gpsFrozenChanged)
+    Q_PROPERTY(QString clockOverride READ clockOverride WRITE setClockOverride NOTIFY clockOverrideChanged)
 
 public:
     explicit SimulatorService(MdbRepository *repo, NavigationService *nav, QObject *parent = nullptr);
@@ -24,6 +25,8 @@ public:
     bool simulatorMode() const { return true; }
     bool gpsFrozen() const { return m_gpsFrozen; }
     void setGpsFrozen(bool frozen) { if (frozen != m_gpsFrozen) { m_gpsFrozen = frozen; emit gpsFrozenChanged(); } }
+    QString clockOverride() const { return m_clockOverride; }
+    void setClockOverride(const QString &v) { if (v != m_clockOverride) { m_clockOverride = v; emit clockOverrideChanged(); } }
 
     // Vehicle
     Q_INVOKABLE void setVehicleState(const QString &state);
@@ -114,6 +117,7 @@ signals:
     void autoDriveActiveChanged();
     void autoDriveSpeedChanged();
     void gpsFrozenChanged();
+    void clockOverrideChanged();
 
 private:
     void autoDriveTick();
@@ -145,7 +149,8 @@ private:
     double m_batteryCharge0 = 80;
     double m_batteryCharge1 = 80;
     double m_odometer = 1234.5;
-    int m_autoStandbySeconds = 900;       // last value pushed via setAutoStandbySetting
-    bool m_autoStandbyActive = false;     // true while a deadline is armed
+    int m_autoStandbySeconds = 900;
+    bool m_autoStandbyActive = false;
     bool m_gpsFrozen = false;
+    QString m_clockOverride;
 };

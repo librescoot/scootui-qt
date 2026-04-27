@@ -50,6 +50,9 @@ Rectangle {
                 font.weight: Font.Medium
                 color: themeStore.textColor
 
+                readonly property string overrideStr:
+                    typeof simulator !== "undefined" ? simulator.clockOverride : ""
+
                 property string timeStr: ""
                 Timer {
                     interval: 1000
@@ -63,7 +66,7 @@ Rectangle {
                         clockText.timeStr = h + ":" + m
                     }
                 }
-                text: timeStr
+                text: overrideStr.length > 0 ? overrideStr : timeStr
             }
         }
 
