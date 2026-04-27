@@ -758,16 +758,17 @@ void SimulatorService::loadPreset(const QString &name)
         loadPreset(QStringLiteral("parked"));
         setBatteryCharge(0, 8);
         setBatteryCharge(1, 5);
-    } else if (name == QLatin1String("charging")) {
+    } else if (name == QLatin1String("updating")) {
         loadPreset(QStringLiteral("parked"));
         setVehicleState(QStringLiteral("stand-by"));
         setMotorPower(false);
-        setBatteryState(0, QStringLiteral("active"));
-        setBatteryCurrent(0, 3500);
-        setBatteryCharge(0, 45);
-        setBatteryState(1, QStringLiteral("active"));
-        setBatteryCurrent(1, 3500);
-        setBatteryCharge(1, 42);
+        setOtaUpdateMethod(QStringLiteral("mdb"), QStringLiteral("delta"));
+        setOtaUpdateMethod(QStringLiteral("dbc"), QStringLiteral("delta"));
+        setOtaUpdateVersion(QStringLiteral("mdb"), QStringLiteral("nightly-20260427t170000"));
+        setOtaUpdateVersion(QStringLiteral("dbc"), QStringLiteral("nightly-20260427t170000"));
+        setOtaStatus(QStringLiteral("mdb"), QStringLiteral("installing"));
+        setOtaInstallProgress(QStringLiteral("mdb"), 60);
+        setOtaStatus(QStringLiteral("dbc"), QStringLiteral("preparing"));
     } else if (name == QLatin1String("no-gps")) {
         loadPreset(QStringLiteral("parked"));
         setGpsState(QStringLiteral("searching"));

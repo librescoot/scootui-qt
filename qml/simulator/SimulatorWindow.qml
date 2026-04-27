@@ -15,31 +15,23 @@ ApplicationWindow {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 8
-        spacing: 8
+        anchors.margins: 6
+        spacing: 4
 
-        // Pinned header — Screenshot, Screen picker, Theme/Lang stay visible
-        // regardless of scroll position so a screenshot is always one click away.
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 6
-            SimButton {
-                text: "Screenshot"
-                color: "#607D8B"
-                onClicked: simulator.takeScreenshot()
-            }
-            Item { Layout.fillWidth: true }
-            Text {
-                text: "ScootUI Simulator"
-                color: "#888"
-                font.pixelSize: 11
-            }
-        }
-
-        SectionHeader { text: "Screen" }
+        // Pinned header — Screenshot + screen / theme / lang pickers always
+        // in reach.
         RowLayout {
             Layout.fillWidth: true
             spacing: 4
+            SimButton {
+                text: "📸"
+                small: true
+                color: "#607D8B"
+                Layout.minimumWidth: 28
+                onClicked: simulator.takeScreenshot()
+            }
+            Item { Layout.preferredWidth: 4 }
+
             ButtonGroup { id: screenGroup; exclusive: true }
             SimButton {
                 text: "Cluster"; small: true
@@ -54,23 +46,14 @@ ApplicationWindow {
                 onClicked: screenStore.setScreen(1)
             }
             SimButton {
-                text: "Debug"; small: true
-                ButtonGroup.group: screenGroup
-                checkable: true
-                onClicked: screenStore.setScreen(3)
-            }
-            SimButton {
                 text: "About"; small: true
                 ButtonGroup.group: screenGroup
                 checkable: true
                 onClicked: screenStore.setScreen(4)
             }
-        }
 
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 4
-            SimLabel { text: "Theme" }
+            Item { Layout.fillWidth: true }
+
             ButtonGroup { id: themeGroup; exclusive: true }
             SimButton {
                 text: "Dark"; small: true
@@ -90,8 +73,9 @@ ApplicationWindow {
                 checkable: true
                 onClicked: simulator.setTheme("auto")
             }
-            Item { Layout.preferredWidth: 8 }
-            SimLabel { text: "Lang" }
+
+            Item { Layout.preferredWidth: 4 }
+
             ButtonGroup { id: langGroup; exclusive: true }
             SimButton {
                 text: "EN"; small: true
@@ -119,7 +103,7 @@ ApplicationWindow {
         ColumnLayout {
             id: rootLayout
             width: scroll.availableWidth
-            spacing: 8
+            spacing: 4
 
             SectionHeader { text: "Auto-Drive" }
             RowLayout {
@@ -205,38 +189,14 @@ ApplicationWindow {
                 columns: 2
                 columnSpacing: 4
                 rowSpacing: 4
+                SimButton { text: "Charlottenburg → Moabit"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(1) }
+                SimButton { text: "Mitte → Moabit"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(2) }
+                SimButton { text: "Tempelhof → Friedrichshain"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(3) }
+                SimButton { text: "Short (Richard-Ermisch)"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(4) }
+                SimButton { text: "Bersarinplatz (roundabout)"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(5) }
+                SimButton { text: "Frankfurter Allee (U-turn)"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(6) }
                 SimButton {
-                    text: "Charlottenburg → Moabit"
-                    Layout.fillWidth: true
-                    onClicked: simulator.loadTestRoute(1)
-                }
-                SimButton {
-                    text: "Mitte → Moabit"
-                    Layout.fillWidth: true
-                    onClicked: simulator.loadTestRoute(2)
-                }
-                SimButton {
-                    text: "Tempelhof → Friedrichshain"
-                    Layout.fillWidth: true
-                    onClicked: simulator.loadTestRoute(3)
-                }
-                SimButton {
-                    text: "Short (Richard-Ermisch)"
-                    Layout.fillWidth: true
-                    onClicked: simulator.loadTestRoute(4)
-                }
-                SimButton {
-                    text: "Bersarinplatz (roundabout)"
-                    Layout.fillWidth: true
-                    onClicked: simulator.loadTestRoute(5)
-                }
-                SimButton {
-                    text: "Frankfurter Allee (U-turn)"
-                    Layout.fillWidth: true
-                    onClicked: simulator.loadTestRoute(6)
-                }
-                SimButton {
-                    text: "Clear Route"
+                    text: "Clear Route"; small: true
                     Layout.fillWidth: true
                     Layout.columnSpan: 2
                     color: "#f44336"
@@ -253,153 +213,116 @@ ApplicationWindow {
                 columns: 3
                 columnSpacing: 4
                 rowSpacing: 4
-                SimButton { text: "Parked"; onClicked: simulator.loadPreset("parked") }
-                SimButton { text: "Ready"; onClicked: simulator.loadPreset("ready") }
-                SimButton { text: "Driving"; onClicked: simulator.loadPreset("driving") }
-                SimButton { text: "Fast"; onClicked: simulator.loadPreset("driving-fast") }
-                SimButton { text: "Low Batt"; color: "#ff6b35"; onClicked: simulator.loadPreset("low-battery") }
-                SimButton { text: "Charging"; color: "#4caf50"; onClicked: simulator.loadPreset("charging") }
-                SimButton { text: "No GPS"; onClicked: simulator.loadPreset("no-gps") }
-                SimButton { text: "Offline"; onClicked: simulator.loadPreset("offline") }
-                SimButton { text: "1 Battery"; onClicked: simulator.loadPreset("single-battery") }
+                SimButton { text: "Parked"; small: true; onClicked: simulator.loadPreset("parked") }
+                SimButton { text: "Ready"; small: true; onClicked: simulator.loadPreset("ready") }
+                SimButton { text: "Driving"; small: true; onClicked: simulator.loadPreset("driving") }
+                SimButton { text: "Fast"; small: true; onClicked: simulator.loadPreset("driving-fast") }
+                SimButton { text: "Low Batt"; small: true; color: "#ff6b35"; onClicked: simulator.loadPreset("low-battery") }
+                SimButton { text: "Updating"; small: true; color: "#9c27b0"; onClicked: simulator.loadPreset("updating") }
+                SimButton { text: "No GPS"; small: true; onClicked: simulator.loadPreset("no-gps") }
+                SimButton { text: "Offline"; small: true; onClicked: simulator.loadPreset("offline") }
+                SimButton { text: "1 Battery"; small: true; onClicked: simulator.loadPreset("single-battery") }
             }
 
             SectionHeader { text: "Overrides" }
-            // Order matches the dashboard's display order: clock at top of
-            // screen, trip metrics in the bottom status bar (Duration · Avg ·
-            // Trip · Total).
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 6
-                SimLabel { text: "Clock" }
-                TextField {
-                    id: clockOverrideField
-                    Layout.fillWidth: true
-                    placeholderText: "HH:mm (empty = real)"
-                    text: simulator.clockOverride
-                    color: "white"
-                    font.pixelSize: 12
-                    background: Rectangle { color: "#333"; radius: 3 }
-                    onEditingFinished: simulator.clockOverride = text
-                }
-                SimButton {
-                    text: "Clear"; small: true; color: "#666"
-                    onClicked: { clockOverrideField.text = ""; simulator.clockOverride = "" }
-                }
-            }
 
             // Trip block — edit any two of {Duration, Avg, Trip distance};
             // the third recomputes. Most-recently-edited two are kept; the
             // stale one is overwritten.
-            ColumnLayout {
+            RowLayout {
                 Layout.fillWidth: true
                 spacing: 4
 
                 property var lastTwo: ["dur", "avg"]
 
                 function noteEdit(which) {
-                    if (lastTwo[0] === which) {
-                        // already current; nothing to reorder
-                    } else if (lastTwo.indexOf(which) >= 0) {
-                        lastTwo = [which, lastTwo[0]]
-                    } else {
-                        lastTwo = [which, lastTwo[0]]
-                    }
+                    if (lastTwo[0] === which) return recompute()
+                    lastTwo = [which, lastTwo[0]]
                     recompute()
                 }
 
                 function recompute() {
-                    var dist = parseFloat(tripDistField.text)
-                    var dur  = parseFloat(tripDurField.text)
-                    var avg  = parseFloat(tripAvgField.text)
-                    if (isNaN(dist)) dist = 0
-                    if (isNaN(dur))  dur  = 0
-                    if (isNaN(avg))  avg  = 0
+                    var dist = parseFloat(tripDistField.text); if (isNaN(dist)) dist = 0
+                    var dur  = parseFloat(tripDurField.text);  if (isNaN(dur))  dur  = 0
+                    var avg  = parseFloat(tripAvgField.text);  if (isNaN(avg))  avg  = 0
                     var stale = ["dur", "avg", "dist"].find(function(f){ return lastTwo.indexOf(f) < 0 })
                     if (stale === "dist") {
                         dist = avg * (dur / 3600.0)
                         tripDistField.text = dist.toFixed(2)
-                    } else if (stale === "dur") {
-                        if (avg > 0) {
-                            dur = (dist / avg) * 3600.0
-                            tripDurField.text = Math.round(dur).toString()
-                        }
-                    } else if (stale === "avg") {
-                        if (dur > 0) {
-                            avg = dist / (dur / 3600.0)
-                            tripAvgField.text = avg.toFixed(1)
-                        }
+                    } else if (stale === "dur" && avg > 0) {
+                        dur = (dist / avg) * 3600.0
+                        tripDurField.text = Math.round(dur).toString()
+                    } else if (stale === "avg" && dur > 0) {
+                        avg = dist / (dur / 3600.0)
+                        tripAvgField.text = avg.toFixed(1)
                     }
                     if (typeof tripStore !== "undefined")
                         tripStore.setOverride(dist, Math.round(dur), avg)
                 }
 
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 6
-                    SimLabel { text: "Duration" }
-                    TextField {
-                        id: tripDurField
-                        Layout.preferredWidth: 80
-                        text: "1830"
-                        placeholderText: "s"
-                        color: "white"; font.pixelSize: 11
-                        background: Rectangle { color: "#333"; radius: 3 }
-                        onEditingFinished: parent.parent.noteEdit("dur")
-                    }
-                    Text { text: "s"; color: "#999"; font.pixelSize: 11 }
-                    Item { Layout.fillWidth: true }
+                Text { text: "clock"; color: "#999"; font.pixelSize: 9 }
+                TextField {
+                    id: clockOverrideField
+                    Layout.preferredWidth: 56
+                    placeholderText: "HH:mm"
+                    text: simulator.clockOverride
+                    color: "white"; font.pixelSize: 10
+                    background: Rectangle { color: "#333"; radius: 3 }
+                    onEditingFinished: simulator.clockOverride = text
                 }
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 6
-                    SimLabel { text: "Avg" }
-                    TextField {
-                        id: tripAvgField
-                        Layout.preferredWidth: 80
-                        text: "24.2"
-                        placeholderText: "km/h"
-                        color: "white"; font.pixelSize: 11
-                        background: Rectangle { color: "#333"; radius: 3 }
-                        onEditingFinished: parent.parent.noteEdit("avg")
-                    }
-                    Text { text: "km/h"; color: "#999"; font.pixelSize: 11 }
-                    Item { Layout.fillWidth: true }
+                Item { Layout.preferredWidth: 6 }
+                Text { text: "dur s"; color: "#999"; font.pixelSize: 9 }
+                TextField {
+                    id: tripDurField
+                    Layout.preferredWidth: 56
+                    text: "1830"
+                    color: "white"; font.pixelSize: 10
+                    background: Rectangle { color: "#333"; radius: 3 }
+                    onEditingFinished: parent.noteEdit("dur")
                 }
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 6
-                    SimLabel { text: "Trip" }
-                    TextField {
-                        id: tripDistField
-                        Layout.preferredWidth: 80
-                        text: "12.3"
-                        placeholderText: "km"
-                        color: "white"; font.pixelSize: 11
-                        background: Rectangle { color: "#333"; radius: 3 }
-                        onEditingFinished: parent.parent.noteEdit("dist")
-                    }
-                    Text { text: "km"; color: "#999"; font.pixelSize: 11 }
-                    Item { Layout.fillWidth: true }
-                    SimButton {
-                        text: "Clear"; small: true; color: "#666"
-                        onClicked: {
-                            if (typeof tripStore !== "undefined")
-                                tripStore.clearOverride()
-                            freezeTripSwitch.checked = false
-                        }
-                    }
+                Text { text: "avg"; color: "#999"; font.pixelSize: 9 }
+                TextField {
+                    id: tripAvgField
+                    Layout.preferredWidth: 48
+                    text: "24.2"
+                    color: "white"; font.pixelSize: 10
+                    background: Rectangle { color: "#333"; radius: 3 }
+                    onEditingFinished: parent.noteEdit("avg")
                 }
+                Text { text: "trip"; color: "#999"; font.pixelSize: 9 }
+                TextField {
+                    id: tripDistField
+                    Layout.preferredWidth: 48
+                    text: "12.3"
+                    color: "white"; font.pixelSize: 10
+                    background: Rectangle { color: "#333"; radius: 3 }
+                    onEditingFinished: parent.noteEdit("dist")
+                }
+                Item { Layout.fillWidth: true }
             }
 
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 6
-                SimLabel { text: "Freeze" }
+                spacing: 4
+                Text { text: "total"; color: "#999"; font.pixelSize: 9 }
+                TextField {
+                    id: odometerOverrideField
+                    Layout.preferredWidth: 64
+                    text: "0.0"
+                    color: "white"; font.pixelSize: 10
+                    background: Rectangle { color: "#333"; radius: 3 }
+                    onEditingFinished: {
+                        var v = parseFloat(text)
+                        if (!isNaN(v)) simulator.setOdometer(v)
+                    }
+                    Component.onCompleted: simulator.setOdometer(0)
+                }
+                Item { Layout.preferredWidth: 12 }
+                Text { text: "freeze trip"; color: "#999"; font.pixelSize: 9 }
                 Switch {
                     id: freezeTripSwitch
                     checked: false
+                    scale: 0.7
                     palette.highlight: "#2196F3"
                     onToggled: {
                         if (typeof tripStore === "undefined") return
@@ -412,34 +335,17 @@ ApplicationWindow {
                         }
                     }
                 }
-                Text {
-                    text: freezeTripSwitch.checked ? "Trip timer pinned"
-                                                   : "Trip timer running"
-                    color: freezeTripSwitch.checked ? "#2196F3" : "#888"
-                    font.pixelSize: 11
-                }
                 Item { Layout.fillWidth: true }
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 6
-                SimLabel { text: "Total" }
-                TextField {
-                    id: odometerOverrideField
-                    Layout.preferredWidth: 80
-                    text: "0.0"
-                    placeholderText: "km"
-                    color: "white"; font.pixelSize: 11
-                    background: Rectangle { color: "#333"; radius: 3 }
-                    onEditingFinished: {
-                        var v = parseFloat(text)
-                        if (!isNaN(v)) simulator.setOdometer(v)
+                SimButton {
+                    text: "Clear all"; small: true; color: "#666"
+                    onClicked: {
+                        clockOverrideField.text = ""
+                        simulator.clockOverride = ""
+                        if (typeof tripStore !== "undefined")
+                            tripStore.clearOverride()
+                        freezeTripSwitch.checked = false
                     }
-                    Component.onCompleted: simulator.setOdometer(0)
                 }
-                Text { text: "km"; color: "#999"; font.pixelSize: 11 }
-                Item { Layout.fillWidth: true }
             }
 
             SectionHeader { text: "Engine" }
@@ -1709,19 +1615,20 @@ ApplicationWindow {
     }
     }
 
-    component SectionHeader: Rectangle {
+    component SectionHeader: Item {
         property alias text: headerText.text
         Layout.fillWidth: true
-        Layout.topMargin: 6
-        Layout.preferredHeight: 24
-        color: "#333"
-        radius: 3
+        Layout.topMargin: 4
+        Layout.preferredHeight: 12
         Text {
             id: headerText
-            anchors.centerIn: parent
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
             color: "#2196F3"
-            font.pixelSize: 12
+            font.pixelSize: 9
             font.bold: true
+            font.letterSpacing: 0.5
+            font.capitalization: Font.AllUppercase
         }
     }
 
@@ -1766,17 +1673,19 @@ ApplicationWindow {
 
     component SimLabel: Text {
         color: "#999"
-        font.pixelSize: 12
-        Layout.preferredWidth: 56
+        font.pixelSize: 10
+        Layout.preferredWidth: 44
     }
 
     component SimButton: Button {
         property bool small: false
         property color color: "#555"
         Layout.fillWidth: !small
-        Layout.preferredWidth: small ? 56 : -1
-        Layout.preferredHeight: small ? 26 : 30
-        font.pixelSize: small ? 11 : 12
+        Layout.preferredWidth: small ? -1 : -1
+        Layout.minimumWidth: small ? 32 : 56
+        Layout.preferredHeight: small ? 22 : 26
+        padding: small ? 4 : 6
+        font.pixelSize: small ? 10 : 11
         background: Rectangle {
             color: parent.down ? Qt.lighter(parent.color, 1.3)
                    : parent.checked ? "#2196F3"
