@@ -13,7 +13,7 @@ Item {
     readonly property int unableToDrive: typeof vehicleStore !== "undefined" ? vehicleStore.isUnableToDrive : 0
     readonly property int mainPower: typeof vehicleStore !== "undefined" ? vehicleStore.mainPower : 1
     readonly property int seatboxLock: typeof vehicleStore !== "undefined" ? vehicleStore.seatboxLock : 1
-    readonly property int faultCode: typeof engineStore !== "undefined" ? engineStore.faultCode : 0
+    readonly property bool engineFaultActive: typeof engineStore !== "undefined" && engineStore.faults.length > 0
     readonly property int battery0State: typeof battery0Store !== "undefined" ? battery0Store.batteryState : 0
     readonly property bool battery0Present: typeof battery0Store !== "undefined" && battery0Store.present
     readonly property bool usbDisconnected: typeof connectionStore !== "undefined" && connectionStore.usingBackupConnection
@@ -22,8 +22,10 @@ Item {
     // BatteryState.Active = 3. SeatboxLock: Open = 0, Closed = 1.
     // Opening the seatbox cuts the 48V bus, so main-power going off while parked is
     // expected then — suppress the "power lost" anomaly branch unless the seatbox is closed.
+    // Drive the ECU-fault branch from the active fault set (engine-ecu:fault), not the
+    // fault:code snapshot field — the snapshot can lag a clear and would latch the light.
     readonly property bool engineFault: unableToDrive === 0
-                                      || faultCode > 0
+                                      || engineFaultActive
                                       || (mainPower === 1
                                           && seatboxLock === 1
                                           && (vehicleState === 4
