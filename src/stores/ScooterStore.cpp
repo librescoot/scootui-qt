@@ -29,6 +29,11 @@ void ScooterStore::applyFieldUpdate(const QString &variable, const QString &valu
             m_temperature = 0.0;
             emit temperatureChanged();
         }
+        const bool frostChanged_ = m_isFrost || m_isFrostWarning;
+        m_isFrost = false;
+        m_isFrostWarning = false;
+        if (frostChanged_)
+            emit frostChanged();
         return;
     }
 
@@ -41,5 +46,25 @@ void ScooterStore::applyFieldUpdate(const QString &variable, const QString &valu
         m_temperature = v;
         m_hasTemperature = true;
         emit temperatureChanged();
+        updateFrostState();
     }
+}
+
+void ScooterStore::updateFrostState()
+{
+    const bool prevFrost = m_isFrost;
+    const bool prevWarning = m_isFrostWarning;
+
+    if (m_temperature < FrostEnter)
+        m_isFrost = true;
+    else if (m_temperature >= FrostExit)
+        m_isFrost = false;
+
+    if (m_temperature < FrostWarningEnter)
+        m_isFrostWarning = true;
+    else if (m_temperature >= FrostWarningExit)
+        m_isFrostWarning = false;
+
+    if (m_isFrost != prevFrost || m_isFrostWarning != prevWarning)
+        emit frostChanged();
 }

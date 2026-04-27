@@ -304,24 +304,24 @@ Row {
     // setting: always | warning (frost only) | never.
     Row {
         id: tempRow
-        spacing: 4
+        spacing: 2
         layoutDirection: Qt.LeftToRight
 
         readonly property double temp: typeof scooterStore !== "undefined" ? scooterStore.temperature : 0
         readonly property bool hasTemp: typeof scooterStore !== "undefined" && scooterStore.hasTemperature
         readonly property string tempMode: typeof settingsStore !== "undefined"
                                            ? settingsStore.showTemperature : "warning"
-        readonly property bool isFrost: hasTemp && temp < 10.0
-        readonly property bool isFrostWarning: hasTemp && temp < 5.0
+        readonly property bool isFrost: typeof scooterStore !== "undefined" && scooterStore.isFrost
+        readonly property bool isFrostWarning: typeof scooterStore !== "undefined" && scooterStore.isFrostWarning
 
         visible: hasTemp && tempMode !== "never"
                  && (tempMode === "always" || isFrost)
 
         Text {
             anchors.verticalCenter: parent.verticalCenter
-            text: tempRow.hasTemp ? Math.round(tempRow.temp) + " °C" : ""
-            font.pixelSize: 14
-            font.weight: Font.DemiBold
+            text: tempRow.hasTemp ? Math.round(tempRow.temp) + " °" : ""
+            font.pixelSize: themeStore.fontBody
+            font.letterSpacing: -1.1
             font.features: {"tnum": 1}
             color: statusIndicators.iconColor
         }
@@ -331,7 +331,7 @@ Row {
             visible: tempRow.isFrost
             text: MaterialIcon.iconAcUnit
             font.family: "Material Icons"
-            font.pixelSize: 22
+            font.pixelSize: 24
             color: statusIndicators.iconColor
         }
 
@@ -340,7 +340,7 @@ Row {
             visible: tempRow.isFrostWarning
             text: MaterialIcon.iconWarningAmber
             font.family: "Material Icons"
-            font.pixelSize: 22
+            font.pixelSize: 24
             color: statusIndicators.iconColor
         }
     }
