@@ -496,8 +496,8 @@ void Translations::initStrings()
     en[QStringLiteral("hibernationTitle")] = QStringLiteral("Manual Hibernation");
     de[QStringLiteral("hibernationTitle")] = QStringLiteral("Manueller Ruhezustand");
 
-    en[QStringLiteral("hibernationTapKeycardToConfirm")] = QStringLiteral("Tap keycard to confirm");
-    de[QStringLiteral("hibernationTapKeycardToConfirm")] = QStringLiteral("Keycard antippen zum Best\u00E4tigen");
+    en[QStringLiteral("hibernationTapKeycardToConfirm")] = QStringLiteral("Tap keycard");
+    de[QStringLiteral("hibernationTapKeycardToConfirm")] = QStringLiteral("Keycard antippen");
 
     en[QStringLiteral("hibernationKeepHoldingBrakes")] = QStringLiteral("Keep holding brakes to force");
     de[QStringLiteral("hibernationKeepHoldingBrakes")] = QStringLiteral("Bremsen weiterhin halten zum Erzwingen");

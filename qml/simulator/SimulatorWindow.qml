@@ -369,10 +369,12 @@ ApplicationWindow {
             }
 
             SectionHeader { text: "Engine" }
+            // Speed slider only writes the cluster needle; auto-drive remains
+            // the only way to advance position along a route.
             SimSliderRow {
                 label: "Speed"
                 from: 0; to: 55; value: 0; unit: "km/h"; decimals: 0
-                onMoved: function(v) { simulator.setSpeed(v); simulator.setGpsSpeed(v) }
+                onMoved: function(v) { simulator.setSpeed(v) }
             }
             RowLayout {
                 Layout.fillWidth: true

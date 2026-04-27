@@ -307,6 +307,9 @@ Row {
         id: tempRow
         spacing: 2
         layoutDirection: Qt.LeftToRight
+        // Match sibling icon height so the value sits on the same baseline
+        // as the rest of the status row when no snow glyph is present.
+        height: 24
 
         readonly property double temp: typeof scooterStore !== "undefined" ? scooterStore.temperature : 0
         readonly property bool hasTemp: typeof scooterStore !== "undefined" && scooterStore.hasTemperature
