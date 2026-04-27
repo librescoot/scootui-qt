@@ -170,6 +170,29 @@ void SimulatorService::setHornButton(bool pressed)
                 pressed ? QStringLiteral("on") : QStringLiteral("off"));
 }
 
+void SimulatorService::setHandlebarPosition(const QString &state)
+{
+    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("handlebar:position"), state);
+}
+
+void SimulatorService::setUnableToDrive(bool unable)
+{
+    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("unable-to-drive"),
+                unable ? QStringLiteral("on") : QStringLiteral("off"));
+}
+
+void SimulatorService::setHopOnActive(bool active)
+{
+    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("hop-on-active"),
+                active ? QStringLiteral("true") : QStringLiteral("false"));
+}
+
+void SimulatorService::setMainPower(bool on)
+{
+    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("main-power"),
+                on ? QStringLiteral("on") : QStringLiteral("off"));
+}
+
 // --- Engine ---
 
 void SimulatorService::setSpeed(double speed)
@@ -225,6 +248,42 @@ void SimulatorService::setThrottle(bool on)
 {
     m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("throttle"),
                 on ? QStringLiteral("on") : QStringLiteral("off"));
+}
+
+void SimulatorService::setKers(bool on)
+{
+    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("kers"),
+                on ? QStringLiteral("on") : QStringLiteral("off"));
+}
+
+void SimulatorService::setKersReasonOff(const QString &reason)
+{
+    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("kers-reason-off"), reason);
+}
+
+void SimulatorService::setRpm(double rpm)
+{
+    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("rpm"),
+                QString::number(rpm, 'f', 1));
+}
+
+void SimulatorService::setRawSpeed(double speed)
+{
+    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("raw-speed"),
+                QString::number(speed, 'f', 1));
+}
+
+void SimulatorService::setEngineFwVersion(const QString &v)
+{
+    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("fw-version"), v);
+}
+
+void SimulatorService::setEngineFault(int code, const QString &description)
+{
+    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("fault:code"),
+                QString::number(code));
+    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("fault:description"),
+                description);
 }
 
 // --- Battery ---
@@ -308,6 +367,31 @@ void SimulatorService::setGpsState(const QString &state)
     m_repo->set(QStringLiteral("gps"), QStringLiteral("state"), state);
 }
 
+void SimulatorService::setGpsAltitude(double altitude)
+{
+    m_repo->set(QStringLiteral("gps"), QStringLiteral("altitude"),
+                QString::number(altitude, 'f', 1));
+}
+
+void SimulatorService::setGpsSatellites(int used, int visible)
+{
+    m_repo->set(QStringLiteral("gps"), QStringLiteral("satellites-used"),
+                QString::number(used));
+    m_repo->set(QStringLiteral("gps"), QStringLiteral("satellites-visible"),
+                QString::number(visible));
+}
+
+void SimulatorService::setGpsHdop(double hdop)
+{
+    m_repo->set(QStringLiteral("gps"), QStringLiteral("hdop"),
+                QString::number(hdop, 'f', 2));
+}
+
+void SimulatorService::setGpsField(const QString &field, const QString &value)
+{
+    m_repo->set(QStringLiteral("gps"), field, value);
+}
+
 // --- Internet ---
 
 void SimulatorService::setModemState(const QString &state)
@@ -332,12 +416,52 @@ void SimulatorService::setCloudConnection(const QString &state)
     m_repo->set(QStringLiteral("internet"), QStringLiteral("status"), state);
 }
 
+void SimulatorService::setIpAddress(const QString &ip)
+{
+    m_repo->set(QStringLiteral("internet"), QStringLiteral("ip-address"), ip);
+}
+
+void SimulatorService::setSimImei(const QString &imei)
+{
+    m_repo->set(QStringLiteral("internet"), QStringLiteral("sim-imei"), imei);
+}
+
+void SimulatorService::setSimImsi(const QString &imsi)
+{
+    m_repo->set(QStringLiteral("internet"), QStringLiteral("sim-imsi"), imsi);
+}
+
+void SimulatorService::setSimIccid(const QString &iccid)
+{
+    m_repo->set(QStringLiteral("internet"), QStringLiteral("sim-iccid"), iccid);
+}
+
 // --- Bluetooth ---
 
 void SimulatorService::setBluetoothStatus(const QString &state)
 {
     m_repo->set(QStringLiteral("ble"), QStringLiteral("status"), state);
     m_repo->set(QStringLiteral("ble"), QStringLiteral("service-health"), QStringLiteral("ok"));
+}
+
+void SimulatorService::setBluetoothMac(const QString &mac)
+{
+    m_repo->set(QStringLiteral("ble"), QStringLiteral("mac-address"), mac);
+}
+
+void SimulatorService::setBluetoothPin(const QString &pin)
+{
+    m_repo->set(QStringLiteral("ble"), QStringLiteral("pin-code"), pin);
+}
+
+void SimulatorService::setBluetoothServiceHealth(const QString &health)
+{
+    m_repo->set(QStringLiteral("ble"), QStringLiteral("service-health"), health);
+}
+
+void SimulatorService::setBluetoothServiceError(const QString &error)
+{
+    m_repo->set(QStringLiteral("ble"), QStringLiteral("service-error"), error);
 }
 
 // --- USB / UMS ---
@@ -350,6 +474,79 @@ void SimulatorService::setUsbStatus(const QString &status)
 void SimulatorService::setUsbMode(const QString &mode)
 {
     m_repo->set(QStringLiteral("usb"), QStringLiteral("mode"), mode);
+}
+
+void SimulatorService::setUsbStep(const QString &step)
+{
+    m_repo->set(QStringLiteral("usb"), QStringLiteral("step"), step);
+}
+
+void SimulatorService::setUsbProgress(int progress)
+{
+    m_repo->set(QStringLiteral("usb"), QStringLiteral("progress"),
+                QString::number(progress));
+}
+
+void SimulatorService::setUsbDetail(const QString &detail)
+{
+    m_repo->set(QStringLiteral("usb"), QStringLiteral("detail"), detail);
+}
+
+void SimulatorService::pushUmsLog(const QString &line)
+{
+    m_repo->push(QStringLiteral("usb:log"), line);
+}
+
+// --- OTA ---
+
+void SimulatorService::setOtaStatus(const QString &target, const QString &status)
+{
+    m_repo->set(QStringLiteral("ota"), QStringLiteral("status:") + target, status);
+}
+
+void SimulatorService::setOtaUpdateVersion(const QString &target, const QString &version)
+{
+    m_repo->set(QStringLiteral("ota"), QStringLiteral("update-version:") + target, version);
+}
+
+void SimulatorService::setOtaUpdateMethod(const QString &target, const QString &method)
+{
+    m_repo->set(QStringLiteral("ota"), QStringLiteral("update-method:") + target, method);
+}
+
+void SimulatorService::setOtaError(const QString &target, const QString &error)
+{
+    m_repo->set(QStringLiteral("ota"), QStringLiteral("error:") + target, error);
+}
+
+void SimulatorService::setOtaErrorMessage(const QString &target, const QString &message)
+{
+    m_repo->set(QStringLiteral("ota"), QStringLiteral("error-message:") + target, message);
+}
+
+void SimulatorService::setOtaDownloadProgress(const QString &target, int percent)
+{
+    m_repo->set(QStringLiteral("ota"), QStringLiteral("download-progress:") + target,
+                QString::number(percent));
+}
+
+void SimulatorService::setOtaInstallProgress(const QString &target, int percent)
+{
+    m_repo->set(QStringLiteral("ota"), QStringLiteral("install-progress:") + target,
+                QString::number(percent));
+}
+
+void SimulatorService::clearOta()
+{
+    for (const QString &target : {QStringLiteral("dbc"), QStringLiteral("mdb")}) {
+        setOtaStatus(target, QStringLiteral("idle"));
+        setOtaUpdateVersion(target, QString());
+        setOtaUpdateMethod(target, QString());
+        setOtaError(target, QString());
+        setOtaErrorMessage(target, QString());
+        setOtaDownloadProgress(target, 0);
+        setOtaInstallProgress(target, 0);
+    }
 }
 
 // --- Speed limit ---
@@ -367,6 +564,11 @@ void SimulatorService::setRoadName(const QString &name)
 void SimulatorService::setRoadType(const QString &type)
 {
     m_repo->set(QStringLiteral("speed-limit"), QStringLiteral("road-type"), type);
+}
+
+void SimulatorService::setRoadRefs(const QString &refs)
+{
+    m_repo->set(QStringLiteral("speed-limit"), QStringLiteral("road-refs"), refs);
 }
 
 // --- Settings ---
@@ -391,6 +593,66 @@ void SimulatorService::setTrafficOverlay(bool enabled)
 {
     m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.map.traffic-overlay"),
                 enabled ? QStringLiteral("true") : QStringLiteral("false"));
+}
+
+void SimulatorService::setSetting(const QString &key, const QString &value)
+{
+    m_repo->set(QStringLiteral("settings"), key, value);
+}
+
+void SimulatorService::setDebugOverlay(const QString &mode)
+{
+    m_repo->set(QStringLiteral("dashboard"), QStringLiteral("debug"), mode);
+}
+
+void SimulatorService::setBrightness(double lux)
+{
+    m_repo->set(QStringLiteral("dashboard"), QStringLiteral("brightness"),
+                QString::number(lux, 'f', 1));
+    m_repo->publish(QStringLiteral("dashboard"), QStringLiteral("brightness"));
+}
+
+void SimulatorService::setCbBatteryField(const QString &field, const QString &value)
+{
+    m_repo->set(QStringLiteral("cb-battery"), field, value);
+}
+
+void SimulatorService::setAuxBatteryField(const QString &field, const QString &value)
+{
+    m_repo->set(QStringLiteral("aux-battery"), field, value);
+}
+
+void SimulatorService::setSystemField(const QString &field, const QString &value)
+{
+    m_repo->set(QStringLiteral("system"), field, value);
+}
+
+void SimulatorService::setMdbVersion(const QString &version)
+{
+    m_repo->set(QStringLiteral("version:mdb"), QStringLiteral("version"), version);
+}
+
+void SimulatorService::setDbcVersion(const QString &version)
+{
+    m_repo->set(QStringLiteral("version:dbc"), QStringLiteral("version"), version);
+}
+
+void SimulatorService::setRaw(const QString &channel, const QString &field, const QString &value)
+{
+    if (channel.isEmpty() || field.isEmpty()) return;
+    m_repo->set(channel, field, value);
+}
+
+void SimulatorService::pushList(const QString &channel, const QString &value)
+{
+    if (channel.isEmpty()) return;
+    m_repo->push(channel, value);
+}
+
+void SimulatorService::publishMessage(const QString &channel, const QString &message)
+{
+    if (channel.isEmpty()) return;
+    m_repo->publish(channel, message);
 }
 
 // --- Auto-lock countdown ---

@@ -37,7 +37,11 @@ public:
     Q_INVOKABLE void setSeatboxLock(const QString &state);
     Q_INVOKABLE void setSeatboxButton(bool pressed);
     Q_INVOKABLE void setHandlebarLock(const QString &state);
+    Q_INVOKABLE void setHandlebarPosition(const QString &state);
     Q_INVOKABLE void setHornButton(bool pressed);
+    Q_INVOKABLE void setUnableToDrive(bool unable);
+    Q_INVOKABLE void setHopOnActive(bool active);
+    Q_INVOKABLE void setMainPower(bool on);
 
     // Gestures
     Q_INVOKABLE void simulateBrakeTap(const QString &side);
@@ -57,6 +61,12 @@ public:
     Q_INVOKABLE void setMotorCurrent(double milliamps);
     Q_INVOKABLE void setMotorVoltage(double millivolts);
     Q_INVOKABLE void setThrottle(bool on);
+    Q_INVOKABLE void setKers(bool on);
+    Q_INVOKABLE void setKersReasonOff(const QString &reason);
+    Q_INVOKABLE void setRpm(double rpm);
+    Q_INVOKABLE void setRawSpeed(double speed);
+    Q_INVOKABLE void setEngineFwVersion(const QString &v);
+    Q_INVOKABLE void setEngineFault(int code, const QString &description);
 
     // Battery (slot 0 or 1)
     Q_INVOKABLE void setBatteryCharge(int slot, int percent);
@@ -71,34 +81,81 @@ public:
     Q_INVOKABLE void setGpsCourse(double course);
     Q_INVOKABLE void setGpsSpeed(double speed);
     Q_INVOKABLE void setGpsState(const QString &state);
+    Q_INVOKABLE void setGpsAltitude(double altitude);
+    Q_INVOKABLE void setGpsSatellites(int used, int visible);
+    Q_INVOKABLE void setGpsHdop(double hdop);
+    Q_INVOKABLE void setGpsField(const QString &field, const QString &value);
 
     // Internet
     Q_INVOKABLE void setModemState(const QString &state);
     Q_INVOKABLE void setSignalQuality(int quality);
     Q_INVOKABLE void setAccessTech(const QString &tech);
     Q_INVOKABLE void setCloudConnection(const QString &state);
+    Q_INVOKABLE void setIpAddress(const QString &ip);
+    Q_INVOKABLE void setSimImei(const QString &imei);
+    Q_INVOKABLE void setSimImsi(const QString &imsi);
+    Q_INVOKABLE void setSimIccid(const QString &iccid);
 
     // Bluetooth
     Q_INVOKABLE void setBluetoothStatus(const QString &state);
+    Q_INVOKABLE void setBluetoothMac(const QString &mac);
+    Q_INVOKABLE void setBluetoothPin(const QString &pin);
+    Q_INVOKABLE void setBluetoothServiceHealth(const QString &health);
+    Q_INVOKABLE void setBluetoothServiceError(const QString &error);
 
     // USB / UMS
     Q_INVOKABLE void setUsbStatus(const QString &status);
     Q_INVOKABLE void setUsbMode(const QString &mode);
+    Q_INVOKABLE void setUsbStep(const QString &step);
+    Q_INVOKABLE void setUsbProgress(int progress);
+    Q_INVOKABLE void setUsbDetail(const QString &detail);
+    Q_INVOKABLE void pushUmsLog(const QString &line);
+
+    // OTA
+    Q_INVOKABLE void setOtaStatus(const QString &target, const QString &status);
+    Q_INVOKABLE void setOtaUpdateVersion(const QString &target, const QString &version);
+    Q_INVOKABLE void setOtaUpdateMethod(const QString &target, const QString &method);
+    Q_INVOKABLE void setOtaError(const QString &target, const QString &error);
+    Q_INVOKABLE void setOtaErrorMessage(const QString &target, const QString &message);
+    Q_INVOKABLE void setOtaDownloadProgress(const QString &target, int percent);
+    Q_INVOKABLE void setOtaInstallProgress(const QString &target, int percent);
+    Q_INVOKABLE void clearOta();
 
     // Speed limit
     Q_INVOKABLE void setSpeedLimit(const QString &limit);
     Q_INVOKABLE void setRoadName(const QString &name);
     Q_INVOKABLE void setRoadType(const QString &type);
+    Q_INVOKABLE void setRoadRefs(const QString &refs);
 
     // Settings
     Q_INVOKABLE void setTheme(const QString &theme);
     Q_INVOKABLE void setLanguage(const QString &lang);
     Q_INVOKABLE void setDualBattery(bool enabled);
     Q_INVOKABLE void setTrafficOverlay(bool enabled);
-    // Auto-lock countdown (drives the AutoLockCountdownOverlay)
+    Q_INVOKABLE void setSetting(const QString &key, const QString &value);
     Q_INVOKABLE void setAutoStandbyDeadline(int secondsFromNow);
     Q_INVOKABLE void clearAutoStandbyDeadline();
     Q_INVOKABLE void setAutoStandbySetting(int seconds);
+
+    // Dashboard / debug overlay
+    Q_INVOKABLE void setDebugOverlay(const QString &mode);
+    Q_INVOKABLE void setBrightness(double lux);
+
+    // CB battery
+    Q_INVOKABLE void setCbBatteryField(const QString &field, const QString &value);
+
+    // Aux battery
+    Q_INVOKABLE void setAuxBatteryField(const QString &field, const QString &value);
+
+    // System / version
+    Q_INVOKABLE void setSystemField(const QString &field, const QString &value);
+    Q_INVOKABLE void setMdbVersion(const QString &version);
+    Q_INVOKABLE void setDbcVersion(const QString &version);
+
+    // Generic raw injection (channel + field + value)
+    Q_INVOKABLE void setRaw(const QString &channel, const QString &field, const QString &value);
+    Q_INVOKABLE void pushList(const QString &channel, const QString &value);
+    Q_INVOKABLE void publishMessage(const QString &channel, const QString &message);
 
     // Presets
     Q_INVOKABLE void loadPreset(const QString &name);
