@@ -154,7 +154,7 @@ Rectangle {
                 // baked-in flame and white wordmark stay readable.
                 Rectangle {
                     width: parent.width
-                    height: 130
+                    height: 110
                     color: "black"
 
                     Image {
@@ -171,7 +171,7 @@ Rectangle {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: typeof translations !== "undefined" ? translations.aboutFossDescription
-                          : "FOSS firmware for unu Scooter Pro e-mopeds"
+                          : "Free and Open Source Firmware for unu Scooter Pro"
                     color: aboutScreen.textSecondary
                     font.pixelSize: themeStore.fontBody
                     font.italic: true
@@ -269,7 +269,9 @@ Rectangle {
                         anchors.right: parent.right
                         anchors.top: parent.top
                         anchors.margins: 14
-                        spacing: 6
+                        // Must exceed the body text's intra-line leading so paragraph
+                        // breaks read as bigger than line breaks within a paragraph.
+                        spacing: 12
 
                         // Warning title with icon
                         Row {
@@ -301,12 +303,10 @@ Rectangle {
                                   : "Commercial distribution, resale, or preinstallation on devices for sale is prohibited under CC BY-NC-SA 4.0."
                             color: aboutScreen.textPrimary
                             font.pixelSize: themeStore.fontBody
-                            lineHeight: 1.5
+                            lineHeight: 1.3
                             lineHeightMode: Text.ProportionalHeight
                             wrapMode: Text.WordWrap
                         }
-
-                        Item { width: 1; height: 2 }
 
                         // Scam warning
                         Text {
@@ -317,7 +317,7 @@ Rectangle {
                             color: aboutScreen.textPrimary
                             font.pixelSize: themeStore.fontBody
                             font.weight: Font.DemiBold
-                            lineHeight: 1.5
+                            lineHeight: 1.3
                             lineHeightMode: Text.ProportionalHeight
                             wrapMode: Text.WordWrap
                         }
@@ -502,7 +502,7 @@ Rectangle {
                     delegate: Column {
                         x: 40
                         width: scrollContent.width - 80
-                        spacing: 0
+                        spacing: 2
                         bottomPadding: 10
 
                         Text {
@@ -522,8 +522,6 @@ Rectangle {
                                 text: modelData
                                 color: aboutScreen.textSecondary
                                 font.pixelSize: themeStore.fontBody
-                                lineHeight: 1.3
-                                lineHeightMode: Text.ProportionalHeight
                                 wrapMode: Text.WordWrap
                             }
                         }

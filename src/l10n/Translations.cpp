@@ -534,8 +534,8 @@ void Translations::initStrings()
     en[QStringLiteral("aboutNonCommercialTitle")] = QStringLiteral("NON-COMMERCIAL SOFTWARE");
     de[QStringLiteral("aboutNonCommercialTitle")] = QStringLiteral("NICHT-KOMMERZIELLE SOFTWARE");
 
-    en[QStringLiteral("aboutFossDescription")] = QStringLiteral("FOSS firmware for unu Scooter Pro e-mopeds");
-    de[QStringLiteral("aboutFossDescription")] = QStringLiteral("FOSS-Firmware f\u00FCr unu Scooter Pro E-Mopeds");
+    en[QStringLiteral("aboutFossDescription")] = QStringLiteral("Free and Open Source Firmware for unu Scooter Pro");
+    de[QStringLiteral("aboutFossDescription")] = QStringLiteral("Freie und quelloffene Firmware f\u00FCr unu Scooter Pro");
 
     en[QStringLiteral("aboutOpenSourceComponents")] = QStringLiteral("OPEN SOURCE COMPONENTS");
     de[QStringLiteral("aboutOpenSourceComponents")] = QStringLiteral("OPEN-SOURCE-KOMPONENTEN");
