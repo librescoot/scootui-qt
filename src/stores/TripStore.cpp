@@ -73,11 +73,11 @@ void TripStore::reset()
 
 void TripStore::onTick()
 {
+    if (m_overrideActive) return;
     if (!m_tracking) return;
 
     double speed = m_engine->speed();
 
-    // Distance: speed (km/h) * 1 second = speed/3600 km
     m_distance += speed / 3600.0;
     emit distanceChanged();
 
@@ -88,4 +88,30 @@ void TripStore::onTick()
         m_averageSpeed = m_distance * 3600.0 / m_duration;
         emit averageSpeedChanged();
     }
+}
+
+void TripStore::setOverride(double distance_km, int duration_s, double avg_speed_kmh)
+{
+    m_overrideActive = true;
+    m_distance = distance_km;
+    m_duration = duration_s;
+    m_averageSpeed = avg_speed_kmh;
+    emit distanceChanged();
+    emit durationChanged();
+    emit averageSpeedChanged();
+}
+
+void TripStore::clearOverride()
+{
+    if (!m_overrideActive) return;
+    m_overrideActive = false;
+    m_distance = 0;
+    m_duration = 0;
+    m_averageSpeed = 0;
+    m_accumulatedMs = 0;
+    m_resetPending = true;
+    if (m_tracking) m_elapsed.restart();
+    emit distanceChanged();
+    emit durationChanged();
+    emit averageSpeedChanged();
 }

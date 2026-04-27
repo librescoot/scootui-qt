@@ -22,6 +22,8 @@ public:
     double averageSpeed() const { return m_averageSpeed; }
 
     Q_INVOKABLE void reset();
+    Q_INVOKABLE void setOverride(double distance_km, int duration_s, double avg_speed_kmh);
+    Q_INVOKABLE void clearOverride();
 
 signals:
     void distanceChanged();
@@ -41,9 +43,10 @@ private:
     QTimer *m_tickTimer = nullptr;
     QElapsedTimer m_elapsed;
     bool m_tracking = false;
-    bool m_resetPending = true;  // reset on first ReadyToDrive after boot/lock
-    qint64 m_accumulatedMs = 0;  // ms from completed active periods this session
+    bool m_resetPending = true;
+    qint64 m_accumulatedMs = 0;
     double m_distance = 0;
     int m_duration = 0;
     double m_averageSpeed = 0;
+    bool m_overrideActive = false;
 };
