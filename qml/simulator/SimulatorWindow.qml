@@ -228,6 +228,9 @@ ApplicationWindow {
             }
 
             SectionHeader { text: "Overrides" }
+            // Order matches the dashboard's display order: clock at top of
+            // screen, trip metrics in the bottom status bar (Duration · Avg ·
+            // Trip · Total).
 
             RowLayout {
                 Layout.fillWidth: true
@@ -249,63 +252,128 @@ ApplicationWindow {
                 }
             }
 
-            RowLayout {
+            // Trip block — edit any two of {Duration, Avg, Trip distance};
+            // the third recomputes. Most-recently-edited two are kept; the
+            // stale one is overwritten.
+            ColumnLayout {
                 Layout.fillWidth: true
-                spacing: 6
-                SimLabel { text: "Trip" }
-                Text { text: "dist"; color: "#999"; font.pixelSize: 11 }
-                TextField {
-                    id: tripDistField
-                    Layout.preferredWidth: 56
-                    text: "12.3"
-                    placeholderText: "km"
-                    color: "white"; font.pixelSize: 11
-                    background: Rectangle { color: "#333"; radius: 3 }
-                }
-                Text { text: "dur"; color: "#999"; font.pixelSize: 11 }
-                TextField {
-                    id: tripDurField
-                    Layout.preferredWidth: 56
-                    text: "1830"
-                    placeholderText: "s"
-                    color: "white"; font.pixelSize: 11
-                    background: Rectangle { color: "#333"; radius: 3 }
-                }
-                Text { text: "avg"; color: "#999"; font.pixelSize: 11 }
-                TextField {
-                    id: tripAvgField
-                    Layout.preferredWidth: 56
-                    text: "24.2"
-                    placeholderText: "km/h"
-                    color: "white"; font.pixelSize: 11
-                    background: Rectangle { color: "#333"; radius: 3 }
-                }
-                SimButton {
-                    text: "Set"; small: true; color: "#2196F3"
-                    onClicked: {
-                        if (typeof tripStore !== "undefined")
-                            tripStore.setOverride(parseFloat(tripDistField.text) || 0,
-                                                  parseInt(tripDurField.text) || 0,
-                                                  parseFloat(tripAvgField.text) || 0)
+                spacing: 4
+
+                property var lastTwo: ["dur", "avg"]
+
+                function noteEdit(which) {
+                    if (lastTwo[0] === which) {
+                        // already current; nothing to reorder
+                    } else if (lastTwo.indexOf(which) >= 0) {
+                        lastTwo = [which, lastTwo[0]]
+                    } else {
+                        lastTwo = [which, lastTwo[0]]
                     }
+                    recompute()
                 }
-                SimButton {
-                    text: "Clear"; small: true; color: "#666"
-                    onClicked: {
-                        if (typeof tripStore !== "undefined")
-                            tripStore.clearOverride()
+
+                function recompute() {
+                    var dist = parseFloat(tripDistField.text)
+                    var dur  = parseFloat(tripDurField.text)
+                    var avg  = parseFloat(tripAvgField.text)
+                    if (isNaN(dist)) dist = 0
+                    if (isNaN(dur))  dur  = 0
+                    if (isNaN(avg))  avg  = 0
+                    var stale = ["dur", "avg", "dist"].find(function(f){ return lastTwo.indexOf(f) < 0 })
+                    if (stale === "dist") {
+                        dist = avg * (dur / 3600.0)
+                        tripDistField.text = dist.toFixed(2)
+                    } else if (stale === "dur") {
+                        if (avg > 0) {
+                            dur = (dist / avg) * 3600.0
+                            tripDurField.text = Math.round(dur).toString()
+                        }
+                    } else if (stale === "avg") {
+                        if (dur > 0) {
+                            avg = dist / (dur / 3600.0)
+                            tripAvgField.text = avg.toFixed(1)
+                        }
+                    }
+                    if (typeof tripStore !== "undefined")
+                        tripStore.setOverride(dist, Math.round(dur), avg)
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+                    SimLabel { text: "Duration" }
+                    TextField {
+                        id: tripDurField
+                        Layout.preferredWidth: 80
+                        text: "1830"
+                        placeholderText: "s"
+                        color: "white"; font.pixelSize: 11
+                        background: Rectangle { color: "#333"; radius: 3 }
+                        onEditingFinished: parent.parent.noteEdit("dur")
+                    }
+                    Text { text: "s"; color: "#999"; font.pixelSize: 11 }
+                    Item { Layout.fillWidth: true }
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+                    SimLabel { text: "Avg" }
+                    TextField {
+                        id: tripAvgField
+                        Layout.preferredWidth: 80
+                        text: "24.2"
+                        placeholderText: "km/h"
+                        color: "white"; font.pixelSize: 11
+                        background: Rectangle { color: "#333"; radius: 3 }
+                        onEditingFinished: parent.parent.noteEdit("avg")
+                    }
+                    Text { text: "km/h"; color: "#999"; font.pixelSize: 11 }
+                    Item { Layout.fillWidth: true }
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+                    SimLabel { text: "Trip" }
+                    TextField {
+                        id: tripDistField
+                        Layout.preferredWidth: 80
+                        text: "12.3"
+                        placeholderText: "km"
+                        color: "white"; font.pixelSize: 11
+                        background: Rectangle { color: "#333"; radius: 3 }
+                        onEditingFinished: parent.parent.noteEdit("dist")
+                    }
+                    Text { text: "km"; color: "#999"; font.pixelSize: 11 }
+                    Item { Layout.fillWidth: true }
+                    SimButton {
+                        text: "Clear"; small: true; color: "#666"
+                        onClicked: {
+                            if (typeof tripStore !== "undefined")
+                                tripStore.clearOverride()
+                        }
                     }
                 }
             }
-            Text {
+
+            RowLayout {
                 Layout.fillWidth: true
-                visible: typeof tripStore !== "undefined"
-                color: "#888"
-                font.pixelSize: 10
-                text: typeof tripStore === "undefined" ? "" :
-                    "trip: " + tripStore.distance.toFixed(2) + " km / "
-                    + tripStore.duration + " s / "
-                    + tripStore.averageSpeed.toFixed(1) + " km/h avg"
+                spacing: 6
+                SimLabel { text: "Total" }
+                TextField {
+                    id: odometerOverrideField
+                    Layout.preferredWidth: 80
+                    text: "0.0"
+                    placeholderText: "km"
+                    color: "white"; font.pixelSize: 11
+                    background: Rectangle { color: "#333"; radius: 3 }
+                    onEditingFinished: {
+                        var v = parseFloat(text)
+                        if (!isNaN(v)) simulator.setOdometer(v)
+                    }
+                    Component.onCompleted: simulator.setOdometer(0)
+                }
+                Text { text: "km"; color: "#999"; font.pixelSize: 11 }
+                Item { Layout.fillWidth: true }
             }
 
             SectionHeader { text: "Vehicle State" }
