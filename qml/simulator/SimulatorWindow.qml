@@ -376,6 +376,43 @@ ApplicationWindow {
                 Item { Layout.fillWidth: true }
             }
 
+            SectionHeader { text: "Engine" }
+            SimSliderRow {
+                label: "Speed"
+                from: 0; to: 55; value: 0; unit: "km/h"; decimals: 0
+                onMoved: function(v) { simulator.setSpeed(v); simulator.setGpsSpeed(v) }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 4
+                SimLabel { text: "Main pwr" }
+                SimButton { text: "On"; small: true
+                    onClicked: simulator.setMainPower(true) }
+                SimButton { text: "Off"; small: true; color: "#f44336"
+                    onClicked: simulator.setMainPower(false) }
+                Item { Layout.preferredWidth: 4 }
+                SimLabel { text: "Motor" }
+                SimButton { text: "On"; small: true
+                    onClicked: simulator.setMotorPower(true) }
+                SimButton { text: "Off"; small: true; color: "#f44336"
+                    onClicked: simulator.setMotorPower(false) }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 4
+                SimLabel { text: "KERS" }
+                SimButton { text: "On"; small: true
+                    onClicked: simulator.setKers(true) }
+                SimButton { text: "Off"; small: true; color: "#f44336"
+                    onClicked: simulator.setKers(false) }
+                Item { Layout.preferredWidth: 4 }
+                SimLabel { text: "Throttle" }
+                SimButton { text: "On"; small: true
+                    onClicked: simulator.setThrottle(true) }
+                SimButton { text: "Off"; small: true; color: "#f44336"
+                    onClicked: simulator.setThrottle(false) }
+            }
+
             SectionHeader { text: "Vehicle State" }
 
             RowLayout {
@@ -838,11 +875,6 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     spacing: 6
                     SimSliderRow {
-                        label: "Speed"
-                        from: 0; to: 55; value: 0; unit: "km/h"; decimals: 0
-                        onMoved: function(v) { simulator.setSpeed(v); simulator.setGpsSpeed(v) }
-                    }
-                    SimSliderRow {
                         label: "Eng T"
                         from: -10; to: 120; value: 25; unit: "°C"; decimals: 0
                         onMoved: function(v) { simulator.setEngineTemperature(v) }
@@ -875,34 +907,6 @@ ApplicationWindow {
                         label: "RPM"
                         from: 0; to: 8000; value: 0; unit: ""; decimals: 0
                         onMoved: function(v) { simulator.setRpm(v) }
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-                        SimLabel { text: "KERS" }
-                        SimButton { text: "On"; small: true; onClicked: simulator.setKers(true) }
-                        SimButton { text: "Off"; small: true; onClicked: simulator.setKers(false) }
-                        Item { Layout.preferredWidth: 8 }
-                        SimLabel { text: "Throttle" }
-                        SimButton { text: "On"; small: true; onClicked: simulator.setThrottle(true) }
-                        SimButton { text: "Off"; small: true; onClicked: simulator.setThrottle(false) }
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 6
-                        SimLabel { text: "Odo" }
-                        TextField {
-                            Layout.fillWidth: true
-                            text: "0.0"; placeholderText: "km"
-                            color: "white"; font.pixelSize: 12
-                            background: Rectangle { color: "#333"; radius: 3 }
-                            onEditingFinished: {
-                                var v = parseFloat(text)
-                                if (!isNaN(v)) simulator.setOdometer(v)
-                            }
-                            Component.onCompleted: simulator.setOdometer(0)
-                        }
-                        Text { text: "km"; color: "#999"; font.pixelSize: 12 }
                     }
                     RowLayout {
                         Layout.fillWidth: true
@@ -1368,15 +1372,6 @@ ApplicationWindow {
                             onClicked: simulator.setHopOnActive(true) }
                         SimButton { text: "Idle"; small: true
                             onClicked: simulator.setHopOnActive(false) }
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-                        SimLabel { text: "Main pwr" }
-                        SimButton { text: "On"; small: true
-                            onClicked: simulator.setMainPower(true) }
-                        SimButton { text: "Off"; small: true; color: "#f44336"
-                            onClicked: simulator.setMainPower(false) }
                     }
                 }
             }
