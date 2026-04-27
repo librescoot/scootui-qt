@@ -1444,10 +1444,11 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         spacing: 4
                         SimLabel { text: "Present" }
-                        SimButton { text: "Yes"; small: true
-                            onClicked: simulator.setCbBatteryField("present", "true") }
-                        SimButton { text: "No"; small: true; color: "#f44336"
-                            onClicked: simulator.setCbBatteryField("present", "false") }
+                        Switch {
+                            checked: true
+                            palette.highlight: "#2196F3"
+                            onToggled: simulator.setCbBatteryField("present", checked ? "true" : "false")
+                        }
                     }
                     RowLayout {
                         Layout.fillWidth: true
@@ -1496,10 +1497,12 @@ ApplicationWindow {
                         SimLabel { text: "Status" }
                         SimButton { text: "not-charging"; small: true
                             onClicked: simulator.setAuxBatteryField("charge-status", "not-charging") }
-                        SimButton { text: "float"; small: true
-                            onClicked: simulator.setAuxBatteryField("charge-status", "float-charge") }
+                        SimButton { text: "bulk"; small: true
+                            onClicked: simulator.setAuxBatteryField("charge-status", "bulk-charge") }
                         SimButton { text: "absorb"; small: true
                             onClicked: simulator.setAuxBatteryField("charge-status", "absorption-charge") }
+                        SimButton { text: "float"; small: true
+                            onClicked: simulator.setAuxBatteryField("charge-status", "float-charge") }
                     }
                 }
             }
