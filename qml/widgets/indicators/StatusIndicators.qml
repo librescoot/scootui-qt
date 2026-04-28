@@ -298,11 +298,12 @@ Row {
         }
     }
 
-    // Ambient temperature (leftmost in RTL = last item). Cold-state glyphs
-    // sit on the left of the digits: snowflake when < 10 °C, snowflake +
-    // warning when < 5 °C. Hysteresis lives in ScooterStore so a jittering
-    // sensor can't flip-flop the row. Visibility gated by show-temperature
-    // setting: always | warning (frost only) | never.
+    // Ambient temperature (leftmost in RTL = last item). Severe-cold glyph
+    // (snowflake + !) sits on the left of the digits once we drop below the
+    // frost-warning threshold (< 5 °C). The plain cold band (< 10 °C) shows
+    // the digits only, no glyph. Hysteresis lives in ScooterStore so a
+    // jittering sensor can't flip-flop the row. Visibility gated by
+    // show-temperature setting: always | warning (frost only) | never.
     Row {
         id: tempRow
         spacing: 2
@@ -315,23 +316,20 @@ Row {
         readonly property bool hasTemp: typeof scooterStore !== "undefined" && scooterStore.hasTemperature
         readonly property string tempMode: typeof settingsStore !== "undefined"
                                            ? settingsStore.showTemperature : "warning"
-        readonly property bool isFrost: typeof scooterStore !== "undefined" && scooterStore.isFrost
+        readonly property bool isCold: typeof scooterStore !== "undefined" && scooterStore.isCold
         readonly property bool isFrostWarning: typeof scooterStore !== "undefined" && scooterStore.isFrostWarning
 
         visible: hasTemp && tempMode !== "never"
-                 && (tempMode === "always" || isFrost)
+                 && (tempMode === "always" || isCold)
 
-        // Cold glyph: plain snowflake in the cold band, severe_cold
-        // (snowflake + !) once we drop below the warning threshold.
         Item {
-            visible: tempRow.isFrost
+            visible: tempRow.isFrostWarning
             width: visible ? 24 : 0
             height: 24
             anchors.verticalCenter: parent.verticalCenter
             Text {
                 anchors.centerIn: parent
-                text: tempRow.isFrostWarning ? MaterialIcon.iconSevereCold
-                                             : MaterialIcon.iconSnowflake
+                text: MaterialIcon.iconSevereCold
                 font.family: "Material Icons"
                 font.pixelSize: 24
                 color: statusIndicators.iconColor
