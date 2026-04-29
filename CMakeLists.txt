@@ -61,6 +61,7 @@ set(CPP_SOURCES
     src/stores/VehicleStore.cpp
     src/stores/BatteryStore.cpp
     src/stores/GpsStore.cpp
+    src/stores/BmxStore.cpp
     src/stores/BluetoothStore.cpp
     src/stores/InternetStore.cpp
     src/stores/NavigationStore.cpp
@@ -131,6 +132,7 @@ set(CPP_HEADERS
     src/stores/VehicleStore.h
     src/stores/BatteryStore.h
     src/stores/GpsStore.h
+    src/stores/BmxStore.h
     src/stores/BluetoothStore.h
     src/stores/InternetStore.h
     src/stores/NavigationStore.h
@@ -199,6 +201,7 @@ set(QML_FILES
     qml/screens/MaintenanceScreen.qml
     qml/screens/AboutScreen.qml
     qml/screens/DebugScreen.qml
+    qml/screens/BmxDebugScreen.qml
     qml/screens/OtaBackgroundScreen.qml
     qml/screens/MapScreen.qml
     qml/screens/AddressSelectionScreen.qml

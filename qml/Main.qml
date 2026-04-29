@@ -163,6 +163,7 @@ Window {
                 case Scooter.ScreenMode.Cluster:         comp = clusterComponent;     name = "cluster";     break
                 case Scooter.ScreenMode.Map:             comp = mapComponent;         name = "map";         break
                 case Scooter.ScreenMode.Debug:           comp = debugComponent;       name = "debug";       break
+                case Scooter.ScreenMode.BmxDebug:        comp = bmxDebugComponent;    name = "bmx-debug";   break
                 case Scooter.ScreenMode.About:           comp = aboutComponent;       name = "about";       break
                 case Scooter.ScreenMode.Maintenance:     comp = maintenanceComponent; name = "maintenance"; break
                 case Scooter.ScreenMode.Ota:             comp = otaBgComponent;       name = "otaBg";       break
@@ -184,6 +185,7 @@ Window {
     Component { id: maintenanceComponent; MaintenanceScreen {} }
     Component { id: aboutComponent; AboutScreen {} }
     Component { id: debugComponent; DebugScreen {} }
+    Component { id: bmxDebugComponent; BmxDebugScreen {} }
     Component { id: otaBgComponent; OtaBackgroundScreen {} }
     Component { id: addressComponent; AddressSelectionScreen {} }
     Component { id: navSetupComponent; NavigationSetupScreen {} }
