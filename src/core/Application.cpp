@@ -9,6 +9,7 @@
 #include "stores/VehicleStore.h"
 #include "stores/BatteryStore.h"
 #include "stores/GpsStore.h"
+#include "stores/BmxStore.h"
 #include "stores/BluetoothStore.h"
 #include "stores/InternetStore.h"
 #include "stores/NavigationStore.h"
@@ -174,6 +175,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     auto *battery0Store = new BatteryStore(repo, QStringLiteral("0"), this);
     auto *battery1Store = new BatteryStore(repo, QStringLiteral("1"), this);
     auto *gpsStore = new GpsStore(repo, this);
+    auto *bmxStore = new BmxStore(repo, this);
     auto *bluetoothStore = new BluetoothStore(repo, this);
     auto *internetStore = new InternetStore(repo, this);
     auto *navigationStore = new NavigationStore(repo, this);
@@ -481,6 +483,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("battery0Store"), battery0Store);
     ctx->setContextProperty(QStringLiteral("battery1Store"), battery1Store);
     ctx->setContextProperty(QStringLiteral("gpsStore"), gpsStore);
+    ctx->setContextProperty(QStringLiteral("bmxStore"), bmxStore);
     ctx->setContextProperty(QStringLiteral("bluetoothStore"), bluetoothStore);
     ctx->setContextProperty(QStringLiteral("internetStore"), internetStore);
     ctx->setContextProperty(QStringLiteral("navigationStore"), navigationStore);
@@ -534,7 +537,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Store references for lifecycle management
     m_stores = {engineStore, vehicleStore, battery0Store, battery1Store,
-                gpsStore, bluetoothStore, internetStore, navigationStore,
+                gpsStore, bmxStore, bluetoothStore, internetStore, navigationStore,
                 settingsStore, otaStore, usbStore, speedLimitStore,
                 autoStandbyStore, scooterStore, cbBatteryStore, auxBatteryStore, dashboardStore};
 
