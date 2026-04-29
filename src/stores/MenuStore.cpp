@@ -19,6 +19,7 @@
 #include "core/AppConfig.h"
 
 #include <QDebug>
+#include <QProcess>
 
 MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
                      ThemeStore *theme, TripStore *trip,
@@ -616,6 +617,19 @@ void MenuStore::rebuildMenuTree()
                 m_screenStore->showFaults();
         }));
     }
+
+    // Capture Logs — fire-and-forget `ssh mdb lsc logs`. Assumes DBC->MDB
+    // key-based ssh is set up by the image build. Runs detached; bundle lands
+    // in /data/logs-<timestamp>.tar.gz on MDB.
+    systemNode->addChild(MenuNode::action(QStringLiteral("capture_logs"),
+                                          tr->menuCaptureLogs(), [this]() {
+        const bool started = QProcess::startDetached(
+            QStringLiteral("ssh"),
+            {QStringLiteral("-y"), QStringLiteral("mdb"),
+             QStringLiteral("lsc"), QStringLiteral("logs")});
+        qInfo() << "[MenuStore] Capture Logs triggered, ssh startDetached:" << started;
+        close();
+    }));
 
     // === Top-level actions ===
     m_rootNode->addChild(MenuNode::action(QStringLiteral("reset_trip"), tr->menuResetTrip(), [this, trip]() {

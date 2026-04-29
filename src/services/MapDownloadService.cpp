@@ -254,9 +254,10 @@ void MapDownloadService::doResolveSlug(double lat, double lng)
         }
 
         m_resolvedSlug = slug;
-        // Use friendly display name for combined regions
         if (slug == QLatin1String("berlin_brandenburg"))
             m_regionName = QStringLiteral("Berlin/Brandenburg");
+        else if (slug == QLatin1String("niedersachsen"))
+            m_regionName = QStringLiteral("Niedersachsen (incl. Bremen)");
         else
             m_regionName = state;
         emit regionNameChanged();
@@ -563,9 +564,10 @@ QString MapDownloadService::displayNameForSlug(const QString &slug) const
 {
     if (slug.isEmpty())
         return {};
-    // Combined region: doResolveSlug uses the same friendly label.
     if (slug == QLatin1String("berlin_brandenburg"))
         return QStringLiteral("Berlin/Brandenburg");
+    if (slug == QLatin1String("niedersachsen"))
+        return QStringLiteral("Niedersachsen (incl. Bremen)");
     for (auto it = s_stateToSlug.constBegin(); it != s_stateToSlug.constEnd(); ++it) {
         if (it.value() == slug)
             return it.key();
