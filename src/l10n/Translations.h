@@ -40,6 +40,7 @@ class Translations : public QObject
     Q_PROPERTY(QString menuAlarmDuration20 READ menuAlarmDuration20 NOTIFY languageChanged)
     Q_PROPERTY(QString menuAlarmDuration30 READ menuAlarmDuration30 NOTIFY languageChanged)
     Q_PROPERTY(QString menuSystem READ menuSystem NOTIFY languageChanged)
+    Q_PROPERTY(QString menuCaptureLogs READ menuCaptureLogs NOTIFY languageChanged)
     Q_PROPERTY(QString menuEnterUms READ menuEnterUms NOTIFY languageChanged)
     Q_PROPERTY(QString menuFaults READ menuFaults NOTIFY languageChanged)
     Q_PROPERTY(QString faultsEmpty READ faultsEmpty NOTIFY languageChanged)
@@ -444,6 +445,7 @@ public:
     QString menuAlarmDuration20() const { return lookup("menuAlarmDuration20"); }
     QString menuAlarmDuration30() const { return lookup("menuAlarmDuration30"); }
     QString menuSystem() const { return lookup("menuSystem"); }
+    QString menuCaptureLogs() const { return lookup("menuCaptureLogs"); }
     QString menuEnterUms() const { return lookup("menuEnterUms"); }
     QString menuFaults() const { return lookup("menuFaults"); }
     QString faultsEmpty() const { return lookup("faultsEmpty"); }

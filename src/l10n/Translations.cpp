@@ -133,6 +133,9 @@ void Translations::initStrings()
     en[QStringLiteral("menuSystem")] = QStringLiteral("System");
     de[QStringLiteral("menuSystem")] = QStringLiteral("System");
 
+    en[QStringLiteral("menuCaptureLogs")] = QStringLiteral("Capture Logs");
+    de[QStringLiteral("menuCaptureLogs")] = QStringLiteral("Logs sichern");
+
     en[QStringLiteral("menuEnterUms")] = QStringLiteral("Update Mode…");
     de[QStringLiteral("menuEnterUms")] = QStringLiteral("Update-Modus…");
 
