@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QElapsedTimer>
+
 #include "SyncableStore.h"
 
 class ScooterStore : public SyncableStore
@@ -28,6 +30,7 @@ protected:
 
 private:
     void updateFrostState();
+    void updateDisplayedTemperature();
 
     // Asymmetric hysteresis: easy to enter the cold-warning state, harder to
     // leave it. The exit thresholds sit 2 degC above the entry thresholds so
@@ -38,8 +41,21 @@ private:
     static constexpr double FrostWarningEnter = 5.0;
     static constexpr double FrostWarningExit = 7.0;
 
+    // The dashboard sensor is noisy: standing in the sun vs. moving can swing
+    // the reading by a few degrees within seconds. Hold the displayed value
+    // unless the raw reading drifts >= DisplayDeadband from it, or the value
+    // has been held for >= DisplayHoldMs (so small drift catches up). Bypass
+    // the deadband whenever raw is in or near the cold band, so we never lag
+    // a frost warning. Frost/cold state itself runs off the raw value and
+    // already has its own hysteresis.
+    static constexpr double DisplayDeadband = 1.5;
+    static constexpr qint64 DisplayHoldMs = 10000;
+    static constexpr double DisplayBypassBelow = ColdExit;
+
+    double m_rawTemperature = 0.0;
     double m_temperature = 0.0;
     bool m_hasTemperature = false;
     bool m_isCold = false;
     bool m_isFrostWarning = false;
+    QElapsedTimer m_displayHeldSince;
 };
