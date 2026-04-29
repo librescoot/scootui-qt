@@ -62,7 +62,7 @@ Q_ENUM_NS(ChargeStatus)
 enum class AuxChargeStatus { NotCharging, FloatCharge, AbsorptionCharge, BulkCharge };
 Q_ENUM_NS(AuxChargeStatus)
 
-enum class ScreenMode { Cluster, Map, CarPlay, Debug, About, Maintenance, Ota, AddressSelection, Simulator, NavigationSetup, Destination, Faults, UpdateModeInfo, HopOnInfo };
+enum class ScreenMode { Cluster, Map, CarPlay, Debug, About, Maintenance, Ota, AddressSelection, Simulator, NavigationSetup, Destination, Faults, UpdateModeInfo, HopOnInfo, BmxDebug };
 Q_ENUM_NS(ScreenMode)
 
 enum class SetupMode { DisplayMaps, Routing, Both };
