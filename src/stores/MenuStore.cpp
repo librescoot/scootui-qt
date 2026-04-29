@@ -625,8 +625,7 @@ void MenuStore::rebuildMenuTree()
                                           tr->menuCaptureLogs(), [this]() {
         const bool started = QProcess::startDetached(
             QStringLiteral("ssh"),
-            {QStringLiteral("-o"), QStringLiteral("BatchMode=yes"),
-             QStringLiteral("mdb"),
+            {QStringLiteral("-y"), QStringLiteral("mdb"),
              QStringLiteral("lsc"), QStringLiteral("logs")});
         qInfo() << "[MenuStore] Capture Logs triggered, ssh startDetached:" << started;
         close();
