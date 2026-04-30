@@ -98,7 +98,7 @@ protected:
 
 private:
     // @schema dashboard.theme
-    QString m_theme = QStringLiteral("dark");
+    QString m_theme = QStringLiteral("auto");
     // @schema dashboard.mode
     QString m_mode = QStringLiteral("speedometer");
     QString m_showRawSpeed = QStringLiteral("false");
@@ -123,9 +123,9 @@ private:
     // @schema dashboard.show-bluetooth
     QString m_showBluetooth = QStringLiteral("active-or-error");
     // @schema dashboard.show-cloud
-    QString m_showCloud = QStringLiteral("error");
+    QString m_showCloud = QStringLiteral("never");
     // @schema dashboard.show-internet
-    QString m_showInternet = QStringLiteral("always");
+    QString m_showInternet = QStringLiteral("never");
     // @schema dashboard.show-clock
     QString m_showClock = QStringLiteral("always");
     // @schema dashboard.show-temperature
@@ -133,7 +133,7 @@ private:
     // temp <10 °C), "never" (hidden).
     QString m_showTemperature = QStringLiteral("warning");
     // @schema alarm.enabled
-    QString m_alarmEnabled = QStringLiteral("false");
+    QString m_alarmEnabled = QStringLiteral("true");
     // @schema alarm.honk
     QString m_alarmHonk = QStringLiteral("false");
     // @schema alarm.duration
@@ -143,7 +143,7 @@ private:
     // Schema: settings-service/settings.schema.json (user-visible: false).
     QString m_hopOnCombo;
     // @schema dashboard.maps.check-for-updates
-    QString m_mapCheckForUpdates = QStringLiteral("true");
+    QString m_mapCheckForUpdates = QStringLiteral("false");
     // @schema dashboard.maps.auto-download
     QString m_mapAutoDownload = QStringLiteral("false");
     // @schema dashboard.map.traffic-overlay
