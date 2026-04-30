@@ -125,3 +125,14 @@ void ScreenStore::closeHopOnInfo()
 {
     setScreen(static_cast<int>(m_screenBeforeHopOnInfo));
 }
+
+void ScreenStore::enterHopOnLock()
+{
+    m_screenBeforeHopOnLock = m_currentScreen;
+    setScreen(static_cast<int>(ScootEnums::ScreenMode::Cluster));
+}
+
+void ScreenStore::exitHopOnLock()
+{
+    setScreen(static_cast<int>(m_screenBeforeHopOnLock));
+}

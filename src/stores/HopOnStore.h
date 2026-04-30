@@ -10,6 +10,7 @@ class SettingsStore;
 class SettingsService;
 class DashboardStore;
 class MdbRepository;
+class ScreenStore;
 
 /**
  * HopOnStore — handles "hop-on / hop-off" mode for short stops.
@@ -66,6 +67,7 @@ public:
                         SettingsService *settingsService,
                         DashboardStore *dashboard,
                         MdbRepository *repo,
+                        ScreenStore *screen,
                         QObject *parent = nullptr);
 
     int mode() const { return static_cast<int>(m_mode); }
@@ -94,6 +96,7 @@ private slots:
     void onSeatboxButtonChanged();
     void onVehicleStateChanged();
     void onHopOnActiveChanged();
+    void onSettingsComboChanged();
     void onIdleTimeout();
     void onCountdownTick();
     void onBacklightDelayElapsed();
@@ -115,12 +118,18 @@ private:
     void unlock();
     void setMode(Mode m);
     void setLastResult(Result r);
+    // Restore Locked mode if vehicle-service has hop-on engaged but the
+    // dashboard came up Idle (e.g. scootui-qt crashed mid-lock). Idempotent:
+    // safe to call from multiple signals — it does nothing unless every
+    // precondition (mode==Idle, hopOnActive==true, combo non-empty) holds.
+    void tryRestoreLocked();
 
     VehicleStore *m_vehicle;
     SettingsStore *m_settings;
     SettingsService *m_settingsService;
     DashboardStore *m_dashboard;
     MdbRepository *m_repo;
+    ScreenStore *m_screen;
 
     Mode m_mode = Idle;
     QStringList m_buffer;

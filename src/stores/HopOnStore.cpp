@@ -3,6 +3,7 @@
 #include "VehicleStore.h"
 #include "SettingsStore.h"
 #include "DashboardStore.h"
+#include "ScreenStore.h"
 #include "services/SettingsService.h"
 #include "repositories/MdbRepository.h"
 #include "models/Enums.h"
@@ -14,6 +15,7 @@ HopOnStore::HopOnStore(VehicleStore *vehicle,
                        SettingsService *settingsService,
                        DashboardStore *dashboard,
                        MdbRepository *repo,
+                       ScreenStore *screen,
                        QObject *parent)
     : QObject(parent)
     , m_vehicle(vehicle)
@@ -21,6 +23,7 @@ HopOnStore::HopOnStore(VehicleStore *vehicle,
     , m_settingsService(settingsService)
     , m_dashboard(dashboard)
     , m_repo(repo)
+    , m_screen(screen)
 {
     m_idleTimer.setSingleShot(true);
     m_idleTimer.setInterval(kIdleTimeoutMs);
@@ -54,9 +57,12 @@ HopOnStore::HopOnStore(VehicleStore *vehicle,
     connect(m_vehicle, &VehicleStore::hopOnActiveChanged,
             this, &HopOnStore::onHopOnActiveChanged);
 
-    // Settings update -> emit comboChanged so UI rebuilds the menu.
+    // Settings update: relay comboChanged for UI, AND retry the post-restart
+    // restore — vehicle:hop-on-active and settings:hop-on-combo arrive from
+    // different Redis hashes with no ordering guarantee, so the combo can
+    // land after onHopOnActiveChanged already ran with an empty combo.
     connect(m_settings, &SettingsStore::hopOnComboChanged,
-            this, &HopOnStore::comboChanged);
+            this, &HopOnStore::onSettingsComboChanged);
 
     // Initialise edge-detection state from current values so the very
     // first signal isn't treated as a press.
@@ -107,6 +113,13 @@ void HopOnStore::activate()
     }
     qDebug() << "HopOn: activate";
 
+    // Drop the heavy underlying screen (notably MapScreen) before the lock
+    // overlay covers it. Otherwise QtLocation keeps rendering map tiles
+    // under the opaque scrim, which has been observed to OOM-kill or hang
+    // the GPU pipeline on iMX6 — instant hard reset on activation.
+    if (m_screen)
+        m_screen->enterHopOnLock();
+
     // Tell vehicle-service to engage the lockout (and steering lock if positioned).
     if (m_repo)
         m_repo->push(QStringLiteral("scooter:hop-on"), QStringLiteral("engage"));
@@ -141,6 +154,8 @@ void HopOnStore::unlock()
     m_backlightTimer.stop();
     if (m_dashboard)
         m_dashboard->setBacklightEnabled(true);
+    if (m_screen)
+        m_screen->exitHopOnLock();
 
     cancelTimers();
     m_buffer.clear();
@@ -323,6 +338,8 @@ void HopOnStore::onVehicleStateChanged()
             m_backlightTimer.stop();
             if (m_dashboard)
                 m_dashboard->setBacklightEnabled(true);
+            if (m_screen)
+                m_screen->exitHopOnLock();
         }
         cancelTimers();
         m_buffer.clear();
@@ -340,6 +357,8 @@ void HopOnStore::onHopOnActiveChanged()
         m_backlightTimer.stop();
         if (m_dashboard)
             m_dashboard->setBacklightEnabled(true);
+        if (m_screen)
+            m_screen->exitHopOnLock();
         cancelTimers();
         m_buffer.clear();
         emit capturedTokensChanged();
@@ -348,21 +367,36 @@ void HopOnStore::onHopOnActiveChanged()
     }
 
     // Inverse case: vehicle-service still has hop-on engaged while we came
-    // up Idle. This happens when the dashboard crashes/restarts mid-lock —
-    // without re-entering Locked here, MenuStore::open() would let the user
-    // navigate the menu while the scooter is supposed to be locked.
-    // We require a stored combo to restore Locked mode; otherwise the user
-    // would have no way to unlock the dashboard.
-    if (m_vehicle->hopOnActive() && m_mode == Idle && !combo().isEmpty()) {
-        qDebug() << "HopOn: vehicle-service has hop-on active on startup, restoring Locked mode";
-        if (m_dashboard)
-            m_dashboard->setBacklightEnabled(true);
-        m_backlightTimer.start();
-        m_buffer.clear();
-        emit capturedTokensChanged();
-        setMode(Locked);
-        resetIdleCountdown();
-    }
+    // up Idle (dashboard crashed/restarted mid-lock).
+    tryRestoreLocked();
+}
+
+void HopOnStore::onSettingsComboChanged()
+{
+    // Always relay so the menu UI updates.
+    emit comboChanged();
+    // Also retry the post-restart restore: if hop-on-active arrived before
+    // the combo was synced, the earlier onHopOnActiveChanged saw an empty
+    // combo and bailed. Now that the combo exists, take the lock.
+    tryRestoreLocked();
+}
+
+void HopOnStore::tryRestoreLocked()
+{
+    if (m_mode != Idle) return;
+    if (!m_vehicle->hopOnActive()) return;
+    if (combo().isEmpty()) return;
+
+    qDebug() << "HopOn: vehicle-service has hop-on active on startup, restoring Locked mode";
+    if (m_dashboard)
+        m_dashboard->setBacklightEnabled(true);
+    if (m_screen)
+        m_screen->enterHopOnLock();
+    m_backlightTimer.start();
+    m_buffer.clear();
+    emit capturedTokensChanged();
+    setMode(Locked);
+    resetIdleCountdown();
 }
 
 void HopOnStore::setMode(Mode m)

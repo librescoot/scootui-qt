@@ -433,7 +433,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // Hop-on / hop-off store: combo learning, matching, lock screen.
     auto *hopOnStore = new HopOnStore(vehicleStore, settingsStore,
                                       m_settingsService, dashboardStore,
-                                      repo, this);
+                                      repo, screenStore, this);
     menuStore->setHopOnStore(hopOnStore);
     menuStore->setMapDownloadService(m_mapDownloadService);
 

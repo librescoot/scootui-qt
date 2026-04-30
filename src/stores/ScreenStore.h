@@ -40,6 +40,13 @@ public:
     Q_INVOKABLE void showHopOnInfo();
     Q_INVOKABLE void closeHopOnInfo();
 
+    // Hop-on Locked: switch to Cluster (lightweight) so the heavy underlying
+    // screen (notably MapScreen with QtLocation) doesn't keep rendering under
+    // the opaque lock overlay. Restored to whatever the user was on when the
+    // matcher accepts the unlock combo.
+    Q_INVOKABLE void enterHopOnLock();
+    Q_INVOKABLE void exitHopOnLock();
+
     int setupMode() const { return m_setupMode; }
 
 signals:
@@ -58,5 +65,6 @@ private:
     ScootEnums::ScreenMode m_screenBeforeFaults = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeUpdateModeInfo = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeHopOnInfo = ScootEnums::ScreenMode::Cluster;
+    ScootEnums::ScreenMode m_screenBeforeHopOnLock = ScootEnums::ScreenMode::Cluster;
     int m_setupMode = 2; // Both by default
 };
