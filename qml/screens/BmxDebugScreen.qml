@@ -465,7 +465,9 @@ Rectangle {
                             ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke()
                         }
 
-                        // Throttle band (top 10 px): filled where throttle is on
+                        // Throttle band (top 10 px): filled where throttle is
+                        // engaged. engineStore.throttle is a bool, true =
+                        // engaged.
                         ctx.fillStyle = "#553300"
                         for (let i = 0; i < screen.bufLen; ++i) {
                             const idx = (screen.engineIdx + i) % screen.bufLen
