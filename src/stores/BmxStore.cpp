@@ -110,6 +110,8 @@ void BmxStore::applyHeadingSnapshot(const QString &payload)
     m_headingTimestamp = readInt64(obj, QStringLiteral("timestamp"));
     m_headingDeg = readDouble(obj, QStringLiteral("heading_deg"));
     m_headingRawDeg = readDouble(obj, QStringLiteral("heading_raw_deg"));
+    m_headingFastDeg = readDouble(obj, QStringLiteral("heading_fast_deg"), m_headingDeg);
+    m_headingSlowDeg = readDouble(obj, QStringLiteral("heading_slow_deg"), m_headingDeg);
     m_accuracyDeg = readDouble(obj, QStringLiteral("accuracy_deg"));
     m_tiltCompensated = obj.value(QStringLiteral("tilt_compensated")).toBool();
     m_tiltDeg = readDouble(obj, QStringLiteral("tilt_deg"));

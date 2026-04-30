@@ -16,6 +16,8 @@ class BmxStore : public SyncableStore
     // Heading payload (bmx:heading)
     Q_PROPERTY(double headingDeg READ headingDeg NOTIFY headingChanged)
     Q_PROPERTY(double headingRawDeg READ headingRawDeg NOTIFY headingChanged)
+    Q_PROPERTY(double headingFastDeg READ headingFastDeg NOTIFY headingChanged)
+    Q_PROPERTY(double headingSlowDeg READ headingSlowDeg NOTIFY headingChanged)
     Q_PROPERTY(double accuracyDeg READ accuracyDeg NOTIFY headingChanged)
     Q_PROPERTY(bool tiltCompensated READ tiltCompensated NOTIFY headingChanged)
     Q_PROPERTY(double tiltDeg READ tiltDeg NOTIFY headingChanged)
@@ -48,6 +50,8 @@ public:
 
     double headingDeg() const { return m_headingDeg; }
     double headingRawDeg() const { return m_headingRawDeg; }
+    double headingFastDeg() const { return m_headingFastDeg; }
+    double headingSlowDeg() const { return m_headingSlowDeg; }
     double accuracyDeg() const { return m_accuracyDeg; }
     bool tiltCompensated() const { return m_tiltCompensated; }
     double tiltDeg() const { return m_tiltDeg; }
@@ -88,6 +92,8 @@ private:
     // Heading payload state
     double m_headingDeg = 0.0;
     double m_headingRawDeg = 0.0;
+    double m_headingFastDeg = 0.0;
+    double m_headingSlowDeg = 0.0;
     double m_accuracyDeg = 0.0;
     bool m_tiltCompensated = false;
     double m_tiltDeg = 0.0;
