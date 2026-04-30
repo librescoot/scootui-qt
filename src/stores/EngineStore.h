@@ -17,7 +17,10 @@ class EngineStore : public SyncableStore
     Q_PROPERTY(double speed READ speed NOTIFY speedChanged)
     Q_PROPERTY(double rawSpeed READ rawSpeed NOTIFY rawSpeedChanged)
     Q_PROPERTY(bool hasRawSpeed READ hasRawSpeed NOTIFY rawSpeedChanged)
-    Q_PROPERTY(int throttle READ throttle NOTIFY throttleChanged)
+    // throttle exposed as a bool (true = engaged) so QML can use it
+    // naturally; the underlying Toggle enum has Bosch-style ordering
+    // {On=0, Off=1}, which the cast to int would otherwise leak through.
+    Q_PROPERTY(bool throttle READ throttle NOTIFY throttleChanged)
     Q_PROPERTY(QString firmwareVersion READ firmwareVersion NOTIFY firmwareVersionChanged)
     Q_PROPERTY(double odometer READ odometer NOTIFY odometerChanged)
     Q_PROPERTY(double temperature READ temperature NOTIFY temperatureChanged)
@@ -37,7 +40,7 @@ public:
     double speed() const { return m_speed; }
     double rawSpeed() const { return m_rawSpeed; }
     bool hasRawSpeed() const { return m_hasRawSpeed; }
-    int throttle() const { return static_cast<int>(m_throttle); }
+    bool throttle() const { return m_throttle == ScootEnums::Toggle::On; }
     QString firmwareVersion() const { return m_firmwareVersion; }
     double odometer() const { return m_odometer; }
     double temperature() const { return m_temperature; }
