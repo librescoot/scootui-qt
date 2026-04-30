@@ -300,10 +300,12 @@ Row {
 
     // Ambient temperature (leftmost in RTL = last item). Severe-cold glyph
     // (snowflake + !) sits on the left of the digits once we drop below the
-    // frost-warning threshold (< 5 °C). The plain cold band (< 10 °C) shows
-    // the digits only, no glyph. Hysteresis lives in ScooterStore so a
-    // jittering sensor can't flip-flop the row. Visibility gated by
-    // show-temperature setting: always | warning (frost only) | never.
+    // frost-warning threshold (< 5 °C). ScooterStore drives display + cold +
+    // frost state off a smoothed (~60 s EMA) value so the row can't flicker
+    // from sensor jitter. Visibility gated by show-temperature setting:
+    //   always  – row always visible, with snow glyph below 5 °C
+    //   warning – row visible only while in frost-warning band (< 5 °C)
+    //   never   – never shown.
     Row {
         id: tempRow
         spacing: 2
@@ -316,11 +318,10 @@ Row {
         readonly property bool hasTemp: typeof scooterStore !== "undefined" && scooterStore.hasTemperature
         readonly property string tempMode: typeof settingsStore !== "undefined"
                                            ? settingsStore.showTemperature : "warning"
-        readonly property bool isCold: typeof scooterStore !== "undefined" && scooterStore.isCold
         readonly property bool isFrostWarning: typeof scooterStore !== "undefined" && scooterStore.isFrostWarning
 
         visible: hasTemp && tempMode !== "never"
-                 && (tempMode === "always" || isCold)
+                 && (tempMode === "always" || isFrostWarning)
 
         Item {
             visible: tempRow.isFrostWarning
