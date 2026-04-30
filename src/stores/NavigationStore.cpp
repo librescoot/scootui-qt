@@ -42,5 +42,8 @@ void NavigationStore::setDestination(const QString &dest)
 
 void NavigationStore::clearDestination()
 {
-    m_repo->hdel(QStringLiteral("navigation"), QStringLiteral("destination"));
+    // Use set("") instead of HDEL — HiredisWorker::doHdel does not publish,
+    // so subscribers (bluetooth-service, our own SyncableStore) miss the
+    // change and would only catch it via the slow HGETALL poll.
+    m_repo->set(QStringLiteral("navigation"), QStringLiteral("destination"), QString());
 }

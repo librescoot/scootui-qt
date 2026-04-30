@@ -646,12 +646,15 @@ void NavigationService::clearNavigation()
     emit instructionChanged();
     emit positionChanged();
 
-    // Clear Redis
-    m_repo->hdel(QStringLiteral("navigation"), QStringLiteral("latitude"));
-    m_repo->hdel(QStringLiteral("navigation"), QStringLiteral("longitude"));
-    m_repo->hdel(QStringLiteral("navigation"), QStringLiteral("address"));
-    m_repo->hdel(QStringLiteral("navigation"), QStringLiteral("timestamp"));
-    m_repo->hdel(QStringLiteral("navigation"), QStringLiteral("destination"));
+    // Clear Redis. Set fields to "" rather than HDEL: HiredisWorker::doHdel
+    // does not publish a notification, so subscribers (bluetooth-service's
+    // HashWatcher, our own SyncableStore pub/sub path) never wake up and
+    // would only learn of the clear via the 5-second HGETALL poll.
+    m_repo->set(QStringLiteral("navigation"), QStringLiteral("latitude"), QString());
+    m_repo->set(QStringLiteral("navigation"), QStringLiteral("longitude"), QString());
+    m_repo->set(QStringLiteral("navigation"), QStringLiteral("address"), QString());
+    m_repo->set(QStringLiteral("navigation"), QStringLiteral("timestamp"), QString());
+    m_repo->set(QStringLiteral("navigation"), QStringLiteral("destination"), QString());
     m_repo->publish(QStringLiteral("navigation"), QStringLiteral("cleared"));
 }
 
