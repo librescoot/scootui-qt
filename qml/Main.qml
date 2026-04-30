@@ -155,7 +155,10 @@ Window {
         sourceComponent: {
             var maint = root.showMaintenance
             var screen = root.currentScreen
-            if (maint) {
+            // BmxDebug bypasses the maintenance gate so it can be triggered
+            // from a stand-by scooter (dev-only diagnostic, doesn't depend on
+            // a running vehicle state).
+            if (maint && screen !== Scooter.ScreenMode.BmxDebug) {
                 console.log("SCREEN: maintenance (showMaintenance=true, vehicleState=" + root.vehicleState + ")")
                 return maintenanceComponent
             }
