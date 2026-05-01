@@ -34,7 +34,8 @@ enum class VehicleState {
     Booting, ShuttingDown, Hibernating, HibernatingImminent,
     Suspending, SuspendingImminent, Updating,
     WaitingSeatbox, WaitingHibernation, WaitingHibernationAdvanced,
-    WaitingHibernationSeatbox, WaitingHibernationConfirm
+    WaitingHibernationSeatbox, WaitingHibernationConfirm,
+    HopOn, HopOnLearning
 };
 Q_ENUM_NS(VehicleState)
 
@@ -107,6 +108,8 @@ inline VehicleState parseVehicleState(const QString &s) {
     if (s == QLatin1String("waiting-hibernation-advanced")) return VehicleState::WaitingHibernationAdvanced;
     if (s == QLatin1String("waiting-hibernation-seatbox")) return VehicleState::WaitingHibernationSeatbox;
     if (s == QLatin1String("waiting-hibernation-confirm")) return VehicleState::WaitingHibernationConfirm;
+    if (s == QLatin1String("hop-on")) return VehicleState::HopOn;
+    if (s == QLatin1String("hop-on-learning")) return VehicleState::HopOnLearning;
     return VehicleState::Unknown;
 }
 

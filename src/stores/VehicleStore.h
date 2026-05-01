@@ -24,6 +24,7 @@ class VehicleStore : public SyncableStore
     Q_PROPERTY(int hornButton READ hornButton NOTIFY hornButtonChanged)
     Q_PROPERTY(int isUnableToDrive READ isUnableToDrive NOTIFY isUnableToDriveChanged)
     Q_PROPERTY(bool hopOnActive READ hopOnActive NOTIFY hopOnActiveChanged)
+    Q_PROPERTY(bool hopOnLearning READ hopOnLearning NOTIFY hopOnLearningChanged)
     Q_PROPERTY(int mainPower READ mainPower NOTIFY mainPowerChanged)
     Q_PROPERTY(QList<int> faults READ faults NOTIFY faultsChanged)
 
@@ -46,12 +47,23 @@ public:
     int seatboxLock() const { return static_cast<int>(m_seatboxLock); }
     int hornButton() const { return static_cast<int>(m_hornButton); }
     int isUnableToDrive() const { return static_cast<int>(m_isUnableToDrive); }
-    bool hopOnActive() const { return m_hopOnActive; }
+    // hopOnActive derives from the published state. Vehicle-service no
+    // longer maintains a separate `vehicle:hop-on-active` flag — the
+    // leaf state itself carries the truth.
+    bool hopOnActive() const { return m_state == ScootEnums::VehicleState::HopOn; }
+    bool hopOnLearning() const { return m_state == ScootEnums::VehicleState::HopOnLearning; }
     int mainPower() const { return static_cast<int>(m_mainPower); }
     QList<int> faults() const { return m_faults.values(); }
 
-    // Helper getters for QML
-    Q_INVOKABLE bool isParked() const { return m_state == ScootEnums::VehicleState::Parked; }
+    // Helper getters for QML.
+    // isParked() returns true for the whole at-rest family (Parked +
+    // HopOn + HopOnLearning) so menus, learning UI, and other "scooter
+    // is at rest" gates stay open across hop-on detours.
+    Q_INVOKABLE bool isParked() const {
+        return m_state == ScootEnums::VehicleState::Parked ||
+               m_state == ScootEnums::VehicleState::HopOn ||
+               m_state == ScootEnums::VehicleState::HopOnLearning;
+    }
     Q_INVOKABLE bool isReadyToDrive() const { return m_state == ScootEnums::VehicleState::ReadyToDrive; }
     Q_INVOKABLE bool isOff() const { return m_state == ScootEnums::VehicleState::Off; }
     Q_INVOKABLE bool isShuttingDown() const { return m_state == ScootEnums::VehicleState::ShuttingDown; }
@@ -74,6 +86,7 @@ signals:
     void hornButtonChanged();
     void isUnableToDriveChanged();
     void hopOnActiveChanged();
+    void hopOnLearningChanged();
     void mainPowerChanged();
     void faultsChanged();
 
@@ -115,7 +128,6 @@ private:
     ScootEnums::SeatboxLock m_seatboxLock = ScootEnums::SeatboxLock::Closed;
     ScootEnums::Toggle m_hornButton = ScootEnums::Toggle::Off;
     ScootEnums::Toggle m_isUnableToDrive = ScootEnums::Toggle::Off;
-    bool m_hopOnActive = false;
     ScootEnums::Toggle m_mainPower = ScootEnums::Toggle::Off;
     QSet<int> m_faults;
 };

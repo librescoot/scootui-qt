@@ -59,7 +59,6 @@ SyncSettings VehicleStore::syncSettings() const
             {QStringLiteral("seatboxLock"), QStringLiteral("seatbox:lock")},
             {QStringLiteral("hornButton"), QStringLiteral("horn-button")},
             {QStringLiteral("isUnableToDrive"), QStringLiteral("unable-to-drive")},
-            {QStringLiteral("hopOnActive"), QStringLiteral("hop-on-active")},
             {QStringLiteral("mainPower"), QStringLiteral("main-power")},
         },
         {
@@ -123,7 +122,20 @@ void VehicleStore::applyFieldUpdate(const QString &variable, const QString &valu
         if (v != m_kickstand) { m_kickstand = v; emit kickstandChanged(); }
     } else if (variable == QLatin1String("state")) {
         auto v = ScootEnums::parseVehicleState(value);
-        if (v != m_state) { m_state = v; emit stateChanged(); }
+        if (v != m_state) {
+            // hopOnActive / hopOnLearning are computed from m_state, so any
+            // state change implicitly toggles them. Detect transitions in
+            // and out of the hop-on family before updating m_state and fire
+            // the matching change signals so QML bindings refresh.
+            const bool wasHopOn = m_state == ScootEnums::VehicleState::HopOn;
+            const bool wasLearning = m_state == ScootEnums::VehicleState::HopOnLearning;
+            const bool nowHopOn = v == ScootEnums::VehicleState::HopOn;
+            const bool nowLearning = v == ScootEnums::VehicleState::HopOnLearning;
+            m_state = v;
+            emit stateChanged();
+            if (wasHopOn != nowHopOn) emit hopOnActiveChanged();
+            if (wasLearning != nowLearning) emit hopOnLearningChanged();
+        }
         if (value != m_stateRaw) { m_stateRaw = value; emit stateRawChanged(); }
     } else if (variable == QLatin1String("handlebar:lock-sensor")) {
         auto v = ScootEnums::parseHandleBarLockSensor(value);
@@ -146,9 +158,6 @@ void VehicleStore::applyFieldUpdate(const QString &variable, const QString &valu
     } else if (variable == QLatin1String("unable-to-drive")) {
         auto v = ScootEnums::parseToggle(value);
         if (v != m_isUnableToDrive) { m_isUnableToDrive = v; emit isUnableToDriveChanged(); }
-    } else if (variable == QLatin1String("hop-on-active")) {
-        bool v = (value == QLatin1String("true"));
-        if (v != m_hopOnActive) { m_hopOnActive = v; emit hopOnActiveChanged(); }
     } else if (variable == QLatin1String("main-power")) {
         auto v = ScootEnums::parseToggle(value);
         if (v != m_mainPower) { m_mainPower = v; emit mainPowerChanged(); }

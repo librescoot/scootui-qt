@@ -86,13 +86,13 @@ void HopOnStore::startLearning()
     }
     qDebug() << "HopOn: startLearning";
 
-    // Borrow vehicle-service's StateHopOn silently so input side-effects
+    // Enter vehicle-service's StateHopOnLearning so input side-effects
     // (horn, blinker, brake LED, seatbox open, hibernation hold) are
-    // suppressed while the user records their combo. "engage-silent"
-    // skips the LED cue, opportunistic steering lock, and hop-on-active
-    // flag publish — only the input suppression is borrowed.
+    // suppressed while the user records their combo. The learning state
+    // skips the LED cue, opportunistic steering lock, and lock screen —
+    // only the FSM-level input gating is shared with locked hop-on.
     if (m_repo)
-        m_repo->push(QStringLiteral("scooter:hop-on"), QStringLiteral("engage-silent"));
+        m_repo->push(QStringLiteral("scooter:hop-on"), QStringLiteral("engage-learning"));
 
     m_buffer.clear();
     emit capturedTokensChanged();
