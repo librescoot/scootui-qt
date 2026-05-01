@@ -83,7 +83,12 @@ Rectangle {
                     columns: 2
                     columnSpacing: 16
                     rowSpacing: 4
-                    visible: typeof gpsStore !== "undefined" && gpsStore.hasTimestamp
+                    // Show as soon as the chip is producing NMEA — sats/SNR/DOP
+                    // are useful while waiting for a fix. hasTimestamp alone
+                    // would keep this hidden on a cold boot until the first
+                    // fix; satellitesVisible > 0 covers the search window.
+                    visible: typeof gpsStore !== "undefined"
+                             && (gpsStore.hasTimestamp || gpsStore.satellitesVisible > 0)
 
                     readonly property color labelColor: typeof themeStore !== "undefined" && themeStore.isDark
                                                        ? "#99FFFFFF" : "#8A000000"
