@@ -44,13 +44,11 @@ Item {
         }
         sourceSize: Qt.size(24, 24)
         fillMode: Image.PreserveAspectFit
-        visible: false
-    }
-    MultiEffect {
-        source: baseIcon
-        anchors.fill: parent
-        colorization: 1.0
-        colorizationColor: batteryIcon.iconColor
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            colorization: 1.0
+            colorizationColor: batteryIcon.iconColor
+        }
     }
 
     // Charge bar (shown for blank icon states)
@@ -67,34 +65,30 @@ Item {
     Image {
         id: asleepMask
         anchors.fill: parent
-        visible: false
+        visible: batteryIcon.present && batteryIcon.batteryState === bsAsleep
         source: "qrc:/ScootUI/assets/icons/librescoot-main-battery-asleep-mask.svg"
         sourceSize: Qt.size(24, 24)
         fillMode: Image.PreserveAspectFit
-    }
-    MultiEffect {
-        source: asleepMask
-        anchors.fill: parent
-        visible: batteryIcon.present && batteryIcon.batteryState === bsAsleep
-        colorization: 1.0
-        colorizationColor: batteryIcon.isDark ? "#000000" : "#FFFFFF"
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            colorization: 1.0
+            colorizationColor: batteryIcon.isDark ? "#000000" : "#FFFFFF"
+        }
     }
 
     // Asleep overlay
     Image {
         id: asleepOverlay
         anchors.fill: parent
-        visible: false
+        visible: batteryIcon.present && batteryIcon.batteryState === bsAsleep
         source: "qrc:/ScootUI/assets/icons/librescoot-main-battery-asleep-overlay.svg"
         sourceSize: Qt.size(24, 24)
         fillMode: Image.PreserveAspectFit
-    }
-    MultiEffect {
-        source: asleepOverlay
-        anchors.fill: parent
-        visible: batteryIcon.present && batteryIcon.batteryState === bsAsleep
-        colorization: 1.0
-        colorizationColor: batteryIcon.iconColor
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            colorization: 1.0
+            colorizationColor: batteryIcon.iconColor
+        }
     }
 
     // Idle overlay (uses original colors in dark mode, inverted in light)

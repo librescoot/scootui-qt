@@ -85,7 +85,6 @@ Row {
             id: modemIcon
             anchors.fill: parent
             sourceSize: Qt.size(24, 24)
-            visible: false
             source: {
                 if (modemState === 0) return "qrc:/ScootUI/assets/icons/librescoot-internet-modem-off.svg"
                 if (modemState === 1) return "qrc:/ScootUI/assets/icons/librescoot-internet-modem-disconnected.svg"
@@ -93,12 +92,11 @@ Row {
                 var bars = Math.min(Math.floor(signalQuality / 20), 4)
                 return "qrc:/ScootUI/assets/icons/librescoot-internet-modem-connected-" + bars + ".svg"
             }
-        }
-        MultiEffect {
-            source: modemIcon
-            anchors.fill: parent
-            colorization: 1.0
-            colorizationColor: statusIndicators.iconColor
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                colorization: 1.0
+                colorizationColor: statusIndicators.iconColor
+            }
         }
 
         Text {
@@ -122,16 +120,14 @@ Row {
             id: cloudIcon
             anchors.fill: parent
             sourceSize: Qt.size(24, 24)
-            visible: false
             source: cloudStatus === 0
                 ? "qrc:/ScootUI/assets/icons/librescoot-internet-cloud-connected.svg"
                 : "qrc:/ScootUI/assets/icons/librescoot-internet-cloud-disconnected.svg"
-        }
-        MultiEffect {
-            source: cloudIcon
-            anchors.fill: parent
-            colorization: 1.0
-            colorizationColor: statusIndicators.iconColor
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                colorization: 1.0
+                colorizationColor: statusIndicators.iconColor
+            }
         }
     }
 
@@ -144,16 +140,14 @@ Row {
             id: btIcon
             anchors.fill: parent
             sourceSize: Qt.size(24, 24)
-            visible: false
             source: btStatus === 0
                 ? "qrc:/ScootUI/assets/icons/librescoot-bluetooth-connected.svg"
                 : "qrc:/ScootUI/assets/icons/librescoot-bluetooth-disconnected.svg"
-        }
-        MultiEffect {
-            source: btIcon
-            anchors.fill: parent
-            colorization: 1.0
-            colorizationColor: statusIndicators.iconColor
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                colorization: 1.0
+                colorizationColor: statusIndicators.iconColor
+            }
         }
     }
 
@@ -187,16 +181,14 @@ Row {
             id: gpsIcon
             anchors.fill: parent
             sourceSize: Qt.size(24, 24)
-            visible: false
             source: gpsItem.isSearching
                 ? "qrc:/ScootUI/assets/icons/librescoot-gps-searching.svg"
                 : gpsItem.gpsIconSource
-        }
-        MultiEffect {
-            source: gpsIcon
-            anchors.fill: parent
-            colorization: 1.0
-            colorizationColor: statusIndicators.iconColor
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                colorization: 1.0
+                colorizationColor: statusIndicators.iconColor
+            }
         }
 
         // Pulsing center dot overlay (only when searching)
@@ -204,17 +196,14 @@ Row {
             id: gpsCenterDot
             anchors.fill: parent
             sourceSize: Qt.size(24, 24)
-            visible: false
             source: "qrc:/ScootUI/assets/icons/librescoot-gps-center-dot.svg"
-        }
-        MultiEffect {
-            id: gpsCenterDotEffect
-            source: gpsCenterDot
-            anchors.fill: parent
             visible: gpsItem.isSearching
-            colorization: 1.0
-            colorizationColor: statusIndicators.iconColor
             opacity: pulseAnimation.running ? pulseAnimation.pulseValue : 0
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                colorization: 1.0
+                colorizationColor: statusIndicators.iconColor
+            }
         }
 
         SequentialAnimation {
@@ -251,7 +240,6 @@ Row {
                 id: otaIcon
                 anchors.fill: parent
                 sourceSize: Qt.size(24, 24)
-                visible: false
                 source: {
                     switch (otaDbcStatus) {
                         case "downloading":
@@ -271,12 +259,11 @@ Row {
                             return ""
                     }
                 }
-            }
-            MultiEffect {
-                source: otaIcon
-                anchors.fill: parent
-                colorization: 1.0
-                colorizationColor: statusIndicators.iconColor
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    colorization: 1.0
+                    colorizationColor: statusIndicators.iconColor
+                }
             }
         }
 

@@ -17,14 +17,10 @@ Item {
         anchors.fill: parent
         sourceSize: Qt.size(parent.width, parent.height)
         fillMode: Image.PreserveAspectFit
-        visible: !svgIcon.tintEnabled
-    }
-
-    MultiEffect {
-        source: image
-        anchors.fill: parent
-        visible: svgIcon.tintEnabled
-        colorization: 1.0
-        colorizationColor: svgIcon.color
+        layer.enabled: svgIcon.tintEnabled
+        layer.effect: MultiEffect {
+            colorization: 1.0
+            colorizationColor: svgIcon.color
+        }
     }
 }

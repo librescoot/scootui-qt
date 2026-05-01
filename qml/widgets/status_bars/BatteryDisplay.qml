@@ -230,13 +230,11 @@ Row {
             source: "qrc:/ScootUI/assets/icons/librescoot-seatbox-open.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
-            visible: false
-        }
-        MultiEffect {
-            source: seatboxIcon
-            anchors.fill: parent
-            colorization: 1.0
-            colorizationColor: batteryDisplay.iconColor
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                colorization: 1.0
+                colorizationColor: batteryDisplay.iconColor
+            }
         }
     }
 
@@ -254,13 +252,11 @@ Row {
             source: "qrc:/ScootUI/assets/icons/librescoot-cb-battery-blank.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
-            visible: false
-        }
-        MultiEffect {
-            source: cbAbsentIcon
-            anchors.fill: parent
-            colorization: 1.0
-            colorizationColor: batteryDisplay.iconColor
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                colorization: 1.0
+                colorizationColor: batteryDisplay.iconColor
+            }
         }
         Image {
             anchors.fill: parent
@@ -285,13 +281,11 @@ Row {
             source: "qrc:/ScootUI/assets/icons/librescoot-cb-battery-blank.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
-            visible: false
-        }
-        MultiEffect {
-            source: cbIcon
-            anchors.fill: parent
-            colorization: 1.0
-            colorizationColor: batteryDisplay.iconColor
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                colorization: 1.0
+                colorizationColor: batteryDisplay.iconColor
+            }
         }
         Image {
             anchors.fill: parent
@@ -313,13 +307,11 @@ Row {
             source: "qrc:/ScootUI/assets/icons/librescoot-aux-battery-blank.svg"
             sourceSize: Qt.size(24, 24)
             fillMode: Image.PreserveAspectFit
-            visible: false
-        }
-        MultiEffect {
-            source: auxIcon
-            anchors.fill: parent
-            colorization: 1.0
-            colorizationColor: batteryDisplay.iconColor
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                colorization: 1.0
+                colorizationColor: batteryDisplay.iconColor
+            }
         }
         Image {
             anchors.fill: parent
@@ -344,13 +336,11 @@ Row {
             source: "qrc:/ScootUI/assets/icons/librescoot-turtle-mode.svg"
             sourceSize: Qt.size(20, 20)
             fillMode: Image.PreserveAspectFit
-            visible: false
-        }
-        MultiEffect {
-            source: turtleIcon
-            anchors.fill: parent
-            colorization: 1.0
-            colorizationColor: batteryDisplay.iconColor
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                colorization: 1.0
+                colorizationColor: batteryDisplay.iconColor
+            }
         }
     }
 }

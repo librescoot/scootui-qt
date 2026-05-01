@@ -15,14 +15,10 @@ Item {
         anchors.fill: parent
         sourceSize: Qt.size(parent.width, parent.height)
         fillMode: Image.PreserveAspectFit
-        visible: !root.tintEnabled
-    }
-
-    MultiEffect {
-        source: img
-        anchors.fill: parent
-        visible: root.tintEnabled
-        colorization: 1.0
-        colorizationColor: root.tintColor
+        layer.enabled: root.tintEnabled
+        layer.effect: MultiEffect {
+            colorization: 1.0
+            colorizationColor: root.tintColor
+        }
     }
 }
