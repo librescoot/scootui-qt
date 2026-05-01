@@ -25,6 +25,15 @@ void HiredisWorker::registerChannel(const QString &channel, int intervalMs)
     m_channels.append({channel, intervalMs, 0});
 }
 
+QStringList HiredisWorker::registeredChannels() const
+{
+    QStringList out;
+    out.reserve(m_channels.size());
+    for (const auto &ch : m_channels)
+        out.append(ch.channel);
+    return out;
+}
+
 // Compute GCD of all intervals and set up tick modulos
 static int computeGcd(int a, int b)
 {

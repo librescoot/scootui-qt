@@ -35,6 +35,9 @@ public:
     // Thread-safe: called from main thread before worker starts
     void registerChannel(const QString &channel, int intervalMs);
 
+    // Snapshot of registered channel names (main thread, before worker starts).
+    QStringList registeredChannels() const;
+
 public slots:
     // Called on the worker thread
     void start();

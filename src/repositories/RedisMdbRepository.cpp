@@ -3,6 +3,8 @@
 #include "HiredisAdapter.h"
 #include <QDebug>
 #include <QCoreApplication>
+#include <QElapsedTimer>
+#include <hiredis/hiredis.h>
 
 RedisMdbRepository::RedisMdbRepository(const QString &host, quint16 port,
                                          const QString &backupHost, QObject *parent)
@@ -118,6 +120,91 @@ void RedisMdbRepository::startWorker()
     m_workerThread->start();
     // Pub/sub is set up in onWorkerConnectionChanged when the worker first connects,
     // so it connects to the same host the worker chose (primary or backup).
+}
+
+void RedisMdbRepository::prewarmCache(int deadlineMs)
+{
+    if (!m_worker) return;
+
+    QStringList channels = m_worker->registeredChannels();
+    if (channels.isEmpty()) return;
+
+    QElapsedTimer elapsed;
+    elapsed.start();
+
+    // Try primary first with a tight connect budget; fall back to backup if
+    // we still have time. Both budgets stay within deadlineMs so a fully
+    // unreachable Redis can't blow past the cap.
+    int connectBudget = qMin(200, deadlineMs);
+    struct timeval tv = {connectBudget / 1000, (connectBudget % 1000) * 1000};
+    redisContext *ctx = redisConnectWithTimeout(
+        m_host.toUtf8().constData(), m_port, tv);
+    bool usingBackup = false;
+    if ((!ctx || ctx->err) && !m_backupHost.isEmpty()) {
+        if (ctx) { redisFree(ctx); ctx = nullptr; }
+        int remaining = deadlineMs - static_cast<int>(elapsed.elapsed());
+        if (remaining <= 0) {
+            qDebug() << "prewarmCache: deadline hit before backup attempt";
+            return;
+        }
+        int backupBudget = qMin(remaining, 500);
+        tv = {backupBudget / 1000, (backupBudget % 1000) * 1000};
+        ctx = redisConnectWithTimeout(
+            m_backupHost.toUtf8().constData(), m_port, tv);
+        usingBackup = true;
+    }
+    if (!ctx || ctx->err) {
+        qDebug() << "prewarmCache: connect failed in"
+                 << elapsed.elapsed() << "ms, leaving cache cold";
+        if (ctx) redisFree(ctx);
+        return;
+    }
+
+    // Cap any single HGETALL so a wedged hash can't eat the whole budget.
+    int remaining = qMax(50, deadlineMs - static_cast<int>(elapsed.elapsed()));
+    struct timeval cmdTv = {remaining / 1000, (remaining % 1000) * 1000};
+    redisSetTimeout(ctx, cmdTv);
+
+    int filled = 0;
+    int skipped = 0;
+    for (const QString &channel : channels) {
+        if (elapsed.elapsed() >= deadlineMs) {
+            skipped = channels.size() - (filled + 1);
+            break;
+        }
+
+        redisReply *reply = static_cast<redisReply *>(
+            redisCommand(ctx, "HGETALL %s", channel.toUtf8().constData()));
+        if (!reply) {
+            qDebug() << "prewarmCache: HGETALL" << channel
+                     << "failed:" << ctx->errstr;
+            break;
+        }
+
+        if (reply->type == REDIS_REPLY_ARRAY && reply->elements >= 2) {
+            FieldMap fields;
+            fields.reserve(static_cast<int>(reply->elements / 2));
+            for (size_t i = 0; i + 1 < reply->elements; i += 2) {
+                fields.insert(
+                    QString::fromUtf8(reply->element[i]->str,
+                                       reply->element[i]->len),
+                    QString::fromUtf8(reply->element[i + 1]->str,
+                                       reply->element[i + 1]->len));
+            }
+            // Same path the worker uses: updates m_cache and emits
+            // fieldsUpdated, which SyncableStores receive synchronously.
+            onFieldsUpdated(channel, fields);
+            ++filled;
+        }
+        freeReplyObject(reply);
+    }
+
+    redisFree(ctx);
+    qDebug().nospace() << "prewarmCache: filled " << filled << "/"
+                       << channels.size() << " channels in "
+                       << elapsed.elapsed() << "ms"
+                       << (skipped ? QStringLiteral(" (%1 skipped past deadline)").arg(skipped) : QString())
+                       << (usingBackup ? " via backup" : "");
 }
 
 // Cache reads (non-blocking, main thread)

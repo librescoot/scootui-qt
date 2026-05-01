@@ -55,6 +55,16 @@ public:
     // Start the worker thread and pub/sub. Call after all channels are registered.
     void startWorker();
 
+    // Synchronous initial cache fill on the calling thread. Opens a short-lived
+    // blocking redisContext, walks every registered channel with HGETALL, and
+    // dispatches results through onFieldsUpdated() so subscribed stores receive
+    // their field values before QML loads. Bails as soon as the elapsed time
+    // exceeds deadlineMs so a missing or slow Redis can't stall startup;
+    // anything not fetched in time is picked up by the worker thread's normal
+    // poll loop. Call after registerPollChannel() and SyncableStore::start(),
+    // before startWorker().
+    void prewarmCache(int deadlineMs);
+
 private slots:
     void onFieldsUpdated(const QString &channel, const FieldMap &fields);
     void onWorkerConnectionChanged(bool connected, bool usingBackup);

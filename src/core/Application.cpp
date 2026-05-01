@@ -553,6 +553,15 @@ void Application::createStores(QQmlApplicationEngine &engine)
     repo->registerPollChannel(QStringLiteral("version:mdb"), 30000);
     repo->registerPollChannel(QStringLiteral("version:dbc"), 30000);
 
+    // Synchronous prewarm so QML's first paint sees real values rather than
+    // store defaults, eliminating the visible empty-then-populate flash.
+    // Capped at 300ms — anything not fetched falls through to the worker
+    // thread's normal poll loop. No-op for the in-memory repo (sim mode).
+    if (auto *redisRepo = qobject_cast<RedisMdbRepository*>(repo)) {
+        redisRepo->prewarmCache(300);
+    }
+    BOOT_MARK("redis prewarm done");
+
     // Start the Redis worker thread (after all channels are registered)
     if (auto *redisRepo = qobject_cast<RedisMdbRepository*>(repo)) {
         redisRepo->startWorker();
