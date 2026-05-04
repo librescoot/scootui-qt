@@ -70,6 +70,8 @@ Window {
                     && typeof screenStore !== "undefined") {
                 if (screenStore.currentScreen === Scooter.ScreenMode.About)
                     screenStore.closeAbout()
+                else if (screenStore.currentScreen === Scooter.ScreenMode.Faults)
+                    screenStore.closeFaults()
             }
         }
     }
