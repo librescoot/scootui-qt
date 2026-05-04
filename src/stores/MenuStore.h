@@ -23,6 +23,7 @@ class InternetStore;
 class HopOnStore;
 class MapDownloadService;
 class FaultsStore;
+class ToastService;
 
 class MenuStore : public QObject
 {
@@ -50,6 +51,7 @@ public:
     void setHopOnStore(HopOnStore *store);
     void setMapDownloadService(MapDownloadService *svc);
     void setFaultsStore(FaultsStore *store);
+    void setToastService(ToastService *svc);
     ~MenuStore() override;
 
     bool isOpen() const { return m_isOpen; }
@@ -94,6 +96,7 @@ private:
     HopOnStore *m_hopOn = nullptr;
     MapDownloadService *m_mapDownload = nullptr;
     FaultsStore *m_faults = nullptr;
+    ToastService *m_toastService = nullptr;
 
     std::unique_ptr<MenuNode> m_rootNode;
     bool m_isOpen = false;

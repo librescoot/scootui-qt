@@ -136,6 +136,17 @@ void Translations::initStrings()
     en[QStringLiteral("menuCaptureLogs")] = QStringLiteral("Capture Logs");
     de[QStringLiteral("menuCaptureLogs")] = QStringLiteral("Logs sichern");
 
+    en[QStringLiteral("captureLogsToastStarted")] = QStringLiteral("Capturing logs…");
+    de[QStringLiteral("captureLogsToastStarted")] = QStringLiteral("Logs werden gesichert…");
+
+    en[QStringLiteral("captureLogsToastDone")] = QStringLiteral(
+        "Logs have been saved\nDownload them using Update Mode");
+    de[QStringLiteral("captureLogsToastDone")] = QStringLiteral(
+        "Logs gesichert\nÜber Update-Modus herunterladen");
+
+    en[QStringLiteral("captureLogsToastFailed")] = QStringLiteral("Log capture failed");
+    de[QStringLiteral("captureLogsToastFailed")] = QStringLiteral("Logs sichern fehlgeschlagen");
+
     en[QStringLiteral("menuEnterUms")] = QStringLiteral("Update Mode…");
     de[QStringLiteral("menuEnterUms")] = QStringLiteral("Update-Modus…");
 

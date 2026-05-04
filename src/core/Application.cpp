@@ -445,6 +445,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
                                          vehicleStore, bluetoothStore, internetStore,
                                          faultEventStore, m_translations, this);
     menuStore->setFaultsStore(faultsStore);
+    menuStore->setToastService(m_toastService);
 
     // Speed up polling while the faults screen is open, slow it back down
     // when it closes so the active-count badge still refreshes without

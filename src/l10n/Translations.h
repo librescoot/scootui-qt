@@ -41,6 +41,9 @@ class Translations : public QObject
     Q_PROPERTY(QString menuAlarmDuration30 READ menuAlarmDuration30 NOTIFY languageChanged)
     Q_PROPERTY(QString menuSystem READ menuSystem NOTIFY languageChanged)
     Q_PROPERTY(QString menuCaptureLogs READ menuCaptureLogs NOTIFY languageChanged)
+    Q_PROPERTY(QString captureLogsToastStarted READ captureLogsToastStarted NOTIFY languageChanged)
+    Q_PROPERTY(QString captureLogsToastDone READ captureLogsToastDone NOTIFY languageChanged)
+    Q_PROPERTY(QString captureLogsToastFailed READ captureLogsToastFailed NOTIFY languageChanged)
     Q_PROPERTY(QString menuEnterUms READ menuEnterUms NOTIFY languageChanged)
     Q_PROPERTY(QString menuFaults READ menuFaults NOTIFY languageChanged)
     Q_PROPERTY(QString faultsEmpty READ faultsEmpty NOTIFY languageChanged)
@@ -446,6 +449,9 @@ public:
     QString menuAlarmDuration30() const { return lookup("menuAlarmDuration30"); }
     QString menuSystem() const { return lookup("menuSystem"); }
     QString menuCaptureLogs() const { return lookup("menuCaptureLogs"); }
+    QString captureLogsToastStarted() const { return lookup("captureLogsToastStarted"); }
+    QString captureLogsToastDone() const { return lookup("captureLogsToastDone"); }
+    QString captureLogsToastFailed() const { return lookup("captureLogsToastFailed"); }
     QString menuEnterUms() const { return lookup("menuEnterUms"); }
     QString menuFaults() const { return lookup("menuFaults"); }
     QString faultsEmpty() const { return lookup("faultsEmpty"); }

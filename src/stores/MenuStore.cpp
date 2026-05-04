@@ -11,6 +11,7 @@
 #include "HopOnStore.h"
 #include "FaultsStore.h"
 #include "l10n/Translations.h"
+#include "services/ToastService.h"
 #include "services/SettingsService.h"
 #include "services/NavigationService.h"
 #include "services/NavigationAvailabilityService.h"
@@ -143,6 +144,11 @@ void MenuStore::setFaultsStore(FaultsStore *store)
         connect(m_faults, &FaultsStore::entriesChanged,
                 this, &MenuStore::rebuildMenuTree);
     }
+}
+
+void MenuStore::setToastService(ToastService *svc)
+{
+    m_toastService = svc;
 }
 
 void MenuStore::rebuildMenuTree()
@@ -618,16 +624,43 @@ void MenuStore::rebuildMenuTree()
         }));
     }
 
-    // Capture Logs — fire-and-forget `ssh mdb lsc logs`. Assumes DBC->MDB
-    // key-based ssh is set up by the image build. Runs detached; bundle lands
-    // in /data/logs-<timestamp>.tar.gz on MDB.
+    // Capture Logs — `ssh mdb lsc logs`. Closes the menu immediately and
+    // runs the bundle job in the background. A toast confirms it kicked off,
+    // then a second toast reports success or failure when ssh exits. Assumes
+    // DBC->MDB key-based ssh is set up by the image build; bundle lands in
+    // /data/logs-<timestamp>.tar.gz on MDB.
     systemNode->addChild(MenuNode::action(QStringLiteral("capture_logs"),
                                           tr->menuCaptureLogs(), [this]() {
-        const bool started = QProcess::startDetached(
-            QStringLiteral("ssh"),
-            {QStringLiteral("-y"), QStringLiteral("mdb"),
-             QStringLiteral("lsc"), QStringLiteral("logs")});
-        qInfo() << "[MenuStore] Capture Logs triggered, ssh startDetached:" << started;
+        auto *proc = new QProcess(this);
+        proc->setProgram(QStringLiteral("ssh"));
+        proc->setArguments({QStringLiteral("-y"), QStringLiteral("mdb"),
+                            QStringLiteral("lsc"), QStringLiteral("logs")});
+
+        connect(proc, &QProcess::errorOccurred, this,
+                [this, proc](QProcess::ProcessError err) {
+            qWarning() << "[MenuStore] Capture Logs ssh errorOccurred:" << err;
+            if (m_toastService)
+                m_toastService->showError(m_translations->captureLogsToastFailed());
+            proc->deleteLater();
+        });
+
+        connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+                this, [this, proc](int exitCode, QProcess::ExitStatus status) {
+            qInfo() << "[MenuStore] Capture Logs ssh finished, exitCode:" << exitCode
+                    << "status:" << status;
+            if (m_toastService) {
+                if (status == QProcess::NormalExit && exitCode == 0)
+                    m_toastService->showSuccess(m_translations->captureLogsToastDone());
+                else
+                    m_toastService->showError(m_translations->captureLogsToastFailed());
+            }
+            proc->deleteLater();
+        });
+
+        proc->start();
+        qInfo() << "[MenuStore] Capture Logs triggered";
+        if (m_toastService)
+            m_toastService->showInfo(m_translations->captureLogsToastStarted());
         close();
     }));
 
