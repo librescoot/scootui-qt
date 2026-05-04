@@ -616,8 +616,8 @@ void Translations::initStrings()
     en[QStringLiteral("menuRecentDestinations")] = QStringLiteral("Recent Destinations");
     de[QStringLiteral("menuRecentDestinations")] = QStringLiteral("Letzte Ziele");
 
-    en[QStringLiteral("menuSaveToFavorites")] = QStringLiteral("Save to Favorites");
-    de[QStringLiteral("menuSaveToFavorites")] = QStringLiteral("In Favoriten speichern");
+    en[QStringLiteral("menuSaveToFavorites")] = QStringLiteral("Save Location");
+    de[QStringLiteral("menuSaveToFavorites")] = QStringLiteral("Ort speichern");
 
     en[QStringLiteral("menuNavSetup")] = QStringLiteral("Maps & Routing…");
     de[QStringLiteral("menuNavSetup")] = QStringLiteral("Karten & Routing…");

@@ -152,7 +152,7 @@ void RecentDestinationsStore::promoteToSaved(int id)
     s.label = label;
     if (m_savedService->save(s)) {
         m_service->remove(id);
-        m_toast->showSuccess(QStringLiteral("Saved to favorites"));
+        m_toast->showSuccess(QStringLiteral("Location saved"));
         load();
     } else {
         m_toast->showError(QStringLiteral("Could not save"));
