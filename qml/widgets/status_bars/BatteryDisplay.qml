@@ -70,7 +70,8 @@ Row {
                                          ? vehicleStore.seatboxLock !== slClosed : false
 
     // --- Turtle mode ---
-    readonly property bool showTurtle: present0 && charge0 <= 20
+    readonly property bool showTurtle: (present0 && battState0 === bsActive && charge0 <= 20)
+                                       || (present1 && battState1 === bsActive && charge1 <= 20)
 
     // --- Battery warning conditions ---
     // CB battery not present
