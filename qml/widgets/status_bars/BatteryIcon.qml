@@ -8,7 +8,6 @@ Item {
     required property int charge
     required property int batteryState
     required property bool present
-    required property bool isBattery0
     required property bool hasFault
     required property color iconColor
     required property bool isDark
@@ -24,8 +23,8 @@ Item {
     readonly property real chargeH: 83.0 * (24.0 / 144.0)
     readonly property real chargeMaxW: 98.0 * (24.0 / 144.0)
 
-    function fillColor(charge, isBattery0) {
-        if (isBattery0) {
+    function fillColor(charge, battState) {
+        if (battState === bsActive) {
             if (charge <= 10) return "#FF0000"
             if (charge <= 20) return "#FF7900"
         }
@@ -58,7 +57,7 @@ Item {
         x: chargeX; y: chargeY
         height: chargeH
         width: chargeMaxW * (batteryIcon.charge / 100.0)
-        color: fillColor(batteryIcon.charge, batteryIcon.isBattery0)
+        color: fillColor(batteryIcon.charge, batteryIcon.batteryState)
     }
 
     // Asleep mask (renders in background color to "cut out" areas)

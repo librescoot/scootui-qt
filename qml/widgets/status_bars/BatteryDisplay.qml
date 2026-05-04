@@ -57,8 +57,8 @@ Row {
         return rangeKm.toFixed(1) + " km"
     }
 
-    function chargeLabelColor(charge, isBattery0) {
-        if (isBattery0) {
+    function chargeLabelColor(charge, battState) {
+        if (battState === bsActive) {
             if (charge <= 10) return "#FF0000"
             if (charge <= 20) return "#FF7900"
         }
@@ -169,7 +169,6 @@ Row {
         charge: charge0
         batteryState: battState0
         present: present0
-        isBattery0: true
         hasFault: hasFault0
         iconColor: batteryDisplay.iconColor
         isDark: batteryDisplay.isDark
@@ -182,7 +181,7 @@ Row {
         font.pixelSize: themeStore.fontBody
         font.weight: Font.DemiBold
         font.letterSpacing: -1.1
-        color: chargeLabelColor(charge0, true)
+        color: chargeLabelColor(charge0, battState0)
     }
 
     // Group separator before Battery 1
@@ -196,7 +195,6 @@ Row {
         charge: charge1
         batteryState: battState1
         present: present1
-        isBattery0: false
         hasFault: hasFault1
         iconColor: batteryDisplay.iconColor
         isDark: batteryDisplay.isDark
@@ -210,7 +208,7 @@ Row {
         font.pixelSize: themeStore.fontBody
         font.weight: Font.DemiBold
         font.letterSpacing: -1.1
-        color: chargeLabelColor(charge1, false)
+        color: chargeLabelColor(charge1, battState1)
     }
 
     // Group separator before warning icons
