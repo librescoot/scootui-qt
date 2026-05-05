@@ -1,6 +1,6 @@
 // BMX debug screen — developer view for aligning magnetic heading against
 // GPS course and visualizing live IMU + drivetrain data. Triggered via:
-//   redis-cli HSET settings dashboard.mode bmx-debug
+//   redis-cli HSET settings dashboard.mode motion-debug
 // Not exposed in any in-product menu.
 //
 // Layout on the 480×480 display:
@@ -79,19 +79,19 @@ Rectangle {
     }
 
     Connections {
-        target: bmxStore
+        target: motionStore
         function onSensorsChanged() {
-            screen.gyroBuf.x[screen.gyroIdx] = bmxStore.gyroX
-            screen.gyroBuf.y[screen.gyroIdx] = bmxStore.gyroY
-            screen.gyroBuf.z[screen.gyroIdx] = bmxStore.gyroZ
+            screen.gyroBuf.x[screen.gyroIdx] = motionStore.gyroX
+            screen.gyroBuf.y[screen.gyroIdx] = motionStore.gyroY
+            screen.gyroBuf.z[screen.gyroIdx] = motionStore.gyroZ
             screen.gyroIdx = (screen.gyroIdx + 1) % screen.bufLen
             horizon.requestPaint()
         }
         function onHeadingChanged() {
-            screen.headBuf.raw[screen.headIdx]  = bmxStore.headingRawDeg
-            screen.headBuf.fast[screen.headIdx] = bmxStore.headingFastDeg
-            screen.headBuf.med[screen.headIdx]  = bmxStore.headingDeg
-            screen.headBuf.slow[screen.headIdx] = bmxStore.headingSlowDeg
+            screen.headBuf.raw[screen.headIdx]  = motionStore.headingRawDeg
+            screen.headBuf.fast[screen.headIdx] = motionStore.headingFastDeg
+            screen.headBuf.med[screen.headIdx]  = motionStore.headingDeg
+            screen.headBuf.slow[screen.headIdx] = motionStore.headingSlowDeg
             screen.headBuf.gps[screen.headIdx]  =
                 (gpsStore && gpsStore.hasValidGps) ? gpsStore.course : NaN
             screen.headIdx = (screen.headIdx + 1) % screen.bufLen
@@ -125,9 +125,9 @@ Rectangle {
                     // Vehicle-frame NED accel: at rest level (ax,ay,az)=(0,0,-g).
                     // Use level-aware tilt formulas so 0 = level (instead of
                     // the standard NED Tait-Bryan which gives 180° at rest).
-                    const ax = bmxStore.accelX
-                    const ay = bmxStore.accelY
-                    const az = bmxStore.accelZ
+                    const ax = motionStore.accelX
+                    const ay = motionStore.accelY
+                    const az = motionStore.accelZ
                     const roll = Math.atan2(ay, -az)     // + = right lean
                     const pitch = Math.atan2(ax, -az)    // + = nose up
 
@@ -194,9 +194,9 @@ Rectangle {
                     ctx.textAlign = "right"
                     ctx.fillText("P " + (pitch * 180 / Math.PI).toFixed(1) + "°", width - 4, 4)
                     ctx.textAlign = "left"; ctx.textBaseline = "bottom"
-                    ctx.fillText("|a|" + bmxStore.accelMagnitude.toFixed(2) + "g", 4, height - 4)
+                    ctx.fillText("|a|" + motionStore.accelMagnitude.toFixed(2) + "g", 4, height - 4)
                     ctx.textAlign = "right"
-                    ctx.fillText(bmxStore.tiltCompensated ? "tilt-comp" : "X/Y only",
+                    ctx.fillText(motionStore.tiltCompensated ? "tilt-comp" : "X/Y only",
                                  width - 4, height - 4)
                 }
             }
@@ -267,9 +267,9 @@ Rectangle {
                     ctx.font = "11px monospace"
                     ctx.fillStyle = "#ddd"
                     ctx.textAlign = "right"; ctx.textBaseline = "bottom"
-                    ctx.fillText("X " + bmxStore.gyroX.toFixed(1) + "°/s", width - 4, height - 30)
-                    ctx.fillText("Y " + bmxStore.gyroY.toFixed(1) + "°/s", width - 4, height - 16)
-                    ctx.fillText("Z " + bmxStore.gyroZ.toFixed(1) + "°/s", width - 4, height - 2)
+                    ctx.fillText("X " + motionStore.gyroX.toFixed(1) + "°/s", width - 4, height - 30)
+                    ctx.fillText("Y " + motionStore.gyroY.toFixed(1) + "°/s", width - 4, height - 16)
+                    ctx.fillText("Z " + motionStore.gyroZ.toFixed(1) + "°/s", width - 4, height - 2)
                 }
             }
         }
@@ -341,10 +341,10 @@ Rectangle {
 
                     // Magnetic heading needles, longest = freshest, all same length
                     // category but slightly stepped to avoid total overlap.
-                    needle(bmxStore.headingSlowDeg, "#c060ff", r - 8,  2)
-                    needle(bmxStore.headingDeg,     "#3aa0ff", r - 14, 2)
-                    needle(bmxStore.headingFastDeg, "#ffaa44", r - 20, 2)
-                    needle(bmxStore.headingRawDeg,  "#7fc8ff", r - 26, 2)
+                    needle(motionStore.headingSlowDeg, "#c060ff", r - 8,  2)
+                    needle(motionStore.headingDeg,     "#3aa0ff", r - 14, 2)
+                    needle(motionStore.headingFastDeg, "#ffaa44", r - 20, 2)
+                    needle(motionStore.headingRawDeg,  "#7fc8ff", r - 26, 2)
 
                     ctx.fillStyle = "#bbb"
                     ctx.beginPath(); ctx.arc(cx, cy, 3, 0, 2 * Math.PI); ctx.fill()
@@ -356,17 +356,17 @@ Rectangle {
                         ctx.fillStyle = "#ff4040"
                         ctx.fillText("GPS  " + gpsStore.course.toFixed(0) + "°", 4, 4)
                     }
-                    ctx.fillStyle = "#7fc8ff"; ctx.fillText("raw  " + bmxStore.headingRawDeg.toFixed(0) + "°", 4, 18)
-                    ctx.fillStyle = "#ffaa44"; ctx.fillText("fast " + bmxStore.headingFastDeg.toFixed(0) + "°", 4, 30)
-                    ctx.fillStyle = "#3aa0ff"; ctx.fillText("med  " + bmxStore.headingDeg.toFixed(0) + "°", 4, 42)
-                    ctx.fillStyle = "#c060ff"; ctx.fillText("slow " + bmxStore.headingSlowDeg.toFixed(0) + "°", 4, 54)
+                    ctx.fillStyle = "#7fc8ff"; ctx.fillText("raw  " + motionStore.headingRawDeg.toFixed(0) + "°", 4, 18)
+                    ctx.fillStyle = "#ffaa44"; ctx.fillText("fast " + motionStore.headingFastDeg.toFixed(0) + "°", 4, 30)
+                    ctx.fillStyle = "#3aa0ff"; ctx.fillText("med  " + motionStore.headingDeg.toFixed(0) + "°", 4, 42)
+                    ctx.fillStyle = "#c060ff"; ctx.fillText("slow " + motionStore.headingSlowDeg.toFixed(0) + "°", 4, 54)
 
                     ctx.textAlign = "right"
                     ctx.fillStyle = "#999"
-                    ctx.fillText("±" + bmxStore.accuracyDeg.toFixed(1) + "°", width - 4, 4)
-                    ctx.fillText("|B|" + bmxStore.magStrengthUT.toFixed(1), width - 4, 16)
+                    ctx.fillText("±" + motionStore.accuracyDeg.toFixed(1) + "°", width - 4, 4)
+                    ctx.fillText("|B|" + motionStore.magStrengthUT.toFixed(1), width - 4, 16)
                     if (gpsStore && gpsStore.hasValidGps) {
-                        let d = bmxStore.headingDeg - gpsStore.course
+                        let d = motionStore.headingDeg - gpsStore.course
                         d = ((d + 540) % 360) - 180
                         ctx.fillStyle = "#dddd66"
                         ctx.fillText("Δ " + (d >= 0 ? "+" : "") + d.toFixed(0) + "°",

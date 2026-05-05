@@ -43,8 +43,8 @@ void ScreenStore::applyMode(const QString &mode)
         target = ScootEnums::ScreenMode::Map;
     else if (mode == QLatin1String("debug"))
         target = ScootEnums::ScreenMode::Debug;
-    else if (mode == QLatin1String("bmx-debug"))
-        target = ScootEnums::ScreenMode::BmxDebug;
+    else if (mode == QLatin1String("motion-debug"))
+        target = ScootEnums::ScreenMode::MotionDebug;
 
     if (target != m_currentScreen) {
         m_currentScreen = target;

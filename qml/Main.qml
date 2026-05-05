@@ -155,10 +155,10 @@ Window {
         sourceComponent: {
             var maint = root.showMaintenance
             var screen = root.currentScreen
-            // BmxDebug bypasses the maintenance gate so it can be triggered
+            // MotionDebug bypasses the maintenance gate so it can be triggered
             // from a stand-by scooter (dev-only diagnostic, doesn't depend on
             // a running vehicle state).
-            if (maint && screen !== Scooter.ScreenMode.BmxDebug) {
+            if (maint && screen !== Scooter.ScreenMode.MotionDebug) {
                 console.log("SCREEN: maintenance (showMaintenance=true, vehicleState=" + root.vehicleState + ")")
                 return maintenanceComponent
             }
@@ -168,7 +168,7 @@ Window {
                 case Scooter.ScreenMode.Cluster:         comp = clusterComponent;     name = "cluster";     break
                 case Scooter.ScreenMode.Map:             comp = mapComponent;         name = "map";         break
                 case Scooter.ScreenMode.Debug:           comp = debugComponent;       name = "debug";       break
-                case Scooter.ScreenMode.BmxDebug:        comp = bmxDebugComponent;    name = "bmx-debug";   break
+                case Scooter.ScreenMode.MotionDebug:        comp = motionDebugComponent;    name = "motion-debug";   break
                 case Scooter.ScreenMode.About:           comp = aboutComponent;       name = "about";       break
                 case Scooter.ScreenMode.Maintenance:     comp = maintenanceComponent; name = "maintenance"; break
                 case Scooter.ScreenMode.Ota:             comp = otaBgComponent;       name = "otaBg";       break
@@ -190,7 +190,7 @@ Window {
     Component { id: maintenanceComponent; MaintenanceScreen {} }
     Component { id: aboutComponent; AboutScreen {} }
     Component { id: debugComponent; DebugScreen {} }
-    Component { id: bmxDebugComponent; BmxDebugScreen {} }
+    Component { id: motionDebugComponent; MotionDebugScreen {} }
     Component { id: otaBgComponent; OtaBackgroundScreen {} }
     Component { id: addressComponent; AddressSelectionScreen {} }
     Component { id: navSetupComponent; NavigationSetupScreen {} }

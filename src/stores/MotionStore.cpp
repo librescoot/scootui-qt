@@ -1,63 +1,63 @@
-#include "BmxStore.h"
+#include "MotionStore.h"
 
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonValue>
 
-BmxStore::BmxStore(MdbRepository *repo, QObject *parent)
+MotionStore::MotionStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
 }
 
-BmxStore::~BmxStore()
+MotionStore::~MotionStore()
 {
     if (m_headingSubscribed) {
-        m_repo->unsubscribe(QStringLiteral("bmx:heading"));
+        m_repo->unsubscribe(QStringLiteral("motion:heading"));
         m_headingSubscribed = false;
     }
     if (m_sensorsSubscribed) {
-        m_repo->unsubscribe(QStringLiteral("bmx:sensors"));
+        m_repo->unsubscribe(QStringLiteral("motion:sensors"));
         m_sensorsSubscribed = false;
     }
 }
 
-void BmxStore::start()
+void MotionStore::start()
 {
     SyncableStore::start();
 
-    m_repo->subscribe(QStringLiteral("bmx:heading"),
+    m_repo->subscribe(QStringLiteral("motion:heading"),
                       [this](const QString &, const QString &message) {
                           applyHeadingSnapshot(message);
                       });
     m_headingSubscribed = true;
 
-    m_repo->subscribe(QStringLiteral("bmx:sensors"),
+    m_repo->subscribe(QStringLiteral("motion:sensors"),
                       [this](const QString &, const QString &message) {
                           applySensorsSnapshot(message);
                       });
     m_sensorsSubscribed = true;
 }
 
-void BmxStore::stop()
+void MotionStore::stop()
 {
     if (m_headingSubscribed) {
-        m_repo->unsubscribe(QStringLiteral("bmx:heading"));
+        m_repo->unsubscribe(QStringLiteral("motion:heading"));
         m_headingSubscribed = false;
     }
     if (m_sensorsSubscribed) {
-        m_repo->unsubscribe(QStringLiteral("bmx:sensors"));
+        m_repo->unsubscribe(QStringLiteral("motion:sensors"));
         m_sensorsSubscribed = false;
     }
     SyncableStore::stop();
 }
 
-SyncSettings BmxStore::syncSettings() const
+SyncSettings MotionStore::syncSettings() const
 {
     // Slow HGETALL safety net so heading-related hash fields are visible
     // even when no pub/sub message has arrived since startup. The actual
     // live data flows over kHeadingChannel / kSensorsChannel.
     return SyncSettings{
-        QStringLiteral("bmx"), 5000,
+        QStringLiteral("motion"), 5000,
         {
             {QStringLiteral("heading-deg"), QStringLiteral("heading-deg")},
             {QStringLiteral("heading-accuracy"), QStringLiteral("heading-accuracy")},
@@ -68,7 +68,7 @@ SyncSettings BmxStore::syncSettings() const
     };
 }
 
-void BmxStore::applyFieldUpdate(const QString &variable, const QString &value)
+void MotionStore::applyFieldUpdate(const QString &variable, const QString &value)
 {
     // Hash-derived fields. Only consume the ones that aren't continuously
     // updated by the pub/sub channels — the snapshot path is authoritative
@@ -99,7 +99,7 @@ static qint64 readInt64(const QJsonObject &obj, const QString &key, qint64 fallb
     return fallback;
 }
 
-void BmxStore::applyHeadingSnapshot(const QString &payload)
+void MotionStore::applyHeadingSnapshot(const QString &payload)
 {
     QJsonParseError err{};
     const auto doc = QJsonDocument::fromJson(payload.toUtf8(), &err);
@@ -122,7 +122,7 @@ void BmxStore::applyHeadingSnapshot(const QString &payload)
     emit headingChanged();
 }
 
-void BmxStore::applySensorsSnapshot(const QString &payload)
+void MotionStore::applySensorsSnapshot(const QString &payload)
 {
     QJsonParseError err{};
     const auto doc = QJsonDocument::fromJson(payload.toUtf8(), &err);

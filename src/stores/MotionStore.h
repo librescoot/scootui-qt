@@ -2,18 +2,18 @@
 
 #include "SyncableStore.h"
 
-// BmxStore subscribes to bmx-service's two pub/sub channels:
-//   bmx:sensors  — 10 Hz JSON snapshot {timestamp, accel, gyro, mag}
-//   bmx:heading  — 5 Hz JSON snapshot of the heading payload
+// MotionStore subscribes to motion-service's two pub/sub channels:
+//   motion:sensors  — 10 Hz JSON snapshot {timestamp, accel, gyro, mag}
+//   motion:heading  — 5 Hz JSON snapshot of the heading payload
 //
-// The base SyncableStore HGETALL safety net polls the `bmx` hash slowly so
-// status fields (heading-deg, heading-accuracy, sensitivity, ...) are also
-// available without a fresh push.
-class BmxStore : public SyncableStore
+// The base SyncableStore HGETALL safety net polls the `motion` hash slowly
+// so status fields (heading-deg, heading-accuracy, sensitivity, ...) are
+// also available without a fresh push.
+class MotionStore : public SyncableStore
 {
     Q_OBJECT
 
-    // Heading payload (bmx:heading)
+    // Heading payload (motion:heading)
     Q_PROPERTY(double headingDeg READ headingDeg NOTIFY headingChanged)
     Q_PROPERTY(double headingRawDeg READ headingRawDeg NOTIFY headingChanged)
     Q_PROPERTY(double headingFastDeg READ headingFastDeg NOTIFY headingChanged)
@@ -26,7 +26,7 @@ class BmxStore : public SyncableStore
     Q_PROPERTY(double yawRateDPS READ yawRateDPS NOTIFY headingChanged)
     Q_PROPERTY(qint64 headingTimestamp READ headingTimestamp NOTIFY headingChanged)
 
-    // Sensors payload (bmx:sensors)
+    // Sensors payload (motion:sensors)
     Q_PROPERTY(double accelX READ accelX NOTIFY sensorsChanged)
     Q_PROPERTY(double accelY READ accelY NOTIFY sensorsChanged)
     Q_PROPERTY(double accelZ READ accelZ NOTIFY sensorsChanged)
@@ -42,8 +42,8 @@ class BmxStore : public SyncableStore
     Q_PROPERTY(qint64 sensorsTimestamp READ sensorsTimestamp NOTIFY sensorsChanged)
 
 public:
-    explicit BmxStore(MdbRepository *repo, QObject *parent = nullptr);
-    ~BmxStore() override;
+    explicit MotionStore(MdbRepository *repo, QObject *parent = nullptr);
+    ~MotionStore() override;
 
     void start() override;
     void stop() override;
