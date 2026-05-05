@@ -633,6 +633,213 @@ static int latToTileYTMS(double lat, int zoom)
 }
 
 // ---------------------------------------------------------------------------
+// Sidecar load: read prebuilt place / street / postcode tables from the
+// .mbtiles. Generated server-side by osm-tiles' build_places.py. When the
+// sidecar is present this path replaces the tile-iter + PIP build entirely.
+// ---------------------------------------------------------------------------
+
+static bool sidecarTablesPresent(QSqlDatabase &db)
+{
+    QSqlQuery q(db);
+    q.prepare(QStringLiteral(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type='table' "
+        "AND name IN ('places','place_aliases','place_streets','place_postcodes')"));
+    if (!q.exec() || !q.next())
+        return false;
+    return q.value(0).toInt() == 4;
+}
+
+static BuildResult buildFromSidecar(AddressDatabaseService *service, const QString &mbtilesPath)
+{
+    BuildResult result;
+    Q_UNUSED(service);
+
+    const QString connName = QStringLiteral("address_sidecar");
+    {
+        QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connName);
+        db.setDatabaseName(mbtilesPath);
+        db.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
+        if (!db.open()) {
+            QSqlDatabase::removeDatabase(connName);
+            result.error = QStringLiteral("Cannot open mbtiles");
+            return result;
+        }
+
+        if (!sidecarTablesPresent(db)) {
+            db.close();
+            QSqlDatabase::removeDatabase(connName);
+            // Not an error per se — just signal "no sidecar available";
+            // caller will fall back to the tile-iter build.
+            result.error = QStringLiteral("NoSidecar");
+            return result;
+        }
+
+        TrieData data;
+
+        // Load places into id → canonical-name + sum of address counts.
+        QHash<qint64, QString> placeNames;
+        QHash<qint64, QString> placeNormNames;
+        {
+            QSqlQuery pq(db);
+            if (!pq.exec(QStringLiteral("SELECT id, name, address_count FROM places"))) {
+                db.close();
+                QSqlDatabase::removeDatabase(connName);
+                result.error = QStringLiteral("places query failed");
+                return result;
+            }
+            while (pq.next()) {
+                qint64 pid = pq.value(0).toLongLong();
+                QString name = pq.value(1).toString();
+                placeNames.insert(pid, name);
+                placeNormNames.insert(pid, AddressDatabaseService::normalize(name));
+                data.addressCount += pq.value(2).toInt();
+            }
+        }
+        qDebug() << "AddressDatabase: sidecar — loaded" << placeNames.size() << "places";
+
+        // Insert canonical name for every place (the city trie is keyed by
+        // normalized canonical so each place has its own terminal).
+        for (auto it = placeNames.constBegin(); it != placeNames.constEnd(); ++it) {
+            data.cityTrie.insert(placeNormNames.value(it.key()), it.value());
+        }
+
+        // Insert all aliases (alias_norm → place's canonical display).
+        // FlatTrie::insert is first-write-wins for the displayName at a given
+        // path, which is fine here: when aliases collide ("Schwabing" from
+        // both Schwabing-West and Schwabing-Freimann), one canonical wins as
+        // the alias-terminal display, but the other is still reachable via
+        // its own canonical path "schwabing-freimann" / "schwabing-west" in
+        // the same subtree, so getMatchingCities still returns both.
+        {
+            QSqlQuery aq(db);
+            if (!aq.exec(QStringLiteral(
+                    "SELECT alias_norm, place_id FROM place_aliases"))) {
+                db.close();
+                QSqlDatabase::removeDatabase(connName);
+                result.error = QStringLiteral("place_aliases query failed");
+                return result;
+            }
+            int aliasCount = 0;
+            while (aq.next()) {
+                QString aliasNorm = aq.value(0).toString();
+                qint64 pid = aq.value(1).toLongLong();
+                auto pnIt = placeNames.constFind(pid);
+                if (pnIt == placeNames.constEnd())
+                    continue;
+                data.cityTrie.insert(aliasNorm, pnIt.value());
+                aliasCount++;
+            }
+            qDebug() << "AddressDatabase: sidecar — inserted" << aliasCount << "aliases";
+        }
+
+        // Per-place street tries + StreetRecord centroids.
+        {
+            QSqlQuery sq(db);
+            if (!sq.exec(QStringLiteral(
+                    "SELECT place_id, street_norm, street_display, "
+                    "centroid_lat, centroid_lng, address_count FROM place_streets"))) {
+                db.close();
+                QSqlDatabase::removeDatabase(connName);
+                result.error = QStringLiteral("place_streets query failed");
+                return result;
+            }
+            int streetCount = 0;
+            while (sq.next()) {
+                qint64 pid = sq.value(0).toLongLong();
+                QString streetNorm = sq.value(1).toString();
+                QString streetDisp = sq.value(2).toString();
+                double lat = sq.value(3).toDouble();
+                double lng = sq.value(4).toDouble();
+                int addrCount = sq.value(5).toInt();
+
+                auto pnIt = placeNormNames.constFind(pid);
+                if (pnIt == placeNormNames.constEnd())
+                    continue;
+                const QString &normCity = pnIt.value();
+
+                auto &streetTriePtr = data.streetTries[normCity];
+                if (!streetTriePtr)
+                    streetTriePtr = std::make_shared<FlatTrie>();
+                streetTriePtr->insert(streetNorm, streetDisp);
+
+                auto &rec = data.streetData[normCity][streetNorm];
+                if (rec.displayStreet.isEmpty())
+                    rec.displayStreet = streetDisp;
+                rec.centroid.lat = lat;
+                rec.centroid.lng = lng;
+                rec.centroid.count = addrCount > 0 ? addrCount : 1;
+                streetCount++;
+            }
+            qDebug() << "AddressDatabase: sidecar — loaded" << streetCount << "place_streets";
+        }
+
+        // Per-postcode centroids.
+        {
+            QSqlQuery pcq(db);
+            if (!pcq.exec(QStringLiteral(
+                    "SELECT place_id, street_norm, postcode, centroid_lat, centroid_lng "
+                    "FROM place_postcodes"))) {
+                db.close();
+                QSqlDatabase::removeDatabase(connName);
+                result.error = QStringLiteral("place_postcodes query failed");
+                return result;
+            }
+            int pcCount = 0;
+            while (pcq.next()) {
+                qint64 pid = pcq.value(0).toLongLong();
+                QString streetNorm = pcq.value(1).toString();
+                QString postcode = pcq.value(2).toString();
+                double lat = pcq.value(3).toDouble();
+                double lng = pcq.value(4).toDouble();
+
+                auto pnIt = placeNormNames.constFind(pid);
+                if (pnIt == placeNormNames.constEnd())
+                    continue;
+                const QString &normCity = pnIt.value();
+
+                auto cityIt = data.streetData.find(normCity);
+                if (cityIt == data.streetData.end())
+                    continue;
+                auto streetIt = cityIt.value().find(streetNorm);
+                if (streetIt == cityIt.value().end())
+                    continue;
+
+                auto &pc = streetIt.value().pcCentroidRef(postcode);
+                pc.lat = lat;
+                pc.lng = lng;
+                pc.count = 1;
+                pcCount++;
+            }
+            qDebug() << "AddressDatabase: sidecar — loaded" << pcCount << "place_postcodes";
+        }
+
+        // Freeze all tries.
+        data.cityTrie.finalize();
+        for (auto it = data.streetTries.begin(); it != data.streetTries.end(); ++it)
+            it.value()->finalize();
+
+        db.close();
+
+        result.success = true;
+        result.fromCache = true; // structurally similar — no separate JSON cache write
+        result.tries = std::make_shared<TrieData>(std::move(data));
+    }
+    QSqlDatabase::removeDatabase(connName);
+
+    // The sidecar tables in the .mbtiles are now the source of truth, so the
+    // legacy JSON cache (built by the old tile-iter path) is redundant. Drop
+    // it so we don't leak disk space on devices that have used both code
+    // paths across an upgrade.
+    if (result.success && QFile::exists(AddressDatabaseService::CachePath)) {
+        if (QFile::remove(AddressDatabaseService::CachePath))
+            qDebug() << "AddressDatabase: removed stale legacy cache"
+                     << AddressDatabaseService::CachePath;
+    }
+
+    return result;
+}
+
+// ---------------------------------------------------------------------------
 // Background build: extract addresses from mbtiles
 // ---------------------------------------------------------------------------
 
@@ -918,11 +1125,25 @@ void AddressDatabaseService::initialize()
     setStatus(Building, QStringLiteral("Building address database..."));
 
     watcher->setFuture(QtConcurrent::run([this]() -> BuildResult {
-        // Quick hash check + cache load attempt
         QString mbtilesPath = QFile::exists(QStringLiteral("map.mbtiles"))
             ? QStringLiteral("map.mbtiles")
             : MbtilesPath;
 
+        // Preferred path: load prebuilt place / street / postcode tables
+        // shipped inside the .mbtiles by osm-tiles' build_places.py. This is
+        // ~5 seconds vs. minutes for the legacy tile-iter build.
+        {
+            BuildResult sc = buildFromSidecar(this, mbtilesPath);
+            if (sc.success)
+                return sc;
+            if (sc.error != QLatin1String("NoSidecar")) {
+                qWarning() << "AddressDatabase: sidecar load failed:" << sc.error;
+                // Fall through to legacy path rather than erroring out.
+            }
+        }
+
+        // Legacy fallback: hash the mbtiles, try the JSON cache, else iterate
+        // tiles. Used for older mbtiles without the sidecar tables.
         QFile mapFile(mbtilesPath);
         if (!mapFile.open(QIODevice::ReadOnly)) {
             return BuildResult{false, false, QStringLiteral("Cannot open map file"), {}, {}};
