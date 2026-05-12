@@ -757,13 +757,17 @@ void NavigationService::onVehicleStateChanged()
 {
     if (!m_vehicle) return;
 
-    // Clear navigation if shutting down or entering stand-by near destination
-    bool isLocking = m_vehicle->isShuttingDown() || m_vehicle->isStandBy();
-    if (isLocking && m_destination.isValid()) {
+    // Clear navigation when the rider is leaving the scooter near the destination.
+    // Covers full lock (ShuttingDown/StandBy) and hop-on, where the rider parks
+    // without fully locking — both signal that the trip has ended. HopOnLearning
+    // is excluded: the rider is still present, teaching the scooter the combo.
+    bool isLeaving = m_vehicle->isShuttingDown() || m_vehicle->isStandBy()
+                  || m_vehicle->hopOnActive();
+    if (isLeaving && m_destination.isValid()) {
         LatLng pos = currentPosition();
         double dist = pos.distanceTo(m_destination);
         if (dist < ShutdownProximity || m_wasArrived) {
-            qDebug() << "NavigationService: clearing navigation (lock near destination)";
+            qDebug() << "NavigationService: clearing navigation (leaving scooter near destination)";
             clearNavigation();
         }
     }
