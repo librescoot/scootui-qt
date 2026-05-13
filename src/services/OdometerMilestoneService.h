@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QList>
 #include <QObject>
 #include <QSet>
 #include <QString>
@@ -11,9 +12,6 @@ class ConnectionStore;
 class OdometerMilestoneService : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(double currentKm READ currentKm NOTIFY milestoneReached)
-    Q_PROPERTY(int currentIntensity READ currentIntensity NOTIFY milestoneReached)
-    Q_PROPERTY(QString currentTag READ currentTag NOTIFY milestoneReached)
     Q_PROPERTY(bool easterEggsEnabled READ easterEggsEnabled WRITE setEasterEggsEnabled NOTIFY easterEggsEnabledChanged)
 
 public:
@@ -22,28 +20,46 @@ public:
                              ConnectionStore *connectionStore,
                              QObject *parent = nullptr);
 
-    double currentKm() const { return m_currentKm; }
-    int currentIntensity() const { return m_currentIntensity; }
-    QString currentTag() const { return m_currentTag; }
     bool easterEggsEnabled() const { return m_easterEggsEnabled; }
     void setEasterEggsEnabled(bool enabled);
 
-    Q_INVOKABLE void dismiss();
+    // Called by the big celebration overlay when its hold finishes, to
+    // request the next queued milestone (if any).
+    Q_INVOKABLE void advanceCelebration();
 
 signals:
     void easterEggsEnabledChanged();
+
+    // Fired the instant a milestone is crossed during a ride. Drives the
+    // small in-ride toast only. No queueing; one event per crossing.
     // km: display value in kilometers (integer for plain milestones,
     //     fractional for easter-egg numbers).
-    // intensity: 1..10, controls confetti amount.
+    // intensity: 1..10, used by the celebration to scale confetti.
     // tag: empty string for plain milestones, or an id like "devil",
     //      "leet", "power2", "sequence", "boobs", "rollover".
-    void milestoneReached(double km, int intensity, QString tag);
+    void milestoneCrossed(double km, int intensity, QString tag);
+
+    // Fired one-at-a-time when the scooter parks with one or more queued
+    // crossings from the ride. Drives confetti + the big centered banner.
+    // The overlay calls advanceCelebration() when its hold finishes to
+    // pop the next item, or end the sequence.
+    void milestoneCelebrate(double km, int intensity, QString tag);
 
 private:
+    struct Pending {
+        double km;
+        int intensity;
+        QString tag;
+    };
+
     static int milestoneForKm(double km);
     static int intensityForMilestone(int milestoneKm);
 
     void onOdometerChanged();
+    void onVehicleStateChanged();
+    void enqueueAndCross(double km, int intensity, const QString &tag);
+    void startNextCelebration();
+
     QString persistPath() const;
     int loadLastMilestone() const;
     void saveLastMilestone(int km);
@@ -53,14 +69,15 @@ private:
     ConnectionStore *m_connectionStore = nullptr;
 
     int m_lastCelebrated = -1;
-    double m_currentKm = 0.0;
-    int m_currentIntensity = 0;
-    QString m_currentTag;
     bool m_settled = false;
     double m_maxSeenDuringSettle = 0.0;
     double m_lastOdoKm = -1.0;
     bool m_easterEggsEnabled = false;
     QSet<QString> m_firedEasterEggs;
+
+    QList<Pending> m_queue;
+    bool m_celebrating = false;
+    int m_lastVehicleState = -1;
 
     QString easterEggsPath() const;
     bool loadEasterEggsEnabled() const;

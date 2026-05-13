@@ -255,6 +255,7 @@ set(QML_FILES
     qml/overlays/VersionOverlay.qml
     qml/overlays/ToastOverlay.qml
     qml/overlays/OdometerMilestoneOverlay.qml
+    qml/overlays/MilestoneCelebrationOverlay.qml
     qml/overlays/DebugOverlay.qml
     qml/simulator/SimulatorWindow.qml
 )

@@ -264,6 +264,13 @@ Window {
 
     Loader {
         anchors.fill: parent
+        z: 925
+        asynchronous: true
+        sourceComponent: Component { MilestoneCelebrationOverlay { anchors.fill: parent } }
+    }
+
+    Loader {
+        anchors.fill: parent
         z: 950
         asynchronous: true
         sourceComponent: Component { AutoLockCountdownOverlay { anchors.fill: parent } }

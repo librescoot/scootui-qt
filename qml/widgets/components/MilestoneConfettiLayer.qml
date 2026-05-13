@@ -2,7 +2,8 @@ import QtQuick
 import QtQuick.Particles
 
 // Drop this into a screen at a low z value so confetti falls behind widgets.
-// Listens to odometerMilestoneService.milestoneReached and bursts accordingly.
+// Listens to odometerMilestoneService.milestoneCelebrate and bursts when
+// the scooter parks after a ride that crossed milestones.
 Item {
     id: root
     anchors.fill: parent
@@ -58,8 +59,8 @@ Item {
 
     Connections {
         target: odometerMilestoneService ? odometerMilestoneService : null
-        function onMilestoneReached(km, intens, tag) {
-            root.tag = tag
+        function onMilestoneCelebrate(km, intens, tagIn) {
+            root.tag = tagIn
             root.intensity = intens
             sys.running = true
             root.emitting = true
@@ -148,11 +149,11 @@ Item {
         acceleration: PointDirection { y: 280; yVariation: 60 }
     }
 
-    // Upward burst from the bottom-right (where the toast card sits)
+    // Upward burst from screen center (under the celebration banner).
     Emitter {
         system: sys
-        x: root.width - 60
-        y: root.height - 58
+        x: root.width / 2 - 40
+        y: root.height / 2 + 20
         width: 80
         height: 20
         emitRate: root.emitting ? root.cardRate : 0

@@ -1,16 +1,18 @@
 import QtQuick
 import ScootUI 1.0
 
-// Small in-ride toast that fires the moment a milestone is crossed.
-// The matching confetti + big celebration banner only appear at park
-// (see MilestoneCelebrationOverlay and MilestoneConfettiLayer).
+// Large centered banner shown when the scooter parks with one or more
+// queued milestone crossings from the ride. Companion to the confetti
+// layer (MilestoneConfettiLayer). Sequential: when the hold ends, asks
+// the service to advance to the next queued milestone (if any).
 Item {
     id: root
     anchors.fill: parent
-    z: 920
+    z: 925
 
     property real milestoneKm: 0
     property string tag: ""
+    property int intensity: 0
     property bool active: false
 
     readonly property int currentScreen: screenStore && screenStore.currentScreen !== undefined
@@ -18,9 +20,8 @@ Item {
     readonly property bool allowedScreen: currentScreen === Scooter.ScreenMode.Cluster
                                        || currentScreen === Scooter.ScreenMode.Map
 
-    // Theme per tag.
     readonly property var themeMap: ({
-        "":         { bg0: "#D4AF37", bg1: "#F6E27A", bg2: "#D4AF37", fg: "#1a1200", border: "#8B6914", icon: "★", title: "Milestone" },
+        "":         { bg0: "#D4AF37", bg1: "#F6E27A", bg2: "#D4AF37", fg: "#1a1200", border: "#8B6914", icon: "★", title: "Milestone reached" },
         "devil":    { bg0: "#7f0000", bg1: "#d32f2f", bg2: "#7f0000", fg: "#fff3b0", border: "#3a0000", icon: "☠", title: "666" },
         "leet":     { bg0: "#00695C", bg1: "#00E676", bg2: "#00695C", fg: "#002814", border: "#004D40", icon: "⚡", title: "L33T" },
         "leet_rev": { bg0: "#004D40", bg1: "#64FFDA", bg2: "#004D40", fg: "#002814", border: "#003830", icon: "⚡", title: "ELITE" },
@@ -39,10 +40,18 @@ Item {
 
     Connections {
         target: odometerMilestoneService ? odometerMilestoneService : null
-        function onMilestoneCrossed(km, intens, tag) {
-            if (!root.allowedScreen) return
+        function onMilestoneCelebrate(km, intens, tagIn) {
+            if (!root.allowedScreen) {
+                // Skip to next queued item — overlay only renders on
+                // cluster/map.
+                Qt.callLater(function() {
+                    odometerMilestoneService.advanceCelebration()
+                })
+                return
+            }
             root.milestoneKm = km
-            root.tag = tag
+            root.intensity = intens
+            root.tag = tagIn
             root.active = true
             var holdMs = Math.max(3500, 1800 + intens * 450 + 1500)
             dismissTimer.interval = holdMs
@@ -52,21 +61,25 @@ Item {
 
     Timer {
         id: dismissTimer
-        onTriggered: root.active = false
+        onTriggered: {
+            root.active = false
+            // Give the exit animation a beat before the next banner pops in.
+            Qt.callLater(function() {
+                if (typeof odometerMilestoneService !== "undefined")
+                    odometerMilestoneService.advanceCelebration()
+            })
+        }
     }
 
     Rectangle {
         id: card
-        width: contentRow.implicitWidth + 24
-        height: contentRow.implicitHeight + 12
-        radius: themeStore && themeStore.radiusCard !== undefined ? themeStore.radiusCard : 12
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.rightMargin: 4
-        anchors.bottomMargin: 4
-        transformOrigin: Item.BottomRight
+        width: Math.min(parent.width - 32, contentCol.implicitWidth + 60)
+        height: contentCol.implicitHeight + 36
+        radius: themeStore && themeStore.radiusCard !== undefined ? themeStore.radiusCard * 1.5 : 18
+        anchors.centerIn: parent
+        transformOrigin: Item.Center
         opacity: root.active ? 1 : 0
-        scale: root.active ? 1 : 0.7
+        scale: root.active ? 1 : 0.6
         visible: opacity > 0.01
 
         gradient: Gradient {
@@ -77,39 +90,36 @@ Item {
         }
 
         border.color: root.theme.border
-        border.width: 1
+        border.width: 2
 
         Column {
-            id: contentRow
+            id: contentCol
             anchors.centerIn: parent
-            spacing: 0
-            Row {
+            spacing: 6
+
+            Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                spacing: 4
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: root.theme.icon
-                    color: root.theme.fg
-                    font.pixelSize: themeStore && themeStore.fontCaption !== undefined ? themeStore.fontCaption : 12
-                }
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: root.theme.title
-                    color: root.theme.fg
-                    font.pixelSize: themeStore && themeStore.fontCaption !== undefined ? themeStore.fontCaption : 12
-                    font.weight: Font.Medium
-                }
+                text: root.theme.icon
+                color: root.theme.fg
+                font.pixelSize: 56
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: root.theme.title
+                color: root.theme.fg
+                font.pixelSize: themeStore && themeStore.fontTitle !== undefined ? themeStore.fontTitle : 22
+                font.weight: Font.Medium
             }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: root.formatKm(root.milestoneKm)
                 color: root.theme.fg
-                font.pixelSize: themeStore && themeStore.fontBody !== undefined ? themeStore.fontBody : 16
+                font.pixelSize: 72
                 font.weight: Font.Bold
             }
         }
 
-        Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
-        Behavior on scale   { NumberAnimation { duration: 350; easing.type: Easing.OutBack } }
+        Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
+        Behavior on scale   { NumberAnimation { duration: 420; easing.type: Easing.OutBack } }
     }
 }

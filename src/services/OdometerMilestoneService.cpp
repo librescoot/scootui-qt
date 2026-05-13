@@ -55,6 +55,11 @@ OdometerMilestoneService::OdometerMilestoneService(EngineStore *engineStore,
     m_easterEggsEnabled = loadEasterEggsEnabled();
     connect(m_engineStore, &EngineStore::odometerChanged,
             this, &OdometerMilestoneService::onOdometerChanged);
+    if (m_vehicleStore) {
+        connect(m_vehicleStore, &VehicleStore::stateChanged,
+                this, &OdometerMilestoneService::onVehicleStateChanged);
+        m_lastVehicleState = m_vehicleStore->state();
+    }
 
     QTimer::singleShot(5000, this, [this]() {
         m_settled = true;
@@ -119,12 +124,9 @@ void OdometerMilestoneService::onOdometerChanged()
         if (m_firedEasterEggs.contains(tag)) continue;
         if (prevKm >= 0.0 && prevKm < egg.km && odoKm >= egg.km) {
             m_firedEasterEggs.insert(tag);
-            m_currentKm = egg.km;
-            m_currentIntensity = egg.intensity;
-            m_currentTag = tag;
             qDebug() << "OdometerMilestone: easter egg" << tag << "at" << egg.km << "km";
-            emit milestoneReached(m_currentKm, m_currentIntensity, m_currentTag);
-            return;  // one celebration at a time
+            enqueueAndCross(egg.km, egg.intensity, tag);
+            return;  // one crossing at a time
         }
     }
 
@@ -134,12 +136,63 @@ void OdometerMilestoneService::onOdometerChanged()
     m_lastCelebrated = milestone;
     saveLastMilestone(milestone);
 
-    m_currentKm = milestone;
-    m_currentIntensity = intensityForMilestone(milestone);
-    m_currentTag.clear();
+    const int intensity = intensityForMilestone(milestone);
     qDebug() << "OdometerMilestone: reached" << milestone << "km (intensity"
-             << m_currentIntensity << ")";
-    emit milestoneReached(m_currentKm, m_currentIntensity, m_currentTag);
+             << intensity << ")";
+    enqueueAndCross(static_cast<double>(milestone), intensity, QString());
+}
+
+void OdometerMilestoneService::enqueueAndCross(double km, int intensity, const QString &tag)
+{
+    emit milestoneCrossed(km, intensity, tag);
+    m_queue.append({km, intensity, tag});
+
+    // If the scooter is already parked when a milestone is crossed (e.g.
+    // simulator scrub, manual odometer edit), kick off the celebration
+    // right away — otherwise it would sit in the queue forever.
+    if (!m_celebrating && m_vehicleStore) {
+        const auto st = static_cast<ScootEnums::VehicleState>(m_vehicleStore->state());
+        if (st == ScootEnums::VehicleState::Parked) {
+            startNextCelebration();
+        }
+    }
+}
+
+void OdometerMilestoneService::onVehicleStateChanged()
+{
+    if (!m_vehicleStore) return;
+    const int prev = m_lastVehicleState;
+    const int now = m_vehicleStore->state();
+    m_lastVehicleState = now;
+
+    const auto nowState = static_cast<ScootEnums::VehicleState>(now);
+    const bool prevWasParked = prev == static_cast<int>(ScootEnums::VehicleState::Parked);
+    if (nowState == ScootEnums::VehicleState::Parked && !prevWasParked) {
+        if (!m_celebrating && !m_queue.isEmpty()) {
+            startNextCelebration();
+        }
+    }
+}
+
+void OdometerMilestoneService::startNextCelebration()
+{
+    if (m_queue.isEmpty()) {
+        m_celebrating = false;
+        return;
+    }
+    const Pending next = m_queue.takeFirst();
+    m_celebrating = true;
+    qDebug() << "OdometerMilestone: celebrate" << next.km << "km tag" << next.tag;
+    emit milestoneCelebrate(next.km, next.intensity, next.tag);
+}
+
+void OdometerMilestoneService::advanceCelebration()
+{
+    if (m_queue.isEmpty()) {
+        m_celebrating = false;
+        return;
+    }
+    startNextCelebration();
 }
 
 void OdometerMilestoneService::setEasterEggsEnabled(bool enabled)
@@ -176,13 +229,6 @@ void OdometerMilestoneService::saveEasterEggsEnabled(bool enabled)
     QFile f(path);
     if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) return;
     f.write(enabled ? "1\n" : "0\n");
-}
-
-void OdometerMilestoneService::dismiss()
-{
-    m_currentKm = 0.0;
-    m_currentIntensity = 0;
-    m_currentTag.clear();
 }
 
 QString OdometerMilestoneService::persistPath() const
