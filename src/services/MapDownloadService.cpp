@@ -202,7 +202,7 @@ void MapDownloadService::fetchTilesManifest(std::function<void(const QJsonObject
 {
     QUrl url{QStringLiteral("https://downloads.librescoot.org/releases/tiles.json")};
     QNetworkRequest req{url};
-    req.setRawHeader("User-Agent", "LibreScoot/1.0");
+    req.setRawHeader("User-Agent", "Librescoot/1.0");
     req.setTransferTimeout(15000);
 
     auto *reply = m_nam->get(req);
@@ -225,7 +225,7 @@ void MapDownloadService::doResolveSlug(double lat, double lng)
                       .arg(lat, 0, 'f', 6).arg(lng, 0, 'f', 6);
 
     QNetworkRequest req{QUrl{url}};
-    req.setRawHeader("User-Agent", "LibreScoot/1.0");
+    req.setRawHeader("User-Agent", "Librescoot/1.0");
     // s_stateToSlug only knows German state names; force Nominatim to return
     // those regardless of the device's system locale.
     req.setRawHeader("Accept-Language", "de");
@@ -362,7 +362,7 @@ void MapDownloadService::doDownloadFile(const QString &url, const QString &destP
     QDir().mkpath(downloadDir());
 
     QNetworkRequest req{QUrl{url}};
-    req.setRawHeader("User-Agent", "LibreScoot/1.0");
+    req.setRawHeader("User-Agent", "Librescoot/1.0");
 
     // Check for partial download (resume)
     qint64 existingSize = 0;

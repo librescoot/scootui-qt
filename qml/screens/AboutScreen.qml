@@ -96,7 +96,7 @@ Rectangle {
                             ? translations.aboutGenuineAdvantage : "Genuine Advantage activated.")
                     else
                         toastService.showInfo(typeof translations !== "undefined"
-                            ? translations.aboutBootThemeRestored : "Boot theme: LibreScoot restored.")
+                            ? translations.aboutBootThemeRestored : "Boot theme: Librescoot restored.")
                 }
             }
         }
@@ -194,7 +194,7 @@ Rectangle {
                 // Copyright
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: licenseId + "  \u00A9\u00A0" + copyrightYear + " LibreScoot contributors"
+                    text: licenseId + "  \u00A9\u00A0" + copyrightYear + " Librescoot contributors"
                     color: aboutScreen.textSecondary
                     font.pixelSize: themeStore.fontBody
                     horizontalAlignment: Text.AlignHCenter

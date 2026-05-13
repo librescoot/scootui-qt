@@ -542,8 +542,8 @@ void Translations::initStrings()
     // About
     // -----------------------------------------------------------------------
 
-    en[QStringLiteral("aboutTitle")] = QStringLiteral("LibreScoot");
-    de[QStringLiteral("aboutTitle")] = QStringLiteral("LibreScoot");
+    en[QStringLiteral("aboutTitle")] = QStringLiteral("Librescoot");
+    de[QStringLiteral("aboutTitle")] = QStringLiteral("Librescoot");
 
     en[QStringLiteral("aboutNonCommercialTitle")] = QStringLiteral("NON-COMMERCIAL SOFTWARE");
     de[QStringLiteral("aboutNonCommercialTitle")] = QStringLiteral("NICHT-KOMMERZIELLE SOFTWARE");
@@ -560,8 +560,8 @@ void Translations::initStrings()
     en[QStringLiteral("aboutBackAction")] = QStringLiteral("Back");
     de[QStringLiteral("aboutBackAction")] = QStringLiteral("Zur\u00FCck");
 
-    en[QStringLiteral("aboutBootThemeRestored")] = QStringLiteral("Boot theme: LibreScoot restored.");
-    de[QStringLiteral("aboutBootThemeRestored")] = QStringLiteral("Boot-Theme: LibreScoot wiederhergestellt.");
+    en[QStringLiteral("aboutBootThemeRestored")] = QStringLiteral("Boot theme: Librescoot restored.");
+    de[QStringLiteral("aboutBootThemeRestored")] = QStringLiteral("Boot-Theme: Librescoot wiederhergestellt.");
 
     en[QStringLiteral("aboutGenuineAdvantage")] = QStringLiteral("Genuine Advantage activated.");
     de[QStringLiteral("aboutGenuineAdvantage")] = QStringLiteral("Genuine Advantage aktiviert.");
