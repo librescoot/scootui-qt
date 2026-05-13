@@ -4,6 +4,9 @@
 #include <QJsonObject>
 #include <QJsonValue>
 
+#include <cmath>
+#include <cstdint>
+
 namespace {
 constexpr auto kTpvChannel = "gps:tpv";
 }
@@ -58,14 +61,25 @@ void GpsStore::applySnapshot(const QString &payload)
         const QString &key = it.key();
         const QJsonValue v = it.value();
         QString s;
-        if (v.isString())
+        if (v.isString()) {
             s = v.toString();
-        else if (v.isBool())
+        } else if (v.isBool()) {
             s = v.toBool() ? QStringLiteral("true") : QStringLiteral("false");
-        else if (v.isDouble())
-            s = QString::number(v.toDouble(), 'f', -1);
-        else
+        } else if (v.isDouble()) {
+            // Integer-valued JSON numbers (satellites-used / -visible) must
+            // round-trip as "8", not "8.000000" — applyFieldUpdate parses
+            // those fields with toInt(), which stops at the decimal point
+            // and silently returns 0. That zeroed every TPV snapshot, with
+            // the 5 s HGETALL poll briefly restoring the real value.
+            const double d = v.toDouble();
+            const qint64 i = static_cast<qint64>(d);
+            if (static_cast<double>(i) == d && std::abs(d) < 1e15)
+                s = QString::number(i);
+            else
+                s = QString::number(d, 'g', 17);
+        } else {
             continue;
+        }
         applyFieldUpdate(key, s);
     }
 }
