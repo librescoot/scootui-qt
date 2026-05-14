@@ -74,16 +74,54 @@ QString AddressDatabaseService::cleanCityName(const QString &raw)
 
 QString AddressDatabaseService::normalize(const QString &name)
 {
+    // Mirrors normalize() in osm-tiles/build_places.py — both MUST produce
+    // identical output for any UTF-8 input. Fixtures in
+    // osm-tiles/tests/normalize_cases.txt cover both sides.
+    //
+    // Rules:
+    // - German umlauts and ß expand to digraphs (Köln → koeln).
+    // - Other Latin diacritics strip to the base letter (Liège → liege).
+    // - Ligatures Œ/Æ expand to oe/ae.
+    // - Letters and digits pass through lowercased; spaces and hyphens kept.
+    //   Everything else (dots, apostrophes, punctuation) is dropped.
     QString result;
     result.reserve(name.size() + 8);
 
     for (int i = 0; i < name.size(); ++i) {
         ushort u = name[i].unicode();
         switch (u) {
+        // German umlauts and eszett — digraph expansion.
         case 0x00C4: case 0x00E4: result += QLatin1String("ae"); break; // Ää
         case 0x00D6: case 0x00F6: result += QLatin1String("oe"); break; // Öö
         case 0x00DC: case 0x00FC: result += QLatin1String("ue"); break; // Üü
-        case 0x00DF: result += QLatin1String("ss"); break;               // ß
+        case 0x00DF: result += QLatin1String("ss"); break;              // ß
+        // Other Latin diacritics — strip to base letter.
+        case 0x00C0: case 0x00E0: case 0x00C1: case 0x00E1:             // À Á
+        case 0x00C2: case 0x00E2: case 0x00C3: case 0x00E3:             // Â Ã
+        case 0x00C5: case 0x00E5:                                       // Å
+            result += QLatin1Char('a'); break;
+        case 0x00C7: case 0x00E7:                                       // Ç
+            result += QLatin1Char('c'); break;
+        case 0x00C8: case 0x00E8: case 0x00C9: case 0x00E9:             // È É
+        case 0x00CA: case 0x00EA: case 0x00CB: case 0x00EB:             // Ê Ë
+            result += QLatin1Char('e'); break;
+        case 0x00CC: case 0x00EC: case 0x00CD: case 0x00ED:             // Ì Í
+        case 0x00CE: case 0x00EE: case 0x00CF: case 0x00EF:             // Î Ï
+            result += QLatin1Char('i'); break;
+        case 0x00D1: case 0x00F1:                                       // Ñ
+            result += QLatin1Char('n'); break;
+        case 0x00D2: case 0x00F2: case 0x00D3: case 0x00F3:             // Ò Ó
+        case 0x00D4: case 0x00F4: case 0x00D5: case 0x00F5:             // Ô Õ
+        case 0x00D8: case 0x00F8:                                       // Ø
+            result += QLatin1Char('o'); break;
+        case 0x00D9: case 0x00F9: case 0x00DA: case 0x00FA:             // Ù Ú
+        case 0x00DB: case 0x00FB:                                       // Û
+            result += QLatin1Char('u'); break;
+        case 0x00DD: case 0x00FD: case 0x0178: case 0x00FF:             // Ý Ÿ
+            result += QLatin1Char('y'); break;
+        // Ligatures.
+        case 0x0152: case 0x0153: result += QLatin1String("oe"); break; // Œ
+        case 0x00C6: case 0x00E6: result += QLatin1String("ae"); break; // Æ
         default:
             if (name[i].isLetterOrNumber()) {
                 result += name[i].toLower();
