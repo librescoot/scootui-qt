@@ -1159,6 +1159,9 @@ void Translations::initStrings()
     en[QStringLiteral("navSelectStreet")] = QStringLiteral("SELECT STREET");
     de[QStringLiteral("navSelectStreet")] = QStringLiteral("STRASSE AUSW\u00C4HLEN");
 
+    en[QStringLiteral("navEnterNumber")] = QStringLiteral("ENTER NUMBER");
+    de[QStringLiteral("navEnterNumber")] = QStringLiteral("HAUSNUMMER EINGEBEN");
+
     en[QStringLiteral("navSelectNumber")] = QStringLiteral("SELECT NUMBER");
     de[QStringLiteral("navSelectNumber")] = QStringLiteral("HAUSNUMMER W\u00C4HLEN");
 
@@ -1170,6 +1173,9 @@ void Translations::initStrings()
 
     en[QStringLiteral("navStreets")] = QStringLiteral("streets");
     de[QStringLiteral("navStreets")] = QStringLiteral("Stra\u00DFen");
+
+    en[QStringLiteral("navHouses")] = QStringLiteral("houses");
+    de[QStringLiteral("navHouses")] = QStringLiteral("Hausnr.");
 
     en[QStringLiteral("navNoMatches")] = QStringLiteral("No matches");
     de[QStringLiteral("navNoMatches")] = QStringLiteral("Keine Treffer");

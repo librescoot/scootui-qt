@@ -385,7 +385,9 @@ class Translations : public QObject
     Q_PROPERTY(QString navSelectCity READ navSelectCity NOTIFY languageChanged)
     Q_PROPERTY(QString navEnterStreet READ navEnterStreet NOTIFY languageChanged)
     Q_PROPERTY(QString navSelectStreet READ navSelectStreet NOTIFY languageChanged)
+    Q_PROPERTY(QString navEnterNumber READ navEnterNumber NOTIFY languageChanged)
     Q_PROPERTY(QString navSelectNumber READ navSelectNumber NOTIFY languageChanged)
+    Q_PROPERTY(QString navHouses READ navHouses NOTIFY languageChanged)
     Q_PROPERTY(QString navConfirmDestination READ navConfirmDestination NOTIFY languageChanged)
     Q_PROPERTY(QString navCities READ navCities NOTIFY languageChanged)
     Q_PROPERTY(QString navStreets READ navStreets NOTIFY languageChanged)
@@ -782,10 +784,12 @@ public:
     QString navSelectCity() const { return lookup("navSelectCity"); }
     QString navEnterStreet() const { return lookup("navEnterStreet"); }
     QString navSelectStreet() const { return lookup("navSelectStreet"); }
+    QString navEnterNumber() const { return lookup("navEnterNumber"); }
     QString navSelectNumber() const { return lookup("navSelectNumber"); }
     QString navConfirmDestination() const { return lookup("navConfirmDestination"); }
     QString navCities() const { return lookup("navCities"); }
     QString navStreets() const { return lookup("navStreets"); }
+    QString navHouses() const { return lookup("navHouses"); }
     QString navNoMatches() const { return lookup("navNoMatches"); }
     QString addressLoading() const { return lookup("addressLoading"); }
     QString addressMapNotFound() const { return lookup("addressMapNotFound"); }

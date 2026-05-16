@@ -34,18 +34,26 @@ Rectangle {
     readonly property int phaseStreetList: 4
     readonly property int phaseHouseNumbers: 5
     readonly property int phaseConfirm: 6
+    readonly property int phaseHouseDigits: 7
 
-    // Auto-transition threshold
+    // Auto-transition thresholds
     readonly property int maxListItems: 8
+    // When a digit-narrowed house set drops to this many, switch from digit
+    // entry to a scrollable list. Slightly larger than maxListItems because
+    // the rider is already mid-narrowing and a small extra scroll beats
+    // forcing another digit.
+    readonly property int houseListThreshold: 10
 
     // State
     property int phase: phaseLoading
     property string cityPrefix: ""
     property string streetPrefix: ""
+    property string housePrefix: ""
     property var validChars: []
     property int charIndex: 0
     property var itemList: []
     property int listIndex: 0
+    property var allHouses: []
     property string selectedCity: ""
     property string selectedStreet: ""
     property string selectedPostcode: ""
@@ -111,7 +119,8 @@ Rectangle {
     // carousel. This recurses via selectCurrentChar, so a stretch of
     // deterministic characters (e.g. "Berli…n") is typed out in one go.
     function _autoPickIfSingle() {
-        if ((phase === phaseCityLetters || phase === phaseStreetLetters)
+        if ((phase === phaseCityLetters || phase === phaseStreetLetters
+             || phase === phaseHouseDigits)
             && validChars.length === 1) {
             selectCurrentChar()
         }
@@ -122,11 +131,49 @@ Rectangle {
         addressDatabase.queryHouseNumbers(selectedCity, selectedStreet, selectedPostcode)
     }
 
+    function enterHouseDigits(prefix) {
+        phase = phaseHouseDigits
+        housePrefix = prefix
+        charIndex = 0
+        refreshValidChars()
+        _autoPickIfSingle()
+    }
+
+    // Houses whose number begins with the current prefix.
+    function _filteredHouses(prefix) {
+        var out = []
+        for (var i = 0; i < allHouses.length; i++) {
+            var hn = allHouses[i].housenumber || ""
+            if (hn.indexOf(prefix) === 0) out.push(allHouses[i])
+        }
+        return out
+    }
+
+    // Digits that would lead to at least one matching house if appended to
+    // the current prefix. Alpha suffixes (e.g. "12a") are ignored here — once
+    // the filtered list is short enough we hand off to the scrollable list.
+    function _validHouseDigits(prefix) {
+        var seen = {}
+        var out = []
+        for (var i = 0; i < allHouses.length; i++) {
+            var hn = allHouses[i].housenumber || ""
+            if (hn.length <= prefix.length) continue
+            if (hn.indexOf(prefix) !== 0) continue
+            var next = hn.charAt(prefix.length)
+            if (next < "0" || next > "9") continue
+            if (!seen[next]) { seen[next] = true; out.push(next) }
+        }
+        out.sort()
+        return out
+    }
+
     Connections {
         target: typeof addressDatabase !== "undefined" ? addressDatabase : null
 
         function onHouseNumbersReady(houses) {
             addressScreen.loadingHouseNumbers = false
+            addressScreen.housePrefix = ""
+            addressScreen.allHouses = houses
             if (houses.length <= 1) {
                 if (houses.length === 1) {
                     addressScreen.selectedHouse = houses[0].housenumber
@@ -142,9 +189,13 @@ Rectangle {
                 addressScreen.phase = addressScreen.phaseConfirm
                 return
             }
-            addressScreen.phase = addressScreen.phaseHouseNumbers
-            addressScreen.listIndex = 0
-            addressScreen.itemList = houses
+            if (houses.length <= addressScreen.houseListThreshold) {
+                addressScreen.phase = addressScreen.phaseHouseNumbers
+                addressScreen.listIndex = 0
+                addressScreen.itemList = houses
+                return
+            }
+            addressScreen.enterHouseDigits("")
         }
     }
 
@@ -159,6 +210,8 @@ Rectangle {
             validChars = addressDatabase.getValidCityChars(cityPrefix)
         } else if (phase === phaseStreetLetters) {
             validChars = addressDatabase.getValidStreetChars(selectedCity, streetPrefix)
+        } else if (phase === phaseHouseDigits) {
+            validChars = _validHouseDigits(housePrefix)
         }
         charIndex = 0
     }
@@ -194,6 +247,33 @@ Rectangle {
                 refreshValidChars()
                 _autoPickIfSingle()
             }
+        } else if (phase === phaseHouseDigits) {
+            var newPrefix = housePrefix + ch
+            var filtered = _filteredHouses(newPrefix)
+            if (filtered.length === 0) return
+            housePrefix = newPrefix
+            if (filtered.length === 1) {
+                selectedHouse = filtered[0].housenumber
+                destLat = filtered[0].latitude
+                destLng = filtered[0].longitude
+                enterConfirm()
+            } else if (filtered.length <= houseListThreshold) {
+                phase = phaseHouseNumbers
+                listIndex = 0
+                itemList = filtered
+            } else {
+                refreshValidChars()
+                if (validChars.length === 0) {
+                    // Can't narrow further by digit (e.g. only alpha suffixes
+                    // remain). Drop into the list even though it's longer than
+                    // the usual threshold.
+                    phase = phaseHouseNumbers
+                    listIndex = 0
+                    itemList = filtered
+                } else {
+                    _autoPickIfSingle()
+                }
+            }
         }
     }
 
@@ -211,6 +291,8 @@ Rectangle {
             _backFromStreetLetters()
         } else if (phase === phaseStreetList) {
             _backFromStreetList()
+        } else if (phase === phaseHouseDigits) {
+            _backFromHouseDigits()
         } else if (phase === phaseHouseNumbers || phase === phaseConfirm) {
             _backFromHouseOrConfirm()
         }
@@ -276,6 +358,35 @@ Rectangle {
     }
 
     function _backFromHouseOrConfirm() {
+        // If we got here via digit narrowing, pop one digit and return to the
+        // digit carousel rather than jumping all the way back to street.
+        if (housePrefix.length > 0) {
+            housePrefix = housePrefix.slice(0, -1)
+            phase = phaseHouseDigits
+            refreshValidChars()
+            return
+        }
+        var streets = addressDatabase.getMatchingStreets(selectedCity, streetPrefix)
+        if (streets.length === 1 && streetPrefix.length > 0) {
+            streetPrefix = streetPrefix.slice(0, -1)
+            phase = phaseStreetLetters
+            refreshValidChars()
+            if (streetPrefix.length > 0 && validChars.length === 1) {
+                _backFromStreetLetters()
+            }
+        } else {
+            itemList = streets
+            phase = phaseStreetList
+            listIndex = 0
+        }
+    }
+
+    function _backFromHouseDigits() {
+        if (housePrefix.length > 0) {
+            housePrefix = housePrefix.slice(0, -1)
+            refreshValidChars()
+            return
+        }
         var streets = addressDatabase.getMatchingStreets(selectedCity, streetPrefix)
         if (streets.length === 1 && streetPrefix.length > 0) {
             streetPrefix = streetPrefix.slice(0, -1)
@@ -348,6 +459,10 @@ Rectangle {
             var scount = addressDatabase.getStreetCount(selectedCity, streetPrefix)
             var slabel = tr ? tr.navStreets : "streets"
             return scount + " " + slabel
+        } else if (phase === phaseHouseDigits) {
+            var hcount = _filteredHouses(housePrefix).length
+            var hlabel = tr ? tr.navHouses : "houses"
+            return hcount + " " + hlabel
         }
         return ""
     }
@@ -360,7 +475,8 @@ Rectangle {
         function onLeftTap() {
             if (addressScreen.loadingHouseNumbers) return
             if (addressScreen.phase === addressScreen.phaseCityLetters ||
-                addressScreen.phase === addressScreen.phaseStreetLetters) {
+                addressScreen.phase === addressScreen.phaseStreetLetters ||
+                addressScreen.phase === addressScreen.phaseHouseDigits) {
                 addressScreen.cycleChar()
             } else if (addressScreen.phase === addressScreen.phaseCityList ||
                        addressScreen.phase === addressScreen.phaseStreetList ||
@@ -400,6 +516,9 @@ Rectangle {
             case addressScreen.phaseStreetList:
                 addressScreen.selectStreet()
                 break
+            case addressScreen.phaseHouseDigits:
+                addressScreen.selectCurrentChar()
+                break
             case addressScreen.phaseHouseNumbers:
                 addressScreen.selectHouseNumber()
                 break
@@ -435,6 +554,7 @@ Rectangle {
                 case addressScreen.phaseCityList: return tr ? tr.navSelectCity : "Select City"
                 case addressScreen.phaseStreetLetters: return tr ? tr.navEnterStreet : "Enter Street"
                 case addressScreen.phaseStreetList: return tr ? tr.navSelectStreet : "Select Street"
+                case addressScreen.phaseHouseDigits: return tr ? tr.navEnterNumber : "Enter Number"
                 case addressScreen.phaseHouseNumbers: return tr ? tr.navSelectNumber : "Select Number"
                 case addressScreen.phaseConfirm: return tr ? tr.navConfirmDestination : "Confirm Destination"
                 default: return "Destination"
@@ -464,8 +584,13 @@ Rectangle {
                         parts.push(addressScreen.streetPrefix + "_")
                 }
 
+                if (addressScreen.phase === addressScreen.phaseHouseDigits) {
+                    parts.push(addressScreen.housePrefix + "_")
+                }
+
                 if (addressScreen.phase === addressScreen.phaseCityLetters ||
-                    addressScreen.phase === addressScreen.phaseStreetLetters) {
+                    addressScreen.phase === addressScreen.phaseStreetLetters ||
+                    addressScreen.phase === addressScreen.phaseHouseDigits) {
                     parts.push(addressScreen.matchCountText())
                 }
 
@@ -542,14 +667,20 @@ Rectangle {
             ColumnLayout {
                 anchors.centerIn: parent
                 spacing: 20
-                visible: (phase === phaseCityLetters || phase === phaseStreetLetters) && dbStatus === statusReady
+                visible: (phase === phaseCityLetters || phase === phaseStreetLetters
+                          || phase === phaseHouseDigits) && dbStatus === statusReady
 
                 // Current prefix display
                 Text {
                     Layout.alignment: Qt.AlignHCenter
                     text: {
-                        var prefix = addressScreen.phase === addressScreen.phaseCityLetters
-                            ? addressScreen.cityPrefix : addressScreen.streetPrefix
+                        var prefix
+                        if (addressScreen.phase === addressScreen.phaseCityLetters)
+                            prefix = addressScreen.cityPrefix
+                        else if (addressScreen.phase === addressScreen.phaseStreetLetters)
+                            prefix = addressScreen.streetPrefix
+                        else
+                            prefix = addressScreen.housePrefix
                         return prefix + "_"
                     }
                     font.pixelSize: themeStore.fontHeading
@@ -629,7 +760,9 @@ Rectangle {
                     visible: addressScreen.validChars.length === 0 && (
                         addressScreen.phase === addressScreen.phaseCityLetters
                             ? addressScreen.cityPrefix.length > 0
-                            : addressScreen.streetPrefix.length > 0)
+                            : addressScreen.phase === addressScreen.phaseStreetLetters
+                                ? addressScreen.streetPrefix.length > 0
+                                : addressScreen.housePrefix.length > 0)
                     text: typeof translations !== "undefined" ? translations.navNoMatches : "No matches"
                     color: errorColor
                     font.pixelSize: themeStore.fontBody
