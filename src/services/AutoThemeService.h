@@ -30,6 +30,11 @@ private:
     double m_smoothedBrightness = -1.0;
     bool m_enabled = false;
     bool m_currentlyDark = true;
+    // Forces the next processBrightness() to push the theme to ThemeStore
+    // even if the hysteresis state hasn't changed. Armed on disabled→enabled
+    // transition so that re-entering auto mode resyncs the UI (which a
+    // manual theme setting in between may have moved away from our cache).
+    bool m_forceSync = false;
 
     static constexpr double SMOOTHING_ALPHA = 0.7;
     static constexpr double LIGHT_THRESHOLD = 25.0;

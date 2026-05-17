@@ -28,8 +28,11 @@ AutoThemeService::~AutoThemeService()
 
 void AutoThemeService::setEnabled(bool enabled)
 {
+    bool wasEnabled = m_enabled;
     m_enabled = enabled;
     if (enabled) {
+        if (!wasEnabled)
+            m_forceSync = true;
         m_pollTimer->start(1000);
         checkBrightness();
     } else {
@@ -70,8 +73,9 @@ void AutoThemeService::processBrightness(double rawLux)
             shouldBeDark = true;
     }
 
-    if (shouldBeDark != m_currentlyDark) {
+    if (shouldBeDark != m_currentlyDark || m_forceSync) {
         m_currentlyDark = shouldBeDark;
         m_themeStore->setTheme(shouldBeDark ? QStringLiteral("dark") : QStringLiteral("light"));
+        m_forceSync = false;
     }
 }
