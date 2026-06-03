@@ -335,7 +335,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_recentDestinationsService = new RecentDestinationsService(repo, this);
     auto *recentDestinationsStore = new RecentDestinationsStore(
         repo, m_recentDestinationsService, m_savedLocationsService,
-        m_navigationService, m_toastService, this);
+        m_navigationService, m_roadInfoService, m_toastService, this);
     connect(m_navigationService, &NavigationService::destinationRequested,
             recentDestinationsStore, &RecentDestinationsStore::push);
 

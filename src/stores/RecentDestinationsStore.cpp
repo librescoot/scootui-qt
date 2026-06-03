@@ -3,6 +3,7 @@
 #include "services/RecentDestinationsService.h"
 #include "services/SavedLocationsService.h"
 #include "services/NavigationService.h"
+#include "services/RoadInfoService.h"
 #include "services/ToastService.h"
 #include "models/SavedLocation.h"
 
@@ -14,11 +15,13 @@ RecentDestinationsStore::RecentDestinationsStore(MdbRepository *repo,
                                                    RecentDestinationsService *service,
                                                    SavedLocationsService *savedService,
                                                    NavigationService *nav,
+                                                   RoadInfoService *roadInfo,
                                                    ToastService *toast, QObject *parent)
     : QObject(parent)
     , m_service(service)
     , m_savedService(savedService)
     , m_nav(nav)
+    , m_roadInfo(roadInfo)
     , m_toast(toast)
 {
     // Mirror SavedLocationsStore: when the settings channel repopulates
@@ -99,11 +102,22 @@ void RecentDestinationsStore::push(double lat, double lng, const QString &label)
         m_service->remove(slot);
     }
 
+    // Externally-pushed destinations (cloud / bluetooth) may arrive without a
+    // label. Derive one so the list shows something meaningful: offline
+    // reverse-geocode against the vector tiles, falling back to coordinates.
+    // Mirrors SavedLocationsStore::saveCurrentLocation().
+    QString resolvedLabel = label;
+    if (resolvedLabel.isEmpty() && m_roadInfo)
+        resolvedLabel = m_roadInfo->lookupNearestAddress(lat, lng);
+    if (resolvedLabel.isEmpty())
+        resolvedLabel = QString::number(lat, 'f', 5) + QStringLiteral(", ")
+                      + QString::number(lng, 'f', 5);
+
     RecentDestination d;
     d.id = slot; // -1 lets the service pick a free slot; or the slot we just evicted
     d.latitude = lat;
     d.longitude = lng;
-    d.label = label;
+    d.label = resolvedLabel;
     d.usedAt = QDateTime::currentDateTimeUtc();
     m_service->save(d);
     load();

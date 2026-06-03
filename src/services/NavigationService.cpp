@@ -741,6 +741,13 @@ void NavigationService::onNavigationDataChanged()
     m_destAddress = m_nav->address();
     emit destinationChanged();
 
+    // Capture externally-pushed destinations (cloud / bluetooth / wwan, all of
+    // which land on the navigation channel) as recents, same as locally-chosen
+    // ones. setDestination() emits this for the local path; the external path
+    // routes through here instead, so mirror it. The recents store derives a
+    // label when address is empty.
+    emit destinationRequested(lat, lng, m_nav->address());
+
     if (hasValidGps()) {
         LatLng from = currentGpsPosition();
         if (from.isValid()) {

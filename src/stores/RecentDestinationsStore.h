@@ -8,6 +8,7 @@ class MdbRepository;
 class RecentDestinationsService;
 class SavedLocationsService;
 class NavigationService;
+class RoadInfoService;
 class ToastService;
 
 class RecentDestinationsStore : public QObject
@@ -21,6 +22,7 @@ public:
                                        RecentDestinationsService *service,
                                        SavedLocationsService *savedService,
                                        NavigationService *nav,
+                                       RoadInfoService *roadInfo,
                                        ToastService *toast,
                                        QObject *parent = nullptr);
 
@@ -47,6 +49,7 @@ private:
     RecentDestinationsService *m_service;
     SavedLocationsService *m_savedService;
     NavigationService *m_nav;
+    RoadInfoService *m_roadInfo;
     ToastService *m_toast;
 
     QList<RecentDestination> m_destinations; // newest first
