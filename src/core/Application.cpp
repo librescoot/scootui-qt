@@ -237,7 +237,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Map service (A2)
     m_mapService = new MapService(gpsStore, engineStore, m_navigationService,
-                                   settingsStore, themeStore, speedLimitStore, this);
+                                   settingsStore, themeStore, speedLimitStore,
+                                   motionStore, this);
 
     // Queue AddressDb init now that MapService has queued its own startup
     // reload: we want the map style ready before the trie builder wakes up

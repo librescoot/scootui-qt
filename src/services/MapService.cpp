@@ -5,6 +5,7 @@
 #include "stores/SettingsStore.h"
 #include "stores/ThemeStore.h"
 #include "stores/SpeedLimitStore.h"
+#include "stores/MotionStore.h"
 #include "routing/RouteModels.h"
 #include "models/Enums.h"
 
@@ -144,7 +145,7 @@ static double signedAngleDiff(double a, double b)
 MapService::MapService(GpsStore *gps, EngineStore *engine,
                        NavigationService *navigation, SettingsStore *settings,
                        ThemeStore *theme, SpeedLimitStore *speedLimit,
-                       QObject *parent)
+                       MotionStore *motion, QObject *parent)
     : QObject(parent)
     , m_gps(gps)
     , m_engine(engine)
@@ -152,6 +153,7 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
     , m_settings(settings)
     , m_theme(theme)
     , m_speedLimit(speedLimit)
+    , m_motion(motion)
     , m_tickTimer(new QTimer(this))
 {
     // reloadMbtiles() opens a SQLite connection for the mbtiles validation
@@ -164,6 +166,12 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
     // --- GPS position updates ---
     connect(m_gps, &GpsStore::latitudeChanged, this, &MapService::onGpsPositionChanged);
     connect(m_gps, &GpsStore::longitudeChanged, this, &MapService::onGpsPositionChanged);
+
+    // --- Magnetic heading freshness ---
+    // Restart the age timer on every motion:heading push so updateBearing can
+    // tell whether the compass reading is recent enough to steer the map by.
+    if (m_motion)
+        connect(m_motion, &MotionStore::headingChanged, this, [this]() { m_headingAge.restart(); });
 
     // --- Route changes ---
     connect(m_navigation, &NavigationService::routeChanged, this, &MapService::onRouteChanged);
@@ -1275,9 +1283,26 @@ void MapService::updateBearing(double dt)
     bool hasFix = m_gps->hasRecentFix();
     double gpsCourse = m_gps->course();
 
-    // Off-route with a stale GPS fix: nothing to steer by. Hold the last
-    // smoothed bearing rather than snapping to a stale gpsCourse.
-    if (!onRoute && !hasFix)
+    // Fresh, reasonably-accurate magnetic heading available? motion-service
+    // floors accuracy at 2.5deg and inflates it with tilt/accel/yaw, so a
+    // small value means a trustworthy reading. accuracyDeg is 0 only before
+    // the first push, which the freshness gate also rejects.
+    const bool magOk = m_motion
+        && m_headingAge.isValid()
+        && m_headingAge.elapsed() <= MagHeadingMaxAgeMs
+        && m_motion->accuracyDeg() > 0.0
+        && m_motion->accuracyDeg() <= MagHeadingMaxAccuracyDeg;
+    const double magHeading = magOk
+        ? std::fmod(m_motion->headingDeg() + 360.0, 360.0)
+        : -1.0;
+
+    // GPS course only means something with a fix and above the freeze speed.
+    const bool gpsCourseUsable = hasFix && speedKmh >= HeadingFreezeSpeed;
+
+    // Off-route with no usable GPS course: steer by the magnetic compass if we
+    // have one, otherwise hold the last smoothed bearing rather than snapping
+    // to a stale gpsCourse.
+    if (!onRoute && !gpsCourseUsable && !magOk)
         return;
 
     double rawHeading;
@@ -1310,6 +1335,13 @@ void MapService::updateBearing(double dt)
         }
     }
 
+    // When GPS course is unusable (no fix, or below the freeze speed) and we
+    // are not following a route, orient by the magnetic compass so the map
+    // reflects the scooter's actual facing instead of a stale/frozen course.
+    const bool steerByMag = (!onRoute && !gpsCourseUsable && magOk);
+    if (steerByMag)
+        rawHeading = magHeading;
+
     // Speed-based damping factor: freeze below HeadingFreezeSpeed, ramp to full
     double dampFactor = 0;
     if (speedKmh >= HeadingFullSpeed) {
@@ -1319,8 +1351,13 @@ void MapService::updateBearing(double dt)
     }
 
     if (dampFactor < 0.001) {
-        // Heading frozen: don't update
-        return;
+        // Below the freeze speed the GPS course is useless. If we are steering
+        // by the magnetic compass, keep updating with a gentle blend so the map
+        // tracks the scooter's facing while stopped; otherwise hold the bearing.
+        if (steerByMag)
+            dampFactor = MagHeadingDamp;
+        else
+            return;
     }
 
     // Turn-snap: the route segment bearing jumped (segment boundary with a

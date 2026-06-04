@@ -12,6 +12,7 @@ class NavigationService;
 class SettingsStore;
 class ThemeStore;
 class SpeedLimitStore;
+class MotionStore;
 
 class MapService : public QObject
 {
@@ -42,7 +43,7 @@ public:
     explicit MapService(GpsStore *gps, EngineStore *engine,
                         NavigationService *navigation, SettingsStore *settings,
                         ThemeStore *theme, SpeedLimitStore *speedLimit,
-                        QObject *parent = nullptr);
+                        MotionStore *motion, QObject *parent = nullptr);
     ~MapService() override;
 
     void reloadMbtiles();
@@ -226,6 +227,13 @@ private:
     // map turns with the rider instead of lagging through the corner.
     static constexpr double TurnSnapDeltaDeg = 30.0;
 
+    // Magnetic-compass fallback for map rotation. Below HeadingFreezeSpeed the
+    // GPS course is meaningless, so when free-driving (not following a route)
+    // we orient the map by motion-service's magnetic heading instead of
+    // holding the last bearing. Gated on a fresh, reasonably-accurate reading.
+    static constexpr int    MagHeadingMaxAgeMs = 2000;       // ignore stale headings
+    static constexpr double MagHeadingMaxAccuracyDeg = 30.0; // skip low-confidence headings
+    static constexpr double MagHeadingDamp = 0.15;           // gentle blend toward compass while stopped
 
     // Vehicle offset
     static constexpr double VehicleOffsetPx = 120.0;
@@ -257,6 +265,7 @@ private:
     SettingsStore *m_settings;
     ThemeStore *m_theme;
     SpeedLimitStore *m_speedLimit;
+    MotionStore *m_motion;
 
     // --- Mbtiles path (resolved at construction) ---
     QString m_mbtilesPath;
@@ -349,4 +358,8 @@ private:
     // segment-boundary bearing jumps for the turn-snap fast path. -1 means
     // unseeded (first tick, or off-route).
     double m_lastRouteBearing = -1;
+
+    // Restarted on every motion:heading push; updateBearing reads its elapsed
+    // time to decide whether the magnetic heading is fresh enough to steer by.
+    QElapsedTimer m_headingAge;
 };
