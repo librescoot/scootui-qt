@@ -12,9 +12,10 @@ Rectangle {
     property string leadingIcon: ""
     property string valueLabel: ""
 
-    // Flutter: Container is 50px (54 total slot - 4px from Padding(vertical:2))
-    // ListView spacing: 4 handles the inter-item gap
-    height: 50
+    // 50px base slot (ListView spacing: 4 handles the inter-item gap). When
+    // selected, the title switches to WordWrap and may span several lines —
+    // grow the row so it doesn't overlap the next item. 16 = Row top+bottom margin.
+    height: Math.max(50, titleText.implicitHeight + 16)
     color: isSelected
            ? (themeStore.isDark ? "#3DFFFFFF" : "#1F000000")
            : "transparent"
@@ -42,6 +43,7 @@ Rectangle {
 
         // Title
         Text {
+            id: titleText
             anchors.verticalCenter: parent.verticalCenter
             width: parent.width
                    - (trailingIcon.visible ? trailingIcon.width + parent.spacing : 0)
