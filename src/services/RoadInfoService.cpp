@@ -466,18 +466,29 @@ QString RoadInfoService::lookupNearestAddress(double lat, double lon)
     if (!nearest)
         return {};
 
-    // Build label from address properties (see osm-tiles/tilemaker/process.lua)
+    // Build label from address properties (see osm-tiles/tilemaker/process.lua).
+    // Compact local form "<street> <number>, <postcode> <city>", matching what
+    // sunshine sends. city/postcode come from addr:* on the point and aren't
+    // always tagged, so degrade gracefully to just the street (or name).
     QString street = nearest->properties.value(QStringLiteral("street"));
     QString houseNumber = nearest->properties.value(QStringLiteral("housenumber"));
     QString name = nearest->properties.value(QStringLiteral("name"));
+    QString city = nearest->properties.value(QStringLiteral("city"));
+    QString postcode = nearest->properties.value(QStringLiteral("postcode"));
 
-    if (!street.isEmpty()) {
-        if (!houseNumber.isEmpty())
-            return street + QStringLiteral(" ") + houseNumber;
-        return street;
-    }
+    QString streetPart;
+    if (!street.isEmpty())
+        streetPart = houseNumber.isEmpty() ? street : street + QStringLiteral(" ") + houseNumber;
+    else
+        streetPart = name;
 
-    return name;
+    QString cityPart;
+    if (!city.isEmpty())
+        cityPart = postcode.isEmpty() ? city : postcode + QStringLiteral(" ") + city;
+
+    if (!streetPart.isEmpty() && !cityPart.isEmpty())
+        return streetPart + QStringLiteral(", ") + cityPart;
+    return streetPart.isEmpty() ? cityPart : streetPart;
 }
 
 QVariantList RoadInfoService::streetsInBbox(double minLat, double minLon,
