@@ -6,6 +6,7 @@
 #include <QTimer>
 #include <QDateTime>
 #include <QElapsedTimer>
+#include <functional>
 #include "RouteModels.h"
 
 class ValhallaClient : public QObject
@@ -36,6 +37,15 @@ public:
     void setEndpoint(const QString &url);
     QString endpoint() const { return m_endpoint; }
     void setLanguage(const QString &lang);
+
+    // Optional provider for the route departure time. Called at request-build
+    // time; returns a local wall-clock string "yyyy-MM-ddTHH:mm" to attach as
+    // Valhalla date_time (so time-conditional restrictions apply), or an empty
+    // string to omit it. Kept as a callback so the GPS/clock-trust logic stays
+    // in NavigationService and this client stays a thin serializer.
+    void setDepartureTimeProvider(std::function<QString()> provider) {
+        m_departureTimeProvider = std::move(provider);
+    }
 
     bool isHealthy() const { return m_isHealthy; }
 
@@ -117,6 +127,7 @@ private:
     QNetworkAccessManager m_nam;
     QString m_endpoint;
     QString m_language = QStringLiteral("en-US");
+    std::function<QString()> m_departureTimeProvider;
 
     // Debounce: latest pending request, dispatched when m_debounce fires
     QTimer m_debounce;

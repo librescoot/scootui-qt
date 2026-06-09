@@ -172,6 +172,17 @@ private:
     LatLng currentGpsPosition() const;  // raw GPS only (for rerouting)
     bool hasValidGps() const;
 
+    // Local wall-clock "now" derived from GPS time, formatted for Valhalla's
+    // date_time.value, or empty when no trusted GPS time is available. GPS time
+    // is used (not the system clock) because the DBC RTC can be wrong at boot;
+    // the monotonic fix-age correction makes it immune to RTC skew.
+    QString gpsDepartureTimeLocal() const;
+
+    // Oldest GPS time we'll trust for the route departure time. TPVs arrive at
+    // ~1 Hz while navigating; beyond this the fix is stale enough that the
+    // age-corrected time could have drifted, so we omit date_time instead.
+    static constexpr qint64 GpsTimeMaxAgeMs = 300000;  // 5 min
+
     // Thresholds (meters)
     static constexpr double ArrivalProximity = 50.0;
     static constexpr double OffRouteTolerance = 60.0;
