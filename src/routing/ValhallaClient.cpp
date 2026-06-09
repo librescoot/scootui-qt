@@ -218,6 +218,22 @@ void ValhallaClient::sendRouteRequest(const LatLng &from, const LatLng &to)
     dirOpts[QStringLiteral("language")] = m_language;
     request[QStringLiteral("directions_options")] = dirOpts;
 
+    // Attach the current time so Valhalla applies time-conditional restrictions
+    // (timed access, turn restrictions, conditional oneways). type 3 = invariant:
+    // the given time is applied to every edge without modelling travel time,
+    // which is what we want for "what's legal right now" on short trips. Omitted
+    // when the provider yields nothing (no trusted time), leaving restrictions
+    // unevaluated rather than evaluated against a wrong clock.
+    if (m_departureTimeProvider) {
+        const QString departLocal = m_departureTimeProvider();
+        if (!departLocal.isEmpty()) {
+            QJsonObject dateTime;
+            dateTime[QStringLiteral("type")] = 3;
+            dateTime[QStringLiteral("value")] = departLocal;
+            request[QStringLiteral("date_time")] = dateTime;
+        }
+    }
+
     QNetworkRequest req(QUrl(m_endpoint + QStringLiteral("route")));
     req.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
     req.setTransferTimeout(30000);

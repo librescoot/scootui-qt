@@ -50,6 +50,7 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
     , m_repo(repo)
 {
     m_valhalla = new ValhallaClient(this);
+    m_valhalla->setDepartureTimeProvider([this]() { return gpsDepartureTimeLocal(); });
 
     // Set endpoint and language from settings
     QString url = settings->valhallaUrl();
@@ -1110,4 +1111,25 @@ bool NavigationService::hasValidGps() const
 {
     if (!m_gps) return false;
     return m_gps->hasValidGps();
+}
+
+QString NavigationService::gpsDepartureTimeLocal() const
+{
+    if (!m_gps || !m_gps->hasTimestamp())
+        return {};
+    const qint64 ageMs = m_gps->timestampAgeMs();
+    if (ageMs > GpsTimeMaxAgeMs)
+        return {};
+    // gps.timestamp is the GPSD TPV time (ISO-8601 Zulu) at the moment of fix.
+    QDateTime fixUtc = QDateTime::fromString(m_gps->timestamp(), Qt::ISODate);
+    if (!fixUtc.isValid())
+        return {};
+    // True "now" is the fix instant plus how long ago we received it (monotonic,
+    // so unaffected by a wrong system clock). Render as device-local wall-clock;
+    // Valhalla interprets date_time.value in the origin's baked timezone, which
+    // matches the device timezone for our single-zone regions.
+    const QDateTime nowLocal = fixUtc.toUTC().addMSecs(ageMs).toLocalTime();
+    if (nowLocal.date().year() < 2025)  // reject an implausible GPS clock
+        return {};
+    return nowLocal.toString(QStringLiteral("yyyy-MM-ddTHH:mm"));
 }
