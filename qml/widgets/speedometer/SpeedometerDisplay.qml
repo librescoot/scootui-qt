@@ -23,6 +23,7 @@ Item {
     property real regenTransition: 0
     property real overspeedPulse: 0
     property real accelPulse: 0
+    property real errorPulse: 0
 
     // Arc constants
     readonly property real arcStartAngle: 150
@@ -52,6 +53,9 @@ Item {
 
     // Repaint on theme change
     onIsDarkChanged: canvas.requestPaint()
+    // ECU comm-lost (E20): kick the frame loop so the red glow pulses, and
+    // repaint immediately on the rising/falling edge.
+    onEcuStaleChanged: { _animationActive = true; canvas.requestPaint() }
 
     // Exponential smoothing via FrameAnimation — only runs when animating
     FrameAnimation {
@@ -84,12 +88,19 @@ Item {
                 accelPulse = 0
             }
 
+            // ECU comm-lost error pulse (1000ms cycle)
+            if (ecuStale) {
+                errorPulse = (Math.sin(Date.now() / 1000 * Math.PI * 2) + 1) / 2
+            } else {
+                errorPulse = 0
+            }
+
             canvas.requestPaint()
 
             // Auto-stop when fully converged and no pulse effects active
             var converged = (animatedSpeed === targetSpeed)
             var noPulse = animatedSpeed <= maxArcSpeed && !isAccelerating
-            if (converged && noPulse) {
+            if (converged && noPulse && !ecuStale) {
                 speedometer._animationActive = false
             }
         }
@@ -139,8 +150,21 @@ Item {
             }
             ctx.stroke()
 
+            // === ECU comm-lost (E20): the whole arc glows red, no live fill ===
+            if (ecuStale) {
+                ctx.beginPath()
+                ctx.arc(cx, cy, r - arcStrokeWidth / 2, startRad, startRad + sweepRad)
+                ctx.lineWidth = arcStrokeWidth
+                ctx.lineCap = "round"
+                ctx.shadowColor = "#F44336"
+                ctx.shadowBlur = 8 + 20 * errorPulse
+                ctx.strokeStyle = "#F44336"
+                ctx.stroke()
+                ctx.shadowBlur = 0
+            }
+
             // === Speed fill arc ===
-            if (animatedSpeed > 0) {
+            if (animatedSpeed > 0 && !ecuStale) {
                 var clampedSpeed = Math.min(animatedSpeed, maxArcSpeed)
                 var progress = clampedSpeed / maxArcSpeed
                 var fillSweep = sweepRad * progress
