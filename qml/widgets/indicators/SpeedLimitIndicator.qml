@@ -28,6 +28,12 @@ Item {
 
     Text {
         anchors.centerIn: parent
+        // Bound to the inner white circle of the sign SVG so 3-digit limits
+        // shrink to fit instead of overflowing the red ring.
+        width: root.iconSize * 0.7
+        height: root.iconSize * 0.7
+        fontSizeMode: Text.Fit
+        minimumPixelSize: 8
         visible: root.isNumeric
         text: root.speedLimit
         font.family: "Roboto Condensed"
