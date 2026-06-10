@@ -6,9 +6,9 @@
 FaultSeverity FaultFormatter::getSeverity(int code)
 {
     switch (code) {
-    case 5:  // B5 - Critical over-temp
-    case 6:  // B6 - Short circuit
-    case 14: // B14 - Over-current discharging
+    case 5:  // B5 - Signal wire broken
+    case 6:  // B6 - Critical over-temp
+    case 14: // B14 - Short circuit
     case 32: // B32 - BMS not following
     case 34: // B34 - BMS comm error
     case 35: // B35 - NFC reader error
@@ -21,20 +21,20 @@ FaultSeverity FaultFormatter::getSeverity(int code)
 QString FaultFormatter::getDescription(int code, Translations *tr)
 {
     switch (code) {
-    case 1:  return tr->faultSignalWireBroken();
-    case 2:  return tr->faultOverTempCharging();
-    case 3:  return tr->faultUnderTempCharging();
-    case 4:  return tr->faultOverTempDischarging();
-    case 5:  return tr->faultCriticalOverTemp();
-    case 6:  return tr->faultShortCircuit();
+    case 1:  return tr->faultOverTempCharging();
+    case 2:  return tr->faultUnderTempCharging();
+    case 3:  return tr->faultOverTempDischarging();
+    case 4:  return tr->faultUnderTempDischarging();
+    case 5:  return tr->faultSignalWireBroken();
+    case 6:  return tr->faultCriticalOverTemp();
     case 7:  return tr->faultReserved();
-    case 8:  return tr->faultUnderTempDischarging();
-    case 9:  return tr->faultMosfetOverTemp();
+    case 8:  return tr->faultMosfetOverTemp();
+    case 9:  return tr->faultCellOverVoltage();
     case 10: return tr->faultReserved();
-    case 11: return tr->faultCellOverVoltage();
-    case 12: return tr->faultCellUnderVoltage();
-    case 13: return tr->faultOverCurrentCharging();
-    case 14: return tr->faultOverCurrentDischarging();
+    case 11: return tr->faultCellUnderVoltage();
+    case 12: return tr->faultOverCurrentCharging();
+    case 13: return tr->faultOverCurrentDischarging();
+    case 14: return tr->faultShortCircuit();
     case 15:
     case 16: return tr->faultReserved();
     case 32: return tr->faultBmsNotFollowing();
