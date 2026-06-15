@@ -10,6 +10,7 @@ struct ToastEntry {
     QString message;
     QString type;      // "info", "error", "warning", "success"
     bool permanent;
+    QString icon;      // optional qrc icon path, empty = no icon
 };
 
 class ToastService : public QObject
@@ -26,16 +27,16 @@ public:
     Q_INVOKABLE void showError(const QString &message);
     Q_INVOKABLE void showWarning(const QString &message);
     Q_INVOKABLE void showSuccess(const QString &message);
-    Q_INVOKABLE QString showPermanentInfo(const QString &message, const QString &id = {});
-    Q_INVOKABLE QString showPermanentError(const QString &message, const QString &id = {});
-    Q_INVOKABLE QString showPermanentWarning(const QString &message, const QString &id = {});
+    Q_INVOKABLE QString showPermanentInfo(const QString &message, const QString &id = {}, const QString &icon = {});
+    Q_INVOKABLE QString showPermanentError(const QString &message, const QString &id = {}, const QString &icon = {});
+    Q_INVOKABLE QString showPermanentWarning(const QString &message, const QString &id = {}, const QString &icon = {});
     Q_INVOKABLE void dismiss(const QString &id);
 
 signals:
     void toastsChanged();
 
 private:
-    QString addToast(const QString &message, const QString &type, bool permanent, const QString &id = {});
+    QString addToast(const QString &message, const QString &type, bool permanent, const QString &id = {}, const QString &icon = {});
     void scheduleRemoval(const QString &id, int ms);
 
     QList<ToastEntry> m_toasts;

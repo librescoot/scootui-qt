@@ -10,6 +10,10 @@ class AuxBatteryStore : public SyncableStore
     Q_PROPERTY(int voltage READ voltage NOTIFY voltageChanged)
     Q_PROPERTY(int charge READ charge NOTIFY chargeChanged)
     Q_PROPERTY(int chargeStatus READ chargeStatus NOTIFY chargeStatusChanged)
+    // Whether a value has actually been reported, so consumers can tell a real
+    // reported 0 from "never received" (the defaults below are not real data).
+    Q_PROPERTY(bool voltageValid READ voltageValid NOTIFY voltageValidChanged)
+    Q_PROPERTY(bool chargeValid READ chargeValid NOTIFY chargeValidChanged)
 
 public:
     explicit AuxBatteryStore(MdbRepository *repo, QObject *parent = nullptr);
@@ -18,12 +22,16 @@ public:
     int voltage() const { return m_voltage; }
     int charge() const { return m_charge; }
     int chargeStatus() const { return static_cast<int>(m_chargeStatus); }
+    bool voltageValid() const { return m_voltageValid; }
+    bool chargeValid() const { return m_chargeValid; }
 
 signals:
     void dateStreamEnableChanged();
     void voltageChanged();
     void chargeChanged();
     void chargeStatusChanged();
+    void voltageValidChanged();
+    void chargeValidChanged();
 
 protected:
     SyncSettings syncSettings() const override;
@@ -33,5 +41,7 @@ private:
     int m_dateStreamEnable = 0;
     int m_voltage = 12500;
     int m_charge = 100;
+    bool m_voltageValid = false;
+    bool m_chargeValid = false;
     ScootEnums::AuxChargeStatus m_chargeStatus = ScootEnums::AuxChargeStatus::FloatCharge;
 };

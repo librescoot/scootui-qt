@@ -7,6 +7,9 @@ class CbBatteryStore : public SyncableStore
 {
     Q_OBJECT
     Q_PROPERTY(int charge READ charge NOTIFY chargeChanged)
+    // Whether charge has actually been reported (distinguishes a real 0 from
+    // "never received"; the default below is not real data).
+    Q_PROPERTY(bool chargeValid READ chargeValid NOTIFY chargeValidChanged)
     Q_PROPERTY(int current READ current NOTIFY currentChanged)
     Q_PROPERTY(int remainingCapacity READ remainingCapacity NOTIFY remainingCapacityChanged)
     Q_PROPERTY(int temperature READ temperature NOTIFY temperatureChanged)
@@ -26,6 +29,7 @@ public:
     explicit CbBatteryStore(MdbRepository *repo, QObject *parent = nullptr);
 
     int charge() const { return m_charge; }
+    bool chargeValid() const { return m_chargeValid; }
     int current() const { return m_current; }
     int remainingCapacity() const { return m_remainingCapacity; }
     int temperature() const { return m_temperature; }
@@ -43,6 +47,7 @@ public:
 
 signals:
     void chargeChanged();
+    void chargeValidChanged();
     void currentChanged();
     void remainingCapacityChanged();
     void temperatureChanged();
@@ -64,6 +69,7 @@ protected:
 
 private:
     int m_charge = 100;
+    bool m_chargeValid = false;
     int m_current = 0;
     int m_remainingCapacity = 0;
     int m_temperature = 0;

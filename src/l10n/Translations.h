@@ -323,6 +323,8 @@ class Translations : public QObject
     // Warnings
     Q_PROPERTY(QString warningHandlebarLocked READ warningHandlebarLocked NOTIFY languageChanged)
     Q_PROPERTY(QString warningLowTemperature READ warningLowTemperature NOTIFY languageChanged)
+    Q_PROPERTY(QString warningBackupCbLow READ warningBackupCbLow NOTIFY languageChanged)
+    Q_PROPERTY(QString warningBackupAuxLow READ warningBackupAuxLow NOTIFY languageChanged)
 
     // Speed & power
     Q_PROPERTY(QString speedKmh READ speedKmh NOTIFY languageChanged)
@@ -722,6 +724,8 @@ public:
     // Warnings
     QString warningHandlebarLocked() const { return lookup("warningHandlebarLocked"); }
     QString warningLowTemperature() const { return lookup("warningLowTemperature"); }
+    QString warningBackupCbLow() const { return lookup("warningBackupCbLow"); }
+    QString warningBackupAuxLow() const { return lookup("warningBackupAuxLow"); }
 
     // Speed & power
     QString speedKmh() const { return lookup("speedKmh"); }

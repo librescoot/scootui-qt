@@ -96,6 +96,7 @@ set(CPP_SOURCES
     src/services/LowTemperatureMonitor.cpp
     src/services/BluetoothHealthMonitor.cpp
     src/services/HandlebarLockMonitor.cpp
+    src/services/BackupBatteryMonitor.cpp
     src/services/NavigationAvailabilityService.cpp
     src/services/SavedLocationsService.cpp
     src/services/RecentDestinationsService.cpp
@@ -164,6 +165,7 @@ set(CPP_HEADERS
     src/services/LowTemperatureMonitor.h
     src/services/BluetoothHealthMonitor.h
     src/services/HandlebarLockMonitor.h
+    src/services/BackupBatteryMonitor.h
     src/services/NavigationAvailabilityService.h
     src/services/SavedLocationsService.h
     src/services/ReverseGeocodingService.h

@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 
 Item {
     id: toastOverlay
@@ -18,10 +19,13 @@ Item {
 
             delegate: Rectangle {
                 id: toastItem
-                width: Math.min(toastText.implicitWidth + 32, toastOverlay.width - 40)
-                height: toastText.implicitHeight + 16
+                width: Math.min(contentRow.implicitWidth + 32, toastOverlay.width - 40)
+                height: contentRow.implicitHeight + 16
                 radius: themeStore.radiusCard
                 opacity: 0
+
+                readonly property bool hasIcon: modelData.icon !== undefined && modelData.icon !== ""
+                readonly property color contentColor: modelData.type === "warning" ? "#000000" : "white"
 
                 color: {
                     switch (modelData.type) {
@@ -32,16 +36,38 @@ Item {
                     }
                 }
 
-                Text {
-                    id: toastText
+                Row {
+                    id: contentRow
                     anchors.centerIn: parent
-                    width: Math.min(implicitWidth, toastOverlay.width - 72)
-                    text: modelData.message
-                    color: modelData.type === "warning" ? "#000000" : "white"
-                    font.pixelSize: themeStore.fontBody
-                    font.weight: Font.Medium
-                    wrapMode: Text.WordWrap
-                    horizontalAlignment: Text.AlignHCenter
+                    spacing: 8
+
+                    Image {
+                        id: toastIcon
+                        visible: toastItem.hasIcon
+                        width: visible ? 22 : 0
+                        height: 22
+                        anchors.verticalCenter: parent.verticalCenter
+                        source: toastItem.hasIcon ? modelData.icon : ""
+                        sourceSize: Qt.size(22, 22)
+                        fillMode: Image.PreserveAspectFit
+                        layer.enabled: visible
+                        layer.effect: MultiEffect {
+                            colorization: 1.0
+                            colorizationColor: toastItem.contentColor
+                        }
+                    }
+
+                    Text {
+                        id: toastText
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Math.min(implicitWidth, toastOverlay.width - 72 - (toastIcon.visible ? 30 : 0))
+                        text: modelData.message
+                        color: toastItem.contentColor
+                        font.pixelSize: themeStore.fontBody
+                        font.weight: Font.Medium
+                        wrapMode: Text.WordWrap
+                        horizontalAlignment: Text.AlignHCenter
+                    }
                 }
 
                 Component.onCompleted: {

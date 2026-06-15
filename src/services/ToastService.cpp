@@ -15,6 +15,7 @@ QVariantList ToastService::toasts() const
         m[QStringLiteral("message")] = t.message;
         m[QStringLiteral("type")] = t.type;
         m[QStringLiteral("permanent")] = t.permanent;
+        m[QStringLiteral("icon")] = t.icon;
         list.append(m);
     }
     return list;
@@ -40,19 +41,19 @@ void ToastService::showSuccess(const QString &message)
     addToast(message, QStringLiteral("success"), false);
 }
 
-QString ToastService::showPermanentInfo(const QString &message, const QString &id)
+QString ToastService::showPermanentInfo(const QString &message, const QString &id, const QString &icon)
 {
-    return addToast(message, QStringLiteral("info"), true, id);
+    return addToast(message, QStringLiteral("info"), true, id, icon);
 }
 
-QString ToastService::showPermanentError(const QString &message, const QString &id)
+QString ToastService::showPermanentError(const QString &message, const QString &id, const QString &icon)
 {
-    return addToast(message, QStringLiteral("error"), true, id);
+    return addToast(message, QStringLiteral("error"), true, id, icon);
 }
 
-QString ToastService::showPermanentWarning(const QString &message, const QString &id)
+QString ToastService::showPermanentWarning(const QString &message, const QString &id, const QString &icon)
 {
-    return addToast(message, QStringLiteral("warning"), true, id);
+    return addToast(message, QStringLiteral("warning"), true, id, icon);
 }
 
 void ToastService::dismiss(const QString &id)
@@ -66,7 +67,7 @@ void ToastService::dismiss(const QString &id)
     }
 }
 
-QString ToastService::addToast(const QString &message, const QString &type, bool permanent, const QString &id)
+QString ToastService::addToast(const QString &message, const QString &type, bool permanent, const QString &id, const QString &icon)
 {
     // If an id is provided and already exists, update it
     if (!id.isEmpty()) {
@@ -75,6 +76,7 @@ QString ToastService::addToast(const QString &message, const QString &type, bool
                 t.message = message;
                 t.type = type;
                 t.permanent = permanent;
+                t.icon = icon;
                 emit toastsChanged();
                 return id;
             }
@@ -86,6 +88,7 @@ QString ToastService::addToast(const QString &message, const QString &type, bool
     entry.message = message;
     entry.type = type;
     entry.permanent = permanent;
+    entry.icon = icon;
     m_toasts.append(entry);
     emit toastsChanged();
 

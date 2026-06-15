@@ -989,6 +989,12 @@ void Translations::initStrings()
     en[QStringLiteral("warningLowTemperature")] = QStringLiteral("Low temperature detected. Reduced performance possible.");
     de[QStringLiteral("warningLowTemperature")] = QStringLiteral("Niedrige Temperatur erkannt. Eingeschr\u00E4nkte Leistung m\u00F6glich.");
 
+    en[QStringLiteral("warningBackupCbLow")] = QStringLiteral("CBB charge low. Please insert a charged main battery so the internal batteries don't run flat.");
+    de[QStringLiteral("warningBackupCbLow")] = QStringLiteral("CBB-Ladestand niedrig. Bitte einen geladenen Hauptakku einsetzen, damit die internen Batterien nicht leer laufen.");
+
+    en[QStringLiteral("warningBackupAuxLow")] = QStringLiteral("12V battery charge low. Please insert a charged main battery so the internal batteries don't run flat.");
+    de[QStringLiteral("warningBackupAuxLow")] = QStringLiteral("12V-Ladestand niedrig. Bitte einen geladenen Hauptakku einsetzen, damit die internen Batterien nicht leer laufen.");
+
     en[QStringLiteral("speedKmh")] = QStringLiteral("km/h");
     de[QStringLiteral("speedKmh")] = QStringLiteral("km/h");
 

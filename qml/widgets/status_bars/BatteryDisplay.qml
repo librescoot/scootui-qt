@@ -110,12 +110,40 @@ Row {
             && vehicleStore.seatboxLock === slClosed
     }
 
+    // --- "Stranded" warnings: backup battery low while NO main battery is inserted ---
+    // Distinct from the charging-system warnings above (which require a main
+    // battery present and active). These fire regardless of seatbox state.
+    // Toasts for these are driven separately by the C++ BackupBatteryMonitor;
+    // here we only mirror the conditions to drive the status-bar icons.
+    readonly property bool noMainBattery: !present0 && !present1
+
+    // CBB low and stranded: reuse the 95% SoC gate. Only act on a reported SoC -
+    // "never received" is not a low reading.
+    readonly property bool cbStrandedCondition: {
+        if (typeof cbBatteryStore === "undefined") return false
+        return noMainBattery && cbBatteryStore.present
+            && cbBatteryStore.chargeValid && cbBatteryStore.charge < 95
+    }
+    // AUX low and stranded: prefer SoC when reported (a reported 0 is genuinely
+    // low and must warn); otherwise fall back to the voltage equivalent (< 12.0V).
+    readonly property bool auxStrandedCondition: {
+        if (typeof auxBatteryStore === "undefined") return false
+        if (!noMainBattery) return false
+        if (auxBatteryStore.chargeValid)
+            return auxBatteryStore.charge < 50
+        return auxBatteryStore.voltageValid && auxBatteryStore.voltage < 12000
+    }
+
     // --- 3-second debounce for warning indicators (matching Flutter) ---
     property bool showCbWarning: false
     property bool showAuxWarning: false
+    property bool showCbStranded: false
+    property bool showAuxStranded: false
 
     property bool _cbDebounceActive: false
     property bool _auxDebounceActive: false
+    property bool _cbStrandedDebounceActive: false
+    property bool _auxStrandedDebounceActive: false
 
     readonly property bool _anyAuxCondition: auxLowChargeCondition || auxLowVoltageCondition || auxCriticalCondition
 
@@ -160,6 +188,50 @@ Row {
         onTriggered: {
             if (batteryDisplay._anyAuxCondition)
                 batteryDisplay.showAuxWarning = true
+        }
+    }
+
+    onCbStrandedConditionChanged: {
+        if (cbStrandedCondition) {
+            if (!_cbStrandedDebounceActive) {
+                _cbStrandedDebounceActive = true
+                cbStrandedDebounceTimer.restart()
+            }
+        } else {
+            _cbStrandedDebounceActive = false
+            cbStrandedDebounceTimer.stop()
+            showCbStranded = false
+        }
+    }
+
+    onAuxStrandedConditionChanged: {
+        if (auxStrandedCondition) {
+            if (!_auxStrandedDebounceActive) {
+                _auxStrandedDebounceActive = true
+                auxStrandedDebounceTimer.restart()
+            }
+        } else {
+            _auxStrandedDebounceActive = false
+            auxStrandedDebounceTimer.stop()
+            showAuxStranded = false
+        }
+    }
+
+    Timer {
+        id: cbStrandedDebounceTimer
+        interval: 3000
+        onTriggered: {
+            if (batteryDisplay.cbStrandedCondition)
+                batteryDisplay.showCbStranded = true
+        }
+    }
+
+    Timer {
+        id: auxStrandedDebounceTimer
+        interval: 3000
+        onTriggered: {
+            if (batteryDisplay.auxStrandedCondition)
+                batteryDisplay.showAuxStranded = true
         }
     }
 
@@ -213,7 +285,7 @@ Row {
     }
 
     // Group separator before warning icons
-    Item { width: 5; height: 1; visible: batteryDisplay.seatboxOpen || cbNotPresent || showCbWarning || showAuxWarning || showTurtle }
+    Item { width: 5; height: 1; visible: batteryDisplay.seatboxOpen || cbNotPresent || showCbWarning || showAuxWarning || showCbStranded || showAuxStranded || showTurtle }
 
     // =====================================================================
     // Seatbox open indicator
@@ -270,7 +342,7 @@ Row {
     // Battery warning indicators (CB and AUX with error overlay)
     // =====================================================================
     Item {
-        visible: showCbWarning
+        visible: showCbWarning || showCbStranded
         width: 24; height: 24
         anchors.verticalCenter: parent.verticalCenter
 
@@ -296,7 +368,7 @@ Row {
     }
 
     Item {
-        visible: showAuxWarning
+        visible: showAuxWarning || showAuxStranded
         width: 24; height: 24
         anchors.verticalCenter: parent.verticalCenter
 

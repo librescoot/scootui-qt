@@ -33,7 +33,11 @@ SyncSettings CbBatteryStore::syncSettings() const
 void CbBatteryStore::applyFieldUpdate(const QString &variable, const QString &value)
 {
     if (variable == QLatin1String("charge")) {
-        int v = value.toInt(); if (v != m_charge) { m_charge = v; emit chargeChanged(); }
+        bool ok = false; int v = value.toInt(&ok);
+        if (ok) {
+            if (!m_chargeValid) { m_chargeValid = true; emit chargeValidChanged(); }
+            if (v != m_charge) { m_charge = v; emit chargeChanged(); }
+        }
     } else if (variable == QLatin1String("current")) {
         int v = value.toInt(); if (v != m_current) { m_current = v; emit currentChanged(); }
     } else if (variable == QLatin1String("remaining-capacity")) {
