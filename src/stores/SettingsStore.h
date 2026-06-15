@@ -24,6 +24,8 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(QString showInternet READ showInternet NOTIFY showInternetChanged)
     Q_PROPERTY(QString showClock READ showClock NOTIFY showClockChanged)
     Q_PROPERTY(QString showTemperature READ showTemperature NOTIFY showTemperatureChanged)
+    Q_PROPERTY(QString showCbBattery READ showCbBattery NOTIFY showCbBatteryChanged)
+    Q_PROPERTY(QString showAuxBattery READ showAuxBattery NOTIFY showAuxBatteryChanged)
     Q_PROPERTY(bool alarmEnabled READ alarmEnabled NOTIFY alarmEnabledChanged)
     Q_PROPERTY(bool alarmHonk READ alarmHonk NOTIFY alarmHonkChanged)
     Q_PROPERTY(QString alarmDuration READ alarmDuration NOTIFY alarmDurationChanged)
@@ -53,6 +55,8 @@ public:
     QString showInternet() const { return m_showInternet; }
     QString showClock() const { return m_showClock; }
     QString showTemperature() const { return m_showTemperature; }
+    QString showCbBattery() const { return m_showCbBattery; }
+    QString showAuxBattery() const { return m_showAuxBattery; }
     bool alarmEnabled() const { return m_alarmEnabled == QLatin1String("true"); }
     bool alarmHonk() const { return m_alarmHonk == QLatin1String("true"); }
     QString alarmDuration() const { return m_alarmDuration; }
@@ -84,6 +88,8 @@ signals:
     void showInternetChanged();
     void showClockChanged();
     void showTemperatureChanged();
+    void showCbBatteryChanged();
+    void showAuxBatteryChanged();
     void alarmEnabledChanged();
     void alarmHonkChanged();
     void alarmDurationChanged();
@@ -132,6 +138,12 @@ private:
     // Values: "always" (always show widget), "warning" (only when ambient
     // temp <10 °C), "never" (hidden).
     QString m_showTemperature = QStringLiteral("warning");
+    // @schema dashboard.show-cb-battery
+    // Icon-only indicator. Values: "always", "warning" (SoC <= 50%), "never".
+    QString m_showCbBattery = QStringLiteral("warning");
+    // @schema dashboard.show-aux-battery
+    // Icon-only indicator. Values: "always", "warning" (SoC <= 50%), "never".
+    QString m_showAuxBattery = QStringLiteral("warning");
     // @schema alarm.enabled
     QString m_alarmEnabled = QStringLiteral("true");
     // @schema alarm.honk

@@ -50,6 +50,8 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
     connect(m_settings, &SettingsStore::showInternetChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::showClockChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::showTemperatureChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::showCbBatteryChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::showAuxBatteryChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::mapCheckForUpdatesChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::mapAutoDownloadChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_translations, &Translations::languageChanged, this, &MenuStore::rebuildMenuTree);
@@ -430,6 +432,28 @@ void MenuStore::rebuildMenuTree()
             }, battIdx));
     }
 
+    // Optional CBB / AUX charge indicators (icon-only): visibility cycle
+    // always / warning (SoC <= 50%) / never, one per battery. Shares the
+    // "warning" value with the temperature indicator; labelled "When Low".
+    auto addBatteryVisibility = [&](const QString &id, const QString &title,
+                                     const QString &currentVal,
+                                     std::function<void(const QString&)> updateFn) {
+        QString val = currentVal.isEmpty() ? QStringLiteral("warning") : currentVal;
+        int idx = 0;
+        if (val == QLatin1String("warning")) idx = 1;
+        else if (val == QLatin1String("never")) idx = 2;
+        statusBarNode->addChild(MenuNode::cycleSetting(id, title, {
+            {tr->optAlways(), [updateFn]() { updateFn(QStringLiteral("always")); }},
+            {tr->optWhenLow(), [updateFn]() { updateFn(QStringLiteral("warning")); }},
+            {tr->optNever(), [updateFn]() { updateFn(QStringLiteral("never")); }},
+        }, idx));
+    };
+
+    addBatteryVisibility(QStringLiteral("status_cb_battery"), tr->menuCbBattery(),
+        settings->showCbBattery(), [svc](const QString &v) { svc->updateShowCbBattery(v); });
+    addBatteryVisibility(QStringLiteral("status_aux_battery"), tr->menuAuxBattery(),
+        settings->showAuxBattery(), [svc](const QString &v) { svc->updateShowAuxBattery(v); });
+
     // Helper for 4-option visibility cycle settings
     auto addVisibilityCycle = [&](const QString &id, const QString &title,
                                    const QString &currentVal, const QString &defaultVal,
@@ -455,10 +479,10 @@ void MenuStore::rebuildMenuTree()
         settings->showBluetooth(), QStringLiteral("active-or-error"),
         [svc](const QString &v) { svc->updateShowBluetooth(v); });
     addVisibilityCycle(QStringLiteral("status_cloud"), tr->menuCloudIcon(),
-        settings->showCloud(), QStringLiteral("error"),
+        settings->showCloud(), QStringLiteral("never"),
         [svc](const QString &v) { svc->updateShowCloud(v); });
     addVisibilityCycle(QStringLiteral("status_internet"), tr->menuInternetIcon(),
-        settings->showInternet(), QStringLiteral("always"),
+        settings->showInternet(), QStringLiteral("never"),
         [svc](const QString &v) { svc->updateShowInternet(v); });
 
     // Clock (inline cycle: Always → Never)

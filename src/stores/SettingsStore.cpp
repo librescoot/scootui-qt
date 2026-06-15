@@ -28,6 +28,8 @@ SyncSettings SettingsStore::syncSettings() const
             {QStringLiteral("showInternet"), QStringLiteral("dashboard.show-internet")},
             {QStringLiteral("showClock"), QStringLiteral("dashboard.show-clock")},
             {QStringLiteral("showTemperature"), QStringLiteral("dashboard.show-temperature")},
+            {QStringLiteral("showCbBattery"), QStringLiteral("dashboard.show-cb-battery")},
+            {QStringLiteral("showAuxBattery"), QStringLiteral("dashboard.show-aux-battery")},
             {QStringLiteral("alarmEnabled"), QStringLiteral("alarm.enabled")},
             {QStringLiteral("alarmHonk"), QStringLiteral("alarm.honk")},
             {QStringLiteral("alarmDuration"), QStringLiteral("alarm.duration")},
@@ -81,6 +83,10 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
         if (value != m_showClock) { m_showClock = value; emit showClockChanged(); }
     } else if (variable == QLatin1String("dashboard.show-temperature")) {
         if (value != m_showTemperature) { m_showTemperature = value; emit showTemperatureChanged(); }
+    } else if (variable == QLatin1String("dashboard.show-cb-battery")) {
+        if (value != m_showCbBattery) { m_showCbBattery = value; emit showCbBatteryChanged(); }
+    } else if (variable == QLatin1String("dashboard.show-aux-battery")) {
+        if (value != m_showAuxBattery) { m_showAuxBattery = value; emit showAuxBatteryChanged(); }
     } else if (variable == QLatin1String("alarm.enabled")) {
         if (value != m_alarmEnabled) { m_alarmEnabled = value; emit alarmEnabledChanged(); }
     } else if (variable == QLatin1String("alarm.honk")) {

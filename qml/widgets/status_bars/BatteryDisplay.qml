@@ -65,6 +65,46 @@ Row {
         return themeStore.textColor
     }
 
+    // --- Optional CBB / AUX charge indicators (icon-only) ---
+    // One setting per battery: visibility (always / warning / never, default
+    // warning; "warning" = SoC <= 50%, matching the temperature indicator's
+    // vocabulary). Detailed charge/voltage is available via the
+    // hold-both-brakes parked view, so the status bar stays icon-only.
+    readonly property string cbVisibility: typeof settingsStore !== "undefined" ? settingsStore.showCbBattery : "warning"
+    readonly property string auxVisibility: typeof settingsStore !== "undefined" ? settingsStore.showAuxBattery : "warning"
+
+    readonly property bool cbPresent: typeof cbBatteryStore !== "undefined" && cbBatteryStore.present
+    readonly property int cbCharge: typeof cbBatteryStore !== "undefined" ? cbBatteryStore.charge : 0
+    readonly property bool cbChargeValid: typeof cbBatteryStore !== "undefined" && cbBatteryStore.chargeValid
+    readonly property bool cbLow: cbChargeValid && cbCharge <= 50
+
+    readonly property int auxCharge: typeof auxBatteryStore !== "undefined" ? auxBatteryStore.charge : 0
+    readonly property bool auxChargeValid: typeof auxBatteryStore !== "undefined" && auxBatteryStore.chargeValid
+    readonly property int auxVoltageMv: typeof auxBatteryStore !== "undefined" ? auxBatteryStore.voltage : 0
+    readonly property bool auxVoltageValid: typeof auxBatteryStore !== "undefined" && auxBatteryStore.voltageValid
+    readonly property bool auxLow: (auxChargeValid && auxCharge <= 50)
+                                   || (!auxChargeValid && auxVoltageValid && auxVoltageMv < 12000)
+
+    function visibleByMode(mode, low) {
+        if (mode === "always") return true
+        if (mode === "warning") return low
+        return false
+    }
+
+    // The level glyph needs a known SoC to pick a bucket; warnings take over the
+    // slot when active, so don't double up.
+    readonly property bool showCbCharge: cbPresent && cbChargeValid
+                                         && visibleByMode(cbVisibility, cbLow)
+                                         && !showCbWarning && !showCbStranded
+    readonly property bool showAuxCharge: auxChargeValid
+                                          && visibleByMode(auxVisibility, auxLow)
+                                          && !showAuxWarning && !showAuxStranded
+
+    function levelBucket(charge) {
+        var b = Math.round(charge / 25) * 25
+        return b < 0 ? 0 : (b > 100 ? 100 : b)
+    }
+
     // --- Seatbox ---
     readonly property bool seatboxOpen: typeof vehicleStore !== "undefined"
                                          ? vehicleStore.seatboxLock !== slClosed : false
@@ -282,6 +322,53 @@ Row {
         font.weight: Font.DemiBold
         font.letterSpacing: -1.1
         color: chargeLabelColor(charge1, battState1)
+    }
+
+    // =====================================================================
+    // Optional CBB / AUX charge indicators (icon-only level glyph)
+    // =====================================================================
+    Item { width: 5; height: 1; visible: batteryDisplay.showCbCharge || batteryDisplay.showAuxCharge }
+
+    Item {
+        visible: batteryDisplay.showCbCharge
+        width: 24; height: 24
+        anchors.verticalCenter: parent.verticalCenter
+
+        Image {
+            anchors.fill: parent
+            source: batteryDisplay.showCbCharge
+                    ? "qrc:/ScootUI/assets/icons/librescoot-cb-battery-level-"
+                      + batteryDisplay.levelBucket(batteryDisplay.cbCharge) + ".svg"
+                    : ""
+            sourceSize: Qt.size(24, 24)
+            fillMode: Image.PreserveAspectFit
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                colorization: 1.0
+                colorizationColor: batteryDisplay.iconColor
+            }
+        }
+    }
+
+    Item {
+        visible: batteryDisplay.showAuxCharge
+        width: 24; height: 24
+        anchors.verticalCenter: parent.verticalCenter
+
+        Image {
+            anchors.fill: parent
+            source: batteryDisplay.showAuxCharge
+                    ? "qrc:/ScootUI/assets/icons/librescoot-aux-battery-level-"
+                      + batteryDisplay.levelBucket(batteryDisplay.auxCharge) + ".svg"
+                    : ""
+            sourceSize: Qt.size(24, 24)
+            fillMode: Image.PreserveAspectFit
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                colorization: 1.0
+                colorizationColor: batteryDisplay.iconColor
+            }
+        }
     }
 
     // Group separator before warning icons

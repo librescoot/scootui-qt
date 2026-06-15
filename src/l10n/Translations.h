@@ -25,6 +25,8 @@ class Translations : public QObject
     Q_PROPERTY(QString menuInternetIcon READ menuInternetIcon NOTIFY languageChanged)
     Q_PROPERTY(QString menuClock READ menuClock NOTIFY languageChanged)
     Q_PROPERTY(QString menuTemperature READ menuTemperature NOTIFY languageChanged)
+    Q_PROPERTY(QString menuCbBattery READ menuCbBattery NOTIFY languageChanged)
+    Q_PROPERTY(QString menuAuxBattery READ menuAuxBattery NOTIFY languageChanged)
     Q_PROPERTY(QString optWarningOnly READ optWarningOnly NOTIFY languageChanged)
     Q_PROPERTY(QString menuBlinkerStyle READ menuBlinkerStyle NOTIFY languageChanged)
     Q_PROPERTY(QString menuBlinkerIcon READ menuBlinkerIcon NOTIFY languageChanged)
@@ -110,6 +112,7 @@ class Translations : public QObject
     Q_PROPERTY(QString optActiveOrError READ optActiveOrError NOTIFY languageChanged)
     Q_PROPERTY(QString optErrorOnly READ optErrorOnly NOTIFY languageChanged)
     Q_PROPERTY(QString optNever READ optNever NOTIFY languageChanged)
+    Q_PROPERTY(QString optWhenLow READ optWhenLow NOTIFY languageChanged)
 
     // Control hints
     Q_PROPERTY(QString controlBack READ controlBack NOTIFY languageChanged)
@@ -437,6 +440,8 @@ public:
     QString menuInternetIcon() const { return lookup("menuInternetIcon"); }
     QString menuClock() const { return lookup("menuClock"); }
     QString menuTemperature() const { return lookup("menuTemperature"); }
+    QString menuCbBattery() const { return lookup("menuCbBattery"); }
+    QString menuAuxBattery() const { return lookup("menuAuxBattery"); }
     QString optWarningOnly() const { return lookup("optWarningOnly"); }
     QString menuBlinkerStyle() const { return lookup("menuBlinkerStyle"); }
     QString menuBlinkerIcon() const { return lookup("menuBlinkerIcon"); }
@@ -521,6 +526,7 @@ public:
     QString optActiveOrError() const { return lookup("optActiveOrError"); }
     QString optErrorOnly() const { return lookup("optErrorOnly"); }
     QString optNever() const { return lookup("optNever"); }
+    QString optWhenLow() const { return lookup("optWhenLow"); }
 
     QString controlBack() const { return lookup("controlBack"); }
     QString controlExit() const { return lookup("controlExit"); }

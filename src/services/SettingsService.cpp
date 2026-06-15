@@ -87,6 +87,16 @@ void SettingsService::updateShowTemperature(const QString &mode)
     writeSetting(QStringLiteral("dashboard.show-temperature"), mode);
 }
 
+void SettingsService::updateShowCbBattery(const QString &mode)
+{
+    writeSetting(QStringLiteral("dashboard.show-cb-battery"), mode);
+}
+
+void SettingsService::updateShowAuxBattery(const QString &mode)
+{
+    writeSetting(QStringLiteral("dashboard.show-aux-battery"), mode);
+}
+
 void SettingsService::updateAlarmEnabled(bool enabled)
 {
     writeSetting(QStringLiteral("alarm.enabled"), enabled ? QStringLiteral("true") : QStringLiteral("false"));

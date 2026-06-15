@@ -91,6 +91,11 @@ void Translations::initStrings()
     en[QStringLiteral("menuTemperature")] = QStringLiteral("Temperature");
     de[QStringLiteral("menuTemperature")] = QStringLiteral("Temperatur");
 
+    en[QStringLiteral("menuCbBattery")] = QStringLiteral("CBB Battery");
+    de[QStringLiteral("menuCbBattery")] = QStringLiteral("CBB-Batterie");
+    en[QStringLiteral("menuAuxBattery")] = QStringLiteral("12V Battery");
+    de[QStringLiteral("menuAuxBattery")] = QStringLiteral("12V-Batterie");
+
     en[QStringLiteral("menuBlinkerStyle")] = QStringLiteral("Blinker Style");
     de[QStringLiteral("menuBlinkerStyle")] = QStringLiteral("Blinker-Stil");
 
@@ -359,6 +364,9 @@ void Translations::initStrings()
 
     en[QStringLiteral("optNever")] = QStringLiteral("Never");
     de[QStringLiteral("optNever")] = QStringLiteral("Nie");
+
+    en[QStringLiteral("optWhenLow")] = QStringLiteral("When Low");
+    de[QStringLiteral("optWhenLow")] = QStringLiteral("Wenn niedrig");
 
     // -----------------------------------------------------------------------
     // Control hints

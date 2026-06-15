@@ -26,6 +26,8 @@ public:
     Q_INVOKABLE void updateShowInternet(const QString &mode);
     Q_INVOKABLE void updateShowClock(const QString &mode);
     Q_INVOKABLE void updateShowTemperature(const QString &mode);
+    Q_INVOKABLE void updateShowCbBattery(const QString &mode);
+    Q_INVOKABLE void updateShowAuxBattery(const QString &mode);
     Q_INVOKABLE void updateAlarmEnabled(bool enabled);
     Q_INVOKABLE void updateAlarmHonk(bool enabled);
     Q_INVOKABLE void updateAlarmDuration(int seconds);
