@@ -909,11 +909,12 @@ void NavigationService::updateNavigationState()
     m_distanceFromRoute = distFromRoute;
     m_currentSegmentIndex = segIdx;
 
-    // Distance to destination measured ALONG the route, using the same snapped
-    // position and segment index as the upcoming-maneuver walker. It shares
-    // their prefix and runs to the final waypoint, so it can never read shorter
-    // than the next-maneuver distance. The old great-circle value could, on a
-    // curvy approach, make the next turn look farther away than the goal.
+    // Default distance to destination: along-route geometry from the snapped
+    // position to the final waypoint. The normal path below overrides this with
+    // a maneuver-length sum (kept consistent with the remaining-duration
+    // figure); this default covers the arrival-return path and the rare tick
+    // with no upcoming maneuver. Either form is along-route, never great-circle,
+    // so it never reads shorter than the next-maneuver distance.
     m_distanceToDestination = RouteHelpers::remainingDistanceAlongRoute(
         m_snappedPosition, m_route.waypoints, m_currentSegmentIndex);
 
@@ -1018,10 +1019,13 @@ void NavigationService::updateNavigationState()
         }
         if (firstIdx >= 0) {
             double remaining = 0;
+            double remainingDist = 0;
 
-            // Full duration of the upcoming maneuver + all that follow
-            for (int i = firstIdx; i < m_route.instructions.size(); ++i)
+            // Full duration and leg length of the upcoming maneuver + all after
+            for (int i = firstIdx; i < m_route.instructions.size(); ++i) {
                 remaining += m_route.instructions[i].duration;
+                remainingDist += m_route.instructions[i].distance;
+            }
 
             // Time to reach the upcoming maneuver from current position,
             // using the speed of the step we're currently on.
@@ -1037,6 +1041,13 @@ void NavigationService::updateNavigationState()
             remaining += upcoming.first().distance * sPerM;
 
             m_remainingDuration = remaining;
+
+            // Distance to destination, mirroring the remaining-duration figure:
+            // the along-route distance to the upcoming maneuver (the same value
+            // the TBT banner shows) plus the Valhalla leg length of that
+            // maneuver and every one after it. Built from upcoming.first(), so
+            // it is always >= the displayed next-maneuver distance.
+            m_distanceToDestination = upcoming.first().distance + remainingDist;
         }
     }
 
