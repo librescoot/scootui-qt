@@ -882,8 +882,10 @@ void NavigationService::updateNavigationState()
     LatLng pos = currentPosition();
     if (!pos.isValid()) return;
 
-    // Distance to destination
-    m_distanceToDestination = pos.distanceTo(m_destination);
+    // Straight-line distance to the destination point, used only for arrival
+    // detection below. "Am I physically next to the destination" is the right
+    // question there, independent of how the route gets there.
+    double straightLineToDestination = pos.distanceTo(m_destination);
 
     // Route projection is authoritative on MapService (trajectory-aware
     // matcher). Prefer its values so TBT, off-route detection, and the
@@ -907,8 +909,16 @@ void NavigationService::updateNavigationState()
     m_distanceFromRoute = distFromRoute;
     m_currentSegmentIndex = segIdx;
 
-    // Arrival detection
-    if (m_distanceToDestination < ArrivalProximity) {
+    // Distance to destination measured ALONG the route, using the same snapped
+    // position and segment index as the upcoming-maneuver walker. It shares
+    // their prefix and runs to the final waypoint, so it can never read shorter
+    // than the next-maneuver distance. The old great-circle value could, on a
+    // curvy approach, make the next turn look farther away than the goal.
+    m_distanceToDestination = RouteHelpers::remainingDistanceAlongRoute(
+        m_snappedPosition, m_route.waypoints, m_currentSegmentIndex);
+
+    // Arrival detection (straight-line proximity to the actual goal point)
+    if (straightLineToDestination < ArrivalProximity) {
         if (m_status != NavigationStatus::Arrived) {
             m_wasArrived = true;
             setStatus(NavigationStatus::Arrived);
