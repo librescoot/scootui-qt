@@ -123,6 +123,13 @@ Item {
 
         property real s: displayScale
 
+        // Defensive repaints: the FrameAnimation auto-stops once speed
+        // converges, so a freshly (re)created Canvas may only ever get one
+        // paint. Force a repaint on creation and whenever it becomes visible
+        // again so the static markings/labels can't get stuck blank.
+        Component.onCompleted: requestPaint()
+        onVisibleChanged: if (visible) requestPaint()
+
         onPaint: {
             var ctx = getContext("2d")
             ctx.reset()
@@ -234,7 +241,7 @@ Item {
                 var labelR = r - labelInward
                 var lx = cx + labelR * Math.cos(labelAngle)
                 var ly = cy + labelR * Math.sin(labelAngle)
-                ctx.font = isMajor ? "600 13px sans-serif" : "400 9px sans-serif"
+                ctx.font = isMajor ? "600 13px Roboto" : "400 9px Roboto"
                 ctx.fillStyle = isMajor
                     ? (isDark ? "#CCFFFFFF" : "#4D000000")
                     : (isDark ? "#80FFFFFF" : "#1F000000")
