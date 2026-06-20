@@ -9,8 +9,11 @@ AutoThemeService::AutoThemeService(MdbRepository *repo, ThemeStore *themeStore,
     , m_repo(repo)
     , m_themeStore(themeStore)
     , m_pollTimer(new QTimer(this))
+    , m_lockoutTimer(new QTimer(this))
 {
     connect(m_pollTimer, &QTimer::timeout, this, &AutoThemeService::checkBrightness);
+
+    m_lockoutTimer->setSingleShot(true);
 
     // Also listen for pubsub brightness updates
     m_repo->subscribe(QStringLiteral("dashboard"), [this](const QString &, const QString &msg) {
@@ -24,6 +27,7 @@ AutoThemeService::AutoThemeService(MdbRepository *repo, ThemeStore *themeStore,
 AutoThemeService::~AutoThemeService()
 {
     m_pollTimer->stop();
+    m_lockoutTimer->stop();
 }
 
 void AutoThemeService::setEnabled(bool enabled)
@@ -37,6 +41,7 @@ void AutoThemeService::setEnabled(bool enabled)
         checkBrightness();
     } else {
         m_pollTimer->stop();
+        m_lockoutTimer->stop();
     }
 }
 
@@ -73,9 +78,23 @@ void AutoThemeService::processBrightness(double rawLux)
             shouldBeDark = true;
     }
 
-    if (shouldBeDark != m_currentlyDark || m_forceSync) {
+    if (m_forceSync) {
+        // Re-entering auto mode: resync immediately, ignoring the lockout.
         m_currentlyDark = shouldBeDark;
         m_themeStore->setTheme(shouldBeDark ? QStringLiteral("dark") : QStringLiteral("light"));
+        m_lockoutTimer->start(LOCKOUT_MS);
         m_forceSync = false;
+        return;
     }
+
+    if (shouldBeDark == m_currentlyDark)
+        return; // no flip warranted
+
+    if (m_lockoutTimer->isActive())
+        return; // flipped too recently; hold the current level to avoid flicker
+
+    // Commit the flip promptly, then lock out the reverse for LOCKOUT_MS.
+    m_currentlyDark = shouldBeDark;
+    m_themeStore->setTheme(shouldBeDark ? QStringLiteral("dark") : QStringLiteral("light"));
+    m_lockoutTimer->start(LOCKOUT_MS);
 }

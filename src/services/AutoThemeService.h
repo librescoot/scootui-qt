@@ -27,6 +27,9 @@ private:
     MdbRepository *m_repo;
     ThemeStore *m_themeStore;
     QTimer *m_pollTimer;
+    // Lockout after a flip: while active, further flips are suppressed so the
+    // theme can't oscillate. Single-shot, started on every committed flip.
+    QTimer *m_lockoutTimer;
     double m_smoothedBrightness = -1.0;
     bool m_enabled = false;
     bool m_currentlyDark = true;
@@ -37,6 +40,10 @@ private:
     bool m_forceSync = false;
 
     static constexpr double SMOOTHING_ALPHA = 0.7;
-    static constexpr double LIGHT_THRESHOLD = 25.0;
-    static constexpr double DARK_THRESHOLD = 15.0;
+    static constexpr double LIGHT_THRESHOLD = 40.0;
+    static constexpr double DARK_THRESHOLD = 10.0;
+    // Minimum time the theme stays at a level after flipping. Flips happen
+    // promptly on a threshold cross; this just blocks an immediate flip back,
+    // so the theme can't flicker (e.g. dappled light, dusk boundary).
+    static constexpr int LOCKOUT_MS = 10000;
 };
