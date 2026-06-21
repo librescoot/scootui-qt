@@ -42,9 +42,7 @@ BackupBatteryMonitor::BackupBatteryMonitor(BatteryStore *battery0, BatteryStore 
     connect(m_cbBattery, &CbBatteryStore::chargeChanged, this, &BackupBatteryMonitor::evaluate);
     connect(m_cbBattery, &CbBatteryStore::chargeValidChanged, this, &BackupBatteryMonitor::evaluate);
     connect(m_auxBattery, &AuxBatteryStore::voltageChanged, this, &BackupBatteryMonitor::evaluate);
-    connect(m_auxBattery, &AuxBatteryStore::chargeChanged, this, &BackupBatteryMonitor::evaluate);
     connect(m_auxBattery, &AuxBatteryStore::voltageValidChanged, this, &BackupBatteryMonitor::evaluate);
-    connect(m_auxBattery, &AuxBatteryStore::chargeValidChanged, this, &BackupBatteryMonitor::evaluate);
 }
 
 bool BackupBatteryMonitor::noMainBattery() const
@@ -65,11 +63,9 @@ bool BackupBatteryMonitor::auxLowCondition() const
 {
     if (!noMainBattery())
         return false;
-    // Prefer SoC when it has actually been reported - a reported 0 is a genuine
-    // low reading and must warn, distinct from "never received".
-    if (m_auxBattery->chargeValid())
-        return m_auxBattery->charge() < AuxChargeThreshold;
-    // SoC unknown: fall back to the voltage backstop, again only if reported.
+    // Voltage-only: the AUX pack has no fuel gauge, its SoC is just a 5-bucket
+    // quantization of this same voltage, so gate on the voltage directly. Only
+    // act on a reported reading - "never received" is not a low reading.
     return m_auxBattery->voltageValid()
         && m_auxBattery->voltage() < AuxVoltageThreshold;
 }

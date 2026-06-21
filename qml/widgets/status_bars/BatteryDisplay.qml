@@ -67,9 +67,10 @@ Row {
 
     // --- Optional CBB / AUX charge indicators (icon-only) ---
     // One setting per battery: visibility (always / warning / never, default
-    // warning; "warning" = SoC <= 50%, matching the temperature indicator's
-    // vocabulary). Detailed charge/voltage is available via the
-    // hold-both-brakes parked view, so the status bar stays icon-only.
+    // warning). "warning" means the pack reads low: CBB by SoC <= 50% (it has a
+    // real fuel gauge), AUX by voltage (no gauge, see the aux thresholds below).
+    // Detailed charge/voltage is available via the hold-both-brakes parked view,
+    // so the status bar stays icon-only.
     readonly property string cbVisibility: typeof settingsStore !== "undefined" ? settingsStore.showCbBattery : "warning"
     readonly property string auxVisibility: typeof settingsStore !== "undefined" ? settingsStore.showAuxBattery : "warning"
 
@@ -82,8 +83,22 @@ Row {
     readonly property bool auxChargeValid: typeof auxBatteryStore !== "undefined" && auxBatteryStore.chargeValid
     readonly property int auxVoltageMv: typeof auxBatteryStore !== "undefined" ? auxBatteryStore.voltage : 0
     readonly property bool auxVoltageValid: typeof auxBatteryStore !== "undefined" && auxBatteryStore.voltageValid
-    readonly property bool auxLow: (auxChargeValid && auxCharge <= 50)
-                                   || (!auxChargeValid && auxVoltageValid && auxVoltageMv < 12000)
+
+    // AUX 12V thresholds, in mV. The AUX pack has no fuel gauge: mdb-nrf52
+    // quantizes this same voltage into 5 SoC buckets (0/25/50/75/100), so SoC
+    // carries strictly less information than the voltage it is derived from.
+    // Drive every aux low/warning/critical decision from voltage; SoC is kept
+    // only for the charge-level glyph. These three values are the one place to
+    // shift for a future "aux chemistry = LiFePO4" setting (the firmware SoC
+    // table is lead-acid-specific and can't be reused for LiFePO4's flat curve).
+    // Tiers: 12000 ~ 50% SoC (soft "low": icon visibility + stranded mirror),
+    //        11500 ~ firmware empty line (charging-system warning),
+    //        11000 critical.
+    readonly property int auxLowVoltageMv: 12000
+    readonly property int auxWarnVoltageMv: 11500
+    readonly property int auxCriticalVoltageMv: 11000
+
+    readonly property bool auxLow: auxVoltageValid && auxVoltageMv < auxLowVoltageMv
 
     function visibleByMode(mode, low) {
         if (mode === "always") return true
@@ -126,26 +141,19 @@ Row {
             && present0 && charge0 > 0 && battState0 === bsActive
             && vehicleStore.seatboxLock === slClosed
     }
-    // AUX low charge: charge ≤ 25%, not charging, main present & active, seatbox closed
-    readonly property bool auxLowChargeCondition: {
-        if (typeof auxBatteryStore === "undefined" || typeof vehicleStore === "undefined") return false
-        return auxBatteryStore.charge <= 25
-            && auxBatteryStore.chargeStatus === acsNotCharging
-            && present0 && charge0 > 0 && battState0 === bsActive
-            && vehicleStore.seatboxLock === slClosed
-    }
-    // AUX low voltage: voltage < 11500mV, not charging, main present, seatbox closed
+    // AUX low voltage: not charging, main present, seatbox closed. Replaces the
+    // old SoC <= 25% gate - voltage is the same signal without the bucketing.
     readonly property bool auxLowVoltageCondition: {
         if (typeof auxBatteryStore === "undefined" || typeof vehicleStore === "undefined") return false
-        return auxBatteryStore.voltage < 11500
+        return auxVoltageValid && auxVoltageMv < auxWarnVoltageMv
             && auxBatteryStore.chargeStatus === acsNotCharging
             && present0
             && vehicleStore.seatboxLock === slClosed
     }
-    // AUX critical voltage: voltage < 11000mV, main present, seatbox closed
+    // AUX critical voltage: main present, seatbox closed
     readonly property bool auxCriticalCondition: {
         if (typeof auxBatteryStore === "undefined" || typeof vehicleStore === "undefined") return false
-        return auxBatteryStore.voltage < 11000
+        return auxVoltageValid && auxVoltageMv < auxCriticalVoltageMv
             && present0
             && vehicleStore.seatboxLock === slClosed
     }
@@ -164,14 +172,12 @@ Row {
         return noMainBattery && cbBatteryStore.present
             && cbBatteryStore.chargeValid && cbBatteryStore.charge < 95
     }
-    // AUX low and stranded: prefer SoC when reported (a reported 0 is genuinely
-    // low and must warn); otherwise fall back to the voltage equivalent (< 12.0V).
+    // AUX low and stranded: low aux voltage while no main battery is inserted.
+    // Mirrors the C++ BackupBatteryMonitor, which drives the actual toast.
     readonly property bool auxStrandedCondition: {
         if (typeof auxBatteryStore === "undefined") return false
         if (!noMainBattery) return false
-        if (auxBatteryStore.chargeValid)
-            return auxBatteryStore.charge < 50
-        return auxBatteryStore.voltageValid && auxBatteryStore.voltage < 12000
+        return auxVoltageValid && auxVoltageMv < auxLowVoltageMv
     }
 
     // --- 3-second debounce for warning indicators (matching Flutter) ---
@@ -185,7 +191,7 @@ Row {
     property bool _cbStrandedDebounceActive: false
     property bool _auxStrandedDebounceActive: false
 
-    readonly property bool _anyAuxCondition: auxLowChargeCondition || auxLowVoltageCondition || auxCriticalCondition
+    readonly property bool _anyAuxCondition: auxLowVoltageCondition || auxCriticalCondition
 
     onCbWarningConditionChanged: {
         if (cbWarningCondition) {
