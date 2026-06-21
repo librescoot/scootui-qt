@@ -11,6 +11,7 @@ class InternetStore : public SyncableStore
     Q_PROPERTY(int modemState READ modemState NOTIFY modemStateChanged)
     Q_PROPERTY(QString connectivity READ connectivity NOTIFY connectivityChanged)
     Q_PROPERTY(int unuCloud READ unuCloud NOTIFY unuCloudChanged)
+    Q_PROPERTY(bool hasUnuCloud READ hasUnuCloud NOTIFY hasUnuCloudChanged)
     Q_PROPERTY(int status READ status NOTIFY statusChanged)
     Q_PROPERTY(QString ipAddress READ ipAddress NOTIFY ipAddressChanged)
     Q_PROPERTY(QString accessTech READ accessTech NOTIFY accessTechChanged)
@@ -28,6 +29,9 @@ public:
     // "connected"/"disconnected"/"disabled"/"no-sim"/"denied"/"failed", "" if unknown.
     QString connectivity() const { return m_connectivity; }
     int unuCloud() const { return static_cast<int>(m_unuCloud); }
+    // True once a cloud client (radio-gaga / uplink-service) has published
+    // unu-cloud. Absent on de-clouded scooters; used to gate the cloud icon.
+    bool hasUnuCloud() const { return m_hasUnuCloud; }
     int status() const { return static_cast<int>(m_status); }
     QString ipAddress() const { return m_ipAddress; }
     QString accessTech() const { return m_accessTech; }
@@ -41,6 +45,7 @@ signals:
     void modemStateChanged();
     void connectivityChanged();
     void unuCloudChanged();
+    void hasUnuCloudChanged();
     void statusChanged();
     void ipAddressChanged();
     void accessTechChanged();
@@ -59,6 +64,7 @@ private:
     ScootEnums::ModemState m_modemState = ScootEnums::ModemState::Off;
     QString m_connectivity;
     ScootEnums::ConnectionStatus m_unuCloud = ScootEnums::ConnectionStatus::Disconnected;
+    bool m_hasUnuCloud = false;
     ScootEnums::ConnectionStatus m_status = ScootEnums::ConnectionStatus::Disconnected;
     QString m_ipAddress;
     QString m_accessTech;

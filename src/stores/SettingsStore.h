@@ -134,7 +134,7 @@ private:
     // @schema dashboard.show-bluetooth
     QString m_showBluetooth = QStringLiteral("active-or-error");
     // @schema dashboard.show-cloud
-    QString m_showCloud = QStringLiteral("never");
+    QString m_showCloud = QStringLiteral("active-or-error");
     // @schema dashboard.show-internet
     QString m_showInternet = QStringLiteral("active-or-error");
     // @schema dashboard.show-clock

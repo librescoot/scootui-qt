@@ -21,6 +21,9 @@ Row {
     // icon is worth showing at all. "" = unknown (treat as hidden).
     readonly property string connectivity: typeof internetStore !== "undefined" ? internetStore.connectivity : ""
     readonly property int cloudStatus: typeof internetStore !== "undefined" ? internetStore.unuCloud : 1
+    // Cloud applies only if a cloud client (radio-gaga / uplink-service) has
+    // published unu-cloud. Absent -> de-clouded scooter -> icon hidden.
+    readonly property bool hasCloud: typeof internetStore !== "undefined" ? internetStore.hasUnuCloud : false
     readonly property int signalQuality: typeof internetStore !== "undefined" ? internetStore.signalQuality : 0
     readonly property string accessTech: typeof internetStore !== "undefined" ? internetStore.accessTech : ""
     readonly property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : 0
@@ -32,7 +35,7 @@ Row {
     // Visibility settings from SettingsStore (values: "always", "active-or-error", "error", "never")
     readonly property string showGpsSetting: typeof settingsStore !== "undefined" ? settingsStore.showGps : "error"
     readonly property string showBtSetting: typeof settingsStore !== "undefined" ? settingsStore.showBluetooth : "active-or-error"
-    readonly property string showCloudSetting: typeof settingsStore !== "undefined" ? settingsStore.showCloud : "never"
+    readonly property string showCloudSetting: typeof settingsStore !== "undefined" ? settingsStore.showCloud : "active-or-error"
     readonly property string showInternetSetting: typeof settingsStore !== "undefined" ? settingsStore.showInternet : "active-or-error"
 
     // Active/error state for each indicator (matches Flutter shouldShowIndicator logic)
@@ -40,8 +43,8 @@ Row {
     readonly property bool gpsHasError: gpsState === 3
     readonly property bool btIsActive: btStatus === 0
     readonly property bool btHasError: btServiceHealth === "error"
-    readonly property bool cloudIsActive: cloudStatus === 0
-    readonly property bool cloudHasError: cloudStatus === 1
+    readonly property bool cloudIsActive: hasCloud && cloudStatus === 0
+    readonly property bool cloudHasError: hasCloud && cloudStatus === 1
     // Internet icon gating off the connectivity classification (not raw modem-state):
     //   connected            -> active (show)
     //   disconnected, failed  -> error (show: provisioned-but-down / broken modem)

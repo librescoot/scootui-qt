@@ -49,6 +49,7 @@ void InternetStore::applyFieldUpdate(const QString &variable, const QString &val
     } else if (variable == QLatin1String("connectivity")) {
         if (value != m_connectivity) { m_connectivity = value; emit connectivityChanged(); }
     } else if (variable == QLatin1String("unu-cloud")) {
+        if (!m_hasUnuCloud) { m_hasUnuCloud = true; emit hasUnuCloudChanged(); }
         auto v = ScootEnums::parseConnectionStatus(value);
         if (v != m_unuCloud) { m_unuCloud = v; emit unuCloudChanged(); }
     } else if (variable == QLatin1String("status")) {
