@@ -384,6 +384,23 @@ void MenuStore::rebuildMenuTree()
             }, themeIdx));
     }
 
+    // Backlight (inline cycle: Auto -> Low -> Medium -> High). Auto = ambient
+    // light sensor; the fixed levels override brightness only, not the theme.
+    {
+        const QString blMode = settings->backlightMode();
+        int blIdx = 0; // auto
+        if (blMode == QLatin1String("low")) blIdx = 1;
+        else if (blMode == QLatin1String("medium")) blIdx = 2;
+        else if (blMode == QLatin1String("high")) blIdx = 3;
+        settingsNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_backlight"),
+            tr->menuBacklight(), {
+                {tr->menuBacklightAuto(),   [svc]() { svc->updateBacklightMode(QStringLiteral("auto")); }},
+                {tr->menuBacklightLow(),    [svc]() { svc->updateBacklightMode(QStringLiteral("low")); }},
+                {tr->menuBacklightMedium(), [svc]() { svc->updateBacklightMode(QStringLiteral("medium")); }},
+                {tr->menuBacklightHigh(),   [svc]() { svc->updateBacklightMode(QStringLiteral("high")); }},
+            }, blIdx));
+    }
+
     // Hop-on — learning / disabling the combo. Promoted to near the top
     // since it's a discoverable feature riders will want to find.
     // First-run (no combo): opens the info screen so the rider understands
