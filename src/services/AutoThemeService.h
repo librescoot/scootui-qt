@@ -40,8 +40,8 @@ private:
     bool m_forceSync = false;
 
     static constexpr double SMOOTHING_ALPHA = 0.7;
-    static constexpr double LIGHT_THRESHOLD = 40.0;
-    static constexpr double DARK_THRESHOLD = 10.0;
+    static constexpr double LIGHT_THRESHOLD = 20.0;
+    static constexpr double DARK_THRESHOLD = 8.0;
     // Minimum time the theme stays at a level after flipping. Flips happen
     // promptly on a threshold cross; this just blocks an immediate flip back,
     // so the theme can't flicker (e.g. dappled light, dusk boundary).
