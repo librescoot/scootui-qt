@@ -9,6 +9,7 @@ class InternetStore : public SyncableStore
 {
     Q_OBJECT
     Q_PROPERTY(int modemState READ modemState NOTIFY modemStateChanged)
+    Q_PROPERTY(QString connectivity READ connectivity NOTIFY connectivityChanged)
     Q_PROPERTY(int unuCloud READ unuCloud NOTIFY unuCloudChanged)
     Q_PROPERTY(int status READ status NOTIFY statusChanged)
     Q_PROPERTY(QString ipAddress READ ipAddress NOTIFY ipAddressChanged)
@@ -23,6 +24,9 @@ public:
     explicit InternetStore(MdbRepository *repo, QObject *parent = nullptr);
 
     int modemState() const { return static_cast<int>(m_modemState); }
+    // Raw connectivity classification from modem-service (internet[connectivity]):
+    // "connected"/"disconnected"/"disabled"/"no-sim"/"denied"/"failed", "" if unknown.
+    QString connectivity() const { return m_connectivity; }
     int unuCloud() const { return static_cast<int>(m_unuCloud); }
     int status() const { return static_cast<int>(m_status); }
     QString ipAddress() const { return m_ipAddress; }
@@ -35,6 +39,7 @@ public:
 
 signals:
     void modemStateChanged();
+    void connectivityChanged();
     void unuCloudChanged();
     void statusChanged();
     void ipAddressChanged();
@@ -52,6 +57,7 @@ protected:
 
 private:
     ScootEnums::ModemState m_modemState = ScootEnums::ModemState::Off;
+    QString m_connectivity;
     ScootEnums::ConnectionStatus m_unuCloud = ScootEnums::ConnectionStatus::Disconnected;
     ScootEnums::ConnectionStatus m_status = ScootEnums::ConnectionStatus::Disconnected;
     QString m_ipAddress;

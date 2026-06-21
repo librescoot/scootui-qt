@@ -136,7 +136,7 @@ private:
     // @schema dashboard.show-cloud
     QString m_showCloud = QStringLiteral("never");
     // @schema dashboard.show-internet
-    QString m_showInternet = QStringLiteral("never");
+    QString m_showInternet = QStringLiteral("active-or-error");
     // @schema dashboard.show-clock
     QString m_showClock = QStringLiteral("always");
     // @schema dashboard.show-temperature

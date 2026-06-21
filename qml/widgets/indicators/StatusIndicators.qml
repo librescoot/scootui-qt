@@ -17,6 +17,9 @@ Row {
     readonly property int btStatus: typeof bluetoothStore !== "undefined" ? bluetoothStore.status : 1
     readonly property string btServiceHealth: typeof bluetoothStore !== "undefined" ? bluetoothStore.serviceHealth : ""
     readonly property int modemState: typeof internetStore !== "undefined" ? internetStore.modemState : 0
+    // Connectivity classification from modem-service: gates whether the internet
+    // icon is worth showing at all. "" = unknown (treat as hidden).
+    readonly property string connectivity: typeof internetStore !== "undefined" ? internetStore.connectivity : ""
     readonly property int cloudStatus: typeof internetStore !== "undefined" ? internetStore.unuCloud : 1
     readonly property int signalQuality: typeof internetStore !== "undefined" ? internetStore.signalQuality : 0
     readonly property string accessTech: typeof internetStore !== "undefined" ? internetStore.accessTech : ""
@@ -30,7 +33,7 @@ Row {
     readonly property string showGpsSetting: typeof settingsStore !== "undefined" ? settingsStore.showGps : "error"
     readonly property string showBtSetting: typeof settingsStore !== "undefined" ? settingsStore.showBluetooth : "active-or-error"
     readonly property string showCloudSetting: typeof settingsStore !== "undefined" ? settingsStore.showCloud : "never"
-    readonly property string showInternetSetting: typeof settingsStore !== "undefined" ? settingsStore.showInternet : "never"
+    readonly property string showInternetSetting: typeof settingsStore !== "undefined" ? settingsStore.showInternet : "active-or-error"
 
     // Active/error state for each indicator (matches Flutter shouldShowIndicator logic)
     readonly property bool gpsIsActive: (gpsState === 0 && gpsRecentFix) || (gpsState === 2 && gpsRecentFix)
@@ -39,7 +42,12 @@ Row {
     readonly property bool btHasError: btServiceHealth === "error"
     readonly property bool cloudIsActive: cloudStatus === 0
     readonly property bool cloudHasError: cloudStatus === 1
-    readonly property bool internetIsActive: modemState === 2
+    // Internet icon gating off the connectivity classification (not raw modem-state):
+    //   connected            -> active (show)
+    //   disconnected, failed  -> error (show: provisioned-but-down / broken modem)
+    //   disabled, no-sim, denied (and unknown) -> neither -> hidden under active-or-error
+    readonly property bool internetIsActive: connectivity === "connected"
+    readonly property bool internetHasError: connectivity === "disconnected" || connectivity === "failed"
 
     function shouldShowIndicator(setting, isActive, hasError) {
         switch (setting) {
@@ -79,7 +87,7 @@ Row {
     // Internet/modem icon with access tech overlay (rightmost in RTL)
     Item {
         width: 24; height: 24
-        visible: shouldShowIndicator(showInternetSetting, internetIsActive, false)
+        visible: shouldShowIndicator(showInternetSetting, internetIsActive, internetHasError)
 
         Image {
             id: modemIcon

@@ -11,6 +11,7 @@ SyncSettings InternetStore::syncSettings() const
         QStringLiteral("internet"), 5000,
         {
             {QStringLiteral("modemState"), QStringLiteral("modem-state")},
+            {QStringLiteral("connectivity"), QStringLiteral("connectivity")},
             {QStringLiteral("unuCloud"), QStringLiteral("unu-cloud")},
             {QStringLiteral("status"), QStringLiteral("status")},
             {QStringLiteral("ipAddress"), QStringLiteral("ip-address")},
@@ -45,6 +46,8 @@ void InternetStore::applyFieldUpdate(const QString &variable, const QString &val
     if (variable == QLatin1String("modem-state")) {
         auto v = ScootEnums::parseModemState(value);
         if (v != m_modemState) { m_modemState = v; emit modemStateChanged(); }
+    } else if (variable == QLatin1String("connectivity")) {
+        if (value != m_connectivity) { m_connectivity = value; emit connectivityChanged(); }
     } else if (variable == QLatin1String("unu-cloud")) {
         auto v = ScootEnums::parseConnectionStatus(value);
         if (v != m_unuCloud) { m_unuCloud = v; emit unuCloudChanged(); }
