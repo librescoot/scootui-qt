@@ -12,6 +12,7 @@ SyncSettings SettingsStore::syncSettings() const
         {
             {QStringLiteral("theme"), QStringLiteral("dashboard.theme")},
             {QStringLiteral("mode"), QStringLiteral("dashboard.mode")},
+            {QStringLiteral("backlightMode"), QStringLiteral("dashboard.backlight-mode")},
             {QStringLiteral("showRawSpeed"), QStringLiteral("dashboard.show-raw-speed")},
             {QStringLiteral("batteryDisplayMode"), QStringLiteral("dashboard.battery-display-mode")},
             {QStringLiteral("mapType"), QStringLiteral("dashboard.map.type")},
@@ -48,6 +49,8 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
         if (value != m_theme) { m_theme = value; emit themeChanged(); }
     } else if (variable == QLatin1String("dashboard.mode")) {
         if (value != m_mode) { m_mode = value; emit modeChanged(); }
+    } else if (variable == QLatin1String("dashboard.backlight-mode")) {
+        if (value != m_backlightMode) { m_backlightMode = value; emit backlightModeChanged(); }
     } else if (variable == QLatin1String("dashboard.show-raw-speed")) {
         if (value != m_showRawSpeed) { m_showRawSpeed = value; emit showRawSpeedChanged(); }
     } else if (variable == QLatin1String("dashboard.battery-display-mode")) {

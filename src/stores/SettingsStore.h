@@ -8,6 +8,7 @@ class SettingsStore : public SyncableStore
     Q_OBJECT
     Q_PROPERTY(QString theme READ theme NOTIFY themeChanged)
     Q_PROPERTY(QString mode READ mode NOTIFY modeChanged)
+    Q_PROPERTY(QString backlightMode READ backlightMode NOTIFY backlightModeChanged)
     Q_PROPERTY(bool showRawSpeed READ showRawSpeed NOTIFY showRawSpeedChanged)
     Q_PROPERTY(QString batteryDisplayMode READ batteryDisplayMode NOTIFY batteryDisplayModeChanged)
     Q_PROPERTY(int mapType READ mapType NOTIFY mapTypeChanged)
@@ -39,6 +40,7 @@ public:
 
     QString theme() const { return m_theme; }
     QString mode() const { return m_mode; }
+    QString backlightMode() const { return m_backlightMode; }
     bool showRawSpeed() const { return m_showRawSpeed == QLatin1String("true"); }
     QString batteryDisplayMode() const { return m_batteryDisplayMode; }
     int mapType() const { return static_cast<int>(m_mapType); }
@@ -72,6 +74,7 @@ public:
 signals:
     void themeChanged();
     void modeChanged();
+    void backlightModeChanged();
     void showRawSpeedChanged();
     void batteryDisplayModeChanged();
     void mapTypeChanged();
@@ -107,6 +110,8 @@ private:
     QString m_theme = QStringLiteral("auto");
     // @schema dashboard.mode
     QString m_mode = QStringLiteral("speedometer");
+    // @schema dashboard.backlight-mode
+    QString m_backlightMode = QStringLiteral("auto");
     QString m_showRawSpeed = QStringLiteral("false");
     // @schema dashboard.battery-display-mode
     QString m_batteryDisplayMode = QStringLiteral("percentage");
