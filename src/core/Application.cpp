@@ -325,6 +325,12 @@ void Application::createStores(QQmlApplicationEngine &engine)
         m_mapService->reloadMbtiles();
         m_roadInfoService->reloadMbtiles();
         m_addressDatabaseService->initialize();
+        // Re-run availability detection. checkMaps() is one-shot at startup, so
+        // if /data mounted after we constructed, m_mapsAvailable is latched
+        // false and the map/navigation menu entries stay hidden even though the
+        // tiles just loaded. recheck() flips the flag and rebuilds the menu.
+        if (m_navAvailability)
+            m_navAvailability->recheck();
     });
 
     // Saved locations (B7)
