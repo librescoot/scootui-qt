@@ -76,6 +76,25 @@ ApplicationWindow {
 
             Item { Layout.preferredWidth: 4 }
 
+            SimButton {
+                text: "BL Auto"
+                onClicked: simulator.setSetting("dashboard.backlight-mode", "auto")
+            }
+            SimButton {
+                text: "BL Low"
+                onClicked: simulator.setSetting("dashboard.backlight-mode", "low")
+            }
+            SimButton {
+                text: "BL Med"
+                onClicked: simulator.setSetting("dashboard.backlight-mode", "medium")
+            }
+            SimButton {
+                text: "BL High"
+                onClicked: simulator.setSetting("dashboard.backlight-mode", "high")
+            }
+
+            Item { Layout.preferredWidth: 4 }
+
             ButtonGroup { id: langGroup; exclusive: true }
             SimButton {
                 text: "EN"; small: true
