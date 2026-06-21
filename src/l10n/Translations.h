@@ -14,6 +14,11 @@ class Translations : public QObject
     Q_PROPERTY(QString menuThemeAuto READ menuThemeAuto NOTIFY languageChanged)
     Q_PROPERTY(QString menuThemeDark READ menuThemeDark NOTIFY languageChanged)
     Q_PROPERTY(QString menuThemeLight READ menuThemeLight NOTIFY languageChanged)
+    Q_PROPERTY(QString menuBacklight READ menuBacklight NOTIFY languageChanged)
+    Q_PROPERTY(QString menuBacklightAuto READ menuBacklightAuto NOTIFY languageChanged)
+    Q_PROPERTY(QString menuBacklightLow READ menuBacklightLow NOTIFY languageChanged)
+    Q_PROPERTY(QString menuBacklightMedium READ menuBacklightMedium NOTIFY languageChanged)
+    Q_PROPERTY(QString menuBacklightHigh READ menuBacklightHigh NOTIFY languageChanged)
     Q_PROPERTY(QString menuLanguage READ menuLanguage NOTIFY languageChanged)
     Q_PROPERTY(QString menuStatusBar READ menuStatusBar NOTIFY languageChanged)
     Q_PROPERTY(QString menuBatteryDisplay READ menuBatteryDisplay NOTIFY languageChanged)
@@ -429,6 +434,11 @@ public:
     QString menuThemeAuto() const { return lookup("menuThemeAuto"); }
     QString menuThemeDark() const { return lookup("menuThemeDark"); }
     QString menuThemeLight() const { return lookup("menuThemeLight"); }
+    QString menuBacklight() const { return lookup("menuBacklight"); }
+    QString menuBacklightAuto() const { return lookup("menuBacklightAuto"); }
+    QString menuBacklightLow() const { return lookup("menuBacklightLow"); }
+    QString menuBacklightMedium() const { return lookup("menuBacklightMedium"); }
+    QString menuBacklightHigh() const { return lookup("menuBacklightHigh"); }
     QString menuLanguage() const { return lookup("menuLanguage"); }
     QString menuStatusBar() const { return lookup("menuStatusBar"); }
     QString menuBatteryDisplay() const { return lookup("menuBatteryDisplay"); }

@@ -31,6 +31,11 @@ void SettingsService::updateAutoTheme(bool enabled)
     writeSetting(QStringLiteral("dashboard.theme"), enabled ? QStringLiteral("auto") : QStringLiteral("dark"));
 }
 
+void SettingsService::updateBacklightMode(const QString &mode)
+{
+    writeSetting(QStringLiteral("dashboard.backlight-mode"), mode);
+}
+
 void SettingsService::updateLanguage(const QString &lang)
 {
     writeSetting(QStringLiteral("dashboard.language"), lang);

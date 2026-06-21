@@ -58,6 +58,21 @@ void Translations::initStrings()
     en[QStringLiteral("menuThemeLight")] = QStringLiteral("Light");
     de[QStringLiteral("menuThemeLight")] = QStringLiteral("Hell");
 
+    en[QStringLiteral("menuBacklight")] = QStringLiteral("Backlight");
+    de[QStringLiteral("menuBacklight")] = QStringLiteral("Beleuchtung");
+
+    en[QStringLiteral("menuBacklightAuto")] = QStringLiteral("Automatic");
+    de[QStringLiteral("menuBacklightAuto")] = QStringLiteral("Automatisch");
+
+    en[QStringLiteral("menuBacklightLow")] = QStringLiteral("Low");
+    de[QStringLiteral("menuBacklightLow")] = QStringLiteral("Niedrig");
+
+    en[QStringLiteral("menuBacklightMedium")] = QStringLiteral("Medium");
+    de[QStringLiteral("menuBacklightMedium")] = QStringLiteral("Mittel");
+
+    en[QStringLiteral("menuBacklightHigh")] = QStringLiteral("High");
+    de[QStringLiteral("menuBacklightHigh")] = QStringLiteral("Hoch");
+
     en[QStringLiteral("menuLanguage")] = QStringLiteral("Language");
     de[QStringLiteral("menuLanguage")] = QStringLiteral("Sprache");
 
