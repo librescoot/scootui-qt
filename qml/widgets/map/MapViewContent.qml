@@ -138,6 +138,48 @@ MapView {
             layout: { "line-cap": "round", "line-join": "round" }
             paint: { "line-color": "#42A5F5", "line-width": 7 }
         }
+
+        // Theme recolor: override the paint of existing style layers in place
+        // when the dark/light theme flips, so the map does not reload (and
+        // flash) the whole style. Overrides come from MapService.mapThemeLayers.
+        property var _themeParams: []
+
+        Component {
+            id: themeLayerComponent
+            LayerParameter {}
+        }
+
+        function _applyThemePaint() {
+            var dark = (typeof themeStore !== "undefined") && themeStore.isDark
+            for (var i = 0; i < _themeParams.length; ++i) {
+                var tp = _themeParams[i]
+                tp.param.paint = dark ? tp.entry.paintDark : tp.entry.paintLight
+            }
+        }
+
+        Component.onCompleted: {
+            if (typeof mapService === "undefined")
+                return
+            var dark = (typeof themeStore !== "undefined") && themeStore.isDark
+            var model = mapService.mapThemeLayers
+            for (var i = 0; i < model.length; ++i) {
+                var entry = model[i]
+                var param = themeLayerComponent.createObject(routeStyle, {
+                    styleId: entry.styleId,
+                    type: entry.type,
+                    paint: dark ? entry.paintDark : entry.paintLight
+                })
+                if (param) {
+                    routeStyle.addParameter(param)
+                    _themeParams.push({ param: param, entry: entry })
+                }
+            }
+        }
+
+        Connections {
+            target: typeof themeStore !== "undefined" ? themeStore : null
+            function onThemeChanged() { routeStyle._applyThemePaint() }
+        }
     }
 
 }

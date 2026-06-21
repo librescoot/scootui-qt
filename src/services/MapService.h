@@ -24,6 +24,10 @@ class MapService : public QObject
     Q_PROPERTY(double mapBearing READ mapBearing NOTIFY mapBearingChanged)
     Q_PROPERTY(bool isReady READ isReady NOTIFY isReadyChanged)
     Q_PROPERTY(QString styleUrl READ styleUrl NOTIFY styleUrlChanged)
+    // Per-layer paint overrides for the dark/light themes, computed once from
+    // the embedded style JSONs. The map QML applies these at runtime so a theme
+    // switch recolors existing layers in place instead of reloading the style.
+    Q_PROPERTY(QVariantList mapThemeLayers READ mapThemeLayers CONSTANT)
     Q_PROPERTY(QVariantList routeCoordinates READ routeCoordinates NOTIFY routeCoordinatesChanged)
     Q_PROPERTY(QString routeGeoJson READ routeGeoJson NOTIFY routeGeoJsonChanged)
     Q_PROPERTY(double vehicleOffsetY READ vehicleOffsetY NOTIFY vehicleOffsetYChanged)
@@ -57,6 +61,7 @@ public:
     double mapBearing() const { return m_mapBearing; }
     bool isReady() const { return m_isReady; }
     QString styleUrl() const { return m_styleUrl; }
+    QVariantList mapThemeLayers() const { return m_mapThemeLayers; }
     QVariantList routeCoordinates() const { return m_routeCoordinates; }
     QString routeGeoJson() const { return m_routeGeoJson; }
     double vehicleOffsetY() const { return m_vehicleOffsetY; }
@@ -105,7 +110,6 @@ private slots:
     void onDeadReckoningTick();
     void onGpsPositionChanged();
     void onRouteChanged();
-    void onThemeChanged();
     void onMapTypeChanged();
     void onTrafficOverlayChanged();
     void onOverviewTimeout();
@@ -132,6 +136,9 @@ private:
 
     // Style
     void rebuildStyleUrl();
+    // Diffs the embedded dark/light style JSONs once and fills m_mapThemeLayers
+    // with the per-layer paint properties that differ between the two themes.
+    void buildThemeLayerOverrides();
     QString rewriteStyleForMbtiles(const QString &qrcPath, const QString &mbtilesPath);
 
     // Traffic overlay
@@ -281,6 +288,7 @@ private:
     double m_mapBearing = 0;
     bool m_isReady = false;
     QString m_styleUrl;
+    QVariantList m_mapThemeLayers;
     QVariantList m_routeCoordinates;
     QString m_routeGeoJson;
     double m_vehicleOffsetY = VehicleOffsetPx;

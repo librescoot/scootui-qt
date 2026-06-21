@@ -9,8 +9,10 @@ Item {
 
     property bool mapReady: typeof mapService !== "undefined" ? mapService.isReady : false
 
-    // Reload map when style URL changes (e.g. theme switch)
-    // PluginParameter is only read at creation time, so we must recreate the MapView
+    // Reload map when the style URL actually changes (offline/mbtiles or traffic
+    // overlay toggle). PluginParameter is only read at creation time, so those
+    // need a MapView recreate. Theme switches do NOT change the URL: the map
+    // recolors existing layers in place (see MapViewContent.qml), no reload.
     Connections {
         target: typeof mapService !== "undefined" ? mapService : null
         function onStyleUrlChanged() {

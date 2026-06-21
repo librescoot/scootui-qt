@@ -17,6 +17,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QHash>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
@@ -177,7 +178,9 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
     connect(m_navigation, &NavigationService::routeChanged, this, &MapService::onRouteChanged);
 
     // --- Theme changes ---
-    connect(m_theme, &ThemeStore::themeChanged, this, &MapService::onThemeChanged);
+    // No style reload on theme switch: the map QML recolors existing layers in
+    // place from m_mapThemeLayers, so the style URL is theme-independent.
+    buildThemeLayerOverrides();
 
     // --- Map type changes (online / offline) ---
     connect(m_settings, &SettingsStore::mapTypeChanged, this, &MapService::onMapTypeChanged);
@@ -588,11 +591,6 @@ void MapService::onOverviewTimeout()
 // Theme / map type changed
 // ---------------------------------------------------------------------------
 
-void MapService::onThemeChanged()
-{
-    rebuildStyleUrl();
-}
-
 void MapService::onMapTypeChanged()
 {
     rebuildStyleUrl();
@@ -623,6 +621,77 @@ void MapService::removeTrafficFromStyle(QJsonObject &root)
         filtered.append(v);
     }
     root[QStringLiteral("layers")] = filtered;
+}
+
+void MapService::buildThemeLayerOverrides()
+{
+    auto loadLayers = [](const QString &qrcPath) -> QHash<QString, QJsonObject> {
+        QHash<QString, QJsonObject> out;
+        QString file = qrcPath;
+        file.replace(QStringLiteral("qrc:/"), QStringLiteral(":/"));
+        QFile f(file);
+        if (!f.open(QIODevice::ReadOnly)) {
+            qWarning() << "MapService: cannot open style for theme overrides" << file;
+            return out;
+        }
+        const QJsonArray layers = QJsonDocument::fromJson(f.readAll())
+                                      .object().value(QStringLiteral("layers")).toArray();
+        f.close();
+        for (const QJsonValue &v : layers) {
+            const QJsonObject layer = v.toObject();
+            out.insert(layer.value(QStringLiteral("id")).toString(), layer);
+        }
+        return out;
+    };
+
+    const QHash<QString, QJsonObject> dark =
+        loadLayers(QStringLiteral("qrc:/ScootUI/assets/styles/mapdark.json"));
+    const QHash<QString, QJsonObject> light =
+        loadLayers(QStringLiteral("qrc:/ScootUI/assets/styles/maplight.json"));
+
+    // Walk the light style's layer order so the overrides keep style order.
+    QFile lf(QStringLiteral(":/ScootUI/assets/styles/maplight.json"));
+    QJsonArray order;
+    if (lf.open(QIODevice::ReadOnly)) {
+        order = QJsonDocument::fromJson(lf.readAll())
+                    .object().value(QStringLiteral("layers")).toArray();
+        lf.close();
+    }
+
+    m_mapThemeLayers.clear();
+    for (const QJsonValue &v : order) {
+        const QString id = v.toObject().value(QStringLiteral("id")).toString();
+        if (!dark.contains(id) || !light.contains(id))
+            continue;
+
+        const QJsonObject dPaint = dark.value(id).value(QStringLiteral("paint")).toObject();
+        const QJsonObject lPaint = light.value(id).value(QStringLiteral("paint")).toObject();
+
+        QStringList keys = dPaint.keys();
+        for (const QString &k : lPaint.keys())
+            if (!keys.contains(k))
+                keys.append(k);
+
+        QVariantMap paintDark, paintLight;
+        for (const QString &k : keys) {
+            if (dPaint.value(k) == lPaint.value(k))
+                continue; // identical between themes: no override needed
+            paintDark.insert(k, dPaint.value(k).toVariant());
+            paintLight.insert(k, lPaint.value(k).toVariant());
+        }
+        if (paintDark.isEmpty())
+            continue;
+
+        QVariantMap entry;
+        entry.insert(QStringLiteral("styleId"), id);
+        entry.insert(QStringLiteral("type"),
+                     light.value(id).value(QStringLiteral("type")).toString());
+        entry.insert(QStringLiteral("paintDark"), paintDark);
+        entry.insert(QStringLiteral("paintLight"), paintLight);
+        m_mapThemeLayers.append(entry);
+    }
+
+    qDebug() << "MapService: built" << m_mapThemeLayers.size() << "theme layer overrides";
 }
 
 void MapService::rebuildStyleUrl()
