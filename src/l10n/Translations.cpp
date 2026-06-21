@@ -290,6 +290,9 @@ void Translations::initStrings()
     en[QStringLiteral("menuToggleHazardLights")] = QStringLiteral("Toggle Hazard Lights");
     de[QStringLiteral("menuToggleHazardLights")] = QStringLiteral("Warnblinker umschalten");
 
+    en[QStringLiteral("menuLockScooter")] = QStringLiteral("Lock Scooter");
+    de[QStringLiteral("menuLockScooter")] = QStringLiteral("Roller abschlie\u00DFen");
+
     en[QStringLiteral("menuHopOn")] = QStringLiteral("Hop On / Hop Off\u2026");
     de[QStringLiteral("menuHopOn")] = QStringLiteral("Hop-on / Hop-off\u2026");
 

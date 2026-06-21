@@ -90,6 +90,7 @@ class Translations : public QObject
 
     // Menu actions
     Q_PROPERTY(QString menuToggleHazardLights READ menuToggleHazardLights NOTIFY languageChanged)
+    Q_PROPERTY(QString menuLockScooter READ menuLockScooter NOTIFY languageChanged)
     Q_PROPERTY(QString menuHopOn READ menuHopOn NOTIFY languageChanged)
     Q_PROPERTY(QString menuHopOnHeader READ menuHopOnHeader NOTIFY languageChanged)
     Q_PROPERTY(QString menuHopOnActivate READ menuHopOnActivate NOTIFY languageChanged)
@@ -510,6 +511,7 @@ public:
 
     // Menu actions
     QString menuToggleHazardLights() const { return lookup("menuToggleHazardLights"); }
+    QString menuLockScooter() const { return lookup("menuLockScooter"); }
     QString menuHopOn() const { return lookup("menuHopOn"); }
     QString menuHopOnHeader() const { return lookup("menuHopOnHeader"); }
     QString menuHopOnActivate() const { return lookup("menuHopOnActivate"); }

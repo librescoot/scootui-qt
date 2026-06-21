@@ -193,6 +193,16 @@ void MenuStore::rebuildMenuTree()
             close();
         }));
 
+    // === Lock Scooter (top-level, only when strictly parked) ===
+    m_rootNode->addChild(MenuNode::action(QStringLiteral("lock_scooter"),
+        tr->menuLockScooter(), [this, repo]() {
+            repo->push(QStringLiteral("scooter:state"), QStringLiteral("lock"));
+            close();
+        }, [this]() {
+            return m_vehicle &&
+                   m_vehicle->state() == static_cast<int>(ScootEnums::VehicleState::Parked);
+        }));
+
     // === Hop-on activate (top-level, only when a combo is configured) ===
     if (m_hopOn && m_hopOn->hasCombo()) {
         m_rootNode->addChild(MenuNode::action(QStringLiteral("hop_on_activate"),
