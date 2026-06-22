@@ -245,6 +245,8 @@ void Translations::initStrings()
 
     en[QStringLiteral("menuDbcBlinkerLed")] = QStringLiteral("DBC Blinker LED");
     de[QStringLiteral("menuDbcBlinkerLed")] = QStringLiteral("DBC-Blinker-LED");
+    en[QStringLiteral("menuHornSeatboxOpen")] = QStringLiteral("Horn While Seatbox Open");
+    de[QStringLiteral("menuHornSeatboxOpen")] = QStringLiteral("Hupe bei offener Sitzbank");
 
     en[QStringLiteral("menuOffline")] = QStringLiteral("Offline");
     de[QStringLiteral("menuOffline")] = QStringLiteral("Offline");

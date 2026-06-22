@@ -62,6 +62,11 @@ void SettingsService::updateDualBattery(bool enabled)
     writeSetting(QStringLiteral("scooter.dual-battery"), enabled ? QStringLiteral("true") : QStringLiteral("false"));
 }
 
+void SettingsService::updateHornWhenSeatboxOpen(bool enabled)
+{
+    writeSetting(QStringLiteral("scooter.horn-when-seatbox-open"), enabled ? QStringLiteral("true") : QStringLiteral("false"));
+}
+
 void SettingsService::updateShowGps(const QString &mode)
 {
     writeSetting(QStringLiteral("dashboard.show-gps"), mode);

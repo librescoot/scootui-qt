@@ -27,6 +27,7 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(QString showTemperature READ showTemperature NOTIFY showTemperatureChanged)
     Q_PROPERTY(QString showCbBattery READ showCbBattery NOTIFY showCbBatteryChanged)
     Q_PROPERTY(QString showAuxBattery READ showAuxBattery NOTIFY showAuxBatteryChanged)
+    Q_PROPERTY(bool hornWhenSeatboxOpen READ hornWhenSeatboxOpen NOTIFY hornWhenSeatboxOpenChanged)
     Q_PROPERTY(bool alarmEnabled READ alarmEnabled NOTIFY alarmEnabledChanged)
     Q_PROPERTY(bool alarmHonk READ alarmHonk NOTIFY alarmHonkChanged)
     Q_PROPERTY(QString alarmDuration READ alarmDuration NOTIFY alarmDurationChanged)
@@ -51,6 +52,7 @@ public:
     QString blinkerStyle() const { return m_blinkerStyle; }
     bool dbcBlinkerLed() const { return m_dbcBlinkerLed == QLatin1String("enabled"); }
     bool dualBattery() const { return m_dualBattery == QLatin1String("true"); }
+    bool hornWhenSeatboxOpen() const { return m_hornWhenSeatboxOpen == QLatin1String("true"); }
     QString showGps() const { return m_showGps; }
     QString showBluetooth() const { return m_showBluetooth; }
     QString showCloud() const { return m_showCloud; }
@@ -93,6 +95,7 @@ signals:
     void showTemperatureChanged();
     void showCbBatteryChanged();
     void showAuxBatteryChanged();
+    void hornWhenSeatboxOpenChanged();
     void alarmEnabledChanged();
     void alarmHonkChanged();
     void alarmDurationChanged();
@@ -149,6 +152,8 @@ private:
     // @schema dashboard.show-aux-battery
     // Icon-only indicator. Values: "always", "warning" (SoC <= 50%), "never".
     QString m_showAuxBattery = QStringLiteral("warning");
+    // @schema scooter.horn-when-seatbox-open
+    QString m_hornWhenSeatboxOpen = QStringLiteral("false");
     // @schema alarm.enabled
     QString m_alarmEnabled = QStringLiteral("true");
     // @schema alarm.honk

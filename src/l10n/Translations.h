@@ -78,6 +78,7 @@ class Translations : public QObject
     Q_PROPERTY(QString menuBlinker READ menuBlinker NOTIFY languageChanged)
     Q_PROPERTY(QString menuBlinkerHeader READ menuBlinkerHeader NOTIFY languageChanged)
     Q_PROPERTY(QString menuDbcBlinkerLed READ menuDbcBlinkerLed NOTIFY languageChanged)
+    Q_PROPERTY(QString menuHornSeatboxOpen READ menuHornSeatboxOpen NOTIFY languageChanged)
 
     // Menu headers
     Q_PROPERTY(QString menuNavigationHeader READ menuNavigationHeader NOTIFY languageChanged)
@@ -499,6 +500,7 @@ public:
     QString menuBlinker() const { return lookup("menuBlinker"); }
     QString menuBlinkerHeader() const { return lookup("menuBlinkerHeader"); }
     QString menuDbcBlinkerLed() const { return lookup("menuDbcBlinkerLed"); }
+    QString menuHornSeatboxOpen() const { return lookup("menuHornSeatboxOpen"); }
 
     // Menu headers
     QString menuNavigationHeader() const { return lookup("menuNavigationHeader"); }

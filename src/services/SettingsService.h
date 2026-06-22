@@ -21,6 +21,7 @@ public:
     Q_INVOKABLE void updateBlinkerStyle(const QString &style);
     Q_INVOKABLE void updateDbcBlinkerLed(bool enabled);
     Q_INVOKABLE void updateDualBattery(bool enabled);
+    Q_INVOKABLE void updateHornWhenSeatboxOpen(bool enabled);
     Q_INVOKABLE void updateShowGps(const QString &mode);
     Q_INVOKABLE void updateShowBluetooth(const QString &mode);
     Q_INVOKABLE void updateShowCloud(const QString &mode);

@@ -40,6 +40,7 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
     connect(m_settings, &SettingsStore::languageChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::blinkerStyleChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::dualBatteryChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::hornWhenSeatboxOpenChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::batteryDisplayModeChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::alarmEnabledChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::alarmHonkChanged, this, &MenuStore::rebuildMenuTree);
@@ -665,6 +666,15 @@ void MenuStore::rebuildMenuTree()
                 {tr->menuBatterySingle(), [svc]() { svc->updateDualBattery(false); }},
                 {tr->menuBatteryDual(), [svc]() { svc->updateDualBattery(true); }},
             }, dualBatt ? 1 : 0));
+    }
+
+    // Horn While Seatbox Open (toggle) — off mutes the manual horn when the
+    // open seat lid rests on the button. Default off; on restores legacy honk.
+    {
+        bool hornSeatboxOpen = settings->hornWhenSeatboxOpen();
+        systemNode->addChild(MenuNode::setting(QStringLiteral("settings_horn_seatbox_open"),
+            tr->menuHornSeatboxOpen(), hornSeatboxOpen ? 1 : 0,
+            [svc, hornSeatboxOpen]() { svc->updateHornWhenSeatboxOpen(!hornSeatboxOpen); }));
     }
 
     systemNode->addChild(MenuNode::action(QStringLiteral("enter_ums"), tr->menuEnterUms(), [this]() {
