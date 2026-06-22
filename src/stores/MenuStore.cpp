@@ -55,6 +55,7 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
     connect(m_settings, &SettingsStore::showAuxBatteryChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::mapCheckForUpdatesChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::mapAutoDownloadChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::serviceActiveChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_translations, &Translations::languageChanged, this, &MenuStore::rebuildMenuTree);
 
     // Close menu when vehicle starts moving
@@ -180,6 +181,15 @@ void MenuStore::rebuildMenuTree()
     bool isAutoTheme = settings->theme() == QLatin1String("auto");
     bool isDark = m_theme->isDark();
     QString currentLang = settings->language();
+
+    // === Disable Service Mode (top-level, only when service mode is active) ===
+    m_rootNode->addChild(MenuNode::action(QStringLiteral("disable_service_mode"),
+        tr->menuDisableServiceMode(), [this, repo]() {
+            repo->push(QStringLiteral("settings:overlay"), QStringLiteral("clear:service"));
+            close();
+        }, [this]() {
+            return m_settings && m_settings->serviceActive() == QLatin1String("true");
+        }));
 
     // === Hop-on activate (top-level, only when a combo is configured) ===
     if (m_hopOn && m_hopOn->hasCombo()) {
@@ -682,6 +692,14 @@ void MenuStore::rebuildMenuTree()
         if (m_screenStore)
             m_screenStore->showUpdateModeInfo();
     }));
+
+    systemNode->addChild(MenuNode::action(QStringLiteral("enable_service_mode"),
+        tr->menuServiceMode(), [this, repo]() {
+            repo->push(QStringLiteral("settings:overlay"), QStringLiteral("apply:service"));
+            close();
+        }, [this]() {
+            return !(m_settings && m_settings->serviceActive() == QLatin1String("true"));
+        }));
 
     // Faults entry under settings — always visible, shows "(N)" when active > 0.
     {
