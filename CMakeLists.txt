@@ -259,6 +259,7 @@ set(QML_FILES
     qml/overlays/OdometerMilestoneOverlay.qml
     qml/overlays/MilestoneCelebrationOverlay.qml
     qml/overlays/DebugOverlay.qml
+    qml/overlays/ServiceModeOverlay.qml
     qml/simulator/SimulatorWindow.qml
 )
 

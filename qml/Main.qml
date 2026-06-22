@@ -233,6 +233,13 @@ Window {
 
     Loader {
         anchors.fill: parent
+        z: 915
+        asynchronous: true
+        sourceComponent: Component { ServiceModeOverlay { anchors.fill: parent } }
+    }
+
+    Loader {
+        anchors.fill: parent
         z: 200
         asynchronous: true
         sourceComponent: Component {
