@@ -247,6 +247,12 @@ void Translations::initStrings()
     de[QStringLiteral("menuDbcBlinkerLed")] = QStringLiteral("DBC-Blinker-LED");
     en[QStringLiteral("menuHornSeatboxOpen")] = QStringLiteral("Horn While Seatbox Open");
     de[QStringLiteral("menuHornSeatboxOpen")] = QStringLiteral("Hupe bei offener Sitzbank");
+    en[QStringLiteral("menuServiceMode")] = QStringLiteral("Service Mode");
+    de[QStringLiteral("menuServiceMode")] = QStringLiteral("Servicemodus");
+    en[QStringLiteral("menuDisableServiceMode")] = QStringLiteral("Disable Service Mode");
+    de[QStringLiteral("menuDisableServiceMode")] = QStringLiteral("Servicemodus deaktivieren");
+    en[QStringLiteral("serviceModeActive")] = QStringLiteral("Service Mode Active");
+    de[QStringLiteral("serviceModeActive")] = QStringLiteral("Servicemodus aktiv");
 
     en[QStringLiteral("menuOffline")] = QStringLiteral("Offline");
     de[QStringLiteral("menuOffline")] = QStringLiteral("Offline");

@@ -79,6 +79,9 @@ class Translations : public QObject
     Q_PROPERTY(QString menuBlinkerHeader READ menuBlinkerHeader NOTIFY languageChanged)
     Q_PROPERTY(QString menuDbcBlinkerLed READ menuDbcBlinkerLed NOTIFY languageChanged)
     Q_PROPERTY(QString menuHornSeatboxOpen READ menuHornSeatboxOpen NOTIFY languageChanged)
+    Q_PROPERTY(QString menuServiceMode READ menuServiceMode NOTIFY languageChanged)
+    Q_PROPERTY(QString menuDisableServiceMode READ menuDisableServiceMode NOTIFY languageChanged)
+    Q_PROPERTY(QString serviceModeActive READ serviceModeActive NOTIFY languageChanged)
 
     // Menu headers
     Q_PROPERTY(QString menuNavigationHeader READ menuNavigationHeader NOTIFY languageChanged)
@@ -501,6 +504,9 @@ public:
     QString menuBlinkerHeader() const { return lookup("menuBlinkerHeader"); }
     QString menuDbcBlinkerLed() const { return lookup("menuDbcBlinkerLed"); }
     QString menuHornSeatboxOpen() const { return lookup("menuHornSeatboxOpen"); }
+    QString menuServiceMode() const { return lookup("menuServiceMode"); }
+    QString menuDisableServiceMode() const { return lookup("menuDisableServiceMode"); }
+    QString serviceModeActive() const { return lookup("serviceModeActive"); }
 
     // Menu headers
     QString menuNavigationHeader() const { return lookup("menuNavigationHeader"); }
