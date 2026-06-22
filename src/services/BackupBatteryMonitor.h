@@ -37,12 +37,12 @@ private:
     bool auxLowCondition() const;
 
     // CBB reuses the same SoC gate as the charging-system warning.
-    static constexpr int CbChargeThreshold = 95;
+    static constexpr int CbChargeThreshold = 50;
     // AUX has no fuel gauge (its SoC is just a bucketed copy of this voltage),
-    // so gate on voltage. 12000 mV is ~50% on the lead-acid curve; a healthy 12V
-    // pack rests around 12.5V. A LiFePO4 aux would shift this. Matches the
-    // status-bar mirror (auxLowVoltageMv in BatteryDisplay.qml).
-    static constexpr int AuxVoltageThreshold = 12000; // mV
+    // so gate on voltage. 11700 mV is the soft "low" line on the lead-acid curve;
+    // a healthy 12V pack rests around 12.5V. A LiFePO4 aux would shift this.
+    // Matches the status-bar mirror (auxLowVoltageMv in BatteryDisplay.qml).
+    static constexpr int AuxVoltageThreshold = 11700; // mV
     static constexpr int DebounceMs = 1500;
 
     static const QString CbToastId;

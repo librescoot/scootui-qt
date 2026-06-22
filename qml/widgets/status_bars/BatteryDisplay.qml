@@ -67,7 +67,7 @@ Row {
 
     // --- Optional CBB / AUX charge indicators (icon-only) ---
     // One setting per battery: visibility (always / warning / never, default
-    // warning). "warning" means the pack reads low: CBB by SoC <= 50% (it has a
+    // warning). "warning" means the pack reads low: CBB by SoC < 50% (it has a
     // real fuel gauge), AUX by voltage (no gauge, see the aux thresholds below).
     // Detailed charge/voltage is available via the hold-both-brakes parked view,
     // so the status bar stays icon-only.
@@ -77,7 +77,7 @@ Row {
     readonly property bool cbPresent: typeof cbBatteryStore !== "undefined" && cbBatteryStore.present
     readonly property int cbCharge: typeof cbBatteryStore !== "undefined" ? cbBatteryStore.charge : 0
     readonly property bool cbChargeValid: typeof cbBatteryStore !== "undefined" && cbBatteryStore.chargeValid
-    readonly property bool cbLow: cbChargeValid && cbCharge <= 50
+    readonly property bool cbLow: cbChargeValid && cbCharge < 50
 
     readonly property int auxCharge: typeof auxBatteryStore !== "undefined" ? auxBatteryStore.charge : 0
     readonly property bool auxChargeValid: typeof auxBatteryStore !== "undefined" && auxBatteryStore.chargeValid
@@ -91,11 +91,11 @@ Row {
     // only for the charge-level glyph. These three values are the one place to
     // shift for a future "aux chemistry = LiFePO4" setting (the firmware SoC
     // table is lead-acid-specific and can't be reused for LiFePO4's flat curve).
-    // Tiers: 12000 ~ 50% SoC (soft "low": icon visibility + stranded mirror),
-    //        11500 ~ firmware empty line (charging-system warning),
+    // Tiers: 11700 (soft "low": icon visibility + stranded mirror),
+    //        11495 ~ firmware empty line (charging-system warning),
     //        11000 critical.
-    readonly property int auxLowVoltageMv: 12000
-    readonly property int auxWarnVoltageMv: 11500
+    readonly property int auxLowVoltageMv: 11700
+    readonly property int auxWarnVoltageMv: 11495
     readonly property int auxCriticalVoltageMv: 11000
 
     readonly property bool auxLow: auxVoltageValid && auxVoltageMv < auxLowVoltageMv
@@ -132,11 +132,11 @@ Row {
     // CB battery not present
     readonly property bool cbNotPresent: typeof cbBatteryStore !== "undefined" && !cbBatteryStore.present
 
-    // CB warning: charge < 95%, not charging, main present & active, seatbox closed
+    // CB warning: charge < 50%, not charging, main present & active, seatbox closed
     readonly property bool cbWarningCondition: {
         if (typeof cbBatteryStore === "undefined" || typeof vehicleStore === "undefined") return false
         if (!cbBatteryStore.present) return false
-        return cbBatteryStore.charge < 95
+        return cbBatteryStore.charge < 50
             && cbBatteryStore.chargeStatus === csNotCharging
             && present0 && charge0 > 0 && battState0 === bsActive
             && vehicleStore.seatboxLock === slClosed
@@ -165,12 +165,12 @@ Row {
     // here we only mirror the conditions to drive the status-bar icons.
     readonly property bool noMainBattery: !present0 && !present1
 
-    // CBB low and stranded: reuse the 95% SoC gate. Only act on a reported SoC -
+    // CBB low and stranded: reuse the 50% SoC gate. Only act on a reported SoC -
     // "never received" is not a low reading.
     readonly property bool cbStrandedCondition: {
         if (typeof cbBatteryStore === "undefined") return false
         return noMainBattery && cbBatteryStore.present
-            && cbBatteryStore.chargeValid && cbBatteryStore.charge < 95
+            && cbBatteryStore.chargeValid && cbBatteryStore.charge < 50
     }
     // AUX low and stranded: low aux voltage while no main battery is inserted.
     // Mirrors the C++ BackupBatteryMonitor, which drives the actual toast.
