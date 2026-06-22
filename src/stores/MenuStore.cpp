@@ -174,34 +174,11 @@ void MenuStore::rebuildMenuTree()
     auto *tr = m_translations;
     auto *svc = m_settingsService;
     auto *settings = m_settings;
-    auto *trip = m_trip;
     auto *repo = m_repo;
 
     bool isAutoTheme = settings->theme() == QLatin1String("auto");
     bool isDark = m_theme->isDark();
     QString currentLang = settings->language();
-
-    // === Toggle Hazard Lights (top-level, like Flutter) ===
-    m_rootNode->addChild(MenuNode::action(QStringLiteral("hazard_lights"),
-        tr->menuToggleHazardLights(), [this, repo]() {
-            // Toggle hazard lights via MDB (match Flutter logic using LPUSH)
-            int state = m_vehicle->blinkerState();
-            bool isBoth = state == static_cast<int>(ScootEnums::BlinkerState::Both);
-            QString cmd = isBoth ? QStringLiteral("off") : QStringLiteral("both");
-            qDebug() << "Toggle hazards: blinkerState=" << state << "isBoth=" << isBoth << "pushing=" << cmd;
-            repo->push(QStringLiteral("scooter:blinker"), cmd);
-            close();
-        }));
-
-    // === Lock Scooter (top-level, only when strictly parked) ===
-    m_rootNode->addChild(MenuNode::action(QStringLiteral("lock_scooter"),
-        tr->menuLockScooter(), [this, repo]() {
-            repo->push(QStringLiteral("scooter:state"), QStringLiteral("lock"));
-            close();
-        }, [this]() {
-            return m_vehicle &&
-                   m_vehicle->state() == static_cast<int>(ScootEnums::VehicleState::Parked);
-        }));
 
     // === Hop-on activate (top-level, only when a combo is configured) ===
     if (m_hopOn && m_hopOn->hasCombo()) {
@@ -211,41 +188,6 @@ void MenuStore::rebuildMenuTree()
                 m_hopOn->activate();
             }));
     }
-
-    // === Switch to Cluster View (only on map screen) ===
-    m_rootNode->addChild(MenuNode::action(QStringLiteral("switch_cluster"),
-        tr->menuSwitchToCluster(), [this]() {
-            if (m_screenStore) m_screenStore->setScreen(0);
-            m_settingsService->updateMode(QStringLiteral("speedometer"));
-            close();
-        }, [this]() {
-            return m_screenStore && m_screenStore->currentScreen() == 1;
-        }));
-
-    // === Switch to Map View (only on cluster screen, requires local maps or online map type) ===
-    m_rootNode->addChild(MenuNode::action(QStringLiteral("switch_map"),
-        tr->menuSwitchToMap(), [this]() {
-            if (m_screenStore) m_screenStore->setScreen(1);
-            m_settingsService->updateMode(QStringLiteral("navigation"));
-            close();
-        }, [this]() {
-            if (!m_screenStore || m_screenStore->currentScreen() != 0) return false;
-            bool hasLocalMaps = m_navAvailability && m_navAvailability->localDisplayMapsAvailable();
-            bool isOnlineMap = m_settings->mapType() == static_cast<int>(ScootEnums::MapType::Online);
-            return hasLocalMaps || isOnlineMap;
-        }));
-
-    // === Set up Map Mode (only on cluster screen, when no local maps and not online) ===
-    m_rootNode->addChild(MenuNode::action(QStringLiteral("setup_map_mode"),
-        tr->menuSetupMapMode(), [this]() {
-            close();
-            if (m_screenStore) m_screenStore->showNavigationSetup(0); // DisplayMaps
-        }, [this]() {
-            if (!m_screenStore || m_screenStore->currentScreen() != 0) return false;
-            bool hasLocalMaps = m_navAvailability && m_navAvailability->localDisplayMapsAvailable();
-            bool isOnlineMap = m_settings->mapType() == static_cast<int>(ScootEnums::MapType::Online);
-            return !hasLocalMaps && !isOnlineMap;
-        }));
 
     // === Navigation submenu (visible when display maps and routing are ready) ===
     auto *navNode = MenuNode::submenu(QStringLiteral("navigation"),
@@ -258,15 +200,6 @@ void MenuStore::rebuildMenuTree()
             return (hasLocalMaps || isOnlineMap) && routingReady;
         });
     m_rootNode->addChild(navNode);
-
-    // === Set up Navigation (visible when routing is not ready) ===
-    m_rootNode->addChild(MenuNode::action(QStringLiteral("setup_navigation"),
-        tr->menuSetupNavigation(), [this]() {
-            close();
-            if (m_screenStore) m_screenStore->showNavigationSetup(1); // Routing
-        }, [this]() {
-            return !isRoutingReady();
-        }));
 
     // Enter destination code
     navNode->addChild(MenuNode::action(QStringLiteral("nav_enter_code"),
@@ -376,6 +309,84 @@ void MenuStore::rebuildMenuTree()
         close();
         if (m_screenStore) m_screenStore->showNavigationSetup(2); // Both
     }));
+
+    // === Set up Navigation (visible when routing is not ready) ===
+    m_rootNode->addChild(MenuNode::action(QStringLiteral("setup_navigation"),
+        tr->menuSetupNavigation(), [this]() {
+            close();
+            if (m_screenStore) m_screenStore->showNavigationSetup(1); // Routing
+        }, [this]() {
+            return !isRoutingReady();
+        }));
+
+    // === Switch to Cluster View (only on map screen) ===
+    m_rootNode->addChild(MenuNode::action(QStringLiteral("switch_cluster"),
+        tr->menuSwitchToCluster(), [this]() {
+            if (m_screenStore) m_screenStore->setScreen(0);
+            m_settingsService->updateMode(QStringLiteral("speedometer"));
+            close();
+        }, [this]() {
+            return m_screenStore && m_screenStore->currentScreen() == 1;
+        }));
+
+    // === Switch to Map View (only on cluster screen, requires local maps or online map type) ===
+    m_rootNode->addChild(MenuNode::action(QStringLiteral("switch_map"),
+        tr->menuSwitchToMap(), [this]() {
+            if (m_screenStore) m_screenStore->setScreen(1);
+            m_settingsService->updateMode(QStringLiteral("navigation"));
+            close();
+        }, [this]() {
+            if (!m_screenStore || m_screenStore->currentScreen() != 0) return false;
+            bool hasLocalMaps = m_navAvailability && m_navAvailability->localDisplayMapsAvailable();
+            bool isOnlineMap = m_settings->mapType() == static_cast<int>(ScootEnums::MapType::Online);
+            return hasLocalMaps || isOnlineMap;
+        }));
+
+    // === Set up Map Mode (only on cluster screen, when no local maps and not online) ===
+    m_rootNode->addChild(MenuNode::action(QStringLiteral("setup_map_mode"),
+        tr->menuSetupMapMode(), [this]() {
+            close();
+            if (m_screenStore) m_screenStore->showNavigationSetup(0); // DisplayMaps
+        }, [this]() {
+            if (!m_screenStore || m_screenStore->currentScreen() != 0) return false;
+            bool hasLocalMaps = m_navAvailability && m_navAvailability->localDisplayMapsAvailable();
+            bool isOnlineMap = m_settings->mapType() == static_cast<int>(ScootEnums::MapType::Online);
+            return !hasLocalMaps && !isOnlineMap;
+        }));
+
+    // === Lock Scooter (top-level, only when strictly parked) ===
+    m_rootNode->addChild(MenuNode::action(QStringLiteral("lock_scooter"),
+        tr->menuLockScooter(), [this, repo]() {
+            repo->push(QStringLiteral("scooter:state"), QStringLiteral("lock"));
+            close();
+        }, [this]() {
+            return m_vehicle &&
+                   m_vehicle->state() == static_cast<int>(ScootEnums::VehicleState::Parked);
+        }));
+
+    // === Toggle Hazard Lights (top-level, like Flutter) ===
+    m_rootNode->addChild(MenuNode::action(QStringLiteral("hazard_lights"),
+        tr->menuToggleHazardLights(), [this, repo]() {
+            // Toggle hazard lights via MDB (match Flutter logic using LPUSH)
+            int state = m_vehicle->blinkerState();
+            bool isBoth = state == static_cast<int>(ScootEnums::BlinkerState::Both);
+            QString cmd = isBoth ? QStringLiteral("off") : QStringLiteral("both");
+            qDebug() << "Toggle hazards: blinkerState=" << state << "isBoth=" << isBoth << "pushing=" << cmd;
+            repo->push(QStringLiteral("scooter:blinker"), cmd);
+            close();
+        }));
+
+    // Root-menu faults entry — only shown when at least one fault is active.
+    if (m_faults && m_faults->activeCount() > 0) {
+        const QString label = QStringLiteral("%1 (%2)")
+                                .arg(tr->menuFaults())
+                                .arg(m_faults->activeCount());
+        m_rootNode->addChild(MenuNode::action(QStringLiteral("faults_root"), label, [this]() {
+            close();
+            if (m_screenStore)
+                m_screenStore->showFaults();
+        }));
+    }
 
     // === Settings submenu ===
     auto *settingsNode = MenuNode::submenu(QStringLiteral("settings"),
@@ -715,30 +726,12 @@ void MenuStore::rebuildMenuTree()
         close();
     }));
 
-    // === Top-level actions ===
-    m_rootNode->addChild(MenuNode::action(QStringLiteral("reset_trip"), tr->menuResetTrip(), [this, trip]() {
-        trip->reset();
-        close();
-    }));
-
     m_rootNode->addChild(MenuNode::action(QStringLiteral("about"), tr->menuAbout(), [this]() {
         close();
         if (m_screenStore) {
             m_screenStore->showAbout();
         }
     }));
-
-    // Root-menu faults entry — only shown when at least one fault is active.
-    if (m_faults && m_faults->activeCount() > 0) {
-        const QString label = QStringLiteral("%1 (%2)")
-                                .arg(tr->menuFaults())
-                                .arg(m_faults->activeCount());
-        m_rootNode->addChild(MenuNode::action(QStringLiteral("faults_root"), label, [this]() {
-            close();
-            if (m_screenStore)
-                m_screenStore->showFaults();
-        }));
-    }
 
     m_rootNode->addChild(MenuNode::action(QStringLiteral("exit"), tr->menuExit(), [this]() {
         close();
