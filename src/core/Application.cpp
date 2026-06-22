@@ -353,7 +353,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_bleHealthMonitor = new BluetoothHealthMonitor(bluetoothStore, m_toastService, this);
     m_handlebarLockMonitor = new HandlebarLockMonitor(vehicleStore, m_toastService, m_translations, this);
     m_backupBatteryMonitor = new BackupBatteryMonitor(battery0Store, battery1Store, cbBatteryStore,
-                                                       auxBatteryStore, m_toastService, m_translations, this);
+                                                       auxBatteryStore, vehicleStore, m_toastService,
+                                                       m_translations, this);
 
     // Battery fault monitoring
     auto connectFaultMonitor = [this, settingsStore](BatteryStore *batteryStore) {

@@ -7,17 +7,22 @@
 class BatteryStore;
 class CbBatteryStore;
 class AuxBatteryStore;
+class VehicleStore;
 class ToastService;
 class Translations;
 
-// Warns the rider when a backup battery is running low while NO main battery is
-// inserted in either slot - i.e. nothing is left to replenish the CBB / AUX and
-// the scooter risks losing connectivity (or 12V) if left parked.
+// Warns the rider when a backup battery (CBB / AUX) is running low - but only at
+// the two moments the scooter enters an at-risk resting state:
+//   1. it just transitioned from ready-to-drive to parked, or
+//   2. the last main battery was removed from both slots.
+// Outside those two edges the warning is NOT raised, even if a pack reads low
+// (e.g. on boot, or while slowly draining over a long park) - the rider is only
+// nagged at the natural moments they can act on it. Once raised the toast
+// persists until the pack is no longer low (recharged / replaced).
 //
 // This is deliberately distinct from the charging-system warnings in
-// BatteryDisplay.qml, which fire only when a main battery IS present but failing
-// to charge the backups. These "stranding" warnings fire regardless of seatbox
-// state.
+// BatteryDisplay.qml, which drive status-bar icons continuously (those stay as
+// passive low indicators and are not edge-gated).
 class BackupBatteryMonitor : public QObject
 {
     Q_OBJECT
@@ -25,16 +30,18 @@ class BackupBatteryMonitor : public QObject
 public:
     explicit BackupBatteryMonitor(BatteryStore *battery0, BatteryStore *battery1,
                                    CbBatteryStore *cbBattery, AuxBatteryStore *auxBattery,
-                                   ToastService *toast, Translations *translations,
-                                   QObject *parent = nullptr);
+                                   VehicleStore *vehicle, ToastService *toast,
+                                   Translations *translations, QObject *parent = nullptr);
 
 private slots:
     void evaluate();
 
 private:
     bool noMainBattery() const;
-    bool cbLowCondition() const;
-    bool auxLowCondition() const;
+    bool cbLow() const;
+    bool auxLow() const;
+    // Raise the armed warning(s) once the debounce has elapsed.
+    void raise();
 
     // CBB reuses the same SoC gate as the charging-system warning.
     static constexpr int CbChargeThreshold = 50;
@@ -52,9 +59,17 @@ private:
     BatteryStore *m_battery1;
     CbBatteryStore *m_cbBattery;
     AuxBatteryStore *m_auxBattery;
+    VehicleStore *m_vehicle;
     ToastService *m_toast;
     Translations *m_translations;
     QTimer *m_debounceTimer;
     bool m_cbShowing = false;
     bool m_auxShowing = false;
+
+    // Edge-detection baselines and arming flags. m_prevState / m_prevNoMain are
+    // seeded in the constructor so the initial state never counts as an edge.
+    int m_prevState = 0;
+    bool m_prevNoMain = false;
+    bool m_armPark = false;
+    bool m_armRemoval = false;
 };
