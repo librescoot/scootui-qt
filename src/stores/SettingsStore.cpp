@@ -39,6 +39,7 @@ SyncSettings SettingsStore::syncSettings() const
             {QStringLiteral("mapCheckForUpdates"), QStringLiteral("dashboard.maps.check-for-updates")},
             {QStringLiteral("mapAutoDownload"), QStringLiteral("dashboard.maps.auto-download")},
             {QStringLiteral("mapTrafficOverlay"), QStringLiteral("dashboard.map.traffic-overlay")},
+            {QStringLiteral("serviceActive"), QStringLiteral("dashboard.service-mode-active")},
         },
         {}, {}
     };
@@ -107,5 +108,10 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
         if (value != m_mapAutoDownload) { m_mapAutoDownload = value; emit mapAutoDownloadChanged(); }
     } else if (variable == QLatin1String("dashboard.map.traffic-overlay")) {
         if (value != m_mapTrafficOverlay) { m_mapTrafficOverlay = value; emit mapTrafficOverlayChanged(); }
+    } else if (variable == QLatin1String("dashboard.service-mode-active")) {
+        if (value != m_serviceActive) {
+            m_serviceActive = value;
+            emit serviceActiveChanged();
+        }
     }
 }
