@@ -63,6 +63,7 @@ public:
     Q_INVOKABLE void setThrottle(bool on);
     Q_INVOKABLE void setKers(bool on);
     Q_INVOKABLE void setKersReasonOff(const QString &reason);
+    Q_INVOKABLE void setRegenReason(const QString &reason);
     Q_INVOKABLE void setRpm(double rpm);
     Q_INVOKABLE void setRawSpeed(double speed);
     Q_INVOKABLE void setEngineFwVersion(const QString &v);

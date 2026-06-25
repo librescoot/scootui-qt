@@ -261,6 +261,13 @@ void SimulatorService::setKersReasonOff(const QString &reason)
     m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("kers-reason-off"), reason);
 }
 
+void SimulatorService::setRegenReason(const QString &reason)
+{
+    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("regen-reason"), reason);
+    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("regen-available"),
+                reason == QLatin1String("none") ? QStringLiteral("on") : QStringLiteral("off"));
+}
+
 void SimulatorService::setRpm(double rpm)
 {
     m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("rpm"),

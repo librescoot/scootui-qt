@@ -16,8 +16,11 @@ SyncSettings EngineStore::syncSettings() const
             {QStringLiteral("kersReasonOff"), QStringLiteral("kers-reason-off")},
             {QStringLiteral("motorVoltage"), QStringLiteral("motor:voltage")},
             {QStringLiteral("motorCurrent"), QStringLiteral("motor:current")},
-            {QStringLiteral("appliedRegenVoltage"), QStringLiteral("kers-applied-voltage")},
-            {QStringLiteral("appliedRegenCurrent"), QStringLiteral("kers-applied-current")},
+            {QStringLiteral("acceptedRegenVoltage"), QStringLiteral("kers-accepted-voltage")},
+            {QStringLiteral("acceptedRegenCurrent"), QStringLiteral("kers-accepted-current")},
+            {QStringLiteral("regenAvailable"), QStringLiteral("regen-available")},
+            {QStringLiteral("regenReason"), QStringLiteral("regen-reason")},
+            {QStringLiteral("regenExpected"), QStringLiteral("regen-expected")},
             {QStringLiteral("rpm"), QStringLiteral("rpm")},
             {QStringLiteral("speed"), QStringLiteral("speed")},
             {QStringLiteral("rawSpeed"), QStringLiteral("raw-speed")},
@@ -64,12 +67,20 @@ void EngineStore::applyFieldUpdate(const QString &variable, const QString &value
     } else if (variable == QLatin1String("motor:current")) {
         auto v = value.toDouble();
         if (v != m_motorCurrent) { m_motorCurrent = v; emit motorCurrentChanged(); }
-    } else if (variable == QLatin1String("kers-applied-voltage")) {
+    } else if (variable == QLatin1String("kers-accepted-voltage")) {
         auto v = value.toDouble();
-        if (v != m_appliedRegenVoltage) { m_appliedRegenVoltage = v; emit appliedRegenVoltageChanged(); }
-    } else if (variable == QLatin1String("kers-applied-current")) {
+        if (v != m_acceptedRegenVoltage) { m_acceptedRegenVoltage = v; emit acceptedRegenVoltageChanged(); }
+    } else if (variable == QLatin1String("kers-accepted-current")) {
         auto v = value.toDouble();
-        if (v != m_appliedRegenCurrent) { m_appliedRegenCurrent = v; emit appliedRegenCurrentChanged(); }
+        if (v != m_acceptedRegenCurrent) { m_acceptedRegenCurrent = v; emit acceptedRegenCurrentChanged(); }
+    } else if (variable == QLatin1String("regen-available")) {
+        bool v = (value == QLatin1String("on"));
+        if (v != m_regenAvailable) { m_regenAvailable = v; emit regenAvailableChanged(); }
+    } else if (variable == QLatin1String("regen-reason")) {
+        if (value != m_regenReason) { m_regenReason = value; emit regenReasonChanged(); }
+    } else if (variable == QLatin1String("regen-expected")) {
+        auto v = value.toDouble();
+        if (v != m_regenExpected) { m_regenExpected = v; emit regenExpectedChanged(); }
     } else if (variable == QLatin1String("rpm")) {
         auto v = value.toDouble();
         if (v != m_rpm) { m_rpm = v; emit rpmChanged(); }

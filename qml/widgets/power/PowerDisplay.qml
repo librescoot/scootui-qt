@@ -9,14 +9,15 @@ Item {
     readonly property real motorVoltage: typeof engineStore !== "undefined" ? engineStore.motorVoltage : 0
     readonly property bool ecuStale: typeof engineStore !== "undefined" && engineStore.faultCode === 20
 
-    // KERS/regen availability. engineStore.kers is the Toggle enum {On=0, Off=1};
-    // On = regen available. Default to available when the store isn't present.
-    readonly property bool kersAvailable: typeof engineStore !== "undefined" ? engineStore.kers === 0 : true
-    readonly property string kersReason: typeof engineStore !== "undefined" ? engineStore.kersReasonOff : ""
-    // A reason icon (cold/hot) is shown at the regen end of the bar. Other
+    // Regen availability, derived by ecu-service. Default to available when the
+    // store isn't present so the bar reads solid.
+    readonly property bool regenAvailable: typeof engineStore !== "undefined" ? engineStore.regenAvailable : true
+    readonly property string regenReason: typeof engineStore !== "undefined" ? engineStore.regenReason : "none"
+    // A reason icon (cold/hot/full) is shown at the regen end of the bar. Other
     // off-reasons (e.g. user-disabled) still dash the track but carry no icon.
-    readonly property bool showReasonIcon: !kersAvailable
-                                           && (kersReason === "cold" || kersReason === "hot")
+    readonly property bool showReasonIcon: !regenAvailable
+                                           && (regenReason === "cold" || regenReason === "hot"
+                                               || regenReason === "full")
     readonly property color trackColor: themeStore.isDark ? "#424242" : "#E0E0E0"
 
     // 0 = kW (default), 1 = Amps
@@ -126,7 +127,7 @@ Item {
                     anchors.fill: parent
                     radius: themeStore.radiusBar
                     color: powerDisplay.trackColor
-                    visible: powerDisplay.kersAvailable
+                    visible: powerDisplay.regenAvailable
                 }
 
                 // Dashes packed toward the center, leaving room at the left end
@@ -137,7 +138,7 @@ Item {
                     anchors.leftMargin: powerDisplay.showReasonIcon ? 14 : 0
                     layoutDirection: Qt.RightToLeft
                     spacing: 3
-                    visible: !powerDisplay.kersAvailable
+                    visible: !powerDisplay.regenAvailable
                     Repeater {
                         model: Math.max(1, Math.floor((dashRow.width + 3) / (5 + 3)))
                         Rectangle {
@@ -150,12 +151,16 @@ Item {
                 }
             }
 
-            // KERS-off reason icon at the left (regen) end of the bar.
+            // Regen-unavailable reason icon at the left (regen) end of the bar.
             Text {
                 visible: powerDisplay.showReasonIcon
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-                text: powerDisplay.kersReason === "hot" ? MaterialIcon.iconHeat : MaterialIcon.iconSnowflake
+                text: {
+                    if (powerDisplay.regenReason === "hot") return MaterialIcon.iconHeat
+                    if (powerDisplay.regenReason === "full") return MaterialIcon.iconBatteryFull
+                    return MaterialIcon.iconSnowflake
+                }
                 font.family: "Material Icons"
                 font.pixelSize: 12
                 color: themeStore.textHint
@@ -172,7 +177,7 @@ Item {
 
             // Regen bar (grows left from center)
             Rectangle {
-                visible: powerDisplay.kersAvailable && displayValue < -0.01
+                visible: powerDisplay.regenAvailable && displayValue < -0.01
                 anchors.verticalCenter: parent.verticalCenter
                 height: 6
                 radius: themeStore.radiusBar

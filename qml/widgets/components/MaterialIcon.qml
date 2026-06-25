@@ -56,6 +56,7 @@ QtObject {
     readonly property string iconSnowflake:       "\ue037" // legacy "ac_unit" \u2014 same glyph
     readonly property string iconSevereCold:      String.fromCodePoint(0xf07c2)
     readonly property string iconHeat:            "\ue392" // local_fire_department \u2014 "too hot" counterpart to the snowflake
+    readonly property string iconBatteryFull:     String.fromCodePoint(0xe0d2) // battery_full \u2014 regen unavailable, pack at cap
     readonly property string iconSpeed:           "\ue5e0"
     readonly property string iconTimer:           "\ue662"
     readonly property string iconFlag:            "\ue28e"

@@ -13,10 +13,14 @@ class EngineStore : public SyncableStore
     Q_PROPERTY(QString kersReasonOff READ kersReasonOff NOTIFY kersReasonOffChanged)
     Q_PROPERTY(double motorVoltage READ motorVoltage NOTIFY motorVoltageChanged)
     Q_PROPERTY(double motorCurrent READ motorCurrent NOTIFY motorCurrentChanged)
-    // EBS regen the ECU reports actually applying (mV / mA), distinct from the
-    // commanded KERS setpoint. 0 when the ECU isn't applying regen.
-    Q_PROPERTY(double appliedRegenVoltage READ appliedRegenVoltage NOTIFY appliedRegenVoltageChanged)
-    Q_PROPERTY(double appliedRegenCurrent READ appliedRegenCurrent NOTIFY appliedRegenCurrentChanged)
+    // EBS regen caps the ECU accepted (mV / mA), distinct from the commanded
+    // KERS setpoint (reflects the ECU's clamp of what we requested).
+    Q_PROPERTY(double acceptedRegenVoltage READ acceptedRegenVoltage NOTIFY acceptedRegenVoltageChanged)
+    Q_PROPERTY(double acceptedRegenCurrent READ acceptedRegenCurrent NOTIFY acceptedRegenCurrentChanged)
+    // Derived regen availability view from ecu-service.
+    Q_PROPERTY(bool regenAvailable READ regenAvailable NOTIFY regenAvailableChanged)
+    Q_PROPERTY(QString regenReason READ regenReason NOTIFY regenReasonChanged)
+    Q_PROPERTY(double regenExpected READ regenExpected NOTIFY regenExpectedChanged)
     Q_PROPERTY(double rpm READ rpm NOTIFY rpmChanged)
     Q_PROPERTY(double speed READ speed NOTIFY speedChanged)
     Q_PROPERTY(double rawSpeed READ rawSpeed NOTIFY rawSpeedChanged)
@@ -40,8 +44,11 @@ public:
     QString kersReasonOff() const { return m_kersReasonOff; }
     double motorVoltage() const { return m_motorVoltage; }
     double motorCurrent() const { return m_motorCurrent; }
-    double appliedRegenVoltage() const { return m_appliedRegenVoltage; }
-    double appliedRegenCurrent() const { return m_appliedRegenCurrent; }
+    double acceptedRegenVoltage() const { return m_acceptedRegenVoltage; }
+    double acceptedRegenCurrent() const { return m_acceptedRegenCurrent; }
+    bool regenAvailable() const { return m_regenAvailable; }
+    QString regenReason() const { return m_regenReason; }
+    double regenExpected() const { return m_regenExpected; }
     double rpm() const { return m_rpm; }
     double speed() const { return m_speed; }
     double rawSpeed() const { return m_rawSpeed; }
@@ -60,8 +67,11 @@ signals:
     void kersReasonOffChanged();
     void motorVoltageChanged();
     void motorCurrentChanged();
-    void appliedRegenVoltageChanged();
-    void appliedRegenCurrentChanged();
+    void acceptedRegenVoltageChanged();
+    void acceptedRegenCurrentChanged();
+    void regenAvailableChanged();
+    void regenReasonChanged();
+    void regenExpectedChanged();
     void rpmChanged();
     void speedChanged();
     void rawSpeedChanged();
@@ -84,8 +94,11 @@ private:
     QString m_kersReasonOff;
     double m_motorVoltage = 0;
     double m_motorCurrent = 0;
-    double m_appliedRegenVoltage = 0;
-    double m_appliedRegenCurrent = 0;
+    double m_acceptedRegenVoltage = 0;
+    double m_acceptedRegenCurrent = 0;
+    bool m_regenAvailable = true;
+    QString m_regenReason = QStringLiteral("none");
+    double m_regenExpected = 0;
     double m_rpm = 0;
     double m_speed = 0;
     double m_rawSpeed = 0;

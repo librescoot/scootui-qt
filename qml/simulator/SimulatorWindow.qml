@@ -384,6 +384,17 @@ ApplicationWindow {
                 Item { Layout.fillWidth: true }
             }
 
+            RowLayout {
+                spacing: 4
+                Text { text: "regen"; color: "#999"; font.pixelSize: 9 }
+                SimButton { text: "OK"; small: true; onClicked: simulator.setRegenReason("none") }
+                SimButton { text: "cold"; small: true; onClicked: simulator.setRegenReason("cold") }
+                SimButton { text: "hot"; small: true; onClicked: simulator.setRegenReason("hot") }
+                SimButton { text: "full"; small: true; onClicked: simulator.setRegenReason("full") }
+                SimButton { text: "off"; small: true; color: "#f44336"; onClicked: simulator.setRegenReason("off") }
+                Item { Layout.fillWidth: true }
+            }
+
             CollapsibleSection {
                 title: "Engine (extras)"
                 ColumnLayout {
