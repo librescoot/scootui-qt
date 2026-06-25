@@ -80,7 +80,7 @@ private:
     int m_fullCapacity = 0;
     int m_stateOfHealth = 0;
     bool m_present = false;
-    ScootEnums::ChargeStatus m_chargeStatus = ScootEnums::ChargeStatus::NotCharging;
+    ScootEnums::ChargeStatus m_chargeStatus = ScootEnums::ChargeStatus::Unknown;
     QString m_partNumber;
     QString m_serialNumber;
     QString m_uniqueId;

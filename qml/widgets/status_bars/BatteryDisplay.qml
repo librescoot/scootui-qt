@@ -23,8 +23,8 @@ Row {
     // SeatboxLock: Open=0, Closed=1
     readonly property int slClosed: 1
 
-    // ChargeStatus: Charging=0, NotCharging=1
-    readonly property int csNotCharging: 1
+    // ChargeStatus: Charging=0, NotCharging=1, Unknown=2
+    readonly property int csCharging: 0
 
     // AuxChargeStatus: NotCharging=0
     readonly property int acsNotCharging: 0
@@ -137,7 +137,7 @@ Row {
         if (typeof cbBatteryStore === "undefined" || typeof vehicleStore === "undefined") return false
         if (!cbBatteryStore.present) return false
         return cbBatteryStore.charge < 50
-            && cbBatteryStore.chargeStatus === csNotCharging
+            && cbBatteryStore.chargeStatus !== csCharging
             && present0 && charge0 > 0 && battState0 === bsActive
             && vehicleStore.seatboxLock === slClosed
     }

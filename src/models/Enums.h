@@ -57,7 +57,11 @@ Q_ENUM_NS(GpsState)
 enum class ModemState { Off, Disconnected, Connected };
 Q_ENUM_NS(ModemState)
 
-enum class ChargeStatus { Charging, NotCharging };
+// Mirrors the cb-battery charge-status strings emitted by bluetooth-service:
+// "charging" / "not-charging" / "unknown". Unknown covers an unrecognized BLE
+// value or a field that was never reported. Order is append-only: existing
+// consumers depend on Charging=0, NotCharging=1.
+enum class ChargeStatus { Charging, NotCharging, Unknown };
 Q_ENUM_NS(ChargeStatus)
 
 enum class AuxChargeStatus { NotCharging, FloatCharge, AbsorptionCharge, BulkCharge };
@@ -152,7 +156,9 @@ inline ConnectionStatus parseConnectionStatus(const QString &s) {
 }
 
 inline ChargeStatus parseChargeStatus(const QString &s) {
-    return (s == QLatin1String("charging")) ? ChargeStatus::Charging : ChargeStatus::NotCharging;
+    if (s == QLatin1String("charging")) return ChargeStatus::Charging;
+    if (s == QLatin1String("not-charging")) return ChargeStatus::NotCharging;
+    return ChargeStatus::Unknown; // bluetooth-service "unknown", or unset/unrecognized
 }
 
 inline AuxChargeStatus parseAuxChargeStatus(const QString &s) {

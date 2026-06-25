@@ -613,7 +613,7 @@ Item {
                         font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                     }
                     Text {
-                        text: enumName(cb("chargeStatus"), ["Charging", "NotCharging"]) +
+                        text: enumName(cb("chargeStatus"), ["Charging", "NotCharging", "Unknown"]) +
                               " / SoH " + cb("stateOfHealth") + "%"
                         font.pixelSize: 9; color: "#9E9E9E"
                     }
