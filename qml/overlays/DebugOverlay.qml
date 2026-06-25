@@ -365,6 +365,24 @@ Item {
             spacing: 1
             Row {
                 spacing: 0
+                Text { text: "BRI: "; font.pixelSize: 10; color: "#9E9E9E" }
+                Text {
+                    text: (typeof dashboardStore !== "undefined" && dashboardStore.brightness >= 0)
+                          ? dashboardStore.brightness.toFixed(1) + " lx" : "N/A"
+                    font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
+                }
+            }
+            Row {
+                spacing: 0
+                Text { text: "BLT: "; font.pixelSize: 10; color: "#9E9E9E" }
+                Text {
+                    text: (typeof dashboardStore !== "undefined" && dashboardStore.backlight >= 0)
+                          ? dashboardStore.backlight : "N/A"
+                    font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
+                }
+            }
+            Row {
+                spacing: 0
                 Text { text: "THM: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
                     text: typeof settingsStore !== "undefined" ? settingsStore.theme : "N/A"
