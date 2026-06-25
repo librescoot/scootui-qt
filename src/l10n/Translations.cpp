@@ -88,6 +88,15 @@ void Translations::initStrings()
     en[QStringLiteral("menuBatteryRange")] = QStringLiteral("Range (km)");
     de[QStringLiteral("menuBatteryRange")] = QStringLiteral("Reichweite (km)");
 
+    en[QStringLiteral("menuPowerDisplay")] = QStringLiteral("Power Display");
+    de[QStringLiteral("menuPowerDisplay")] = QStringLiteral("Leistungsanzeige");
+
+    en[QStringLiteral("menuPowerDisplayKw")] = QStringLiteral("Power (kW)");
+    de[QStringLiteral("menuPowerDisplayKw")] = QStringLiteral("Leistung (kW)");
+
+    en[QStringLiteral("menuPowerDisplayAmps")] = QStringLiteral("Current (A)");
+    de[QStringLiteral("menuPowerDisplayAmps")] = QStringLiteral("Strom (A)");
+
     en[QStringLiteral("menuGpsIcon")] = QStringLiteral("GPS Icon");
     de[QStringLiteral("menuGpsIcon")] = QStringLiteral("GPS-Symbol");
 

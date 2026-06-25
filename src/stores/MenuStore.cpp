@@ -42,6 +42,7 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
     connect(m_settings, &SettingsStore::dualBatteryChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::hornWhenSeatboxOpenChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::batteryDisplayModeChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::powerDisplayModeChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::alarmEnabledChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::alarmHonkChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::alarmDurationChanged, this, &MenuStore::rebuildMenuTree);
@@ -431,6 +432,16 @@ void MenuStore::rebuildMenuTree()
                 {tr->menuBacklightMedium(), [svc]() { svc->updateBacklightMode(QStringLiteral("medium")); }},
                 {tr->menuBacklightHigh(),   [svc]() { svc->updateBacklightMode(QStringLiteral("high")); }},
             }, blIdx));
+    }
+
+    // Power Display (inline cycle: kW → Amps) — units for the cluster power bar.
+    {
+        int powerIdx = (settings->powerDisplayMode() == static_cast<int>(ScootEnums::PowerDisplayMode::Amps)) ? 1 : 0;
+        settingsNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_power_display"),
+            tr->menuPowerDisplay(), {
+                {tr->menuPowerDisplayKw(),   [svc]() { svc->updatePowerDisplayMode(QStringLiteral("kw")); }},
+                {tr->menuPowerDisplayAmps(), [svc]() { svc->updatePowerDisplayMode(QStringLiteral("amps")); }},
+            }, powerIdx));
     }
 
     // Hop-on — learning / disabling the combo. Promoted to near the top

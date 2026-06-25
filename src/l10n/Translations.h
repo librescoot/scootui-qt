@@ -24,6 +24,9 @@ class Translations : public QObject
     Q_PROPERTY(QString menuBatteryDisplay READ menuBatteryDisplay NOTIFY languageChanged)
     Q_PROPERTY(QString menuBatteryPercentage READ menuBatteryPercentage NOTIFY languageChanged)
     Q_PROPERTY(QString menuBatteryRange READ menuBatteryRange NOTIFY languageChanged)
+    Q_PROPERTY(QString menuPowerDisplay READ menuPowerDisplay NOTIFY languageChanged)
+    Q_PROPERTY(QString menuPowerDisplayKw READ menuPowerDisplayKw NOTIFY languageChanged)
+    Q_PROPERTY(QString menuPowerDisplayAmps READ menuPowerDisplayAmps NOTIFY languageChanged)
     Q_PROPERTY(QString menuGpsIcon READ menuGpsIcon NOTIFY languageChanged)
     Q_PROPERTY(QString menuBluetoothIcon READ menuBluetoothIcon NOTIFY languageChanged)
     Q_PROPERTY(QString menuCloudIcon READ menuCloudIcon NOTIFY languageChanged)
@@ -449,6 +452,9 @@ public:
     QString menuBatteryDisplay() const { return lookup("menuBatteryDisplay"); }
     QString menuBatteryPercentage() const { return lookup("menuBatteryPercentage"); }
     QString menuBatteryRange() const { return lookup("menuBatteryRange"); }
+    QString menuPowerDisplay() const { return lookup("menuPowerDisplay"); }
+    QString menuPowerDisplayKw() const { return lookup("menuPowerDisplayKw"); }
+    QString menuPowerDisplayAmps() const { return lookup("menuPowerDisplayAmps"); }
     QString menuGpsIcon() const { return lookup("menuGpsIcon"); }
     QString menuBluetoothIcon() const { return lookup("menuBluetoothIcon"); }
     QString menuCloudIcon() const { return lookup("menuCloudIcon"); }
