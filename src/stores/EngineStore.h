@@ -13,6 +13,10 @@ class EngineStore : public SyncableStore
     Q_PROPERTY(QString kersReasonOff READ kersReasonOff NOTIFY kersReasonOffChanged)
     Q_PROPERTY(double motorVoltage READ motorVoltage NOTIFY motorVoltageChanged)
     Q_PROPERTY(double motorCurrent READ motorCurrent NOTIFY motorCurrentChanged)
+    // EBS regen the ECU reports actually applying (mV / mA), distinct from the
+    // commanded KERS setpoint. 0 when the ECU isn't applying regen.
+    Q_PROPERTY(double appliedRegenVoltage READ appliedRegenVoltage NOTIFY appliedRegenVoltageChanged)
+    Q_PROPERTY(double appliedRegenCurrent READ appliedRegenCurrent NOTIFY appliedRegenCurrentChanged)
     Q_PROPERTY(double rpm READ rpm NOTIFY rpmChanged)
     Q_PROPERTY(double speed READ speed NOTIFY speedChanged)
     Q_PROPERTY(double rawSpeed READ rawSpeed NOTIFY rawSpeedChanged)
@@ -36,6 +40,8 @@ public:
     QString kersReasonOff() const { return m_kersReasonOff; }
     double motorVoltage() const { return m_motorVoltage; }
     double motorCurrent() const { return m_motorCurrent; }
+    double appliedRegenVoltage() const { return m_appliedRegenVoltage; }
+    double appliedRegenCurrent() const { return m_appliedRegenCurrent; }
     double rpm() const { return m_rpm; }
     double speed() const { return m_speed; }
     double rawSpeed() const { return m_rawSpeed; }
@@ -54,6 +60,8 @@ signals:
     void kersReasonOffChanged();
     void motorVoltageChanged();
     void motorCurrentChanged();
+    void appliedRegenVoltageChanged();
+    void appliedRegenCurrentChanged();
     void rpmChanged();
     void speedChanged();
     void rawSpeedChanged();
@@ -76,6 +84,8 @@ private:
     QString m_kersReasonOff;
     double m_motorVoltage = 0;
     double m_motorCurrent = 0;
+    double m_appliedRegenVoltage = 0;
+    double m_appliedRegenCurrent = 0;
     double m_rpm = 0;
     double m_speed = 0;
     double m_rawSpeed = 0;

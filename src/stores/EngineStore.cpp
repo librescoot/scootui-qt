@@ -16,6 +16,8 @@ SyncSettings EngineStore::syncSettings() const
             {QStringLiteral("kersReasonOff"), QStringLiteral("kers-reason-off")},
             {QStringLiteral("motorVoltage"), QStringLiteral("motor:voltage")},
             {QStringLiteral("motorCurrent"), QStringLiteral("motor:current")},
+            {QStringLiteral("appliedRegenVoltage"), QStringLiteral("kers-applied-voltage")},
+            {QStringLiteral("appliedRegenCurrent"), QStringLiteral("kers-applied-current")},
             {QStringLiteral("rpm"), QStringLiteral("rpm")},
             {QStringLiteral("speed"), QStringLiteral("speed")},
             {QStringLiteral("rawSpeed"), QStringLiteral("raw-speed")},
@@ -62,6 +64,12 @@ void EngineStore::applyFieldUpdate(const QString &variable, const QString &value
     } else if (variable == QLatin1String("motor:current")) {
         auto v = value.toDouble();
         if (v != m_motorCurrent) { m_motorCurrent = v; emit motorCurrentChanged(); }
+    } else if (variable == QLatin1String("kers-applied-voltage")) {
+        auto v = value.toDouble();
+        if (v != m_appliedRegenVoltage) { m_appliedRegenVoltage = v; emit appliedRegenVoltageChanged(); }
+    } else if (variable == QLatin1String("kers-applied-current")) {
+        auto v = value.toDouble();
+        if (v != m_appliedRegenCurrent) { m_appliedRegenCurrent = v; emit appliedRegenCurrentChanged(); }
     } else if (variable == QLatin1String("rpm")) {
         auto v = value.toDouble();
         if (v != m_rpm) { m_rpm = v; emit rpmChanged(); }

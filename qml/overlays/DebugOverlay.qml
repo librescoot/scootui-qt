@@ -437,7 +437,15 @@ Item {
                 spacing: 0
                 Text { text: "EBS: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: enumName(es("kers"), toggleNames)
+                    text: {
+                        var s = enumName(es("kers"), toggleNames)
+                        var r = es("kersReasonOff")
+                        if (r && r !== "none") s += " (" + r + ")"
+                        if (typeof engineStore !== "undefined")
+                            s += "  " + (engineStore.appliedRegenVoltage / 1000).toFixed(1) + " V / "
+                               + (engineStore.appliedRegenCurrent / 1000).toFixed(1) + " A"
+                        return s
+                    }
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
