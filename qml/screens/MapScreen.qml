@@ -267,12 +267,23 @@ Rectangle {
             // Navigation status overlay (calculating, rerouting, arrived, error)
             NavigationStatusOverlay {}
 
-            // Road name (bottom center, German road sign styling)
-            RoadNameDisplay {
+            // Speed limit + road name (bottom center). Limit sign sits before
+            // the road-name pill; either can show on its own.
+            Row {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 8
-                fontSize: 14
+                spacing: 4
+
+                SpeedLimitIndicator {
+                    iconSize: 36
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                RoadNameDisplay {
+                    anchors.verticalCenter: parent.verticalCenter
+                    fontSize: 14
+                }
             }
 
             // Map update indicator (top-left, fades after 20s in ready-to-drive)

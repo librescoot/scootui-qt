@@ -6,6 +6,7 @@ Rectangle {
     property string roadRefs: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadRefs : ""
     property string roadType: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadType : ""
     property real fontSize: themeStore.fontCaption
+    property real maxTextWidth: 200
 
     visible: roadName.length > 0
     width: label.width + 8
@@ -55,7 +56,7 @@ Rectangle {
         font.weight: Font.Medium
         elide: Text.ElideRight
         maximumLineCount: 1
-        width: Math.min(implicitWidth, 200)
+        width: Math.min(implicitWidth, root.maxTextWidth)
         color: {
             switch (root.roadType.toLowerCase()) {
                 case "motorway":

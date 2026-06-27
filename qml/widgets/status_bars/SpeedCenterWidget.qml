@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import "../indicators"
 
 Item {
     id: speedCenter
@@ -57,12 +56,5 @@ Item {
             height: unitTight.tightBoundingRect.height
             verticalAlignment: Text.AlignVCenter
         }
-    }
-
-    // Speed limit indicator (right side, matching Flutter's Positioned(right: 0))
-    SpeedLimitIndicator {
-        anchors.right: parent.right
-        anchors.verticalCenter: parent.verticalCenter
-        iconSize: 31
     }
 }

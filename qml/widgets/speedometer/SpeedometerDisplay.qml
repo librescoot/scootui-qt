@@ -273,21 +273,23 @@ Item {
         color: speedometer.isDark ? "#99FFFFFF" : "#8A000000"
     }
 
-    // Road name + speed limit — below km/h
+    // Road name + speed limit — below km/h. Sits lower in the gap between the
+    // speed-arc endpoints, with a larger limit sign and room for a wider name.
     Row {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: unitText.bottom
-        anchors.topMargin: 4
+        anchors.topMargin: 12
         spacing: 4
 
         SpeedLimitIndicator {
-            iconSize: 27
+            iconSize: 36
             anchors.verticalCenter: parent.verticalCenter
         }
 
         RoadNameDisplay {
             anchors.verticalCenter: parent.verticalCenter
             fontSize: 12
+            maxTextWidth: 240
         }
     }
 
