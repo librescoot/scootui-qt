@@ -115,7 +115,8 @@ Window {
         target: typeof inputHandler !== "undefined" ? inputHandler : null
         enabled: typeof menuStore !== "undefined" && !menuStore.isOpen
                  && (root.currentScreen === Scooter.ScreenMode.Cluster
-                     || root.currentScreen === Scooter.ScreenMode.Map)
+                     || root.currentScreen === Scooter.ScreenMode.Map
+                     || root.currentScreen === Scooter.ScreenMode.Debug)
         function onLeftDoubleTap() {
             console.log("MENU: onLeftDoubleTap (currentScreen=" + root.currentScreen
                         + ", isOpen=" + menuStore.isOpen
