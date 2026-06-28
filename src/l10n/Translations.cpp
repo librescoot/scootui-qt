@@ -88,6 +88,9 @@ void Translations::initStrings()
     en[QStringLiteral("menuBatteryRange")] = QStringLiteral("Range (km)");
     de[QStringLiteral("menuBatteryRange")] = QStringLiteral("Reichweite (km)");
 
+    en[QStringLiteral("menuBatteryIconsOnly")] = QStringLiteral("Icons Only");
+    de[QStringLiteral("menuBatteryIconsOnly")] = QStringLiteral("Nur Symbole");
+
     en[QStringLiteral("menuPowerDisplay")] = QStringLiteral("Power Display");
     de[QStringLiteral("menuPowerDisplay")] = QStringLiteral("Leistungsanzeige");
 

@@ -50,11 +50,45 @@ Row {
     readonly property bool showAsRange: typeof settingsStore !== "undefined"
                                          && settingsStore.batteryDisplayMode === "range"
 
-    function rangeText(charge, soh) {
+    // "icon" hides the value text entirely, leaving just the battery icons.
+    readonly property bool showText: typeof settingsStore === "undefined"
+                                     || settingsStore.batteryDisplayMode !== "icon"
+
+    function rangeNum(charge, soh) {
         var rangeKm = 45.0 * (soh / 100.0) * (charge / 100.0)
         if (rangeKm >= 10)
-            return Math.floor(rangeKm) + " km"
-        return rangeKm.toFixed(1) + " km"
+            return Math.floor(rangeKm).toString()
+        return rangeKm.toFixed(1)
+    }
+
+    // Value sits a little smaller than the body font; the unit (km / %) is
+    // smaller and lighter still, tucked close to the number to save width.
+    readonly property real batteryValueSize: 16
+    readonly property real batteryUnitSize: 13
+
+    component BatteryValue: Row {
+        property int charge: 0
+        property real soh: 100
+        property int battState: 0
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: 2
+
+        Text {
+            id: valNum
+            anchors.verticalCenter: parent.verticalCenter
+            text: batteryDisplay.showAsRange ? batteryDisplay.rangeNum(charge, soh) : charge.toString()
+            font.pixelSize: batteryDisplay.batteryValueSize
+            font.weight: Font.DemiBold
+            font.letterSpacing: -1.1
+            color: batteryDisplay.chargeLabelColor(charge, battState)
+        }
+        Text {
+            anchors.baseline: valNum.baseline
+            text: batteryDisplay.showAsRange ? "km" : "%"
+            font.pixelSize: batteryDisplay.batteryUnitSize
+            font.weight: Font.Normal
+            color: batteryDisplay.chargeLabelColor(charge, battState)
+        }
     }
 
     function chargeLabelColor(charge, battState) {
@@ -294,13 +328,11 @@ Row {
     }
 
     // Battery 0 charge/range text
-    Text {
-        anchors.verticalCenter: parent.verticalCenter
-        text: present0 ? (showAsRange ? rangeText(charge0, soh0) : charge0 + "%") : ""
-        font.pixelSize: themeStore.fontBody
-        font.weight: Font.DemiBold
-        font.letterSpacing: -1.1
-        color: chargeLabelColor(charge0, battState0)
+    BatteryValue {
+        visible: present0 && batteryDisplay.showText
+        charge: charge0
+        soh: soh0
+        battState: battState0
     }
 
     // Group separator before Battery 1
@@ -320,14 +352,11 @@ Row {
     }
 
     // Battery 1 charge/range text
-    Text {
-        anchors.verticalCenter: parent.verticalCenter
-        visible: batteryDisplay.showDual
-        text: present1 ? (showAsRange ? rangeText(charge1, soh1) : charge1 + "%") : ""
-        font.pixelSize: themeStore.fontBody
-        font.weight: Font.DemiBold
-        font.letterSpacing: -1.1
-        color: chargeLabelColor(charge1, battState1)
+    BatteryValue {
+        visible: batteryDisplay.showDual && present1 && batteryDisplay.showText
+        charge: charge1
+        soh: soh1
+        battState: battState1
     }
 
     // =====================================================================

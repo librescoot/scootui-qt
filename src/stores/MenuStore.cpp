@@ -481,14 +481,16 @@ void MenuStore::rebuildMenuTree()
                                             QStringLiteral("STATUS BAR"));
     settingsNode->addChild(statusBarNode);
 
-    // Battery Display (inline cycle: Percentage → Range)
+    // Battery Display (inline cycle: Percentage → Range → Icons only)
     {
         QString battMode = settings->batteryDisplayMode();
-        int battIdx = (battMode == QLatin1String("range")) ? 1 : 0;
+        int battIdx = battMode == QLatin1String("range") ? 1
+                    : (battMode == QLatin1String("icon") ? 2 : 0);
         statusBarNode->addChild(MenuNode::cycleSetting(QStringLiteral("status_battery"),
             tr->menuBatteryDisplay(), {
                 {tr->menuBatteryPercentage(), [svc]() { svc->updateBatteryDisplayMode(QStringLiteral("percentage")); }},
                 {tr->menuBatteryRange(), [svc]() { svc->updateBatteryDisplayMode(QStringLiteral("range")); }},
+                {tr->menuBatteryIconsOnly(), [svc]() { svc->updateBatteryDisplayMode(QStringLiteral("icon")); }},
             }, battIdx));
     }
 
