@@ -28,7 +28,6 @@ SyncSettings EngineStore::syncSettings() const
         QStringLiteral("engine-ecu"),
         200,
         {
-            {QStringLiteral("state"), QStringLiteral("state")},
             {QStringLiteral("kers"), QStringLiteral("kers")},
             {QStringLiteral("kersReasonOff"), QStringLiteral("kers-reason-off")},
             {QStringLiteral("motorVoltage"), QStringLiteral("motor:voltage")},
@@ -71,10 +70,7 @@ void EngineStore::applySetUpdate(const QString &name, const QStringList &members
 
 void EngineStore::applyFieldUpdate(const QString &variable, const QString &value)
 {
-    if (variable == QLatin1String("state")) {
-        auto v = ScootEnums::parseToggle(value);
-        if (v != m_powerState) { m_powerState = v; emit powerStateChanged(); }
-    } else if (variable == QLatin1String("kers")) {
+    if (variable == QLatin1String("kers")) {
         auto v = ScootEnums::parseToggle(value);
         if (v != m_kers) { m_kers = v; emit kersChanged(); }
     } else if (variable == QLatin1String("kers-reason-off")) {

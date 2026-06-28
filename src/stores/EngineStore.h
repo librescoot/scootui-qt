@@ -10,7 +10,6 @@
 class EngineStore : public SyncableStore
 {
     Q_OBJECT
-    Q_PROPERTY(int powerState READ powerState NOTIFY powerStateChanged)
     Q_PROPERTY(int kers READ kers NOTIFY kersChanged)
     Q_PROPERTY(QString kersReasonOff READ kersReasonOff NOTIFY kersReasonOffChanged)
     Q_PROPERTY(double motorVoltage READ motorVoltage NOTIFY motorVoltageChanged)
@@ -45,7 +44,6 @@ class EngineStore : public SyncableStore
 public:
     explicit EngineStore(MdbRepository *repo, QObject *parent = nullptr);
 
-    int powerState() const { return static_cast<int>(m_powerState); }
     int kers() const { return static_cast<int>(m_kers); }
     QString kersReasonOff() const { return m_kersReasonOff; }
     double motorVoltage() const { return m_motorVoltage; }
@@ -69,7 +67,6 @@ public:
     bool speedStale() const { return m_speedStale; }
 
 signals:
-    void powerStateChanged();
     void kersChanged();
     void kersReasonOffChanged();
     void motorVoltageChanged();
@@ -105,7 +102,6 @@ private:
     // producer beats at frame rate (v1) or ~4 Hz (v2), so this allows several
     // missed beats before flagging.
     static constexpr qint64 kStaleThresholdMs = 1500;
-    ScootEnums::Toggle m_powerState = ScootEnums::Toggle::Off;
     ScootEnums::Toggle m_kers = ScootEnums::Toggle::On;
     QString m_kersReasonOff;
     double m_motorVoltage = 0;

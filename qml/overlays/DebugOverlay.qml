@@ -401,7 +401,7 @@ Item {
         height: engCol.height + 10
         radius: 4; color: panelBg
         border.width: 1.5
-        border.color: es("powerState") === toggleOn ? "#2196F3" : defaultBorder
+        border.color: defaultBorder
 
         Column {
             id: engCol
