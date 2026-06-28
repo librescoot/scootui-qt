@@ -10,7 +10,11 @@ Item {
     // Properties from stores
     readonly property real targetSpeed: typeof engineStore !== "undefined" ? engineStore.speed : 0
     readonly property real motorCurrent: typeof engineStore !== "undefined" ? engineStore.motorCurrent : 0
-    readonly property bool ecuStale: typeof engineStore !== "undefined" && engineStore.faultCode === 20
+    // Stale when the ECU raised comm-lost (E20) or its heartbeat stopped
+    // advancing (frozen speed with no fault). Either way the readout is shown
+    // as dashes rather than a stuck number.
+    readonly property bool ecuStale: typeof engineStore !== "undefined"
+        && (engineStore.faultCode === 20 || engineStore.speedStale)
     readonly property bool isDark: themeStore.isDark
 
     // Internal animated speed
