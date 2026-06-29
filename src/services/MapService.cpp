@@ -158,11 +158,15 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
     , m_tickTimer(new QTimer(this))
 {
     // reloadMbtiles() opens a SQLite connection for the mbtiles validation
-    // probe and parses two JSON style files to rewrite tile:// URLs. That's
-    // a few hundred ms on iMX6 for work nothing else waits on during
-    // createStores(). Queue it on the first event-loop tick so we don't
-    // hold up publishReady().
-    QTimer::singleShot(0, this, &MapService::reloadMbtiles);
+    // probe and parses two JSON style files to rewrite tile:// URLs.
+    // buildThemeLayerOverrides() parses two more QRC style JSONs (~150ms on
+    // iMX6). None of it is needed before the first frame (the map isn't the
+    // initial screen), so queue both on the first event-loop tick to keep them
+    // off the createStores()/engine.load() critical path.
+    QTimer::singleShot(0, this, [this]() {
+        buildThemeLayerOverrides();
+        reloadMbtiles();
+    });
 
     // --- GPS position updates ---
     connect(m_gps, &GpsStore::latitudeChanged, this, &MapService::onGpsPositionChanged);
@@ -179,8 +183,8 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
 
     // --- Theme changes ---
     // No style reload on theme switch: the map QML recolors existing layers in
-    // place from m_mapThemeLayers, so the style URL is theme-independent.
-    buildThemeLayerOverrides();
+    // place from m_mapThemeLayers (built above on the first event-loop tick),
+    // so the style URL is theme-independent.
 
     // --- Map type changes (online / offline) ---
     connect(m_settings, &SettingsStore::mapTypeChanged, this, &MapService::onMapTypeChanged);
