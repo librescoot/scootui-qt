@@ -3,9 +3,7 @@
 #include "SyncableStore.h"
 #include "models/Enums.h"
 
-#include <QElapsedTimer>
 #include <QSet>
-#include <QTimer>
 
 class EngineStore : public SyncableStore
 {
@@ -36,10 +34,6 @@ class EngineStore : public SyncableStore
     Q_PROPERTY(int faultCode READ faultCode NOTIFY faultCodeChanged)
     Q_PROPERTY(QString faultDescription READ faultDescription NOTIFY faultDescriptionChanged)
     Q_PROPERTY(QList<int> faults READ faults NOTIFY faultsChanged)
-    // True when engine-ecu[heartbeat] has stopped advancing, i.e. the ECU data
-    // (speed in particular) is frozen/stale even though no E20 fault was raised.
-    // Stays false if the running ecu-service predates the heartbeat field.
-    Q_PROPERTY(bool speedStale READ speedStale NOTIFY speedStaleChanged)
 
 public:
     explicit EngineStore(MdbRepository *repo, QObject *parent = nullptr);
@@ -64,7 +58,6 @@ public:
     int faultCode() const { return m_faultCode; }
     QString faultDescription() const { return m_faultDescription; }
     QList<int> faults() const { return m_faults.values(); }
-    bool speedStale() const { return m_speedStale; }
 
 signals:
     void kersChanged();
@@ -86,7 +79,6 @@ signals:
     void faultCodeChanged();
     void faultDescriptionChanged();
     void faultsChanged();
-    void speedStaleChanged();
 
 protected:
     SyncSettings syncSettings() const override;
@@ -94,14 +86,6 @@ protected:
     void applySetUpdate(const QString &name, const QStringList &members) override;
 
 private:
-    // Re-evaluates staleness from the monotonic time since the last heartbeat
-    // change; driven by m_staleTimer so absence of updates is detectable.
-    void checkStale();
-
-    // ECU data is considered stale if no heartbeat change for this long. The
-    // producer beats at frame rate (v1) or ~4 Hz (v2), so this allows several
-    // missed beats before flagging.
-    static constexpr qint64 kStaleThresholdMs = 1500;
     ScootEnums::Toggle m_kers = ScootEnums::Toggle::On;
     QString m_kersReasonOff;
     double m_motorVoltage = 0;
@@ -122,10 +106,4 @@ private:
     int m_faultCode = 0;
     QString m_faultDescription;
     QSet<int> m_faults;
-
-    quint64 m_heartbeat = 0;
-    bool m_hasHeartbeat = false;
-    bool m_speedStale = false;
-    QElapsedTimer m_beatTimer;  // monotonic; time since last heartbeat change
-    QTimer m_staleTimer;
 };

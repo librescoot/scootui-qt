@@ -3,23 +3,6 @@
 EngineStore::EngineStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
-    m_staleTimer.setInterval(500);
-    connect(&m_staleTimer, &QTimer::timeout, this, &EngineStore::checkStale);
-    m_staleTimer.start();
-}
-
-void EngineStore::checkStale()
-{
-    // No heartbeat ever seen: either nothing has arrived yet or the running
-    // ecu-service predates the field. Either way, don't flag stale.
-    if (!m_hasHeartbeat)
-        return;
-
-    const bool stale = m_beatTimer.isValid() && m_beatTimer.elapsed() > kStaleThresholdMs;
-    if (stale != m_speedStale) {
-        m_speedStale = stale;
-        emit speedStaleChanged();
-    }
 }
 
 SyncSettings EngineStore::syncSettings() const
@@ -46,7 +29,6 @@ SyncSettings EngineStore::syncSettings() const
             {QStringLiteral("temperature"), QStringLiteral("temperature")},
             {QStringLiteral("faultCode"), QStringLiteral("fault:code")},
             {QStringLiteral("faultDescription"), QStringLiteral("fault:description")},
-            {QStringLiteral("heartbeat"), QStringLiteral("heartbeat")},
         },
         {
             {QStringLiteral("fault"), QStringLiteral("engine-ecu:fault"), 5000},
@@ -124,14 +106,5 @@ void EngineStore::applyFieldUpdate(const QString &variable, const QString &value
         if (v != m_faultCode) { m_faultCode = v; emit faultCodeChanged(); }
     } else if (variable == QLatin1String("fault:description")) {
         if (value != m_faultDescription) { m_faultDescription = value; emit faultDescriptionChanged(); }
-    } else if (variable == QLatin1String("heartbeat")) {
-        bool ok = false;
-        const quint64 v = value.toULongLong(&ok);
-        if (ok && (!m_hasHeartbeat || v != m_heartbeat)) {
-            m_heartbeat = v;
-            m_hasHeartbeat = true;
-            m_beatTimer.restart();
-            if (m_speedStale) { m_speedStale = false; emit speedStaleChanged(); }
-        }
     }
 }
