@@ -559,6 +559,12 @@ Item {
                         }
                     }
                     Text {
+                        visible: parent.parent.present
+                        text: "T1:" + b0("temperature0") + " T2:" + b0("temperature1") +
+                              " T3:" + b0("temperature2") + " T4:" + b0("temperature3") + "°C"
+                        font.pixelSize: 9; color: "#9E9E9E"
+                    }
+                    Text {
                         visible: !parent.parent.present
                         text: "B0: --"
                         font.pixelSize: 10; font.bold: true; color: "#9E9E9E"
@@ -600,6 +606,12 @@ Item {
                                   (typeof battery1Store !== "undefined" ? battery1Store.firmwareVersion : "?")
                             font.pixelSize: 9; color: "#9E9E9E"
                         }
+                    }
+                    Text {
+                        visible: parent.parent.present
+                        text: "T1:" + b1("temperature0") + " T2:" + b1("temperature1") +
+                              " T3:" + b1("temperature2") + " T4:" + b1("temperature3") + "°C"
+                        font.pixelSize: 9; color: "#9E9E9E"
                     }
                     Text {
                         visible: !parent.parent.present
