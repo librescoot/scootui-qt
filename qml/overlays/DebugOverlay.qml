@@ -646,7 +646,7 @@ Item {
                     }
                     Text {
                         text: enumName(cb("chargeStatus"), ["Charging", "NotCharging", "Unknown"]) +
-                              " / SoH " + cb("stateOfHealth") + "%"
+                              " / SoH " + cb("stateOfHealth") + "% / " + cb("temperature") + "°C"
                         font.pixelSize: 9; color: "#9E9E9E"
                     }
                 }
