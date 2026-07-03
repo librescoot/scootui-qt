@@ -374,71 +374,12 @@ Rectangle {
                 visible: typeof mapService !== "undefined" && mapService.isReady
             }
 
-            // Warning telltales (bottom left) - engine warning, hazards, parking brake
-            Row {
+            // Warning telltales (bottom left)
+            TelltalePanel {
                 anchors.left: parent.left
                 anchors.bottom: parent.bottom
                 anchors.leftMargin: 8
                 anchors.bottomMargin: 8
-                spacing: 8
-                visible: showWarnings
-
-                property bool showWarnings: {
-                    if (typeof vehicleStore === "undefined") return false
-                    return vehicleStore.isUnableToDrive === 0  // Toggle::On = 0
-                           || (typeof connectionStore !== "undefined" && connectionStore.usingBackupConnection)
-                           || vehicleStore.blinkerState === 3
-                           || vehicleStore.state === 4  // Parked
-                }
-
-                Rectangle {
-                    width: warningRow.width + 16
-                    height: warningRow.height + 16
-                    radius: themeStore.radiusCard
-                    color: typeof themeStore !== "undefined" && themeStore.isDark
-                           ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.9)
-                    border.width: 1
-                    border.color: typeof themeStore !== "undefined" && themeStore.isDark
-                                  ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.12)
-
-                    Row {
-                        id: warningRow
-                        anchors.centerIn: parent
-                        spacing: 8
-
-                        // Engine warning
-                        IndicatorLight {
-                            visible: (typeof vehicleStore !== "undefined" && vehicleStore.isUnableToDrive === 0)
-                                     || (typeof connectionStore !== "undefined" && connectionStore.usingBackupConnection)
-                            source: "qrc:/ScootUI/assets/icons/librescoot-engine-warning.svg"
-                            active: true
-                            blinking: false
-                            tintColor: "#FFC107"
-                            width: 32; height: 32
-                        }
-
-                        // Hazards
-                        IndicatorLight {
-                            visible: typeof vehicleStore !== "undefined" && vehicleStore.blinkerState === 3
-                            source: "qrc:/ScootUI/assets/icons/librescoot-hazards.svg"
-                            active: true
-                            blinking: true
-                            blinkSource: typeof vehicleStore !== "undefined" ? vehicleStore.blinkOpacity : -1
-                            tintColor: "#F44336"
-                            width: 32; height: 32
-                        }
-
-                        // Parking brake
-                        IndicatorLight {
-                            visible: typeof vehicleStore !== "undefined" && vehicleStore.state === 4
-                            source: "qrc:/ScootUI/assets/icons/librescoot-parking-brake.svg"
-                            active: true
-                            blinking: false
-                            tintColor: "#F44336"
-                            width: 32; height: 32
-                        }
-                    }
-                }
             }
         }
 

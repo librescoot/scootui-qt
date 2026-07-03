@@ -158,10 +158,6 @@ Row {
     readonly property bool seatboxOpen: typeof vehicleStore !== "undefined"
                                          ? vehicleStore.seatboxLock !== slClosed : false
 
-    // --- Turtle mode ---
-    readonly property bool showTurtle: (present0 && battState0 === bsActive && charge0 <= 20)
-                                       || (present1 && battState1 === bsActive && charge1 <= 20)
-
     // --- Battery warning conditions ---
     // CB battery not present
     readonly property bool cbNotPresent: typeof cbBatteryStore !== "undefined" && !cbBatteryStore.present
@@ -407,7 +403,7 @@ Row {
     }
 
     // Group separator before warning icons
-    Item { width: 5; height: 1; visible: batteryDisplay.seatboxOpen || cbNotPresent || showCbWarning || showAuxWarning || showCbStranded || showAuxStranded || showTurtle }
+    Item { width: 5; height: 1; visible: batteryDisplay.seatboxOpen || cbNotPresent || showCbWarning || showAuxWarning || showCbStranded || showAuxStranded }
 
     // =====================================================================
     // Seatbox open indicator
@@ -515,25 +511,4 @@ Row {
         }
     }
 
-    // =====================================================================
-    // Turtle mode icon (shown when battery ≤ 20%)
-    // =====================================================================
-    Item {
-        visible: batteryDisplay.showTurtle
-        width: 20; height: 20
-        anchors.verticalCenter: parent.verticalCenter
-
-        Image {
-            id: turtleIcon
-            anchors.fill: parent
-            source: "qrc:/ScootUI/assets/icons/librescoot-turtle-mode.svg"
-            sourceSize: Qt.size(20, 20)
-            fillMode: Image.PreserveAspectFit
-            layer.enabled: true
-            layer.effect: MultiEffect {
-                colorization: 1.0
-                colorizationColor: batteryDisplay.iconColor
-            }
-        }
-    }
 }
