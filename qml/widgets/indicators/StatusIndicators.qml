@@ -38,6 +38,89 @@ Row {
     readonly property string showCloudSetting: typeof settingsStore !== "undefined" ? settingsStore.showCloud : "active-or-error"
     readonly property string showInternetSetting: typeof settingsStore !== "undefined" ? settingsStore.showInternet : "active-or-error"
 
+    // Temperature state, hoisted from tempRow so the width model can see it.
+    readonly property double temp: typeof scooterStore !== "undefined" ? scooterStore.temperature : 0
+    readonly property bool hasTemp: typeof scooterStore !== "undefined" && scooterStore.hasTemperature
+    readonly property string tempMode: typeof settingsStore !== "undefined"
+                                       ? settingsStore.showTemperature : "warning"
+    readonly property bool isFrostWarning: typeof scooterStore !== "undefined" && scooterStore.isFrostWarning
+    readonly property bool tempShown: hasTemp && tempMode !== "never"
+                                      && (tempMode === "always" || isFrostWarning)
+    // U+200A HAIR SPACE between number and degree sign.
+    readonly property string tempText: hasTemp ? Math.round(temp) + " °" : ""
+
+    readonly property bool internetWanted: shouldShowIndicator(showInternetSetting, internetIsActive, internetHasError)
+    readonly property bool cloudWanted: shouldShowIndicator(showCloudSetting, cloudIsActive, cloudHasError)
+    readonly property bool btWanted: shouldShowIndicator(showBtSetting, btIsActive, btHasError)
+    readonly property bool gpsWanted: shouldShowIndicator(showGpsSetting, gpsIsActive, gpsHasError)
+    readonly property bool otaShown: otaActive && (vehicleState === 2 || vehicleState === 4)
+    readonly property bool otaProgressActive: otaDbcStatus === "downloading"
+                                              || otaDbcStatus === "preparing"
+                                              || otaDbcStatus === "installing"
+    readonly property string otaProgressText: {
+        if (otaDbcStatus === "downloading") return "" + otaDbcDownloadProgress
+        if (otaDbcStatus === "preparing" || otaDbcStatus === "installing") return "" + otaDbcInstallProgress
+        return ""
+    }
+
+    // --- Width-aware degradation -------------------------------------------
+    // degradeLevel is assigned by TopStatusBar from the measured budget:
+    //   0 full detail             3 cloud -> overflow chip (unless error)
+    //   1 no OTA progress digits  4 GPS -> overflow chip (unless error)
+    //   2 BT -> overflow chip     5 temp -> overflow chip (unless frost)
+    //     (unless error)
+    // Anything shown because of an error state never degrades.
+    property int degradeLevel: 0
+
+    readonly property bool showOtaProgress: otaProgressActive && degradeLevel < 1
+    readonly property bool btChipped: btWanted && !btHasError && degradeLevel >= 2
+    readonly property bool cloudChipped: cloudWanted && !cloudHasError && degradeLevel >= 3
+    readonly property bool gpsChipped: gpsWanted && !gpsHasError && degradeLevel >= 4
+    readonly property bool tempChipped: tempShown && !isFrostWarning && degradeLevel >= 5
+    readonly property int chippedCount: (btChipped ? 1 : 0) + (cloudChipped ? 1 : 0)
+                                      + (gpsChipped ? 1 : 0) + (tempChipped ? 1 : 0)
+
+    TextMetrics {
+        id: tmOtaProgress
+        font.pixelSize: 12
+        font.weight: Font.DemiBold
+        font.features: {"tnum": 1}
+        text: statusIndicators.otaProgressText
+    }
+    TextMetrics {
+        id: tmTemp
+        font.pixelSize: 14
+        font.letterSpacing: -0.5
+        font.features: {"tnum": 1}
+        text: statusIndicators.tempText
+    }
+
+    function widthAtLevel(level) {
+        var w = 0
+        var n = 0
+        function add(itemW) { w += (n > 0 ? spacing : 0) + itemW; n++ }
+
+        if (internetWanted) add(24)
+        if (cloudWanted && (cloudHasError || level < 3)) add(24)
+        if (btWanted && (btHasError || level < 2)) add(24)
+        if (gpsWanted && (gpsHasError || level < 4)) add(24)
+        if (otaShown)
+            add(24 + (otaProgressActive && level < 1 ? 2 + tmOtaProgress.width : 0))
+        if (tempShown && (isFrostWarning || level < 5))
+            add((isFrostWarning ? 26 : 0) + tmTemp.width)
+        var chips = (btWanted && !btHasError && level >= 2 ? 1 : 0)
+                  + (cloudWanted && !cloudHasError && level >= 3 ? 1 : 0)
+                  + (gpsWanted && !gpsHasError && level >= 4 ? 1 : 0)
+                  + (tempShown && !isFrostWarning && level >= 5 ? 1 : 0)
+        if (chips > 0) add(24)
+        return w
+    }
+
+    readonly property var levelWidths: [
+        widthAtLevel(0), widthAtLevel(1), widthAtLevel(2),
+        widthAtLevel(3), widthAtLevel(4), widthAtLevel(5)
+    ]
+
     // Active/error state for each indicator (matches Flutter shouldShowIndicator logic)
     readonly property bool gpsIsActive: (gpsState === 0 && gpsRecentFix) || (gpsState === 2 && gpsRecentFix)
     readonly property bool gpsHasError: gpsState === 3
@@ -90,7 +173,7 @@ Row {
     // Internet/modem icon with access tech overlay (rightmost in RTL)
     Item {
         width: 24; height: 24
-        visible: shouldShowIndicator(showInternetSetting, internetIsActive, internetHasError)
+        visible: internetWanted
 
         Image {
             id: modemIcon
@@ -125,7 +208,7 @@ Row {
     // Cloud status icon
     Item {
         width: 24; height: 24
-        visible: shouldShowIndicator(showCloudSetting, cloudIsActive, cloudHasError)
+        visible: cloudWanted && !cloudChipped
 
         Image {
             id: cloudIcon
@@ -145,7 +228,7 @@ Row {
     // Bluetooth icon
     Item {
         width: 24; height: 24
-        visible: shouldShowIndicator(showBtSetting, btIsActive, btHasError)
+        visible: btWanted && !btChipped
 
         Image {
             id: btIcon
@@ -166,7 +249,7 @@ Row {
     Item {
         id: gpsItem
         width: 24; height: 24
-        visible: shouldShowIndicator(showGpsSetting, gpsIsActive, gpsHasError)
+        visible: gpsWanted && !gpsChipped
 
         readonly property bool isSearching: {
             if (gpsState === 0) return !gpsRecentFix && gpsHasTimestamp
@@ -285,14 +368,8 @@ Row {
             font.weight: Font.DemiBold
             font.features: {"tnum": 1}
             color: statusIndicators.iconColor
-            visible: otaDbcStatus === "downloading" || otaDbcStatus === "preparing" || otaDbcStatus === "installing"
-            text: {
-                if (otaDbcStatus === "downloading")
-                    return otaDbcDownloadProgress
-                if (otaDbcStatus === "preparing" || otaDbcStatus === "installing")
-                    return otaDbcInstallProgress
-                return ""
-            }
+            visible: statusIndicators.showOtaProgress
+            text: statusIndicators.otaProgressText
         }
     }
 
@@ -312,17 +389,10 @@ Row {
         // as the rest of the status row when no snow glyph is present.
         height: 24
 
-        readonly property double temp: typeof scooterStore !== "undefined" ? scooterStore.temperature : 0
-        readonly property bool hasTemp: typeof scooterStore !== "undefined" && scooterStore.hasTemperature
-        readonly property string tempMode: typeof settingsStore !== "undefined"
-                                           ? settingsStore.showTemperature : "warning"
-        readonly property bool isFrostWarning: typeof scooterStore !== "undefined" && scooterStore.isFrostWarning
-
-        visible: hasTemp && tempMode !== "never"
-                 && (tempMode === "always" || isFrostWarning)
+        visible: statusIndicators.tempShown && !statusIndicators.tempChipped
 
         Item {
-            visible: tempRow.isFrostWarning
+            visible: statusIndicators.isFrostWarning
             width: visible ? 24 : 0
             height: 24
             anchors.verticalCenter: parent.verticalCenter
@@ -338,11 +408,17 @@ Row {
         Text {
             anchors.verticalCenter: parent.verticalCenter
             // U+200A HAIR SPACE between number and degree sign.
-            text: tempRow.hasTemp ? Math.round(tempRow.temp) + " °" : ""
+            text: statusIndicators.tempText
             font.pixelSize: 14
             font.letterSpacing: -0.5
             font.features: {"tnum": 1}
             color: statusIndicators.iconColor
         }
+    }
+
+    OverflowChip {
+        count: statusIndicators.chippedCount
+        iconColor: statusIndicators.iconColor
+        anchors.verticalCenter: parent.verticalCenter
     }
 }

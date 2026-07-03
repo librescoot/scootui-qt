@@ -238,6 +238,7 @@ set(QML_FILES
     qml/widgets/components/ControlHints.qml
     qml/widgets/components/MaterialIcon.qml
     qml/widgets/components/TintedImage.qml
+    qml/widgets/components/OverflowChip.qml
     qml/widgets/components/FrostedGlass.qml
     qml/widgets/components/MilestoneConfettiLayer.qml
     qml/widgets/map/MapViewWidget.qml

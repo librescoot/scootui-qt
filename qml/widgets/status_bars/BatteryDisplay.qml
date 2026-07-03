@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import "../components"
 
 Row {
     id: batteryDisplay
@@ -54,9 +55,11 @@ Row {
     readonly property bool showText: typeof settingsStore === "undefined"
                                      || settingsStore.batteryDisplayMode !== "icon"
 
-    function rangeNum(charge, soh) {
+    function valueString(charge, soh, withDecimals) {
+        if (!showAsRange)
+            return charge.toString()
         var rangeKm = 45.0 * (soh / 100.0) * (charge / 100.0)
-        if (rangeKm >= 10)
+        if (rangeKm >= 10 || !withDecimals)
             return Math.floor(rangeKm).toString()
         return rangeKm.toFixed(1)
     }
@@ -76,7 +79,7 @@ Row {
         Text {
             id: valNum
             anchors.verticalCenter: parent.verticalCenter
-            text: batteryDisplay.showAsRange ? batteryDisplay.rangeNum(charge, soh) : charge.toString()
+            text: batteryDisplay.valueString(charge, soh, batteryDisplay.showDecimals)
             font.pixelSize: batteryDisplay.batteryValueSize
             font.weight: Font.DemiBold
             font.letterSpacing: -1.1
@@ -142,12 +145,103 @@ Row {
 
     // The level glyph needs a known SoC to pick a bucket; warnings take over the
     // slot when active, so don't double up.
-    readonly property bool showCbCharge: cbPresent && cbChargeValid
+    readonly property bool showCbChargeWanted: cbPresent && cbChargeValid
                                          && visibleByMode(cbVisibility, cbLow)
                                          && !showCbWarning && !showCbStranded
-    readonly property bool showAuxCharge: auxChargeValid
+    readonly property bool showAuxChargeWanted: auxChargeValid
                                           && visibleByMode(auxVisibility, auxLow)
                                           && !showAuxWarning && !showAuxStranded
+
+    // --- Width-aware degradation -------------------------------------------
+    // degradeLevel is assigned by TopStatusBar from the measured budget:
+    //   0 full detail          3 AUX level glyph -> overflow chip
+    //   1 no range decimals    4 CBB level glyph -> overflow chip
+    //   2 no battery 1 value   5 no battery 0 value
+    // Warning icons (seatbox, CB absent, CB/AUX error) never degrade.
+    property int degradeLevel: 0
+
+    readonly property bool showDecimals: degradeLevel < 1
+    readonly property bool showB1Text: degradeLevel < 2
+    readonly property bool showB0Text: degradeLevel < 5
+    readonly property bool showCbCharge: showCbChargeWanted && degradeLevel < 4
+    readonly property bool showAuxCharge: showAuxChargeWanted && degradeLevel < 3
+    readonly property int chippedCount: (showAuxChargeWanted && degradeLevel >= 3 ? 1 : 0)
+                                      + (showCbChargeWanted && degradeLevel >= 4 ? 1 : 0)
+
+    // Width model: level widths are computed from TextMetrics and fixed icon
+    // sizes, NOT from rendered children, so applying a degrade level can never
+    // feed back into the measurement (no binding loops).
+    TextMetrics {
+        id: tmVal0Full
+        font.pixelSize: batteryDisplay.batteryValueSize
+        font.weight: Font.DemiBold
+        font.letterSpacing: -1.1
+        text: batteryDisplay.valueString(batteryDisplay.charge0, batteryDisplay.soh0, true)
+    }
+    TextMetrics {
+        id: tmVal0Short
+        font.pixelSize: batteryDisplay.batteryValueSize
+        font.weight: Font.DemiBold
+        font.letterSpacing: -1.1
+        text: batteryDisplay.valueString(batteryDisplay.charge0, batteryDisplay.soh0, false)
+    }
+    TextMetrics {
+        id: tmVal1Full
+        font.pixelSize: batteryDisplay.batteryValueSize
+        font.weight: Font.DemiBold
+        font.letterSpacing: -1.1
+        text: batteryDisplay.valueString(batteryDisplay.charge1, batteryDisplay.soh1, true)
+    }
+    TextMetrics {
+        id: tmVal1Short
+        font.pixelSize: batteryDisplay.batteryValueSize
+        font.weight: Font.DemiBold
+        font.letterSpacing: -1.1
+        text: batteryDisplay.valueString(batteryDisplay.charge1, batteryDisplay.soh1, false)
+    }
+    TextMetrics {
+        id: tmUnit
+        font.pixelSize: batteryDisplay.batteryUnitSize
+        font.weight: Font.Normal
+        text: batteryDisplay.showAsRange ? "km" : "%"
+    }
+
+    function widthAtLevel(level) {
+        var w = 0
+        var n = 0
+        function add(itemW) { w += (n > 0 ? spacing : 0) + itemW; n++ }
+
+        add(24)                                               // battery 0 icon
+        if (present0 && showText && level < 5)
+            add((level >= 1 ? tmVal0Short.width : tmVal0Full.width) + 2 + tmUnit.width)
+        if (showDual) {
+            add(5)                                            // group separator
+            add(24)                                           // battery 1 icon
+            if (present1 && showText && level < 2)
+                add((level >= 1 ? tmVal1Short.width : tmVal1Full.width) + 2 + tmUnit.width)
+        }
+        var cbG = showCbChargeWanted && level < 4
+        var auxG = showAuxChargeWanted && level < 3
+        var chips = (showAuxChargeWanted && level >= 3 ? 1 : 0)
+                  + (showCbChargeWanted && level >= 4 ? 1 : 0)
+        if (cbG || auxG || chips > 0) add(5)                  // group separator
+        if (cbG) add(24)
+        if (auxG) add(24)
+        if (chips > 0) add(24)                                // overflow chip
+        var warn = seatboxOpen || cbNotPresent || showCbWarning || showAuxWarning
+                 || showCbStranded || showAuxStranded
+        if (warn) add(5)                                      // group separator
+        if (seatboxOpen) add(24)
+        if (cbNotPresent) add(24)
+        if (showCbWarning || showCbStranded) add(24)
+        if (showAuxWarning || showAuxStranded) add(24)
+        return w
+    }
+
+    readonly property var levelWidths: [
+        widthAtLevel(0), widthAtLevel(1), widthAtLevel(2),
+        widthAtLevel(3), widthAtLevel(4), widthAtLevel(5)
+    ]
 
     function levelBucket(charge) {
         var b = Math.round(charge / 25) * 25
@@ -325,7 +419,7 @@ Row {
 
     // Battery 0 charge/range text
     BatteryValue {
-        visible: present0 && batteryDisplay.showText
+        visible: present0 && batteryDisplay.showText && batteryDisplay.showB0Text
         charge: charge0
         soh: soh0
         battState: battState0
@@ -349,7 +443,7 @@ Row {
 
     // Battery 1 charge/range text
     BatteryValue {
-        visible: batteryDisplay.showDual && present1 && batteryDisplay.showText
+        visible: batteryDisplay.showDual && present1 && batteryDisplay.showText && batteryDisplay.showB1Text
         charge: charge1
         soh: soh1
         battState: battState1
@@ -358,7 +452,7 @@ Row {
     // =====================================================================
     // Optional CBB / AUX charge indicators (icon-only level glyph)
     // =====================================================================
-    Item { width: 5; height: 1; visible: batteryDisplay.showCbCharge || batteryDisplay.showAuxCharge }
+    Item { width: 5; height: 1; visible: batteryDisplay.showCbCharge || batteryDisplay.showAuxCharge || batteryDisplay.chippedCount > 0 }
 
     Item {
         visible: batteryDisplay.showCbCharge
@@ -400,6 +494,12 @@ Row {
                 colorizationColor: batteryDisplay.iconColor
             }
         }
+    }
+
+    OverflowChip {
+        count: batteryDisplay.chippedCount
+        iconColor: batteryDisplay.iconColor
+        anchors.verticalCenter: parent.verticalCenter
     }
 
     // Group separator before warning icons
