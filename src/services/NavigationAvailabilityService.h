@@ -40,6 +40,8 @@ private:
     QNetworkAccessManager *m_nam;
     QTimer m_retryTimer;
     int m_retryDelayMs = 1000;
+    QTimer m_mapsRetryTimer;
+    int m_mapsRetryDelayMs = 1000;
     bool m_mapsAvailable = false;
     bool m_routingAvailable = false;
     bool m_overrideActive = false;

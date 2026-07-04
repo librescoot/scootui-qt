@@ -325,10 +325,10 @@ void Application::createStores(QQmlApplicationEngine &engine)
         m_mapService->reloadMbtiles();
         m_roadInfoService->reloadMbtiles();
         m_addressDatabaseService->initialize();
-        // Re-run availability detection. checkMaps() is one-shot at startup, so
-        // if /data mounted after we constructed, m_mapsAvailable is latched
-        // false and the map/navigation menu entries stay hidden even though the
-        // tiles just loaded. recheck() flips the flag and rebuilds the menu.
+        // Re-run availability detection immediately. The service also polls
+        // while maps are unavailable (covers mounts, which inotify can't see),
+        // but reacting to the watcher here flips the flag without waiting for
+        // the next poll tick.
         if (m_navAvailability)
             m_navAvailability->recheck();
     });

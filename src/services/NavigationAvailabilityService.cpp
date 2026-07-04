@@ -22,6 +22,9 @@ NavigationAvailabilityService::NavigationAvailabilityService(SettingsStore *sett
     m_retryTimer.setSingleShot(true);
     connect(&m_retryTimer, &QTimer::timeout, this, &NavigationAvailabilityService::checkRouting);
 
+    m_mapsRetryTimer.setSingleShot(true);
+    connect(&m_mapsRetryTimer, &QTimer::timeout, this, &NavigationAvailabilityService::checkMaps);
+
     connect(m_settings, &SettingsStore::valhallaUrlChanged, this, &NavigationAvailabilityService::recheck);
     connect(m_internet, &InternetStore::modemStateChanged, this, &NavigationAvailabilityService::recheck);
 
@@ -35,6 +38,8 @@ void NavigationAvailabilityService::recheck()
     // don't sit on a 30s retry when the environment just changed.
     m_retryTimer.stop();
     m_retryDelayMs = 1000;
+    m_mapsRetryTimer.stop();
+    m_mapsRetryDelayMs = 1000;
     checkMaps();
     checkRouting();
 }
@@ -43,6 +48,7 @@ void NavigationAvailabilityService::setOverride(bool maps, bool routing)
 {
     m_overrideActive = true;
     m_retryTimer.stop();
+    m_mapsRetryTimer.stop();
     bool changed = false;
     if (maps != m_mapsAvailable) {
         m_mapsAvailable = maps;
@@ -73,6 +79,17 @@ void NavigationAvailabilityService::checkMaps()
         m_mapsAvailable = available;
         publishToRedis();
         emit availabilityChanged();
+    }
+    if (!available) {
+        // Poll until the tiles show up. The QFileSystemWatcher fallback in
+        // Application can't catch /data being mounted over the watched
+        // mountpoint (inotify delivers no event for a mount), so a one-shot
+        // check latches false when scootui starts before /data is mounted.
+        m_mapsRetryTimer.start(m_mapsRetryDelayMs);
+        m_mapsRetryDelayMs = qMin(m_mapsRetryDelayMs * 2, 10000);
+    } else {
+        m_mapsRetryTimer.stop();
+        m_mapsRetryDelayMs = 1000;
     }
 }
 
