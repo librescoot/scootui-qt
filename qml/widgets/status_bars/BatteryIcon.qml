@@ -31,7 +31,9 @@ Item {
         return themeStore.textColor
     }
 
-    // Base battery icon (tinted for theme)
+    // Base battery icon (tinted for theme). Tint via a standalone MultiEffect with
+    // a live colorizationColor binding so it recolors on theme change; layer.effect
+    // one-shots the color on Qt 6.7.
     Image {
         id: baseIcon
         anchors.fill: parent
@@ -43,11 +45,14 @@ Item {
         }
         sourceSize: Qt.size(24, 24)
         fillMode: Image.PreserveAspectFit
+        visible: false
         layer.enabled: true
-        layer.effect: MultiEffect {
-            colorization: 1.0
-            colorizationColor: batteryIcon.iconColor
-        }
+    }
+    MultiEffect {
+        anchors.fill: parent
+        source: baseIcon
+        colorization: 1.0
+        colorizationColor: batteryIcon.iconColor
     }
 
     // Charge bar (shown for blank icon states)
@@ -64,30 +69,36 @@ Item {
     Image {
         id: asleepMask
         anchors.fill: parent
-        visible: batteryIcon.present && batteryIcon.batteryState === bsAsleep
+        visible: false
         source: "qrc:/ScootUI/assets/icons/librescoot-main-battery-asleep-mask.svg"
         sourceSize: Qt.size(24, 24)
         fillMode: Image.PreserveAspectFit
         layer.enabled: true
-        layer.effect: MultiEffect {
-            colorization: 1.0
-            colorizationColor: batteryIcon.isDark ? "#000000" : "#FFFFFF"
-        }
+    }
+    MultiEffect {
+        anchors.fill: parent
+        source: asleepMask
+        visible: batteryIcon.present && batteryIcon.batteryState === bsAsleep
+        colorization: 1.0
+        colorizationColor: batteryIcon.isDark ? "#000000" : "#FFFFFF"
     }
 
     // Asleep overlay
     Image {
         id: asleepOverlay
         anchors.fill: parent
-        visible: batteryIcon.present && batteryIcon.batteryState === bsAsleep
+        visible: false
         source: "qrc:/ScootUI/assets/icons/librescoot-main-battery-asleep-overlay.svg"
         sourceSize: Qt.size(24, 24)
         fillMode: Image.PreserveAspectFit
         layer.enabled: true
-        layer.effect: MultiEffect {
-            colorization: 1.0
-            colorizationColor: batteryIcon.iconColor
-        }
+    }
+    MultiEffect {
+        anchors.fill: parent
+        source: asleepOverlay
+        visible: batteryIcon.present && batteryIcon.batteryState === bsAsleep
+        colorization: 1.0
+        colorizationColor: batteryIcon.iconColor
     }
 
     // Idle overlay (uses original colors in dark mode, inverted in light)

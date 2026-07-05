@@ -186,11 +186,14 @@ Row {
                 var bars = Math.min(Math.floor(signalQuality / 20), 4)
                 return "qrc:/ScootUI/assets/icons/librescoot-internet-modem-connected-" + bars + ".svg"
             }
+            visible: false
             layer.enabled: true
-            layer.effect: MultiEffect {
-                colorization: 1.0
-                colorizationColor: statusIndicators.iconColor
-            }
+        }
+        MultiEffect {
+            anchors.fill: parent
+            source: modemIcon
+            colorization: 1.0
+            colorizationColor: statusIndicators.iconColor
         }
 
         Text {
@@ -217,11 +220,14 @@ Row {
             source: cloudStatus === 0
                 ? "qrc:/ScootUI/assets/icons/librescoot-internet-cloud-connected.svg"
                 : "qrc:/ScootUI/assets/icons/librescoot-internet-cloud-disconnected.svg"
+            visible: false
             layer.enabled: true
-            layer.effect: MultiEffect {
-                colorization: 1.0
-                colorizationColor: statusIndicators.iconColor
-            }
+        }
+        MultiEffect {
+            anchors.fill: parent
+            source: cloudIcon
+            colorization: 1.0
+            colorizationColor: statusIndicators.iconColor
         }
     }
 
@@ -237,11 +243,14 @@ Row {
             source: btStatus === 0
                 ? "qrc:/ScootUI/assets/icons/librescoot-bluetooth-connected.svg"
                 : "qrc:/ScootUI/assets/icons/librescoot-bluetooth-disconnected.svg"
+            visible: false
             layer.enabled: true
-            layer.effect: MultiEffect {
-                colorization: 1.0
-                colorizationColor: statusIndicators.iconColor
-            }
+        }
+        MultiEffect {
+            anchors.fill: parent
+            source: btIcon
+            colorization: 1.0
+            colorizationColor: statusIndicators.iconColor
         }
     }
 
@@ -278,11 +287,14 @@ Row {
             source: gpsItem.isSearching
                 ? "qrc:/ScootUI/assets/icons/librescoot-gps-searching.svg"
                 : gpsItem.gpsIconSource
+            visible: false
             layer.enabled: true
-            layer.effect: MultiEffect {
-                colorization: 1.0
-                colorizationColor: statusIndicators.iconColor
-            }
+        }
+        MultiEffect {
+            anchors.fill: parent
+            source: gpsIcon
+            colorization: 1.0
+            colorizationColor: statusIndicators.iconColor
         }
 
         // Pulsing center dot overlay (only when searching)
@@ -291,13 +303,16 @@ Row {
             anchors.fill: parent
             sourceSize: Qt.size(24, 24)
             source: "qrc:/ScootUI/assets/icons/librescoot-gps-center-dot.svg"
+            visible: false
+            layer.enabled: true
+        }
+        MultiEffect {
+            anchors.fill: parent
+            source: gpsCenterDot
             visible: gpsItem.isSearching
             opacity: pulseAnimation.running ? pulseAnimation.pulseValue : 0
-            layer.enabled: true
-            layer.effect: MultiEffect {
-                colorization: 1.0
-                colorizationColor: statusIndicators.iconColor
-            }
+            colorization: 1.0
+            colorizationColor: statusIndicators.iconColor
         }
 
         SequentialAnimation {
@@ -353,11 +368,14 @@ Row {
                             return ""
                     }
                 }
+                visible: false
                 layer.enabled: true
-                layer.effect: MultiEffect {
-                    colorization: 1.0
-                    colorizationColor: statusIndicators.iconColor
-                }
+            }
+            MultiEffect {
+                anchors.fill: parent
+                source: otaIcon
+                colorization: 1.0
+                colorizationColor: statusIndicators.iconColor
             }
         }
 
