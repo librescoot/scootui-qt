@@ -45,6 +45,11 @@ private:
     void createStores(QQmlApplicationEngine &engine);
     void registerContextProperties(QQmlApplicationEngine &engine);
     void setupSignalHandlers();
+    // Re-point the mbtiles-backed services at /data/maps/map.mbtiles. Safe to
+    // call repeatedly (each service's reload is idempotent); driven by the
+    // file watcher and by NavigationAvailabilityService::localMapsBecameAvailable
+    // so a late /data mount recovers the map + road-info, not just the flag.
+    void reloadMapServices();
 
     std::unique_ptr<MdbRepository> m_repository;
     AutoThemeService *m_autoThemeService = nullptr;

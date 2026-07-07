@@ -27,6 +27,12 @@ public:
 
 signals:
     void availabilityChanged();
+    // Edge-triggered: fires only on the false->true transition of the local
+    // display maps flag (i.e. /data/maps/map.mbtiles just became reachable,
+    // typically after a late /data mount the poller finally saw). Consumers
+    // reload their mbtiles handles off this instead of the level-triggered
+    // availabilityChanged(), which also fires on routing-only flaps.
+    void localMapsBecameAvailable();
 
 private:
     void checkMaps();

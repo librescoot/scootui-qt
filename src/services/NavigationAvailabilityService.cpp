@@ -50,6 +50,7 @@ void NavigationAvailabilityService::setOverride(bool maps, bool routing)
     m_retryTimer.stop();
     m_mapsRetryTimer.stop();
     bool changed = false;
+    bool mapsBecameAvailable = maps && !m_mapsAvailable;
     if (maps != m_mapsAvailable) {
         m_mapsAvailable = maps;
         changed = true;
@@ -60,6 +61,7 @@ void NavigationAvailabilityService::setOverride(bool maps, bool routing)
     }
     publishToRedis();
     if (changed) emit availabilityChanged();
+    if (mapsBecameAvailable) emit localMapsBecameAvailable();
 }
 
 void NavigationAvailabilityService::clearOverride()
@@ -76,9 +78,15 @@ void NavigationAvailabilityService::checkMaps()
     bool available = QFile::exists(QStringLiteral("map.mbtiles"))
                   || QFile::exists(QStringLiteral("/data/maps/map.mbtiles"));
     if (available != m_mapsAvailable) {
+        bool becameAvailable = available && !m_mapsAvailable;
         m_mapsAvailable = available;
         publishToRedis();
         emit availabilityChanged();
+        // The map/road-info services load the mbtiles once and don't self-poll
+        // for a late mount; drive their reload off this edge so they recover
+        // when the poller finally sees /data mounted.
+        if (becameAvailable)
+            emit localMapsBecameAvailable();
     }
     if (!available) {
         // Poll until the tiles show up. The QFileSystemWatcher fallback in

@@ -1109,6 +1109,13 @@ static BuildResult buildFromTiles(AddressDatabaseService *service, const QString
 
 void AddressDatabaseService::initialize()
 {
+    // A rebuild spawns a QtConcurrent trie build; don't stack a second one if
+    // one is already loading/building. reloadMapServices() can fire this from
+    // both the file watcher and the availability edge in quick succession, and
+    // the watcher's recheck() can re-enter synchronously.
+    if (m_status == Loading || m_status == Building)
+        return;
+
     QString mbtilesPath = QFile::exists(QStringLiteral("map.mbtiles"))
         ? QStringLiteral("map.mbtiles")
         : MbtilesPath;

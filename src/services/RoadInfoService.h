@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QElapsedTimer>
+#include <QDateTime>
 #include <QHash>
 #include <QList>
 #include <QVariantList>
@@ -51,6 +52,8 @@ private:
     QElapsedTimer m_lastUpdate;
     bool m_dbOpen = false;
     QString m_dbConnectionName;
+    QString m_dbPath; // path of the currently-open mbtiles (for idempotent reload)
+    QDateTime m_dbMtime; // mtime at open — detects a same-path replacement (OTA install)
 
     // Tile cache (LRU)
     QHash<quint64, VectorTile::Tile> m_tileCache;

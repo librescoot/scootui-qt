@@ -322,9 +322,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
         if (!QFile::exists(mapsDir + QStringLiteral("/map.mbtiles")))
             return;
         qDebug() << "Mbtiles change detected, reloading services";
-        m_mapService->reloadMbtiles();
-        m_roadInfoService->reloadMbtiles();
-        m_addressDatabaseService->initialize();
+        reloadMapServices();
         // Re-run availability detection immediately. The service also polls
         // while maps are unavailable (covers mounts, which inotify can't see),
         // but reacting to the watcher here flips the flag without waiting for
@@ -332,6 +330,15 @@ void Application::createStores(QQmlApplicationEngine &engine)
         if (m_navAvailability)
             m_navAvailability->recheck();
     });
+
+    // The QFileSystemWatcher above cannot see /data being *mounted* over the
+    // watched mountpoint (inotify delivers no event for a mount), so on a cold
+    // boot where scootui starts before /data is mounted it never fires. The
+    // availability poller does detect the late mount — reload the mbtiles-backed
+    // services off its edge so the map + road-info recover, not just the flag.
+    if (m_navAvailability)
+        connect(m_navAvailability, &NavigationAvailabilityService::localMapsBecameAvailable,
+                this, &Application::reloadMapServices);
 
     // Saved locations (B7)
     m_savedLocationsService = new SavedLocationsService(repo, this);
@@ -616,6 +623,20 @@ void Application::createStores(QQmlApplicationEngine &engine)
     BOOT_MARK("publishReady() returned");
 
     qDebug() << "All stores created and started (M5: menu, settings, translations, auto-theme, toast, map, nav-availability, saved-locations, serial-number)";
+}
+
+void Application::reloadMapServices()
+{
+    // Each reload is idempotent: MapService/RoadInfoService early-return when the
+    // path is unchanged, and AddressDatabaseService skips a rebuild already in
+    // flight — so this is safe to call from both the file watcher and the
+    // availability edge, including the re-entrant watcher->recheck() case.
+    if (m_mapService)
+        m_mapService->reloadMbtiles();
+    if (m_roadInfoService)
+        m_roadInfoService->reloadMbtiles();
+    if (m_addressDatabaseService)
+        m_addressDatabaseService->initialize();
 }
 
 void Application::registerContextProperties(QQmlApplicationEngine &engine)

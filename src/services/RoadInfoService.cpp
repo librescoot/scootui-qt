@@ -6,6 +6,7 @@
 
 #include <QDebug>
 #include <QFile>
+#include <QFileInfo>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QVariantList>
@@ -43,16 +44,22 @@ RoadInfoService::RoadInfoService(GpsStore *gps, SpeedLimitStore *speedLimit,
         db.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
         if (db.open()) {
             m_dbOpen = true;
+            m_dbPath = path;
+            m_dbMtime = QFileInfo(path).lastModified();
             qDebug() << "RoadInfoService: mbtiles database opened";
         } else {
             qWarning() << "RoadInfoService: failed to open mbtiles";
         }
     }
 
-    if (m_dbOpen) {
-        connect(gps, &GpsStore::latitudeChanged, this, &RoadInfoService::onGpsChanged);
-        connect(gps, &GpsStore::longitudeChanged, this, &RoadInfoService::onGpsChanged);
-    }
+    // Connect the GPS signals unconditionally, even if the mbtiles isn't open
+    // yet. On a cold boot scootui can start before /data is mounted, so the
+    // file is absent here — but the route-driven road-name/speed path in
+    // updateRoadInfo() needs no tile DB, and onGpsChanged() self-heals the DB
+    // open once the file appears. Gating the connects on m_dbOpen used to leave
+    // the whole pill dead (no writer) for the entire session in that race.
+    connect(gps, &GpsStore::latitudeChanged, this, &RoadInfoService::onGpsChanged);
+    connect(gps, &GpsStore::longitudeChanged, this, &RoadInfoService::onGpsChanged);
 }
 
 RoadInfoService::~RoadInfoService()
@@ -75,6 +82,17 @@ void RoadInfoService::reloadMbtiles()
     if (!QFile::exists(path))
         return;
 
+    // Idempotent: if the *same file* is already open, don't tear down the
+    // SQLite connection and dump the tile LRU cache. This lets us call
+    // reloadMbtiles() freely from the availability poller / file watcher without
+    // churning the cache on every routing flap or redundant recovery trigger.
+    // We key on path AND mtime: an OTA map install replaces map.mbtiles at the
+    // same path with a new inode, so a path-only check would keep serving from
+    // the stale (unlinked) fd and pin its disk space until restart.
+    const QDateTime mtime = QFileInfo(path).lastModified();
+    if (m_dbOpen && path == m_dbPath && mtime == m_dbMtime)
+        return;
+
     // Close existing connection if open
     if (m_dbOpen) {
         {
@@ -83,6 +101,8 @@ void RoadInfoService::reloadMbtiles()
         }
         QSqlDatabase::removeDatabase(m_dbConnectionName);
         m_dbOpen = false;
+        m_dbPath.clear();
+        m_dbMtime = {};
         m_tileCache.clear();
         m_cacheOrder.clear();
     }
@@ -93,15 +113,9 @@ void RoadInfoService::reloadMbtiles()
     db.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
     if (db.open()) {
         m_dbOpen = true;
+        m_dbPath = path;
+        m_dbMtime = mtime;
         qDebug() << "RoadInfoService: mbtiles database opened";
-        if (!m_gps->property("latitude").isValid()) {
-            // GPS signals might already be connected; only connect if not yet done
-        }
-        // Ensure GPS signals are connected
-        disconnect(m_gps, &GpsStore::latitudeChanged, this, &RoadInfoService::onGpsChanged);
-        disconnect(m_gps, &GpsStore::longitudeChanged, this, &RoadInfoService::onGpsChanged);
-        connect(m_gps, &GpsStore::latitudeChanged, this, &RoadInfoService::onGpsChanged);
-        connect(m_gps, &GpsStore::longitudeChanged, this, &RoadInfoService::onGpsChanged);
     } else {
         qWarning() << "RoadInfoService: failed to open mbtiles";
     }
@@ -138,6 +152,13 @@ void RoadInfoService::onGpsChanged()
         return;
 
     m_lastUpdate.restart();
+
+    // Self-heal: if the mbtiles wasn't available when we constructed (cold boot
+    // before /data mounted), pick it up as soon as it appears. Throttled to the
+    // 3 s tick above, and reloadMbtiles() is idempotent once open.
+    if (!m_dbOpen)
+        reloadMbtiles();
+
     updateRoadInfo(m_gps->latitude(), m_gps->longitude());
 }
 
