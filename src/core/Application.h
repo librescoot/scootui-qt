@@ -5,6 +5,9 @@
 #include <memory>
 
 class MdbRepository;
+class GpsStore;
+class VehicleStore;
+class SettingsStore;
 class AutoThemeService;
 class SettingsService;
 class NavigationService;
@@ -50,6 +53,12 @@ private:
     // file watcher and by NavigationAvailabilityService::localMapsBecameAvailable
     // so a late /data mount recovers the map + road-info, not just the flag.
     void reloadMapServices();
+    // Starts the map download only while parked/stand-by, so a mid-ride
+    // update never triggers a large cellular download or a valhalla restart
+    // during navigation. Self-gates on the auto-download setting, update
+    // availability, download-service idle status, and vehicle state, so it's
+    // safe to call opportunistically from multiple signals.
+    void maybeAutoDownloadMaps();
 
     std::unique_ptr<MdbRepository> m_repository;
     AutoThemeService *m_autoThemeService = nullptr;
@@ -75,6 +84,12 @@ private:
     MapDownloadService *m_mapDownloadService = nullptr;
     RoadInfoService *m_roadInfoService = nullptr;
     OdometerMilestoneService *m_odometerMilestoneService = nullptr;
+    // Stashed for maybeAutoDownloadMaps(), which needs to be reachable from
+    // several connects (updateAvailableChanged, vehicleStore::stateChanged,
+    // and the startup check) without duplicating its gating logic in each.
+    GpsStore *m_gpsStore = nullptr;
+    VehicleStore *m_vehicleStore = nullptr;
+    SettingsStore *m_settingsStore = nullptr;
     bool m_simulatorMode = false;
     QList<QObject*> m_stores;
 };

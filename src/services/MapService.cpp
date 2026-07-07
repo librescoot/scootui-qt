@@ -13,11 +13,14 @@
 #include <QVariantMap>
 #include <QtMath>
 #include <QFile>
+#include <QFileInfo>
+#include <QDateTime>
 #include <QDir>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QHash>
+#include <QRegularExpression>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
@@ -242,7 +245,11 @@ void MapService::reloadMbtiles()
         QSqlDatabase::removeDatabase(connName);
     }
 
-    if (newPath == m_mbtilesPath)
+    QDateTime newMtime = newPath.isEmpty() ? QDateTime() : QFileInfo(newPath).lastModified();
+
+    // Path alone isn't enough: an OTA install renames a new map.mbtiles over
+    // the same path, so also check whether the file itself changed.
+    if (newPath == m_mbtilesPath && newMtime == m_mbtilesMtime)
         return;
 
     if (newPath.isEmpty()) {
@@ -252,6 +259,7 @@ void MapService::reloadMbtiles()
     }
 
     m_mbtilesPath = newPath;
+    m_mbtilesMtime = newMtime;
     rebuildStyleUrl();
     loadMbtilesBounds();
 }
@@ -732,13 +740,28 @@ void MapService::rebuildStyleUrl()
 
 QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString &mbtilesPath)
 {
-    // Determine output path (include traffic state so URL changes when toggled)
+    // Determine output path (include traffic state + mbtiles mtime so the URL
+    // changes whenever traffic is toggled or the mbtiles file is replaced by
+    // an OTA install — an unchanged styleUrl string would otherwise suppress
+    // styleUrlChanged and leave MapViewWidget rendering the stale map).
     QString baseName = qrcPath.section(QLatin1Char('/'), -1);  // "mapdark.json" or "maplight.json"
     QString stem = baseName.chopped(5);  // strip ".json"
     bool showTraffic = m_settings->mapTrafficOverlay();
-    QString outPath = QStringLiteral("/tmp/") + stem
-        + (showTraffic ? QStringLiteral("") : QStringLiteral("-notraffic"))
-        + QStringLiteral(".json");
+    QString trafficSuffix = showTraffic ? QStringLiteral("") : QStringLiteral("-notraffic");
+    QString filePrefix = stem + trafficSuffix;
+    qint64 mtimeSecs = QFileInfo(mbtilesPath).lastModified().toSecsSinceEpoch();
+    QString outPath = QStringLiteral("/tmp/") + filePrefix + QStringLiteral("-")
+        + QString::number(mtimeSecs) + QStringLiteral(".json");
+
+    // Best-effort cleanup of stale rewritten styles for this stem/traffic
+    // combination so /tmp doesn't accumulate one file per map update.
+    QDir tmpDir(QStringLiteral("/tmp"));
+    const QRegularExpression staleRe(QStringLiteral("^") + QRegularExpression::escape(filePrefix)
+                                      + QStringLiteral("-\\d+\\.json$"));
+    for (const QString &name : tmpDir.entryList(QDir::Files)) {
+        if (staleRe.match(name).hasMatch())
+            QFile::remove(tmpDir.filePath(name));
+    }
 
     // Read embedded style from QRC
     QString qrcFile = qrcPath;

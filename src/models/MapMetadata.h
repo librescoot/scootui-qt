@@ -84,14 +84,13 @@ struct MapMetadata {
         QString path = metadataPath();
         QDir().mkpath(QFileInfo(path).absolutePath());
 
-        // Atomic write via temp + rename
-        QString tmpPath = path + QStringLiteral(".tmp");
-        QFile tmp(tmpPath);
-        if (!tmp.open(QIODevice::WriteOnly))
+        // QSaveFile writes to a temp file and only replaces the target on a
+        // successful commit(), so a crash or power loss mid-write can't leave
+        // metadata.json truncated or half-written.
+        QSaveFile f(path);
+        if (!f.open(QIODevice::WriteOnly))
             return false;
-        tmp.write(QJsonDocument(meta.toJson()).toJson(QJsonDocument::Compact));
-        tmp.close();
-        QFile::remove(path);
-        return QFile::rename(tmpPath, path);
+        f.write(QJsonDocument(meta.toJson()).toJson(QJsonDocument::Compact));
+        return f.commit();
     }
 };

@@ -255,6 +255,9 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Map download service
     m_mapDownloadService = new MapDownloadService(m_simulatorMode, this);
+    m_gpsStore = gpsStore;
+    m_vehicleStore = vehicleStore;
+    m_settingsStore = settingsStore;
 
     // Auto-check for map updates when connectivity is established
     connect(internetStore, &InternetStore::modemStateChanged, this,
@@ -271,19 +274,36 @@ void Application::createStores(QQmlApplicationEngine &engine)
         m_mapDownloadService->checkForUpdates();
     });
 
-    // Notify user when a map update is found, or auto-download if enabled
+    // Notify user when a map update is found, or auto-download if enabled.
+    // The actual download is parked-gated (see maybeAutoDownloadMaps) so a
+    // mid-ride update never kicks off a large cellular download.
     connect(m_mapDownloadService, &MapDownloadService::updateAvailableChanged, this,
-            [this, settingsStore, gpsStore]() {
+            [this]() {
         if (!m_mapDownloadService->updateAvailable())
             return;
-        if (settingsStore->mapAutoDownload()) {
-            qDebug() << "Auto-downloading map update";
-            m_mapDownloadService->startDownload(
-                gpsStore->latitude(), gpsStore->longitude(), true, true);
+        if (m_settingsStore->mapAutoDownload()) {
+            maybeAutoDownloadMaps();
         } else {
             m_toastService->showInfo(m_translations->mapUpdateAvailableToast());
         }
     });
+
+    // Retry the parked-gated auto-download every time the rider parks or
+    // goes to stand-by, so an update discovered mid-ride (or already pending
+    // from a previous session) downloads as soon as it's safe to.
+    connect(vehicleStore, &VehicleStore::stateChanged, this, [this]() {
+        auto state = static_cast<ScootEnums::VehicleState>(m_vehicleStore->state());
+        if (state == ScootEnums::VehicleState::Parked
+            || state == ScootEnums::VehicleState::StandBy) {
+            maybeAutoDownloadMaps();
+        }
+    });
+
+    // Refresh map/road-info/address-db as soon as an install finishes.
+    // Belt-and-suspenders with the mbtiles file watcher below, which reacts
+    // to the same rename but only once inotify delivers the event.
+    connect(m_mapDownloadService, &MapDownloadService::downloadComplete,
+            this, &Application::reloadMapServices);
 
     // Show persisted update notification on startup while parked/stand-by
     if (m_mapDownloadService->updateAvailable()) {
@@ -299,6 +319,11 @@ void Application::createStores(QQmlApplicationEngine &engine)
             disconnect(*startupConn);
             delete startupConn;
         });
+
+        // A persisted flag from a previous session never re-fires
+        // updateAvailableChanged, so kick the parked-gated auto-download once
+        // here too; it self-gates on the current vehicle state and setting.
+        maybeAutoDownloadMaps();
     }
 
     // Watch /data/maps/ for mbtiles appearing late (e.g. /data not yet
@@ -637,6 +662,25 @@ void Application::reloadMapServices()
         m_roadInfoService->reloadMbtiles();
     if (m_addressDatabaseService)
         m_addressDatabaseService->initialize();
+}
+
+void Application::maybeAutoDownloadMaps()
+{
+    if (!m_settingsStore || !m_gpsStore || !m_vehicleStore || !m_mapDownloadService)
+        return;
+    if (!m_settingsStore->mapAutoDownload())
+        return;
+    if (!m_mapDownloadService->updateAvailable())
+        return;
+    if (m_mapDownloadService->status() != static_cast<int>(ScootEnums::MapDownloadStatus::Idle))
+        return;
+
+    auto state = static_cast<ScootEnums::VehicleState>(m_vehicleStore->state());
+    if (state != ScootEnums::VehicleState::Parked && state != ScootEnums::VehicleState::StandBy)
+        return;
+
+    qDebug() << "Auto-downloading map update (parked)";
+    m_mapDownloadService->startDownload(m_gpsStore->latitude(), m_gpsStore->longitude(), true, true);
 }
 
 void Application::registerContextProperties(QQmlApplicationEngine &engine)

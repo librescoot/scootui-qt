@@ -93,6 +93,10 @@ private:
     QFile *m_currentFile = nullptr;
     bool m_simulatorMode;
     bool m_cancelled = false;
+    // Set when the current file was opened in Append mode to resume a partial
+    // download. Cleared after the first readyRead chunk of the reply has been
+    // checked for a server that ignored our Range header (see doDownloadFile).
+    bool m_resumeAppend = false;
 
     ScootEnums::MapDownloadStatus m_status = ScootEnums::MapDownloadStatus::Idle;
     double m_progress = 0.0;

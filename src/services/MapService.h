@@ -5,6 +5,7 @@
 #include <QElapsedTimer>
 #include <QVariantList>
 #include <QPair>
+#include <QDateTime>
 
 class GpsStore;
 class EngineStore;
@@ -276,6 +277,10 @@ private:
 
     // --- Mbtiles path (resolved at construction) ---
     QString m_mbtilesPath;
+    // Last-modified time of m_mbtilesPath when it was loaded. An OTA install
+    // can rename a new map.mbtiles over the same path, so the path alone
+    // doesn't tell reloadMbtiles() whether the underlying file changed.
+    QDateTime m_mbtilesMtime;
 
     // --- Timers ---
     QTimer *m_tickTimer;

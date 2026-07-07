@@ -8,6 +8,8 @@
 #include <QDebug>
 #include <QtConcurrent>
 
+#include <cstdio>
+
 #ifdef Q_OS_LINUX
 #include <QProcess>
 #endif
@@ -82,6 +84,7 @@ void MapDownloadService::resolveRegion(double lat, double lng)
         m_status != ScootEnums::MapDownloadStatus::Error)
         return;
 
+    m_cancelled = false;
     setStatus(ScootEnums::MapDownloadStatus::Locating);
     doResolveSlug(lat, lng);
 }
@@ -136,6 +139,7 @@ void MapDownloadService::checkForUpdates()
         m_status != ScootEnums::MapDownloadStatus::Error)
         return;
 
+    m_cancelled = false;
     setStatus(ScootEnums::MapDownloadStatus::CheckingUpdates);
 
     fetchTilesManifest([this](const QJsonObject &manifest) {
@@ -173,13 +177,18 @@ void MapDownloadService::checkForUpdates()
         m_metadata.lastUpdateCheck = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
         MapMetadata::save(m_metadata);
 
+        // Go idle before announcing the update so a direct-connected slot that
+        // reacts to updateAvailableChanged (e.g. Application's auto-download
+        // wiring) can immediately call startDownload() without tripping the
+        // "busy" guard at the top of startDownload().
+        setStatus(ScootEnums::MapDownloadStatus::Idle);
+
         if (hasUpdate != m_updateAvailable) {
             m_updateAvailable = hasUpdate;
             m_metadata.updateAvailable = hasUpdate;
             MapMetadata::save(m_metadata);
             emit updateAvailableChanged();
         }
-        setStatus(ScootEnums::MapDownloadStatus::Idle);
     });
 }
 
@@ -304,7 +313,8 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
             return;
         }
 
-        qint64 totalNeeded = 0;
+        qint64 totalNeeded = 0;  // full bytes to download (progress denominator)
+        qint64 diskNeeded = 0;   // still-to-write bytes (disk-space check, resume-aware)
 
         if (needsDisplay) {
             auto map = region[QStringLiteral("map")].toObject();
@@ -316,7 +326,16 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
             m_displayAsset.size = static_cast<qint64>(map[QStringLiteral("size")].toDouble());
             m_displayAsset.digest = map[QStringLiteral("sha256")].toString();
             m_estimatedDisplayBytes = m_displayAsset.size;
-            totalNeeded += m_displayAsset.size;
+
+            if (m_metadata.displayTiles && !m_metadata.displayTiles->digest.isEmpty()
+                && m_metadata.displayTiles->digest == m_displayAsset.digest) {
+                // Installed digest already matches the manifest - nothing to fetch.
+                m_displayDone = true;
+            } else {
+                totalNeeded += m_displayAsset.size;
+                qint64 partial = QFileInfo(displayPartPath()).size();
+                diskNeeded += std::max<qint64>(0, m_displayAsset.size - partial);
+            }
         }
 
         if (needsRouting) {
@@ -329,12 +348,27 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
             m_routingAsset.size = static_cast<qint64>(valhalla[QStringLiteral("size")].toDouble());
             m_routingAsset.digest = valhalla[QStringLiteral("sha256")].toString();
             m_estimatedRoutingBytes = m_routingAsset.size;
-            totalNeeded += m_routingAsset.size;
+
+            if (m_metadata.valhallaTiles && !m_metadata.valhallaTiles->digest.isEmpty()
+                && m_metadata.valhallaTiles->digest == m_routingAsset.digest) {
+                m_routingDone = true;
+            } else {
+                totalNeeded += m_routingAsset.size;
+                qint64 partial = QFileInfo(routingPartPath()).size();
+                diskNeeded += std::max<qint64>(0, m_routingAsset.size - partial);
+            }
         }
 
         emit estimatesChanged();
 
-        if (!hasEnoughDiskSpace(totalNeeded)) {
+        // Both artifacts already match the installed digests - nothing to download.
+        if (m_displayDone && m_routingDone) {
+            doFinishAll();
+            return;
+        }
+
+        static constexpr qint64 DiskSpaceHeadroom = 16LL * 1024 * 1024;
+        if (!hasEnoughDiskSpace(diskNeeded + DiskSpaceHeadroom)) {
             setError(QStringLiteral("Insufficient disk space"));
             return;
         }
@@ -345,10 +379,10 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
         m_completedBytes = 0;
         emit progressChanged();
 
-        if (needsDisplay) {
+        if (!m_displayDone) {
             doDownloadFile(m_displayAsset.url, displayPartPath(),
                           m_displayAsset.digest, m_displayAsset.size, true);
-        } else if (needsRouting) {
+        } else if (!m_routingDone) {
             doDownloadFile(m_routingAsset.url, routingPartPath(),
                           m_routingAsset.digest, m_routingAsset.size, false);
         }
@@ -380,6 +414,7 @@ void MapDownloadService::doDownloadFile(const QString &url, const QString &destP
 
     m_currentFile = new QFile(destPath, this);
     QIODevice::OpenMode mode = existingSize > 0 ? QIODevice::Append : QIODevice::WriteOnly;
+    m_resumeAppend = existingSize > 0;
     if (!m_currentFile->open(mode)) {
         setError(QStringLiteral("Could not open file for writing"));
         m_currentFile->deleteLater();
@@ -387,6 +422,7 @@ void MapDownloadService::doDownloadFile(const QString &url, const QString &destP
         return;
     }
 
+    req.setTransferTimeout(30000);
     m_currentReply = m_nam->get(req);
 
     // m_currentFile->size() already includes any existingSize because the file
@@ -395,8 +431,27 @@ void MapDownloadService::doDownloadFile(const QString &url, const QString &destP
     // downloading routing). Together they give the cumulative session bytes.
     connect(m_currentReply, &QNetworkReply::readyRead, this, [this]() {
         if (m_currentFile && m_currentReply) {
+            // We opened in Append mode expecting a 206 Partial Content, but some
+            // servers ignore the Range header and answer with the full body
+            // (200). Left alone that would land on top of the existing partial
+            // and corrupt it, so reset the file once, on the first chunk.
+            if (m_resumeAppend) {
+                int statusCode = m_currentReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+                if (statusCode == 200) {
+                    m_currentFile->seek(0);
+                    m_currentFile->resize(0);
+                }
+                m_resumeAppend = false;
+            }
+
             QByteArray data = m_currentReply->readAll();
-            m_currentFile->write(data);
+            qint64 written = m_currentFile->write(data);
+            if (written != data.size()) {
+                setError(QStringLiteral("Could not write map data (disk full?)"));
+                if (m_currentReply)
+                    m_currentReply->abort();
+                return;
+            }
             m_downloadedBytes = m_completedBytes + m_currentFile->size();
             m_progress = m_totalBytes > 0 ? static_cast<double>(m_downloadedBytes) / m_totalBytes : 0.0;
             emit progressChanged();
@@ -417,10 +472,17 @@ void MapDownloadService::doDownloadFile(const QString &url, const QString &destP
         if (reply) {
             reply->deleteLater();
             if (m_cancelled) return;
+            // Already reported (e.g. the write-error abort above) - don't let
+            // the aborted reply's stale HTTP status paper over that error.
+            if (m_status == ScootEnums::MapDownloadStatus::Error) return;
 
             int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-            if (reply->error() != QNetworkReply::NoError &&
-                reply->error() != QNetworkReply::OperationCanceledError) {
+            // Any error lands here except a user cancel (m_cancelled, returned
+            // above) and a write-error abort (Error status, returned above). A
+            // transfer-timeout abort surfaces as OperationCanceledError and must
+            // be treated as a failure so the .part is preserved for resume,
+            // rather than falling through to verify -> SHA mismatch -> delete.
+            if (reply->error() != QNetworkReply::NoError) {
                 setError(QStringLiteral("Download failed: ") + reply->errorString());
                 return;
             }
@@ -491,9 +553,11 @@ void MapDownloadService::doInstall(const QString &tempPath, const QString &destP
 
     QDir().mkpath(QFileInfo(destPath).absolutePath());
 
-    // Move file to final destination
-    QFile::remove(destPath);
-    if (!QFile::rename(tempPath, destPath)) {
+    // Atomic replace via POSIX rename: downloadDir/mapsDir/valhalla all live on
+    // the same filesystem, so this swaps the file in a single step with no
+    // window where destPath is missing for a concurrent reader.
+    if (::rename(QFile::encodeName(tempPath).constData(),
+                 QFile::encodeName(destPath).constData()) != 0) {
         setError(QStringLiteral("Could not install maps"));
         return;
     }
