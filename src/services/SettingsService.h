@@ -40,6 +40,7 @@ public:
     Q_INVOKABLE void updateHopOnCombo(const QString &combo);
     Q_INVOKABLE void updateMapCheckForUpdates(bool enabled);
     Q_INVOKABLE void updateMapAutoDownload(bool enabled);
+    Q_INVOKABLE void updateMilestoneCelebrations(bool enabled);
     Q_INVOKABLE QString toggleBootAnimation();
 
 private:

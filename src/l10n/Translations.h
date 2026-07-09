@@ -79,6 +79,7 @@ class Translations : public QObject
     Q_PROPERTY(QString menuNavRouting READ menuNavRouting NOTIFY languageChanged)
     Q_PROPERTY(QString menuMapUpdateCheck READ menuMapUpdateCheck NOTIFY languageChanged)
     Q_PROPERTY(QString menuMapAutoDownload READ menuMapAutoDownload NOTIFY languageChanged)
+    Q_PROPERTY(QString menuMilestones READ menuMilestones NOTIFY languageChanged)
     Q_PROPERTY(QString menuBlinker READ menuBlinker NOTIFY languageChanged)
     Q_PROPERTY(QString menuBlinkerHeader READ menuBlinkerHeader NOTIFY languageChanged)
     Q_PROPERTY(QString menuDbcBlinkerLed READ menuDbcBlinkerLed NOTIFY languageChanged)
@@ -508,6 +509,7 @@ public:
     QString menuNavRouting() const { return lookup("menuNavRouting"); }
     QString menuMapUpdateCheck() const { return lookup("menuMapUpdateCheck"); }
     QString menuMapAutoDownload() const { return lookup("menuMapAutoDownload"); }
+    QString menuMilestones() const { return lookup("menuMilestones"); }
     QString menuBlinker() const { return lookup("menuBlinker"); }
     QString menuBlinkerHeader() const { return lookup("menuBlinkerHeader"); }
     QString menuDbcBlinkerLed() const { return lookup("menuDbcBlinkerLed"); }

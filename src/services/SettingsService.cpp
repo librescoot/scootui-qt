@@ -159,6 +159,12 @@ void SettingsService::updateMapAutoDownload(bool enabled)
                  enabled ? QStringLiteral("true") : QStringLiteral("false"));
 }
 
+void SettingsService::updateMilestoneCelebrations(bool enabled)
+{
+    writeSetting(QStringLiteral("dashboard.milestone-celebrations"),
+                 enabled ? QStringLiteral("true") : QStringLiteral("false"));
+}
+
 QString SettingsService::toggleBootAnimation()
 {
 #ifdef Q_OS_LINUX

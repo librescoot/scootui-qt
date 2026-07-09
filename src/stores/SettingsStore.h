@@ -35,6 +35,7 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(bool mapCheckForUpdates READ mapCheckForUpdates NOTIFY mapCheckForUpdatesChanged)
     Q_PROPERTY(bool mapAutoDownload READ mapAutoDownload NOTIFY mapAutoDownloadChanged)
     Q_PROPERTY(bool mapTrafficOverlay READ mapTrafficOverlay NOTIFY mapTrafficOverlayChanged)
+    Q_PROPERTY(bool milestoneCelebrations READ milestoneCelebrations NOTIFY milestoneCelebrationsChanged)
     Q_PROPERTY(QString serviceActive READ serviceActive NOTIFY serviceActiveChanged)
 
 public:
@@ -69,6 +70,7 @@ public:
     bool mapCheckForUpdates() const { return m_mapCheckForUpdates == QLatin1String("true"); }
     bool mapAutoDownload() const { return m_mapAutoDownload == QLatin1String("true"); }
     bool mapTrafficOverlay() const { return m_mapTrafficOverlay == QLatin1String("true"); }
+    bool milestoneCelebrations() const { return m_milestoneCelebrations == QLatin1String("true"); }
     QString serviceActive() const { return m_serviceActive; }
 
     // Helper
@@ -105,6 +107,7 @@ signals:
     void mapCheckForUpdatesChanged();
     void mapAutoDownloadChanged();
     void mapTrafficOverlayChanged();
+    void milestoneCelebrationsChanged();
     void serviceActiveChanged();
 
 protected:
@@ -173,6 +176,8 @@ private:
     QString m_mapAutoDownload = QStringLiteral("false");
     // @schema dashboard.map.traffic-overlay
     QString m_mapTrafficOverlay = QStringLiteral("false");
+    // @schema dashboard.milestone-celebrations
+    QString m_milestoneCelebrations = QStringLiteral("false");
     // @schema dashboard.service-mode-active
     QString m_serviceActive = QStringLiteral("false");
 };

@@ -56,6 +56,7 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
     connect(m_settings, &SettingsStore::showAuxBatteryChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::mapCheckForUpdatesChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::mapAutoDownloadChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::milestoneCelebrationsChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::serviceActiveChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_translations, &Translations::languageChanged, this, &MenuStore::rebuildMenuTree);
 
@@ -442,6 +443,15 @@ void MenuStore::rebuildMenuTree()
                 {tr->menuPowerDisplayKw(),   [svc]() { svc->updatePowerDisplayMode(QStringLiteral("kw")); }},
                 {tr->menuPowerDisplayAmps(), [svc]() { svc->updatePowerDisplayMode(QStringLiteral("amps")); }},
             }, powerIdx));
+    }
+
+    // Milestone Celebrations (toggle) — confetti + banner when passing a
+    // 500 km milestone or an easter-egg number. Off by default.
+    {
+        bool milestonesOn = settings->milestoneCelebrations();
+        settingsNode->addChild(MenuNode::setting(QStringLiteral("settings_milestones"),
+            tr->menuMilestones(), milestonesOn ? 1 : 0,
+            [svc, milestonesOn]() { svc->updateMilestoneCelebrations(!milestonesOn); }));
     }
 
     // Hop-on — learning / disabling the combo. Promoted to near the top

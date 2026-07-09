@@ -3,6 +3,7 @@
 #include "stores/EngineStore.h"
 #include "stores/VehicleStore.h"
 #include "stores/ConnectionStore.h"
+#include "stores/SettingsStore.h"
 #include "models/Enums.h"
 
 #include <QDebug>
@@ -42,13 +43,23 @@ constexpr EasterEgg kEasterEggs[] = {
 OdometerMilestoneService::OdometerMilestoneService(EngineStore *engineStore,
                                                    VehicleStore *vehicleStore,
                                                    ConnectionStore *connectionStore,
+                                                   SettingsStore *settingsStore,
                                                    QObject *parent)
     : QObject(parent)
     , m_engineStore(engineStore)
     , m_vehicleStore(vehicleStore)
     , m_connectionStore(connectionStore)
+    , m_settingsStore(settingsStore)
 {
     m_lastCelebrated = loadLastMilestone();
+    // If the rider turns celebrations off mid-ride, drop anything queued for
+    // the next park so it doesn't fire later.
+    if (m_settingsStore) {
+        connect(m_settingsStore, &SettingsStore::milestoneCelebrationsChanged,
+                this, [this]() {
+                    if (!m_settingsStore->milestoneCelebrations()) m_queue.clear();
+                });
+    }
     // Easter eggs are unlocked by a gesture on the About screen and
     // persisted so they stay on across restarts until the gesture toggles
     // them off again.
@@ -116,6 +127,21 @@ void OdometerMilestoneService::onOdometerChanged()
 
     const double prevKm = m_lastOdoKm;
     m_lastOdoKm = odoKm;
+
+    // Master off-switch: suppress all output (milestones, toast, easter
+    // eggs) but keep the baseline current so flipping it back on later
+    // celebrates future crossings, not the ones passed while it was off.
+    if (!celebrationsEnabled()) {
+        const int m = milestoneForKm(odoKm);
+        if (m > m_lastCelebrated) {
+            m_lastCelebrated = m;
+            saveLastMilestone(m);
+        }
+        for (const auto &egg : kEasterEggs) {
+            if (odoKm >= egg.km) m_firedEasterEggs.insert(QString::fromLatin1(egg.tag));
+        }
+        return;
+    }
 
     // Easter eggs first — fire on upward crossing of the exact value.
     if (m_easterEggsEnabled)
@@ -193,6 +219,11 @@ void OdometerMilestoneService::advanceCelebration()
         return;
     }
     startNextCelebration();
+}
+
+bool OdometerMilestoneService::celebrationsEnabled() const
+{
+    return !m_settingsStore || m_settingsStore->milestoneCelebrations();
 }
 
 void OdometerMilestoneService::setEasterEggsEnabled(bool enabled)

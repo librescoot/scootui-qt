@@ -277,6 +277,8 @@ void Translations::initStrings()
 
     en[QStringLiteral("menuMapAutoDownload")] = QStringLiteral("Auto-download Maps");
     de[QStringLiteral("menuMapAutoDownload")] = QStringLiteral("Karten auto. laden");
+    en[QStringLiteral("menuMilestones")] = QStringLiteral("Milestone Celebrations");
+    de[QStringLiteral("menuMilestones")] = QStringLiteral("Meilensteine feiern");
 
     // -----------------------------------------------------------------------
     // Menu headers

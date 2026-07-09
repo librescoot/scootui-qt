@@ -8,6 +8,7 @@
 class EngineStore;
 class VehicleStore;
 class ConnectionStore;
+class SettingsStore;
 
 class OdometerMilestoneService : public QObject
 {
@@ -18,6 +19,7 @@ public:
     OdometerMilestoneService(EngineStore *engineStore,
                              VehicleStore *vehicleStore,
                              ConnectionStore *connectionStore,
+                             SettingsStore *settingsStore,
                              QObject *parent = nullptr);
 
     bool easterEggsEnabled() const { return m_easterEggsEnabled; }
@@ -60,6 +62,11 @@ private:
     void enqueueAndCross(double km, int intensity, const QString &tag);
     void startNextCelebration();
 
+    // Master on/off for all milestone output (confetti, banner, toast,
+    // easter eggs). Null store => enabled, so tests/simulator without a
+    // wired SettingsStore keep celebrating.
+    bool celebrationsEnabled() const;
+
     QString persistPath() const;
     int loadLastMilestone() const;
     void saveLastMilestone(int km);
@@ -67,6 +74,7 @@ private:
     EngineStore *m_engineStore = nullptr;
     VehicleStore *m_vehicleStore = nullptr;
     ConnectionStore *m_connectionStore = nullptr;
+    SettingsStore *m_settingsStore = nullptr;
 
     int m_lastCelebrated = -1;
     bool m_settled = false;
