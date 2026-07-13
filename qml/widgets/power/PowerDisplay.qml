@@ -14,11 +14,18 @@ Item {
     readonly property bool regenAvailable: typeof engineStore !== "undefined" ? engineStore.regenAvailable : true
     readonly property string regenReason: typeof engineStore !== "undefined" ? engineStore.regenReason : "none"
     // A reason icon (cold/hot/full) is shown at the regen end of the bar. Other
-    // off-reasons (e.g. user-disabled) still dash the track but carry no icon.
+    // off-reasons (user-disabled, standstill) still dash the track but carry no
+    // icon — standstill is the normal state at every stop, so an icon there would
+    // just flicker on and off.
     readonly property bool showReasonIcon: !regenAvailable
                                            && (regenReason === "cold" || regenReason === "hot"
                                                || regenReason === "full")
     readonly property color trackColor: themeStore.isDark ? "#424242" : "#E0E0E0"
+    // Reason-icon colors, theme-reactive (bright in dark, deep in light) for
+    // legible contrast on the grey regen track.
+    readonly property color reasonColdColor: themeStore.isDark ? "#40C4FF" : "#0277BD" // blue
+    readonly property color reasonHotColor:  themeStore.isDark ? "#FF6E40" : "#D84315" // deep orange
+    readonly property color reasonFullColor: themeStore.isDark ? "#69F0AE" : "#2E7D32" // green
 
     // 0 = kW (default), 1 = Amps
     readonly property int displayMode: typeof settingsStore !== "undefined" ? settingsStore.powerDisplayMode : 0
@@ -163,7 +170,11 @@ Item {
                 }
                 font.family: "Material Icons"
                 font.pixelSize: 12
-                color: themeStore.textHint
+                color: {
+                    if (powerDisplay.regenReason === "hot") return powerDisplay.reasonHotColor
+                    if (powerDisplay.regenReason === "full") return powerDisplay.reasonFullColor
+                    return powerDisplay.reasonColdColor
+                }
             }
 
             // Zero marker
