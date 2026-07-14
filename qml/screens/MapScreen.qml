@@ -53,6 +53,20 @@ Rectangle {
             Layout.fillHeight: true
             visible: mapScreen.showWaitingForGps
 
+            // Blinker icons — the map-area BlinkerRow below is hidden along
+            // with the map while waiting for a fix, so this takeover view
+            // needs its own (also covers hazards, which BlinkerOverlay
+            // doesn't render).
+            BlinkerRow {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.leftMargin: 4
+                anchors.rightMargin: 4
+                anchors.topMargin: 4
+                z: 5
+            }
+
             Column {
                 anchors.centerIn: parent
                 spacing: 16
