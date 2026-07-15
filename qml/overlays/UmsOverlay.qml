@@ -10,12 +10,22 @@ Item {
     property int usbProgress: typeof usbStore !== "undefined" ? usbStore.progress : 0
     property string usbDetail: typeof usbStore !== "undefined" ? usbStore.detail : ""
 
+    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property color bgColor: isDark ? "#000000" : "#FFFFFF"
+    readonly property color textPrimary: isDark ? "#FFFFFF" : "#000000"
+    // 90% / 70% / 60% / 50% ramp, mirrored per theme
+    readonly property color textStep: isDark ? "#E6FFFFFF" : "#E6000000"
+    readonly property color textConnect: isDark ? "#B3FFFFFF" : "#B3000000"
+    readonly property color textDetail: isDark ? "#99FFFFFF" : "#99000000"
+    readonly property color textLog: isDark ? "#80FFFFFF" : "#80000000"
+    readonly property color trackColor: isDark ? "#33FFFFFF" : "#33000000"
+
     visible: opacity > 0
     opacity: (usbStatus !== "idle" && usbStatus !== "") ? 1.0 : 0.0
 
     Rectangle {
         anchors.fill: parent
-        color: "#000000"
+        color: umsOverlay.bgColor
     }
 
     Column {
@@ -29,7 +39,7 @@ Item {
             text: typeof translations !== "undefined" ? translations.umsPreparing : "Preparing Storage"
             font.pixelSize: themeStore.fontTitle
             font.weight: Font.Bold
-            color: "#FFFFFF"
+            color: umsOverlay.textPrimary
         }
 
         // Active state
@@ -43,7 +53,7 @@ Item {
                 text: MaterialIcon.iconUsb
                 font.family: "Material Icons"
                 font.pixelSize: themeStore.fontHero
-                color: "#FFFFFF"
+                color: umsOverlay.textPrimary
             }
 
             Column {
@@ -55,14 +65,14 @@ Item {
                     text: typeof translations !== "undefined" ? translations.umsActive : "Update Mode"
                     font.pixelSize: themeStore.fontHeading
                     font.weight: Font.Bold
-                    color: "#FFFFFF"
+                    color: umsOverlay.textPrimary
                 }
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: typeof translations !== "undefined" ? translations.umsConnect : "Connect to Computer"
                     font.pixelSize: themeStore.fontBody
-                    color: "#B3FFFFFF" // white 70% opacity
+                    color: umsOverlay.textConnect
                 }
             }
         }
@@ -86,13 +96,13 @@ Item {
                     height: 36
                     radius: themeStore.radiusModal
                     color: "transparent"
-                    border.color: "#FFFFFF"
+                    border.color: umsOverlay.textPrimary
                     border.width: 3
 
                     Rectangle {
                         width: parent.width / 2
                         height: parent.height / 2
-                        color: "#000000"
+                        color: umsOverlay.bgColor
                         anchors.right: parent.right
                         anchors.bottom: parent.bottom
                     }
@@ -113,7 +123,7 @@ Item {
                 text: typeof translations !== "undefined" ? translations.umsProcessing : "Processing Files"
                 font.pixelSize: themeStore.fontTitle
                 font.weight: Font.Bold
-                color: "#FFFFFF"
+                color: umsOverlay.textPrimary
             }
 
             // Current step
@@ -134,7 +144,7 @@ Item {
                         text: MaterialIcon.iconArrowForward
                         font.family: "Material Icons"
                         font.pixelSize: themeStore.fontBody
-                        color: "#E6FFFFFF"
+                        color: umsOverlay.textStep
                         anchors.verticalCenter: parent.verticalCenter
                     }
 
@@ -143,7 +153,7 @@ Item {
                         text: usbStep
                         font.pixelSize: themeStore.fontBody
                         font.weight: Font.Medium
-                        color: "#E6FFFFFF" // white 90% opacity
+                        color: umsOverlay.textStep
                     }
                 }
             }
@@ -168,14 +178,14 @@ Item {
                         width: parent.width
                         height: 4
                         radius: 2
-                        color: "#33FFFFFF" // white 20%
+                        color: umsOverlay.trackColor
 
                         // Fill
                         Rectangle {
                             width: parent.width * (usbProgress / 100)
                             height: parent.height
                             radius: parent.radius
-                            color: "#FFFFFF"
+                            color: umsOverlay.textPrimary
                             Behavior on width { NumberAnimation { duration: 150 } }
                         }
                     }
@@ -185,7 +195,7 @@ Item {
                         text: usbDetail
                         visible: usbDetail !== ""
                         font.pixelSize: themeStore.fontBody
-                        color: "#99FFFFFF" // white 60%
+                        color: umsOverlay.textDetail
                     }
                 }
             }
@@ -204,7 +214,7 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: modelData
                         font.pixelSize: themeStore.fontBody
-                        color: "#80FFFFFF" // white 50% opacity
+                        color: umsOverlay.textLog
                         horizontalAlignment: Text.AlignHCenter
                         elide: Text.ElideRight
                         width: umsOverlay.width - 48
@@ -222,7 +232,7 @@ Item {
             text: usbStatus
             font.pixelSize: themeStore.fontTitle
             font.weight: Font.Bold
-            color: "#FFFFFF"
+            color: umsOverlay.textPrimary
         }
     }
 
