@@ -20,8 +20,30 @@ Item {
     readonly property color textLog: isDark ? "#80FFFFFF" : "#80000000"
     readonly property color trackColor: isDark ? "#33FFFFFF" : "#33000000"
 
+    // Latched when the rider holds the left brake during preparing.
+    // ums-service abandons the entry at the end of its copy work, but that
+    // is seconds away and it keeps publishing until then, so hide the
+    // overlay now rather than leave a screen the rider has already
+    // dismissed. Cleared once ums-service comes back to idle.
+    property bool cancelPending: false
+
+    onUsbStatusChanged: {
+        if (usbStatus === "idle" || usbStatus === "")
+            cancelPending = false
+    }
+
+    Connections {
+        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        // Keyed on brake:left:hold, the same 3s gesture ums-service exits
+        // on, so the two sides cannot disagree about what the rider did.
+        function onLeftBrakeHold() {
+            if (umsOverlay.usbStatus === "preparing")
+                umsOverlay.cancelPending = true
+        }
+    }
+
     visible: opacity > 0
-    opacity: (usbStatus !== "idle" && usbStatus !== "") ? 1.0 : 0.0
+    opacity: (usbStatus !== "idle" && usbStatus !== "" && !cancelPending) ? 1.0 : 0.0
 
     Rectangle {
         anchors.fill: parent
@@ -244,8 +266,10 @@ Item {
         anchors.bottomMargin: 12
         anchors.leftMargin: 12
         anchors.rightMargin: 12
-        visible: usbStatus === "active"
+        visible: usbStatus === "active" || usbStatus === "preparing"
         leftLabel: typeof translations !== "undefined" ? translations.controlLeftBrakeHold : "Left Brake (Hold)"
-        leftAction: typeof translations !== "undefined" ? translations.umsHoldExit : "Exit"
+        leftAction: typeof translations !== "undefined"
+                    ? (usbStatus === "preparing" ? translations.controlCancel : translations.umsHoldExit)
+                    : (usbStatus === "preparing" ? "Cancel" : "Exit")
     }
 }

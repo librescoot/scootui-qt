@@ -24,6 +24,12 @@ signals:
     void leftDoubleTap();   // "brake:left:double-tap"
     void rightTap();        // "brake:right:tap"
 
+    // "brake:left:hold" — the 3s hold, distinct from the 800ms long-tap
+    // behind leftHold(). This is the gesture ums-service exits UMS on, so
+    // anything mirroring that decision must key off this signal to stay in
+    // step with the MDB.
+    void leftBrakeHold();
+
 private:
     void onInputEvent(const QString &message);
 

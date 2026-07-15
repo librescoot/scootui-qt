@@ -54,6 +54,8 @@ void InputHandler::onInputEvent(const QString &message)
             emit leftTap();
         else if (gesture == QLatin1String("long-tap"))
             emit leftHold();
+        else if (gesture == QLatin1String("hold"))
+            emit leftBrakeHold();
         else if (gesture == QLatin1String("double-tap")) {
             qDebug() << "InputHandler: emitting leftDoubleTap";
             emit leftDoubleTap();
