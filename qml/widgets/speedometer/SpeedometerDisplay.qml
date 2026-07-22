@@ -8,7 +8,13 @@ Item {
         console.log("[boot +" + bootTimer.elapsed() + "ms] SpeedometerDisplay completed")
 
     // Properties from stores
-    readonly property real targetSpeed: typeof engineStore !== "undefined" ? engineStore.speed : 0
+    readonly property real targetSpeed: {
+        if (typeof settingsStore !== "undefined" && typeof engineStore !== "undefined") {
+            if (settingsStore.showRawSpeed && engineStore.hasRawSpeed)
+                return engineStore.rawSpeed
+        }
+        return typeof engineStore !== "undefined" ? engineStore.speed : 0
+    }
     readonly property real motorCurrent: typeof engineStore !== "undefined" ? engineStore.motorCurrent : 0
     readonly property bool ecuStale: typeof engineStore !== "undefined" && engineStore.faultCode === 20
     readonly property bool isDark: themeStore.isDark
