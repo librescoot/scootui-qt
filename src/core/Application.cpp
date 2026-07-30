@@ -150,8 +150,9 @@ bool Application::initialize(QQmlApplicationEngine &engine)
                           QLatin1String(AppConfig::valhallaEndpointKey),
                           QLatin1String(AppConfig::valhallaOnlineEndpoint));
     } else {
-        qDebug() << "Connecting to Redis at" << redisHost;
-        m_repository = std::make_unique<RedisMdbRepository>(redisHost, 6379, QStringLiteral("192.168.8.1"));
+        const int redisPort = EnvConfig::redisPort();
+        qDebug() << "Connecting to Redis at" << redisHost << ":" << redisPort;
+        m_repository = std::make_unique<RedisMdbRepository>(redisHost, redisPort, QStringLiteral("192.168.8.1"));
     }
 
     qmlRegisterUncreatableMetaObject(ScootEnums::staticMetaObject, "ScootUI", 1, 0, "Scooter", "");

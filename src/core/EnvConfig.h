@@ -13,6 +13,7 @@ public:
     static QSize resolution() { return m_resolution; }
     static qreal scaleFactor() { return m_scaleFactor; }
     static QString redisHost() { return m_redisHost; }
+    static int redisPort() { return m_redisPort; }
 
 private:
     static inline QSize m_resolution{defaultWidth, defaultHeight};
