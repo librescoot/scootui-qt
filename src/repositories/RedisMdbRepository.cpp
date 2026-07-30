@@ -456,10 +456,22 @@ void RedisMdbRepository::teardownPubsub()
         // redisAsyncDisconnect triggers the disconnect callback which
         // fires ev.cleanup, cleaning up the adapter's notifiers.
         // The adapter itself is parented to us and cleaned up by Qt.
+        m_pubsubTearingDown = true;
         redisAsyncDisconnect(m_pubsubCtx);
+        m_pubsubTearingDown = false;
         m_pubsubCtx = nullptr;
         m_pubsubAdapter = nullptr;
     }
+}
+
+// Re-read every subscribed hash. Called once a pub/sub connection is up:
+// anything published while we had no subscription was missed, and without
+// this the affected stores sit on stale values until their next poll —
+// which for slow channels like battery:N is 30 seconds.
+void RedisMdbRepository::refreshSubscribedChannels()
+{
+    for (auto it = m_subscribers.cbegin(); it != m_subscribers.cend(); ++it)
+        requestAll(it.key());
 }
 
 void RedisMdbRepository::resubscribeAll()
@@ -474,11 +486,25 @@ void RedisMdbRepository::resubscribeAll()
 
 void RedisMdbRepository::onPubsubConnected(const redisAsyncContext *ctx, int status)
 {
+    auto *self = static_cast<RedisMdbRepository *>(ctx->data);
+    if (!self) return;
+
     if (status != REDIS_OK) {
-        qWarning() << "RedisMdbRepository: pubsub connect failed";
+        // The connect only failed now, after redisAsyncConnect() had already
+        // handed back a context — the usual case when Redis isn't listening
+        // yet. hiredis frees the context right after this callback and skips
+        // the disconnect callback for a connection that never came up, so
+        // this is the only place left to schedule the retry.
+        qWarning() << "RedisMdbRepository: pubsub connect failed, retrying";
+        self->m_pubsubCtx = nullptr;
+        self->m_pubsubAdapter = nullptr;
+        if (!self->m_pubsubTearingDown)
+            self->m_pubsubReconnectTimer->start();
         return;
     }
+
     qDebug() << "RedisMdbRepository: pubsub connected";
+    self->refreshSubscribedChannels();
 }
 
 void RedisMdbRepository::onPubsubDisconnected(const redisAsyncContext *ctx, int status)
@@ -486,10 +512,15 @@ void RedisMdbRepository::onPubsubDisconnected(const redisAsyncContext *ctx, int 
     auto *self = static_cast<RedisMdbRepository *>(ctx->data);
     if (!self) return;
 
-    qDebug() << "RedisMdbRepository: pubsub disconnected, scheduling reconnect";
     self->m_pubsubCtx = nullptr;
     // Adapter is cleaned up by hiredis cleanup callback
     self->m_pubsubAdapter = nullptr;
+
+    // A teardown from setupPubsub() is about to build a fresh context;
+    // reconnecting on top of it would drop the new subscriptions again.
+    if (self->m_pubsubTearingDown) return;
+
+    qDebug() << "RedisMdbRepository: pubsub disconnected, scheduling reconnect";
     self->m_pubsubReconnectTimer->start();
 }
 

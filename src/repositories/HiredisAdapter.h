@@ -71,6 +71,10 @@ private:
         delete m_write;
         m_write = nullptr;
         m_ctx = nullptr;
+        // The context is gone, so this adapter can never be reused. Reconnects
+        // build a fresh one, so drop this one instead of piling up on the
+        // parent for the lifetime of the process.
+        deleteLater();
     }
 
     redisAsyncContext *m_ctx = nullptr;

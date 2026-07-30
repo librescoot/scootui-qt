@@ -73,6 +73,7 @@ private:
     void setupPubsub();
     void teardownPubsub();
     void resubscribeAll();
+    void refreshSubscribedChannels();
     static void onPubsubConnected(const redisAsyncContext *ctx, int status);
     static void onPubsubDisconnected(const redisAsyncContext *ctx, int status);
     static void onPubsubReply(redisAsyncContext *ctx, void *reply, void *privdata);
@@ -85,6 +86,10 @@ private:
     redisAsyncContext *m_pubsubCtx = nullptr;
     HiredisAdapter *m_pubsubAdapter = nullptr;
     QTimer *m_pubsubReconnectTimer = nullptr;
+    // Set while teardownPubsub() drops the context on purpose, so the
+    // disconnect callback doesn't schedule a reconnect on top of the
+    // setup that's already in progress.
+    bool m_pubsubTearingDown = false;
 
     // Cached data from worker (updated via signal, read from main thread)
     mutable QMutex m_cacheMutex;
