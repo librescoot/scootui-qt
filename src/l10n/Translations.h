@@ -63,6 +63,9 @@ class Translations : public QObject
     Q_PROPERTY(QString menuEnterUms READ menuEnterUms NOTIFY languageChanged)
     Q_PROPERTY(QString menuFaults READ menuFaults NOTIFY languageChanged)
     Q_PROPERTY(QString menuSystemInfo READ menuSystemInfo NOTIFY languageChanged)
+    Q_PROPERTY(QString menuAppearance READ menuAppearance NOTIFY languageChanged)
+    Q_PROPERTY(QString menuVehicle READ menuVehicle NOTIFY languageChanged)
+    Q_PROPERTY(QString menuInfo READ menuInfo NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoFirmware READ systemInfoFirmware NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoIdentity READ systemInfoIdentity NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoNetwork READ systemInfoNetwork NOTIFY languageChanged)
@@ -591,6 +594,9 @@ public:
     QString menuEnterUms() const { return lookup("menuEnterUms"); }
     QString menuFaults() const { return lookup("menuFaults"); }
     QString menuSystemInfo() const { return lookup("menuSystemInfo"); }
+    QString menuAppearance() const { return lookup("menuAppearance"); }
+    QString menuVehicle() const { return lookup("menuVehicle"); }
+    QString menuInfo() const { return lookup("menuInfo"); }
     QString systemInfoFirmware() const { return lookup("systemInfoFirmware"); }
     QString systemInfoIdentity() const { return lookup("systemInfoIdentity"); }
     QString systemInfoNetwork() const { return lookup("systemInfoNetwork"); }

@@ -214,6 +214,12 @@ void Translations::initStrings()
     de[QStringLiteral("menuFaults")] = QStringLiteral("Fehler");
     en[QStringLiteral("menuSystemInfo")] = QStringLiteral("System Info");
     de[QStringLiteral("menuSystemInfo")] = QStringLiteral("Systeminfo");
+    en[QStringLiteral("menuAppearance")] = QStringLiteral("Appearance");
+    de[QStringLiteral("menuAppearance")] = QStringLiteral("Darstellung");
+    en[QStringLiteral("menuVehicle")] = QStringLiteral("Vehicle");
+    de[QStringLiteral("menuVehicle")] = QStringLiteral("Fahrzeug");
+    en[QStringLiteral("menuInfo")] = QStringLiteral("Info");
+    de[QStringLiteral("menuInfo")] = QStringLiteral("Info");
     en[QStringLiteral("systemInfoFirmware")] = QStringLiteral("FIRMWARE");
     de[QStringLiteral("systemInfoFirmware")] = QStringLiteral("FIRMWARE");
     en[QStringLiteral("systemInfoIdentity")] = QStringLiteral("SIM / MODEM IDENTITY");

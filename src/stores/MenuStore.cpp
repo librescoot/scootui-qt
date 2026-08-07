@@ -457,10 +457,24 @@ void MenuStore::rebuildMenuTree()
                                            QStringLiteral("SETTINGS"));
     m_rootNode->addChild(settingsNode);
 
+    // Settings groups by topic. Ten flat entries did not fit the screen and
+    // mixed cosmetic set-once toggles in with the features riders look for,
+    // so everything hangs off four groups instead. The group nodes are
+    // declared up front; each block below files itself under one of them.
+    auto *appearanceNode = MenuNode::submenu(QStringLiteral("settings_appearance"),
+                                             tr->menuAppearance(),
+                                             tr->menuAppearance().toUpper());
+    settingsNode->addChild(appearanceNode);
+
+    auto *vehicleNode = MenuNode::submenu(QStringLiteral("settings_vehicle"),
+                                          tr->menuVehicle(),
+                                          tr->menuVehicle().toUpper());
+    settingsNode->addChild(vehicleNode);
+
     // Theme (inline cycle: Auto → Dark → Light) — kept at top, used often.
     {
         int themeIdx = isAutoTheme ? 0 : (isDark ? 1 : 2);
-        settingsNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_theme"),
+        appearanceNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_theme"),
             tr->menuTheme(), {
                 {tr->menuThemeAuto(), [svc]() { svc->updateAutoTheme(true); }},
                 {tr->menuThemeDark(), [svc]() { svc->updateTheme(QStringLiteral("dark")); }},
@@ -476,7 +490,7 @@ void MenuStore::rebuildMenuTree()
         if (blMode == QLatin1String("low")) blIdx = 1;
         else if (blMode == QLatin1String("medium")) blIdx = 2;
         else if (blMode == QLatin1String("high")) blIdx = 3;
-        settingsNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_backlight"),
+        appearanceNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_backlight"),
             tr->menuBacklight(), {
                 {tr->menuBacklightAuto(),   [svc]() { svc->updateBacklightMode(QStringLiteral("auto")); }},
                 {tr->menuBacklightLow(),    [svc]() { svc->updateBacklightMode(QStringLiteral("low")); }},
@@ -488,7 +502,7 @@ void MenuStore::rebuildMenuTree()
     // Power Display (inline cycle: kW → Amps) — units for the cluster power bar.
     {
         int powerIdx = (settings->powerDisplayMode() == static_cast<int>(ScootEnums::PowerDisplayMode::Amps)) ? 1 : 0;
-        settingsNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_power_display"),
+        appearanceNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_power_display"),
             tr->menuPowerDisplay(), {
                 {tr->menuPowerDisplayKw(),   [svc]() { svc->updatePowerDisplayMode(QStringLiteral("kw")); }},
                 {tr->menuPowerDisplayAmps(), [svc]() { svc->updatePowerDisplayMode(QStringLiteral("amps")); }},
@@ -502,7 +516,7 @@ void MenuStore::rebuildMenuTree()
     // submenu still jumps straight to the learning overlay.
     if (m_hopOn) {
         if (!m_hopOn->hasCombo()) {
-            settingsNode->addChild(MenuNode::action(QStringLiteral("settings_hop_on"),
+            vehicleNode->addChild(MenuNode::action(QStringLiteral("settings_hop_on"),
                 tr->menuHopOn(), [this]() {
                     close();
                     if (m_screenStore)
@@ -511,7 +525,7 @@ void MenuStore::rebuildMenuTree()
         } else {
             auto *hopNode = MenuNode::submenu(QStringLiteral("settings_hop_on"),
                 tr->menuHopOn(), tr->menuHopOnHeader());
-            settingsNode->addChild(hopNode);
+            vehicleNode->addChild(hopNode);
 
             hopNode->addChild(MenuNode::action(QStringLiteral("settings_hop_on_relearn"),
                 tr->menuHopOnRelearn(), [this]() {
@@ -530,18 +544,7 @@ void MenuStore::rebuildMenuTree()
     auto *statusBarNode = MenuNode::submenu(QStringLiteral("settings_status_bar"),
                                             tr->menuStatusBar(),
                                             QStringLiteral("STATUS BAR"));
-    settingsNode->addChild(statusBarNode);
 
-    // Milestone Celebrations (toggle) — confetti + banner when passing a
-    // 500 km milestone or an easter-egg number. Off by default. Sits with the
-    // other display chrome rather than above Hop-On: it is cosmetic and
-    // set-once, and Settings runs roughly most-used first.
-    {
-        bool milestonesOn = settings->milestoneCelebrations();
-        settingsNode->addChild(MenuNode::setting(QStringLiteral("settings_milestones"),
-            tr->menuMilestones(), milestonesOn ? 1 : 0,
-            [svc, milestonesOn]() { svc->updateMilestoneCelebrations(!milestonesOn); }));
-    }
 
     // Battery Display (inline cycle: Percentage → Range → Icons only)
     {
@@ -782,15 +785,12 @@ void MenuStore::rebuildMenuTree()
 
     // Blinker submenu (style + DBC LED)
     {
-        auto *blinkerNode = MenuNode::submenu(QStringLiteral("settings_blinker"),
-                                              tr->menuBlinker(),
-                                              tr->menuBlinkerHeader());
-        settingsNode->addChild(blinkerNode);
-
+        // Two entries do not earn their own level, and both are about how the
+        // blinker is presented rather than how it behaves.
         // Blinker Style (inline cycle: Icon → Overlay)
         QString bStyle = settings->blinkerStyle();
         int blinkerIdx = (bStyle == QLatin1String("overlay")) ? 1 : 0;
-        blinkerNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_blinker_style"),
+        appearanceNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_blinker_style"),
             tr->menuBlinkerStyle(), {
                 {tr->menuBlinkerIcon(), [svc]() { svc->updateBlinkerStyle(QStringLiteral("icon")); }},
                 {tr->menuBlinkerOverlay(), [svc]() { svc->updateBlinkerStyle(QStringLiteral("overlay")); }},
@@ -798,15 +798,29 @@ void MenuStore::rebuildMenuTree()
 
         // DBC Blinker LED (toggle) — physical LED on the DBC board.
         bool dbcLedOn = settings->dbcBlinkerLed();
-        blinkerNode->addChild(MenuNode::setting(QStringLiteral("settings_dbc_blinker_led"),
+        appearanceNode->addChild(MenuNode::setting(QStringLiteral("settings_dbc_blinker_led"),
             tr->menuDbcBlinkerLed(), dbcLedOn ? 1 : 0,
             [svc, dbcLedOn]() { svc->updateDbcBlinkerLed(!dbcLedOn); }));
     }
 
+    // Milestone Celebrations (toggle) — confetti + banner when passing a
+    // 500 km milestone or an easter-egg number. Off by default.
+    {
+        bool milestonesOn = settings->milestoneCelebrations();
+        appearanceNode->addChild(MenuNode::setting(QStringLiteral("settings_milestones"),
+            tr->menuMilestones(), milestonesOn ? 1 : 0,
+            [svc, milestonesOn]() { svc->updateMilestoneCelebrations(!milestonesOn); }));
+    }
+
+    // Status Bar goes last: it is the only entry here that opens a submenu,
+    // and the nine visibility toggles behind it are the least-touched settings
+    // on the vehicle.
+    appearanceNode->addChild(statusBarNode);
+
     // Alarm
     auto *alarmNode = MenuNode::submenu(QStringLiteral("settings_alarm"), tr->menuAlarm(),
                                         QStringLiteral("ALARM"));
-    settingsNode->addChild(alarmNode);
+    vehicleNode->addChild(alarmNode);
     bool alarmOn = settings->alarmEnabled();
     bool alarmHonkOn = settings->alarmHonk();
     QString alarmDur = settings->alarmDuration();
@@ -847,7 +861,7 @@ void MenuStore::rebuildMenuTree()
     // Battery Mode (inline cycle: Single → Dual) — set-once on install.
     {
         bool dualBatt = settings->dualBattery();
-        systemNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_battery_mode"),
+        vehicleNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_battery_mode"),
             tr->menuBatteryMode(), {
                 {tr->menuBatterySingle(), [svc]() { svc->updateDualBattery(false); }},
                 {tr->menuBatteryDual(), [svc]() { svc->updateDualBattery(true); }},
@@ -858,7 +872,7 @@ void MenuStore::rebuildMenuTree()
     // open seat lid rests on the button. Default off; on restores legacy honk.
     {
         bool hornSeatboxOpen = settings->hornWhenSeatboxOpen();
-        systemNode->addChild(MenuNode::setting(QStringLiteral("settings_horn_seatbox_open"),
+        vehicleNode->addChild(MenuNode::setting(QStringLiteral("settings_horn_seatbox_open"),
             tr->menuHornSeatboxOpen(), hornSeatboxOpen ? 1 : 0,
             [svc, hornSeatboxOpen]() { svc->updateHornWhenSeatboxOpen(!hornSeatboxOpen); }));
     }
@@ -876,48 +890,6 @@ void MenuStore::rebuildMenuTree()
         }, [this]() {
             return !(m_settings && m_settings->serviceActive() == QLatin1String("true"));
         }));
-
-    // System Info: firmware/board identity, modem + SIM identity, pack serials
-    // and health, and the fault log. All of them answer "what do I tell
-    // support", and splitting them into pages beats scrolling a 480px screen
-    // past four unrelated topics to reach the one you want.
-    //
-    // The active-fault count rides on the parent entry as well as on Faults
-    // itself, so burying the log one level down doesn't hide the one thing
-    // about it that was visible from the System menu before.
-    {
-        const int activeFaults = m_faults ? m_faults->activeCount() : 0;
-        auto withCount = [activeFaults](const QString &label) {
-            return activeFaults > 0 ? QStringLiteral("%1 (%2)").arg(label).arg(activeFaults)
-                                    : label;
-        };
-
-        auto *infoNode = systemNode->addChild(MenuNode::submenu(
-            QStringLiteral("system_info"), withCount(tr->menuSystemInfo()),
-            tr->menuSystemInfo().toUpper()));
-
-        struct Page { const char *id; QString title; int page; };
-        const Page pages[] = {
-            {"system_info_device", tr->menuInfoComponents(), ScreenStore::SystemInfoDevice},
-            {"system_info_connectivity", tr->menuInfoConnectivity(), ScreenStore::SystemInfoConnectivity},
-            {"system_info_batteries", tr->menuInfoBatteries(), ScreenStore::SystemInfoBatteries},
-        };
-        for (const auto &p : pages) {
-            const int page = p.page;
-            infoNode->addChild(MenuNode::action(QLatin1String(p.id), p.title, [this, page]() {
-                close();
-                if (m_screenStore)
-                    m_screenStore->showSystemInfo(page);
-            }));
-        }
-
-        infoNode->addChild(MenuNode::action(QStringLiteral("faults"),
-                                            withCount(tr->menuFaults()), [this]() {
-            close();
-            if (m_screenStore)
-                m_screenStore->showFaults();
-        }));
-    }
 
     // Updates — ordered by how often a rider has any business touching them:
     // how often to look, look now, and then the two that the defaults already
@@ -1099,12 +1071,52 @@ void MenuStore::rebuildMenuTree()
         close();
     }));
 
-    m_rootNode->addChild(MenuNode::action(QStringLiteral("about"), tr->menuAbout(), [this]() {
-        close();
-        if (m_screenStore) {
-            m_screenStore->showAbout();
+    // === Info (root level) ===
+    //
+    // Read-only diagnostics, not settings, and the thing support and
+    // connectivity onboarding point people at. Under Settings > System it took
+    // five screens to reach an IMEI; from the root it takes three. About moves
+    // in with it, being the same kind of read-only page, which keeps the root
+    // menu the same length as before.
+    {
+        const int activeFaults = m_faults ? m_faults->activeCount() : 0;
+        auto withCount = [activeFaults](const QString &label) {
+            return activeFaults > 0 ? QStringLiteral("%1 (%2)").arg(label).arg(activeFaults)
+                                    : label;
+        };
+
+        auto *infoNode = MenuNode::submenu(QStringLiteral("info"), withCount(tr->menuInfo()),
+                                           tr->menuInfo().toUpper());
+        m_rootNode->addChild(infoNode);
+
+        struct Page { const char *id; QString title; int page; };
+        const Page pages[] = {
+            {"info_components", tr->menuInfoComponents(), ScreenStore::SystemInfoDevice},
+            {"info_connectivity", tr->menuInfoConnectivity(), ScreenStore::SystemInfoConnectivity},
+            {"info_batteries", tr->menuInfoBatteries(), ScreenStore::SystemInfoBatteries},
+        };
+        for (const auto &p : pages) {
+            const int page = p.page;
+            infoNode->addChild(MenuNode::action(QLatin1String(p.id), p.title, [this, page]() {
+                close();
+                if (m_screenStore)
+                    m_screenStore->showSystemInfo(page);
+            }));
         }
-    }));
+
+        infoNode->addChild(MenuNode::action(QStringLiteral("faults"),
+                                            withCount(tr->menuFaults()), [this]() {
+            close();
+            if (m_screenStore)
+                m_screenStore->showFaults();
+        }));
+
+        infoNode->addChild(MenuNode::action(QStringLiteral("about"), tr->menuAbout(), [this]() {
+            close();
+            if (m_screenStore)
+                m_screenStore->showAbout();
+        }));
+    }
 
     m_rootNode->addChild(MenuNode::action(QStringLiteral("exit"), tr->menuExit(), [this]() {
         close();
