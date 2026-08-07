@@ -783,14 +783,19 @@ void MenuStore::rebuildMenuTree()
             [svc, autoDownload]() { svc->updateMapAutoDownload(!autoDownload); }));
     }
 
-    // Blinker submenu (style + DBC LED)
+    // Blinkers: on-screen style plus the physical LED on the DBC board. Both
+    // are about how the blinker is presented rather than how it behaves, so
+    // they sit under Appearance as a single entry.
     {
-        // Two entries do not earn their own level, and both are about how the
-        // blinker is presented rather than how it behaves.
+        auto *blinkerNode = MenuNode::submenu(QStringLiteral("settings_blinker"),
+                                              tr->menuBlinker(),
+                                              tr->menuBlinkerHeader());
+        appearanceNode->addChild(blinkerNode);
+
         // Blinker Style (inline cycle: Icon → Overlay)
         QString bStyle = settings->blinkerStyle();
         int blinkerIdx = (bStyle == QLatin1String("overlay")) ? 1 : 0;
-        appearanceNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_blinker_style"),
+        blinkerNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_blinker_style"),
             tr->menuBlinkerStyle(), {
                 {tr->menuBlinkerIcon(), [svc]() { svc->updateBlinkerStyle(QStringLiteral("icon")); }},
                 {tr->menuBlinkerOverlay(), [svc]() { svc->updateBlinkerStyle(QStringLiteral("overlay")); }},
@@ -798,7 +803,7 @@ void MenuStore::rebuildMenuTree()
 
         // DBC Blinker LED (toggle) — physical LED on the DBC board.
         bool dbcLedOn = settings->dbcBlinkerLed();
-        appearanceNode->addChild(MenuNode::setting(QStringLiteral("settings_dbc_blinker_led"),
+        blinkerNode->addChild(MenuNode::setting(QStringLiteral("settings_dbc_blinker_led"),
             tr->menuDbcBlinkerLed(), dbcLedOn ? 1 : 0,
             [svc, dbcLedOn]() { svc->updateDbcBlinkerLed(!dbcLedOn); }));
     }
