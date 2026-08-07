@@ -804,7 +804,9 @@ void SimulatorService::loadPreset(const QString &name)
                     QStringLiteral("librescoot"));
         m_repo->set(QStringLiteral("system"), QStringLiteral("environment"),
                     QStringLiteral("production"));
-        m_repo->set(QStringLiteral("system"), QStringLiteral("dbc-sn-real"),
+        m_repo->set(QStringLiteral("version:mdb"), QStringLiteral("serial_number_real"),
+                    QStringLiteral("3a1d59d4d1e145d2"));
+        m_repo->set(QStringLiteral("version:dbc"), QStringLiteral("serial_number_real"),
                     QStringLiteral("0e0421d4ee6ba0ab"));
         setBluetoothMac(QStringLiteral("f6:7e:c2:32:b3:bf"));
         m_repo->set(QStringLiteral("scooter"), QStringLiteral("temperature"), QStringLiteral("18.5"));

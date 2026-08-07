@@ -49,9 +49,8 @@ void SystemInfoService::recomputeVersions()
 
     // Board identity. Rows carry a translation key rather than a label, since
     // the screen renders them in the rider's language. Absent fields are
-    // dropped rather than shown empty: nothing currently publishes the MDB
-    // serials, and a row of placeholders reads as breakage rather than as
-    // "not reported here".
+    // dropped rather than shown empty, since a row of placeholders reads as
+    // breakage rather than as "not reported here".
     auto addDeviceRow = [&deviceRows](const QString &key, const QString &value) {
         if (value.isEmpty())
             return;
@@ -61,15 +60,19 @@ void SystemInfoService::recomputeVersions()
         deviceRows.append(row);
     };
 
-    // radio-gaga reports `*-sn-real` in preference to `*-sn`; the plain field
-    // is a narrower legacy encoding of the same OCOTP UID. Match that order.
-    auto serial = [&system](const QString &board) {
-        const QString real = system.value(board + QStringLiteral("-sn-real"));
-        return real.isEmpty() ? system.value(board + QStringLiteral("-sn")) : real;
+    // Board serials live on the per-board version hashes, written by
+    // version-service from the i.MX6 OCOTP fuses: serial_number_real is the
+    // full UID, serial_number the decimal sum of CFG0 and CFG1. Prefer the
+    // full one. (They are NOT on the `system` hash: system[dbc-sn] exists on
+    // some vehicles but nothing in the tree writes it, so it is stale data,
+    // not a source.)
+    auto serial = [](const FieldMap &ver) {
+        const QString real = ver.value(QStringLiteral("serial_number_real"));
+        return real.isEmpty() ? ver.value(QStringLiteral("serial_number")) : real;
     };
 
-    addDeviceRow(QStringLiteral("infoMdbSerial"), serial(QStringLiteral("mdb")));
-    addDeviceRow(QStringLiteral("infoDbcSerial"), serial(QStringLiteral("dbc")));
+    addDeviceRow(QStringLiteral("infoMdbSerial"), serial(mdbVer));
+    addDeviceRow(QStringLiteral("infoDbcSerial"), serial(dbcVer));
     addDeviceRow(QStringLiteral("infoMdbBuild"), system.value(QStringLiteral("mdb-flavor")));
     addDeviceRow(QStringLiteral("infoDbcBuild"), system.value(QStringLiteral("dbc-flavor")));
     addDeviceRow(QStringLiteral("infoEnvironment"), system.value(QStringLiteral("environment")));
