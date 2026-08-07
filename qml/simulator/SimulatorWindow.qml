@@ -51,6 +51,22 @@ ApplicationWindow {
                 checkable: true
                 onClicked: screenStore.setScreen(4)
             }
+            SimButton {
+                text: "SysInfo"; small: true
+                ButtonGroup.group: screenGroup
+                checkable: true
+                // Re-tapping cycles System / Connectivity / Batteries, which on
+                // the vehicle are three separate System > Info menu entries.
+                onClicked: screenStore.showSystemInfo(
+                    screenStore.currentScreen === 15 // ScreenMode.SystemInfo
+                        ? (screenStore.systemInfoPage + 1) % 3 : 0)
+            }
+            SimButton {
+                text: "Debug"; small: true
+                ButtonGroup.group: screenGroup
+                checkable: true
+                onClicked: screenStore.setScreen(3) // ScreenMode.Debug
+            }
 
             Item { Layout.fillWidth: true }
 

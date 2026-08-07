@@ -96,6 +96,10 @@ public:
     Q_INVOKABLE void setSimImei(const QString &imei);
     Q_INVOKABLE void setSimImsi(const QString &imsi);
     Q_INVOKABLE void setSimIccid(const QString &iccid);
+    Q_INVOKABLE void setConnectivity(const QString &state);
+    // Generic setter for the `modem` hash (operator-name, registration,
+    // sim-state, ...), which has too many fields to justify one each.
+    Q_INVOKABLE void setModemField(const QString &field, const QString &value);
 
     // Bluetooth
     Q_INVOKABLE void setBluetoothStatus(const QString &state);

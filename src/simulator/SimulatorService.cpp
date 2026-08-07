@@ -443,6 +443,16 @@ void SimulatorService::setSimIccid(const QString &iccid)
     m_repo->set(QStringLiteral("internet"), QStringLiteral("sim-iccid"), iccid);
 }
 
+void SimulatorService::setConnectivity(const QString &state)
+{
+    m_repo->set(QStringLiteral("internet"), QStringLiteral("connectivity"), state);
+}
+
+void SimulatorService::setModemField(const QString &field, const QString &value)
+{
+    m_repo->set(QStringLiteral("modem"), field, value);
+}
+
 // --- Bluetooth ---
 
 void SimulatorService::setBluetoothStatus(const QString &state)
@@ -736,6 +746,25 @@ void SimulatorService::loadPreset(const QString &name)
         setSignalQuality(75);
         setAccessTech(QStringLiteral("LTE"));
         setCloudConnection(QStringLiteral("connected"));
+        setConnectivity(QStringLiteral("connected"));
+        setIpAddress(QStringLiteral("10.132.44.17"));
+        // Documentation-range identifiers, not a real device.
+        setSimImei(QStringLiteral("359800030914123"));
+        setSimImsi(QStringLiteral("262010123456789"));
+        setSimIccid(QStringLiteral("8949000000000000001"));
+        m_repo->set(QStringLiteral("internet"), QStringLiteral("modem-health"),
+                    QStringLiteral("normal"));
+        setModemField(QStringLiteral("operator-name"), QStringLiteral("Vodafone.de"));
+        setModemField(QStringLiteral("operator-code"), QStringLiteral("26202"));
+        setModemField(QStringLiteral("registration"), QStringLiteral("home"));
+        setModemField(QStringLiteral("is-roaming"), QStringLiteral("false"));
+        setModemField(QStringLiteral("power-state"), QStringLiteral("on"));
+        setModemField(QStringLiteral("sim-state"), QStringLiteral("present"));
+        setModemField(QStringLiteral("sim-lock"), QString());
+        setModemField(QStringLiteral("pin-action"), QStringLiteral("ok"));
+        setModemField(QStringLiteral("apn-action"), QStringLiteral("ok"));
+        setModemField(QStringLiteral("registration-fail"), QString());
+        setModemField(QStringLiteral("error-state"), QStringLiteral("ok"));
         setBluetoothStatus(QStringLiteral("connected"));
         setSpeedLimit(QStringLiteral("30"));
         setRoadName(QStringLiteral("Alexanderplatz"));
@@ -747,6 +776,37 @@ void SimulatorService::loadPreset(const QString &name)
         m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("present"), QStringLiteral("true"));
         m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("charge"), QStringLiteral("95"));
         m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("temperature"), QStringLiteral("23"));
+        // Pack and board identity, so the System Info screens have something to
+        // render. Values are shaped like the real ones, not copied from a unit.
+        for (const QString &slot : {QStringLiteral("0"), QStringLiteral("1")}) {
+            const QString hash = QStringLiteral("battery:") + slot;
+            m_repo->set(hash, QStringLiteral("serial-number"),
+                        QStringLiteral("T-SIM2200000") + slot + QStringLiteral("42"));
+            m_repo->set(hash, QStringLiteral("state-of-health"), QStringLiteral("98"));
+            m_repo->set(hash, QStringLiteral("cycle-count"), QStringLiteral("94"));
+            m_repo->set(hash, QStringLiteral("fw-version"), QStringLiteral("2.28"));
+            m_repo->set(hash, QStringLiteral("manufacturing-date"), QStringLiteral("2020-09-17"));
+            m_repo->set(hash, QStringLiteral("voltage"), QStringLiteral("48464"));
+        }
+        m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("serial-number"),
+                    QStringLiteral("T-CBB 2107245036"));
+        m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("unique-id"),
+                    QStringLiteral("420000508ff2c826"));
+        m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("part-number"),
+                    QStringLiteral("MAX17301"));
+        m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("state-of-health"),
+                    QStringLiteral("94"));
+        m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("cycle-count"),
+                    QStringLiteral("5"));
+        m_repo->set(QStringLiteral("system"), QStringLiteral("mdb-flavor"),
+                    QStringLiteral("librescoot"));
+        m_repo->set(QStringLiteral("system"), QStringLiteral("dbc-flavor"),
+                    QStringLiteral("librescoot"));
+        m_repo->set(QStringLiteral("system"), QStringLiteral("environment"),
+                    QStringLiteral("production"));
+        m_repo->set(QStringLiteral("system"), QStringLiteral("dbc-sn-real"),
+                    QStringLiteral("0e0421d4ee6ba0ab"));
+        setBluetoothMac(QStringLiteral("f6:7e:c2:32:b3:bf"));
         m_repo->set(QStringLiteral("scooter"), QStringLiteral("temperature"), QStringLiteral("18.5"));
         // Use online routing in simulator (no local valhalla)
         m_repo->set(QStringLiteral("dashboard"), QStringLiteral("dashboard.valhalla-url"),
