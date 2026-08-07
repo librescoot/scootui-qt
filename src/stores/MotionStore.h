@@ -7,8 +7,8 @@
 //   motion:heading  — 5 Hz JSON snapshot of the heading payload
 //
 // The base SyncableStore HGETALL safety net polls the `motion` hash slowly
-// so status fields (heading-deg, heading-accuracy, sensitivity, ...) are
-// also available without a fresh push.
+// so status fields (heading-deg, heading-accuracy, current-profile, ...)
+// are also available without a fresh push.
 class MotionStore : public SyncableStore
 {
     Q_OBJECT
