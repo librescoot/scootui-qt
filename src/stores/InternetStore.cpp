@@ -20,6 +20,7 @@ SyncSettings InternetStore::syncSettings() const
             {QStringLiteral("simImei"), QStringLiteral("sim-imei")},
             {QStringLiteral("simImsi"), QStringLiteral("sim-imsi")},
             {QStringLiteral("simIccid"), QStringLiteral("sim-iccid")},
+            {QStringLiteral("modemHealth"), QStringLiteral("modem-health")},
         },
         {
             {QStringLiteral("fault"), QStringLiteral("internet:fault"), 5000},
@@ -68,5 +69,7 @@ void InternetStore::applyFieldUpdate(const QString &variable, const QString &val
         if (value != m_simImsi) { m_simImsi = value; emit simImsiChanged(); }
     } else if (variable == QLatin1String("sim-iccid")) {
         if (value != m_simIccid) { m_simIccid = value; emit simIccidChanged(); }
+    } else if (variable == QLatin1String("modem-health")) {
+        if (value != m_modemHealth) { m_modemHealth = value; emit modemHealthChanged(); }
     }
 }

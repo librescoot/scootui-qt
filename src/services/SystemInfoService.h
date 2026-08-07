@@ -10,6 +10,7 @@ class SystemInfoService : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QVariantList versionRows READ versionRows NOTIFY versionRowsChanged)
+    Q_PROPERTY(QVariantList deviceRows READ deviceRows NOTIFY versionRowsChanged)
     Q_PROPERTY(QString mdbVersion READ mdbVersion NOTIFY versionRowsChanged)
     Q_PROPERTY(QString dbcVersion READ dbcVersion NOTIFY versionRowsChanged)
     Q_PROPERTY(QString nrfVersion READ nrfVersion NOTIFY versionRowsChanged)
@@ -19,6 +20,10 @@ public:
     explicit SystemInfoService(MdbRepository *repo, QObject *parent = nullptr);
 
     QVariantList versionRows() const { return m_versionRows; }
+    // Board identity from the `system` hash: flavor, environment and the OCOTP
+    // serials. Rows are omitted when the underlying field is absent, which is
+    // normal: nothing currently populates the MDB serials on every unit.
+    QVariantList deviceRows() const { return m_deviceRows; }
     QString mdbVersion() const { return m_mdbVersion; }
     QString dbcVersion() const { return m_dbcVersion; }
     QString nrfVersion() const { return m_nrfVersion; }
@@ -35,6 +40,7 @@ private:
 
     MdbRepository *m_repo;
     QVariantList m_versionRows; // [{label, value}, ...]
+    QVariantList m_deviceRows;  // [{label, value}, ...]
     QString m_mdbVersion;
     QString m_dbcVersion;
     QString m_nrfVersion;

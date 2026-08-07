@@ -45,6 +45,35 @@ void SystemInfoService::recomputeVersions()
         rows.append(row);
     };
 
+    QVariantList deviceRows;
+
+    // Board identity. Rows carry a translation key rather than a label, since
+    // the screen renders them in the rider's language. Absent fields are
+    // dropped rather than shown empty: nothing currently publishes the MDB
+    // serials, and a row of placeholders reads as breakage rather than as
+    // "not reported here".
+    auto addDeviceRow = [&deviceRows](const QString &key, const QString &value) {
+        if (value.isEmpty())
+            return;
+        QVariantMap row;
+        row[QStringLiteral("key")] = key;
+        row[QStringLiteral("value")] = value;
+        deviceRows.append(row);
+    };
+
+    // radio-gaga reports `*-sn-real` in preference to `*-sn`; the plain field
+    // is a narrower legacy encoding of the same OCOTP UID. Match that order.
+    auto serial = [&system](const QString &board) {
+        const QString real = system.value(board + QStringLiteral("-sn-real"));
+        return real.isEmpty() ? system.value(board + QStringLiteral("-sn")) : real;
+    };
+
+    addDeviceRow(QStringLiteral("infoMdbSerial"), serial(QStringLiteral("mdb")));
+    addDeviceRow(QStringLiteral("infoDbcSerial"), serial(QStringLiteral("dbc")));
+    addDeviceRow(QStringLiteral("infoMdbBuild"), system.value(QStringLiteral("mdb-flavor")));
+    addDeviceRow(QStringLiteral("infoDbcBuild"), system.value(QStringLiteral("dbc-flavor")));
+    addDeviceRow(QStringLiteral("infoEnvironment"), system.value(QStringLiteral("environment")));
+
     if (mdbVer.contains(QStringLiteral("version"))) {
         addRow(QStringLiteral("MDB"), mdbVer.value(QStringLiteral("version")));
     } else if (system.contains(QStringLiteral("mdb-version"))) {
@@ -78,6 +107,7 @@ void SystemInfoService::recomputeVersions()
     QString ecuVersion = ver(ecu);
 
     if (rows == m_versionRows
+        && deviceRows == m_deviceRows
         && mdbVersion == m_mdbVersion
         && dbcVersion == m_dbcVersion
         && nrfVersion == m_nrfVersion
@@ -86,6 +116,7 @@ void SystemInfoService::recomputeVersions()
     }
 
     m_versionRows = rows;
+    m_deviceRows = deviceRows;
     m_mdbVersion = mdbVersion;
     m_dbcVersion = dbcVersion;
     m_nrfVersion = nrfVersion;

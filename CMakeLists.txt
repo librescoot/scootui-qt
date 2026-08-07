@@ -64,6 +64,7 @@ set(CPP_SOURCES
     src/stores/MotionStore.cpp
     src/stores/BluetoothStore.cpp
     src/stores/InternetStore.cpp
+    src/stores/ModemStore.cpp
     src/stores/NavigationStore.cpp
     src/stores/SettingsStore.cpp
     src/stores/OtaStore.cpp
@@ -136,6 +137,7 @@ set(CPP_HEADERS
     src/stores/MotionStore.h
     src/stores/BluetoothStore.h
     src/stores/InternetStore.h
+    src/stores/ModemStore.h
     src/stores/NavigationStore.h
     src/stores/SettingsStore.h
     src/stores/OtaStore.h
@@ -210,6 +212,7 @@ set(QML_FILES
     qml/screens/NavigationSetupScreen.qml
     qml/screens/DestinationScreen.qml
     qml/screens/FaultsScreen.qml
+    qml/screens/SystemInfoScreen.qml
     qml/screens/UpdateModeInfoScreen.qml
     qml/screens/HopOnInfoScreen.qml
     qml/widgets/navigation/TurnByTurnWidget.qml

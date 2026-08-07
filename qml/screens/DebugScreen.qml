@@ -17,7 +17,32 @@ Rectangle {
 
     // Helper to safely read store properties
     function safeVal(storeAvailable, value, fallback) {
-        return storeAvailable ? String(value) : (fallback || "N/A");
+        if (!storeAvailable)
+            return fallback || "N/A";
+        if (value === undefined || value === null || value === "")
+            return "-";
+        return String(value);
+    }
+
+    readonly property bool hasNet: typeof internetStore !== "undefined"
+    readonly property bool hasModem: typeof modemStore !== "undefined"
+
+    // The content is taller than the viewport and the DBC has no touchscreen,
+    // so the Flickable needs brake-lever scrolling to be reachable at all.
+    // Left double-tap still opens the menu (handled in Main.qml); the menu
+    // takes over the levers while it is open.
+    Connections {
+        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        enabled: typeof menuStore === "undefined" || !menuStore.isOpen
+        function onLeftTap() {
+            var maxY = Math.max(0, flickable.contentHeight - flickable.height)
+            scrollAnim.to = Math.min(flickable.contentY + 120, maxY)
+            scrollAnim.restart()
+        }
+        function onLeftHold() {
+            scrollAnim.to = Math.max(flickable.contentY - 120, 0)
+            scrollAnim.restart()
+        }
     }
 
     ColumnLayout {
@@ -47,6 +72,14 @@ Rectangle {
             contentHeight: contentCol.height
             clip: true
             boundsBehavior: Flickable.StopAtBounds
+
+            NumberAnimation {
+                id: scrollAnim
+                target: flickable
+                property: "contentY"
+                duration: 200
+                easing.type: Easing.OutCubic
+            }
 
             ColumnLayout {
                 id: contentCol
@@ -122,10 +155,45 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "INTERNET"
                     entries: [
-                        { label: "Modem", value: debugScreen.safeVal(typeof internetStore !== "undefined", typeof internetStore !== "undefined" ? internetStore.modemState : "") },
-                        { label: "Status", value: debugScreen.safeVal(typeof internetStore !== "undefined", typeof internetStore !== "undefined" ? internetStore.status : "") },
-                        { label: "Cloud", value: debugScreen.safeVal(typeof internetStore !== "undefined", typeof internetStore !== "undefined" ? internetStore.unuCloud : "") },
-                        { label: "IP", value: debugScreen.safeVal(typeof internetStore !== "undefined", typeof internetStore !== "undefined" ? internetStore.ipAddress : "") }
+                        { label: "Modem", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.modemState : "") },
+                        { label: "Connectivity", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.connectivity : "") },
+                        { label: "Status", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.status : "") },
+                        { label: "Cloud", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.unuCloud : "") },
+                        { label: "IP", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.ipAddress : "") },
+                        { label: "Access Tech", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.accessTech : "") },
+                        { label: "Signal", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.signalQuality + "%" : "") },
+                        { label: "Health", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.modemHealth : "") }
+                    ]
+                }
+
+                // ---- Modem identity section ----
+                // IMEI and ICCID are what connectivity onboarding asks for, so
+                // they get their own section rather than hiding among the
+                // connection state above.
+                DebugSection {
+                    sectionTitle: "SIM / MODEM IDENTITY"
+                    entries: [
+                        { label: "IMEI", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.simImei : "") },
+                        { label: "ICCID", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.simIccid : "") },
+                        { label: "IMSI", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.simImsi : "") }
+                    ]
+                }
+
+                // ---- Modem section ----
+                DebugSection {
+                    sectionTitle: "MODEM"
+                    entries: [
+                        { label: "Operator", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.operatorName : "") },
+                        { label: "Operator Code", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.operatorCode : "") },
+                        { label: "Registration", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.registration : "") },
+                        { label: "Roaming", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.isRoaming : "") },
+                        { label: "Power", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.powerState : "") },
+                        { label: "SIM State", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.simState : "") },
+                        { label: "SIM Lock", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.simLock : "") },
+                        { label: "PIN Action", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.pinAction : "") },
+                        { label: "APN Action", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.apnAction : "") },
+                        { label: "Reg Fail", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.registrationFail : "") },
+                        { label: "Error", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.errorState : "") }
                     ]
                 }
 

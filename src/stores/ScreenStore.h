@@ -24,6 +24,7 @@ public:
     ScootEnums::ScreenMode currentScreenMode() const { return m_currentScreen; }
 
     Q_PROPERTY(int setupMode READ setupMode NOTIFY setupModeChanged)
+    Q_PROPERTY(int systemInfoPage READ systemInfoPage NOTIFY systemInfoPageChanged)
 
     Q_INVOKABLE void setScreen(int screen);
     Q_INVOKABLE void showAbout();
@@ -32,6 +33,9 @@ public:
     Q_INVOKABLE void closeNavigationSetup();
     Q_INVOKABLE void showFaults();
     Q_INVOKABLE void closeFaults();
+    // page selects which System Info section is shown; see SystemInfoPage.
+    Q_INVOKABLE void showSystemInfo(int page = 0);
+    Q_INVOKABLE void closeSystemInfo();
     Q_INVOKABLE void showUpdateModeInfo();
     Q_INVOKABLE void closeUpdateModeInfo();
     // Confirms UMS entry: emits umsModeRequested (handled in Application
@@ -48,10 +52,15 @@ public:
     Q_INVOKABLE void exitHopOnLock();
 
     int setupMode() const { return m_setupMode; }
+    int systemInfoPage() const { return m_systemInfoPage; }
+
+    enum SystemInfoPage { SystemInfoDevice = 0, SystemInfoConnectivity = 1, SystemInfoBatteries = 2 };
+    Q_ENUM(SystemInfoPage)
 
 signals:
     void currentScreenChanged();
     void setupModeChanged();
+    void systemInfoPageChanged();
     void umsModeRequested();
 
 private:
@@ -63,8 +72,10 @@ private:
     ScootEnums::ScreenMode m_screenBeforeAbout = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeNavSetup = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeFaults = ScootEnums::ScreenMode::Cluster;
+    ScootEnums::ScreenMode m_screenBeforeSystemInfo = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeUpdateModeInfo = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeHopOnInfo = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeHopOnLock = ScootEnums::ScreenMode::Cluster;
     int m_setupMode = 2; // Both by default
+    int m_systemInfoPage = SystemInfoDevice;
 };

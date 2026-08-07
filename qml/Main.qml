@@ -72,6 +72,8 @@ Window {
                     screenStore.closeAbout()
                 else if (screenStore.currentScreen === Scooter.ScreenMode.Faults)
                     screenStore.closeFaults()
+                else if (screenStore.currentScreen === Scooter.ScreenMode.SystemInfo)
+                    screenStore.closeSystemInfo()
             }
         }
     }
@@ -177,6 +179,7 @@ Window {
                 case Scooter.ScreenMode.NavigationSetup: comp = navSetupComponent;    name = "navSetup";    break
                 case Scooter.ScreenMode.Destination:     comp = destinationComponent; name = "destination"; break
                 case Scooter.ScreenMode.Faults:          comp = faultsComponent;      name = "faults";      break
+                case Scooter.ScreenMode.SystemInfo:      comp = systemInfoComponent;  name = "systemInfo";  break
                 case Scooter.ScreenMode.UpdateModeInfo:  comp = umsInfoComponent;     name = "umsInfo";     break
                 case Scooter.ScreenMode.HopOnInfo:       comp = hopOnInfoComponent;   name = "hopOnInfo";   break
                 default:                                    comp = clusterComponent;     name = "cluster(default)"; break
@@ -197,6 +200,7 @@ Window {
     Component { id: navSetupComponent; NavigationSetupScreen {} }
     Component { id: destinationComponent; DestinationScreen {} }
     Component { id: faultsComponent; FaultsScreen {} }
+    Component { id: systemInfoComponent; SystemInfoScreen {} }
     Component { id: umsInfoComponent; UpdateModeInfoScreen {} }
     Component { id: hopOnInfoComponent; HopOnInfoScreen {} }
 

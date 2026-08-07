@@ -19,6 +19,7 @@ class InternetStore : public SyncableStore
     Q_PROPERTY(QString simImei READ simImei NOTIFY simImeiChanged)
     Q_PROPERTY(QString simImsi READ simImsi NOTIFY simImsiChanged)
     Q_PROPERTY(QString simIccid READ simIccid NOTIFY simIccidChanged)
+    Q_PROPERTY(QString modemHealth READ modemHealth NOTIFY modemHealthChanged)
     Q_PROPERTY(QList<int> faults READ faults NOTIFY faultsChanged)
 
 public:
@@ -39,6 +40,9 @@ public:
     QString simImei() const { return m_simImei; }
     QString simImsi() const { return m_simImsi; }
     QString simIccid() const { return m_simIccid; }
+    // Modem recovery state: "normal", "recovering",
+    // "recovery-failed-waiting-reboot", "permanent-failure-needs-replacement".
+    QString modemHealth() const { return m_modemHealth; }
     QList<int> faults() const { return m_faults.values(); }
 
 signals:
@@ -53,6 +57,7 @@ signals:
     void simImeiChanged();
     void simImsiChanged();
     void simIccidChanged();
+    void modemHealthChanged();
     void faultsChanged();
 
 protected:
@@ -72,5 +77,6 @@ private:
     QString m_simImei;
     QString m_simImsi;
     QString m_simIccid;
+    QString m_modemHealth;
     QSet<int> m_faults;
 };

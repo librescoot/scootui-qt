@@ -8,6 +8,10 @@ class Translations : public QObject
     Q_OBJECT
 
     // Menu strings
+    // Exposed so QML that looks strings up dynamically (by key rather than
+    // by property) has something to depend on, and re-evaluates on a
+    // language change like every static binding does.
+    Q_PROPERTY(QString language READ language NOTIFY languageChanged)
     Q_PROPERTY(QString menuTitle READ menuTitle NOTIFY languageChanged)
     Q_PROPERTY(QString menuSettings READ menuSettings NOTIFY languageChanged)
     Q_PROPERTY(QString menuTheme READ menuTheme NOTIFY languageChanged)
@@ -57,6 +61,47 @@ class Translations : public QObject
     Q_PROPERTY(QString captureLogsToastFailed READ captureLogsToastFailed NOTIFY languageChanged)
     Q_PROPERTY(QString menuEnterUms READ menuEnterUms NOTIFY languageChanged)
     Q_PROPERTY(QString menuFaults READ menuFaults NOTIFY languageChanged)
+    Q_PROPERTY(QString menuSystemInfo READ menuSystemInfo NOTIFY languageChanged)
+    Q_PROPERTY(QString systemInfoFirmware READ systemInfoFirmware NOTIFY languageChanged)
+    Q_PROPERTY(QString systemInfoIdentity READ systemInfoIdentity NOTIFY languageChanged)
+    Q_PROPERTY(QString systemInfoNetwork READ systemInfoNetwork NOTIFY languageChanged)
+    Q_PROPERTY(QString menuInfoConnectivity READ menuInfoConnectivity NOTIFY languageChanged)
+    Q_PROPERTY(QString menuInfoBatteries READ menuInfoBatteries NOTIFY languageChanged)
+    Q_PROPERTY(QString systemInfoBoards READ systemInfoBoards NOTIFY languageChanged)
+    Q_PROPERTY(QString systemInfoBluetooth READ systemInfoBluetooth NOTIFY languageChanged)
+    Q_PROPERTY(QString systemInfoBattery0 READ systemInfoBattery0 NOTIFY languageChanged)
+    Q_PROPERTY(QString systemInfoBattery1 READ systemInfoBattery1 NOTIFY languageChanged)
+    Q_PROPERTY(QString systemInfoCbb READ systemInfoCbb NOTIFY languageChanged)
+    Q_PROPERTY(QString systemInfoAux READ systemInfoAux NOTIFY languageChanged)
+    Q_PROPERTY(QString systemInfoUnavailable READ systemInfoUnavailable NOTIFY languageChanged)
+    Q_PROPERTY(QString menuInfoComponents READ menuInfoComponents NOTIFY languageChanged)
+    Q_PROPERTY(QString infoMdbSerial READ infoMdbSerial NOTIFY languageChanged)
+    Q_PROPERTY(QString infoDbcSerial READ infoDbcSerial NOTIFY languageChanged)
+    Q_PROPERTY(QString infoMdbBuild READ infoMdbBuild NOTIFY languageChanged)
+    Q_PROPERTY(QString infoDbcBuild READ infoDbcBuild NOTIFY languageChanged)
+    Q_PROPERTY(QString infoEnvironment READ infoEnvironment NOTIFY languageChanged)
+    Q_PROPERTY(QString infoOperator READ infoOperator NOTIFY languageChanged)
+    Q_PROPERTY(QString infoAccessTech READ infoAccessTech NOTIFY languageChanged)
+    Q_PROPERTY(QString infoSignal READ infoSignal NOTIFY languageChanged)
+    Q_PROPERTY(QString infoRegistration READ infoRegistration NOTIFY languageChanged)
+    Q_PROPERTY(QString infoRoaming READ infoRoaming NOTIFY languageChanged)
+    Q_PROPERTY(QString infoSim READ infoSim NOTIFY languageChanged)
+    Q_PROPERTY(QString infoConnectivity READ infoConnectivity NOTIFY languageChanged)
+    Q_PROPERTY(QString infoIpAddress READ infoIpAddress NOTIFY languageChanged)
+    Q_PROPERTY(QString infoMac READ infoMac NOTIFY languageChanged)
+    Q_PROPERTY(QString infoStatus READ infoStatus NOTIFY languageChanged)
+    Q_PROPERTY(QString infoConnected READ infoConnected NOTIFY languageChanged)
+    Q_PROPERTY(QString infoDisconnected READ infoDisconnected NOTIFY languageChanged)
+    Q_PROPERTY(QString infoSerial READ infoSerial NOTIFY languageChanged)
+    Q_PROPERTY(QString infoHealth READ infoHealth NOTIFY languageChanged)
+    Q_PROPERTY(QString infoCycles READ infoCycles NOTIFY languageChanged)
+    Q_PROPERTY(QString infoCharge READ infoCharge NOTIFY languageChanged)
+    Q_PROPERTY(QString infoChargeEstimated READ infoChargeEstimated NOTIFY languageChanged)
+    Q_PROPERTY(QString infoVoltage READ infoVoltage NOTIFY languageChanged)
+    Q_PROPERTY(QString infoFirmware READ infoFirmware NOTIFY languageChanged)
+    Q_PROPERTY(QString infoManufactured READ infoManufactured NOTIFY languageChanged)
+    Q_PROPERTY(QString infoUniqueId READ infoUniqueId NOTIFY languageChanged)
+    Q_PROPERTY(QString infoPartNumber READ infoPartNumber NOTIFY languageChanged)
     Q_PROPERTY(QString faultsEmpty READ faultsEmpty NOTIFY languageChanged)
     Q_PROPERTY(QString faultActive READ faultActive NOTIFY languageChanged)
     Q_PROPERTY(QString faultCleared READ faultCleared NOTIFY languageChanged)
@@ -487,6 +532,47 @@ public:
     QString captureLogsToastFailed() const { return lookup("captureLogsToastFailed"); }
     QString menuEnterUms() const { return lookup("menuEnterUms"); }
     QString menuFaults() const { return lookup("menuFaults"); }
+    QString menuSystemInfo() const { return lookup("menuSystemInfo"); }
+    QString systemInfoFirmware() const { return lookup("systemInfoFirmware"); }
+    QString systemInfoIdentity() const { return lookup("systemInfoIdentity"); }
+    QString systemInfoNetwork() const { return lookup("systemInfoNetwork"); }
+    QString menuInfoConnectivity() const { return lookup("menuInfoConnectivity"); }
+    QString menuInfoBatteries() const { return lookup("menuInfoBatteries"); }
+    QString systemInfoBoards() const { return lookup("systemInfoBoards"); }
+    QString systemInfoBluetooth() const { return lookup("systemInfoBluetooth"); }
+    QString systemInfoBattery0() const { return lookup("systemInfoBattery0"); }
+    QString systemInfoBattery1() const { return lookup("systemInfoBattery1"); }
+    QString systemInfoCbb() const { return lookup("systemInfoCbb"); }
+    QString systemInfoAux() const { return lookup("systemInfoAux"); }
+    QString systemInfoUnavailable() const { return lookup("systemInfoUnavailable"); }
+    QString menuInfoComponents() const { return lookup("menuInfoComponents"); }
+    QString infoMdbSerial() const { return lookup("infoMdbSerial"); }
+    QString infoDbcSerial() const { return lookup("infoDbcSerial"); }
+    QString infoMdbBuild() const { return lookup("infoMdbBuild"); }
+    QString infoDbcBuild() const { return lookup("infoDbcBuild"); }
+    QString infoEnvironment() const { return lookup("infoEnvironment"); }
+    QString infoOperator() const { return lookup("infoOperator"); }
+    QString infoAccessTech() const { return lookup("infoAccessTech"); }
+    QString infoSignal() const { return lookup("infoSignal"); }
+    QString infoRegistration() const { return lookup("infoRegistration"); }
+    QString infoRoaming() const { return lookup("infoRoaming"); }
+    QString infoSim() const { return lookup("infoSim"); }
+    QString infoConnectivity() const { return lookup("infoConnectivity"); }
+    QString infoIpAddress() const { return lookup("infoIpAddress"); }
+    QString infoMac() const { return lookup("infoMac"); }
+    QString infoStatus() const { return lookup("infoStatus"); }
+    QString infoConnected() const { return lookup("infoConnected"); }
+    QString infoDisconnected() const { return lookup("infoDisconnected"); }
+    QString infoSerial() const { return lookup("infoSerial"); }
+    QString infoHealth() const { return lookup("infoHealth"); }
+    QString infoCycles() const { return lookup("infoCycles"); }
+    QString infoCharge() const { return lookup("infoCharge"); }
+    QString infoChargeEstimated() const { return lookup("infoChargeEstimated"); }
+    QString infoVoltage() const { return lookup("infoVoltage"); }
+    QString infoFirmware() const { return lookup("infoFirmware"); }
+    QString infoManufactured() const { return lookup("infoManufactured"); }
+    QString infoUniqueId() const { return lookup("infoUniqueId"); }
+    QString infoPartNumber() const { return lookup("infoPartNumber"); }
     QString faultsEmpty() const { return lookup("faultsEmpty"); }
     QString faultActive() const { return lookup("faultActive"); }
     QString faultCleared() const { return lookup("faultCleared"); }

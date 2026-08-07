@@ -20,6 +20,7 @@ bool ScreenStore::isBrakeNavigated(ScootEnums::ScreenMode mode)
     case ScootEnums::ScreenMode::NavigationSetup:
     case ScootEnums::ScreenMode::Destination:
     case ScootEnums::ScreenMode::Faults:
+    case ScootEnums::ScreenMode::SystemInfo:
     case ScootEnums::ScreenMode::UpdateModeInfo:
     case ScootEnums::ScreenMode::HopOnInfo:
         return true;
@@ -98,6 +99,21 @@ void ScreenStore::showFaults()
 void ScreenStore::closeFaults()
 {
     setScreen(static_cast<int>(m_screenBeforeFaults));
+}
+
+void ScreenStore::showSystemInfo(int page)
+{
+    if (page != m_systemInfoPage) {
+        m_systemInfoPage = page;
+        emit systemInfoPageChanged();
+    }
+    m_screenBeforeSystemInfo = m_currentScreen;
+    setScreen(static_cast<int>(ScootEnums::ScreenMode::SystemInfo));
+}
+
+void ScreenStore::closeSystemInfo()
+{
+    setScreen(static_cast<int>(m_screenBeforeSystemInfo));
 }
 
 void ScreenStore::showUpdateModeInfo()

@@ -445,15 +445,6 @@ void MenuStore::rebuildMenuTree()
             }, powerIdx));
     }
 
-    // Milestone Celebrations (toggle) — confetti + banner when passing a
-    // 500 km milestone or an easter-egg number. Off by default.
-    {
-        bool milestonesOn = settings->milestoneCelebrations();
-        settingsNode->addChild(MenuNode::setting(QStringLiteral("settings_milestones"),
-            tr->menuMilestones(), milestonesOn ? 1 : 0,
-            [svc, milestonesOn]() { svc->updateMilestoneCelebrations(!milestonesOn); }));
-    }
-
     // Hop-on — learning / disabling the combo. Promoted to near the top
     // since it's a discoverable feature riders will want to find.
     // First-run (no combo): opens the info screen so the rider understands
@@ -490,6 +481,17 @@ void MenuStore::rebuildMenuTree()
                                             tr->menuStatusBar(),
                                             QStringLiteral("STATUS BAR"));
     settingsNode->addChild(statusBarNode);
+
+    // Milestone Celebrations (toggle) — confetti + banner when passing a
+    // 500 km milestone or an easter-egg number. Off by default. Sits with the
+    // other display chrome rather than above Hop-On: it is cosmetic and
+    // set-once, and Settings runs roughly most-used first.
+    {
+        bool milestonesOn = settings->milestoneCelebrations();
+        settingsNode->addChild(MenuNode::setting(QStringLiteral("settings_milestones"),
+            tr->menuMilestones(), milestonesOn ? 1 : 0,
+            [svc, milestonesOn]() { svc->updateMilestoneCelebrations(!milestonesOn); }));
+    }
 
     // Battery Display (inline cycle: Percentage → Range → Icons only)
     {
@@ -724,13 +726,42 @@ void MenuStore::rebuildMenuTree()
             return !(m_settings && m_settings->serviceActive() == QLatin1String("true"));
         }));
 
-    // Faults entry under settings — always visible, shows "(N)" when active > 0.
+    // System Info: firmware/board identity, modem + SIM identity, pack serials
+    // and health, and the fault log. All of them answer "what do I tell
+    // support", and splitting them into pages beats scrolling a 480px screen
+    // past four unrelated topics to reach the one you want.
+    //
+    // The active-fault count rides on the parent entry as well as on Faults
+    // itself, so burying the log one level down doesn't hide the one thing
+    // about it that was visible from the System menu before.
     {
         const int activeFaults = m_faults ? m_faults->activeCount() : 0;
-        QString label = tr->menuFaults();
-        if (activeFaults > 0)
-            label = QStringLiteral("%1 (%2)").arg(label).arg(activeFaults);
-        systemNode->addChild(MenuNode::action(QStringLiteral("faults"), label, [this]() {
+        auto withCount = [activeFaults](const QString &label) {
+            return activeFaults > 0 ? QStringLiteral("%1 (%2)").arg(label).arg(activeFaults)
+                                    : label;
+        };
+
+        auto *infoNode = systemNode->addChild(MenuNode::submenu(
+            QStringLiteral("system_info"), withCount(tr->menuSystemInfo()),
+            tr->menuSystemInfo().toUpper()));
+
+        struct Page { const char *id; QString title; int page; };
+        const Page pages[] = {
+            {"system_info_device", tr->menuInfoComponents(), ScreenStore::SystemInfoDevice},
+            {"system_info_connectivity", tr->menuInfoConnectivity(), ScreenStore::SystemInfoConnectivity},
+            {"system_info_batteries", tr->menuInfoBatteries(), ScreenStore::SystemInfoBatteries},
+        };
+        for (const auto &p : pages) {
+            const int page = p.page;
+            infoNode->addChild(MenuNode::action(QLatin1String(p.id), p.title, [this, page]() {
+                close();
+                if (m_screenStore)
+                    m_screenStore->showSystemInfo(page);
+            }));
+        }
+
+        infoNode->addChild(MenuNode::action(QStringLiteral("faults"),
+                                            withCount(tr->menuFaults()), [this]() {
             close();
             if (m_screenStore)
                 m_screenStore->showFaults();
