@@ -331,10 +331,10 @@ void Translations::initStrings()
     en[QStringLiteral("menuOnline")] = QStringLiteral("Online");
     de[QStringLiteral("menuOnline")] = QStringLiteral("Online");
 
-    en[QStringLiteral("menuBlinker")] = QStringLiteral("Blinker");
+    en[QStringLiteral("menuBlinker")] = QStringLiteral("Blinkers");
     de[QStringLiteral("menuBlinker")] = QStringLiteral("Blinker");
 
-    en[QStringLiteral("menuBlinkerHeader")] = QStringLiteral("BLINKER");
+    en[QStringLiteral("menuBlinkerHeader")] = QStringLiteral("BLINKERS");
     de[QStringLiteral("menuBlinkerHeader")] = QStringLiteral("BLINKER");
 
     en[QStringLiteral("menuDbcBlinkerLed")] = QStringLiteral("DBC Blinker LED");
