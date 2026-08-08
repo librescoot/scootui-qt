@@ -63,9 +63,8 @@ void SystemInfoService::recomputeVersions()
     // Board serials live on the per-board version hashes, written by
     // version-service from the i.MX6 OCOTP fuses: serial_number_real is the
     // full UID, serial_number the decimal sum of CFG0 and CFG1. Prefer the
-    // full one. (They are NOT on the `system` hash: system[dbc-sn] exists on
-    // some vehicles but nothing in the tree writes it, so it is stale data,
-    // not a source.)
+    // full one. They are not on the `system` hash, whatever a `*-sn` field
+    // there may look like.
     auto serial = [](const FieldMap &ver) {
         const QString real = ver.value(QStringLiteral("serial_number_real"));
         return real.isEmpty() ? ver.value(QStringLiteral("serial_number")) : real;
