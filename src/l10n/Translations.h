@@ -77,7 +77,6 @@ class Translations : public QObject
     Q_PROPERTY(QString menuInfoComponents READ menuInfoComponents NOTIFY languageChanged)
     Q_PROPERTY(QString infoMdbSerial READ infoMdbSerial NOTIFY languageChanged)
     Q_PROPERTY(QString infoDbcSerial READ infoDbcSerial NOTIFY languageChanged)
-    Q_PROPERTY(QString infoEnvironment READ infoEnvironment NOTIFY languageChanged)
     Q_PROPERTY(QString infoOperator READ infoOperator NOTIFY languageChanged)
     Q_PROPERTY(QString infoAccessTech READ infoAccessTech NOTIFY languageChanged)
     Q_PROPERTY(QString infoSignal READ infoSignal NOTIFY languageChanged)
@@ -546,7 +545,6 @@ public:
     QString menuInfoComponents() const { return lookup("menuInfoComponents"); }
     QString infoMdbSerial() const { return lookup("infoMdbSerial"); }
     QString infoDbcSerial() const { return lookup("infoDbcSerial"); }
-    QString infoEnvironment() const { return lookup("infoEnvironment"); }
     QString infoOperator() const { return lookup("infoOperator"); }
     QString infoAccessTech() const { return lookup("infoAccessTech"); }
     QString infoSignal() const { return lookup("infoSignal"); }

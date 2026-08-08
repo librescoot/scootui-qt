@@ -798,8 +798,6 @@ void SimulatorService::loadPreset(const QString &name)
                     QStringLiteral("94"));
         m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("cycle-count"),
                     QStringLiteral("5"));
-        m_repo->set(QStringLiteral("system"), QStringLiteral("environment"),
-                    QStringLiteral("production"));
         m_repo->set(QStringLiteral("version:mdb"), QStringLiteral("serial_number_real"),
                     QStringLiteral("3a1d59d4d1e145d2"));
         m_repo->set(QStringLiteral("version:dbc"), QStringLiteral("serial_number_real"),

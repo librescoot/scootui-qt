@@ -72,7 +72,6 @@ void SystemInfoService::recomputeVersions()
 
     addDeviceRow(QStringLiteral("infoMdbSerial"), serial(mdbVer));
     addDeviceRow(QStringLiteral("infoDbcSerial"), serial(dbcVer));
-    addDeviceRow(QStringLiteral("infoEnvironment"), system.value(QStringLiteral("environment")));
 
     if (mdbVer.contains(QStringLiteral("version"))) {
         addRow(QStringLiteral("MDB"), mdbVer.value(QStringLiteral("version")));

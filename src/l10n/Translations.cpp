@@ -244,8 +244,6 @@ void Translations::initStrings()
     de[QStringLiteral("infoMdbSerial")] = QStringLiteral("MDB-S/N");
     en[QStringLiteral("infoDbcSerial")] = QStringLiteral("DBC S/N");
     de[QStringLiteral("infoDbcSerial")] = QStringLiteral("DBC-S/N");
-    en[QStringLiteral("infoEnvironment")] = QStringLiteral("Environment");
-    de[QStringLiteral("infoEnvironment")] = QStringLiteral("Umgebung");
     en[QStringLiteral("infoOperator")] = QStringLiteral("Operator");
     de[QStringLiteral("infoOperator")] = QStringLiteral("Netzbetreiber");
     en[QStringLiteral("infoAccessTech")] = QStringLiteral("Access tech");
