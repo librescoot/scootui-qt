@@ -29,6 +29,14 @@ void SystemInfoService::loadVersions()
     recomputeVersions();
 }
 
+// Picks the human-readable version from a version:<board> hash, falling back
+// to the lowercase version_id when the full string is absent.
+static QString boardVersion(const FieldMap &ver)
+{
+    const QString v = ver.value(QStringLiteral("version"));
+    return v.isEmpty() ? ver.value(QStringLiteral("version_id")) : v;
+}
+
 void SystemInfoService::recomputeVersions()
 {
     FieldMap system = m_repo->getAll(QStringLiteral("system"));
@@ -73,17 +81,14 @@ void SystemInfoService::recomputeVersions()
     addDeviceRow(QStringLiteral("infoMdbSerial"), serial(mdbVer));
     addDeviceRow(QStringLiteral("infoDbcSerial"), serial(dbcVer));
 
-    if (mdbVer.contains(QStringLiteral("version"))) {
-        addRow(QStringLiteral("MDB"), mdbVer.value(QStringLiteral("version")));
-    } else if (system.contains(QStringLiteral("mdb-version"))) {
-        addRow(QStringLiteral("MDB"), system[QStringLiteral("mdb-version")]);
-    }
+    // Board versions come from version-service only. The system hash carries
+    // mdb-version/dbc-version too, but radio-gaga writes those, and the
+    // dashboard must not depend on a cloud client being installed.
+    const QString mdbV = boardVersion(mdbVer);
+    if (!mdbV.isEmpty()) addRow(QStringLiteral("MDB"), mdbV);
 
-    if (dbcVer.contains(QStringLiteral("version"))) {
-        addRow(QStringLiteral("DBC"), dbcVer.value(QStringLiteral("version")));
-    } else if (system.contains(QStringLiteral("dbc-version"))) {
-        addRow(QStringLiteral("DBC"), system[QStringLiteral("dbc-version")]);
-    }
+    const QString dbcV = boardVersion(dbcVer);
+    if (!dbcV.isEmpty()) addRow(QStringLiteral("DBC"), dbcV);
 
     const QString nrf = system.value(QStringLiteral("nrf-fw-version"));
     if (!nrf.isEmpty()) addRow(QStringLiteral("nRF"), nrf);
@@ -94,13 +99,8 @@ void SystemInfoService::recomputeVersions()
     // Individual version strings for direct QML binding
     auto ver = [](const QString &v) { return v.isEmpty() ? QStringLiteral("unknown") : v; };
 
-    QString mdbVersion = mdbVer.contains(QStringLiteral("version"))
-        ? ver(mdbVer.value(QStringLiteral("version")))
-        : ver(system.value(QStringLiteral("mdb-version")));
-
-    QString dbcVersion = dbcVer.contains(QStringLiteral("version"))
-        ? ver(dbcVer.value(QStringLiteral("version")))
-        : ver(system.value(QStringLiteral("dbc-version")));
+    QString mdbVersion = ver(mdbV);
+    QString dbcVersion = ver(dbcV);
 
     QString nrfVersion = ver(nrf);
     QString ecuVersion = ver(ecu);
