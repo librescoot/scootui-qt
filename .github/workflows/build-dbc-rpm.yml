@@ -46,8 +46,54 @@ jobs:
       - name: Setup build environment
         working-directory: librescoot
         run: |
-          mkdir -p yocto
-          sudo chown 999:999 yocto
+          set -euo pipefail
+
+          # build.sh bind-mounts $(pwd)/yocto into the container as /yocto, and
+          # entrypoint.sh only runs `repo init`/`repo sync` when /yocto/.repo is
+          # missing. A workspace initialised from one NXP manifest therefore keeps
+          # that manifest's source layout forever. When the base moved to wrynose
+          # the core layers moved from sources/poky to sources/openembedded-core
+          # and sources/meta-yocto, so bblayers.conf pointed at directories that no
+          # longer existed and bitbake aborted before parsing a single recipe.
+          #
+          # Give each base its own workspace rather than recycling one. The key is
+          # read from the manifest entrypoint.sh actually ships with, so a future
+          # base switch picks up a fresh tree on its own, and the tree for a base
+          # we are no longer on keeps its sstate-cache and downloads in case we
+          # build on it again.
+          manifest_line=$(grep -m1 'repo init' docker/entrypoint.sh || true)
+          branch=$(printf '%s' "$manifest_line" | sed -n 's/.*-b \([^ ]*\).*/\1/p')
+          xml=$(printf '%s' "$manifest_line" | sed -n 's/.*-m \([^ ]*\).*/\1/p')
+          if [ -z "$branch" ] || [ -z "$xml" ]; then
+            echo "Could not read the repo manifest out of docker/entrypoint.sh." >&2
+            echo "Line was: ${manifest_line:-<none found>}" >&2
+            exit 1
+          fi
+          base_key="${branch}-${xml%.xml}"
+          echo "Yocto base: ${base_key}"
+
+          ws_root="${HOME}/librescoot-yocto"
+          ws="${ws_root}/${base_key}"
+          mkdir -p "$ws"
+
+          # One-time migration off the single shared workspace. Move it aside
+          # instead of deleting it: it holds a large sstate-cache and downloads
+          # dir that are still valid for the base it was built on.
+          if [ -e yocto ] && [ ! -L yocto ]; then
+            legacy="${ws_root}/legacy-shared"
+            if [ -e "$legacy" ]; then
+              echo "Both ./yocto and ${legacy} exist; refusing to guess which to keep." >&2
+              echo "Remove or rename one on the runner, then re-run." >&2
+              exit 1
+            fi
+            echo "Moving the pre-split workspace to ${legacy}"
+            mv yocto "$legacy"
+          fi
+
+          ln -sfn "$ws" yocto
+          sudo chown 999:999 "$ws"
+          echo "Workspace: $(readlink -f yocto)"
+          df -h "$ws" | tail -1
 
       - name: Detect scootui-qt branch and commit
         id: scootui-qt-ref
