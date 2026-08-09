@@ -31,12 +31,16 @@ public:
     const QList<CycleOption> &cycleOptions() const { return m_cycleOptions; }
     int cycleIndex() const { return m_cycleIndex; }
     QString currentValueLabel() const {
+        if (!m_valueLabel.isEmpty()) return m_valueLabel;
         if (m_cycleOptions.isEmpty()) return {};
         return m_cycleOptions[m_cycleIndex].label;
     }
 
     // Setters
     void setHeaderTitle(const QString &t) { m_headerTitle = t; }
+    // Trailing text for rows that aren't cycle settings, e.g. an action that
+    // reports state alongside what it does.
+    void setValueLabel(const QString &t) { m_valueLabel = t; }
     void setCurrentValue(int v) { m_currentValue = v; }
     void setOnAction(std::function<void()> fn) { m_onAction = std::move(fn); }
     void setIsVisible(std::function<bool()> fn) { m_isVisible = std::move(fn); }
@@ -114,6 +118,7 @@ private:
     QString m_id;
     QString m_title;
     QString m_headerTitle;
+    QString m_valueLabel;
     MenuNodeType m_type;
     MenuNode *m_parent = nullptr;
     int m_currentValue = 0;

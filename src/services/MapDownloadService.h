@@ -62,6 +62,8 @@ public:
     // installed as ones this service downloaded.
     bool hasMapsInstalled() const;
     bool hasResolvedRegion() const { return !m_resolvedSlug.isEmpty(); }
+    // ISO-8601 UTC, empty when this vehicle has never completed a check.
+    QString lastUpdateCheck() const { return m_metadata.lastUpdateCheck; }
     bool shouldCheckForUpdates() const;
 
 signals:
