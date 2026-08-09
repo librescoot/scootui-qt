@@ -38,6 +38,12 @@ public:
     QString endpoint() const { return m_endpoint; }
     void setLanguage(const QString &lang);
 
+    // Routing preferences, as the rider set them in Settings. "fastest" or
+    // "shortest", and cobblestone avoidance "off" / "low" / "medium" / "high".
+    // Unknown values fall back to the defaults rather than being sent on.
+    void setRoutePreference(const QString &pref);
+    void setAvoidCobblestone(const QString &level);
+
     // Optional provider for the route departure time. Called at request-build
     // time; returns a local wall-clock string "yyyy-MM-ddTHH:mm" to attach as
     // Valhalla date_time (so time-conditional restrictions apply), or an empty
@@ -127,6 +133,11 @@ private:
     QNetworkAccessManager m_nam;
     QString m_endpoint;
     QString m_language = QStringLiteral("en-US");
+    bool m_shortest = false;
+    // Valhalla's avoid_bad_surfaces, 0 to 1 on a linear scale where the weight
+    // is the detour budget: how much extra travel time the router may spend to
+    // skip a rough stretch, as a multiple of the time it would take to ride it.
+    double m_avoidBadSurfaces = 0.5;
     std::function<QString()> m_departureTimeProvider;
 
     // Debounce: latest pending request, dispatched when m_debounce fires

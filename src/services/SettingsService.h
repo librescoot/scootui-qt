@@ -36,6 +36,8 @@ public:
     Q_INVOKABLE void updateMapType(const QString &type);
     Q_INVOKABLE void updateMapRenderMode(const QString &mode);
     Q_INVOKABLE void updateValhallaEndpoint(const QString &url);
+    Q_INVOKABLE void updateRoutePreference(const QString &pref);
+    Q_INVOKABLE void updateAvoidCobblestone(const QString &level);
     Q_INVOKABLE void updatePowerDisplayMode(const QString &mode);
     Q_INVOKABLE void updateHopOnCombo(const QString &combo);
     Q_INVOKABLE void updateMapCheckForUpdates(bool enabled);

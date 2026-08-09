@@ -348,6 +348,30 @@ void Translations::initStrings()
     en[QStringLiteral("menuNavRouting")] = QStringLiteral("Navigation Routing");
     de[QStringLiteral("menuNavRouting")] = QStringLiteral("Navigations-Routing");
 
+    en[QStringLiteral("menuRoutePreference")] = QStringLiteral("Route");
+    de[QStringLiteral("menuRoutePreference")] = QStringLiteral("Route");
+
+    en[QStringLiteral("menuRouteFastest")] = QStringLiteral("Fastest");
+    de[QStringLiteral("menuRouteFastest")] = QStringLiteral("Schnellste");
+
+    en[QStringLiteral("menuRouteShortest")] = QStringLiteral("Shortest");
+    de[QStringLiteral("menuRouteShortest")] = QStringLiteral("Kürzeste");
+
+    en[QStringLiteral("menuAvoidCobblestone")] = QStringLiteral("Avoid Cobblestone");
+    de[QStringLiteral("menuAvoidCobblestone")] = QStringLiteral("Kopfsteinpflaster meiden");
+
+    en[QStringLiteral("optOff")] = QStringLiteral("Off");
+    de[QStringLiteral("optOff")] = QStringLiteral("Aus");
+
+    en[QStringLiteral("optLow")] = QStringLiteral("Low");
+    de[QStringLiteral("optLow")] = QStringLiteral("Niedrig");
+
+    en[QStringLiteral("optMedium")] = QStringLiteral("Medium");
+    de[QStringLiteral("optMedium")] = QStringLiteral("Mittel");
+
+    en[QStringLiteral("optHigh")] = QStringLiteral("High");
+    de[QStringLiteral("optHigh")] = QStringLiteral("Hoch");
+
     en[QStringLiteral("menuMapUpdateCheck")] = QStringLiteral("Map Update Check");
     de[QStringLiteral("menuMapUpdateCheck")] = QStringLiteral("Kartenupdate-Pr\u00fcfung");
 

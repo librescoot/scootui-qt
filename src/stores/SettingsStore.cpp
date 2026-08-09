@@ -18,6 +18,8 @@ SyncSettings SettingsStore::syncSettings() const
             {QStringLiteral("mapType"), QStringLiteral("dashboard.map.type")},
             {QStringLiteral("mapRenderMode"), QStringLiteral("dashboard.map.render-mode")},
             {QStringLiteral("valhallaUrl"), QStringLiteral("dashboard.valhalla-url")},
+            {QStringLiteral("routePreference"), QStringLiteral("dashboard.route-preference")},
+            {QStringLiteral("avoidCobblestone"), QStringLiteral("dashboard.avoid-cobblestone")},
             {QStringLiteral("language"), QStringLiteral("dashboard.language")},
             {QStringLiteral("powerDisplayMode"), QStringLiteral("dashboard.power-display-mode")},
             {QStringLiteral("blinkerStyle"), QStringLiteral("dashboard.blinker-style")},
@@ -66,6 +68,10 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
         if (v != m_mapRenderMode) { m_mapRenderMode = v; emit mapRenderModeChanged(); }
     } else if (variable == QLatin1String("dashboard.valhalla-url")) {
         if (value != m_valhallaUrl) { m_valhallaUrl = value; emit valhallaUrlChanged(); }
+    } else if (variable == QLatin1String("dashboard.route-preference")) {
+        if (value != m_routePreference) { m_routePreference = value; emit routePreferenceChanged(); }
+    } else if (variable == QLatin1String("dashboard.avoid-cobblestone")) {
+        if (value != m_avoidCobblestone) { m_avoidCobblestone = value; emit avoidCobblestoneChanged(); }
     } else if (variable == QLatin1String("dashboard.language")) {
         if (value != m_language) { m_language = value; emit languageChanged(); }
     } else if (variable == QLatin1String("dashboard.power-display-mode")) {

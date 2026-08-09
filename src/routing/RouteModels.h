@@ -123,6 +123,9 @@ struct EdgeAttrs {
     int speedLimitKph = 0;   // 0 = unset (Valhalla had no posted limit)
     bool tunnel = false;
     bool bridge = false;
+    // paved_smooth / paved / paved_rough / compacted / dirt / gravel / path.
+    // Empty when the tileset carried no surface for the edge.
+    QString surface;
 };
 
 struct Route {

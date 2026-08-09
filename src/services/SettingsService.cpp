@@ -137,6 +137,16 @@ void SettingsService::updateValhallaEndpoint(const QString &url)
     writeSetting(QStringLiteral("dashboard.valhalla-url"), url);
 }
 
+void SettingsService::updateRoutePreference(const QString &pref)
+{
+    writeSetting(QStringLiteral("dashboard.route-preference"), pref);
+}
+
+void SettingsService::updateAvoidCobblestone(const QString &level)
+{
+    writeSetting(QStringLiteral("dashboard.avoid-cobblestone"), level);
+}
+
 void SettingsService::updatePowerDisplayMode(const QString &mode)
 {
     writeSetting(QStringLiteral("dashboard.power-display-mode"), mode);

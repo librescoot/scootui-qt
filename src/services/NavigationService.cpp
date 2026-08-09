@@ -58,6 +58,8 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
         m_valhalla->setEndpoint(url);
     }
     m_valhalla->setLanguage(settings->language());
+    m_valhalla->setRoutePreference(settings->routePreference());
+    m_valhalla->setAvoidCobblestone(settings->avoidCobblestone());
 
     // Connect Valhalla signals
     connect(m_valhalla, &ValhallaClient::routeCalculated,
@@ -97,6 +99,19 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
             m_valhalla->setEndpoint(url);
         }
     });
+
+    // Listen to routing preference changes — recalculate so the rider sees the
+    // new preference applied to the trip they are on, not just the next one.
+    auto applyRoutingPrefs = [this]() {
+        m_valhalla->setRoutePreference(m_settings->routePreference());
+        m_valhalla->setAvoidCobblestone(m_settings->avoidCobblestone());
+        if (isNavigating() && hasValidGps() && m_destination.isValid()) {
+            m_valhalla->requestRoute(currentGpsPosition(), m_destination,
+                                     ValhallaClient::Reason::Destination);
+        }
+    };
+    connect(settings, &SettingsStore::routePreferenceChanged, this, applyRoutingPrefs);
+    connect(settings, &SettingsStore::avoidCobblestoneChanged, this, applyRoutingPrefs);
 
     // Listen to language changes — recalculate route to get translated directions
     connect(settings, &SettingsStore::languageChanged, this, [this]() {

@@ -53,6 +53,23 @@ void ValhallaClient::setLanguage(const QString &lang)
     qDebug() << "ValhallaClient: language set to" << m_language;
 }
 
+void ValhallaClient::setRoutePreference(const QString &pref)
+{
+    m_shortest = (pref == QLatin1String("shortest"));
+    qDebug() << "ValhallaClient: route preference set to" << pref;
+}
+
+void ValhallaClient::setAvoidCobblestone(const QString &level)
+{
+    // Weights 0, 1, 4 and 8 on the costing's linear scale (max weight 8).
+    if (level == QLatin1String("off"))         m_avoidBadSurfaces = 0.0;
+    else if (level == QLatin1String("low"))    m_avoidBadSurfaces = 0.125;
+    else if (level == QLatin1String("high"))   m_avoidBadSurfaces = 1.0;
+    else                                       m_avoidBadSurfaces = 0.5;
+    qDebug() << "ValhallaClient: cobblestone avoidance set to" << level
+             << "(avoid_bad_surfaces" << m_avoidBadSurfaces << ")";
+}
+
 bool ValhallaClient::rateLimitBackoffActive() const
 {
     if (m_rateLimitBackoffMs <= 0 || !m_rateLimitArmed)
@@ -210,6 +227,22 @@ void ValhallaClient::sendRouteRequest(const LatLng &from, const LatLng &to)
                                   {QStringLiteral("radius"), 150}});
     request[QStringLiteral("locations")] = locations;
     request[QStringLiteral("costing")] = QStringLiteral("motor_scooter");
+
+    // Rider preferences. avoid_bad_surfaces needs a tileset that classifies
+    // sett and cobblestone separately and a costing that weighs it; on older
+    // tiles or an unpatched server it is simply ignored. Shortest mode returns
+    // raw edge length before any cost factor applies, so the surface weight
+    // would do nothing there and the menu hides the control instead.
+    QJsonObject costingOptions;
+    if (m_shortest)
+        costingOptions[QStringLiteral("shortest")] = true;
+    else if (m_avoidBadSurfaces > 0.0)
+        costingOptions[QStringLiteral("avoid_bad_surfaces")] = m_avoidBadSurfaces;
+    if (!costingOptions.isEmpty()) {
+        request[QStringLiteral("costing_options")] =
+            QJsonObject{{QStringLiteral("motor_scooter"), costingOptions}};
+    }
+
     request[QStringLiteral("units")] = QStringLiteral("kilometers");
     request[QStringLiteral("language")] = m_language;
     request[QStringLiteral("shape_format")] = QStringLiteral("polyline6");
@@ -439,6 +472,8 @@ void ValhallaClient::requestTraceAttributes(const QList<LatLng> &shape)
     attrs.append(QStringLiteral("edge.tunnel"));
     attrs.append(QStringLiteral("edge.bridge"));
     attrs.append(QStringLiteral("edge.road_class"));
+    attrs.append(QStringLiteral("edge.surface"));
+    attrs.append(QStringLiteral("edge.length"));
     attrs.append(QStringLiteral("edge.begin_shape_index"));
     attrs.append(QStringLiteral("edge.end_shape_index"));
     filters[QStringLiteral("attributes")] = attrs;
@@ -479,6 +514,9 @@ void ValhallaClient::handleTraceAttributesReply(QNetworkReply *reply, int segmen
     }
 
     QByteArray data = reply->readAll();
+    const QString surfaces = RouteHelpers::summarizeSurfaces(data);
+    if (!surfaces.isEmpty())
+        qDebug() << "ValhallaClient: route surface mix:" << surfaces;
     QList<EdgeAttrs> attrs =
         RouteHelpers::parseTraceAttributesResponse(data, segmentCount);
     if (attrs.isEmpty()) {

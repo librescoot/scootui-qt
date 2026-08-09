@@ -14,6 +14,8 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(int mapType READ mapType NOTIFY mapTypeChanged)
     Q_PROPERTY(int mapRenderMode READ mapRenderMode NOTIFY mapRenderModeChanged)
     Q_PROPERTY(QString valhallaUrl READ valhallaUrl NOTIFY valhallaUrlChanged)
+    Q_PROPERTY(QString routePreference READ routePreference NOTIFY routePreferenceChanged)
+    Q_PROPERTY(QString avoidCobblestone READ avoidCobblestone NOTIFY avoidCobblestoneChanged)
     Q_PROPERTY(QString language READ language NOTIFY languageChanged)
     Q_PROPERTY(int powerDisplayMode READ powerDisplayMode NOTIFY powerDisplayModeChanged)
     Q_PROPERTY(QString blinkerStyle READ blinkerStyle NOTIFY blinkerStyleChanged)
@@ -49,6 +51,8 @@ public:
     int mapType() const { return static_cast<int>(m_mapType); }
     int mapRenderMode() const { return static_cast<int>(m_mapRenderMode); }
     QString valhallaUrl() const { return m_valhallaUrl; }
+    QString routePreference() const { return m_routePreference; }
+    QString avoidCobblestone() const { return m_avoidCobblestone; }
     QString language() const { return m_language; }
     int powerDisplayMode() const { return static_cast<int>(m_powerDisplayMode); }
     QString blinkerStyle() const { return m_blinkerStyle; }
@@ -86,6 +90,8 @@ signals:
     void mapTypeChanged();
     void mapRenderModeChanged();
     void valhallaUrlChanged();
+    void routePreferenceChanged();
+    void avoidCobblestoneChanged();
     void languageChanged();
     void powerDisplayModeChanged();
     void blinkerStyleChanged();
@@ -128,6 +134,10 @@ private:
     ScootEnums::MapType m_mapType = ScootEnums::MapType::Offline;
     ScootEnums::MapRenderMode m_mapRenderMode = ScootEnums::MapRenderMode::Vector;
     QString m_valhallaUrl;
+    // @schema dashboard.route-preference
+    QString m_routePreference = QStringLiteral("fastest");
+    // @schema dashboard.avoid-cobblestone
+    QString m_avoidCobblestone = QStringLiteral("medium");
     // @schema dashboard.language
     QString m_language = QStringLiteral("en");
     // @schema dashboard.power-display-mode

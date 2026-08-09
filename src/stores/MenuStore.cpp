@@ -42,6 +42,8 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
     connect(m_settings, &SettingsStore::dualBatteryChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::hornWhenSeatboxOpenChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::batteryDisplayModeChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::routePreferenceChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::avoidCobblestoneChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::powerDisplayModeChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::alarmEnabledChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::alarmHonkChanged, this, &MenuStore::rebuildMenuTree);
@@ -611,6 +613,37 @@ void MenuStore::rebuildMenuTree()
                 {tr->menuOnline(), [svc]() { svc->updateValhallaEndpoint(QLatin1String(AppConfig::valhallaOnlineEndpoint)); }},
                 {tr->menuOffline(), [svc]() { svc->updateValhallaEndpoint(QLatin1String(AppConfig::valhallaOnDeviceEndpoint)); }},
             }, isOnlineRouting ? 0 : 1));
+    }
+
+    // Route Preference (inline cycle: Fastest → Shortest)
+    {
+        bool isShortest = settings->routePreference() == QLatin1String("shortest");
+        mapNavNode->addChild(MenuNode::cycleSetting(QStringLiteral("route_preference"),
+            tr->menuRoutePreference(), {
+                {tr->menuRouteFastest(),  [svc]() { svc->updateRoutePreference(QStringLiteral("fastest")); }},
+                {tr->menuRouteShortest(), [svc]() { svc->updateRoutePreference(QStringLiteral("shortest")); }},
+            }, isShortest ? 1 : 0));
+    }
+
+    // Avoid Cobblestone (inline cycle: Off → Low → Medium → High). Hidden while
+    // the route preference is Shortest: that mode costs by raw distance, so the
+    // surface weight would have no effect and the control would be lying.
+    {
+        const QString level = settings->avoidCobblestone();
+        int cobbleIdx = 2; // medium
+        if (level == QLatin1String("off")) cobbleIdx = 0;
+        else if (level == QLatin1String("low")) cobbleIdx = 1;
+        else if (level == QLatin1String("high")) cobbleIdx = 3;
+        mapNavNode->addChild(MenuNode::cycleSetting(QStringLiteral("avoid_cobblestone"),
+            tr->menuAvoidCobblestone(), {
+                {tr->optOff(),    [svc]() { svc->updateAvoidCobblestone(QStringLiteral("off")); }},
+                {tr->optLow(),    [svc]() { svc->updateAvoidCobblestone(QStringLiteral("low")); }},
+                {tr->optMedium(), [svc]() { svc->updateAvoidCobblestone(QStringLiteral("medium")); }},
+                {tr->optHigh(),   [svc]() { svc->updateAvoidCobblestone(QStringLiteral("high")); }},
+            }, cobbleIdx))
+            ->setIsVisible([this]() {
+                return m_settings->routePreference() != QLatin1String("shortest");
+            });
     }
 
     // Map Update Check (toggle)

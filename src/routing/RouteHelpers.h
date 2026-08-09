@@ -6,6 +6,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QHash>
+#include <QStringList>
 #include <QDebug>
 
 namespace RouteHelpers {
@@ -287,12 +289,60 @@ inline QList<EdgeAttrs> parseTraceAttributesResponse(const QByteArray &data,
         attrs.speedLimitKph = e.value(QStringLiteral("speed_limit")).toInt(0);
         attrs.tunnel = e.value(QStringLiteral("tunnel")).toBool();
         attrs.bridge = e.value(QStringLiteral("bridge")).toBool();
+        attrs.surface = e.value(QStringLiteral("surface")).toString();
 
         for (int i = begin; i < segHi; ++i)
             result[i] = attrs;
     }
 
     return result;
+}
+
+// Distance per surface class over a /trace_attributes response, in kilometers,
+// ordered smoothest first. `edge.length` comes back in the request's units.
+inline QString summarizeSurfaces(const QByteArray &data)
+{
+    static const QStringList order = {
+        QStringLiteral("paved_smooth"), QStringLiteral("paved"),
+        QStringLiteral("paved_rough"),  QStringLiteral("compacted"),
+        QStringLiteral("dirt"),         QStringLiteral("gravel"),
+        QStringLiteral("path"),         QStringLiteral("impassable"),
+    };
+
+    const QJsonArray edges =
+        QJsonDocument::fromJson(data).object().value(QStringLiteral("edges")).toArray();
+    if (edges.isEmpty())
+        return {};
+
+    QHash<QString, double> km;
+    double total = 0;
+    for (const auto &eVal : edges) {
+        const QJsonObject e = eVal.toObject();
+        const double len = e.value(QStringLiteral("length")).toDouble();
+        QString surface = e.value(QStringLiteral("surface")).toString();
+        if (surface.isEmpty())
+            surface = QStringLiteral("unknown");
+        km[surface] += len;
+        total += len;
+    }
+    if (total <= 0)
+        return {};
+
+    QStringList parts;
+    QStringList keys = order;
+    for (auto it = km.constBegin(); it != km.constEnd(); ++it) {
+        if (!keys.contains(it.key()))
+            keys.append(it.key());
+    }
+    for (const QString &k : std::as_const(keys)) {
+        if (!km.contains(k))
+            continue;
+        parts.append(QStringLiteral("%1 %2km (%3%)")
+                         .arg(k)
+                         .arg(km[k], 0, 'f', 2)
+                         .arg(100.0 * km[k] / total, 0, 'f', 0));
+    }
+    return parts.join(QStringLiteral(", "));
 }
 
 } // namespace RouteHelpers

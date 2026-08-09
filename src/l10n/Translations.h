@@ -119,6 +119,10 @@ class Translations : public QObject
     Q_PROPERTY(QString menuOnline READ menuOnline NOTIFY languageChanged)
     Q_PROPERTY(QString menuOffline READ menuOffline NOTIFY languageChanged)
     Q_PROPERTY(QString menuNavRouting READ menuNavRouting NOTIFY languageChanged)
+    Q_PROPERTY(QString menuRoutePreference READ menuRoutePreference NOTIFY languageChanged)
+    Q_PROPERTY(QString menuRouteFastest READ menuRouteFastest NOTIFY languageChanged)
+    Q_PROPERTY(QString menuRouteShortest READ menuRouteShortest NOTIFY languageChanged)
+    Q_PROPERTY(QString menuAvoidCobblestone READ menuAvoidCobblestone NOTIFY languageChanged)
     Q_PROPERTY(QString menuMapUpdateCheck READ menuMapUpdateCheck NOTIFY languageChanged)
     Q_PROPERTY(QString menuMapAutoDownload READ menuMapAutoDownload NOTIFY languageChanged)
     Q_PROPERTY(QString menuMilestones READ menuMilestones NOTIFY languageChanged)
@@ -170,6 +174,10 @@ class Translations : public QObject
     Q_PROPERTY(QString optErrorOnly READ optErrorOnly NOTIFY languageChanged)
     Q_PROPERTY(QString optNever READ optNever NOTIFY languageChanged)
     Q_PROPERTY(QString optWhenLow READ optWhenLow NOTIFY languageChanged)
+    Q_PROPERTY(QString optOff READ optOff NOTIFY languageChanged)
+    Q_PROPERTY(QString optLow READ optLow NOTIFY languageChanged)
+    Q_PROPERTY(QString optMedium READ optMedium NOTIFY languageChanged)
+    Q_PROPERTY(QString optHigh READ optHigh NOTIFY languageChanged)
 
     // Control hints
     Q_PROPERTY(QString controlBack READ controlBack NOTIFY languageChanged)
@@ -587,6 +595,10 @@ public:
     QString menuOnline() const { return lookup("menuOnline"); }
     QString menuOffline() const { return lookup("menuOffline"); }
     QString menuNavRouting() const { return lookup("menuNavRouting"); }
+    QString menuRoutePreference() const { return lookup("menuRoutePreference"); }
+    QString menuRouteFastest() const { return lookup("menuRouteFastest"); }
+    QString menuRouteShortest() const { return lookup("menuRouteShortest"); }
+    QString menuAvoidCobblestone() const { return lookup("menuAvoidCobblestone"); }
     QString menuMapUpdateCheck() const { return lookup("menuMapUpdateCheck"); }
     QString menuMapAutoDownload() const { return lookup("menuMapAutoDownload"); }
     QString menuMilestones() const { return lookup("menuMilestones"); }
@@ -637,6 +649,10 @@ public:
     QString optErrorOnly() const { return lookup("optErrorOnly"); }
     QString optNever() const { return lookup("optNever"); }
     QString optWhenLow() const { return lookup("optWhenLow"); }
+    QString optOff() const { return lookup("optOff"); }
+    QString optLow() const { return lookup("optLow"); }
+    QString optMedium() const { return lookup("optMedium"); }
+    QString optHigh() const { return lookup("optHigh"); }
 
     QString controlBack() const { return lookup("controlBack"); }
     QString controlExit() const { return lookup("controlExit"); }
