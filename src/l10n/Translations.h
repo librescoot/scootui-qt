@@ -484,6 +484,17 @@ class Translations : public QObject
 
     // Shortcut menu
     Q_PROPERTY(QString shortcutPressToConfirm READ shortcutPressToConfirm NOTIFY languageChanged)
+    // Captions for the highlighted shortcut. The theme and view icons show the
+    // state they switch to, so their captions name that target, not the
+    // current one.
+    Q_PROPERTY(QString shortcutToConfirm READ shortcutToConfirm NOTIFY languageChanged)
+    Q_PROPERTY(QString shortcutThemeAuto READ shortcutThemeAuto NOTIFY languageChanged)
+    Q_PROPERTY(QString shortcutThemeDark READ shortcutThemeDark NOTIFY languageChanged)
+    Q_PROPERTY(QString shortcutThemeLight READ shortcutThemeLight NOTIFY languageChanged)
+    Q_PROPERTY(QString shortcutViewMap READ shortcutViewMap NOTIFY languageChanged)
+    Q_PROPERTY(QString shortcutViewCluster READ shortcutViewCluster NOTIFY languageChanged)
+    Q_PROPERTY(QString shortcutToggleHazards READ shortcutToggleHazards NOTIFY languageChanged)
+    Q_PROPERTY(QString shortcutDebugOverlay READ shortcutDebugOverlay NOTIFY languageChanged)
 
     Q_PROPERTY(QString language READ language NOTIFY languageChanged)
 
@@ -955,6 +966,14 @@ public:
 
     // Shortcut menu
     QString shortcutPressToConfirm() const { return lookup("shortcutPressToConfirm"); }
+    QString shortcutToConfirm() const { return lookup("shortcutToConfirm"); }
+    QString shortcutThemeAuto() const { return lookup("shortcutThemeAuto"); }
+    QString shortcutThemeDark() const { return lookup("shortcutThemeDark"); }
+    QString shortcutThemeLight() const { return lookup("shortcutThemeLight"); }
+    QString shortcutViewMap() const { return lookup("shortcutViewMap"); }
+    QString shortcutViewCluster() const { return lookup("shortcutViewCluster"); }
+    QString shortcutToggleHazards() const { return lookup("shortcutToggleHazards"); }
+    QString shortcutDebugOverlay() const { return lookup("shortcutDebugOverlay"); }
 
 signals:
     void languageChanged();

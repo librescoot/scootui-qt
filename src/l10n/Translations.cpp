@@ -1393,4 +1393,22 @@ void Translations::initStrings()
 
     en[QStringLiteral("shortcutPressToConfirm")] = QStringLiteral("Press to confirm");
     de[QStringLiteral("shortcutPressToConfirm")] = QStringLiteral("Zum Best\u00E4tigen dr\u00FCcken");
+
+    en[QStringLiteral("shortcutToConfirm")] = QStringLiteral("to confirm");
+    de[QStringLiteral("shortcutToConfirm")] = QStringLiteral("zum Best\u00E4tigen");
+
+    en[QStringLiteral("shortcutThemeAuto")] = QStringLiteral("Auto Theme");
+    de[QStringLiteral("shortcutThemeAuto")] = QStringLiteral("Automatisches Design");
+    en[QStringLiteral("shortcutThemeDark")] = QStringLiteral("Dark Theme");
+    de[QStringLiteral("shortcutThemeDark")] = QStringLiteral("Dunkles Design");
+    en[QStringLiteral("shortcutThemeLight")] = QStringLiteral("Light Theme");
+    de[QStringLiteral("shortcutThemeLight")] = QStringLiteral("Helles Design");
+    en[QStringLiteral("shortcutViewMap")] = QStringLiteral("Map View");
+    de[QStringLiteral("shortcutViewMap")] = QStringLiteral("Kartenansicht");
+    en[QStringLiteral("shortcutViewCluster")] = QStringLiteral("Cluster View");
+    de[QStringLiteral("shortcutViewCluster")] = QStringLiteral("Tachoansicht");
+    en[QStringLiteral("shortcutToggleHazards")] = QStringLiteral("Toggle Hazards");
+    de[QStringLiteral("shortcutToggleHazards")] = QStringLiteral("Warnblinker umschalten");
+    en[QStringLiteral("shortcutDebugOverlay")] = QStringLiteral("Debug Overlay");
+    de[QStringLiteral("shortcutDebugOverlay")] = QStringLiteral("Debug-Overlay");
 }
