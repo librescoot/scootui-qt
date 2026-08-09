@@ -5,9 +5,11 @@
 #include <QNetworkReply>
 #include <QFile>
 #include <QCryptographicHash>
+#include <QFutureWatcher>
 #include <functional>
 #include "models/Enums.h"
 #include "models/MapMetadata.h"
+#include "utils/ZstdDecompressor.h"
 
 class MapDownloadService : public QObject
 {
@@ -93,6 +95,17 @@ private:
                   const QString &destPath, bool isDisplay);
     void doInstall(const QString &tempPath, const QString &destPath, bool isDisplay,
                    const QString &digest = {});
+    // Decompression of a routing archive, off the GUI thread. Resumes in
+    // finishInstall() once the worker is done.
+    void startDecompressInstall(const QString &compressedPath, const QString &destPath,
+                                const QString &digest);
+    // Tail of doInstall: the atomic rename plus the metadata bookkeeping that
+    // follows it. Always runs on the thread that owns this object.
+    void finishInstall(const QString &installSource, const QString &destPath, bool isDisplay,
+                       const QString &digest);
+    // Picks the compressed or the plain transfer and drops the other path's
+    // leftover .part. Both places that begin the routing download go through here.
+    void startRoutingDownload();
     void doFinishAll();
 
     void fetchTilesManifest(std::function<void(const QJsonObject &)> callback);
@@ -130,6 +143,9 @@ private:
     // download. Cleared after the first readyRead chunk of the reply has been
     // checked for a server that ignored our Range header (see doDownloadFile).
     bool m_resumeAppend = false;
+    // Non-null only while a routing archive is being decompressed on a worker
+    // thread. cancel() uses it to ask that worker to stop.
+    QFutureWatcher<ZstdDecompressor::Outcome> *m_decompressWatcher = nullptr;
 
     ScootEnums::MapDownloadStatus m_status = ScootEnums::MapDownloadStatus::Idle;
     double m_progress = 0.0;

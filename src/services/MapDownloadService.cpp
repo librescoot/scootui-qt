@@ -9,12 +9,17 @@
 #include <QStorageInfo>
 #include <QDebug>
 #include <QtConcurrent>
+#include <QPromise>
 
 #include <cstdio>
 
 #ifdef Q_OS_LINUX
 #include <QProcess>
 #endif
+
+// QFuture reports progress as an int, so the decompression pass scales its
+// byte count into this many steps before handing it over.
+static constexpr int DecompressProgressSteps = 10000;
 
 const QHash<QString, QString> MapDownloadService::s_stateToSlug = {
     {QStringLiteral("Baden-Württemberg"), QStringLiteral("baden-wuerttemberg")},
@@ -125,6 +130,11 @@ void MapDownloadService::cancel()
         m_currentFile->deleteLater();
         m_currentFile = nullptr;
     }
+    // A routing archive may be decompressing on a worker thread. It polls this
+    // between input blocks and clears its own partial output on the way out,
+    // so there is nothing to tidy up here.
+    if (m_decompressWatcher)
+        m_decompressWatcher->cancel();
     m_progress = 0.0;
     m_downloadedBytes = 0;
     m_totalBytes = 0;
@@ -417,6 +427,15 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
             // Optional compressed variant. url/size/sha256 above stay the
             // uncompressed tar, because that is what lands on disk and what the
             // installed-digest comparison in checkForUpdates() is written against.
+            //
+            // Cleared before the parse: m_routingAsset survives across fetches,
+            // so a manifest that offers no compressed variant (different
+            // region, or the key went away) would otherwise leave the previous
+            // one in place and keep useCompressed() true.
+            m_routingAsset.compressedUrl.clear();
+            m_routingAsset.compressedDigest.clear();
+            m_routingAsset.compressedSize = 0;
+
             const auto compressed = valhalla[QStringLiteral("compressed")].toObject();
             if (!compressed.isEmpty()
                 && compressed[QStringLiteral("codec")].toString() == QLatin1String("zstd")) {
@@ -424,8 +443,13 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
                 m_routingAsset.compressedDigest = compressed[QStringLiteral("sha256")].toString();
                 m_routingAsset.compressedSize =
                     static_cast<qint64>(compressed[QStringLiteral("size")].toDouble());
-                if (m_routingAsset.compressedUrl.isEmpty() || m_routingAsset.compressedSize <= 0) {
-                    // Incomplete entry: fall back to the plain tar rather than guess.
+                // Incomplete entry: fall back to the plain tar rather than
+                // guess. The digest has to be there too, because doVerify()
+                // skips verification outright on an empty one, and installing
+                // unverified bytes is worse than spending the extra megabytes.
+                if (m_routingAsset.compressedUrl.isEmpty()
+                    || m_routingAsset.compressedDigest.isEmpty()
+                    || m_routingAsset.compressedSize <= 0) {
                     m_routingAsset.compressedUrl.clear();
                     m_routingAsset.compressedDigest.clear();
                     m_routingAsset.compressedSize = 0;
@@ -475,15 +499,31 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
             doDownloadFile(m_displayAsset.url, displayPartPath(),
                           m_displayAsset.digest, m_displayAsset.size, true);
         } else if (!m_routingDone) {
-            if (m_routingAsset.useCompressed()) {
-                doDownloadFile(m_routingAsset.compressedUrl, routingCompressedPartPath(),
-                              m_routingAsset.compressedDigest, m_routingAsset.compressedSize, false);
-            } else {
-                doDownloadFile(m_routingAsset.url, routingPartPath(),
-                              m_routingAsset.digest, m_routingAsset.size, false);
-            }
+            startRoutingDownload();
         }
     });
+}
+
+void MapDownloadService::startRoutingDownload()
+{
+    // Only one of the two transfer paths can be in flight, and which one it is
+    // can change under us: a vehicle that started a plain-tar download before
+    // the compressed variant was published resumes on the compressed path, and
+    // a manifest that drops the variant sends it back the other way. The .part
+    // for the path not taken is then dead weight, up to ~725 MB of it on /data,
+    // and it keeps hasPartialRoutingDownload() true for good. Drop it here,
+    // where the choice is actually made.
+    const bool compressed = m_routingAsset.useCompressed();
+    QFile::remove(compressed ? routingPartPath() : routingCompressedPartPath());
+    emit partialStateChanged();
+
+    if (compressed) {
+        doDownloadFile(m_routingAsset.compressedUrl, routingCompressedPartPath(),
+                       m_routingAsset.compressedDigest, m_routingAsset.compressedSize, false);
+    } else {
+        doDownloadFile(m_routingAsset.url, routingPartPath(),
+                       m_routingAsset.digest, m_routingAsset.size, false);
+    }
 }
 
 void MapDownloadService::doDownloadFile(const QString &url, const QString &destPath,
@@ -651,30 +691,100 @@ void MapDownloadService::doInstall(const QString &tempPath, const QString &destP
     QDir().mkpath(QFileInfo(destPath).absolutePath());
 
     // The routing archive is transferred compressed but has to land as a plain
-    // seekable tar, because valhalla mmaps it as its tile_extract. Decompress
-    // into a sibling .part first so the rename below stays atomic.
-    QString installSource = tempPath;
+    // seekable tar, because valhalla mmaps it as its tile_extract. That is 30
+    // to 60 seconds of work for a large region, so it does not happen here:
+    // startDecompressInstall() hands it to a worker thread and calls
+    // finishInstall() when it comes back. The display path has no compressed
+    // variant and stays entirely synchronous.
     if (!isDisplay && m_routingAsset.useCompressed()
         && tempPath == routingCompressedPartPath()) {
-        const QString decompressedPath = routingPartPath();
-        QString err;
-        const qint64 total = m_routingAsset.size;
-        const bool ok = ZstdDecompressor::decompressFile(
-            tempPath, decompressedPath, total,
-            [this, total](qint64 done) {
-                m_progress = total > 0 ? static_cast<double>(done) / total : 0.0;
-                emit progressChanged();
-            },
-            &err);
-        if (!ok) {
-            QFile::remove(decompressedPath);
-            QFile::remove(tempPath);
-            setError(err);
+        startDecompressInstall(tempPath, destPath, digest);
+        return;
+    }
+
+    finishInstall(tempPath, destPath, isDisplay, digest);
+}
+
+void MapDownloadService::startDecompressInstall(const QString &compressedPath,
+                                                const QString &destPath,
+                                                const QString &digest)
+{
+    // Decompress into a sibling .part first so the rename in finishInstall()
+    // stays atomic.
+    const QString decompressedPath = routingPartPath();
+    const qint64 total = m_routingAsset.size;
+
+    // The worker touches nothing but its QPromise. Progress goes out as a
+    // progress value, which QFutureWatcher re-emits on the thread that owns
+    // the watcher, and cancellation comes back in the same way, so m_progress
+    // and m_cancelled stay single-threaded even though the decode is not.
+    auto future = QtConcurrent::run(
+        [compressedPath, decompressedPath, total](QPromise<ZstdDecompressor::Outcome> &promise) {
+            promise.setProgressRange(0, DecompressProgressSteps);
+            promise.addResult(ZstdDecompressor::decompressFile(
+                compressedPath, decompressedPath, total,
+                [&promise, total](qint64 done) {
+                    if (total > 0) {
+                        promise.setProgressValue(
+                            static_cast<int>(done * DecompressProgressSteps / total));
+                    }
+                },
+                [&promise]() { return promise.isCanceled(); }));
+        });
+
+    auto *watcher = new QFutureWatcher<ZstdDecompressor::Outcome>(this);
+    m_decompressWatcher = watcher;
+
+    connect(watcher, &QFutureWatcher<ZstdDecompressor::Outcome>::progressValueChanged, this,
+            [this](int value) {
+        m_progress = static_cast<double>(value) / DecompressProgressSteps;
+        emit progressChanged();
+    });
+
+    connect(watcher, &QFutureWatcher<ZstdDecompressor::Outcome>::finished, this,
+            [this, watcher, compressedPath, decompressedPath, destPath, digest]() {
+        watcher->deleteLater();
+        if (m_decompressWatcher == watcher)
+            m_decompressWatcher = nullptr;
+
+        // cancel() has already reset the UI and the worker cleared its own
+        // partial output, so a cancel is not an error and gets no toast. A
+        // cancelled promise may also carry no result at all, hence the count
+        // check before result() is touched.
+        if (m_cancelled || watcher->isCanceled() || watcher->future().resultCount() == 0)
+            return;
+
+        const ZstdDecompressor::Outcome outcome = watcher->result();
+        if (outcome.result == ZstdDecompressor::Result::Cancelled)
+            return;
+
+        if (!outcome.ok()) {
+            // The .zst.part already matched the published sha256, so a local
+            // write failure (ENOSPC, most likely) says nothing about those
+            // bytes. Keep them, and let the retry skip straight to install
+            // instead of pulling a couple of hundred megabytes over cellular
+            // again. Only a stream libzstd cannot decode is worth discarding,
+            // because retrying that would fail identically forever.
+            if (outcome.result == ZstdDecompressor::Result::SourceCorrupt) {
+                qWarning() << "Routing archive failed to decompress, discarding"
+                           << compressedPath << ":" << outcome.error;
+                QFile::remove(compressedPath);
+            }
+            emit partialStateChanged();
+            setError(outcome.error);
             return;
         }
-        QFile::remove(tempPath);
-        installSource = decompressedPath;
-    }
+
+        QFile::remove(compressedPath);
+        finishInstall(decompressedPath, destPath, false, digest);
+    });
+    watcher->setFuture(future);
+}
+
+void MapDownloadService::finishInstall(const QString &installSource, const QString &destPath,
+                                       bool isDisplay, const QString &digest)
+{
+    if (m_cancelled) return;
 
     // Atomic replace via POSIX rename: downloadDir/mapsDir/valhalla all live on
     // the same filesystem, so this swaps the file in a single step with no
@@ -729,13 +839,7 @@ void MapDownloadService::doInstall(const QString &tempPath, const QString &destP
     if (!m_displayDone) {
         // Should not happen in current flow since display is downloaded first
     } else if (!m_routingDone && m_needsRouting) {
-        if (m_routingAsset.useCompressed()) {
-            doDownloadFile(m_routingAsset.compressedUrl, routingCompressedPartPath(),
-                           m_routingAsset.compressedDigest, m_routingAsset.compressedSize, false);
-        } else {
-            doDownloadFile(m_routingAsset.url, routingPartPath(),
-                           m_routingAsset.digest, m_routingAsset.size, false);
-        }
+        startRoutingDownload();
         return;
     }
 
