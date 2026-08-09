@@ -47,6 +47,16 @@ public:
     // yet. Maps installed by the flasher come with no metadata at all, so
     // without this an update check has nothing to look up in the manifest.
     Q_INVOKABLE void checkForUpdatesAt(double lat, double lng);
+    // Check using whatever the service can work out on its own: the known
+    // region, else a digest match, else the position provider's fix.
+    Q_INVOKABLE void checkForUpdatesNow();
+
+    // Supplies a GPS fix when one is available. Returns false when there is
+    // none, in which case the check falls back to identifying the region by
+    // tile digest.
+    void setPositionProvider(std::function<bool(double &, double &)> fn) {
+        m_positionProvider = std::move(fn);
+    }
 
     // Files on disk, not bookkeeping: maps installed by the flasher are just as
     // installed as ones this service downloaded.
@@ -63,6 +73,9 @@ signals:
     void partialStateChanged();
     void estimatesChanged();
     void downloadComplete();
+    // Fires once per completed update check, whether or not anything changed,
+    // so a manual check can report back even when there is nothing to report.
+    void updateCheckCompleted(bool updateFound);
 
 private:
     void setStatus(ScootEnums::MapDownloadStatus s);
@@ -109,6 +122,7 @@ private:
     bool m_cancelled = false;
     // Set while an update check is waiting on region resolution to finish.
     bool m_pendingUpdateCheck = false;
+    std::function<bool(double &, double &)> m_positionProvider;
     // Set when the current file was opened in Append mode to resume a partial
     // download. Cleared after the first readyRead chunk of the reply has been
     // checked for a server that ignored our Range header (see doDownloadFile).

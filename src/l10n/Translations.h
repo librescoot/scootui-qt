@@ -120,6 +120,9 @@ class Translations : public QObject
     Q_PROPERTY(QString menuOffline READ menuOffline NOTIFY languageChanged)
     Q_PROPERTY(QString menuNavRouting READ menuNavRouting NOTIFY languageChanged)
     Q_PROPERTY(QString menuRoutePreference READ menuRoutePreference NOTIFY languageChanged)
+    Q_PROPERTY(QString menuMapCheckNow READ menuMapCheckNow NOTIFY languageChanged)
+    Q_PROPERTY(QString mapCheckingToast READ mapCheckingToast NOTIFY languageChanged)
+    Q_PROPERTY(QString mapsUpToDateToast READ mapsUpToDateToast NOTIFY languageChanged)
     Q_PROPERTY(QString menuRouteFastest READ menuRouteFastest NOTIFY languageChanged)
     Q_PROPERTY(QString menuRouteShortest READ menuRouteShortest NOTIFY languageChanged)
     Q_PROPERTY(QString menuAvoidCobblestone READ menuAvoidCobblestone NOTIFY languageChanged)
@@ -596,6 +599,9 @@ public:
     QString menuOffline() const { return lookup("menuOffline"); }
     QString menuNavRouting() const { return lookup("menuNavRouting"); }
     QString menuRoutePreference() const { return lookup("menuRoutePreference"); }
+    QString menuMapCheckNow() const { return lookup("menuMapCheckNow"); }
+    QString mapCheckingToast() const { return lookup("mapCheckingToast"); }
+    QString mapsUpToDateToast() const { return lookup("mapsUpToDateToast"); }
     QString menuRouteFastest() const { return lookup("menuRouteFastest"); }
     QString menuRouteShortest() const { return lookup("menuRouteShortest"); }
     QString menuAvoidCobblestone() const { return lookup("menuAvoidCobblestone"); }

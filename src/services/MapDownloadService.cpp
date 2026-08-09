@@ -149,6 +149,16 @@ void MapDownloadService::checkForUpdatesAt(double lat, double lng)
     doResolveSlug(lat, lng);
 }
 
+void MapDownloadService::checkForUpdatesNow()
+{
+    double lat = 0.0, lng = 0.0;
+    if (m_resolvedSlug.isEmpty() && m_positionProvider && m_positionProvider(lat, lng)) {
+        checkForUpdatesAt(lat, lng);
+        return;
+    }
+    checkForUpdates();
+}
+
 void MapDownloadService::checkForUpdates()
 {
     if (m_status != ScootEnums::MapDownloadStatus::Idle &&
@@ -161,6 +171,7 @@ void MapDownloadService::checkForUpdates()
     fetchTilesManifest([this](const QJsonObject &manifest) {
         if (manifest.isEmpty()) {
             setStatus(ScootEnums::MapDownloadStatus::Idle);
+            emit updateCheckCompleted(false);
             return;
         }
 
@@ -170,12 +181,14 @@ void MapDownloadService::checkForUpdates()
             qDebug() << "Map update check: region unknown and digests match no "
                         "published region, skipping";
             setStatus(ScootEnums::MapDownloadStatus::Idle);
+            emit updateCheckCompleted(false);
             return;
         }
 
         auto region = manifest[m_resolvedSlug].toObject();
         if (region.isEmpty()) {
             setStatus(ScootEnums::MapDownloadStatus::Idle);
+            emit updateCheckCompleted(false);
             return;
         }
 
@@ -214,6 +227,8 @@ void MapDownloadService::checkForUpdates()
             MapMetadata::save(m_metadata);
             emit updateAvailableChanged();
         }
+
+        emit updateCheckCompleted(hasUpdate);
     });
 }
 
@@ -271,7 +286,10 @@ void MapDownloadService::doResolveSlug(double lat, double lng)
         if (m_cancelled) return;
 
         if (reply->error() != QNetworkReply::NoError) {
-            m_pendingUpdateCheck = false;
+            if (m_pendingUpdateCheck) {
+                m_pendingUpdateCheck = false;
+                emit updateCheckCompleted(false);
+            }
             setError(QStringLiteral("Could not detect region: network error"));
             return;
         }
@@ -284,7 +302,10 @@ void MapDownloadService::doResolveSlug(double lat, double lng)
 
         QString slug = slugForState(state);
         if (slug.isEmpty()) {
-            m_pendingUpdateCheck = false;
+            if (m_pendingUpdateCheck) {
+                m_pendingUpdateCheck = false;
+                emit updateCheckCompleted(false);
+            }
             setError(QStringLiteral("Unsupported region: ") + state);
             return;
         }

@@ -646,6 +646,43 @@ void MenuStore::rebuildMenuTree()
             });
     }
 
+    // Check for Updates Now. The automatic check runs at most weekly and only
+    // once the modem reports connected, so this is the way to ask on demand,
+    // and the only way at all while the automatic check is switched off.
+    if (m_mapDownload) {
+        mapNavNode->addChild(MenuNode::action(QStringLiteral("map_check_now"),
+            tr->menuMapCheckNow(), [this]() {
+                if (!m_internet || m_internet->modemState()
+                        != static_cast<int>(ScootEnums::ModemState::Connected)) {
+                    if (m_toastService)
+                        m_toastService->showError(m_translations->navSetupDownloadNoInternet());
+                    close();
+                    return;
+                }
+
+                // Report the outcome once, for this check only: the automatic
+                // path stays silent when nothing changed.
+                auto *conn = new QMetaObject::Connection;
+                *conn = connect(m_mapDownload, &MapDownloadService::updateCheckCompleted,
+                                this, [this, conn](bool updateFound) {
+                    disconnect(*conn);
+                    delete conn;
+                    if (!m_toastService)
+                        return;
+                    if (updateFound)
+                        m_toastService->showInfo(m_translations->mapUpdateAvailableToast());
+                    else
+                        m_toastService->showSuccess(m_translations->mapsUpToDateToast());
+                });
+
+                if (m_toastService)
+                    m_toastService->showInfo(m_translations->mapCheckingToast());
+                m_mapDownload->checkForUpdatesNow();
+                close();
+            },
+            [this]() { return m_mapDownload && m_mapDownload->hasMapsInstalled(); }));
+    }
+
     // Map Update Check (toggle)
     {
         bool checkUpdates = settings->mapCheckForUpdates();
