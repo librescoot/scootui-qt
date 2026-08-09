@@ -12,7 +12,7 @@ VehicleStore::VehicleStore(MdbRepository *repo, QObject *parent)
         });
     }
 
-    m_blinkTimer.setInterval(16); // ~60fps
+    m_blinkTimer.setInterval(BLINK_TICK_MS);
     connect(&m_blinkTimer, &QTimer::timeout, this, &VehicleStore::updateBlinkClock);
 
     m_brakeLeftDebounce.setSingleShot(true);

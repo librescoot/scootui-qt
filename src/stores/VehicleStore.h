@@ -102,6 +102,15 @@ private:
 
     static constexpr int BRAKE_DEBOUNCE_MS = 20;
 
+    // How often the blink clock resamples the fade curve. Every tick emits
+    // blinkOpacityChanged, and Qt Quick has no partial-scene update, so each
+    // one repaints the whole 480x480 window. On the DBC that is the entire
+    // cost of showing a turn signal (measured: idle cluster 1 fps, blinking
+    // 38 fps at ~9 ms a frame). The curve is a 504 ms fade, so sampling it at
+    // 30 Hz instead of 60 is indistinguishable and halves that cost. Phase
+    // stays wall-clock derived, so this does not affect sync with the lamp.
+    static constexpr int BLINK_TICK_MS = 33;
+
     QTimer m_blinkTimer;
     qreal m_blinkOpacity = 0.0;
     // Wall-clock anchor (ms since epoch) for the cycle schedule. Vehicle-service

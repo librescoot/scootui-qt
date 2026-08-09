@@ -9,7 +9,6 @@ Item {
                                            ? settingsStore.blinkerStyle === "overlay" : false
     readonly property bool showLeft: overlayEnabled && blinkerState === 1
     readonly property bool showRight: overlayEnabled && blinkerState === 2
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
 
     // Insets to center the arrow on the content area between status bars
     property real topInset: 0
@@ -33,27 +32,21 @@ Item {
         width: 360
         height: 360
 
-        // Inactive base layer (faint arrow)
+        // One layer, not two. This was a constant 0.12 copy of the arrow with
+        // the animated one stacked on top, which cost a second full-size
+        // blended 360x360 quad every frame of every blink. Compositing the
+        // same artwork over itself is equivalent to a single layer at
+        // 0.12 + 0.88 * a (exact wherever the glyph is opaque, and within a
+        // rounding error on the antialiased edges), so the stack collapses.
         Image {
+            id: arrow
             anchors.fill: parent
             source: showLeft
                     ? "qrc:/ScootUI/assets/icons/librescoot-turn-left.svg"
                     : "qrc:/ScootUI/assets/icons/librescoot-turn-right.svg"
             sourceSize: Qt.size(360, 360)
             fillMode: Image.PreserveAspectFit
-            opacity: isDark ? 0.12 : 0.12
-        }
-
-        // Active animated layer (green arrow)
-        Image {
-            id: activeArrow
-            anchors.fill: parent
-            source: showLeft
-                    ? "qrc:/ScootUI/assets/icons/librescoot-turn-left.svg"
-                    : "qrc:/ScootUI/assets/icons/librescoot-turn-right.svg"
-            sourceSize: Qt.size(360, 360)
-            fillMode: Image.PreserveAspectFit
-            opacity: blinkerOverlay.blinkOpacity
+            opacity: 0.12 + 0.88 * blinkerOverlay.blinkOpacity
         }
     }
 }
