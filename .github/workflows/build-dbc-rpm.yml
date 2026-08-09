@@ -25,7 +25,11 @@ jobs:
   build-dbc-rpm:
     name: Build ScootUI-Qt RPM for DBC
     needs: [generate-timestamp]
-    runs-on: rpi5
+    # Any self-hosted runner will do. The rpi5 label is carried by exactly one
+    # machine, so pinning to it meant the build queued indefinitely whenever that
+    # box was down. Each runner now builds its own per-base workspace on first
+    # use, so landing on a fresh one costs a from-scratch build, not a failure.
+    runs-on: self-hosted
     steps:
       - name: Checkout librescoot repository
         uses: actions/checkout@v4
