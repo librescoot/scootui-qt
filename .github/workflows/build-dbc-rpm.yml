@@ -129,9 +129,28 @@ jobs:
           # build.sh detects a dirty git tree and rebuilds the Docker image (fast: only the
           # COPY layer for entrypoint.sh is invalidated; apt layers are cached).
           python3 << 'PYEOF'
+          import os
+
+          # This runner is memory-bound, not disk-bound. bitbake otherwise defaults
+          # to one task per core with PARALLEL_MAKE to match, and a from-scratch
+          # build (which a base switch forces, since sstate does not carry across a
+          # Yocto release) was SIGKILLed compiling qemu-native at that concurrency.
+          # Budget roughly 3 GB per parallel job, which the heavy native recipes
+          # need, and never exceed the core count.
+          mem_kb = next(int(l.split()[1]) for l in open('/proc/meminfo')
+                        if l.startswith('MemTotal'))
+          mem_gb = mem_kb / (1024 * 1024)
+          threads = max(1, min(os.cpu_count() or 1, int(mem_gb // 3)))
+          print(f'Runner has {mem_gb:.1f} GB across {os.cpu_count()} cores '
+                f'-> BB_NUMBER_THREADS={threads}')
+
           with open('docker/entrypoint.sh', 'r') as f:
               content = f.read()
           lines = [
+              '# Concurrency capped for this runner, see the workflow for the reasoning.',
+              f'echo "BB_NUMBER_THREADS = \\"{threads}\\"" >> /yocto/build/conf/local.conf',
+              f'echo "PARALLEL_MAKE = \\"-j{threads}\\"" >> /yocto/build/conf/local.conf',
+              '',
               '# Apply scootui-qt overrides after local.conf is overwritten by target config.',
               '# SCOOTUI_QT_BRANCH overrides SCOOTUI_QT_BRANCH ??= "main" in the recipe.',
               '# SCOOTUI_QT_SRCREV overrides SCOOTUI_QT_SRCREV ??= "${AUTOREV}" in the recipe.',
