@@ -47,6 +47,7 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
     connect(m_settings, &SettingsStore::batteryDisplayModeChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::routePreferenceChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::avoidCobblestoneChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::valhallaUrlChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::powerDisplayModeChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::alarmEnabledChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::alarmHonkChanged, this, &MenuStore::rebuildMenuTree);
@@ -656,16 +657,6 @@ void MenuStore::rebuildMenuTree()
                                          QStringLiteral("MAP"));
     settingsNode->addChild(mapNavNode);
 
-    // Map Type (inline cycle: Online → Offline)
-    {
-        int mapType = settings->mapType();
-        mapNavNode->addChild(MenuNode::cycleSetting(QStringLiteral("map_type"),
-            tr->menuMapType(), {
-                {tr->menuOnline(), [svc]() { svc->updateMapType(QStringLiteral("online")); }},
-                {tr->menuOffline(), [svc]() { svc->updateMapType(QStringLiteral("offline")); }},
-            }, mapType == 1 ? 1 : 0));
-    }
-
     // Map View (inline cycle: 3D → 2D). 2D is a flat top-down camera.
     {
         int viewMode = settings->mapViewMode();
@@ -688,16 +679,6 @@ void MenuStore::rebuildMenuTree()
             ->setIsVisible([this]() {
                 return m_settings->mapViewMode() == static_cast<int>(ScootEnums::MapViewMode::View2D);
             });
-    }
-    // Navigation Routing (inline cycle: Online → Offline)
-    {
-        QString vUrl = settings->valhallaUrl();
-        bool isOnlineRouting = (vUrl == QLatin1String(AppConfig::valhallaOnlineEndpoint));
-        mapNavNode->addChild(MenuNode::cycleSetting(QStringLiteral("navigation_routing"),
-            tr->menuNavRouting(), {
-                {tr->menuOnline(), [svc]() { svc->updateValhallaEndpoint(QLatin1String(AppConfig::valhallaOnlineEndpoint)); }},
-                {tr->menuOffline(), [svc]() { svc->updateValhallaEndpoint(QLatin1String(AppConfig::valhallaOnDeviceEndpoint)); }},
-            }, isOnlineRouting ? 0 : 1));
     }
 
     // Route Preference (inline cycle: Fastest → Shortest)
@@ -727,7 +708,12 @@ void MenuStore::rebuildMenuTree()
                 {tr->optHigh(),   [svc]() { svc->updateAvoidCobblestone(QStringLiteral("high")); }},
             }, cobbleIdx))
             ->setIsVisible([this]() {
-                return m_settings->routePreference() != QLatin1String("shortest");
+                // Shortest costs by raw distance and never reaches the surface
+                // weight. The public Valhalla runs stock tiles and stock
+                // costing, so it cannot see sett either: hide rather than offer
+                // a control that silently does nothing.
+                return m_settings->routePreference() != QLatin1String("shortest")
+                    && m_settings->valhallaUrl() != QLatin1String(AppConfig::valhallaOnlineEndpoint);
             });
     }
 
@@ -796,6 +782,27 @@ void MenuStore::rebuildMenuTree()
             [this]() { return m_mapDownload && m_mapDownload->hasMapsInstalled(); });
         checkNode->setValueLabel(lastMapCheckLabel());
         mapNavNode->addChild(checkNode);
+    }
+
+    // Map Type (inline cycle: Online → Offline)
+    {
+        int mapType = settings->mapType();
+        mapNavNode->addChild(MenuNode::cycleSetting(QStringLiteral("map_type"),
+            tr->menuMapType(), {
+                {tr->menuOnline(), [svc]() { svc->updateMapType(QStringLiteral("online")); }},
+                {tr->menuOffline(), [svc]() { svc->updateMapType(QStringLiteral("offline")); }},
+            }, mapType == 1 ? 1 : 0));
+    }
+
+    // Navigation Routing (inline cycle: Online → Offline)
+    {
+        QString vUrl = settings->valhallaUrl();
+        bool isOnlineRouting = (vUrl == QLatin1String(AppConfig::valhallaOnlineEndpoint));
+        mapNavNode->addChild(MenuNode::cycleSetting(QStringLiteral("navigation_routing"),
+            tr->menuNavRouting(), {
+                {tr->menuOnline(), [svc]() { svc->updateValhallaEndpoint(QLatin1String(AppConfig::valhallaOnlineEndpoint)); }},
+                {tr->menuOffline(), [svc]() { svc->updateValhallaEndpoint(QLatin1String(AppConfig::valhallaOnDeviceEndpoint)); }},
+            }, isOnlineRouting ? 0 : 1));
     }
 
     // Blinkers: on-screen style plus the physical LED on the DBC board. Both
