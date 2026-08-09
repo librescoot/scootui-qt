@@ -683,9 +683,37 @@ void MenuStore::rebuildMenuTree()
             });
     }
 
+    // Map Updates (inline cycle: Off -> Notify -> Download). Two settings sit
+    // behind this: checking and auto-downloading. Only three of their four
+    // combinations mean anything, since a download cannot happen without a
+    // check finding one, so one control writes both and the fourth state
+    // stops existing.
+    {
+        const bool checkUpdates = settings->mapCheckForUpdates();
+        const bool autoDownload = settings->mapAutoDownload();
+        int updatesIdx = 0;
+        if (checkUpdates && autoDownload) updatesIdx = 2;
+        else if (checkUpdates) updatesIdx = 1;
+        mapNavNode->addChild(MenuNode::cycleSetting(QStringLiteral("map_updates"),
+            tr->menuMapUpdates(), {
+                {tr->optOff(), [svc]() {
+                    svc->updateMapCheckForUpdates(false);
+                    svc->updateMapAutoDownload(false);
+                }},
+                {tr->optNotify(), [svc]() {
+                    svc->updateMapCheckForUpdates(true);
+                    svc->updateMapAutoDownload(false);
+                }},
+                {tr->optDownload(), [svc]() {
+                    svc->updateMapCheckForUpdates(true);
+                    svc->updateMapAutoDownload(true);
+                }},
+            }, updatesIdx));
+    }
+
     // Check for Updates Now. The automatic check runs at most weekly and only
     // once the modem reports connected, so this is the way to ask on demand,
-    // and the only way at all while the automatic check is switched off.
+    // and the only way at all while automatic updates are off.
     if (m_mapDownload) {
         auto *checkNode = MenuNode::action(QStringLiteral("map_check_now"),
             tr->menuMapCheckNow(), [this]() {
@@ -720,22 +748,6 @@ void MenuStore::rebuildMenuTree()
             [this]() { return m_mapDownload && m_mapDownload->hasMapsInstalled(); });
         checkNode->setValueLabel(lastMapCheckLabel());
         mapNavNode->addChild(checkNode);
-    }
-
-    // Map Update Check (toggle)
-    {
-        bool checkUpdates = settings->mapCheckForUpdates();
-        mapNavNode->addChild(MenuNode::setting(QStringLiteral("map_check_updates"),
-            tr->menuMapUpdateCheck(), checkUpdates ? 1 : 0,
-            [svc, checkUpdates]() { svc->updateMapCheckForUpdates(!checkUpdates); }));
-    }
-
-    // Auto-download Map Updates (toggle)
-    {
-        bool autoDownload = settings->mapAutoDownload();
-        mapNavNode->addChild(MenuNode::setting(QStringLiteral("map_auto_download"),
-            tr->menuMapAutoDownload(), autoDownload ? 1 : 0,
-            [svc, autoDownload]() { svc->updateMapAutoDownload(!autoDownload); }));
     }
 
     // Blinkers: on-screen style plus the physical LED on the DBC board. Both
