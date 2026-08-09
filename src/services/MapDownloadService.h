@@ -113,6 +113,7 @@ private:
     QString downloadDir() const;
     QString displayPartPath() const;
     QString routingPartPath() const;
+    QString routingCompressedPartPath() const;
     QString displayDestPath() const;
     QString routingDestPath() const;
     bool hasEnoughDiskSpace(qint64 needed) const;
@@ -155,9 +156,18 @@ private:
 
     // GitHub release info
     struct AssetInfo {
+        // Always the uncompressed artifact: what ends up on disk.
         QString url;
         QString digest;
         qint64 size = 0;
+        // Set only when the manifest offers a compressed variant in a codec
+        // this build understands. When set, the download fetches these and
+        // decompresses to `size` bytes at install time.
+        QString compressedUrl;
+        QString compressedDigest;
+        qint64 compressedSize = 0;
+
+        bool useCompressed() const { return !compressedUrl.isEmpty(); }
     };
     AssetInfo m_displayAsset;
     AssetInfo m_routingAsset;
