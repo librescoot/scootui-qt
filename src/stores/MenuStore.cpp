@@ -811,19 +811,20 @@ void MenuStore::rebuildMenuTree()
             [svc, dbcLedOn]() { svc->updateDbcBlinkerLed(!dbcLedOn); }));
     }
 
-    // Milestone Celebrations (toggle) — confetti + banner when passing a
-    // 500 km milestone or an easter-egg number. Off by default.
+    // Status Bar (nine visibility toggles, built further up). Filed directly
+    // after Blinkers so the two submenus sit together instead of being split
+    // by a toggle.
+    appearanceNode->addChild(statusBarNode);
+
+    // Milestone Celebrations (toggle): confetti + banner when passing a
+    // 500 km milestone or an easter-egg number. Off by default and the least
+    // consequential setting on the vehicle, so it goes last.
     {
         bool milestonesOn = settings->milestoneCelebrations();
         appearanceNode->addChild(MenuNode::setting(QStringLiteral("settings_milestones"),
             tr->menuMilestones(), milestonesOn ? 1 : 0,
             [svc, milestonesOn]() { svc->updateMilestoneCelebrations(!milestonesOn); }));
     }
-
-    // Status Bar goes last: it is the only entry here that opens a submenu,
-    // and the nine visibility toggles behind it are the least-touched settings
-    // on the vehicle.
-    appearanceNode->addChild(statusBarNode);
 
     // Alarm
     auto *alarmNode = MenuNode::submenu(QStringLiteral("settings_alarm"), tr->menuAlarm(),
