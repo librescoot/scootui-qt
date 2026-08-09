@@ -87,7 +87,11 @@ jobs:
               exit 1
             fi
             echo "Moving the pre-split workspace to ${legacy}"
-            mv yocto "$legacy"
+            # sudo: the old workspace is owned by 999:999 from the container-side
+            # chown, and renaming a directory needs write permission on the
+            # directory itself to update its ".." entry, which the runner user
+            # does not have.
+            sudo mv yocto "$legacy"
           fi
 
           ln -sfn "$ws" yocto
