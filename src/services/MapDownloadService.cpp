@@ -47,6 +47,7 @@ MapDownloadService::MapDownloadService(bool simulatorMode, QObject *parent)
     }
     m_updateAvailable = m_metadata.updateAvailable;
 
+    adoptInstalledMaps();
     computeMissingDigests();
 
     // Check for partial downloads
@@ -130,11 +131,26 @@ void MapDownloadService::cancel()
     setStatus(ScootEnums::MapDownloadStatus::Idle);
 }
 
-void MapDownloadService::checkForUpdates()
+void MapDownloadService::checkForUpdatesAt(double lat, double lng)
 {
-    if (m_resolvedSlug.isEmpty())
+    if (!m_resolvedSlug.isEmpty()) {
+        checkForUpdates();
+        return;
+    }
+
+    if (m_status != ScootEnums::MapDownloadStatus::Idle &&
+        m_status != ScootEnums::MapDownloadStatus::Error)
         return;
 
+    // Resolve first, then check. doResolveSlug picks the check back up.
+    m_cancelled = false;
+    m_pendingUpdateCheck = true;
+    setStatus(ScootEnums::MapDownloadStatus::Locating);
+    doResolveSlug(lat, lng);
+}
+
+void MapDownloadService::checkForUpdates()
+{
     if (m_status != ScootEnums::MapDownloadStatus::Idle &&
         m_status != ScootEnums::MapDownloadStatus::Error)
         return;
@@ -144,6 +160,15 @@ void MapDownloadService::checkForUpdates()
 
     fetchTilesManifest([this](const QJsonObject &manifest) {
         if (manifest.isEmpty()) {
+            setStatus(ScootEnums::MapDownloadStatus::Idle);
+            return;
+        }
+
+        // No region on record: this vehicle's maps were installed by the
+        // flasher. Identify them by digest before comparing anything.
+        if (m_resolvedSlug.isEmpty() && !adoptRegionFromManifest(manifest)) {
+            qDebug() << "Map update check: region unknown and digests match no "
+                        "published region, skipping";
             setStatus(ScootEnums::MapDownloadStatus::Idle);
             return;
         }
@@ -246,6 +271,7 @@ void MapDownloadService::doResolveSlug(double lat, double lng)
         if (m_cancelled) return;
 
         if (reply->error() != QNetworkReply::NoError) {
+            m_pendingUpdateCheck = false;
             setError(QStringLiteral("Could not detect region: network error"));
             return;
         }
@@ -258,6 +284,7 @@ void MapDownloadService::doResolveSlug(double lat, double lng)
 
         QString slug = slugForState(state);
         if (slug.isEmpty()) {
+            m_pendingUpdateCheck = false;
             setError(QStringLiteral("Unsupported region: ") + state);
             return;
         }
@@ -270,6 +297,21 @@ void MapDownloadService::doResolveSlug(double lat, double lng)
         else
             m_regionName = state;
         emit regionNameChanged();
+
+        // Persist as soon as it is known. Previously the region was only
+        // written after a completed download, so resolving it and then not
+        // downloading meant re-resolving on the next boot.
+        if (m_metadata.region != m_resolvedSlug) {
+            m_metadata.region = m_resolvedSlug;
+            MapMetadata::save(m_metadata);
+        }
+
+        if (m_pendingUpdateCheck) {
+            m_pendingUpdateCheck = false;
+            setStatus(ScootEnums::MapDownloadStatus::Idle);
+            checkForUpdates();
+            return;
+        }
 
         // If we were just resolving (not downloading), fetch sizes then go idle
         if (!m_needsDisplay && !m_needsRouting) {
@@ -686,6 +728,68 @@ bool MapDownloadService::hasEnoughDiskSpace(qint64 needed) const
     QDir().mkpath(mapsDir());
     QStorageInfo storage(mapsDir());
     return storage.bytesAvailable() > needed;
+}
+
+bool MapDownloadService::hasMapsInstalled() const
+{
+    return QFile::exists(displayDestPath());
+}
+
+void MapDownloadService::adoptInstalledMaps()
+{
+    bool changed = false;
+
+    // The flasher uploads map.mbtiles and tiles.tar directly and writes no
+    // metadata, so on a freshly provisioned vehicle the files are there but
+    // this service believes nothing is installed. Record what is on disk;
+    // computeMissingDigests() fills in the digests right after.
+    if (!m_metadata.displayTiles && QFile::exists(displayDestPath())) {
+        MapTileInfo info;
+        info.size = QFileInfo(displayDestPath()).size();
+        m_metadata.displayTiles = info;
+        changed = true;
+    }
+    if (!m_metadata.valhallaTiles && QFile::exists(routingDestPath())) {
+        MapTileInfo info;
+        info.size = QFileInfo(routingDestPath()).size();
+        m_metadata.valhallaTiles = info;
+        changed = true;
+    }
+
+    if (changed) {
+        qDebug() << "Adopting map files installed outside the dashboard";
+        MapMetadata::save(m_metadata);
+    }
+}
+
+bool MapDownloadService::adoptRegionFromManifest(const QJsonObject &manifest)
+{
+    const QString displayDigest =
+        m_metadata.displayTiles ? m_metadata.displayTiles->digest : QString();
+    const QString routingDigest =
+        m_metadata.valhallaTiles ? m_metadata.valhallaTiles->digest : QString();
+    if (displayDigest.isEmpty() && routingDigest.isEmpty())
+        return false;
+
+    for (auto it = manifest.constBegin(); it != manifest.constEnd(); ++it) {
+        const QJsonObject region = it.value().toObject();
+        const QString mapSha =
+            region[QStringLiteral("map")].toObject()[QStringLiteral("sha256")].toString();
+        const QString valhallaSha =
+            region[QStringLiteral("valhalla")].toObject()[QStringLiteral("sha256")].toString();
+
+        if ((!displayDigest.isEmpty() && displayDigest == mapSha)
+            || (!routingDigest.isEmpty() && routingDigest == valhallaSha)) {
+            m_resolvedSlug = it.key();
+            m_regionName = displayNameForSlug(m_resolvedSlug);
+            m_metadata.region = m_resolvedSlug;
+            MapMetadata::save(m_metadata);
+            emit regionNameChanged();
+            qDebug() << "Identified installed region from tile digests:" << m_resolvedSlug;
+            return true;
+        }
+    }
+    return false;
 }
 
 void MapDownloadService::computeMissingDigests()

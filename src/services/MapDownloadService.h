@@ -43,8 +43,15 @@ public:
     Q_INVOKABLE void startDownload(double lat, double lng, bool needsDisplay, bool needsRouting);
     Q_INVOKABLE void cancel();
     Q_INVOKABLE void checkForUpdates();
+    // Same, but resolves the region from a GPS fix first when it isn't known
+    // yet. Maps installed by the flasher come with no metadata at all, so
+    // without this an update check has nothing to look up in the manifest.
+    Q_INVOKABLE void checkForUpdatesAt(double lat, double lng);
 
-    bool hasMapsInstalled() const { return !m_metadata.region.isEmpty() && m_metadata.displayTiles.has_value(); }
+    // Files on disk, not bookkeeping: maps installed by the flasher are just as
+    // installed as ones this service downloaded.
+    bool hasMapsInstalled() const;
+    bool hasResolvedRegion() const { return !m_resolvedSlug.isEmpty(); }
     bool shouldCheckForUpdates() const;
 
 signals:
@@ -76,6 +83,13 @@ private:
     void fetchTilesManifest(std::function<void(const QJsonObject &)> callback);
 
     void computeMissingDigests();
+    // Record map files that are on disk but absent from metadata.json, so their
+    // digests get computed and later update checks have something to compare.
+    void adoptInstalledMaps();
+    // Identify the installed region by matching our digests against every
+    // region in the manifest. Works whenever the installed tiles are still the
+    // published ones, which is the case right after provisioning.
+    bool adoptRegionFromManifest(const QJsonObject &manifest);
 
     // Helpers
     QString slugForState(const QString &state) const;
@@ -93,6 +107,8 @@ private:
     QFile *m_currentFile = nullptr;
     bool m_simulatorMode;
     bool m_cancelled = false;
+    // Set while an update check is waiting on region resolution to finish.
+    bool m_pendingUpdateCheck = false;
     // Set when the current file was opened in Append mode to resume a partial
     // download. Cleared after the first readyRead chunk of the reply has been
     // checked for a server that ignored our Range header (see doDownloadFile).

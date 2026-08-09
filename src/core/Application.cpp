@@ -264,7 +264,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Auto-check for map updates when connectivity is established
     connect(internetStore, &InternetStore::modemStateChanged, this,
-            [this, internetStore, settingsStore]() {
+            [this, internetStore, settingsStore, gpsStore]() {
         if (!settingsStore->mapCheckForUpdates())
             return;
         if (internetStore->modemState() != static_cast<int>(ScootEnums::ModemState::Connected))
@@ -274,7 +274,15 @@ void Application::createStores(QQmlApplicationEngine &engine)
         if (!m_mapDownloadService->shouldCheckForUpdates())
             return;
         qDebug() << "Auto-checking for map updates (weekly)";
-        m_mapDownloadService->checkForUpdates();
+        // Vehicles whose maps came from the flasher have no region on record.
+        // The check identifies them by tile digest where it can; where it
+        // can't, a GPS fix gives it something to resolve from.
+        if (!m_mapDownloadService->hasResolvedRegion() && gpsStore->hasRecentFix()) {
+            m_mapDownloadService->checkForUpdatesAt(gpsStore->latitude(),
+                                                    gpsStore->longitude());
+        } else {
+            m_mapDownloadService->checkForUpdates();
+        }
     });
 
     // Notify user when a map update is found, or auto-download if enabled.
