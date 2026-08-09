@@ -1,5 +1,7 @@
 #include "MapDownloadService.h"
 
+#include "utils/ZstdDecompressor.h"
+
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -61,7 +63,7 @@ bool MapDownloadService::hasPartialDisplayDownload() const
 
 bool MapDownloadService::hasPartialRoutingDownload() const
 {
-    return QFile::exists(routingPartPath());
+    return QFile::exists(routingPartPath()) || QFile::exists(routingCompressedPartPath());
 }
 
 void MapDownloadService::setStatus(ScootEnums::MapDownloadStatus s)
@@ -149,6 +151,16 @@ void MapDownloadService::checkForUpdatesAt(double lat, double lng)
     doResolveSlug(lat, lng);
 }
 
+void MapDownloadService::checkForUpdatesNow()
+{
+    double lat = 0.0, lng = 0.0;
+    if (m_resolvedSlug.isEmpty() && m_positionProvider && m_positionProvider(lat, lng)) {
+        checkForUpdatesAt(lat, lng);
+        return;
+    }
+    checkForUpdates();
+}
+
 void MapDownloadService::checkForUpdates()
 {
     if (m_status != ScootEnums::MapDownloadStatus::Idle &&
@@ -161,6 +173,7 @@ void MapDownloadService::checkForUpdates()
     fetchTilesManifest([this](const QJsonObject &manifest) {
         if (manifest.isEmpty()) {
             setStatus(ScootEnums::MapDownloadStatus::Idle);
+            emit updateCheckCompleted(false);
             return;
         }
 
@@ -170,12 +183,14 @@ void MapDownloadService::checkForUpdates()
             qDebug() << "Map update check: region unknown and digests match no "
                         "published region, skipping";
             setStatus(ScootEnums::MapDownloadStatus::Idle);
+            emit updateCheckCompleted(false);
             return;
         }
 
         auto region = manifest[m_resolvedSlug].toObject();
         if (region.isEmpty()) {
             setStatus(ScootEnums::MapDownloadStatus::Idle);
+            emit updateCheckCompleted(false);
             return;
         }
 
@@ -214,6 +229,8 @@ void MapDownloadService::checkForUpdates()
             MapMetadata::save(m_metadata);
             emit updateAvailableChanged();
         }
+
+        emit updateCheckCompleted(hasUpdate);
     });
 }
 
@@ -271,7 +288,10 @@ void MapDownloadService::doResolveSlug(double lat, double lng)
         if (m_cancelled) return;
 
         if (reply->error() != QNetworkReply::NoError) {
-            m_pendingUpdateCheck = false;
+            if (m_pendingUpdateCheck) {
+                m_pendingUpdateCheck = false;
+                emit updateCheckCompleted(false);
+            }
             setError(QStringLiteral("Could not detect region: network error"));
             return;
         }
@@ -284,7 +304,10 @@ void MapDownloadService::doResolveSlug(double lat, double lng)
 
         QString slug = slugForState(state);
         if (slug.isEmpty()) {
-            m_pendingUpdateCheck = false;
+            if (m_pendingUpdateCheck) {
+                m_pendingUpdateCheck = false;
+                emit updateCheckCompleted(false);
+            }
             setError(QStringLiteral("Unsupported region: ") + state);
             return;
         }
@@ -391,13 +414,40 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
             m_routingAsset.digest = valhalla[QStringLiteral("sha256")].toString();
             m_estimatedRoutingBytes = m_routingAsset.size;
 
+            // Optional compressed variant. url/size/sha256 above stay the
+            // uncompressed tar, because that is what lands on disk and what the
+            // installed-digest comparison in checkForUpdates() is written against.
+            const auto compressed = valhalla[QStringLiteral("compressed")].toObject();
+            if (!compressed.isEmpty()
+                && compressed[QStringLiteral("codec")].toString() == QLatin1String("zstd")) {
+                m_routingAsset.compressedUrl = compressed[QStringLiteral("url")].toString();
+                m_routingAsset.compressedDigest = compressed[QStringLiteral("sha256")].toString();
+                m_routingAsset.compressedSize =
+                    static_cast<qint64>(compressed[QStringLiteral("size")].toDouble());
+                if (m_routingAsset.compressedUrl.isEmpty() || m_routingAsset.compressedSize <= 0) {
+                    // Incomplete entry: fall back to the plain tar rather than guess.
+                    m_routingAsset.compressedUrl.clear();
+                    m_routingAsset.compressedDigest.clear();
+                    m_routingAsset.compressedSize = 0;
+                }
+            }
+
             if (m_metadata.valhallaTiles && !m_metadata.valhallaTiles->digest.isEmpty()
                 && m_metadata.valhallaTiles->digest == m_routingAsset.digest) {
                 m_routingDone = true;
             } else {
-                totalNeeded += m_routingAsset.size;
-                qint64 partial = QFileInfo(routingPartPath()).size();
-                diskNeeded += std::max<qint64>(0, m_routingAsset.size - partial);
+                if (m_routingAsset.useCompressed()) {
+                    // Transfer is the compressed artifact, but during install
+                    // both it and the decompressed tar exist at once.
+                    totalNeeded += m_routingAsset.compressedSize;
+                    const qint64 partial = QFileInfo(routingCompressedPartPath()).size();
+                    diskNeeded += std::max<qint64>(0, m_routingAsset.compressedSize - partial)
+                                  + m_routingAsset.size;
+                } else {
+                    totalNeeded += m_routingAsset.size;
+                    const qint64 partial = QFileInfo(routingPartPath()).size();
+                    diskNeeded += std::max<qint64>(0, m_routingAsset.size - partial);
+                }
             }
         }
 
@@ -425,8 +475,13 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
             doDownloadFile(m_displayAsset.url, displayPartPath(),
                           m_displayAsset.digest, m_displayAsset.size, true);
         } else if (!m_routingDone) {
-            doDownloadFile(m_routingAsset.url, routingPartPath(),
-                          m_routingAsset.digest, m_routingAsset.size, false);
+            if (m_routingAsset.useCompressed()) {
+                doDownloadFile(m_routingAsset.compressedUrl, routingCompressedPartPath(),
+                              m_routingAsset.compressedDigest, m_routingAsset.compressedSize, false);
+            } else {
+                doDownloadFile(m_routingAsset.url, routingPartPath(),
+                              m_routingAsset.digest, m_routingAsset.size, false);
+            }
         }
     });
 }
@@ -595,10 +650,36 @@ void MapDownloadService::doInstall(const QString &tempPath, const QString &destP
 
     QDir().mkpath(QFileInfo(destPath).absolutePath());
 
+    // The routing archive is transferred compressed but has to land as a plain
+    // seekable tar, because valhalla mmaps it as its tile_extract. Decompress
+    // into a sibling .part first so the rename below stays atomic.
+    QString installSource = tempPath;
+    if (!isDisplay && m_routingAsset.useCompressed()
+        && tempPath == routingCompressedPartPath()) {
+        const QString decompressedPath = routingPartPath();
+        QString err;
+        const qint64 total = m_routingAsset.size;
+        const bool ok = ZstdDecompressor::decompressFile(
+            tempPath, decompressedPath, total,
+            [this, total](qint64 done) {
+                m_progress = total > 0 ? static_cast<double>(done) / total : 0.0;
+                emit progressChanged();
+            },
+            &err);
+        if (!ok) {
+            QFile::remove(decompressedPath);
+            QFile::remove(tempPath);
+            setError(err);
+            return;
+        }
+        QFile::remove(tempPath);
+        installSource = decompressedPath;
+    }
+
     // Atomic replace via POSIX rename: downloadDir/mapsDir/valhalla all live on
     // the same filesystem, so this swaps the file in a single step with no
     // window where destPath is missing for a concurrent reader.
-    if (::rename(QFile::encodeName(tempPath).constData(),
+    if (::rename(QFile::encodeName(installSource).constData(),
                  QFile::encodeName(destPath).constData()) != 0) {
         setError(QStringLiteral("Could not install maps"));
         return;
@@ -637,8 +718,13 @@ void MapDownloadService::doInstall(const QString &tempPath, const QString &destP
     if (!m_displayDone) {
         // Should not happen in current flow since display is downloaded first
     } else if (!m_routingDone && m_needsRouting) {
-        doDownloadFile(m_routingAsset.url, routingPartPath(),
-                       m_routingAsset.digest, m_routingAsset.size, false);
+        if (m_routingAsset.useCompressed()) {
+            doDownloadFile(m_routingAsset.compressedUrl, routingCompressedPartPath(),
+                           m_routingAsset.compressedDigest, m_routingAsset.compressedSize, false);
+        } else {
+            doDownloadFile(m_routingAsset.url, routingPartPath(),
+                           m_routingAsset.digest, m_routingAsset.size, false);
+        }
         return;
     }
 
@@ -703,6 +789,11 @@ QString MapDownloadService::displayPartPath() const
 QString MapDownloadService::routingPartPath() const
 {
     return downloadDir() + QStringLiteral("/routing.tar.part");
+}
+
+QString MapDownloadService::routingCompressedPartPath() const
+{
+    return downloadDir() + QStringLiteral("/routing.tar.zst.part");
 }
 
 QString MapDownloadService::displayDestPath() const

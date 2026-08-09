@@ -91,5 +91,6 @@ private:
     VehicleStore *m_vehicleStore = nullptr;
     SettingsStore *m_settingsStore = nullptr;
     bool m_simulatorMode = false;
+    bool m_mapDownloadHoldActive = false;
     QList<QObject*> m_stores;
 };

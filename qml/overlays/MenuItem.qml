@@ -83,11 +83,12 @@ Rectangle {
             }
         }
 
-        // Trailing value label for inline cycle settings
+        // Trailing value label: the current option on inline cycle settings, or
+        // any state an action wants to report next to what it does.
         Text {
             id: trailingValue
             anchors.verticalCenter: parent.verticalCenter
-            visible: itemType === "cycle"
+            visible: menuItem.valueLabel !== ""
             text: menuItem.valueLabel
             font.pixelSize: themeStore.fontBody
             font.weight: Font.Normal

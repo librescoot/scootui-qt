@@ -263,8 +263,19 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_settingsStore = settingsStore;
 
     // Auto-check for map updates when connectivity is established
+    // Vehicles whose maps came from the flasher have no region on record. The
+    // check identifies them by tile digest where it can; where it can't, a GPS
+    // fix gives it something to resolve from.
+    m_mapDownloadService->setPositionProvider([gpsStore](double &lat, double &lng) {
+        if (!gpsStore->hasRecentFix())
+            return false;
+        lat = gpsStore->latitude();
+        lng = gpsStore->longitude();
+        return true;
+    });
+
     connect(internetStore, &InternetStore::modemStateChanged, this,
-            [this, internetStore, settingsStore, gpsStore]() {
+            [this, internetStore, settingsStore]() {
         if (!settingsStore->mapCheckForUpdates())
             return;
         if (internetStore->modemState() != static_cast<int>(ScootEnums::ModemState::Connected))
@@ -274,20 +285,11 @@ void Application::createStores(QQmlApplicationEngine &engine)
         if (!m_mapDownloadService->shouldCheckForUpdates())
             return;
         qDebug() << "Auto-checking for map updates (weekly)";
-        // Vehicles whose maps came from the flasher have no region on record.
-        // The check identifies them by tile digest where it can; where it
-        // can't, a GPS fix gives it something to resolve from.
-        if (!m_mapDownloadService->hasResolvedRegion() && gpsStore->hasRecentFix()) {
-            m_mapDownloadService->checkForUpdatesAt(gpsStore->latitude(),
-                                                    gpsStore->longitude());
-        } else {
-            m_mapDownloadService->checkForUpdates();
-        }
+        m_mapDownloadService->checkForUpdatesNow();
     });
 
     // Notify user when a map update is found, or auto-download if enabled.
-    // The actual download is parked-gated (see maybeAutoDownloadMaps) so a
-    // mid-ride update never kicks off a large cellular download.
+    // The actual download is state-gated (see maybeAutoDownloadMaps).
     connect(m_mapDownloadService, &MapDownloadService::updateAvailableChanged, this,
             [this]() {
         if (!m_mapDownloadService->updateAvailable())
@@ -299,15 +301,35 @@ void Application::createStores(QQmlApplicationEngine &engine)
         }
     });
 
-    // Retry the parked-gated auto-download every time the rider parks or
-    // goes to stand-by, so an update discovered mid-ride (or already pending
-    // from a previous session) downloads as soon as it's safe to.
+    // Retry the auto-download on every state the download is allowed in, so an
+    // update discovered at an awkward moment (or already pending from a
+    // previous session) starts as soon as the vehicle reaches one of them.
     connect(vehicleStore, &VehicleStore::stateChanged, this, [this]() {
         auto state = static_cast<ScootEnums::VehicleState>(m_vehicleStore->state());
         if (state == ScootEnums::VehicleState::Parked
-            || state == ScootEnums::VehicleState::StandBy) {
+            || state == ScootEnums::VehicleState::StandBy
+            || state == ScootEnums::VehicleState::ReadyToDrive) {
             maybeAutoDownloadMaps();
         }
+    });
+
+    // Ask vehicle-service to keep DBC power up while a download is running, the
+    // way a DBC OTA does. Without it, locking the scooter cuts power mid
+    // transfer: the .part file resumes next time, but on a scooter that parks
+    // often a large tar may never finish. vehicle-service caps the hold, so a
+    // dashboard that dies mid download cannot pin power on.
+    connect(m_mapDownloadService, &MapDownloadService::statusChanged, this, [this]() {
+        const int st = m_mapDownloadService->status();
+        // Installing is short but it renames the tar into place and restarts
+        // valhalla, so it is the worst moment to lose power.
+        const bool busy = st == static_cast<int>(ScootEnums::MapDownloadStatus::Downloading)
+                          || st == static_cast<int>(ScootEnums::MapDownloadStatus::Installing);
+        if (busy == m_mapDownloadHoldActive)
+            return;
+        m_mapDownloadHoldActive = busy;
+        m_repository->push(QStringLiteral("scooter:dbc-hold"),
+                           busy ? QStringLiteral("map-download")
+                                : QStringLiteral("release"));
     });
 
     // Refresh map/road-info/address-db as soon as an install finishes.
@@ -688,10 +710,12 @@ void Application::maybeAutoDownloadMaps()
         return;
 
     auto state = static_cast<ScootEnums::VehicleState>(m_vehicleStore->state());
-    if (state != ScootEnums::VehicleState::Parked && state != ScootEnums::VehicleState::StandBy)
+    if (state != ScootEnums::VehicleState::Parked
+        && state != ScootEnums::VehicleState::StandBy
+        && state != ScootEnums::VehicleState::ReadyToDrive)
         return;
 
-    qDebug() << "Auto-downloading map update (parked)";
+    qDebug() << "Auto-downloading map update, vehicle state" << m_vehicleStore->state();
     m_mapDownloadService->startDownload(m_gpsStore->latitude(), m_gpsStore->longitude(), true, true);
 }
 

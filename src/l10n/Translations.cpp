@@ -378,6 +378,24 @@ void Translations::initStrings()
     en[QStringLiteral("optHigh")] = QStringLiteral("High");
     de[QStringLiteral("optHigh")] = QStringLiteral("Hoch");
 
+    en[QStringLiteral("menuMapCheckNow")] = QStringLiteral("Check for Updates");
+    de[QStringLiteral("menuMapCheckNow")] = QStringLiteral("Auf Updates prüfen");
+
+    en[QStringLiteral("mapCheckNever")] = QStringLiteral("never checked");
+    de[QStringLiteral("mapCheckNever")] = QStringLiteral("nie geprüft");
+
+    en[QStringLiteral("mapCheckAgo")] = QStringLiteral("%1 ago");
+    de[QStringLiteral("mapCheckAgo")] = QStringLiteral("vor %1");
+
+    en[QStringLiteral("mapCheckJustNow")] = QStringLiteral("just now");
+    de[QStringLiteral("mapCheckJustNow")] = QStringLiteral("gerade eben");
+
+    en[QStringLiteral("mapCheckingToast")] = QStringLiteral("Checking for map updates…");
+    de[QStringLiteral("mapCheckingToast")] = QStringLiteral("Suche nach Kartenupdates…");
+
+    en[QStringLiteral("mapsUpToDateToast")] = QStringLiteral("Maps are up to date");
+    de[QStringLiteral("mapsUpToDateToast")] = QStringLiteral("Karten sind aktuell");
+
     en[QStringLiteral("menuMapUpdateCheck")] = QStringLiteral("Map Update Check");
     de[QStringLiteral("menuMapUpdateCheck")] = QStringLiteral("Kartenupdate-Pr\u00fcfung");
 

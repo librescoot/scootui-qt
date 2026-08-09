@@ -11,6 +11,7 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Qml Svg Network Sql Concurrent)
 find_package(ZLIB REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(HIREDIS REQUIRED hiredis)
+pkg_check_modules(ZSTD REQUIRED libzstd)
 
 if(DESKTOP_MODE)
     find_package(QMapLibre QUIET COMPONENTS Core)
@@ -113,6 +114,7 @@ set(CPP_SOURCES
     src/routing/ValhallaClient.cpp
     src/l10n/Translations.cpp
     src/utils/FaultFormatter.cpp
+    src/utils/ZstdDecompressor.cpp
     src/stores/FaultEventStore.cpp
     src/stores/FaultsStore.cpp
 )
@@ -185,6 +187,7 @@ set(CPP_HEADERS
     src/routing/ValhallaClient.h
     src/l10n/Translations.h
     src/utils/FaultFormatter.h
+    src/utils/ZstdDecompressor.h
     src/stores/FaultEventStore.h
     src/stores/FaultsStore.h
 )
@@ -388,6 +391,7 @@ target_link_libraries(scootui PRIVATE
     Qt6::Concurrent
     ZLIB::ZLIB
     ${HIREDIS_LIBRARIES}
+    ${ZSTD_LIBRARIES}
 )
 
 if(HAS_QMAPLIBRE)
@@ -399,6 +403,8 @@ if(DESKTOP_MODE)
 endif()
 
 target_include_directories(scootui PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(scootui PRIVATE ${ZSTD_INCLUDE_DIRS})
+target_link_directories(scootui PRIVATE ${ZSTD_LIBRARY_DIRS})
 
 install(TARGETS scootui
     BUNDLE DESTINATION .

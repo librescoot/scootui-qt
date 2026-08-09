@@ -76,6 +76,7 @@ signals:
 
 private:
     void rebuildMenuTree();
+    QString lastMapCheckLabel() const;
     MenuNode *findCurrentNode() const;
     void emitMenuChanged();
     bool isRoutingReady() const;
