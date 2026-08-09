@@ -334,6 +334,21 @@ void MenuStore::rebuildMenuTree()
             return !isRoutingReady();
         }));
 
+    // === Set up Map Mode (only on cluster screen, when no local maps and not online) ===
+    // Sits next to Set up Navigation: both are one-time setup prompts, and
+    // keeping them together stops a setup entry from appearing between the
+    // two view-switch entries.
+    m_rootNode->addChild(MenuNode::action(QStringLiteral("setup_map_mode"),
+        tr->menuSetupMapMode(), [this]() {
+            close();
+            if (m_screenStore) m_screenStore->showNavigationSetup(0); // DisplayMaps
+        }, [this]() {
+            if (!m_screenStore || m_screenStore->currentScreen() != 0) return false;
+            bool hasLocalMaps = m_navAvailability && m_navAvailability->localDisplayMapsAvailable();
+            bool isOnlineMap = m_settings->mapType() == static_cast<int>(ScootEnums::MapType::Online);
+            return !hasLocalMaps && !isOnlineMap;
+        }));
+
     // === Switch to Cluster View (only on map screen) ===
     m_rootNode->addChild(MenuNode::action(QStringLiteral("switch_cluster"),
         tr->menuSwitchToCluster(), [this]() {
@@ -355,18 +370,6 @@ void MenuStore::rebuildMenuTree()
             bool hasLocalMaps = m_navAvailability && m_navAvailability->localDisplayMapsAvailable();
             bool isOnlineMap = m_settings->mapType() == static_cast<int>(ScootEnums::MapType::Online);
             return hasLocalMaps || isOnlineMap;
-        }));
-
-    // === Set up Map Mode (only on cluster screen, when no local maps and not online) ===
-    m_rootNode->addChild(MenuNode::action(QStringLiteral("setup_map_mode"),
-        tr->menuSetupMapMode(), [this]() {
-            close();
-            if (m_screenStore) m_screenStore->showNavigationSetup(0); // DisplayMaps
-        }, [this]() {
-            if (!m_screenStore || m_screenStore->currentScreen() != 0) return false;
-            bool hasLocalMaps = m_navAvailability && m_navAvailability->localDisplayMapsAvailable();
-            bool isOnlineMap = m_settings->mapType() == static_cast<int>(ScootEnums::MapType::Online);
-            return !hasLocalMaps && !isOnlineMap;
         }));
 
     // === Lock Scooter (top-level, only when strictly parked) ===
