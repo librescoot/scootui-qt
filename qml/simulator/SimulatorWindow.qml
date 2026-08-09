@@ -379,7 +379,7 @@ ApplicationWindow {
             // the only way to advance position along a route.
             SimSliderRow {
                 label: "Speed"
-                from: 0; to: 55; value: 0; unit: "km/h"; decimals: 0
+                from: 0; to: 100; value: 0; unit: "km/h"; decimals: 0
                 onMoved: function(v) { simulator.setSpeed(v) }
             }
             RowLayout {
