@@ -131,6 +131,9 @@ class Translations : public QObject
     Q_PROPERTY(QString menuHeadingUp READ menuHeadingUp NOTIFY languageChanged)
     Q_PROPERTY(QString menuRoutePreference READ menuRoutePreference NOTIFY languageChanged)
     Q_PROPERTY(QString menuMapCheckNow READ menuMapCheckNow NOTIFY languageChanged)
+    Q_PROPERTY(QString menuMapUpdates READ menuMapUpdates NOTIFY languageChanged)
+    Q_PROPERTY(QString optNotify READ optNotify NOTIFY languageChanged)
+    Q_PROPERTY(QString optDownload READ optDownload NOTIFY languageChanged)
     Q_PROPERTY(QString mapCheckNever READ mapCheckNever NOTIFY languageChanged)
     Q_PROPERTY(QString mapCheckAgo READ mapCheckAgo NOTIFY languageChanged)
     Q_PROPERTY(QString mapCheckJustNow READ mapCheckJustNow NOTIFY languageChanged)
@@ -689,6 +692,9 @@ public:
     QString channelSwitchDownloadStarted() const { return lookup("channelSwitchDownloadStarted"); }
     QString controlConfirm() const { return lookup("controlConfirm"); }
 
+    QString menuMapUpdates() const { return lookup("menuMapUpdates"); }
+    QString optNotify() const { return lookup("optNotify"); }
+    QString optDownload() const { return lookup("optDownload"); }
     QString mapCheckNever() const { return lookup("mapCheckNever"); }
     QString mapCheckAgo() const { return lookup("mapCheckAgo"); }
     QString mapCheckJustNow() const { return lookup("mapCheckJustNow"); }

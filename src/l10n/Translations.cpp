@@ -395,6 +395,15 @@ void Translations::initStrings()
     en[QStringLiteral("optHigh")] = QStringLiteral("High");
     de[QStringLiteral("optHigh")] = QStringLiteral("Hoch");
 
+    en[QStringLiteral("menuMapUpdates")] = QStringLiteral("Map Updates");
+    de[QStringLiteral("menuMapUpdates")] = QStringLiteral("Kartenupdates");
+
+    en[QStringLiteral("optNotify")] = QStringLiteral("Notify");
+    de[QStringLiteral("optNotify")] = QStringLiteral("Benachrichtigen");
+
+    en[QStringLiteral("optDownload")] = QStringLiteral("Download");
+    de[QStringLiteral("optDownload")] = QStringLiteral("Herunterladen");
+
     en[QStringLiteral("menuMapCheckNow")] = QStringLiteral("Check for Updates");
     de[QStringLiteral("menuMapCheckNow")] = QStringLiteral("Auf Updates prüfen");
 
