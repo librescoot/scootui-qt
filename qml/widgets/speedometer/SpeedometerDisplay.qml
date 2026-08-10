@@ -180,6 +180,12 @@ Item {
         height: speedometer.canvasHeight
         scale: speedometer.displayScale
 
+        // Do not be tempted by layer.enabled here to cache the dial. Measured
+        // on the DBC it does speed up every animating case, but it also keeps
+        // requesting frames forever: a parked cluster goes from 1 fps to 43,
+        // so the display never idles. The per-frame Shape cost is the cheaper
+        // problem.
+
         // Background arc
         Shape {
             anchors.fill: parent
