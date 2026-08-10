@@ -188,5 +188,11 @@ private:
     AssetInfo m_displayAsset;
     AssetInfo m_routingAsset;
 
+    // sha256 of a compressed routing archive that arrived intact and still
+    // would not decode. Set for the rest of the session so doFetchReleases()
+    // can decline the same artifact when the manifest offers it again; a newly
+    // published one has a different digest and is tried normally.
+    QString m_rejectedCompressedDigest;
+
     static const QHash<QString, QString> s_stateToSlug;
 };

@@ -21,8 +21,9 @@ public:
         // should throw them away.
         SourceCorrupt,
         // Something on this machine went wrong (could not open a file, a short
-        // write, fsync failed). Says nothing about the input, which is worth
-        // keeping if it was expensive to fetch.
+        // write, fsync failed, libzstd could not allocate its decode buffers).
+        // Says nothing about the input, which is worth keeping if it was
+        // expensive to fetch.
         LocalFailure,
         // shouldCancel() asked us to stop.
         Cancelled,

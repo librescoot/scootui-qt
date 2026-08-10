@@ -453,6 +453,20 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
                     m_routingAsset.compressedUrl.clear();
                     m_routingAsset.compressedDigest.clear();
                     m_routingAsset.compressedSize = 0;
+                } else if (!m_rejectedCompressedDigest.isEmpty()
+                           && m_routingAsset.compressedDigest
+                                  == m_rejectedCompressedDigest) {
+                    // This exact archive already downloaded intact and failed to
+                    // decode this session. Every attempt lands here first, so
+                    // without this check the clear in startDecompressInstall()
+                    // would be undone before the retry ever got going.
+                    qWarning() << "Skipping the compressed routing archive: "
+                                  "sha256"
+                               << m_rejectedCompressedDigest
+                               << "failed to decompress earlier this session";
+                    m_routingAsset.compressedUrl.clear();
+                    m_routingAsset.compressedDigest.clear();
+                    m_routingAsset.compressedSize = 0;
                 }
             }
 
@@ -769,6 +783,21 @@ void MapDownloadService::startDecompressInstall(const QString &compressedPath,
                 qWarning() << "Routing archive failed to decompress, discarding"
                            << compressedPath << ":" << outcome.error;
                 QFile::remove(compressedPath);
+                // Dropping the file is not enough on its own: without this the
+                // retry fetches the identical bad bytes from the identical URL
+                // and fails identically, at full cellular cost every time. Turn
+                // useCompressed() off so the next attempt falls back to the
+                // plain tar, which is a different artifact and may well be fine.
+                //
+                // doFetchReleases() re-reads the manifest at the start of every
+                // attempt and would repopulate these three, so the digest is
+                // remembered separately and re-checked there. That keeps the
+                // fallback session-scoped rather than a permanent opt-out: a
+                // republished archive has a different sha256 and is retried.
+                m_rejectedCompressedDigest = m_routingAsset.compressedDigest;
+                m_routingAsset.compressedUrl.clear();
+                m_routingAsset.compressedDigest.clear();
+                m_routingAsset.compressedSize = 0;
             }
             emit partialStateChanged();
             setError(outcome.error);

@@ -3,6 +3,7 @@
 #include <QFile>
 
 #include <zstd.h>
+#include <zstd_errors.h>
 #include <unistd.h>
 #include <vector>
 
@@ -68,6 +69,20 @@ ZstdDecompressor::Outcome ZstdDecompressor::decompressFile(
             const size_t ret = ZSTD_decompressStream(stream, &output, &input);
             if (ZSTD_isError(ret)) {
                 const QString reason = QString::fromLatin1(ZSTD_getErrorName(ret));
+                // libzstd sizes its decode window and internal buffers from the
+                // first frame header, so an allocation failure surfaces here
+                // rather than at ZSTD_createDStream(). On a 1 GB board running
+                // valhalla alongside the dashboard that is a real outcome, and
+                // it says nothing about the input: the .zst cost a couple of
+                // hundred megabytes of cellular data and its sha256 already
+                // matched, so it must survive to the next attempt.
+                const ZSTD_ErrorCode code = ZSTD_getErrorCode(ret);
+                if (code == ZSTD_error_memory_allocation
+                    || code == ZSTD_error_workSpace_tooSmall) {
+                    return abandon(Result::LocalFailure,
+                                   QStringLiteral("Not enough memory to unpack map data: ")
+                                       + reason);
+                }
                 return abandon(Result::SourceCorrupt,
                                QStringLiteral("Map data is corrupt: ") + reason);
             }
