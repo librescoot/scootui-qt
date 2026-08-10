@@ -664,14 +664,11 @@ void Application::createStores(QQmlApplicationEngine &engine)
                       m_serialNumberService->serialNumber());
         }
         repo->dashboardReady();
-#ifdef Q_OS_LINUX
-        // Only signal systemd once — subsequent calls are reconnect events.
-        static bool notified = false;
-        if (!notified) {
-            sdNotifyReady();
-            notified = true;
-        }
-#endif
+        // The first call runs before the worker has connected (the prewarm uses
+        // its own throwaway context), so isConnected() is what decides whether
+        // the ready publish actually reached Redis.
+        m_redisReady = repo->isConnected();
+        maybeSignalReady();
     };
     connect(repo, &MdbRepository::connectionStateChanged, this, [publishReady](bool connected) {
         if (connected)
@@ -725,6 +722,26 @@ void Application::registerContextProperties(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("appWidth"), EnvConfig::resolution().width());
     ctx->setContextProperty(QStringLiteral("appHeight"), EnvConfig::resolution().height());
     ctx->setContextProperty(QStringLiteral("scaleFactor"), EnvConfig::scaleFactor());
+}
+
+void Application::uiPresented()
+{
+    if (m_uiPresented)
+        return;
+    m_uiPresented = true;
+    fadeInOverlay();
+    maybeSignalReady();
+}
+
+void Application::maybeSignalReady()
+{
+#ifdef Q_OS_LINUX
+    if (m_readySignalled || !m_uiPresented || !m_redisReady)
+        return;
+    m_readySignalled = true;
+    BOOT_MARK("sd_notify READY=1");
+    sdNotifyReady();
+#endif
 }
 
 void Application::fadeInOverlay()

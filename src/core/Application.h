@@ -41,10 +41,18 @@ public:
     ~Application();
 
     bool initialize(QQmlApplicationEngine &engine);
-    void fadeInOverlay();
+    // Call once the first frame is actually on screen. Hands the display over
+    // from boot-animation and, together with the Redis connect, gates the
+    // systemd READY=1. Idempotent.
+    void uiPresented();
     bool isSimulatorMode() const { return m_simulatorMode; }
 
 private:
+    void fadeInOverlay();
+    // READY=1 fires once both halves are true: the UI has painted and the
+    // Redis worker is connected (so the dashboard hash has really been
+    // published). Called from both edges, whichever lands last wins.
+    void maybeSignalReady();
     void createStores(QQmlApplicationEngine &engine);
     void registerContextProperties(QQmlApplicationEngine &engine);
     void setupSignalHandlers();
@@ -92,5 +100,8 @@ private:
     SettingsStore *m_settingsStore = nullptr;
     bool m_simulatorMode = false;
     bool m_mapDownloadHoldActive = false;
+    bool m_uiPresented = false;
+    bool m_redisReady = false;
+    bool m_readySignalled = false;
     QList<QObject*> m_stores;
 };

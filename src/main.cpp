@@ -73,21 +73,29 @@ int main(int argc, char *argv[])
         &app, []() { QCoreApplication::exit(1); },
         Qt::QueuedConnection);
 
-    // Boot animation: fade in overlay after QML loads
+    // Hand the display over to us only once a frame is actually on screen.
+    // objectCreated fires ~2s before the first swap on the DBC, and on kernels
+    // without /sys/class/graphics/fb1/overlay_alpha the handoff is an immediate
+    // stop of boot-animation rather than a 1s fade — so triggering it there
+    // leaves a visible gap between the splash going away and the cluster
+    // appearing.
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated,
         &application, [&application](QObject *obj, const QUrl &) {
             BOOT_MARK("QML objectCreated");
-            if (obj) {
-                application.fadeInOverlay();
-                if (auto *window = qobject_cast<QQuickWindow*>(obj)) {
-                    QObject::connect(window, &QQuickWindow::frameSwapped,
-                        &application, []() {
-                            BOOT_MARK("first frameSwapped");
-                        },
-                        Qt::SingleShotConnection);
-                }
+            if (!obj)
+                return;
+            auto *window = qobject_cast<QQuickWindow*>(obj);
+            if (!window) {
+                application.uiPresented();
+                return;
             }
+            QObject::connect(window, &QQuickWindow::frameSwapped,
+                &application, [&application]() {
+                    BOOT_MARK("first frameSwapped");
+                    application.uiPresented();
+                },
+                Qt::SingleShotConnection);
         },
         Qt::QueuedConnection);
 
