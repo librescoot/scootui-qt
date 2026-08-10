@@ -176,6 +176,52 @@ MapView {
                     _themeParams.push({ param: param, entry: entry })
                 }
             }
+            _initBuildingParams()
+        }
+
+        // The base style's 3D "buildings" / "building-compat" fill-extrusion
+        // layers extrude to render_height. In the flat 2D top-down view we
+        // flatten them (height/base = 0) so no 3D building extrusions render;
+        // the footprints stay as flat polygons. These LayerParameters override
+        // only the height/base paint keys, so they merge with the theme recolor
+        // parameters above (MapLibre applies just the stated keys by styleId).
+        property var _buildingParams: []
+
+        Component {
+            id: buildingParamComponent
+            LayerParameter {}
+        }
+
+        function _applyBuildings2D() {
+            var is2D = (typeof settingsStore !== "undefined") && settingsStore.mapViewMode === 1
+            var height = is2D ? 0 : ["get", "render_height"]
+            var base = is2D ? 0 : ["get", "render_min_height"]
+            for (var i = 0; i < _buildingParams.length; ++i) {
+                _buildingParams[i].paint = {
+                    "fill-extrusion-height": height,
+                    "fill-extrusion-base": base
+                }
+            }
+        }
+
+        function _initBuildingParams() {
+            var ids = ["buildings", "building-compat"]
+            for (var i = 0; i < ids.length; ++i) {
+                var param = buildingParamComponent.createObject(routeStyle, {
+                    styleId: ids[i],
+                    type: "fill-extrusion"
+                })
+                if (param) {
+                    routeStyle.addParameter(param)
+                    _buildingParams.push(param)
+                }
+            }
+            _applyBuildings2D()
+        }
+
+        Connections {
+            target: typeof settingsStore !== "undefined" ? settingsStore : null
+            function onMapViewModeChanged() { routeStyle._applyBuildings2D() }
         }
 
         Connections {
