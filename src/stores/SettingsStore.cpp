@@ -16,6 +16,8 @@ SyncSettings SettingsStore::syncSettings() const
             {QStringLiteral("showRawSpeed"), QStringLiteral("dashboard.show-raw-speed")},
             {QStringLiteral("batteryDisplayMode"), QStringLiteral("dashboard.battery-display-mode")},
             {QStringLiteral("mapType"), QStringLiteral("dashboard.map.type")},
+            {QStringLiteral("mapViewMode"), QStringLiteral("dashboard.map.view-mode")},
+            {QStringLiteral("mapNorthOriented"), QStringLiteral("dashboard.map.north-oriented")},
             {QStringLiteral("mapRenderMode"), QStringLiteral("dashboard.map.render-mode")},
             {QStringLiteral("valhallaUrl"), QStringLiteral("dashboard.valhalla-url")},
             {QStringLiteral("routePreference"), QStringLiteral("dashboard.route-preference")},
@@ -63,6 +65,11 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
     } else if (variable == QLatin1String("dashboard.map.type")) {
         auto v = ScootEnums::parseMapType(value);
         if (v != m_mapType) { m_mapType = v; emit mapTypeChanged(); }
+    } else if (variable == QLatin1String("dashboard.map.view-mode")) {
+        auto v = ScootEnums::parseMapViewMode(value);
+        if (v != m_mapViewMode) { m_mapViewMode = v; emit mapViewModeChanged(); }
+    } else if (variable == QLatin1String("dashboard.map.north-oriented")) {
+        if (value != m_mapNorthOriented) { m_mapNorthOriented = value; emit mapNorthOrientedChanged(); }
     } else if (variable == QLatin1String("dashboard.map.render-mode")) {
         auto v = ScootEnums::parseMapRenderMode(value);
         if (v != m_mapRenderMode) { m_mapRenderMode = v; emit mapRenderModeChanged(); }

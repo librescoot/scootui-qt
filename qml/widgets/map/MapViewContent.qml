@@ -44,7 +44,9 @@ MapView {
 
     map.zoomLevel: typeof mapService !== "undefined" ? mapService.mapZoom : 15
     map.bearing: typeof mapService !== "undefined" ? mapService.mapBearing : 0
-    map.tilt: 85
+    // 3D (default) tilts the map back to show forward perspective; 2D is
+    // a flat top-down view.
+    map.tilt: (typeof settingsStore !== "undefined" && settingsStore.mapViewMode === 1) ? 0 : 85
 
     function vehicleCoordinate() {
         if (typeof mapService !== "undefined" && mapService.isReady) {

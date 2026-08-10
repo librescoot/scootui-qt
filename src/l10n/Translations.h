@@ -119,6 +119,12 @@ class Translations : public QObject
     Q_PROPERTY(QString menuOnline READ menuOnline NOTIFY languageChanged)
     Q_PROPERTY(QString menuOffline READ menuOffline NOTIFY languageChanged)
     Q_PROPERTY(QString menuNavRouting READ menuNavRouting NOTIFY languageChanged)
+    Q_PROPERTY(QString menuMapView READ menuMapView NOTIFY languageChanged)
+    Q_PROPERTY(QString menuView3d READ menuView3d NOTIFY languageChanged)
+    Q_PROPERTY(QString menuView2d READ menuView2d NOTIFY languageChanged)
+    Q_PROPERTY(QString menuOrientation READ menuOrientation NOTIFY languageChanged)
+    Q_PROPERTY(QString menuNorthOriented READ menuNorthOriented NOTIFY languageChanged)
+    Q_PROPERTY(QString menuHeadingUp READ menuHeadingUp NOTIFY languageChanged)
     Q_PROPERTY(QString menuRoutePreference READ menuRoutePreference NOTIFY languageChanged)
     Q_PROPERTY(QString menuMapCheckNow READ menuMapCheckNow NOTIFY languageChanged)
     Q_PROPERTY(QString mapCheckNever READ mapCheckNever NOTIFY languageChanged)
@@ -611,6 +617,12 @@ public:
     QString menuMapType() const { return lookup("menuMapType"); }
     QString menuOnline() const { return lookup("menuOnline"); }
     QString menuOffline() const { return lookup("menuOffline"); }
+    QString menuMapView() const { return lookup("menuMapView"); }
+    QString menuView3d() const { return lookup("menuView3d"); }
+    QString menuView2d() const { return lookup("menuView2d"); }
+    QString menuOrientation() const { return lookup("menuOrientation"); }
+    QString menuNorthOriented() const { return lookup("menuNorthOriented"); }
+    QString menuHeadingUp() const { return lookup("menuHeadingUp"); }
     QString menuNavRouting() const { return lookup("menuNavRouting"); }
     QString menuRoutePreference() const { return lookup("menuRoutePreference"); }
     QString menuMapCheckNow() const { return lookup("menuMapCheckNow"); }
