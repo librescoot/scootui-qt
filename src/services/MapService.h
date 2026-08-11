@@ -154,7 +154,16 @@ private:
 
     // Traffic overlay
     static void removeTrafficFromStyle(QJsonObject &root);
-    QString rewriteStyleStripTraffic(const QString &qrcPath);
+    // 2D draws building footprints flat. Collapsing a fill-extrusion to zero
+    // height does not do that: the layer stays on the extrusion path, offscreen
+    // composite pass included, and measures slower than the 3D view it replaces
+    // (9.5 fps against 12.7 on the DBC). Rewriting the layer to a plain fill
+    // gets 25 fps, so the swap happens in the style rather than at runtime.
+    static QJsonObject flattenExtrusionLayer(QJsonObject layer);
+    static void flattenBuildingExtrusions(QJsonObject &root);
+    // Emits the /tmp style variant for the current traffic and view-mode combo.
+    QString rewriteStyleVariant(const QString &qrcPath);
+    QString styleVariantSuffix() const;
 
     // Route GeoJSON for native MapLibre layer
     void updateRouteGeoJson();

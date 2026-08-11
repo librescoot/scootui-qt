@@ -629,6 +629,11 @@ void MapService::onMapViewModeChanged()
     emit vehicleOffsetYChanged();
     // North-oriented only applies to the 2D view; re-evaluate the effective bearing.
     emit mapBearingChanged();
+    // Buildings are extruded in 3D and flat in 2D, which is a different style.
+    // Rebuild the theme overrides first so they carry the matching layer type,
+    // then the URL, whose change reloads the map.
+    buildThemeLayerOverrides();
+    rebuildStyleUrl();
 }
 
 void MapService::onTrafficOverlayChanged()
@@ -679,10 +684,21 @@ void MapService::buildThemeLayerOverrides()
         return out;
     };
 
-    const QHash<QString, QJsonObject> dark =
+    QHash<QString, QJsonObject> dark =
         loadLayers(QStringLiteral("qrc:/ScootUI/assets/styles/mapdark.json"));
-    const QHash<QString, QJsonObject> light =
+    QHash<QString, QJsonObject> light =
         loadLayers(QStringLiteral("qrc:/ScootUI/assets/styles/maplight.json"));
+
+    // In 2D the emitted style carries buildings as plain fills, so the
+    // overrides have to be derived from the flattened layers. Otherwise they
+    // would keep naming fill-extrusion-color on a layer that is now a fill and
+    // the recolour would silently stop applying on a theme change.
+    if (m_view2D) {
+        for (auto it = dark.begin(); it != dark.end(); ++it)
+            it.value() = flattenExtrusionLayer(it.value());
+        for (auto it = light.begin(); it != light.end(); ++it)
+            it.value() = flattenExtrusionLayer(it.value());
+    }
 
     // Walk the light style's layer order so the overrides keep style order.
     QFile lf(QStringLiteral(":/ScootUI/assets/styles/maplight.json"));
@@ -746,9 +762,10 @@ void MapService::rebuildStyleUrl()
     QString url;
     if (useLocal) {
         url = rewriteStyleForMbtiles(qrcPath, m_mbtilesPath);
-    } else if (!showTraffic) {
-        // Online mode with traffic disabled: rewrite style to strip traffic layer
-        url = rewriteStyleStripTraffic(qrcPath);
+    } else if (!showTraffic || m_view2D) {
+        // Online mode still needs a rewritten style whenever the embedded one
+        // does not already match: traffic disabled, 2D flat buildings, or both.
+        url = rewriteStyleVariant(qrcPath);
     } else {
         url = qrcPath;
         qDebug() << "MapService: using online style:" << url;
@@ -769,9 +786,7 @@ QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString
     // styleUrlChanged and leave MapViewWidget rendering the stale map).
     QString baseName = qrcPath.section(QLatin1Char('/'), -1);  // "mapdark.json" or "maplight.json"
     QString stem = baseName.chopped(5);  // strip ".json"
-    bool showTraffic = m_settings->mapTrafficOverlay();
-    QString trafficSuffix = showTraffic ? QStringLiteral("") : QStringLiteral("-notraffic");
-    QString filePrefix = stem + trafficSuffix;
+    QString filePrefix = stem + styleVariantSuffix();
     qint64 mtimeSecs = QFileInfo(mbtilesPath).lastModified().toSecsSinceEpoch();
     QString outPath = QStringLiteral("/tmp/") + filePrefix + QStringLiteral("-")
         + QString::number(mtimeSecs) + QStringLiteral(".json");
@@ -841,6 +856,10 @@ QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString
     if (!m_settings->mapTrafficOverlay())
         removeTrafficFromStyle(root);
 
+    // Flat footprints in 2D
+    if (m_view2D)
+        flattenBuildingExtrusions(root);
+
     // Write to /tmp
     QFile out(outPath);
     if (!out.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
@@ -856,11 +875,50 @@ QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString
     return fileUrl;
 }
 
-QString MapService::rewriteStyleStripTraffic(const QString &qrcPath)
+QJsonObject MapService::flattenExtrusionLayer(QJsonObject layer)
+{
+    if (layer.value(QStringLiteral("type")).toString() != QLatin1String("fill-extrusion"))
+        return layer;
+
+    // Keep the id: theme overrides and the route layers' insert_before anchor
+    // both resolve by it.
+    const QJsonObject src = layer.value(QStringLiteral("paint")).toObject();
+    QJsonObject flat;
+    if (src.contains(QStringLiteral("fill-extrusion-color")))
+        flat[QStringLiteral("fill-color")] = src.value(QStringLiteral("fill-extrusion-color"));
+    if (src.contains(QStringLiteral("fill-extrusion-opacity")))
+        flat[QStringLiteral("fill-opacity")] = src.value(QStringLiteral("fill-extrusion-opacity"));
+
+    layer[QStringLiteral("type")] = QStringLiteral("fill");
+    layer[QStringLiteral("paint")] = flat;
+    return layer;
+}
+
+void MapService::flattenBuildingExtrusions(QJsonObject &root)
+{
+    const QJsonArray layers = root.value(QStringLiteral("layers")).toArray();
+    QJsonArray out;
+    for (const QJsonValue &v : layers)
+        out.append(flattenExtrusionLayer(v.toObject()));
+    root[QStringLiteral("layers")] = out;
+}
+
+QString MapService::styleVariantSuffix() const
+{
+    QString s;
+    if (!m_settings->mapTrafficOverlay())
+        s += QStringLiteral("-notraffic");
+    if (m_view2D)
+        s += QStringLiteral("-2d");
+    return s;
+}
+
+QString MapService::rewriteStyleVariant(const QString &qrcPath)
 {
     QString baseName = qrcPath.section(QLatin1Char('/'), -1);
     QString stem = baseName.chopped(5);  // strip ".json"
-    QString outPath = QStringLiteral("/tmp/") + stem + QStringLiteral("-notraffic.json");
+    QString outPath = QStringLiteral("/tmp/") + stem + styleVariantSuffix()
+                      + QStringLiteral(".json");
 
     QString qrcFile = qrcPath;
     qrcFile.replace(QStringLiteral("qrc:/"), QStringLiteral(":/"));
@@ -877,7 +935,10 @@ QString MapService::rewriteStyleStripTraffic(const QString &qrcPath)
     }
 
     QJsonObject root = doc.object();
-    removeTrafficFromStyle(root);
+    if (!m_settings->mapTrafficOverlay())
+        removeTrafficFromStyle(root);
+    if (m_view2D)
+        flattenBuildingExtrusions(root);
 
     QFile out(outPath);
     if (!out.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
