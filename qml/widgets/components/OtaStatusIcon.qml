@@ -5,13 +5,20 @@ Item {
 
     property string status: "idle"
     property int size: 64
+    // The ota-status SVGs are baked fill="white", so they only read correctly on
+    // a dark surface. Tint them like every other neutral icon rather than
+    // relying on the artwork's own colour. Default stays white so the existing
+    // black-background callers (ShutdownOverlay, OtaBackgroundScreen) are
+    // unchanged; a theme-aware caller passes its own foreground.
+    property color tintColor: "#FFFFFF"
 
     width: size
     height: size
 
-    Image {
+    TintedImage {
         anchors.fill: parent
         sourceSize: Qt.size(root.size, root.size)
+        tintColor: root.tintColor
         source: {
             switch (root.status) {
                 case "downloading":
