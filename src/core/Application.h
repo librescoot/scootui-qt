@@ -8,6 +8,7 @@ class MdbRepository;
 class GpsStore;
 class VehicleStore;
 class SettingsStore;
+class InternetStore;
 class AutoThemeService;
 class SettingsService;
 class NavigationService;
@@ -67,6 +68,10 @@ private:
     // availability, download-service idle status, and vehicle state, so it's
     // safe to call opportunistically from multiple signals.
     void maybeAutoDownloadMaps();
+    // Runs the periodic map update check when the setting, connectivity,
+    // installed maps and cadence all allow it. Cheap and idempotent, so it is
+    // safe to call from every signal that could make those conditions true.
+    void maybeCheckForMapUpdates();
 
     std::unique_ptr<MdbRepository> m_repository;
     AutoThemeService *m_autoThemeService = nullptr;
@@ -98,6 +103,7 @@ private:
     GpsStore *m_gpsStore = nullptr;
     VehicleStore *m_vehicleStore = nullptr;
     SettingsStore *m_settingsStore = nullptr;
+    InternetStore *m_internetStore = nullptr;
     bool m_simulatorMode = false;
     bool m_mapDownloadHoldActive = false;
     bool m_uiPresented = false;

@@ -261,6 +261,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_gpsStore = gpsStore;
     m_vehicleStore = vehicleStore;
     m_settingsStore = settingsStore;
+    m_internetStore = internetStore;
 
     // Auto-check for map updates when connectivity is established
     // Vehicles whose maps came from the flasher have no region on record. The
@@ -274,19 +275,17 @@ void Application::createStores(QQmlApplicationEngine &engine)
         return true;
     });
 
+    // The check needs both the modem connected and the setting loaded, and the
+    // two stores sync independently. Listening to only one of them loses the
+    // race whenever the other lands second: m_stores starts internetStore
+    // before settingsStore, so the initial modemStateChanged used to arrive
+    // while mapCheckForUpdates was still its default "false", and modem-state
+    // never changes again on a vehicle that stays online. Hooking both signals
+    // means whichever settles last runs the check, in either order.
     connect(internetStore, &InternetStore::modemStateChanged, this,
-            [this, internetStore, settingsStore]() {
-        if (!settingsStore->mapCheckForUpdates())
-            return;
-        if (internetStore->modemState() != static_cast<int>(ScootEnums::ModemState::Connected))
-            return;
-        if (!m_mapDownloadService->hasMapsInstalled())
-            return;
-        if (!m_mapDownloadService->shouldCheckForUpdates())
-            return;
-        qDebug() << "Auto-checking for map updates (weekly)";
-        m_mapDownloadService->checkForUpdatesNow();
-    });
+            &Application::maybeCheckForMapUpdates);
+    connect(settingsStore, &SettingsStore::mapCheckForUpdatesChanged, this,
+            &Application::maybeCheckForMapUpdates);
 
     // Notify user when a map update is found, or auto-download if enabled.
     // The actual download is state-gated (see maybeAutoDownloadMaps).
@@ -693,6 +692,23 @@ void Application::reloadMapServices()
         m_roadInfoService->reloadMbtiles();
     if (m_addressDatabaseService)
         m_addressDatabaseService->initialize();
+}
+
+void Application::maybeCheckForMapUpdates()
+{
+    if (!m_settingsStore || !m_internetStore || !m_mapDownloadService)
+        return;
+    if (!m_settingsStore->mapCheckForUpdates())
+        return;
+    if (m_internetStore->modemState() != static_cast<int>(ScootEnums::ModemState::Connected))
+        return;
+    if (!m_mapDownloadService->hasMapsInstalled())
+        return;
+    if (!m_mapDownloadService->shouldCheckForUpdates())
+        return;
+
+    qDebug() << "Auto-checking for map updates (weekly)";
+    m_mapDownloadService->checkForUpdatesNow();
 }
 
 void Application::maybeAutoDownloadMaps()
