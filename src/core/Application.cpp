@@ -70,6 +70,10 @@
 #include <QProcess>
 #include <QFile>
 #include <QTimer>
+#include <QDateTime>
+#include <QGuiApplication>
+#include <QImage>
+#include <QQuickWindow>
 
 // Shared boot timer defined in main.cpp — markers added at startup
 // checkpoints so we can see where time goes on a live DBC.
@@ -164,6 +168,7 @@ bool Application::initialize(QQmlApplicationEngine &engine)
     registerContextProperties(engine);
     BOOT_MARK("registerContextProperties() done");
     setupSignalHandlers();
+    setupScreenshotWatcher();
 
     return true;
 }
@@ -791,6 +796,52 @@ void Application::fadeInOverlay()
 
     proc->start();
 #endif
+}
+
+void Application::setupScreenshotWatcher()
+{
+    const QString dir = qEnvironmentVariable("SCOOTUI_SCREENSHOT_DIR");
+    if (dir.isEmpty())
+        return;
+
+    QDir().mkpath(dir);
+    auto *watcher = new QFileSystemWatcher(this);
+    if (!watcher->addPath(dir)) {
+        qWarning() << "Screenshot watcher: cannot watch" << dir;
+        return;
+    }
+
+    connect(watcher, &QFileSystemWatcher::directoryChanged, this, [this, dir](const QString &) {
+        const QString request = dir + QStringLiteral("/request");
+        if (!QFile::exists(request))
+            return;
+        QFile::remove(request);
+
+        QQuickWindow *window = nullptr;
+        const auto windows = QGuiApplication::topLevelWindows();
+        for (auto *w : windows) {
+            auto *qw = qobject_cast<QQuickWindow*>(w);
+            if (qw && qw->title() == QLatin1String("ScootUI")) {
+                window = qw;
+                break;
+            }
+        }
+        if (!window) {
+            qWarning() << "Screenshot watcher: no dashboard window";
+            return;
+        }
+
+        const QImage img = window->grabWindow();
+        const QString path = dir + QStringLiteral("/shot-")
+            + QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss-zzz"))
+            + QStringLiteral(".png");
+        if (img.save(path))
+            qDebug() << "Screenshot saved to" << path;
+        else
+            qWarning() << "Screenshot: failed to save" << path;
+    });
+
+    qDebug() << "Screenshot watcher active on" << dir << "(touch 'request' to grab)";
 }
 
 void Application::setupSignalHandlers()

@@ -57,6 +57,11 @@ private:
     void createStores(QQmlApplicationEngine &engine);
     void registerContextProperties(QQmlApplicationEngine &engine);
     void setupSignalHandlers();
+    // Dev aid, off unless SCOOTUI_SCREENSHOT_DIR is set: watches that directory
+    // and grabs the dashboard window whenever a file named "request" appears
+    // there. The DBC scans out through KMS, so /dev/fb0 shows the console
+    // framebuffer rather than the panel and cannot be used to capture the UI.
+    void setupScreenshotWatcher();
     // Re-point the mbtiles-backed services at /data/maps/map.mbtiles. Safe to
     // call repeatedly (each service's reload is idempotent); driven by the
     // file watcher and by NavigationAvailabilityService::localMapsBecameAvailable
