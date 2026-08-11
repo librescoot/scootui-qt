@@ -192,9 +192,23 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
     // --- Map type changes (online / offline) ---
     connect(m_settings, &SettingsStore::mapTypeChanged, this, &MapService::onMapTypeChanged);
 
+    // --- View mode / orientation changes (3D ↔ 2D, north ↔ heading) ---
+    // The effective bearing and vehicle offset depend on these; see mapBearing()/
+    // vehicleOffsetY(). Re-sync nothing else — tilt lives in the QML layer.
+    connect(m_settings, &SettingsStore::mapViewModeChanged, this, &MapService::onMapViewModeChanged);
+    connect(m_settings, &SettingsStore::mapNorthOrientedChanged, this, [this]() {
+        m_northOriented = m_settings->mapNorthOriented();
+        // Re-emit so the map/north indicator re-read the (now 0) effective bearing.
+        emit mapBearingChanged();
+    });
+
+    // Mirror the current settings so a persisted 2D/north-oriented selection is
+    // honored even though the *Changed signals above only fire on later changes.
+    m_view2D = m_settings->mapViewMode() == static_cast<int>(ScootEnums::MapViewMode::View2D);
+    m_northOriented = m_settings->mapNorthOriented();
+
     // --- Traffic overlay toggle ---
     connect(m_settings, &SettingsStore::mapTrafficOverlayChanged, this, &MapService::onTrafficOverlayChanged);
-
     // --- Route overview timer (single-shot) ---
     m_overviewTimer = new QTimer(this);
     m_overviewTimer->setSingleShot(true);
@@ -606,6 +620,15 @@ void MapService::onOverviewTimeout()
 void MapService::onMapTypeChanged()
 {
     rebuildStyleUrl();
+}
+
+void MapService::onMapViewModeChanged()
+{
+    m_view2D = m_settings->mapViewMode() == static_cast<int>(ScootEnums::MapViewMode::View2D);
+    // In 2D the vehicle sits at screen center (no forward tilt offset).
+    emit vehicleOffsetYChanged();
+    // North-oriented only applies to the 2D view; re-evaluate the effective bearing.
+    emit mapBearingChanged();
 }
 
 void MapService::onTrafficOverlayChanged()

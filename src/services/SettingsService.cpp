@@ -127,6 +127,17 @@ void SettingsService::updateMapType(const QString &type)
     writeSetting(QStringLiteral("dashboard.map.type"), type);
 }
 
+void SettingsService::updateMapViewMode(const QString &mode)
+{
+    writeSetting(QStringLiteral("dashboard.map.view-mode"), mode);
+}
+
+void SettingsService::updateMapNorthOriented(bool enabled)
+{
+    writeSetting(QStringLiteral("dashboard.map.north-oriented"),
+                 enabled ? QStringLiteral("true") : QStringLiteral("false"));
+}
+
 void SettingsService::updateMapRenderMode(const QString &mode)
 {
     writeSetting(QStringLiteral("dashboard.map.render-mode"), mode);

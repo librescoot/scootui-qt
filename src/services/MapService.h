@@ -23,6 +23,11 @@ class MapService : public QObject
     Q_PROPERTY(double mapLongitude READ mapLongitude NOTIFY mapLongitudeChanged)
     Q_PROPERTY(double mapZoom READ mapZoom NOTIFY mapZoomChanged)
     Q_PROPERTY(double mapBearing READ mapBearing NOTIFY mapBearingChanged)
+    // Raw smoothed heading that the map follows in direction-oriented mode,
+    // before the north-oriented (2D) override that forces mapBearing to 0.
+    // The vehicle marker uses it to keep pointing along the true heading when
+    // the map stays north-up.
+    Q_PROPERTY(double rawMapBearing READ rawMapBearing NOTIFY mapBearingChanged)
     Q_PROPERTY(bool isReady READ isReady NOTIFY isReadyChanged)
     Q_PROPERTY(QString styleUrl READ styleUrl NOTIFY styleUrlChanged)
     // Per-layer paint overrides for the dark/light themes, computed once from
@@ -59,13 +64,17 @@ public:
     double mapLatitude() const { return m_mapLatitude; }
     double mapLongitude() const { return m_mapLongitude; }
     double mapZoom() const { return m_mapZoom; }
-    double mapBearing() const { return m_mapBearing; }
+    // Effective display bearing. In the 2D north-oriented view the map stays
+    // north-up, so we expose 0; the internal m_mapBearing keeps smoothing so a
+    // later switch back to direction-oriented continues from the current heading.
+    double mapBearing() const { return (m_view2D && m_northOriented) ? 0.0 : m_mapBearing; }
+    double rawMapBearing() const { return m_mapBearing; }
+    double vehicleOffsetY() const { return m_view2D ? 0.0 : m_vehicleOffsetY; }
     bool isReady() const { return m_isReady; }
     QString styleUrl() const { return m_styleUrl; }
     QVariantList mapThemeLayers() const { return m_mapThemeLayers; }
     QVariantList routeCoordinates() const { return m_routeCoordinates; }
     QString routeGeoJson() const { return m_routeGeoJson; }
-    double vehicleOffsetY() const { return m_vehicleOffsetY; }
     bool isOutOfCoverage() const { return m_isOutOfCoverage; }
 
     double vehicleLatitude() const { return m_drLatitude; }
@@ -112,6 +121,7 @@ private slots:
     void onGpsPositionChanged();
     void onRouteChanged();
     void onMapTypeChanged();
+    void onMapViewModeChanged();
     void onTrafficOverlayChanged();
     void onOverviewTimeout();
 
@@ -291,6 +301,10 @@ private:
     double m_mapLongitude = 0;
     double m_mapZoom = DefaultZoom;
     double m_mapBearing = 0;
+    // 2D view (top-down, no tilt) and north-oriented (map stays north-up).
+    // Mirrored from SettingsStore; see mapBearing()/vehicleOffsetY().
+    bool m_view2D = false;
+    bool m_northOriented = false;
     bool m_isReady = false;
     QString m_styleUrl;
     QVariantList m_mapThemeLayers;

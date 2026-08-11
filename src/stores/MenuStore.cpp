@@ -59,6 +59,8 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
     connect(m_settings, &SettingsStore::showAuxBatteryChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::mapCheckForUpdatesChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::mapAutoDownloadChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::mapViewModeChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::mapNorthOrientedChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::milestoneCelebrationsChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::serviceActiveChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_translations, &Translations::languageChanged, this, &MenuStore::rebuildMenuTree);
@@ -635,6 +637,29 @@ void MenuStore::rebuildMenuTree()
             }, mapType == 1 ? 1 : 0));
     }
 
+    // Map View (inline cycle: 3D → 2D). 2D is a flat top-down camera.
+    {
+        int viewMode = settings->mapViewMode();
+        mapNavNode->addChild(MenuNode::cycleSetting(QStringLiteral("map_view"),
+            tr->menuMapView(), {
+                {tr->menuView3d(), [svc]() { svc->updateMapViewMode(QStringLiteral("3d")); }},
+                {tr->menuView2d(), [svc]() { svc->updateMapViewMode(QStringLiteral("2d")); }},
+            }, viewMode == 1 ? 1 : 0));
+    }
+
+    // Map Orientation (inline cycle: Heading → North). Only relevant in the 2D
+    // view; hidden in 3D where the camera always follows forward.
+    {
+        bool northOriented = settings->mapNorthOriented();
+        mapNavNode->addChild(MenuNode::cycleSetting(QStringLiteral("map_orientation"),
+            tr->menuOrientation(), {
+                {tr->menuHeadingUp(), [svc]() { svc->updateMapNorthOriented(false); }},
+                {tr->menuNorthOriented(), [svc]() { svc->updateMapNorthOriented(true); }},
+            }, northOriented ? 1 : 0))
+            ->setIsVisible([this]() {
+                return m_settings->mapViewMode() == static_cast<int>(ScootEnums::MapViewMode::View2D);
+            });
+    }
     // Navigation Routing (inline cycle: Online → Offline)
     {
         QString vUrl = settings->valhallaUrl();

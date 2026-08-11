@@ -12,6 +12,8 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(bool showRawSpeed READ showRawSpeed NOTIFY showRawSpeedChanged)
     Q_PROPERTY(QString batteryDisplayMode READ batteryDisplayMode NOTIFY batteryDisplayModeChanged)
     Q_PROPERTY(int mapType READ mapType NOTIFY mapTypeChanged)
+    Q_PROPERTY(int mapViewMode READ mapViewMode NOTIFY mapViewModeChanged)
+    Q_PROPERTY(bool mapNorthOriented READ mapNorthOriented NOTIFY mapNorthOrientedChanged)
     Q_PROPERTY(int mapRenderMode READ mapRenderMode NOTIFY mapRenderModeChanged)
     Q_PROPERTY(QString valhallaUrl READ valhallaUrl NOTIFY valhallaUrlChanged)
     Q_PROPERTY(QString routePreference READ routePreference NOTIFY routePreferenceChanged)
@@ -49,6 +51,8 @@ public:
     bool showRawSpeed() const { return m_showRawSpeed == QLatin1String("true"); }
     QString batteryDisplayMode() const { return m_batteryDisplayMode; }
     int mapType() const { return static_cast<int>(m_mapType); }
+    int mapViewMode() const { return static_cast<int>(m_mapViewMode); }
+    bool mapNorthOriented() const { return m_mapNorthOriented == QLatin1String("true"); }
     int mapRenderMode() const { return static_cast<int>(m_mapRenderMode); }
     QString valhallaUrl() const { return m_valhallaUrl; }
     QString routePreference() const { return m_routePreference; }
@@ -88,6 +92,8 @@ signals:
     void showRawSpeedChanged();
     void batteryDisplayModeChanged();
     void mapTypeChanged();
+    void mapViewModeChanged();
+    void mapNorthOrientedChanged();
     void mapRenderModeChanged();
     void valhallaUrlChanged();
     void routePreferenceChanged();
@@ -132,6 +138,10 @@ private:
     QString m_batteryDisplayMode = QStringLiteral("percentage");
     // @schema dashboard.map.type
     ScootEnums::MapType m_mapType = ScootEnums::MapType::Offline;
+    // @schema dashboard.map.view-mode
+    ScootEnums::MapViewMode m_mapViewMode = ScootEnums::MapViewMode::View3D;
+    // @schema dashboard.map.north-oriented
+    QString m_mapNorthOriented = QStringLiteral("false");
     ScootEnums::MapRenderMode m_mapRenderMode = ScootEnums::MapRenderMode::Vector;
     QString m_valhallaUrl;
     // @schema dashboard.route-preference

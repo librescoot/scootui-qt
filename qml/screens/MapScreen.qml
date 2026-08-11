@@ -185,7 +185,8 @@ Rectangle {
                 anchors.fill: parent
             }
 
-            // Vehicle marker at fixed screen position, tilted to match 3D map
+            // Vehicle marker at fixed screen position, tilted to match 3D map.
+            // In the flat 2D top-down view it stays upright (no X-tilt).
             VehicleMarker {
                 id: vehicleMarkerItem
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -195,7 +196,7 @@ Rectangle {
                     origin.x: vehicleMarkerItem.width / 2
                     origin.y: vehicleMarkerItem.height / 2
                     axis { x: 1; y: 0; z: 0 }
-                    angle: 55
+                    angle: (typeof settingsStore !== "undefined" && settingsStore.mapViewMode === 1) ? 0 : 55
                 }
             }
 

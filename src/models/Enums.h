@@ -17,6 +17,9 @@ Q_ENUM_NS(Toggle)
 enum class MapType { Online, Offline };
 Q_ENUM_NS(MapType)
 
+enum class MapViewMode { View3D, View2D };
+Q_ENUM_NS(MapViewMode)
+
 enum class MapRenderMode { Vector, Raster };
 Q_ENUM_NS(MapRenderMode)
 
@@ -170,6 +173,10 @@ inline AuxChargeStatus parseAuxChargeStatus(const QString &s) {
 
 inline MapType parseMapType(const QString &s) {
     return (s == QLatin1String("offline")) ? MapType::Offline : MapType::Online;
+}
+
+inline MapViewMode parseMapViewMode(const QString &s) {
+    return (s == QLatin1String("2d")) ? MapViewMode::View2D : MapViewMode::View3D;
 }
 
 inline MapRenderMode parseMapRenderMode(const QString &s) {

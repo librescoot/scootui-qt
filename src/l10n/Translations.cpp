@@ -345,6 +345,23 @@ void Translations::initStrings()
     en[QStringLiteral("menuOffline")] = QStringLiteral("Offline");
     de[QStringLiteral("menuOffline")] = QStringLiteral("Offline");
 
+    en[QStringLiteral("menuMapView")] = QStringLiteral("Map View");
+    de[QStringLiteral("menuMapView")] = QStringLiteral("Kartenansicht");
+
+    en[QStringLiteral("menuView3d")] = QStringLiteral("3D");
+    de[QStringLiteral("menuView3d")] = QStringLiteral("3D");
+
+    en[QStringLiteral("menuView2d")] = QStringLiteral("2D");
+    de[QStringLiteral("menuView2d")] = QStringLiteral("2D");
+
+    en[QStringLiteral("menuOrientation")] = QStringLiteral("Orientation");
+    de[QStringLiteral("menuOrientation")] = QStringLiteral("Ausrichtung");
+
+    en[QStringLiteral("menuNorthOriented")] = QStringLiteral("North");
+    de[QStringLiteral("menuNorthOriented")] = QStringLiteral("Norden");
+
+    en[QStringLiteral("menuHeadingUp")] = QStringLiteral("Heading");
+    de[QStringLiteral("menuHeadingUp")] = QStringLiteral("Fahrtrichtung");
     en[QStringLiteral("menuNavRouting")] = QStringLiteral("Navigation Routing");
     de[QStringLiteral("menuNavRouting")] = QStringLiteral("Navigations-Routing");
 

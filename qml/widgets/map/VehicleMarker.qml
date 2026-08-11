@@ -10,6 +10,14 @@ Item {
     property bool hasRecentFix: typeof gpsStore !== "undefined" ? gpsStore.hasRecentFix : true
     property double eph: typeof gpsStore !== "undefined" ? gpsStore.eph : 10
 
+    // Screen rotation of the direction arrow (deg clockwise from up).
+    // The map rotates by mapService.mapBearing; the arrow must always point
+    // along the true heading, which in north-oriented 2D is NOT "up" (the map
+    // stays fixed there). Difference of the raw heading and the effective map
+    // rotation handles every mode: direction/3D -> the map already turns so the
+    // arrow stays up (0), north-2D -> arrow turns to the heading.
+    readonly property real headingAngle: typeof mapService !== "undefined"
+                                         ? mapService.rawMapBearing - mapService.mapBearing : 0
     // Scale eph (meters) to a circle diameter in pixels.
     // At eph=5 → tight ~30px, at eph=50 → large ~60px. Clamped.
     readonly property real ephCircleSize: Math.max(30, Math.min(60, 20 + eph * 0.8))
@@ -109,6 +117,14 @@ Item {
             height: 24
 
             property color fillColor: vehicleMarker.arrowColor
+
+            // Points along the true heading (north-oriented 2D) / up in
+            // direction-oriented and 3D views.
+            transform: Rotation {
+                origin.x: 12
+                origin.y: 12
+                angle: vehicleMarker.headingAngle
+            }
 
             onFillColorChanged: requestPaint()
             onPaint: {
