@@ -31,6 +31,19 @@ Row {
     readonly property string otaDbcStatus: typeof otaStore !== "undefined" ? otaStore.dbcStatus : "idle"
     readonly property int otaDbcDownloadProgress: typeof otaStore !== "undefined" ? otaStore.dbcDownloadProgress : 0
     readonly property int otaDbcInstallProgress: typeof otaStore !== "undefined" ? otaStore.dbcInstallProgress : 0
+    readonly property string otaMdbStatus: typeof otaStore !== "undefined" ? otaStore.mdbStatus : "idle"
+    readonly property int otaMdbDownloadProgress: typeof otaStore !== "undefined" ? otaStore.mdbDownloadProgress : 0
+    readonly property int otaMdbInstallProgress: typeof otaStore !== "undefined" ? otaStore.mdbInstallProgress : 0
+
+    // otaStore.isActive() is true when EITHER board is busy, so this row appears
+    // during an MDB-only update too. Everything below therefore keys off the
+    // board that is actually working rather than the DBC alone: keyed off the
+    // DBC, an MDB update left the icon with an empty source and the row drew a
+    // blank 24px hole between GPS and the temperature.
+    readonly property bool otaDbcBusy: otaDbcStatus !== "idle" && otaDbcStatus !== ""
+    readonly property string otaStatus: otaDbcBusy ? otaDbcStatus : otaMdbStatus
+    readonly property int otaDownloadProgress: otaDbcBusy ? otaDbcDownloadProgress : otaMdbDownloadProgress
+    readonly property int otaInstallProgress: otaDbcBusy ? otaDbcInstallProgress : otaMdbInstallProgress
 
     // Visibility settings from SettingsStore (values: "always", "active-or-error", "error", "never")
     readonly property string showGpsSetting: typeof settingsStore !== "undefined" ? settingsStore.showGps : "error"
@@ -54,12 +67,12 @@ Row {
     readonly property bool btWanted: shouldShowIndicator(showBtSetting, btIsActive, btHasError)
     readonly property bool gpsWanted: shouldShowIndicator(showGpsSetting, gpsIsActive, gpsHasError)
     readonly property bool otaShown: otaActive && (vehicleState === 2 || vehicleState === 4)
-    readonly property bool otaProgressActive: otaDbcStatus === "downloading"
-                                              || otaDbcStatus === "preparing"
-                                              || otaDbcStatus === "installing"
+    readonly property bool otaProgressActive: otaStatus === "downloading"
+                                              || otaStatus === "preparing"
+                                              || otaStatus === "installing"
     readonly property string otaProgressText: {
-        if (otaDbcStatus === "downloading") return "" + otaDbcDownloadProgress
-        if (otaDbcStatus === "preparing" || otaDbcStatus === "installing") return "" + otaDbcInstallProgress
+        if (otaStatus === "downloading") return "" + otaDownloadProgress
+        if (otaStatus === "preparing" || otaStatus === "installing") return "" + otaInstallProgress
         return ""
     }
 
@@ -343,14 +356,20 @@ Row {
         layoutDirection: Qt.LeftToRight
 
         Item {
-            width: 24; height: 24
+            // A status with no artwork leaves the source empty. Collapse instead
+            // of reserving 24px of nothing, so an unrecognised state can never
+            // punch a hole in the row again.
+            readonly property bool hasIcon: String(otaIcon.source) !== ""
+            visible: hasIcon
+            width: hasIcon ? 24 : 0
+            height: 24
 
             Image {
                 id: otaIcon
                 anchors.fill: parent
                 sourceSize: Qt.size(24, 24)
                 source: {
-                    switch (otaDbcStatus) {
+                    switch (statusIndicators.otaStatus) {
                         case "downloading":
                             return "qrc:/ScootUI/assets/icons/librescoot-ota-status-downloading.svg"
                         case "preparing":
