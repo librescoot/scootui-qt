@@ -45,6 +45,19 @@ Row {
     readonly property int otaDownloadProgress: otaDbcBusy ? otaDbcDownloadProgress : otaMdbDownloadProgress
     readonly property int otaInstallProgress: otaDbcBusy ? otaDbcInstallProgress : otaMdbInstallProgress
 
+    // Map / routing tile download. Mirrors the OTA row but is its own indicator:
+    // a map update and a firmware update can run at the same time, and until now
+    // a map download was invisible outside the Map and Navigation screen even
+    // though it pulls hundreds of MB and holds DBC power while it runs.
+    // Downloading(3) / Installing(4) from ScootEnums::MapDownloadStatus.
+    readonly property int mapDlStatus: typeof mapDownloadService !== "undefined"
+                                       ? mapDownloadService.status : 0
+    readonly property double mapDlProgress: typeof mapDownloadService !== "undefined"
+                                            ? mapDownloadService.progress : 0
+    readonly property bool mapDlActive: mapDlStatus === 3 || mapDlStatus === 4
+    readonly property string mapDlProgressText: mapDlActive
+                                                ? "" + Math.round(mapDlProgress * 100) : ""
+
     // Visibility settings from SettingsStore (values: "always", "active-or-error", "error", "never")
     readonly property string showGpsSetting: typeof settingsStore !== "undefined" ? settingsStore.showGps : "error"
     readonly property string showBtSetting: typeof settingsStore !== "undefined" ? settingsStore.showBluetooth : "active-or-error"
@@ -67,6 +80,15 @@ Row {
     readonly property bool btWanted: shouldShowIndicator(showBtSetting, btIsActive, btHasError)
     readonly property bool gpsWanted: shouldShowIndicator(showGpsSetting, gpsIsActive, gpsHasError)
     readonly property bool otaShown: otaActive && (vehicleState === 2 || vehicleState === 4)
+    // StandBy(1) as well as ReadyToDrive(2) and Parked(4), which is wider than
+    // the OTA row above. EnterStandby defers dashboard power off while a map
+    // download is running (scooter:dbc-hold, bounded by dbcMapDownloadHoldMax),
+    // so the tail of a download does happen in StandBy. That tail is when the
+    // tar is renamed into place and valhalla restarts, which is exactly when the
+    // rider most needs to see why the dashboard is still awake.
+    readonly property bool mapDlShown: mapDlActive
+                                       && (vehicleState === 1 || vehicleState === 2
+                                           || vehicleState === 4)
     readonly property bool otaProgressActive: otaStatus === "downloading"
                                               || otaStatus === "preparing"
                                               || otaStatus === "installing"
@@ -79,18 +101,23 @@ Row {
     // --- Width-aware degradation -------------------------------------------
     // degradeLevel is assigned by TopStatusBar from the measured budget:
     //   0 full detail             3 cloud -> overflow chip (unless error)
-    //   1 no OTA progress digits  4 GPS -> overflow chip (unless error)
+    //   1 no OTA progress digits, 4 GPS -> overflow chip (unless error)
+    //     map download -> chip
     //   2 BT -> overflow chip     5 temp -> overflow chip (unless frost)
     //     (unless error)
     // Anything shown because of an error state never degrades.
     property int degradeLevel: 0
 
     readonly property bool showOtaProgress: otaProgressActive && degradeLevel < 1
+    // Lowest-priority indicator: a map download is informational, so it folds
+    // into the overflow chip at the first sign of width pressure, before BT.
+    readonly property bool mapDlChipped: mapDlShown && degradeLevel >= 1
     readonly property bool btChipped: btWanted && !btHasError && degradeLevel >= 2
     readonly property bool cloudChipped: cloudWanted && !cloudHasError && degradeLevel >= 3
     readonly property bool gpsChipped: gpsWanted && !gpsHasError && degradeLevel >= 4
     readonly property bool tempChipped: tempShown && !isFrostWarning && degradeLevel >= 5
-    readonly property int chippedCount: (btChipped ? 1 : 0) + (cloudChipped ? 1 : 0)
+    readonly property int chippedCount: (mapDlChipped ? 1 : 0) + (btChipped ? 1 : 0)
+                                      + (cloudChipped ? 1 : 0)
                                       + (gpsChipped ? 1 : 0) + (tempChipped ? 1 : 0)
 
     TextMetrics {
@@ -99,6 +126,13 @@ Row {
         font.weight: Font.DemiBold
         font.features: {"tnum": 1}
         text: statusIndicators.otaProgressText
+    }
+    TextMetrics {
+        id: tmMapDlProgress
+        font.pixelSize: 12
+        font.weight: Font.DemiBold
+        font.features: {"tnum": 1}
+        text: statusIndicators.mapDlProgressText
     }
     TextMetrics {
         id: tmTemp
@@ -119,9 +153,12 @@ Row {
         if (gpsWanted && (gpsHasError || level < 4)) add(24)
         if (otaShown)
             add(24 + (otaProgressActive && level < 1 ? 2 + tmOtaProgress.width : 0))
+        if (mapDlShown && level < 1)
+            add(24 + 2 + tmMapDlProgress.width)
         if (tempShown && (isFrostWarning || level < 5))
             add((isFrostWarning ? 26 : 0) + tmTemp.width)
-        var chips = (btWanted && !btHasError && level >= 2 ? 1 : 0)
+        var chips = (mapDlShown && level >= 1 ? 1 : 0)
+                  + (btWanted && !btHasError && level >= 2 ? 1 : 0)
                   + (cloudWanted && !cloudHasError && level >= 3 ? 1 : 0)
                   + (gpsWanted && !gpsHasError && level >= 4 ? 1 : 0)
                   + (tempShown && !isFrostWarning && level >= 5 ? 1 : 0)
@@ -407,6 +444,40 @@ Row {
             color: statusIndicators.iconColor
             visible: statusIndicators.showOtaProgress
             text: statusIndicators.otaProgressText
+        }
+    }
+
+    // Map / routing tile download, alongside the OTA row so a firmware update
+    // and a map update can be shown at once. Folds into the overflow chip at
+    // degradeLevel 1, ahead of every other indicator.
+    Row {
+        spacing: 2
+        visible: statusIndicators.mapDlShown && !statusIndicators.mapDlChipped
+        layoutDirection: Qt.LeftToRight
+
+        Item {
+            width: 24
+            height: 24
+            anchors.verticalCenter: parent.verticalCenter
+
+            Text {
+                anchors.centerIn: parent
+                // Same glyph MapScreen and the shortcut menu use for "map", so
+                // the indicator reads as map data rather than a generic download.
+                text: MaterialIcon.iconMap
+                font.family: "Material Icons"
+                font.pixelSize: 20
+                color: statusIndicators.iconColor
+            }
+        }
+
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            font.pixelSize: 12
+            font.weight: Font.DemiBold
+            font.features: {"tnum": 1}
+            color: statusIndicators.iconColor
+            text: statusIndicators.mapDlProgressText
         }
     }
 
