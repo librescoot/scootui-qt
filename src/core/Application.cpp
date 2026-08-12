@@ -169,6 +169,7 @@ bool Application::initialize(QQmlApplicationEngine &engine)
     BOOT_MARK("registerContextProperties() done");
     setupSignalHandlers();
     setupScreenshotWatcher();
+    setupMapCommandChannel();
 
     return true;
 }
@@ -825,6 +826,85 @@ void Application::setupSimulatorAutoDrive()
                     m_simulatorService->startAutoDrive(speed);
             });
         }
+    });
+}
+
+void Application::setupMapCommandChannel()
+{
+    if (!m_mapDownloadService || !m_repository)
+        return;
+
+    // Map updates could only be started by a human in the settings menu, which
+    // made the whole path untestable without standing at the vehicle and
+    // impossible to drive from a fleet tool. Commands arrive on the
+    // scootui:command channel:
+    //
+    //   redis-cli publish scootui:command map-check
+    //   redis-cli publish scootui:command map-download
+    //   redis-cli publish scootui:command map-cancel
+    //   redis-cli publish scootui:command map-reload
+    //
+    m_repository->subscribe(QStringLiteral("scootui:command"),
+                            [this](const QString &, const QString &msg) {
+        const QString cmd = msg.trimmed();
+        if (cmd == QLatin1String("map-check")) {
+            qInfo() << "Map: check requested over scootui:command";
+            QMetaObject::invokeMethod(m_mapDownloadService,
+                                      &MapDownloadService::checkForUpdatesNow,
+                                      Qt::QueuedConnection);
+        } else if (cmd == QLatin1String("map-download")) {
+            qInfo() << "Map: download requested over scootui:command";
+            QMetaObject::invokeMethod(this, [this] {
+                double lat = 0.0, lng = 0.0;
+                if (m_gpsStore && m_gpsStore->latitude() != 0.0) {
+                    lat = m_gpsStore->latitude();
+                    lng = m_gpsStore->longitude();
+                }
+                m_mapDownloadService->startDownload(lat, lng, true, true);
+            }, Qt::QueuedConnection);
+        } else if (cmd == QLatin1String("map-cancel")) {
+            qInfo() << "Map: cancel requested over scootui:command";
+            QMetaObject::invokeMethod(m_mapDownloadService,
+                                      &MapDownloadService::cancel,
+                                      Qt::QueuedConnection);
+        } else if (cmd == QLatin1String("map-reload")) {
+            // Swapping map.mbtiles by hand otherwise needs a service restart.
+            qInfo() << "Map: reloading mbtiles over scootui:command";
+            if (m_mapService) {
+                QMetaObject::invokeMethod(m_mapService,
+                                          &MapService::reloadMbtiles,
+                                          Qt::QueuedConnection);
+            }
+        } else if (!cmd.isEmpty()) {
+            qWarning() << "Map: unknown scootui:command" << cmd;
+        }
+    });
+
+    // The service only reported progress to the screen, so a check that ran
+    // while nobody was looking left no trace. Mirror the interesting
+    // transitions to the journal.
+    static const char *kStatusNames[] = {
+        "idle", "checking-updates", "locating", "downloading",
+        "installing", "done", "error"
+    };
+    connect(m_mapDownloadService, &MapDownloadService::statusChanged, this, [this] {
+        const int s = m_mapDownloadService->status();
+        const char *name = (s >= 0 && s < int(std::size(kStatusNames)))
+            ? kStatusNames[s] : "unknown";
+        qInfo().nospace() << "Map: status " << name
+                          << " region=" << m_mapDownloadService->regionName();
+    });
+    connect(m_mapDownloadService, &MapDownloadService::updateCheckCompleted, this,
+            [](bool updateFound) {
+        qInfo() << "Map: update check finished, update available:" << updateFound;
+    });
+    connect(m_mapDownloadService, &MapDownloadService::downloadComplete, this, [this] {
+        qInfo() << "Map: download complete, region" << m_mapDownloadService->regionName();
+    });
+    connect(m_mapDownloadService, &MapDownloadService::errorMessageChanged, this, [this] {
+        const QString err = m_mapDownloadService->errorMessage();
+        if (!err.isEmpty())
+            qWarning() << "Map: error:" << err;
     });
 }
 
