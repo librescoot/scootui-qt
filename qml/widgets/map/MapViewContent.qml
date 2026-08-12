@@ -38,15 +38,19 @@ MapView {
 
         PluginParameter {
             name: "maplibre.items.insert_before"
-            value: "building"
+            value: "buildings"
         }
     }
 
     map.zoomLevel: typeof mapService !== "undefined" ? mapService.mapZoom : 15
     map.bearing: typeof mapService !== "undefined" ? mapService.mapBearing : 0
     // 3D (default) tilts the map back to show forward perspective; 2D is
-    // a flat top-down view.
-    map.tilt: (typeof settingsStore !== "undefined" && settingsStore.mapViewMode === 1) ? 0 : 85
+    // a flat top-down view. In 3D the tilt eases off as the camera zooms in
+    // for a maneuver: zoom already tracks distance to the next turn, and at
+    // full tilt the street names lie almost flat and cannot be read.
+    map.tilt: (typeof settingsStore !== "undefined" && settingsStore.mapViewMode === 1)
+              ? 0
+              : (typeof mapService !== "undefined" ? mapService.mapTilt : 60)
 
     function vehicleCoordinate() {
         if (typeof mapService !== "undefined" && mapService.isReady) {
@@ -56,6 +60,23 @@ MapView {
             return QtPositioning.coordinate(gpsStore.latitude, gpsStore.longitude)
         }
         return QtPositioning.coordinate(52.520008, 13.404954)
+    }
+
+    // Desktop debugging: the vehicle has no touchscreen and the dashboard pins
+    // zoom to 15-17.5, so there is otherwise no way to look at the tiles above
+    // or below that. Middle click hands the camera back to the dynamic zoom.
+    WheelHandler {
+        enabled: typeof mapService !== "undefined" && mapService.debugZoomEnabled
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        onWheel: function (event) {
+            mapService.debugZoomBy(event.angleDelta.y / 480.0)
+        }
+    }
+
+    TapHandler {
+        enabled: typeof mapService !== "undefined" && mapService.debugZoomEnabled
+        acceptedButtons: Qt.MiddleButton
+        onTapped: mapService.debugResetZoom()
     }
 
     function updateCamera() {
@@ -112,8 +133,10 @@ MapView {
         function onLongitudeChanged() { mapView.updateCamera() }
     }
 
-    // Route rendered as native MapLibre layers (inserted before "building" layer
-    // so that 3D building extrusions properly occlude the route line)
+    // Route rendered as native MapLibre layers, inserted before the buildings
+    // layer so the 3D extrusions occlude it. The anchor has to be "buildings":
+    // "building" is the singular compat layer kept for pre-rename tilesets, and
+    // it sits last in the style, which put the route on top of everything.
     MapLibre.style: Style {
         id: routeStyle
 
@@ -123,22 +146,6 @@ MapView {
             type: "geojson"
             property string data: typeof mapService !== "undefined" ? mapService.routeGeoJson : ""
             onDataChanged: updateNotify()
-        }
-
-        LayerParameter {
-            styleId: "route-border"
-            type: "line"
-            property string source: "route"
-            layout: { "line-cap": "round", "line-join": "round" }
-            paint: { "line-color": "#1565C0", "line-width": 11 }
-        }
-
-        LayerParameter {
-            styleId: "route-fill"
-            type: "line"
-            property string source: "route"
-            layout: { "line-cap": "round", "line-join": "round" }
-            paint: { "line-color": "#42A5F5", "line-width": 7 }
         }
 
         // Theme recolor: override the paint of existing style layers in place

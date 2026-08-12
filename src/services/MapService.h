@@ -22,6 +22,8 @@ class MapService : public QObject
     Q_PROPERTY(double mapLatitude READ mapLatitude NOTIFY mapLatitudeChanged)
     Q_PROPERTY(double mapLongitude READ mapLongitude NOTIFY mapLongitudeChanged)
     Q_PROPERTY(double mapZoom READ mapZoom NOTIFY mapZoomChanged)
+    Q_PROPERTY(bool debugZoomEnabled READ debugZoomEnabled CONSTANT)
+    Q_PROPERTY(double mapTilt READ mapTilt NOTIFY mapTiltChanged)
     Q_PROPERTY(double mapBearing READ mapBearing NOTIFY mapBearingChanged)
     // Raw smoothed heading that the map follows in direction-oriented mode,
     // before the north-oriented (2D) override that forces mapBearing to 0.
@@ -64,6 +66,7 @@ public:
     double mapLatitude() const { return m_mapLatitude; }
     double mapLongitude() const { return m_mapLongitude; }
     double mapZoom() const { return m_mapZoom; }
+    double mapTilt() const { return m_mapTilt; }
     // Effective display bearing. In the 2D north-oriented view the map stays
     // north-up, so we expose 0; the internal m_mapBearing keeps smoothing so a
     // later switch back to direction-oriented continues from the current heading.
@@ -101,10 +104,18 @@ public:
     void clearRoute();
     void updateRouteFromNavigation();
 
+    // Desktop debugging only, enabled by SCOOTUI_DEBUG_MAP_ZOOM. Lets the wheel
+    // drive the camera outside the dashboard's own zoom range, which the
+    // vehicle has no way to reach (there is no touchscreen).
+    bool debugZoomEnabled() const { return m_debugZoomEnabled; }
+    Q_INVOKABLE void debugZoomBy(double delta);
+    Q_INVOKABLE void debugResetZoom();
+
 signals:
     void mapLatitudeChanged();
     void mapLongitudeChanged();
     void mapZoomChanged();
+    void mapTiltChanged();
     void mapBearingChanged();
     void isReadyChanged();
     void styleUrlChanged();
@@ -166,6 +177,10 @@ private:
     QString styleVariantSuffix() const;
     // Installed glyph directory, or empty when none is usable.
     QString localGlyphDirectory() const;
+    // Derives tilt from the current smoothed zoom.
+    void updateTiltForZoom();
+    // Places the route source and layers at the right depth in the style.
+    static void injectRouteLayers(QJsonObject &root);
 
     // Route GeoJSON for native MapLibre layer
     void updateRouteGeoJson();
@@ -233,9 +248,17 @@ private:
     static constexpr int    SnapReLockMs      = 2000;  // dwell required before re-locking
 
     // Dynamic zoom
-    static constexpr double DefaultZoom = 16.5;
-    static constexpr double MinZoom = 15.0;
+    static constexpr double DefaultZoom = 17.0;
+    static constexpr double MinZoom = 16.0;
     static constexpr double MaxZoom = 17.5;
+    // Range the desktop wheel zoom may reach, well outside the dashboard's own.
+    static constexpr double DebugMinZoom = 4.0;
+    static constexpr double DebugMaxZoom = 20.0;
+    // Camera pitch, interpolated on the same smoothed zoom so the two move
+    // together. MapLibre clamps applied tilt to 60, so a ramp starting higher
+    // than that would sit inert until the zoom was almost in.
+    static constexpr double MapTiltFar = 60.0;
+    static constexpr double MapTiltNear = 40.0;
     static constexpr double ZoomHysteresis = 0.3;
     static constexpr double ZoomSmoothRate = 1.0;
     static constexpr double MultiTurnLookAheadMeters = 150.0;
@@ -311,6 +334,7 @@ private:
     double m_mapLatitude = 0;
     double m_mapLongitude = 0;
     double m_mapZoom = DefaultZoom;
+    double m_mapTilt = MapTiltFar;
     double m_mapBearing = 0;
     // 2D view (top-down, no tilt) and north-oriented (map stays north-up).
     // Mirrored from SettingsStore; see mapBearing()/vehicleOffsetY().
@@ -383,6 +407,8 @@ private:
     // --- Dynamic zoom state ---
     double m_targetZoom = DefaultZoom;
     double m_currentZoom = DefaultZoom;
+    const bool m_debugZoomEnabled = qEnvironmentVariableIsSet("SCOOTUI_DEBUG_MAP_ZOOM");
+    bool m_debugZoomActive = false;
 
     // --- Route overview state ---
     QTimer *m_overviewTimer = nullptr;

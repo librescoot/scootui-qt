@@ -871,6 +871,8 @@ QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString
     if (m_view2D)
         flattenBuildingExtrusions(root);
 
+    injectRouteLayers(root);
+
     // Write to /tmp
     QFile out(outPath);
     if (!out.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
@@ -911,6 +913,115 @@ void MapService::flattenBuildingExtrusions(QJsonObject &root)
     QJsonArray out;
     for (const QJsonValue &v : layers)
         out.append(flattenExtrusionLayer(v.toObject()));
+    root[QStringLiteral("layers")] = out;
+}
+
+void MapService::updateTiltForZoom()
+{
+    // Tilt rides the same smoothed zoom the camera already uses, so the pair
+    // reads as one move instead of two independently timed ones.
+    const double span = MaxZoom - MinZoom;
+    const double p = std::clamp((m_currentZoom - MinZoom) / span, 0.0, 1.0);
+    const double tilt = MapTiltFar + (MapTiltNear - MapTiltFar) * p;
+    if (std::abs(tilt - m_mapTilt) > 0.01) {
+        m_mapTilt = tilt;
+        emit mapTiltChanged();
+    }
+}
+
+void MapService::debugZoomBy(double delta)
+{
+    if (!m_debugZoomEnabled)
+        return;
+
+    m_debugZoomActive = true;
+    // Deliberately wider than MinZoom/MaxZoom: the point is to inspect what the
+    // tiles hold above and below the range the dashboard normally shows.
+    m_currentZoom = std::clamp(m_currentZoom + delta, DebugMinZoom, DebugMaxZoom);
+    if (m_currentZoom != m_mapZoom && std::isfinite(m_currentZoom)) {
+        m_mapZoom = m_currentZoom;
+        emit mapZoomChanged();
+    }
+    updateTiltForZoom();
+}
+
+void MapService::debugResetZoom()
+{
+    if (!m_debugZoomEnabled)
+        return;
+
+    m_debugZoomActive = false;
+    m_targetZoom = DefaultZoom;
+}
+
+
+void MapService::injectRouteLayers(QJsonObject &root)
+{
+    // The route has to sit at a specific depth: under the building extrusions
+    // so they occlude it, with a translucent copy above them so it stays
+    // followable through a block, and under the street labels so names are not
+    // painted over. QMapLibre's LayerParameter cannot express an insertion
+    // point, so the layers are placed here instead of being added from QML.
+    QJsonObject sources = root.value(QStringLiteral("sources")).toObject();
+    QJsonObject empty;
+    empty[QStringLiteral("type")] = QStringLiteral("FeatureCollection");
+    empty[QStringLiteral("features")] = QJsonArray();
+    QJsonObject routeSource;
+    routeSource[QStringLiteral("type")] = QStringLiteral("geojson");
+    routeSource[QStringLiteral("data")] = empty;
+    sources[QStringLiteral("route")] = routeSource;
+    root[QStringLiteral("sources")] = sources;
+
+    auto line = [](const QString &id, const QString &color, double width, double opacity) {
+        QJsonObject layout;
+        layout[QStringLiteral("line-cap")] = QStringLiteral("round");
+        layout[QStringLiteral("line-join")] = QStringLiteral("round");
+        QJsonObject paint;
+        paint[QStringLiteral("line-color")] = color;
+        paint[QStringLiteral("line-width")] = width;
+        if (opacity < 1.0)
+            paint[QStringLiteral("line-opacity")] = opacity;
+        QJsonObject layer;
+        layer[QStringLiteral("id")] = id;
+        layer[QStringLiteral("type")] = QStringLiteral("line");
+        layer[QStringLiteral("source")] = QStringLiteral("route");
+        layer[QStringLiteral("layout")] = layout;
+        layer[QStringLiteral("paint")] = paint;
+        return layer;
+    };
+
+    const QJsonArray layers = root.value(QStringLiteral("layers")).toArray();
+    int firstExtrusion = -1;
+    int lastExtrusion = -1;
+    int firstSymbol = -1;
+    for (int i = 0; i < layers.size(); ++i) {
+        const QString type = layers.at(i).toObject().value(QStringLiteral("type")).toString();
+        if (type == QLatin1String("fill-extrusion")) {
+            if (firstExtrusion < 0)
+                firstExtrusion = i;
+            lastExtrusion = i;
+        } else if (type == QLatin1String("symbol") && firstSymbol < 0) {
+            firstSymbol = i;
+        }
+    }
+
+    QJsonArray out;
+    for (int i = 0; i < layers.size(); ++i) {
+        // With no extrusions (2D) there is nothing to hide behind, so the
+        // solid route goes straight under the labels and no ghost is drawn.
+        if (i == firstExtrusion || (firstExtrusion < 0 && i == firstSymbol)) {
+            out.append(line(QStringLiteral("route-border"), QStringLiteral("#1565C0"), 11, 1.0));
+            out.append(line(QStringLiteral("route-fill"), QStringLiteral("#42A5F5"), 7, 1.0));
+        }
+        out.append(layers.at(i));
+        if (firstExtrusion >= 0 && i == lastExtrusion) {
+            out.append(line(QStringLiteral("route-ghost"), QStringLiteral("#42A5F5"), 7, 0.35));
+        }
+    }
+    if (firstExtrusion < 0 && firstSymbol < 0) {
+        out.append(line(QStringLiteral("route-border"), QStringLiteral("#1565C0"), 11, 1.0));
+        out.append(line(QStringLiteral("route-fill"), QStringLiteral("#42A5F5"), 7, 1.0));
+    }
     root[QStringLiteral("layers")] = out;
 }
 
@@ -974,6 +1085,7 @@ QString MapService::rewriteStyleVariant(const QString &qrcPath)
         removeTrafficFromStyle(root);
     if (m_view2D)
         flattenBuildingExtrusions(root);
+    injectRouteLayers(root);
 
     QFile out(outPath);
     if (!out.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
@@ -1368,6 +1480,10 @@ void MapService::snapToRouteLine()
 
 void MapService::updateDynamicZoom(double dt)
 {
+    // Wheel zoom has taken over; leave the camera where the developer put it.
+    if (m_debugZoomActive)
+        return;
+
     double effectiveTarget;
     double smoothRate;
     double minClamp;
@@ -1404,6 +1520,8 @@ void MapService::updateDynamicZoom(double dt)
             emit mapZoomChanged();
         }
     }
+
+    updateTiltForZoom();
 }
 
 double MapService::computeTargetZoom() const
