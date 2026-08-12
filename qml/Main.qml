@@ -17,6 +17,30 @@ Window {
     x: typeof simulator !== "undefined" ? Screen.width / 2 - (width + 480 + 20) / 2 : Screen.desktopAvailableWidth / 2 - width / 2
     y: Screen.height / 2 - height / 2
 
+    // Simulator-only debugging keys. The vehicle has no keyboard, and these are
+    // bound to the simulator service which does not exist outside sim mode.
+    Shortcut {
+        enabled: typeof simulator !== "undefined" && simulator !== null
+        sequence: "+"
+        onActivated: simulator.setAutoDriveTimeScale(simulator.autoDriveTimeScale() * 2)
+    }
+    Shortcut {
+        enabled: typeof simulator !== "undefined" && simulator !== null
+        sequence: "-"
+        onActivated: simulator.setAutoDriveTimeScale(simulator.autoDriveTimeScale() / 2)
+    }
+    Shortcut {
+        enabled: typeof simulator !== "undefined" && simulator !== null
+        sequence: "0"
+        onActivated: simulator.setAutoDriveTimeScale(1)
+    }
+    // Jump ahead 20 simulated seconds, enough to clear the maneuver in front.
+    Shortcut {
+        enabled: typeof simulator !== "undefined" && simulator !== null
+        sequence: "f"
+        onActivated: simulator.autoDriveSkip(20)
+    }
+
     readonly property var allowedStates: [
         Scooter.VehicleState.Unknown,
         Scooter.VehicleState.ReadyToDrive,

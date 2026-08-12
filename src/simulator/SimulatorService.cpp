@@ -975,6 +975,25 @@ void SimulatorService::stopAutoDrive()
     setThrottle(false);
 }
 
+
+void SimulatorService::setAutoDriveTimeScale(double scale)
+{
+    m_autoDriveTimeScale = qBound(0.25, scale, 60.0);
+    qDebug() << "Simulator: auto-drive time scale" << m_autoDriveTimeScale;
+}
+
+void SimulatorService::autoDriveSkip(double seconds)
+{
+    // One-off jump, independent of the running time scale. Dead reckoning and
+    // route matching see a single large step, so keep jumps to a leg at a time.
+    if (!m_route.isValid())
+        return;
+    const double saved = m_autoDriveTimeScale;
+    m_autoDriveTimeScale = qBound(0.25, seconds, 600.0);
+    autoDriveTick();
+    m_autoDriveTimeScale = saved;
+}
+
 void SimulatorService::autoDriveTick()
 {
     // Smooth acceleration/deceleration. Tick is 1 Hz (production GPS rate),
@@ -989,7 +1008,7 @@ void SimulatorService::autoDriveTick()
     setSpeed(m_autoDriveSpeed);
     setGpsSpeed(m_autoDriveSpeed);
 
-    const double dt = 1.0; // seconds per tick (1 Hz)
+    const double dt = 1.0 * m_autoDriveTimeScale; // seconds per tick (1 Hz)
     const double speedMs = m_autoDriveSpeed / 3.6;
     double distRemaining = speedMs * dt; // meters to travel this tick
 

@@ -62,6 +62,7 @@ private:
     // there. The DBC scans out through KMS, so /dev/fb0 shows the console
     // framebuffer rather than the panel and cannot be used to capture the UI.
     void setupScreenshotWatcher();
+    void setupSimulatorAutoDrive();
     // Re-point the mbtiles-backed services at /data/maps/map.mbtiles. Safe to
     // call repeatedly (each service's reload is idempotent); driven by the
     // file watcher and by NavigationAvailabilityService::localMapsBecameAvailable

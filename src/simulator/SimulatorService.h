@@ -172,6 +172,13 @@ public:
     // Auto-drive
     Q_INVOKABLE void startAutoDrive(double targetSpeed);
     Q_INVOKABLE void stopAutoDrive();
+    // Debugging: advance the route faster than the indicated speed would, so a
+    // long leg can be covered without waiting for it in real time. The speed
+    // shown on the cluster is unchanged; only the distance per tick scales.
+    Q_INVOKABLE void setAutoDriveTimeScale(double scale);
+    Q_INVOKABLE double autoDriveTimeScale() const { return m_autoDriveTimeScale; }
+    // Jumps the given number of simulated seconds along the route in one step.
+    Q_INVOKABLE void autoDriveSkip(double seconds);
 
     // Screenshot
     Q_INVOKABLE void takeScreenshot();
@@ -204,6 +211,7 @@ private:
     bool m_autoDriveActive = false;
     double m_autoDriveSpeed = 0;
     double m_autoDriveTargetSpeed = 25;
+    double m_autoDriveTimeScale = 1.0;
     double m_autoDriveLat = 52.520008;
     double m_autoDriveLng = 13.404954;
     double m_autoDriveBearing = 0;

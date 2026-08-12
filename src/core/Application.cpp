@@ -612,6 +612,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
         m_simulatorService = new SimulatorService(repo, m_navigationService, this);
         ctx->setContextProperty(QStringLiteral("simulator"), m_simulatorService);
         ctx->setContextProperty(QStringLiteral("simulatorMode"), true);
+        setupSimulatorAutoDrive();
     } else {
         ctx->setContextProperty(QStringLiteral("simulator"), nullptr);
         ctx->setContextProperty(QStringLiteral("simulatorMode"), false);
@@ -796,6 +797,35 @@ void Application::fadeInOverlay()
 
     proc->start();
 #endif
+}
+
+void Application::setupSimulatorAutoDrive()
+{
+    const int route = qEnvironmentVariable("SCOOTUI_SIM_ROUTE").toInt();
+    if (route <= 0)
+        return;
+
+    // Drives a saved route on startup so navigation and turn behaviour can be
+    // watched without clicking through the simulator panel. Both delays wait
+    // for the services behind the route, not for anything on screen.
+    const double speed = qEnvironmentVariable("SCOOTUI_SIM_AUTODRIVE").toDouble();
+    QTimer::singleShot(3000, this, [this, route, speed] {
+        if (!m_simulatorService)
+            return;
+        if (m_settingsService)
+            m_settingsService->updateMode(QStringLiteral("navigation"));
+        const double timeScale = qEnvironmentVariable("SCOOTUI_SIM_TIMESCALE").toDouble();
+        if (timeScale > 0)
+            m_simulatorService->setAutoDriveTimeScale(timeScale);
+        m_simulatorService->setVehicleState(QStringLiteral("ready-to-drive"));
+        m_simulatorService->loadTestRoute(route);
+        if (speed > 0) {
+            QTimer::singleShot(2000, this, [this, speed] {
+                if (m_simulatorService)
+                    m_simulatorService->startAutoDrive(speed);
+            });
+        }
+    });
 }
 
 void Application::setupScreenshotWatcher()
