@@ -164,6 +164,8 @@ private:
     // Emits the /tmp style variant for the current traffic and view-mode combo.
     QString rewriteStyleVariant(const QString &qrcPath);
     QString styleVariantSuffix() const;
+    // Installed glyph directory, or empty when none is usable.
+    QString localGlyphDirectory() const;
 
     // Route GeoJSON for native MapLibre layer
     void updateRouteGeoJson();

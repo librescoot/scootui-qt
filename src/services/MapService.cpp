@@ -835,22 +835,33 @@ QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString
     }
     root[QStringLiteral("sources")] = sources;
 
-    // Remove glyphs/sprite URLs (not available offline)
-    root.remove(QStringLiteral("glyphs"));
+    // Sprites are still remote-only, so those go regardless
     root.remove(QStringLiteral("sprite"));
 
-    // Remove symbol layers (require remote glyph PBFs)
-    QJsonArray layers = root.value(QStringLiteral("layers")).toArray();
-    QJsonArray filtered;
-    for (const QJsonValue &v : layers) {
-        QJsonObject layer = v.toObject();
-        if (layer.value(QStringLiteral("type")).toString() == QStringLiteral("symbol")) {
-            qDebug() << "MapService: stripping symbol layer" << layer.value(QStringLiteral("id")).toString();
-            continue;
+    // Symbol layers need glyph PBFs. A glyph fetch that fails leaves the request
+    // unparsed in MapLibre's glyph manager, and the tile then waits on it
+    // forever, so every feature on that tile disappears rather than just the
+    // label. Only keep the symbol layers when the glyphs are actually installed.
+    const QString glyphDir = localGlyphDirectory();
+    if (glyphDir.isEmpty()) {
+        root.remove(QStringLiteral("glyphs"));
+        QJsonArray layers = root.value(QStringLiteral("layers")).toArray();
+        QJsonArray filtered;
+        for (const QJsonValue &v : layers) {
+            QJsonObject layer = v.toObject();
+            if (layer.value(QStringLiteral("type")).toString() == QStringLiteral("symbol")) {
+                qDebug() << "MapService: stripping symbol layer" << layer.value(QStringLiteral("id")).toString();
+                continue;
+            }
+            filtered.append(v);
         }
-        filtered.append(v);
+        root[QStringLiteral("layers")] = filtered;
+    } else {
+        const QString glyphUrl =
+            QUrl::fromLocalFile(glyphDir).toString() + QStringLiteral("/{fontstack}/{range}.pbf");
+        root[QStringLiteral("glyphs")] = glyphUrl;
+        qDebug() << "MapService: glyphs ->" << glyphUrl;
     }
-    root[QStringLiteral("layers")] = filtered;
 
     // Strip traffic overlay if disabled
     if (!m_settings->mapTrafficOverlay())
@@ -901,6 +912,30 @@ void MapService::flattenBuildingExtrusions(QJsonObject &root)
     for (const QJsonValue &v : layers)
         out.append(flattenExtrusionLayer(v.toObject()));
     root[QStringLiteral("layers")] = out;
+}
+
+QString MapService::localGlyphDirectory() const
+{
+    QStringList candidates;
+    const QString envDir = qEnvironmentVariable("SCOOTUI_GLYPH_DIR");
+    if (!envDir.isEmpty())
+        candidates << envDir;
+    candidates << QStringLiteral("/usr/share/scootui/glyphs");
+
+    for (const QString &path : std::as_const(candidates)) {
+        QDir dir(path);
+        if (!dir.exists())
+            continue;
+        // Require a fontstack that actually carries the Latin range; a directory
+        // that exists but is empty would stall tiles exactly like a 404.
+        const QStringList stacks = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const QString &stack : stacks) {
+            if (QFile::exists(dir.filePath(stack + QStringLiteral("/0-255.pbf"))))
+                return path;
+        }
+        qWarning() << "MapService: glyph directory" << path << "has no usable fontstack";
+    }
+    return QString();
 }
 
 QString MapService::styleVariantSuffix() const
