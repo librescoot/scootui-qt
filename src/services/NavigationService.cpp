@@ -83,6 +83,11 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
     m_navDataDebounce->setInterval(100);
     connect(m_navDataDebounce, &QTimer::timeout, this, &NavigationService::onNavigationDataChanged);
 
+    m_errorLinger = new QTimer(this);
+    m_errorLinger->setSingleShot(true);
+    m_errorLinger->setInterval(ErrorLingerMs);
+    connect(m_errorLinger, &QTimer::timeout, this, &NavigationService::clearError);
+
     auto debounceNav = [this]() { m_navDataDebounce->start(); };
     connect(nav, &NavigationStore::latitudeChanged, this, debounceNav);
     connect(nav, &NavigationStore::longitudeChanged, this, debounceNav);
@@ -603,6 +608,10 @@ void NavigationService::setDestination(double lat, double lng, const QString &ad
         || m_status == NavigationStatus::Rerouting) {
         setStatus(NavigationStatus::Idle);
     }
+    // A previous failure is moot now that the rider picked a new destination.
+    // Matters when GPS isn't ready yet: we bail out below without ever
+    // reaching Calculating, which would otherwise leave the old error up.
+    clearError();
     emit routeChanged();
     emit instructionChanged();
     emit positionChanged();
@@ -657,6 +666,7 @@ void NavigationService::clearNavigation()
     m_prevLeadingShapeIdx = -1;
 
     setStatus(NavigationStatus::Idle);
+    clearError();
     emit routeChanged();
     emit destinationChanged();
     emit instructionChanged();
@@ -755,6 +765,7 @@ void NavigationService::onNavigationDataChanged()
 
     m_destination = newDest;
     m_destAddress = m_nav->address();
+    clearError();
     emit destinationChanged();
 
     // Capture externally-pushed destinations (cloud / bluetooth / wwan, all of
@@ -812,6 +823,7 @@ void NavigationService::onRouteCalculated(const Route &route)
     }
 
     setStatus(NavigationStatus::Navigating);
+    clearError();
     emit routeChanged();
 
     // Immediately update with current GPS position
@@ -843,9 +855,7 @@ void NavigationService::onRouteAttributesReady(const QList<EdgeAttrs> &attrs)
 
 void NavigationService::onRouteError(const QString &error)
 {
-    m_errorMessage = error;
-    setStatus(NavigationStatus::Error);
-    emit errorChanged();
+    raiseError(error);
     qWarning() << "NavigationService: route error -" << error;
 }
 
@@ -859,15 +869,11 @@ void NavigationService::onRequestRejected(ValhallaClient::Reason reason,
 
     if (userReason) {
         if (cause == ValhallaClient::RejectionCause::RateLimited) {
-            m_errorMessage = QStringLiteral("Too many routing requests");
-            setStatus(NavigationStatus::Error);
-            emit errorChanged();
+            raiseError(QStringLiteral("Too many routing requests"));
             return;
         }
         if (cause == ValhallaClient::RejectionCause::Unhealthy) {
-            m_errorMessage = QStringLiteral("Cannot reach routing server");
-            setStatus(NavigationStatus::Error);
-            emit errorChanged();
+            raiseError(QStringLiteral("Cannot reach routing server"));
             return;
         }
     }
@@ -969,7 +975,7 @@ void NavigationService::updateNavigationState()
             setStatus(NavigationStatus::Rerouting);
         }
     } else if (!m_isOffRoute && m_status == NavigationStatus::Error) {
-        setStatus(NavigationStatus::Navigating);
+        clearError();
     }
 
     // Find upcoming instructions. Pass the snapped position (not raw pos) so
@@ -1072,8 +1078,31 @@ void NavigationService::updateNavigationState()
 void NavigationService::setStatus(NavigationStatus status)
 {
     if (m_status != status) {
+        if (m_status == NavigationStatus::Error)
+            m_errorLinger->stop();
         m_status = status;
         emit statusChanged();
+    }
+}
+
+void NavigationService::raiseError(const QString &message)
+{
+    m_errorMessage = message;
+    setStatus(NavigationStatus::Error);
+    m_errorLinger->start();
+    emit errorChanged();
+}
+
+void NavigationService::clearError()
+{
+    m_errorLinger->stop();
+    if (m_status == NavigationStatus::Error) {
+        setStatus(m_route.isValid() ? NavigationStatus::Navigating
+                                    : NavigationStatus::Idle);
+    }
+    if (!m_errorMessage.isEmpty()) {
+        m_errorMessage.clear();
+        emit errorChanged();
     }
 }
 

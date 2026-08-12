@@ -168,6 +168,14 @@ private:
     void updateVerbalStage(const RouteInstruction &first);
     void updateNextPreviewState();
     void setStatus(NavigationStatus status);
+    // Raise a user-visible routing error: sets the message, flips to Error and
+    // arms the linger timer. Error is otherwise only left again by a
+    // successful route or a new destination, so a failure with no route to
+    // fall back on would pin the error pill over the map indefinitely.
+    void raiseError(const QString &message);
+    // Drop the error state again, either because the linger expired or because
+    // the underlying condition resolved.
+    void clearError();
     LatLng currentPosition() const;     // DR position when available, else raw GPS
     LatLng currentGpsPosition() const;  // raw GPS only (for rerouting)
     bool hasValidGps() const;
@@ -269,4 +277,9 @@ private:
     int m_prevLeadingShapeIdx = -1;
 
     QTimer *m_navDataDebounce = nullptr;
+
+    // How long the error pill stays up before it drops itself. Matches
+    // ToastService's error duration so the pill and its toast go together.
+    static constexpr int ErrorLingerMs = 5000;
+    QTimer *m_errorLinger = nullptr;
 };
