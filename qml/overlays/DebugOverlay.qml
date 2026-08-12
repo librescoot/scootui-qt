@@ -101,6 +101,12 @@ Item {
     }
 
     function enumName(enumVal, names) {
+        // engineStore.throttle is exposed as a bool while every other toggle
+        // here is an enum int. names[true] means names["true"], which is
+        // undefined rather than names[1], so booleans need their own mapping.
+        // The toggle enums put On first, so true is names[0].
+        if (typeof enumVal === "boolean")
+            return enumVal ? names[0] : names[1]
         return (enumVal >= 0 && enumVal < names.length) ? names[enumVal] : "?"
     }
 
