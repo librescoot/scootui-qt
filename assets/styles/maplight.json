@@ -491,7 +491,7 @@
 			"id": "labels-roads-major",
 			"type": "symbol",
 			"source": "versatiles-shortbread",
-			"source-layer": "streets",
+			"source-layer": "street_labels",
 			"minzoom": 12,
 			"filter": ["in", "kind", "motorway", "trunk", "primary", "secondary"],
 			"layout": {
@@ -511,7 +511,7 @@
 			"id": "labels-roads-minor",
 			"type": "symbol",
 			"source": "versatiles-shortbread",
-			"source-layer": "streets",
+			"source-layer": "street_labels",
 			"minzoom": 12,
 			"filter": ["in", "kind", "tertiary", "residential", "living_street", "unclassified", "pedestrian"],
 			"layout": {
