@@ -79,6 +79,22 @@ signals:
     void streamResult(const QString &key, const QVariantList &entries);
 
 private:
+    // Arm the reconnect timer with the current backoff. Retries stay fast until
+    // the first successful connection, because at boot a failure means Redis is
+    // not up *yet*, not that it is down; once we have been connected once, a
+    // failure is a real dropout and there is no point hammering it.
+    void scheduleReconnect();
+
+    static constexpr int kFastRetryMs = 250;
+    static constexpr int kSlowRetryMs = 2000;
+    // Roughly 30s of fast retries before giving up on the boot case.
+    static constexpr int kFastRetryAttempts = 120;
+    // The backup lives across the modem link, which comes up later than the
+    // primary does. Trying it every cycle from the start would add its 1s
+    // timeout to each retry and dominate the loop exactly when we want to be
+    // quick, so leave it until the primary has really failed.
+    static constexpr int kBackupAfterFailures = 8;
+
     bool ensureConnected();
     void disconnectRedis();
     void onPollTimer();
@@ -92,6 +108,8 @@ private:
     bool m_connected = false;
     bool m_usingBackup = false;
     bool m_running = false;
+    bool m_everConnected = false;
+    int m_consecutiveFailures = 0;
 
     // Polling schedule: GCD-based single timer
     QTimer *m_pollTimer = nullptr;

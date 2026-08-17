@@ -135,13 +135,17 @@ bool HiredisWorker::ensureConnected()
         redisSetTimeout(m_ctx, cmdTimeout);
         m_connected = true;
         m_usingBackup = false;
+        m_everConnected = true;
+        m_consecutiveFailures = 0;
         emit connectionChanged(true, false);
         return true;
     }
     if (m_ctx) { redisFree(m_ctx); m_ctx = nullptr; }
 
+    ++m_consecutiveFailures;
+
     // Try backup (1s connect timeout)
-    if (!m_backupHost.isEmpty()) {
+    if (!m_backupHost.isEmpty() && m_consecutiveFailures >= kBackupAfterFailures) {
         tv = {1, 0};
         m_ctx = redisConnectWithTimeout(m_backupHost.toUtf8().constData(), m_port, tv);
         if (m_ctx && !m_ctx->err) {
@@ -149,6 +153,8 @@ bool HiredisWorker::ensureConnected()
             redisSetTimeout(m_ctx, cmdTimeout);
             m_connected = true;
             m_usingBackup = true;
+            m_everConnected = true;
+            m_consecutiveFailures = 0;
             m_primaryProbeTimer->start();
             qDebug() << "HiredisWorker: connected to backup" << m_backupHost;
             emit connectionChanged(true, true);
@@ -162,10 +168,20 @@ bool HiredisWorker::ensureConnected()
         emit connectionChanged(false, m_usingBackup);
     }
 
-    if (m_running && !m_reconnectTimer->isActive())
-        m_reconnectTimer->start();
+    scheduleReconnect();
 
     return false;
+}
+
+void HiredisWorker::scheduleReconnect()
+{
+    if (!m_running || !m_reconnectTimer || m_reconnectTimer->isActive())
+        return;
+
+    const bool stillWaitingForFirstConnect =
+        !m_everConnected && m_consecutiveFailures < kFastRetryAttempts;
+    m_reconnectTimer->setInterval(stillWaitingForFirstConnect ? kFastRetryMs : kSlowRetryMs);
+    m_reconnectTimer->start();
 }
 
 void HiredisWorker::disconnectRedis()
@@ -184,7 +200,7 @@ void HiredisWorker::tryReconnect()
         fetchAll();
         m_pollTimer->start();
     } else {
-        m_reconnectTimer->start();
+        scheduleReconnect();
     }
 }
 
@@ -200,7 +216,7 @@ void HiredisWorker::onPollTimer()
 {
     if (!ensureConnected()) {
         m_pollTimer->stop();
-        m_reconnectTimer->start();
+        scheduleReconnect();
         return;
     }
 
