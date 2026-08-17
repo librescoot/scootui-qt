@@ -549,6 +549,10 @@ void Translations::initStrings()
     en[QStringLiteral("optAlternating")] = QStringLiteral("Alternating");
     de[QStringLiteral("optAlternating")] = QStringLiteral("Abwechselnd");
 
+    // %1 day, %2 month abbreviation. German takes the ordinal point on the day.
+    en[QStringLiteral("dateDayMonth")] = QStringLiteral("%1 %2");
+    de[QStringLiteral("dateDayMonth")] = QStringLiteral("%1. %2");
+
     en[QStringLiteral("optWhenLow")] = QStringLiteral("When Low");
     de[QStringLiteral("optWhenLow")] = QStringLiteral("Wenn niedrig");
 

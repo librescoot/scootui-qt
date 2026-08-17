@@ -189,6 +189,7 @@ class Translations : public QObject
     Q_PROPERTY(QString optTime READ optTime NOTIFY languageChanged)
     Q_PROPERTY(QString optDateTime READ optDateTime NOTIFY languageChanged)
     Q_PROPERTY(QString optAlternating READ optAlternating NOTIFY languageChanged)
+    Q_PROPERTY(QString dateDayMonth READ dateDayMonth NOTIFY languageChanged)
     Q_PROPERTY(QString optWhenLow READ optWhenLow NOTIFY languageChanged)
     Q_PROPERTY(QString optOff READ optOff NOTIFY languageChanged)
     Q_PROPERTY(QString optLow READ optLow NOTIFY languageChanged)
@@ -690,6 +691,8 @@ public:
     QString optTime() const { return lookup("optTime"); }
     QString optDateTime() const { return lookup("optDateTime"); }
     QString optAlternating() const { return lookup("optAlternating"); }
+    // %1 day, %2 month abbreviation.
+    QString dateDayMonth() const { return lookup("dateDayMonth"); }
     QString optWhenLow() const { return lookup("optWhenLow"); }
 
     // Three-letter month name for the status bar date. Not a Q_PROPERTY

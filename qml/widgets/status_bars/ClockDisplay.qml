@@ -9,6 +9,11 @@ import "../indicators"
 //   alternate  time, then day and month, swapping on a timer
 //   never      hidden
 //
+// The calendar glyph appears only in date-time, where the date is an icon
+// sitting beside other content and has to say what it is. Standing in for the
+// clock in alternate, the date is set as text in the clock's own style: a
+// framed numeral there would read as a status icon rather than as the time.
+//
 // reservedWidth is the width this element claims whatever it is currently
 // showing. TopStatusBar derives both side budgets from it, so an alternating
 // centre must not make the battery and indicator rows degrade and un-degrade
@@ -82,6 +87,8 @@ Item {
         translations.language
         return translations.monthAbbrev(effectiveDate.getMonth() + 1)
     }
+    // German wants the ordinal point on the day ("17. Aug"), English does not.
+    readonly property string dateStr: translations.dateDayMonth.arg(dayNum).arg(monthStr)
 
     property bool showingDate: false
 
@@ -104,17 +111,18 @@ Item {
         text: root.timeStr
     }
     TextMetrics {
-        id: tmMonth
+        id: tmDate
         font.pixelSize: themeStore.fontTitle
         font.weight: Font.Medium
-        text: root.monthStr
+        font.features: {"tnum": 1}
+        text: root.dateStr
     }
 
     readonly property real reservedWidth: {
         switch (mode) {
         case "never":     return 0
         case "date-time": return iconSize + gap + tmTime.width
-        case "alternate": return Math.max(tmTime.width, iconSize + gap + tmMonth.width)
+        case "alternate": return Math.max(tmTime.width, tmDate.width)
         default:          return tmTime.width
         }
     }
@@ -152,27 +160,17 @@ Item {
         }
     }
 
-    // Date face, only ever shown by the alternating format.
-    Row {
+    // Date face, only ever shown by the alternating format. Plain text in the
+    // clock's own style, since here it stands in for the clock.
+    Text {
         anchors.centerIn: parent
-        height: root.height
-        spacing: root.gap
+        text: root.dateStr
+        font.pixelSize: themeStore.fontTitle
+        font.weight: Font.Medium
+        font.features: {"tnum": 1}
+        color: themeStore.textColor
         opacity: root.showingDate ? 1 : 0
         visible: opacity > 0
         Behavior on opacity { NumberAnimation { duration: root.fadeMs } }
-
-        CalendarDayIcon {
-            anchors.verticalCenter: parent.verticalCenter
-            day: root.dayNum
-            iconSize: root.iconSize
-            color: themeStore.textColor
-        }
-        Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: root.monthStr
-            font.pixelSize: themeStore.fontTitle
-            font.weight: Font.Medium
-            color: themeStore.textColor
-        }
     }
 }
