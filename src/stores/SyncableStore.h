@@ -57,10 +57,17 @@ private:
     void onPubsubMessage(const QString &channel, const QString &message);
     void doRefreshSet(const SyncSetFieldDef &field);
     void scheduleSetTimer(const SyncSetFieldDef &field);
+    void requestHashRefresh();
     QString interpolateKey(const QString &key) const;
 
     QHash<QString, QTimer*> m_setTimers;
     QString m_channel;
     SyncSettings m_cachedSettings;
     bool m_started = false;
+
+    // Coalescing window for pub/sub-triggered hash refreshes. One status
+    // update from a service publishes every changed field separately, so
+    // without this a single update costs one round trip per field.
+    QTimer *m_refreshCooldown = nullptr;
+    bool m_refreshPending = false;
 };

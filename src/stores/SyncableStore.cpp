@@ -2,10 +2,25 @@
 
 #include <QDebug>
 
+namespace {
+// Leading-edge window: the first message of a burst refreshes immediately,
+// everything that lands within the window collapses into one follow-up read.
+constexpr int kRefreshCoalesceMs = 50;
+}
+
 SyncableStore::SyncableStore(MdbRepository *repo, QObject *parent)
     : QObject(parent)
     , m_repo(repo)
 {
+    m_refreshCooldown = new QTimer(this);
+    m_refreshCooldown->setSingleShot(true);
+    m_refreshCooldown->setInterval(kRefreshCoalesceMs);
+    connect(m_refreshCooldown, &QTimer::timeout, this, [this]() {
+        if (!m_refreshPending) return;
+        m_refreshPending = false;
+        m_repo->requestAll(m_channel);
+        m_refreshCooldown->start();
+    });
 }
 
 SyncableStore::~SyncableStore()
@@ -49,6 +64,9 @@ void SyncableStore::stop()
 {
     if (!m_started) return;
     m_started = false;
+
+    m_refreshCooldown->stop();
+    m_refreshPending = false;
 
     disconnect(m_repo, &MdbRepository::fieldsUpdated,
                this, &SyncableStore::onFieldsReceived);
@@ -98,11 +116,29 @@ void SyncableStore::onPubsubMessage(const QString &channel, const QString &messa
         }
     }
 
-    // For regular field notifications, fetch the changed field immediately
-    // so we don't wait up to the full polling interval. The "*" message
-    // comes from the worker's own poll (already handled in onFieldsReceived).
+    // For regular field notifications, re-read the hash immediately so we
+    // don't wait up to the full polling interval. The "*" message comes from
+    // the worker's own poll (already handled in onFieldsReceived).
+    //
+    // Reading the whole hash rather than the named field costs a few hundred
+    // bytes more, and buys two things: fields whose notification was lost
+    // (pub/sub gap, dropped message) heal on the next publish of any field
+    // instead of waiting out the poll interval, and all fields come from one
+    // snapshot instead of one per round trip.
     if (message != QLatin1String("*"))
-        m_repo->requestField(channel, message);
+        requestHashRefresh();
+}
+
+void SyncableStore::requestHashRefresh()
+{
+    if (m_refreshCooldown->isActive()) {
+        m_refreshPending = true;
+        return;
+    }
+
+    m_refreshPending = false;
+    m_repo->requestAll(m_channel);
+    m_refreshCooldown->start();
 }
 
 void SyncableStore::refreshAllFields()
