@@ -64,6 +64,10 @@ public:
     // installed as ones this service downloaded.
     bool hasMapsInstalled() const;
     bool hasResolvedRegion() const { return !m_resolvedSlug.isEmpty(); }
+    // Re-read /data/maps/metadata.json. The constructor runs before /data is
+    // mounted, so its read always comes back empty; call this once the
+    // partition is available. No-op while a download or check is in flight.
+    void reloadMetadata();
     // ISO-8601 UTC, empty when this vehicle has never completed a check.
     QString lastUpdateCheck() const { return m_metadata.lastUpdateCheck; }
     bool shouldCheckForUpdates() const;

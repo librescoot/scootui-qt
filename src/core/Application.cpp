@@ -382,6 +382,16 @@ void Application::createStores(QQmlApplicationEngine &engine)
             mbtilesWatcher->removePath(QStringLiteral("/data"));
             mbtilesWatcher->addPath(mapsDir);
         }
+
+        // Everything below the mbtiles check needs /data to exist, and both of
+        // these were previously stranded when it mounted late. The metadata read
+        // in MapDownloadService's constructor happens ~8s before the mount, and
+        // the update check only ran off the modem and settings edges, which can
+        // both settle while hasMapsInstalled() is still false.
+        if (m_mapDownloadService)
+            m_mapDownloadService->reloadMetadata();
+        maybeCheckForMapUpdates();
+
         if (!QFile::exists(mapsDir + QStringLiteral("/map.mbtiles")))
             return;
         qDebug() << "Mbtiles change detected, reloading services";

@@ -61,6 +61,45 @@ MapDownloadService::MapDownloadService(bool simulatorMode, QObject *parent)
     emit partialStateChanged();
 }
 
+void MapDownloadService::reloadMetadata()
+{
+    // The constructor's read happens during createStores(), which on the DBC is
+    // roughly 8s before /data is mounted, so it always comes back empty and the
+    // vehicle forgets its region and its last check. Re-read once the partition
+    // is actually there.
+    if (m_status != ScootEnums::MapDownloadStatus::Idle)
+        return;
+
+    const MapMetadata fresh = MapMetadata::load();
+    if (fresh.region.isEmpty() && fresh.lastUpdateCheck.isEmpty())
+        return;
+    if (fresh.region == m_metadata.region
+        && fresh.lastUpdateCheck == m_metadata.lastUpdateCheck
+        && fresh.updateAvailable == m_metadata.updateAvailable)
+        return;
+
+    m_metadata = fresh;
+
+    if (!m_metadata.region.isEmpty() && m_resolvedSlug.isEmpty()) {
+        m_resolvedSlug = m_metadata.region;
+        m_regionName = displayNameForSlug(m_resolvedSlug);
+        emit regionNameChanged();
+    }
+    if (m_updateAvailable != m_metadata.updateAvailable) {
+        m_updateAvailable = m_metadata.updateAvailable;
+        emit updateAvailableChanged();
+    }
+
+    adoptInstalledMaps();
+    computeMissingDigests();
+    emit partialStateChanged();
+
+    qDebug() << "Map metadata reloaded after /data became available: region"
+             << (m_resolvedSlug.isEmpty() ? QStringLiteral("(none)") : m_resolvedSlug)
+             << "lastCheck" << (m_metadata.lastUpdateCheck.isEmpty()
+                                ? QStringLiteral("(never)") : m_metadata.lastUpdateCheck);
+}
+
 bool MapDownloadService::hasPartialDisplayDownload() const
 {
     return QFile::exists(displayPartPath());
