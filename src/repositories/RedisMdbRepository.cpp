@@ -1,6 +1,6 @@
 #include "RedisMdbRepository.h"
 #include "HiredisWorker.h"
-#include "HiredisAdapter.h"
+#include "PubsubWorker.h"
 #include <QDebug>
 #include <QCoreApplication>
 #include <QElapsedTimer>
@@ -20,17 +20,16 @@ RedisMdbRepository::RedisMdbRepository(const QString &host, quint16 port,
         }
     });
 
-    m_pubsubReconnectTimer = new QTimer(this);
-    m_pubsubReconnectTimer->setSingleShot(true);
-    m_pubsubReconnectTimer->setInterval(2000);
-    connect(m_pubsubReconnectTimer, &QTimer::timeout, this, [this]() {
-        setupPubsub();
-    });
 }
 
 RedisMdbRepository::~RedisMdbRepository()
 {
-    teardownPubsub();
+    if (m_pubsubThread) {
+        QMetaObject::invokeMethod(m_pubsub, &PubsubWorker::stop, Qt::BlockingQueuedConnection);
+        m_pubsubThread->quit();
+        m_pubsubThread->wait(3000);
+        delete m_pubsub;
+    }
 
     if (m_workerThread) {
         QMetaObject::invokeMethod(m_worker, &HiredisWorker::stop, Qt::BlockingQueuedConnection);
@@ -118,8 +117,33 @@ void RedisMdbRepository::startWorker()
     }, Qt::QueuedConnection);
 
     m_workerThread->start();
-    // Pub/sub is set up in onWorkerConnectionChanged when the worker first connects,
-    // so it connects to the same host the worker chose (primary or backup).
+
+    // Pub/sub runs on its own thread and starts connecting straight away,
+    // rather than waiting for the polling worker to report a connection. On
+    // the dashboard that wait cost seconds: the worker's signal is queued to
+    // the GUI thread, which is inside the QML load, so pub/sub only came up
+    // once that finished even though the link was ready much earlier.
+    m_pubsub = new PubsubWorker(m_host, m_port);
+    m_pubsubThread = new QThread(this);
+    m_pubsub->moveToThread(m_pubsubThread);
+
+    connect(m_pubsubThread, &QThread::started, m_pubsub, &PubsubWorker::start);
+
+    connect(m_pubsub, &PubsubWorker::message,
+            this, &RedisMdbRepository::dispatchPubsubMessage, Qt::QueuedConnection);
+    connect(m_pubsub, &PubsubWorker::subscriptionsLive,
+            this, &RedisMdbRepository::refreshSubscribedChannels, Qt::QueuedConnection);
+
+    // Channels subscribed before now were only recorded locally, so hand the
+    // whole set over before the thread starts serving them.
+    for (auto it = m_subscribers.cbegin(); it != m_subscribers.cend(); ++it) {
+        auto *p = m_pubsub;
+        const QString channel = it.key();
+        QMetaObject::invokeMethod(p, [p, channel]() { p->addChannel(channel); },
+                                  Qt::QueuedConnection);
+    }
+
+    m_pubsubThread->start();
 }
 
 void RedisMdbRepository::prewarmCache(int deadlineMs)
@@ -355,9 +379,13 @@ void RedisMdbRepository::subscribe(const QString &channel, SubscriptionCallback 
 {
     m_subscribers[channel].append(callback);
 
-    if (m_pubsubCtx) {
-        redisAsyncCommand(m_pubsubCtx, onPubsubReply, this,
-                          "SUBSCRIBE %s", channel.toUtf8().constData());
+    // The channel name goes to the pub/sub thread; the callback stays here.
+    // Subscribing before startWorker() is normal, and the worker replays the
+    // whole set once it has a connection, so there is nothing to do yet.
+    if (m_pubsub) {
+        auto *p = m_pubsub;
+        QMetaObject::invokeMethod(p, [p, channel]() { p->addChannel(channel); },
+                                  Qt::QueuedConnection);
     }
 }
 
@@ -365,9 +393,10 @@ void RedisMdbRepository::unsubscribe(const QString &channel)
 {
     m_subscribers.remove(channel);
 
-    if (m_pubsubCtx) {
-        redisAsyncCommand(m_pubsubCtx, nullptr, nullptr,
-                          "UNSUBSCRIBE %s", channel.toUtf8().constData());
+    if (m_pubsub) {
+        auto *p = m_pubsub;
+        QMetaObject::invokeMethod(p, [p, channel]() { p->removeChannel(channel); },
+                                  Qt::QueuedConnection);
     }
 }
 
@@ -408,140 +437,44 @@ void RedisMdbRepository::onWorkerConnectionChanged(bool connected, bool usingBac
         if (usingBackup != wasUsingBackup)
             emit usingBackupConnection(usingBackup);
         emit connectionStateChanged(true);
-        // Set up pub/sub to the same host the worker connected to
-        setupPubsub();
+        // Point pub/sub at whichever host the worker settled on. Its own
+        // connection is not gated on this: it has been retrying since start,
+        // so on a normal boot it is already up by the time this arrives.
+        retargetPubsub();
     } else if (connected && usingBackup != wasUsingBackup) {
         // Worker switched hosts while staying connected (e.g. failback to primary)
         emit usingBackupConnection(usingBackup);
-        setupPubsub();
+        retargetPubsub();
     } else if (!connected && wasConnected) {
         emit connectionStateChanged(false);
         m_prolongedTimer->start();
     }
 }
 
-// Pub/sub async context (main thread)
+// Pub/sub lives on its own thread; see PubsubWorker.
 
-void RedisMdbRepository::setupPubsub()
+void RedisMdbRepository::retargetPubsub()
 {
-    m_pubsubReconnectTimer->stop();
-    teardownPubsub();
-
-    // Connect pub/sub to the same host the worker is using
-    const QString &host = m_usingBackup ? m_backupHost : m_host;
-    m_pubsubCtx = redisAsyncConnect(host.toUtf8().constData(), m_port);
-    if (!m_pubsubCtx || m_pubsubCtx->err) {
-        qWarning() << "RedisMdbRepository: pubsub connection failed to" << host;
-        if (m_pubsubCtx) {
-            redisAsyncFree(m_pubsubCtx);
-            m_pubsubCtx = nullptr;
-        }
-        m_pubsubReconnectTimer->start();
-        return;
-    }
-
-    m_pubsubCtx->data = this;
-    redisAsyncSetConnectCallback(m_pubsubCtx, onPubsubConnected);
-    redisAsyncSetDisconnectCallback(m_pubsubCtx, onPubsubDisconnected);
-
-    m_pubsubAdapter = new HiredisAdapter(this);
-    m_pubsubAdapter->attach(m_pubsubCtx);
-
-    resubscribeAll();
+    if (!m_pubsub) return;
+    const QString host = m_usingBackup ? m_backupHost : m_host;
+    auto *p = m_pubsub;
+    QMetaObject::invokeMethod(p, [p, host]() { p->setHost(host); }, Qt::QueuedConnection);
 }
 
-void RedisMdbRepository::teardownPubsub()
+void RedisMdbRepository::dispatchPubsubMessage(const QString &channel, const QString &payload)
 {
-    if (m_pubsubCtx) {
-        // redisAsyncDisconnect triggers the disconnect callback which
-        // fires ev.cleanup, cleaning up the adapter's notifiers.
-        // The adapter itself is parented to us and cleaned up by Qt.
-        m_pubsubTearingDown = true;
-        redisAsyncDisconnect(m_pubsubCtx);
-        m_pubsubTearingDown = false;
-        m_pubsubCtx = nullptr;
-        m_pubsubAdapter = nullptr;
-    }
+    auto it = m_subscribers.find(channel);
+    if (it == m_subscribers.end()) return;
+    for (const auto &cb : *it)
+        cb(channel, payload);
 }
 
 // Re-read every subscribed hash. Called once a pub/sub connection is up:
 // anything published while we had no subscription was missed, and without
-// this the affected stores sit on stale values until their next poll —
+// this the affected stores sit on stale values until their next poll -
 // which for slow channels like battery:N is 30 seconds.
 void RedisMdbRepository::refreshSubscribedChannels()
 {
     for (auto it = m_subscribers.cbegin(); it != m_subscribers.cend(); ++it)
         requestAll(it.key());
-}
-
-void RedisMdbRepository::resubscribeAll()
-{
-    if (!m_pubsubCtx) return;
-
-    for (auto it = m_subscribers.cbegin(); it != m_subscribers.cend(); ++it) {
-        redisAsyncCommand(m_pubsubCtx, onPubsubReply, this,
-                          "SUBSCRIBE %s", it.key().toUtf8().constData());
-    }
-}
-
-void RedisMdbRepository::onPubsubConnected(const redisAsyncContext *ctx, int status)
-{
-    auto *self = static_cast<RedisMdbRepository *>(ctx->data);
-    if (!self) return;
-
-    if (status != REDIS_OK) {
-        // The connect only failed now, after redisAsyncConnect() had already
-        // handed back a context — the usual case when Redis isn't listening
-        // yet. hiredis frees the context right after this callback and skips
-        // the disconnect callback for a connection that never came up, so
-        // this is the only place left to schedule the retry.
-        qWarning() << "RedisMdbRepository: pubsub connect failed, retrying";
-        self->m_pubsubCtx = nullptr;
-        self->m_pubsubAdapter = nullptr;
-        if (!self->m_pubsubTearingDown)
-            self->m_pubsubReconnectTimer->start();
-        return;
-    }
-
-    qDebug() << "RedisMdbRepository: pubsub connected";
-    self->refreshSubscribedChannels();
-}
-
-void RedisMdbRepository::onPubsubDisconnected(const redisAsyncContext *ctx, int status)
-{
-    auto *self = static_cast<RedisMdbRepository *>(ctx->data);
-    if (!self) return;
-
-    self->m_pubsubCtx = nullptr;
-    // Adapter is cleaned up by hiredis cleanup callback
-    self->m_pubsubAdapter = nullptr;
-
-    // A teardown from setupPubsub() is about to build a fresh context;
-    // reconnecting on top of it would drop the new subscriptions again.
-    if (self->m_pubsubTearingDown) return;
-
-    qDebug() << "RedisMdbRepository: pubsub disconnected, scheduling reconnect";
-    self->m_pubsubReconnectTimer->start();
-}
-
-void RedisMdbRepository::onPubsubReply(redisAsyncContext *ctx, void *reply, void *privdata)
-{
-    auto *self = static_cast<RedisMdbRepository *>(privdata);
-    if (!self || !reply) return;
-
-    auto *r = static_cast<redisReply *>(reply);
-    if (r->type != REDIS_REPLY_ARRAY || r->elements < 3) return;
-
-    QString type = QString::fromUtf8(r->element[0]->str, r->element[0]->len);
-    if (type != QLatin1String("message")) return;
-
-    QString channel = QString::fromUtf8(r->element[1]->str, r->element[1]->len);
-    QString message = QString::fromUtf8(r->element[2]->str, r->element[2]->len);
-
-    // Dispatch to subscribers
-    auto it = self->m_subscribers.find(channel);
-    if (it != self->m_subscribers.end()) {
-        for (const auto &cb : *it)
-            cb(channel, message);
-    }
 }

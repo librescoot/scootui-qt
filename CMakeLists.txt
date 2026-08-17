@@ -57,6 +57,7 @@ set(CPP_SOURCES
     src/repositories/InMemoryMdbRepository.cpp
     src/repositories/RedisMdbRepository.cpp
     src/repositories/HiredisWorker.cpp
+    src/repositories/PubsubWorker.cpp
     src/stores/SyncableStore.cpp
     src/stores/EngineStore.cpp
     src/stores/VehicleStore.cpp
@@ -131,6 +132,7 @@ set(CPP_HEADERS
     src/repositories/RedisMdbRepository.h
     src/repositories/HiredisAdapter.h
     src/repositories/HiredisWorker.h
+    src/repositories/PubsubWorker.h
     src/stores/SyncableStore.h
     src/stores/EngineStore.h
     src/stores/VehicleStore.h

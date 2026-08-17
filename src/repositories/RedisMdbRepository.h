@@ -6,8 +6,7 @@
 #include <QMutex>
 
 class HiredisWorker;
-class HiredisAdapter;
-struct redisAsyncContext;
+class PubsubWorker;
 
 class RedisMdbRepository : public MdbRepository
 {
@@ -70,26 +69,21 @@ private slots:
     void onWorkerConnectionChanged(bool connected, bool usingBackup);
 
 private:
-    void setupPubsub();
-    void teardownPubsub();
-    void resubscribeAll();
     void refreshSubscribedChannels();
-    static void onPubsubConnected(const redisAsyncContext *ctx, int status);
-    static void onPubsubDisconnected(const redisAsyncContext *ctx, int status);
-    static void onPubsubReply(redisAsyncContext *ctx, void *reply, void *privdata);
+    void retargetPubsub();
+    void dispatchPubsubMessage(const QString &channel, const QString &payload);
 
     // Worker thread
     QThread *m_workerThread = nullptr;
     HiredisWorker *m_worker = nullptr;
 
-    // Pub/sub (main thread, async)
-    redisAsyncContext *m_pubsubCtx = nullptr;
-    HiredisAdapter *m_pubsubAdapter = nullptr;
-    QTimer *m_pubsubReconnectTimer = nullptr;
-    // Set while teardownPubsub() drops the context on purpose, so the
-    // disconnect callback doesn't schedule a reconnect on top of the
-    // setup that's already in progress.
-    bool m_pubsubTearingDown = false;
+    // Pub/sub, on a thread of its own. It has to connect and retry while the
+    // QML engine owns the GUI thread during startup, and it is kept off the
+    // polling worker's thread because that one blocks on synchronous hiredis
+    // calls. Only channel names live there; the subscriber callbacks below
+    // stay here, because they touch stores and QML.
+    QThread *m_pubsubThread = nullptr;
+    PubsubWorker *m_pubsub = nullptr;
 
     // Cached data from worker (updated via signal, read from main thread)
     mutable QMutex m_cacheMutex;
