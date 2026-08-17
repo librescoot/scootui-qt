@@ -1,5 +1,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QQmlComponent>
+#include <QQmlContext>
 #include <QQuickWindow>
 #include <QFontDatabase>
 #include <QFont>
@@ -101,7 +103,26 @@ int main(int argc, char *argv[])
 
     const QUrl url(QStringLiteral("qrc:/ScootUI/qml/Main.qml"));
     BOOT_MARK("engine.load() starting");
-    engine.load(url);
+    if (qEnvironmentVariableIsSet("SCOOTUI_SPLIT_LOAD")) {
+        // Same work engine.load() does, in two halves, to see which one costs.
+        // Compiling resolves every type Main.qml names, including the screen
+        // Components it never instantiates; creating walks the object graph.
+        // Component.onCompleted cannot tell these apart because it fires in a
+        // batch once the whole tree exists.
+        QQmlComponent component(&engine);
+        component.loadUrl(url);
+        BOOT_MARK("  QML compiled + types resolved");
+        if (component.isError()) {
+            qCritical() << "QML errors:" << component.errors();
+            return 1;
+        }
+        QObject *root = component.create(engine.rootContext());
+        BOOT_MARK("  QML object graph created");
+        if (root)
+            root->setParent(&engine);
+    } else {
+        engine.load(url);
+    }
     BOOT_MARK("engine.load() returned");
 
     // In simulator mode, also load the simulator control panel window
