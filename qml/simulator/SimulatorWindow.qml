@@ -303,6 +303,17 @@ ApplicationWindow {
                     onEditingFinished: simulator.clockOverride = text
                 }
                 Item { Layout.preferredWidth: 6 }
+                Text { text: "date"; color: "#999"; font.pixelSize: 9 }
+                TextField {
+                    id: dateOverrideField
+                    Layout.preferredWidth: 76
+                    placeholderText: "yyyy-MM-dd"
+                    text: simulator.dateOverride
+                    color: "white"; font.pixelSize: 10
+                    background: Rectangle { color: "#333"; radius: 3 }
+                    onEditingFinished: simulator.dateOverride = text
+                }
+                Item { Layout.preferredWidth: 6 }
                 Text { text: "dur s"; color: "#999"; font.pixelSize: 9 }
                 TextField {
                     id: tripDurField
@@ -367,6 +378,8 @@ ApplicationWindow {
                     onClicked: {
                         clockOverrideField.text = ""
                         simulator.clockOverride = ""
+                        dateOverrideField.text = ""
+                        simulator.dateOverride = ""
                         if (typeof tripStore !== "undefined")
                             tripStore.clearOverride()
                         freezeTripSwitch.checked = false

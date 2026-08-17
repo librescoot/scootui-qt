@@ -161,7 +161,7 @@ Settings are stored in the `settings` Redis hash and can be modified at runtime.
 | `dashboard.show-bluetooth` | `always`, `active-or-error`, `error`, `never` | `active-or-error` | Bluetooth icon visibility |
 | `dashboard.show-cloud` | `always`, `active-or-error`, `error`, `never` | `error` | Cloud connection icon visibility |
 | `dashboard.show-internet` | `always`, `active-or-error`, `error`, `never` | `always` | Cellular icon visibility |
-| `dashboard.show-clock` | `always`, `never` | `always` | Clock visibility |
+| `dashboard.show-clock` | `always`, `date-time`, `alternate`, `never` | `always` | Clock format. `always` is time only; `date-time` adds a calendar glyph carrying the day; `alternate` swaps between the time and the day plus month. The date is suppressed while the clock reads an implausible year (before NTP or a GPS fix). |
 | `dashboard.theme` | `light`, `dark`, `auto` | `auto` | UI theme |
 | `dashboard.blinker-style` | `default`, `overlay` | `default` | Blinker indicator style |
 | `dashboard.language` | `en`, `de`, ... | `en` | UI language |

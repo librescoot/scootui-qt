@@ -540,6 +540,15 @@ void Translations::initStrings()
     en[QStringLiteral("optNever")] = QStringLiteral("Never");
     de[QStringLiteral("optNever")] = QStringLiteral("Nie");
 
+    en[QStringLiteral("optTime")] = QStringLiteral("Time");
+    de[QStringLiteral("optTime")] = QStringLiteral("Uhrzeit");
+
+    en[QStringLiteral("optDateTime")] = QStringLiteral("Date + Time");
+    de[QStringLiteral("optDateTime")] = QStringLiteral("Datum + Uhrzeit");
+
+    en[QStringLiteral("optAlternating")] = QStringLiteral("Alternating");
+    de[QStringLiteral("optAlternating")] = QStringLiteral("Abwechselnd");
+
     en[QStringLiteral("optWhenLow")] = QStringLiteral("When Low");
     de[QStringLiteral("optWhenLow")] = QStringLiteral("Wenn niedrig");
 
@@ -1428,4 +1437,37 @@ void Translations::initStrings()
     de[QStringLiteral("shortcutToggleHazards")] = QStringLiteral("Warnblinker umschalten");
     en[QStringLiteral("shortcutDebugOverlay")] = QStringLiteral("Debug Overlay");
     de[QStringLiteral("shortcutDebugOverlay")] = QStringLiteral("Debug-Overlay");
+
+    // -----------------------------------------------------------------------
+    // Month abbreviations (status bar date)
+    // -----------------------------------------------------------------------
+    // German keeps the full word where it is already short (März, Mai, Juni,
+    // Juli) rather than inventing a three-letter form nobody reads; the status
+    // bar reserves width from whichever month is current, so the odd wider one
+    // costs nothing.
+
+    en[QStringLiteral("monthAbbrev1")]  = QStringLiteral("Jan");
+    de[QStringLiteral("monthAbbrev1")]  = QStringLiteral("Jan");
+    en[QStringLiteral("monthAbbrev2")]  = QStringLiteral("Feb");
+    de[QStringLiteral("monthAbbrev2")]  = QStringLiteral("Feb");
+    en[QStringLiteral("monthAbbrev3")]  = QStringLiteral("Mar");
+    de[QStringLiteral("monthAbbrev3")]  = QStringLiteral("März");
+    en[QStringLiteral("monthAbbrev4")]  = QStringLiteral("Apr");
+    de[QStringLiteral("monthAbbrev4")]  = QStringLiteral("Apr");
+    en[QStringLiteral("monthAbbrev5")]  = QStringLiteral("May");
+    de[QStringLiteral("monthAbbrev5")]  = QStringLiteral("Mai");
+    en[QStringLiteral("monthAbbrev6")]  = QStringLiteral("Jun");
+    de[QStringLiteral("monthAbbrev6")]  = QStringLiteral("Juni");
+    en[QStringLiteral("monthAbbrev7")]  = QStringLiteral("Jul");
+    de[QStringLiteral("monthAbbrev7")]  = QStringLiteral("Juli");
+    en[QStringLiteral("monthAbbrev8")]  = QStringLiteral("Aug");
+    de[QStringLiteral("monthAbbrev8")]  = QStringLiteral("Aug");
+    en[QStringLiteral("monthAbbrev9")]  = QStringLiteral("Sep");
+    de[QStringLiteral("monthAbbrev9")]  = QStringLiteral("Sep");
+    en[QStringLiteral("monthAbbrev10")] = QStringLiteral("Oct");
+    de[QStringLiteral("monthAbbrev10")] = QStringLiteral("Okt");
+    en[QStringLiteral("monthAbbrev11")] = QStringLiteral("Nov");
+    de[QStringLiteral("monthAbbrev11")] = QStringLiteral("Nov");
+    en[QStringLiteral("monthAbbrev12")] = QStringLiteral("Dec");
+    de[QStringLiteral("monthAbbrev12")] = QStringLiteral("Dez");
 }

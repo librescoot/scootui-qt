@@ -13,8 +13,7 @@ Rectangle {
     // actually applied). The bar hands each side the highest detail level
     // that fits its budget. With the clock hidden the two sides share one
     // budget and the wider side yields first.
-    readonly property bool clockShown: typeof settingsStore === "undefined"
-                                       || settingsStore.showClock !== "never"
+    readonly property bool clockShown: clockDisplay.mode !== "never"
     readonly property real sideMargin: 8
     readonly property real clockGap: 8
 
@@ -33,7 +32,11 @@ Rectangle {
         return best
     }
 
-    readonly property real sideBudget: width / 2 - clockText.width / 2 - clockGap - sideMargin
+    // reservedWidth, not the live width: the alternating format swaps between a
+    // time and a date of different widths, and budgeting off whichever is on
+    // screen would degrade and un-degrade the sides on every swap.
+    readonly property real sideBudget: width / 2 - clockDisplay.reservedWidth / 2
+                                       - clockGap - sideMargin
 
     readonly property var sharedLevels: {
         var lw = batteryRow.levelWidths || [0]
@@ -83,37 +86,18 @@ Rectangle {
             }
         }
 
-        // Center: Clock
+        // Center: Clock, optionally carrying the date
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.preferredWidth: 1
-            visible: typeof settingsStore === "undefined" || settingsStore.showClock !== "never"
+            visible: topBar.clockShown
 
-            Text {
-                id: clockText
+            ClockDisplay {
+                id: clockDisplay
                 anchors.centerIn: parent
-                font.pixelSize: themeStore.fontTitle
-                font.weight: Font.Medium
-                color: themeStore.textColor
-
-                readonly property string overrideStr:
-                    typeof simulator !== "undefined" ? simulator.clockOverride : ""
-
-                property string timeStr: ""
-                Timer {
-                    interval: 1000
-                    running: true
-                    repeat: true
-                    triggeredOnStart: true
-                    onTriggered: {
-                        var now = new Date()
-                        var h = now.getHours().toString().padStart(2, '0')
-                        var m = now.getMinutes().toString().padStart(2, '0')
-                        clockText.timeStr = h + ":" + m
-                    }
-                }
-                text: overrideStr.length > 0 ? overrideStr : timeStr
+                width: implicitWidth
+                height: implicitHeight
             }
         }
 

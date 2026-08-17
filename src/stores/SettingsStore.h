@@ -167,6 +167,10 @@ private:
     // @schema dashboard.show-internet
     QString m_showInternet = QStringLiteral("active-or-error");
     // @schema dashboard.show-clock
+    // Clock format, not just visibility. Values: "always" (time only, the
+    // original meaning of the value, kept so stored settings survive),
+    // "date-time" (day glyph plus time), "alternate" (time and date swapping
+    // on a timer), "never" (hidden).
     QString m_showClock = QStringLiteral("always");
     // @schema dashboard.show-temperature
     // Values: "always" (always show widget), "warning" (only when ambient

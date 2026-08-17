@@ -16,6 +16,7 @@ class SimulatorService : public QObject
     Q_PROPERTY(bool simulatorMode READ simulatorMode CONSTANT)
     Q_PROPERTY(bool gpsFrozen READ gpsFrozen WRITE setGpsFrozen NOTIFY gpsFrozenChanged)
     Q_PROPERTY(QString clockOverride READ clockOverride WRITE setClockOverride NOTIFY clockOverrideChanged)
+    Q_PROPERTY(QString dateOverride READ dateOverride WRITE setDateOverride NOTIFY dateOverrideChanged)
 
 public:
     explicit SimulatorService(MdbRepository *repo, NavigationService *nav, QObject *parent = nullptr);
@@ -27,6 +28,10 @@ public:
     void setGpsFrozen(bool frozen) { if (frozen != m_gpsFrozen) { m_gpsFrozen = frozen; emit gpsFrozenChanged(); } }
     QString clockOverride() const { return m_clockOverride; }
     void setClockOverride(const QString &v) { if (v != m_clockOverride) { m_clockOverride = v; emit clockOverrideChanged(); } }
+    // yyyy-MM-dd. Drives the status bar date, including the implausible-clock
+    // path: set a 1970 date to check that the date format falls back to time.
+    QString dateOverride() const { return m_dateOverride; }
+    void setDateOverride(const QString &v) { if (v != m_dateOverride) { m_dateOverride = v; emit dateOverrideChanged(); } }
 
     // Vehicle
     Q_INVOKABLE void setVehicleState(const QString &state);
@@ -188,6 +193,7 @@ signals:
     void autoDriveSpeedChanged();
     void gpsFrozenChanged();
     void clockOverrideChanged();
+    void dateOverrideChanged();
 
 private:
     void autoDriveTick();
@@ -225,4 +231,5 @@ private:
     bool m_autoStandbyActive = false;
     bool m_gpsFrozen = false;
     QString m_clockOverride;
+    QString m_dateOverride;
 };

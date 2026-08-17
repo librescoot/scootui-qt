@@ -594,14 +594,22 @@ void MenuStore::rebuildMenuTree()
         settings->showInternet(), QStringLiteral("never"),
         [svc](const QString &v) { svc->updateShowInternet(v); });
 
-    // Clock (inline cycle: Always → Never)
+    // Clock (inline cycle: Time → Date + Time → Alternating → Never)
+    // "always" is the time-only value: it predates the date formats and is
+    // what existing vehicles have stored, so it keeps its meaning and only
+    // its label changed.
     {
         QString clkVal = settings->showClock();
         if (clkVal.isEmpty()) clkVal = QStringLiteral("always");
-        int clkIdx = (clkVal == QLatin1String("never")) ? 1 : 0;
+        int clkIdx = 0;
+        if (clkVal == QLatin1String("date-time")) clkIdx = 1;
+        else if (clkVal == QLatin1String("alternate")) clkIdx = 2;
+        else if (clkVal == QLatin1String("never")) clkIdx = 3;
         statusBarNode->addChild(MenuNode::cycleSetting(QStringLiteral("status_clock"),
             tr->menuClock(), {
-                {tr->optAlways(), [svc]() { svc->updateShowClock(QStringLiteral("always")); }},
+                {tr->optTime(), [svc]() { svc->updateShowClock(QStringLiteral("always")); }},
+                {tr->optDateTime(), [svc]() { svc->updateShowClock(QStringLiteral("date-time")); }},
+                {tr->optAlternating(), [svc]() { svc->updateShowClock(QStringLiteral("alternate")); }},
                 {tr->optNever(), [svc]() { svc->updateShowClock(QStringLiteral("never")); }},
             }, clkIdx));
     }

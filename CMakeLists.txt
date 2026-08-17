@@ -224,6 +224,7 @@ set(QML_FILES
     qml/widgets/navigation/RoundaboutIconFromMap.qml
     qml/widgets/speedometer/SpeedometerDisplay.qml
     qml/widgets/status_bars/TopStatusBar.qml
+    qml/widgets/status_bars/ClockDisplay.qml
     qml/widgets/status_bars/BatteryDisplay.qml
     qml/widgets/status_bars/BatteryIcon.qml
     qml/widgets/status_bars/UnifiedBottomStatusBar.qml
@@ -236,6 +237,7 @@ set(QML_FILES
     qml/widgets/indicators/StatusIndicators.qml
     qml/widgets/indicators/TelltalePanel.qml
     qml/widgets/indicators/SpeedLimitIndicator.qml
+    qml/widgets/indicators/CalendarDayIcon.qml
     qml/widgets/indicators/RoadNameDisplay.qml
     qml/widgets/blinker/BlinkerOverlay.qml
     qml/widgets/shutdown/ShutdownOverlay.qml
@@ -350,6 +352,7 @@ qt_add_qml_module(scootui
         assets/icons/speedlimit_none.svg
         assets/icons/speedlimit_unknown.svg
         assets/icons/speedlimit_blank.svg
+        assets/icons/calendar_blank.svg
         assets/icons/librescoot-logo.png
         assets/icons/librescoot-logotype.svg
         assets/icons/librescoot-logo-small.png

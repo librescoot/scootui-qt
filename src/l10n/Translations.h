@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QByteArray>
 #include <QHash>
 
 class Translations : public QObject
@@ -185,6 +186,9 @@ class Translations : public QObject
     Q_PROPERTY(QString optActiveOrError READ optActiveOrError NOTIFY languageChanged)
     Q_PROPERTY(QString optErrorOnly READ optErrorOnly NOTIFY languageChanged)
     Q_PROPERTY(QString optNever READ optNever NOTIFY languageChanged)
+    Q_PROPERTY(QString optTime READ optTime NOTIFY languageChanged)
+    Q_PROPERTY(QString optDateTime READ optDateTime NOTIFY languageChanged)
+    Q_PROPERTY(QString optAlternating READ optAlternating NOTIFY languageChanged)
     Q_PROPERTY(QString optWhenLow READ optWhenLow NOTIFY languageChanged)
     Q_PROPERTY(QString optOff READ optOff NOTIFY languageChanged)
     Q_PROPERTY(QString optLow READ optLow NOTIFY languageChanged)
@@ -683,7 +687,21 @@ public:
     QString optActiveOrError() const { return lookup("optActiveOrError"); }
     QString optErrorOnly() const { return lookup("optErrorOnly"); }
     QString optNever() const { return lookup("optNever"); }
+    QString optTime() const { return lookup("optTime"); }
+    QString optDateTime() const { return lookup("optDateTime"); }
+    QString optAlternating() const { return lookup("optAlternating"); }
     QString optWhenLow() const { return lookup("optWhenLow"); }
+
+    // Three-letter month name for the status bar date. Not a Q_PROPERTY
+    // because there are twelve of them and QML wants whichever one today
+    // falls in; callers name language themselves to re-run on a change.
+    Q_INVOKABLE QString monthAbbrev(int month) const
+    {
+        if (month < 1 || month > 12)
+            return {};
+        const QByteArray key = QByteArrayLiteral("monthAbbrev") + QByteArray::number(month);
+        return lookup(key.constData());
+    }
     QString optOff() const { return lookup("optOff"); }
     QString optLow() const { return lookup("optLow"); }
     QString optMedium() const { return lookup("optMedium"); }
