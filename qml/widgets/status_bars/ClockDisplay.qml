@@ -46,10 +46,13 @@ Item {
         onTriggered: root.now = new Date()
     }
 
+    // `simulator` is set to nullptr on non-simulator builds rather than left
+    // undefined (Application.cpp), and `typeof null` is "object", so the null
+    // check is the one that matters here. Main.qml guards the same way.
     readonly property string clockOverride:
-        typeof simulator !== "undefined" ? simulator.clockOverride : ""
+        (typeof simulator !== "undefined" && simulator !== null) ? simulator.clockOverride : ""
     readonly property string dateOverride:
-        typeof simulator !== "undefined" ? simulator.dateOverride : ""
+        (typeof simulator !== "undefined" && simulator !== null) ? simulator.dateOverride : ""
 
     // Parsed by hand rather than through Date.fromLocaleDateString so the
     // simulator field means the same thing under either UI language.

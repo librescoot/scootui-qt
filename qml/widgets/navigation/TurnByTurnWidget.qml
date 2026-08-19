@@ -16,7 +16,11 @@ Item {
     visible: typeof navigationService !== "undefined" && navigationService.isNavigating
              && navigationService.hasCurrentManeuver
 
-    property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    // Guarded against null as well as undefined: ClusterScreen incubates this
+    // through an asynchronous Loader, and `typeof null` is "object", so the
+    // typeof check alone lets a null context property through to the read.
+    property bool isDark: (typeof themeStore !== "undefined" && themeStore)
+                          ? themeStore.isDark : true
 
     // Maneuver type enum values (must match ManeuverType in C++)
     readonly property int mtOther: 0

@@ -20,7 +20,12 @@ Item {
     // Each palette is intentionally small (3 colours) to keep the confetti
     // readable and on-theme with the card. Light-theme variants drop any
     // near-white colour so particles stay visible on a light background.
-    readonly property bool dark: typeof themeStore !== "undefined" && themeStore.isDark
+    // The typeof check alone is not enough here. ClusterScreen incubates this
+    // through an asynchronous Loader, which evaluates bindings while the
+    // context property can still be null — and `typeof null` is "object", so
+    // the guard passes and the read throws. Default to dark, as elsewhere.
+    readonly property bool dark: (typeof themeStore !== "undefined" && themeStore)
+                                 ? themeStore.isDark : true
 
     readonly property var paletteStandard: dark
         ? ["#D4AF37", "#F6E27A", "#FFFFFF"]
