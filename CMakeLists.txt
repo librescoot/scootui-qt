@@ -110,6 +110,7 @@ set(CPP_SOURCES
     src/services/SystemInfoService.cpp
     src/services/VectorTileDecoder.cpp
     src/services/MapDownloadService.cpp
+    src/services/UpdateChannelService.cpp
     src/services/RoadInfoService.cpp
     src/services/OdometerMilestoneService.cpp
     src/routing/ValhallaClient.cpp
@@ -179,6 +180,7 @@ set(CPP_HEADERS
     src/services/AddressDatabaseService.h
     src/services/FlatTrie.h
     src/services/SystemInfoService.h
+    src/services/UpdateChannelService.h
     src/services/VectorTileDecoder.h
     src/services/MapDownloadService.h
     src/services/RoadInfoService.h
@@ -219,6 +221,7 @@ set(QML_FILES
     qml/screens/FaultsScreen.qml
     qml/screens/SystemInfoScreen.qml
     qml/screens/UpdateModeInfoScreen.qml
+    qml/screens/UpdateChannelScreen.qml
     qml/screens/HopOnInfoScreen.qml
     qml/widgets/navigation/TurnByTurnWidget.qml
     qml/widgets/navigation/NavigationStatusOverlay.qml

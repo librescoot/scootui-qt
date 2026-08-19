@@ -205,6 +205,7 @@ Window {
                 case Scooter.ScreenMode.Faults:          comp = faultsComponent;      name = "faults";      break
                 case Scooter.ScreenMode.SystemInfo:      comp = systemInfoComponent;  name = "systemInfo";  break
                 case Scooter.ScreenMode.UpdateModeInfo:  comp = umsInfoComponent;     name = "umsInfo";     break
+                case Scooter.ScreenMode.UpdateChannel:   comp = updateChannelComponent; name = "updateChannel"; break
                 case Scooter.ScreenMode.HopOnInfo:       comp = hopOnInfoComponent;   name = "hopOnInfo";   break
                 default:                                    comp = clusterComponent;     name = "cluster(default)"; break
             }
@@ -226,6 +227,7 @@ Window {
     Component { id: faultsComponent; FaultsScreen {} }
     Component { id: systemInfoComponent; SystemInfoScreen {} }
     Component { id: umsInfoComponent; UpdateModeInfoScreen {} }
+    Component { id: updateChannelComponent; UpdateChannelScreen {} }
     Component { id: hopOnInfoComponent; HopOnInfoScreen {} }
 
     // Overlays (bottom to top stacking order).

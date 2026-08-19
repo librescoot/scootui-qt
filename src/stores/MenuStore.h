@@ -24,6 +24,7 @@ class HopOnStore;
 class MapDownloadService;
 class FaultsStore;
 class ToastService;
+class UpdateChannelService;
 
 class MenuStore : public QObject
 {
@@ -52,6 +53,7 @@ public:
     void setMapDownloadService(MapDownloadService *svc);
     void setFaultsStore(FaultsStore *store);
     void setToastService(ToastService *svc);
+    void setUpdateChannelService(UpdateChannelService *svc);
     ~MenuStore() override;
 
     bool isOpen() const { return m_isOpen; }
@@ -77,6 +79,7 @@ signals:
 private:
     void rebuildMenuTree();
     QString lastMapCheckLabel() const;
+    QString lastCheckLabel(const QString &iso) const;
     MenuNode *findCurrentNode() const;
     void emitMenuChanged();
     bool isRoutingReady() const;
@@ -98,6 +101,7 @@ private:
     MapDownloadService *m_mapDownload = nullptr;
     FaultsStore *m_faults = nullptr;
     ToastService *m_toastService = nullptr;
+    UpdateChannelService *m_updateChannel = nullptr;
 
     std::unique_ptr<MenuNode> m_rootNode;
     bool m_isOpen = false;

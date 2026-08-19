@@ -45,6 +45,10 @@ SyncSettings SettingsStore::syncSettings() const
             {QStringLiteral("mapTrafficOverlay"), QStringLiteral("dashboard.map.traffic-overlay")},
             {QStringLiteral("milestoneCelebrations"), QStringLiteral("dashboard.milestone-celebrations")},
             {QStringLiteral("serviceActive"), QStringLiteral("dashboard.service-mode-active")},
+            {QStringLiteral("otaChannel"), QStringLiteral("updates.mdb.channel")},
+            {QStringLiteral("otaMethod"), QStringLiteral("updates.mdb.method")},
+            {QStringLiteral("otaCheckInterval"), QStringLiteral("updates.mdb.check-interval")},
+            {QStringLiteral("otaLastCheck"), QStringLiteral("updates.mdb.last-check-time")},
         },
         {}, {}
     };
@@ -129,5 +133,13 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
             m_serviceActive = value;
             emit serviceActiveChanged();
         }
+    } else if (variable == QLatin1String("updates.mdb.channel")) {
+        if (value != m_otaChannel) { m_otaChannel = value; emit otaChannelChanged(); }
+    } else if (variable == QLatin1String("updates.mdb.method")) {
+        if (value != m_otaMethod) { m_otaMethod = value; emit otaMethodChanged(); }
+    } else if (variable == QLatin1String("updates.mdb.check-interval")) {
+        if (value != m_otaCheckInterval) { m_otaCheckInterval = value; emit otaCheckIntervalChanged(); }
+    } else if (variable == QLatin1String("updates.mdb.last-check-time")) {
+        if (value != m_otaLastCheck) { m_otaLastCheck = value; emit otaLastCheckChanged(); }
     }
 }

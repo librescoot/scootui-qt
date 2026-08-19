@@ -29,6 +29,14 @@ SyncSettings OtaStore::syncSettings() const
             {QStringLiteral("mdbErrorMessage"), QStringLiteral("error-message:mdb")},
             {QStringLiteral("mdbDownloadProgress"), QStringLiteral("download-progress:mdb")},
             {QStringLiteral("mdbInstallProgress"), QStringLiteral("install-progress:mdb")},
+            {QStringLiteral("dbcPreviewChannel"), QStringLiteral("preview-channel:dbc")},
+            {QStringLiteral("dbcPreviewStatus"), QStringLiteral("preview-status:dbc")},
+            {QStringLiteral("dbcPreviewVersion"), QStringLiteral("preview-version:dbc")},
+            {QStringLiteral("dbcPreviewSize"), QStringLiteral("preview-size:dbc")},
+            {QStringLiteral("mdbPreviewChannel"), QStringLiteral("preview-channel:mdb")},
+            {QStringLiteral("mdbPreviewStatus"), QStringLiteral("preview-status:mdb")},
+            {QStringLiteral("mdbPreviewVersion"), QStringLiteral("preview-version:mdb")},
+            {QStringLiteral("mdbPreviewSize"), QStringLiteral("preview-size:mdb")},
         },
         {}, {}
     };
@@ -70,6 +78,24 @@ void OtaStore::applyFieldUpdate(const QString &variable, const QString &value)
     } else if (variable == QLatin1String("install-progress:mdb")) {
         int v = value.toInt();
         if (v != m_mdbInstallProgress) { m_mdbInstallProgress = v; emit mdbInstallProgressChanged(); }
+    } else if (variable == QLatin1String("preview-channel:dbc")) {
+        if (value != m_dbcPreviewChannel) { m_dbcPreviewChannel = value; emit dbcPreviewChanged(); }
+    } else if (variable == QLatin1String("preview-status:dbc")) {
+        if (value != m_dbcPreviewStatus) { m_dbcPreviewStatus = value; emit dbcPreviewChanged(); }
+    } else if (variable == QLatin1String("preview-version:dbc")) {
+        if (value != m_dbcPreviewVersion) { m_dbcPreviewVersion = value; emit dbcPreviewChanged(); }
+    } else if (variable == QLatin1String("preview-size:dbc")) {
+        qint64 v = value.toLongLong();
+        if (v != m_dbcPreviewSize) { m_dbcPreviewSize = v; emit dbcPreviewChanged(); }
+    } else if (variable == QLatin1String("preview-channel:mdb")) {
+        if (value != m_mdbPreviewChannel) { m_mdbPreviewChannel = value; emit mdbPreviewChanged(); }
+    } else if (variable == QLatin1String("preview-status:mdb")) {
+        if (value != m_mdbPreviewStatus) { m_mdbPreviewStatus = value; emit mdbPreviewChanged(); }
+    } else if (variable == QLatin1String("preview-version:mdb")) {
+        if (value != m_mdbPreviewVersion) { m_mdbPreviewVersion = value; emit mdbPreviewChanged(); }
+    } else if (variable == QLatin1String("preview-size:mdb")) {
+        qint64 v = value.toLongLong();
+        if (v != m_mdbPreviewSize) { m_mdbPreviewSize = v; emit mdbPreviewChanged(); }
     }
 
     if (activeChanged) emit isActiveChanged();

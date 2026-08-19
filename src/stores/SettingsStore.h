@@ -41,6 +41,13 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(bool mapTrafficOverlay READ mapTrafficOverlay NOTIFY mapTrafficOverlayChanged)
     Q_PROPERTY(bool milestoneCelebrations READ milestoneCelebrations NOTIFY milestoneCelebrationsChanged)
     Q_PROPERTY(QString serviceActive READ serviceActive NOTIFY serviceActiveChanged)
+    // OTA settings are written to both updates.mdb.* and updates.dbc.*; the
+    // MDB copy is mirrored here as the one the dashboard reads back, because
+    // the two are only ever set together.
+    Q_PROPERTY(QString otaChannel READ otaChannel NOTIFY otaChannelChanged)
+    Q_PROPERTY(QString otaMethod READ otaMethod NOTIFY otaMethodChanged)
+    Q_PROPERTY(QString otaCheckInterval READ otaCheckInterval NOTIFY otaCheckIntervalChanged)
+    Q_PROPERTY(QString otaLastCheck READ otaLastCheck NOTIFY otaLastCheckChanged)
 
 public:
     explicit SettingsStore(MdbRepository *repo, QObject *parent = nullptr);
@@ -80,6 +87,10 @@ public:
     bool mapTrafficOverlay() const { return m_mapTrafficOverlay == QLatin1String("true"); }
     bool milestoneCelebrations() const { return m_milestoneCelebrations == QLatin1String("true"); }
     QString serviceActive() const { return m_serviceActive; }
+    QString otaChannel() const { return m_otaChannel; }
+    QString otaMethod() const { return m_otaMethod; }
+    QString otaCheckInterval() const { return m_otaCheckInterval; }
+    QString otaLastCheck() const { return m_otaLastCheck; }
 
     // Helper
     bool showBatteryAsRange() const { return m_batteryDisplayMode == QLatin1String("range"); }
@@ -121,6 +132,10 @@ signals:
     void mapTrafficOverlayChanged();
     void milestoneCelebrationsChanged();
     void serviceActiveChanged();
+    void otaChannelChanged();
+    void otaMethodChanged();
+    void otaCheckIntervalChanged();
+    void otaLastCheckChanged();
 
 protected:
     SyncSettings syncSettings() const override;
@@ -204,4 +219,12 @@ private:
     QString m_milestoneCelebrations = QStringLiteral("false");
     // @schema dashboard.service-mode-active
     QString m_serviceActive = QStringLiteral("false");
+    // @schema updates.mdb.channel
+    QString m_otaChannel;
+    // @schema updates.mdb.method
+    QString m_otaMethod = QStringLiteral("delta");
+    // @schema updates.mdb.check-interval
+    QString m_otaCheckInterval = QStringLiteral("6h");
+    // @schema updates.mdb.last-check-time
+    QString m_otaLastCheck;
 };

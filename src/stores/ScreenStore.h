@@ -41,6 +41,10 @@ public:
     // Confirms UMS entry: emits umsModeRequested (handled in Application
     // which owns the repo pointer) and closes the info screen.
     Q_INVOKABLE void confirmUpdateMode();
+    // Channel-switch confirmation. The switch itself lives in
+    // UpdateChannelService; this only owns which screen is up.
+    Q_INVOKABLE void showUpdateChannel();
+    Q_INVOKABLE void closeUpdateChannel();
     Q_INVOKABLE void showHopOnInfo();
     Q_INVOKABLE void closeHopOnInfo();
 
@@ -74,6 +78,7 @@ private:
     ScootEnums::ScreenMode m_screenBeforeFaults = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeSystemInfo = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeUpdateModeInfo = ScootEnums::ScreenMode::Cluster;
+    ScootEnums::ScreenMode m_screenBeforeUpdateChannel = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeHopOnInfo = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeHopOnLock = ScootEnums::ScreenMode::Cluster;
     int m_setupMode = 2; // Both by default

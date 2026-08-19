@@ -407,6 +407,78 @@ void Translations::initStrings()
     en[QStringLiteral("mapsUpToDateToast")] = QStringLiteral("Maps are up to date");
     de[QStringLiteral("mapsUpToDateToast")] = QStringLiteral("Karten sind aktuell");
 
+    en[QStringLiteral("menuUpdates")] = QStringLiteral("Updates");
+    de[QStringLiteral("menuUpdates")] = QStringLiteral("Updates");
+
+    en[QStringLiteral("menuUpdatesHeader")] = QStringLiteral("UPDATES");
+    de[QStringLiteral("menuUpdatesHeader")] = QStringLiteral("UPDATES");
+
+    en[QStringLiteral("menuUpdateChannel")] = QStringLiteral("Release Channel");
+    de[QStringLiteral("menuUpdateChannel")] = QStringLiteral("Update-Kanal");
+
+    en[QStringLiteral("menuUpdateChannelHeader")] = QStringLiteral("RELEASE CHANNEL");
+    de[QStringLiteral("menuUpdateChannelHeader")] = QStringLiteral("UPDATE-KANAL");
+
+    en[QStringLiteral("menuUpdateType")] = QStringLiteral("Update Type");
+    de[QStringLiteral("menuUpdateType")] = QStringLiteral("Update-Art");
+
+    en[QStringLiteral("menuUpdateTypeDelta")] = QStringLiteral("Delta");
+    de[QStringLiteral("menuUpdateTypeDelta")] = QStringLiteral("Delta");
+
+    en[QStringLiteral("menuUpdateTypeFull")] = QStringLiteral("Full");
+    de[QStringLiteral("menuUpdateTypeFull")] = QStringLiteral("Voll");
+
+    en[QStringLiteral("menuUpdateFrequency")] = QStringLiteral("Check Frequency");
+    de[QStringLiteral("menuUpdateFrequency")] = QStringLiteral("Prüfintervall");
+
+    en[QStringLiteral("menuUpdateCheckNow")] = QStringLiteral("Check for Updates");
+    de[QStringLiteral("menuUpdateCheckNow")] = QStringLiteral("Auf Updates prüfen");
+
+    en[QStringLiteral("channelStable")] = QStringLiteral("Stable");
+    de[QStringLiteral("channelStable")] = QStringLiteral("Stabil");
+
+    en[QStringLiteral("channelTesting")] = QStringLiteral("Testing");
+    de[QStringLiteral("channelTesting")] = QStringLiteral("Testing");
+
+    en[QStringLiteral("channelNightly")] = QStringLiteral("Nightly");
+    de[QStringLiteral("channelNightly")] = QStringLiteral("Nightly");
+
+    en[QStringLiteral("updateFreqOff")] = QStringLiteral("Off");
+    de[QStringLiteral("updateFreqOff")] = QStringLiteral("Aus");
+
+    en[QStringLiteral("updateCheckStartedToast")] = QStringLiteral("Checking for updates…");
+    de[QStringLiteral("updateCheckStartedToast")] = QStringLiteral("Suche nach Updates…");
+
+    en[QStringLiteral("updateCheckBusyToast")] = QStringLiteral("An update is already running");
+    de[QStringLiteral("updateCheckBusyToast")] = QStringLiteral("Ein Update läuft bereits");
+
+    en[QStringLiteral("channelSwitchTitle")] = QStringLiteral("SWITCH UPDATE CHANNEL");
+    de[QStringLiteral("channelSwitchTitle")] = QStringLiteral("UPDATE-KANAL WECHSELN");
+
+    en[QStringLiteral("channelSwitchChecking")] = QStringLiteral("Checking what this would download…");
+    de[QStringLiteral("channelSwitchChecking")] = QStringLiteral("Prüfe, was heruntergeladen würde…");
+
+    en[QStringLiteral("channelSwitchSize")] = QStringLiteral("Switching channels downloads a full image, about %1.");
+    de[QStringLiteral("channelSwitchSize")] = QStringLiteral("Ein Kanalwechsel lädt ein vollständiges Image, etwa %1.");
+
+    en[QStringLiteral("channelSwitchSizeUnknown")] = QStringLiteral("Switching channels downloads a full image. The download size could not be checked.");
+    de[QStringLiteral("channelSwitchSizeUnknown")] = QStringLiteral("Ein Kanalwechsel lädt ein vollständiges Image. Die Downloadgröße konnte nicht ermittelt werden.");
+
+    en[QStringLiteral("channelSwitchUnavailable")] = QStringLiteral("The %1 channel has no image for this scooter.");
+    de[QStringLiteral("channelSwitchUnavailable")] = QStringLiteral("Der Kanal %1 hat kein Image für diesen Roller.");
+
+    en[QStringLiteral("channelSwitchOffline")] = QStringLiteral("No internet connection.");
+    de[QStringLiteral("channelSwitchOffline")] = QStringLiteral("Keine Internetverbindung.");
+
+    en[QStringLiteral("channelSwitchOfflineHint")] = QStringLiteral("You can still switch by installing a %1 .mender file over Update Mode.");
+    de[QStringLiteral("channelSwitchOfflineHint")] = QStringLiteral("Du kannst trotzdem wechseln, indem du eine %1-.mender-Datei über den Updatemodus installierst.");
+
+    en[QStringLiteral("channelSwitchDownloadStarted")] = QStringLiteral("Update check started");
+    de[QStringLiteral("channelSwitchDownloadStarted")] = QStringLiteral("Update-Prüfung gestartet");
+
+    en[QStringLiteral("controlConfirm")] = QStringLiteral("Confirm");
+    de[QStringLiteral("controlConfirm")] = QStringLiteral("Bestätigen");
+
     en[QStringLiteral("menuMapUpdateCheck")] = QStringLiteral("Map Update Check");
     de[QStringLiteral("menuMapUpdateCheck")] = QStringLiteral("Kartenupdate-Pr\u00fcfung");
 

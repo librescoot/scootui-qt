@@ -22,6 +22,7 @@ bool ScreenStore::isBrakeNavigated(ScootEnums::ScreenMode mode)
     case ScootEnums::ScreenMode::Faults:
     case ScootEnums::ScreenMode::SystemInfo:
     case ScootEnums::ScreenMode::UpdateModeInfo:
+    case ScootEnums::ScreenMode::UpdateChannel:
     case ScootEnums::ScreenMode::HopOnInfo:
         return true;
     default:
@@ -131,6 +132,17 @@ void ScreenStore::confirmUpdateMode()
 {
     emit umsModeRequested();
     setScreen(static_cast<int>(m_screenBeforeUpdateModeInfo));
+}
+
+void ScreenStore::showUpdateChannel()
+{
+    m_screenBeforeUpdateChannel = m_currentScreen;
+    setScreen(static_cast<int>(ScootEnums::ScreenMode::UpdateChannel));
+}
+
+void ScreenStore::closeUpdateChannel()
+{
+    setScreen(static_cast<int>(m_screenBeforeUpdateChannel));
 }
 
 void ScreenStore::showHopOnInfo()

@@ -30,6 +30,7 @@ class AddressDatabaseService;
 class SystemInfoService;
 class SimulatorService;
 class MapDownloadService;
+class UpdateChannelService;
 class RoadInfoService;
 class OdometerMilestoneService;
 
@@ -102,6 +103,7 @@ private:
     SystemInfoService *m_systemInfoService = nullptr;
     SimulatorService *m_simulatorService = nullptr;
     MapDownloadService *m_mapDownloadService = nullptr;
+    UpdateChannelService *m_updateChannelService = nullptr;
     RoadInfoService *m_roadInfoService = nullptr;
     OdometerMilestoneService *m_odometerMilestoneService = nullptr;
     // Stashed for maybeAutoDownloadMaps(), which needs to be reachable from

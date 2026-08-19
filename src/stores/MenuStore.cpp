@@ -16,12 +16,14 @@
 #include "services/NavigationService.h"
 #include "services/NavigationAvailabilityService.h"
 #include "services/MapDownloadService.h"
+#include "services/UpdateChannelService.h"
 #include "repositories/MdbRepository.h"
 #include "core/AppConfig.h"
 
 #include <QDateTime>
 #include <QDebug>
 #include <QProcess>
+#include <iterator>
 
 MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
                      ThemeStore *theme, TripStore *trip,
@@ -63,6 +65,9 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
     connect(m_settings, &SettingsStore::mapNorthOrientedChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::milestoneCelebrationsChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::serviceActiveChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::otaChannelChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::otaMethodChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::otaCheckIntervalChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_translations, &Translations::languageChanged, this, &MenuStore::rebuildMenuTree);
 
     // Close menu when vehicle starts moving
@@ -164,11 +169,21 @@ void MenuStore::setToastService(ToastService *svc)
     m_toastService = svc;
 }
 
+void MenuStore::setUpdateChannelService(UpdateChannelService *svc)
+{
+    m_updateChannel = svc;
+}
+
 QString MenuStore::lastMapCheckLabel() const
 {
     if (!m_mapDownload)
         return {};
-    const QString iso = m_mapDownload->lastUpdateCheck();
+    return lastCheckLabel(m_mapDownload->lastUpdateCheck());
+}
+
+// Trailing "2h ago" style label for a check that last ran at iso (ISO-8601).
+QString MenuStore::lastCheckLabel(const QString &iso) const
+{
     if (iso.isEmpty())
         return m_translations->mapCheckNever();
 
@@ -902,6 +917,112 @@ void MenuStore::rebuildMenuTree()
             if (m_screenStore)
                 m_screenStore->showFaults();
         }));
+    }
+
+    // Updates — release channel, delta/full, how often to look, and a manual
+    // check. All four write the MDB and DBC keys together (see
+    // SettingsService::writeOtaSetting): the two boards ship as a pair.
+    if (m_updateChannel) {
+        auto *updatesNode = systemNode->addChild(MenuNode::submenu(
+            QStringLiteral("settings_updates"), tr->menuUpdates(), tr->menuUpdatesHeader()));
+
+        // Release Channel. A submenu of three checkable rows rather than an
+        // inline cycle: cycling would commit each intermediate channel on the
+        // way past it, and every commit is a full-image download.
+        {
+            auto *channelNode = updatesNode->addChild(MenuNode::submenu(
+                QStringLiteral("settings_update_channel"), tr->menuUpdateChannel(),
+                tr->menuUpdateChannelHeader()));
+
+            const QString current = m_updateChannel->currentChannel();
+            struct Choice { const char *id; QString label; QString value; };
+            const Choice choices[] = {
+                {"update_channel_stable", tr->channelStable(), QStringLiteral("stable")},
+                {"update_channel_testing", tr->channelTesting(), QStringLiteral("testing")},
+                {"update_channel_nightly", tr->channelNightly(), QStringLiteral("nightly")},
+            };
+            for (const auto &c : choices) {
+                const QString value = c.value;
+                const bool isCurrent = (value == current);
+                channelNode->addChild(MenuNode::setting(QLatin1String(c.id), c.label,
+                    isCurrent ? 1 : 0, [this, value, isCurrent]() {
+                        if (isCurrent) {
+                            goBack();
+                            return;
+                        }
+                        if (m_updateChannel->isUpdateInProgress()) {
+                            if (m_toastService)
+                                m_toastService->showError(m_translations->updateCheckBusyToast());
+                            close();
+                            return;
+                        }
+                        m_updateChannel->beginSwitch(value);
+                        close();
+                        if (m_screenStore)
+                            m_screenStore->showUpdateChannel();
+                    }));
+            }
+        }
+
+        // Update Type. Delta transfers only what changed between two releases
+        // and needs the current image's artifact on disk to patch against;
+        // Full always fetches the whole image.
+        {
+            const bool full = settings->otaMethod() == QLatin1String("full");
+            updatesNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_update_type"),
+                tr->menuUpdateType(), {
+                    {tr->menuUpdateTypeDelta(), [svc]() { svc->updateOtaMethod(QStringLiteral("delta")); }},
+                    {tr->menuUpdateTypeFull(),  [svc]() { svc->updateOtaMethod(QStringLiteral("full")); }},
+                }, full ? 1 : 0));
+        }
+
+        // Check Frequency. "0" disables scheduled checks entirely; the manual
+        // entry below is then the only way an update is ever found.
+        {
+            struct Interval { QString label; QString value; };
+            const Interval intervals[] = {
+                {tr->updateFreqOff(),      QStringLiteral("0")},
+                {QStringLiteral("1h"),     QStringLiteral("1h")},
+                {QStringLiteral("6h"),     QStringLiteral("6h")},
+                {QStringLiteral("12h"),    QStringLiteral("12h")},
+                {QStringLiteral("24h"),    QStringLiteral("24h")},
+                {QStringLiteral("7d"),     QStringLiteral("168h")},
+            };
+            const QString currentInterval = settings->otaCheckInterval();
+
+            QList<CycleOption> options;
+            int index = -1;
+            for (int i = 0; i < int(std::size(intervals)); ++i) {
+                const QString value = intervals[i].value;
+                options.append({intervals[i].label, [svc, value]() { svc->updateOtaCheckInterval(value); }});
+                if (value == currentInterval)
+                    index = i;
+            }
+
+            auto *freqNode = updatesNode->addChild(MenuNode::cycleSetting(
+                QStringLiteral("settings_update_frequency"), tr->menuUpdateFrequency(),
+                options, index < 0 ? 0 : index));
+            // An interval set outside this menu (lsc, settings.toml) need not be
+            // one of the six offered here. Show what it actually is rather than
+            // silently mislabelling it as the option the cycle happens to sit on.
+            if (index < 0 && !currentInterval.isEmpty())
+                freqNode->setValueLabel(currentInterval);
+        }
+
+        // Check for Updates Now. The only way to look while the scheduled
+        // check is switched off, and the way to pick up a release that landed
+        // between checks.
+        {
+            auto *checkNode = MenuNode::action(QStringLiteral("settings_update_check_now"),
+                tr->menuUpdateCheckNow(), [this]() {
+                    if (m_toastService)
+                        m_toastService->showInfo(m_translations->updateCheckStartedToast());
+                    m_settingsService->triggerUpdateCheck();
+                    close();
+                });
+            checkNode->setValueLabel(lastCheckLabel(settings->otaLastCheck()));
+            updatesNode->addChild(checkNode);
+        }
     }
 
     // Capture Logs — `ssh mdb lsc logs`. Closes the menu immediately and

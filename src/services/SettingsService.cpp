@@ -16,6 +16,40 @@ void SettingsService::writeSetting(const QString &key, const QString &value)
     m_repo->set(QStringLiteral("settings"), key, value);
 }
 
+void SettingsService::writeOtaSetting(const QString &suffix, const QString &value)
+{
+    writeSetting(QStringLiteral("updates.mdb.") + suffix, value);
+    writeSetting(QStringLiteral("updates.dbc.") + suffix, value);
+}
+
+void SettingsService::updateOtaChannel(const QString &channel)
+{
+    writeOtaSetting(QStringLiteral("channel"), channel);
+}
+
+void SettingsService::updateOtaMethod(const QString &method)
+{
+    writeOtaSetting(QStringLiteral("method"), method);
+}
+
+void SettingsService::updateOtaCheckInterval(const QString &interval)
+{
+    writeOtaSetting(QStringLiteral("check-interval"), interval);
+}
+
+void SettingsService::triggerUpdateCheck()
+{
+    m_repo->push(QStringLiteral("scooter:update:mdb"), QStringLiteral("check-now"));
+    m_repo->push(QStringLiteral("scooter:update:dbc"), QStringLiteral("check-now"));
+}
+
+void SettingsService::requestChannelPreview(const QString &channel)
+{
+    const QString command = QStringLiteral("preview-channel:") + channel;
+    m_repo->push(QStringLiteral("scooter:update:mdb"), command);
+    m_repo->push(QStringLiteral("scooter:update:dbc"), command);
+}
+
 void SettingsService::updateMode(const QString &mode)
 {
     writeSetting(QStringLiteral("dashboard.mode"), mode);

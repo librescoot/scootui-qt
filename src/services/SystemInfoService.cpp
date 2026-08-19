@@ -100,6 +100,7 @@ void SystemInfoService::recomputeVersions()
     auto ver = [](const QString &v) { return v.isEmpty() ? QStringLiteral("unknown") : v; };
 
     QString mdbVersion = ver(mdbV);
+    const QString mdbVersionId = mdbVer.value(QStringLiteral("version_id"));
     QString dbcVersion = ver(dbcV);
 
     QString nrfVersion = ver(nrf);
@@ -108,6 +109,7 @@ void SystemInfoService::recomputeVersions()
     if (rows == m_versionRows
         && deviceRows == m_deviceRows
         && mdbVersion == m_mdbVersion
+        && mdbVersionId == m_mdbVersionId
         && dbcVersion == m_dbcVersion
         && nrfVersion == m_nrfVersion
         && ecuVersion == m_ecuVersion) {
@@ -117,6 +119,7 @@ void SystemInfoService::recomputeVersions()
     m_versionRows = rows;
     m_deviceRows = deviceRows;
     m_mdbVersion = mdbVersion;
+    m_mdbVersionId = mdbVersionId;
     m_dbcVersion = dbcVersion;
     m_nrfVersion = nrfVersion;
     m_ecuVersion = ecuVersion;

@@ -53,6 +53,7 @@
 #include "services/SerialNumberService.h"
 #include "services/AddressDatabaseService.h"
 #include "services/MapDownloadService.h"
+#include "services/UpdateChannelService.h"
 #include "services/RoadInfoService.h"
 #include "services/OdometerMilestoneService.h"
 #include "services/SystemInfoService.h"
@@ -538,6 +539,13 @@ void Application::createStores(QQmlApplicationEngine &engine)
     menuStore->setFaultsStore(faultsStore);
     menuStore->setToastService(m_toastService);
 
+    // Release-channel switching: asks both update-service instances what a
+    // switch would download, then applies it on confirmation.
+    m_updateChannelService = new UpdateChannelService(m_settingsService, settingsStore,
+                                                      otaStore, internetStore,
+                                                      m_systemInfoService, this);
+    menuStore->setUpdateChannelService(m_updateChannelService);
+
     // Speed up polling while the faults screen is open, slow it back down
     // when it closes so the active-count badge still refreshes without
     // hammering Redis.
@@ -617,6 +625,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("systemInfoService"), m_systemInfoService);
     ctx->setContextProperty(QStringLiteral("odometerMilestoneService"), m_odometerMilestoneService);
     ctx->setContextProperty(QStringLiteral("faultsStore"), faultsStore);
+    ctx->setContextProperty(QStringLiteral("updateChannelService"), m_updateChannelService);
 
     // Simulator service (created in sim mode, null otherwise)
     if (m_simulatorMode) {

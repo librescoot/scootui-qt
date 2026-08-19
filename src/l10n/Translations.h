@@ -136,6 +136,30 @@ class Translations : public QObject
     Q_PROPERTY(QString menuRouteFastest READ menuRouteFastest NOTIFY languageChanged)
     Q_PROPERTY(QString menuRouteShortest READ menuRouteShortest NOTIFY languageChanged)
     Q_PROPERTY(QString menuAvoidCobblestone READ menuAvoidCobblestone NOTIFY languageChanged)
+    Q_PROPERTY(QString menuUpdates READ menuUpdates NOTIFY languageChanged)
+    Q_PROPERTY(QString menuUpdatesHeader READ menuUpdatesHeader NOTIFY languageChanged)
+    Q_PROPERTY(QString menuUpdateChannel READ menuUpdateChannel NOTIFY languageChanged)
+    Q_PROPERTY(QString menuUpdateChannelHeader READ menuUpdateChannelHeader NOTIFY languageChanged)
+    Q_PROPERTY(QString menuUpdateType READ menuUpdateType NOTIFY languageChanged)
+    Q_PROPERTY(QString menuUpdateTypeDelta READ menuUpdateTypeDelta NOTIFY languageChanged)
+    Q_PROPERTY(QString menuUpdateTypeFull READ menuUpdateTypeFull NOTIFY languageChanged)
+    Q_PROPERTY(QString menuUpdateFrequency READ menuUpdateFrequency NOTIFY languageChanged)
+    Q_PROPERTY(QString menuUpdateCheckNow READ menuUpdateCheckNow NOTIFY languageChanged)
+    Q_PROPERTY(QString channelStable READ channelStable NOTIFY languageChanged)
+    Q_PROPERTY(QString channelTesting READ channelTesting NOTIFY languageChanged)
+    Q_PROPERTY(QString channelNightly READ channelNightly NOTIFY languageChanged)
+    Q_PROPERTY(QString updateFreqOff READ updateFreqOff NOTIFY languageChanged)
+    Q_PROPERTY(QString updateCheckStartedToast READ updateCheckStartedToast NOTIFY languageChanged)
+    Q_PROPERTY(QString updateCheckBusyToast READ updateCheckBusyToast NOTIFY languageChanged)
+    Q_PROPERTY(QString channelSwitchTitle READ channelSwitchTitle NOTIFY languageChanged)
+    Q_PROPERTY(QString channelSwitchChecking READ channelSwitchChecking NOTIFY languageChanged)
+    Q_PROPERTY(QString channelSwitchSize READ channelSwitchSize NOTIFY languageChanged)
+    Q_PROPERTY(QString channelSwitchSizeUnknown READ channelSwitchSizeUnknown NOTIFY languageChanged)
+    Q_PROPERTY(QString channelSwitchUnavailable READ channelSwitchUnavailable NOTIFY languageChanged)
+    Q_PROPERTY(QString channelSwitchOffline READ channelSwitchOffline NOTIFY languageChanged)
+    Q_PROPERTY(QString channelSwitchOfflineHint READ channelSwitchOfflineHint NOTIFY languageChanged)
+    Q_PROPERTY(QString channelSwitchDownloadStarted READ channelSwitchDownloadStarted NOTIFY languageChanged)
+    Q_PROPERTY(QString controlConfirm READ controlConfirm NOTIFY languageChanged)
     Q_PROPERTY(QString menuMapUpdateCheck READ menuMapUpdateCheck NOTIFY languageChanged)
     Q_PROPERTY(QString menuMapAutoDownload READ menuMapAutoDownload NOTIFY languageChanged)
     Q_PROPERTY(QString menuMilestones READ menuMilestones NOTIFY languageChanged)
@@ -631,6 +655,31 @@ public:
     QString menuNavRouting() const { return lookup("menuNavRouting"); }
     QString menuRoutePreference() const { return lookup("menuRoutePreference"); }
     QString menuMapCheckNow() const { return lookup("menuMapCheckNow"); }
+    QString menuUpdates() const { return lookup("menuUpdates"); }
+    QString menuUpdatesHeader() const { return lookup("menuUpdatesHeader"); }
+    QString menuUpdateChannel() const { return lookup("menuUpdateChannel"); }
+    QString menuUpdateChannelHeader() const { return lookup("menuUpdateChannelHeader"); }
+    QString menuUpdateType() const { return lookup("menuUpdateType"); }
+    QString menuUpdateTypeDelta() const { return lookup("menuUpdateTypeDelta"); }
+    QString menuUpdateTypeFull() const { return lookup("menuUpdateTypeFull"); }
+    QString menuUpdateFrequency() const { return lookup("menuUpdateFrequency"); }
+    QString menuUpdateCheckNow() const { return lookup("menuUpdateCheckNow"); }
+    QString channelStable() const { return lookup("channelStable"); }
+    QString channelTesting() const { return lookup("channelTesting"); }
+    QString channelNightly() const { return lookup("channelNightly"); }
+    QString updateFreqOff() const { return lookup("updateFreqOff"); }
+    QString updateCheckStartedToast() const { return lookup("updateCheckStartedToast"); }
+    QString updateCheckBusyToast() const { return lookup("updateCheckBusyToast"); }
+    QString channelSwitchTitle() const { return lookup("channelSwitchTitle"); }
+    QString channelSwitchChecking() const { return lookup("channelSwitchChecking"); }
+    QString channelSwitchSize() const { return lookup("channelSwitchSize"); }
+    QString channelSwitchSizeUnknown() const { return lookup("channelSwitchSizeUnknown"); }
+    QString channelSwitchUnavailable() const { return lookup("channelSwitchUnavailable"); }
+    QString channelSwitchOffline() const { return lookup("channelSwitchOffline"); }
+    QString channelSwitchOfflineHint() const { return lookup("channelSwitchOfflineHint"); }
+    QString channelSwitchDownloadStarted() const { return lookup("channelSwitchDownloadStarted"); }
+    QString controlConfirm() const { return lookup("controlConfirm"); }
+
     QString mapCheckNever() const { return lookup("mapCheckNever"); }
     QString mapCheckAgo() const { return lookup("mapCheckAgo"); }
     QString mapCheckJustNow() const { return lookup("mapCheckJustNow"); }

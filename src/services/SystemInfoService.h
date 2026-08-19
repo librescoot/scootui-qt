@@ -12,6 +12,7 @@ class SystemInfoService : public QObject
     Q_PROPERTY(QVariantList versionRows READ versionRows NOTIFY versionRowsChanged)
     Q_PROPERTY(QVariantList deviceRows READ deviceRows NOTIFY versionRowsChanged)
     Q_PROPERTY(QString mdbVersion READ mdbVersion NOTIFY versionRowsChanged)
+    Q_PROPERTY(QString mdbVersionId READ mdbVersionId NOTIFY versionRowsChanged)
     Q_PROPERTY(QString dbcVersion READ dbcVersion NOTIFY versionRowsChanged)
     Q_PROPERTY(QString nrfVersion READ nrfVersion NOTIFY versionRowsChanged)
     Q_PROPERTY(QString ecuVersion READ ecuVersion NOTIFY versionRowsChanged)
@@ -25,6 +26,9 @@ public:
     // normal: nothing currently populates the MDB serials on every unit.
     QVariantList deviceRows() const { return m_deviceRows; }
     QString mdbVersion() const { return m_mdbVersion; }
+    // The raw VERSION_ID, not the display string: it is what the release tags
+    // are built from, so it is the one channel inference can be run against.
+    QString mdbVersionId() const { return m_mdbVersionId; }
     QString dbcVersion() const { return m_dbcVersion; }
     QString nrfVersion() const { return m_nrfVersion; }
     QString ecuVersion() const { return m_ecuVersion; }
@@ -42,6 +46,7 @@ private:
     QVariantList m_versionRows; // [{label, value}, ...]
     QVariantList m_deviceRows;  // [{label, value}, ...]
     QString m_mdbVersion;
+    QString m_mdbVersionId;
     QString m_dbcVersion;
     QString m_nrfVersion;
     QString m_ecuVersion;

@@ -47,7 +47,22 @@ public:
     Q_INVOKABLE void updateMilestoneCelebrations(bool enabled);
     Q_INVOKABLE QString toggleBootAnimation();
 
+    // OTA settings apply to the whole scooter, so each of these writes the
+    // MDB and the DBC key together. Splitting them would let the two boards
+    // drift onto different channels, which the release index has no story for.
+    Q_INVOKABLE void updateOtaChannel(const QString &channel);
+    Q_INVOKABLE void updateOtaMethod(const QString &method);
+    Q_INVOKABLE void updateOtaCheckInterval(const QString &interval);
+    // Queues check-now for both components. Each update-service instance
+    // listens on its own scooter:update:{component} queue; there is no
+    // broadcast queue that reaches both.
+    Q_INVOKABLE void triggerUpdateCheck();
+    // Asks both components what a switch to channel would fetch. Answers land
+    // in the ota hash's preview-* fields, mirrored by OtaStore.
+    Q_INVOKABLE void requestChannelPreview(const QString &channel);
+
 private:
     void writeSetting(const QString &key, const QString &value);
+    void writeOtaSetting(const QString &suffix, const QString &value);
     MdbRepository *m_repo;
 };

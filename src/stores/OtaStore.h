@@ -20,6 +20,17 @@ class OtaStore : public SyncableStore
     Q_PROPERTY(int mdbDownloadProgress READ mdbDownloadProgress NOTIFY mdbDownloadProgressChanged)
     Q_PROPERTY(int mdbInstallProgress READ mdbInstallProgress NOTIFY mdbInstallProgressChanged)
     Q_PROPERTY(bool isActive READ isActive NOTIFY isActiveChanged)
+    // Channel preview, one set per component. update-service publishes these
+    // in answer to a preview-channel: command; they say what a switch to that
+    // channel would fetch and are unrelated to any update in flight.
+    Q_PROPERTY(QString dbcPreviewChannel READ dbcPreviewChannel NOTIFY dbcPreviewChanged)
+    Q_PROPERTY(QString dbcPreviewStatus READ dbcPreviewStatus NOTIFY dbcPreviewChanged)
+    Q_PROPERTY(QString dbcPreviewVersion READ dbcPreviewVersion NOTIFY dbcPreviewChanged)
+    Q_PROPERTY(qint64 dbcPreviewSize READ dbcPreviewSize NOTIFY dbcPreviewChanged)
+    Q_PROPERTY(QString mdbPreviewChannel READ mdbPreviewChannel NOTIFY mdbPreviewChanged)
+    Q_PROPERTY(QString mdbPreviewStatus READ mdbPreviewStatus NOTIFY mdbPreviewChanged)
+    Q_PROPERTY(QString mdbPreviewVersion READ mdbPreviewVersion NOTIFY mdbPreviewChanged)
+    Q_PROPERTY(qint64 mdbPreviewSize READ mdbPreviewSize NOTIFY mdbPreviewChanged)
 
 public:
     explicit OtaStore(MdbRepository *repo, QObject *parent = nullptr);
@@ -39,6 +50,14 @@ public:
     int mdbDownloadProgress() const { return m_mdbDownloadProgress; }
     int mdbInstallProgress() const { return m_mdbInstallProgress; }
     bool isActive() const;
+    QString dbcPreviewChannel() const { return m_dbcPreviewChannel; }
+    QString dbcPreviewStatus() const { return m_dbcPreviewStatus; }
+    QString dbcPreviewVersion() const { return m_dbcPreviewVersion; }
+    qint64 dbcPreviewSize() const { return m_dbcPreviewSize; }
+    QString mdbPreviewChannel() const { return m_mdbPreviewChannel; }
+    QString mdbPreviewStatus() const { return m_mdbPreviewStatus; }
+    QString mdbPreviewVersion() const { return m_mdbPreviewVersion; }
+    qint64 mdbPreviewSize() const { return m_mdbPreviewSize; }
 
 signals:
     void dbcStatusChanged();
@@ -56,6 +75,8 @@ signals:
     void mdbDownloadProgressChanged();
     void mdbInstallProgressChanged();
     void isActiveChanged();
+    void dbcPreviewChanged();
+    void mdbPreviewChanged();
 
 protected:
     SyncSettings syncSettings() const override;
@@ -76,4 +97,12 @@ private:
     QString m_mdbErrorMessage;
     int m_mdbDownloadProgress = 0;
     int m_mdbInstallProgress = 0;
+    QString m_dbcPreviewChannel;
+    QString m_dbcPreviewStatus;
+    QString m_dbcPreviewVersion;
+    qint64 m_dbcPreviewSize = 0;
+    QString m_mdbPreviewChannel;
+    QString m_mdbPreviewStatus;
+    QString m_mdbPreviewVersion;
+    qint64 m_mdbPreviewSize = 0;
 };
