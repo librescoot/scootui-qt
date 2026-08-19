@@ -75,6 +75,7 @@ Item {
                     hasChildren: modelData.hasChildren
                     leadingIcon: modelData.leadingIcon !== undefined ? modelData.leadingIcon : ""
                     valueLabel: modelData.valueLabel !== undefined ? modelData.valueLabel : ""
+                    caution: modelData.caution !== undefined ? modelData.caution : false
                 }
 
                 // Keep the selected item clear of the 40 px gradient indicators

@@ -30,6 +30,11 @@ public:
     const QList<MenuNode*> &children() const { return m_children; }
     const QList<CycleOption> &cycleOptions() const { return m_cycleOptions; }
     int cycleIndex() const { return m_cycleIndex; }
+    // Marks an entry the default already gets right: reachable, but not
+    // somewhere a rider has business going without a reason. What that looks
+    // like is QML's call, which also keeps the glyph's codepoint inside
+    // MaterialIcon.qml, the only file scripts/subset-fonts.sh reads.
+    bool caution() const { return m_caution; }
     QString currentValueLabel() const {
         if (!m_valueLabel.isEmpty()) return m_valueLabel;
         if (m_cycleOptions.isEmpty()) return {};
@@ -41,6 +46,7 @@ public:
     // Trailing text for rows that aren't cycle settings, e.g. an action that
     // reports state alongside what it does.
     void setValueLabel(const QString &t) { m_valueLabel = t; }
+    void setCaution(bool c) { m_caution = c; }
     void setCurrentValue(int v) { m_currentValue = v; }
     void setOnAction(std::function<void()> fn) { m_onAction = std::move(fn); }
     void setIsVisible(std::function<bool()> fn) { m_isVisible = std::move(fn); }
@@ -121,6 +127,7 @@ private:
     QString m_valueLabel;
     MenuNodeType m_type;
     MenuNode *m_parent = nullptr;
+    bool m_caution = false;
     int m_currentValue = 0;
     QList<MenuNode*> m_children;
     std::function<void()> m_onAction;

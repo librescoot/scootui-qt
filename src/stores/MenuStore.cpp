@@ -993,6 +993,7 @@ void MenuStore::rebuildMenuTree()
                 QStringLiteral("settings_update_type"), tr->menuUpdateType(),
                 tr->menuUpdateTypeHeader()));
             typeNode->setValueLabel(full ? tr->menuUpdateTypeFull() : tr->menuUpdateTypeDelta());
+            typeNode->setCaution(true);
 
             struct Choice { const char *id; QString label; QString value; };
             const Choice choices[] = {
@@ -1019,6 +1020,7 @@ void MenuStore::rebuildMenuTree()
             auto *channelNode = updatesNode->addChild(MenuNode::submenu(
                 QStringLiteral("settings_update_channel"), tr->menuUpdateChannel(),
                 tr->menuUpdateChannelHeader()));
+            channelNode->setCaution(true);
 
             const QString current = m_updateChannel->currentChannel();
             struct Choice { const char *id; QString label; QString value; };
@@ -1187,6 +1189,8 @@ QVariantList MenuStore::currentItems() const
         item[QStringLiteral("hasChildren")] = child->hasChildren();
         if (child->type() == MenuNodeType::CycleSetting || !child->currentValueLabel().isEmpty())
             item[QStringLiteral("valueLabel")] = child->currentValueLabel();
+        if (child->caution())
+            item[QStringLiteral("caution")] = true;
         if (child->id() == QLatin1String("nav_setup")
             && m_mapDownload && m_mapDownload->updateAvailable())
             item[QStringLiteral("leadingIcon")] = QStringLiteral("\ue692"); // update

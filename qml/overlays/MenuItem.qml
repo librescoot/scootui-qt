@@ -11,6 +11,9 @@ Rectangle {
     property bool hasChildren: false
     property string leadingIcon: ""
     property string valueLabel: ""
+    // Entry whose default is almost always right: Update Type and Release
+    // Channel, both of which cost a full-image download to get wrong.
+    property bool caution: false
 
     // 50px base slot (ListView spacing: 4 handles the inter-item gap). When
     // selected, the title switches to WordWrap and may span several lines —
@@ -29,6 +32,18 @@ Rectangle {
         anchors.topMargin: 8
         anchors.bottomMargin: 8
         spacing: 8
+
+        // Caution marker. Sits ahead of the title so the marked rows read as a
+        // column down the left rather than something to hunt for at the end.
+        Text {
+            id: cautionIcon
+            anchors.verticalCenter: parent.verticalCenter
+            visible: menuItem.caution
+            text: MaterialIcon.iconWarningAmber
+            font.family: "Material Icons"
+            font.pixelSize: 18
+            color: themeStore.statusWarning
+        }
 
         // Leading icon (Flutter: optional Icon before title, size 20, white70/black54)
         Text {
@@ -49,6 +64,7 @@ Rectangle {
                    - (trailingIcon.visible ? trailingIcon.width + parent.spacing : 0)
                    - (trailingValue.visible ? trailingValue.implicitWidth + parent.spacing : 0)
                    - (leadingIconText.visible ? leadingIconText.width + parent.spacing : 0)
+                   - (cautionIcon.visible ? cautionIcon.width + parent.spacing : 0)
             text: menuItem.title
             font.pixelSize: themeStore.fontTitle
             font.weight: isSelected ? Font.Bold : Font.Normal
