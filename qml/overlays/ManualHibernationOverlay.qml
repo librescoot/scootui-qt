@@ -261,7 +261,7 @@ Item {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: String.fromCodePoint(0xf02a0) // warning_amber_rounded
+            text: MaterialIcon.iconWarningAmber
             font.family: "Material Icons"
             font.pixelSize: themeStore.fontHero
             color: "#FFFFFF"
