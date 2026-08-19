@@ -14,11 +14,16 @@
 #include <QTextStream>
 #include <QTimer>
 
+#include <unistd.h>
+
 #include <algorithm>
 #include <cmath>
 
 namespace {
 constexpr int kIntensityCap = 10;
+// How long to gather odometer updates before fixing the baseline, and how
+// often to re-ask while no reading has arrived at all.
+constexpr int kSettleMs = 5000;
 
 struct EasterEgg {
     double km;
@@ -38,6 +43,46 @@ constexpr EasterEgg kEasterEggs[] = {
     { 8008.5, "boobs",    7 },
     { 9999.9, "rollover", 8 },
 };
+
+// Write-temp, fsync, rename. The DBC loses power without syncing (a lock cuts
+// dashboard power outright), so a plain truncate-and-write can sit in the page
+// cache and never reach eMMC — and a milestone whose write is lost is a
+// milestone that celebrates again on the next ride.
+bool writeFileAtomic(const QString &path, const QByteArray &contents)
+{
+    QFileInfo fi(path);
+    if (!QDir().mkpath(fi.absolutePath())) {
+        qWarning() << "OdometerMilestone: cannot create" << fi.absolutePath();
+        return false;
+    }
+    const QString tmp = path + QStringLiteral(".tmp");
+    {
+        QFile f(tmp);
+        if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+            qWarning() << "OdometerMilestone: failed to write" << tmp;
+            return false;
+        }
+        if (f.write(contents) != contents.size() || !f.flush()) {
+            qWarning() << "OdometerMilestone: short write to" << tmp;
+            f.close();
+            QFile::remove(tmp);
+            return false;
+        }
+        // flush() only clears Qt's buffer; this is what reaches the device.
+        if (::fsync(f.handle()) != 0)
+            qWarning() << "OdometerMilestone: fsync failed for" << tmp;
+    }
+    // rename(2) over an existing path is atomic, so a reader sees either the
+    // old contents or the new ones, never a truncated file.
+    QFile::remove(path);
+    if (!QFile::rename(tmp, path)) {
+        qWarning() << "OdometerMilestone: failed to rename" << tmp << "to" << path;
+        QFile::remove(tmp);
+        return false;
+    }
+    return true;
+}
+
 }  // namespace
 
 OdometerMilestoneService::OdometerMilestoneService(EngineStore *engineStore,
@@ -72,23 +117,63 @@ OdometerMilestoneService::OdometerMilestoneService(EngineStore *engineStore,
         m_lastVehicleState = m_vehicleStore->state();
     }
 
-    QTimer::singleShot(5000, this, [this]() {
-        m_settled = true;
-        const double km = m_maxSeenDuringSettle;
-        const int milestone = milestoneForKm(km);
-        if (milestone > m_lastCelebrated) {
-            m_lastCelebrated = milestone;
-            saveLastMilestone(m_lastCelebrated);
-            qDebug() << "OdometerMilestone: seeded baseline to"
-                     << m_lastCelebrated << "km (odo" << km << "km)";
+    m_firedEasterEggs = loadFiredEasterEggs();
+
+    // Repeating, not single-shot: trySettle() declines to settle until a real
+    // odometer reading has arrived, so this keeps asking until one does.
+    m_settleTimer = new QTimer(this);
+    m_settleTimer->setInterval(kSettleMs);
+    connect(m_settleTimer, &QTimer::timeout, this, &OdometerMilestoneService::trySettle);
+    m_settleTimer->start();
+}
+
+// Establishes the baseline the rest of the service measures against: the
+// milestone already passed, and which easter eggs are already behind us.
+//
+// It must not run before an odometer reading exists. Settling on a zero
+// odometer seeds the baseline at zero and marks no easter egg as seen, so the
+// first real reading looks like an upward crossing of every egg below it and
+// the lowest un-fired one celebrates — on a 5234 km scooter, 666, every cold
+// start where the reading is late. That was the repeat riders were seeing.
+void OdometerMilestoneService::trySettle()
+{
+    const double km = m_maxSeenDuringSettle;
+    if (km <= 0.0)
+        return; // no reading yet; the timer asks again
+
+    m_settleTimer->stop();
+
+    // The constructor's read can land before /data is mounted — the DBC mounts
+    // it several seconds into boot, which is why MapDownloadService has
+    // reloadMetadata(). Having just waited for real data, try once more before
+    // concluding this vehicle has no history.
+    if (m_lastCelebrated < 0) {
+        const int persisted = loadLastMilestone();
+        if (persisted >= 0) {
+            m_lastCelebrated = persisted;
+            qDebug() << "OdometerMilestone: late /data, recovered baseline"
+                     << m_lastCelebrated << "km";
         }
-        // Mark any easter eggs already below current odo as seen so we don't
-        // retroactively celebrate them on startup.
-        for (const auto &egg : kEasterEggs) {
-            if (km >= egg.km) m_firedEasterEggs.insert(QString::fromLatin1(egg.tag));
-        }
-        m_lastOdoKm = km;
-    });
+    }
+    if (m_firedEasterEggs.isEmpty()) {
+        const QSet<QString> persisted = loadFiredEasterEggs();
+        if (!persisted.isEmpty()) m_firedEasterEggs = persisted;
+    }
+
+    m_settled = true;
+    const int milestone = milestoneForKm(km);
+    if (milestone > m_lastCelebrated) {
+        m_lastCelebrated = milestone;
+        saveLastMilestone(m_lastCelebrated);
+        qDebug() << "OdometerMilestone: seeded baseline to"
+                 << m_lastCelebrated << "km (odo" << km << "km)";
+    }
+    // Mark any easter eggs already below current odo as seen so we don't
+    // retroactively celebrate them on startup.
+    for (const auto &egg : kEasterEggs) {
+        if (km >= egg.km) markEasterEggFired(QString::fromLatin1(egg.tag));
+    }
+    m_lastOdoKm = km;
 }
 
 int OdometerMilestoneService::milestoneForKm(double km)
@@ -138,7 +223,7 @@ void OdometerMilestoneService::onOdometerChanged()
             saveLastMilestone(m);
         }
         for (const auto &egg : kEasterEggs) {
-            if (odoKm >= egg.km) m_firedEasterEggs.insert(QString::fromLatin1(egg.tag));
+            if (odoKm >= egg.km) markEasterEggFired(QString::fromLatin1(egg.tag));
         }
         return;
     }
@@ -149,7 +234,7 @@ void OdometerMilestoneService::onOdometerChanged()
         QString tag = QString::fromLatin1(egg.tag);
         if (m_firedEasterEggs.contains(tag)) continue;
         if (prevKm >= 0.0 && prevKm < egg.km && odoKm >= egg.km) {
-            m_firedEasterEggs.insert(tag);
+            markEasterEggFired(tag);
             qDebug() << "OdometerMilestone: easter egg" << tag << "at" << egg.km << "km";
             enqueueAndCross(egg.km, egg.intensity, tag);
             return;  // one crossing at a time
@@ -254,12 +339,54 @@ bool OdometerMilestoneService::loadEasterEggsEnabled() const
 
 void OdometerMilestoneService::saveEasterEggsEnabled(bool enabled)
 {
-    const QString path = easterEggsPath();
-    QFileInfo fi(path);
-    QDir().mkpath(fi.absolutePath());
-    QFile f(path);
-    if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) return;
-    f.write(enabled ? "1\n" : "0\n");
+    writeFileAtomic(easterEggsPath(), enabled ? QByteArrayLiteral("1\n") : QByteArrayLiteral("0\n"));
+}
+
+QString OdometerMilestoneService::firedEggsPath() const
+{
+#ifdef Q_OS_LINUX
+    return QStringLiteral("/data/scootui/fired-easter-eggs");
+#else
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    return dir + QStringLiteral("/fired-easter-eggs");
+#endif
+}
+
+QSet<QString> OdometerMilestoneService::loadFiredEasterEggs() const
+{
+    QSet<QString> tags;
+    QFile f(firedEggsPath());
+    if (!f.exists()) return tags;
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "OdometerMilestone: failed to read" << firedEggsPath();
+        return tags;
+    }
+    const QList<QByteArray> lines = f.readAll().split('\n');
+    for (const QByteArray &line : lines) {
+        const QByteArray tag = line.trimmed();
+        if (!tag.isEmpty()) tags.insert(QString::fromLatin1(tag));
+    }
+    return tags;
+}
+
+void OdometerMilestoneService::saveFiredEasterEggs() const
+{
+    // Sorted so the file is stable between writes and readable by a human
+    // debugging why a given egg did or did not fire.
+    QList<QString> tags(m_firedEasterEggs.cbegin(), m_firedEasterEggs.cend());
+    std::sort(tags.begin(), tags.end());
+    QByteArray out;
+    for (const QString &tag : tags)
+        out += tag.toLatin1() + '\n';
+    writeFileAtomic(firedEggsPath(), out);
+}
+
+bool OdometerMilestoneService::markEasterEggFired(const QString &tag)
+{
+    if (m_firedEasterEggs.contains(tag)) return false;
+    m_firedEasterEggs.insert(tag);
+    saveFiredEasterEggs();
+    return true;
 }
 
 QString OdometerMilestoneService::persistPath() const
@@ -289,14 +416,5 @@ int OdometerMilestoneService::loadLastMilestone() const
 
 void OdometerMilestoneService::saveLastMilestone(int km)
 {
-    const QString path = persistPath();
-    QFileInfo fi(path);
-    QDir().mkpath(fi.absolutePath());
-    QFile f(path);
-    if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
-        qWarning() << "OdometerMilestone: failed to write" << path;
-        return;
-    }
-    QTextStream out(&f);
-    out << km << '\n';
+    writeFileAtomic(persistPath(), QByteArray::number(km) + '\n');
 }

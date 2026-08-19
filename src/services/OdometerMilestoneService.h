@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QSet>
 #include <QString>
+#include <QTimer>
 
 class EngineStore;
 class VehicleStore;
@@ -67,9 +68,22 @@ private:
     // wired SettingsStore keep celebrating.
     bool celebrationsEnabled() const;
 
+    // Decides whether enough is known to start celebrating. Runs on a repeating
+    // timer until a real odometer reading has arrived; see the definition.
+    void trySettle();
+
     QString persistPath() const;
     int loadLastMilestone() const;
     void saveLastMilestone(int km);
+
+    // Easter eggs are one-shot for the life of the vehicle, so which ones have
+    // already fired has to outlive the process.
+    QString firedEggsPath() const;
+    QSet<QString> loadFiredEasterEggs() const;
+    void saveFiredEasterEggs() const;
+    // Marks tag fired and persists the set. Returns false if it had already
+    // fired, so callers can skip the rest of the work.
+    bool markEasterEggFired(const QString &tag);
 
     EngineStore *m_engineStore = nullptr;
     VehicleStore *m_vehicleStore = nullptr;
@@ -86,6 +100,7 @@ private:
     QList<Pending> m_queue;
     bool m_celebrating = false;
     int m_lastVehicleState = -1;
+    QTimer *m_settleTimer = nullptr;
 
     QString easterEggsPath() const;
     bool loadEasterEggsEnabled() const;
