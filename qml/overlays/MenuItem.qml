@@ -94,17 +94,25 @@ Rectangle {
         // title and the state it describes.
         Text {
             id: trailingIcon
-            anchors.verticalCenter: parent.verticalCenter
-            visible: itemType !== "cycle"
-            width: visible ? 24 : 0
-            horizontalAlignment: Text.AlignRight
-            text: {
+            // Visibility follows the glyph rather than the row type, so a row
+            // with nothing to draw here takes no width. An action row (or an
+            // unchecked setting) used to reserve the slot anyway, which was
+            // invisible while this sat between the title and the value and
+            // became a 24 px indent once it moved to the row edge.
+            readonly property string glyph: {
+                if (itemType === "cycle")
+                    return ""
                 if (itemType === "submenu" || hasChildren)
                     return MaterialIcon.iconChevronRight
                 if (itemType === "setting" && currentValue === 1)
                     return MaterialIcon.iconCheck
                 return ""
             }
+            anchors.verticalCenter: parent.verticalCenter
+            visible: glyph !== ""
+            width: visible ? 24 : 0
+            horizontalAlignment: Text.AlignRight
+            text: glyph
             font.family: "Material Icons"
             // Flutter: check icon size 20, chevron_right default size 24
             font.pixelSize: (itemType === "setting" && currentValue === 1) ? 20 : 24
