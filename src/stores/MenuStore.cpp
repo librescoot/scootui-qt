@@ -919,74 +919,27 @@ void MenuStore::rebuildMenuTree()
         }));
     }
 
-    // Updates — release channel, delta/full, how often to look, and a manual
-    // check. All four write the MDB and DBC keys together (see
+    // Updates — ordered by how often a rider has any business touching them:
+    // how often to look, look now, and then the two that the defaults already
+    // get right. All four write the MDB and DBC keys together (see
     // SettingsService::writeOtaSetting): the two boards ship as a pair.
     if (m_updateChannel) {
         auto *updatesNode = systemNode->addChild(MenuNode::submenu(
             QStringLiteral("settings_updates"), tr->menuUpdates(), tr->menuUpdatesHeader()));
 
-        // Release Channel. A submenu of three checkable rows rather than an
-        // inline cycle: cycling would commit each intermediate channel on the
-        // way past it, and every commit is a full-image download.
-        {
-            auto *channelNode = updatesNode->addChild(MenuNode::submenu(
-                QStringLiteral("settings_update_channel"), tr->menuUpdateChannel(),
-                tr->menuUpdateChannelHeader()));
-
-            const QString current = m_updateChannel->currentChannel();
-            struct Choice { const char *id; QString label; QString value; };
-            const Choice choices[] = {
-                {"update_channel_stable", tr->channelStable(), QStringLiteral("stable")},
-                {"update_channel_testing", tr->channelTesting(), QStringLiteral("testing")},
-                {"update_channel_nightly", tr->channelNightly(), QStringLiteral("nightly")},
-            };
-            for (const auto &c : choices) {
-                const QString value = c.value;
-                const bool isCurrent = (value == current);
-                channelNode->addChild(MenuNode::setting(QLatin1String(c.id), c.label,
-                    isCurrent ? 1 : 0, [this, value, isCurrent]() {
-                        if (isCurrent) {
-                            goBack();
-                            return;
-                        }
-                        if (m_updateChannel->isUpdateInProgress()) {
-                            if (m_toastService)
-                                m_toastService->showError(m_translations->updateCheckBusyToast());
-                            close();
-                            return;
-                        }
-                        m_updateChannel->beginSwitch(value);
-                        close();
-                        if (m_screenStore)
-                            m_screenStore->showUpdateChannel();
-                    }));
-            }
-        }
-
-        // Update Type. Delta transfers only what changed between two releases
-        // and needs the current image's artifact on disk to patch against;
-        // Full always fetches the whole image.
-        {
-            const bool full = settings->otaMethod() == QLatin1String("full");
-            updatesNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_update_type"),
-                tr->menuUpdateType(), {
-                    {tr->menuUpdateTypeDelta(), [svc]() { svc->updateOtaMethod(QStringLiteral("delta")); }},
-                    {tr->menuUpdateTypeFull(),  [svc]() { svc->updateOtaMethod(QStringLiteral("full")); }},
-                }, full ? 1 : 0));
-        }
-
         // Check Frequency. "0" disables scheduled checks entirely; the manual
-        // entry below is then the only way an update is ever found.
+        // entry below is then the only way an update is ever found. Nothing
+        // below 6h is offered: releases do not land more often than that, and
+        // a shorter interval only spends cellular data to learn nothing.
         {
             struct Interval { QString label; QString value; };
             const Interval intervals[] = {
-                {tr->updateFreqOff(),      QStringLiteral("0")},
-                {QStringLiteral("1h"),     QStringLiteral("1h")},
-                {QStringLiteral("6h"),     QStringLiteral("6h")},
-                {QStringLiteral("12h"),    QStringLiteral("12h")},
-                {QStringLiteral("24h"),    QStringLiteral("24h")},
-                {QStringLiteral("7d"),     QStringLiteral("168h")},
+                {tr->updateFreqOff(),  QStringLiteral("0")},
+                {QStringLiteral("6h"),  QStringLiteral("6h")},
+                {QStringLiteral("12h"), QStringLiteral("12h")},
+                {QStringLiteral("24h"), QStringLiteral("24h")},
+                {QStringLiteral("3d"),  QStringLiteral("72h")},
+                {QStringLiteral("7d"),  QStringLiteral("168h")},
             };
             const QString currentInterval = settings->otaCheckInterval();
 
@@ -1022,6 +975,59 @@ void MenuStore::rebuildMenuTree()
                 });
             checkNode->setValueLabel(lastCheckLabel(settings->otaLastCheck()));
             updatesNode->addChild(checkNode);
+        }
+
+        // Update Type. Delta transfers only what changed between two releases
+        // and needs the current image's artifact on disk to patch against;
+        // Full always fetches the whole image. Delta is right for everyone who
+        // isn't debugging the delta path itself.
+        {
+            const bool full = settings->otaMethod() == QLatin1String("full");
+            auto *typeNode = updatesNode->addChild(MenuNode::cycleSetting(
+                QStringLiteral("settings_update_type"), tr->menuUpdateType(), {
+                    {tr->menuUpdateTypeDelta(), [svc]() { svc->updateOtaMethod(QStringLiteral("delta")); }},
+                    {tr->menuUpdateTypeFull(),  [svc]() { svc->updateOtaMethod(QStringLiteral("full")); }},
+                }, full ? 1 : 0));
+            typeNode->setSubtitle(tr->menuUpdateTypeNote());
+        }
+
+        // Release Channel. A submenu of checkable rows rather than an inline
+        // cycle: cycling would commit each channel it passed through, and
+        // every commit is a full-image download.
+        {
+            auto *channelNode = updatesNode->addChild(MenuNode::submenu(
+                QStringLiteral("settings_update_channel"), tr->menuUpdateChannel(),
+                tr->menuUpdateChannelHeader()));
+            channelNode->setSubtitle(tr->menuUpdateChannelNote());
+
+            const QString current = m_updateChannel->currentChannel();
+            struct Choice { const char *id; QString label; QString value; };
+            const Choice choices[] = {
+                {"update_channel_stable", tr->channelStable(), QStringLiteral("stable")},
+                {"update_channel_testing", tr->channelTesting(), QStringLiteral("testing")},
+                {"update_channel_nightly", tr->channelNightly(), QStringLiteral("nightly")},
+            };
+            for (const auto &c : choices) {
+                const QString value = c.value;
+                const bool isCurrent = (value == current);
+                channelNode->addChild(MenuNode::setting(QLatin1String(c.id), c.label,
+                    isCurrent ? 1 : 0, [this, value, isCurrent]() {
+                        if (isCurrent) {
+                            goBack();
+                            return;
+                        }
+                        if (m_updateChannel->isUpdateInProgress()) {
+                            if (m_toastService)
+                                m_toastService->showError(m_translations->updateCheckBusyToast());
+                            close();
+                            return;
+                        }
+                        m_updateChannel->beginSwitch(value);
+                        close();
+                        if (m_screenStore)
+                            m_screenStore->showUpdateChannel();
+                    }));
+            }
         }
     }
 
@@ -1155,6 +1161,8 @@ QVariantList MenuStore::currentItems() const
         item[QStringLiteral("hasChildren")] = child->hasChildren();
         if (child->type() == MenuNodeType::CycleSetting || !child->currentValueLabel().isEmpty())
             item[QStringLiteral("valueLabel")] = child->currentValueLabel();
+        if (!child->subtitle().isEmpty())
+            item[QStringLiteral("subtitle")] = child->subtitle();
         if (child->id() == QLatin1String("nav_setup")
             && m_mapDownload && m_mapDownload->updateAvailable())
             item[QStringLiteral("leadingIcon")] = QStringLiteral("\ue692"); // update

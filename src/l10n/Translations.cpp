@@ -479,6 +479,12 @@ void Translations::initStrings()
     en[QStringLiteral("controlConfirm")] = QStringLiteral("Confirm");
     de[QStringLiteral("controlConfirm")] = QStringLiteral("Bestätigen");
 
+    en[QStringLiteral("menuUpdateTypeNote")] = QStringLiteral("Delta is right unless you are testing.");
+    de[QStringLiteral("menuUpdateTypeNote")] = QStringLiteral("Delta passt, außer beim Testen.");
+
+    en[QStringLiteral("menuUpdateChannelNote")] = QStringLiteral("Stable is right unless you are testing.");
+    de[QStringLiteral("menuUpdateChannelNote")] = QStringLiteral("Stabil passt, außer beim Testen.");
+
     en[QStringLiteral("menuMapUpdateCheck")] = QStringLiteral("Map Update Check");
     de[QStringLiteral("menuMapUpdateCheck")] = QStringLiteral("Kartenupdate-Pr\u00fcfung");
 
