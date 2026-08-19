@@ -58,7 +58,24 @@ Rectangle {
             maximumLineCount: isSelected ? 100 : 1
         }
 
-        // Trailing icon (submenu chevron / setting check) — hidden for cycle type
+        // Trailing value label: the current option on inline cycle settings, or
+        // any state an action wants to report next to what it does.
+        Text {
+            id: trailingValue
+            anchors.verticalCenter: parent.verticalCenter
+            visible: menuItem.valueLabel !== ""
+            text: menuItem.valueLabel
+            font.pixelSize: themeStore.fontBody
+            font.weight: Font.Normal
+            color: themeStore.isDark ? "#B3FFFFFF" : "#8A000000"
+            horizontalAlignment: Text.AlignRight
+        }
+
+        // Trailing icon (submenu chevron / setting check) — hidden for cycle
+        // type. Last in the row: a row can carry both a value and a chevron
+        // (Updates > Change Update Type shows "Delta >"), and the chevron is
+        // the affordance, so it belongs at the edge rather than between the
+        // title and the state it describes.
         Text {
             id: trailingIcon
             anchors.verticalCenter: parent.verticalCenter
@@ -81,19 +98,6 @@ Rectangle {
                     return themeStore.isDark ? "#FFFFFF" : "#000000"
                 return themeStore.isDark ? "#B3FFFFFF" : "#8A000000"
             }
-        }
-
-        // Trailing value label: the current option on inline cycle settings, or
-        // any state an action wants to report next to what it does.
-        Text {
-            id: trailingValue
-            anchors.verticalCenter: parent.verticalCenter
-            visible: menuItem.valueLabel !== ""
-            text: menuItem.valueLabel
-            font.pixelSize: themeStore.fontBody
-            font.weight: Font.Normal
-            color: themeStore.isDark ? "#B3FFFFFF" : "#8A000000"
-            horizontalAlignment: Text.AlignRight
         }
     }
 }

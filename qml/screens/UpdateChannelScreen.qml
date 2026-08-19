@@ -3,7 +3,7 @@ import "../widgets/status_bars"
 import "../widgets/components"
 
 // Confirmation for a release-channel switch, reached from
-// Settings > System > Updates > Release Channel.
+// Settings > System > Updates > Switch Release Channel.
 //
 // What it shows is entirely UpdateChannelService's state: it asks both
 // update-service instances what the target channel would fetch and this

@@ -979,15 +979,37 @@ void MenuStore::rebuildMenuTree()
 
         // Update Type. Delta transfers only what changed between two releases
         // and needs the current image's artifact on disk to patch against;
-        // Full always fetches the whole image. Delta is right for everyone who
-        // isn't debugging the delta path itself.
+        // Full always fetches the whole image.
+        //
+        // A submenu of checkable rows rather than an inline cycle, for the same
+        // reason Release Channel is one: a cycle applies on the tap that lands
+        // on it, and the tap that flips delta to full turns the next update
+        // from a ~40 MB patch into a ~400 MB image over a metered SIM. The
+        // current value still rides on the parent row so the list says which
+        // one is set without being entered.
         {
             const bool full = settings->otaMethod() == QLatin1String("full");
-            auto *typeNode = updatesNode->addChild(MenuNode::cycleSetting(
-                QStringLiteral("settings_update_type"), tr->menuUpdateType(), {
-                    {tr->menuUpdateTypeDelta(), [svc]() { svc->updateOtaMethod(QStringLiteral("delta")); }},
-                    {tr->menuUpdateTypeFull(),  [svc]() { svc->updateOtaMethod(QStringLiteral("full")); }},
-                }, full ? 1 : 0));
+            auto *typeNode = updatesNode->addChild(MenuNode::submenu(
+                QStringLiteral("settings_update_type"), tr->menuUpdateType(),
+                tr->menuUpdateTypeHeader()));
+            typeNode->setValueLabel(full ? tr->menuUpdateTypeFull() : tr->menuUpdateTypeDelta());
+
+            struct Choice { const char *id; QString label; QString value; };
+            const Choice choices[] = {
+                {"update_type_delta", tr->menuUpdateTypeDelta(), QStringLiteral("delta")},
+                {"update_type_full",  tr->menuUpdateTypeFull(),  QStringLiteral("full")},
+            };
+            const QString current = full ? QStringLiteral("full") : QStringLiteral("delta");
+            for (const auto &c : choices) {
+                const QString value = c.value;
+                const bool isCurrent = (value == current);
+                typeNode->addChild(MenuNode::setting(QLatin1String(c.id), c.label,
+                    isCurrent ? 1 : 0, [this, svc, value, isCurrent]() {
+                        if (!isCurrent)
+                            svc->updateOtaMethod(value);
+                        goBack();
+                    }));
+            }
         }
 
         // Release Channel. A submenu of checkable rows rather than an inline
@@ -1005,6 +1027,12 @@ void MenuStore::rebuildMenuTree()
                 {"update_channel_testing", tr->channelTesting(), QStringLiteral("testing")},
                 {"update_channel_nightly", tr->channelNightly(), QStringLiteral("nightly")},
             };
+            // Same list drives the row's trailing label, so the label and the
+            // checkmark can never disagree about which channel is set.
+            for (const auto &c : choices) {
+                if (c.value == current)
+                    channelNode->setValueLabel(c.label);
+            }
             for (const auto &c : choices) {
                 const QString value = c.value;
                 const bool isCurrent = (value == current);

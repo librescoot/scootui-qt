@@ -413,14 +413,17 @@ void Translations::initStrings()
     en[QStringLiteral("menuUpdatesHeader")] = QStringLiteral("UPDATES");
     de[QStringLiteral("menuUpdatesHeader")] = QStringLiteral("UPDATES");
 
-    en[QStringLiteral("menuUpdateChannel")] = QStringLiteral("Release Channel");
-    de[QStringLiteral("menuUpdateChannel")] = QStringLiteral("Update-Kanal");
+    en[QStringLiteral("menuUpdateChannel")] = QStringLiteral("Switch Release Channel");
+    de[QStringLiteral("menuUpdateChannel")] = QStringLiteral("Update-Kanal wechseln");
 
     en[QStringLiteral("menuUpdateChannelHeader")] = QStringLiteral("RELEASE CHANNEL");
     de[QStringLiteral("menuUpdateChannelHeader")] = QStringLiteral("UPDATE-KANAL");
 
-    en[QStringLiteral("menuUpdateType")] = QStringLiteral("Update Type");
-    de[QStringLiteral("menuUpdateType")] = QStringLiteral("Update-Art");
+    en[QStringLiteral("menuUpdateType")] = QStringLiteral("Change Update Type");
+    de[QStringLiteral("menuUpdateType")] = QStringLiteral("Update-Art ändern");
+
+    en[QStringLiteral("menuUpdateTypeHeader")] = QStringLiteral("UPDATE TYPE");
+    de[QStringLiteral("menuUpdateTypeHeader")] = QStringLiteral("UPDATE-ART");
 
     en[QStringLiteral("menuUpdateTypeDelta")] = QStringLiteral("Delta");
     de[QStringLiteral("menuUpdateTypeDelta")] = QStringLiteral("Delta");
@@ -452,7 +455,7 @@ void Translations::initStrings()
     en[QStringLiteral("updateCheckBusyToast")] = QStringLiteral("An update is already running");
     de[QStringLiteral("updateCheckBusyToast")] = QStringLiteral("Ein Update läuft bereits");
 
-    en[QStringLiteral("channelSwitchTitle")] = QStringLiteral("SWITCH UPDATE CHANNEL");
+    en[QStringLiteral("channelSwitchTitle")] = QStringLiteral("SWITCH RELEASE CHANNEL");
     de[QStringLiteral("channelSwitchTitle")] = QStringLiteral("UPDATE-KANAL WECHSELN");
 
     en[QStringLiteral("channelSwitchChecking")] = QStringLiteral("Checking what this would download…");

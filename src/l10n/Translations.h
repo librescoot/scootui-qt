@@ -141,6 +141,7 @@ class Translations : public QObject
     Q_PROPERTY(QString menuUpdateChannel READ menuUpdateChannel NOTIFY languageChanged)
     Q_PROPERTY(QString menuUpdateChannelHeader READ menuUpdateChannelHeader NOTIFY languageChanged)
     Q_PROPERTY(QString menuUpdateType READ menuUpdateType NOTIFY languageChanged)
+    Q_PROPERTY(QString menuUpdateTypeHeader READ menuUpdateTypeHeader NOTIFY languageChanged)
     Q_PROPERTY(QString menuUpdateTypeDelta READ menuUpdateTypeDelta NOTIFY languageChanged)
     Q_PROPERTY(QString menuUpdateTypeFull READ menuUpdateTypeFull NOTIFY languageChanged)
     Q_PROPERTY(QString menuUpdateFrequency READ menuUpdateFrequency NOTIFY languageChanged)
@@ -661,6 +662,7 @@ public:
     QString menuUpdateChannel() const { return lookup("menuUpdateChannel"); }
     QString menuUpdateChannelHeader() const { return lookup("menuUpdateChannelHeader"); }
     QString menuUpdateType() const { return lookup("menuUpdateType"); }
+    QString menuUpdateTypeHeader() const { return lookup("menuUpdateTypeHeader"); }
     QString menuUpdateTypeDelta() const { return lookup("menuUpdateTypeDelta"); }
     QString menuUpdateTypeFull() const { return lookup("menuUpdateTypeFull"); }
     QString menuUpdateFrequency() const { return lookup("menuUpdateFrequency"); }
