@@ -429,10 +429,10 @@ void Translations::initStrings()
     de[QStringLiteral("menuUpdateTypeFull")] = QStringLiteral("Voll");
 
     en[QStringLiteral("menuUpdateFrequency")] = QStringLiteral("Check Frequency");
-    de[QStringLiteral("menuUpdateFrequency")] = QStringLiteral("Prüfintervall");
+    de[QStringLiteral("menuUpdateFrequency")] = QStringLiteral("Update-Zeitplan");
 
-    en[QStringLiteral("menuUpdateCheckNow")] = QStringLiteral("Check for Updates");
-    de[QStringLiteral("menuUpdateCheckNow")] = QStringLiteral("Auf Updates prüfen");
+    en[QStringLiteral("menuUpdateCheckNow")] = QStringLiteral("Check for Updates Now");
+    de[QStringLiteral("menuUpdateCheckNow")] = QStringLiteral("Jetzt auf Updates prüfen");
 
     en[QStringLiteral("channelStable")] = QStringLiteral("Stable");
     de[QStringLiteral("channelStable")] = QStringLiteral("Stabil");
@@ -478,12 +478,6 @@ void Translations::initStrings()
 
     en[QStringLiteral("controlConfirm")] = QStringLiteral("Confirm");
     de[QStringLiteral("controlConfirm")] = QStringLiteral("Bestätigen");
-
-    en[QStringLiteral("menuUpdateTypeNote")] = QStringLiteral("Delta is right unless you are testing.");
-    de[QStringLiteral("menuUpdateTypeNote")] = QStringLiteral("Delta passt, außer beim Testen.");
-
-    en[QStringLiteral("menuUpdateChannelNote")] = QStringLiteral("Stable is right unless you are testing.");
-    de[QStringLiteral("menuUpdateChannelNote")] = QStringLiteral("Stabil passt, außer beim Testen.");
 
     en[QStringLiteral("menuMapUpdateCheck")] = QStringLiteral("Map Update Check");
     de[QStringLiteral("menuMapUpdateCheck")] = QStringLiteral("Kartenupdate-Pr\u00fcfung");

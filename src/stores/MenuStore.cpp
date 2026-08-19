@@ -988,7 +988,6 @@ void MenuStore::rebuildMenuTree()
                     {tr->menuUpdateTypeDelta(), [svc]() { svc->updateOtaMethod(QStringLiteral("delta")); }},
                     {tr->menuUpdateTypeFull(),  [svc]() { svc->updateOtaMethod(QStringLiteral("full")); }},
                 }, full ? 1 : 0));
-            typeNode->setSubtitle(tr->menuUpdateTypeNote());
         }
 
         // Release Channel. A submenu of checkable rows rather than an inline
@@ -998,7 +997,6 @@ void MenuStore::rebuildMenuTree()
             auto *channelNode = updatesNode->addChild(MenuNode::submenu(
                 QStringLiteral("settings_update_channel"), tr->menuUpdateChannel(),
                 tr->menuUpdateChannelHeader()));
-            channelNode->setSubtitle(tr->menuUpdateChannelNote());
 
             const QString current = m_updateChannel->currentChannel();
             struct Choice { const char *id; QString label; QString value; };
@@ -1161,8 +1159,6 @@ QVariantList MenuStore::currentItems() const
         item[QStringLiteral("hasChildren")] = child->hasChildren();
         if (child->type() == MenuNodeType::CycleSetting || !child->currentValueLabel().isEmpty())
             item[QStringLiteral("valueLabel")] = child->currentValueLabel();
-        if (!child->subtitle().isEmpty())
-            item[QStringLiteral("subtitle")] = child->subtitle();
         if (child->id() == QLatin1String("nav_setup")
             && m_mapDownload && m_mapDownload->updateAvailable())
             item[QStringLiteral("leadingIcon")] = QStringLiteral("\ue692"); // update
