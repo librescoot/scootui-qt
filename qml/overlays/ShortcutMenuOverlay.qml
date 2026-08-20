@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import "../widgets/components"
+import ScootUI 1.0
 
 Item {
     id: shortcutOverlay
@@ -8,7 +9,7 @@ Item {
     visible: shortcutMenuStore.visible
 
     property Item blurSource
-    property bool isDark: themeStore.isDark
+    property bool isDark: ThemeStore.isDark
 
     // Caption for a slot. The theme and view icons show the state they switch
     // to rather than the current one, so these name the target as well.
@@ -17,8 +18,8 @@ Item {
             return ""
         switch (idx) {
         case 0:
-            if (themeStore.isAutoMode) return translations.shortcutThemeDark
-            if (themeStore.isDark) return translations.shortcutThemeLight
+            if (ThemeStore.isAutoMode) return translations.shortcutThemeDark
+            if (ThemeStore.isDark) return translations.shortcutThemeLight
             return translations.shortcutThemeAuto
         case 1:
             return screenStore.currentScreen === 0 ? translations.shortcutViewMap
@@ -65,7 +66,7 @@ Item {
         Rectangle {
             id: containerBg
             anchors.fill: parent
-            radius: themeStore.radiusModal
+            radius: ThemeStore.radiusModal
             color: "transparent"
             border.width: 2
             border.color: isDark ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(0, 0, 0, 0.3)
@@ -96,7 +97,7 @@ Item {
 
                         width: isSelected ? 80 : 60
                         height: isSelected ? 80 : 60
-                        radius: themeStore.radiusModal
+                        radius: ThemeStore.radiusModal
                         color: isSelected ? Qt.rgba(1, 0.6, 0, 0.15) : "transparent"
                         border.width: isSelected ? 4 : 2
                         border.color: itemColor
@@ -112,8 +113,8 @@ Item {
                             text: {
                                 switch(index) {
                                     case 0: // Theme
-                                        if (themeStore.isAutoMode) return MaterialIcon.iconDarkMode
-                                        if (themeStore.isDark) return MaterialIcon.iconLightMode
+                                        if (ThemeStore.isAutoMode) return MaterialIcon.iconDarkMode
+                                        if (ThemeStore.isDark) return MaterialIcon.iconLightMode
                                         return MaterialIcon.iconContrast
                                     case 1: // View
                                         return screenStore.currentScreen === 0 ? MaterialIcon.iconMap : MaterialIcon.iconSpeed
@@ -141,7 +142,7 @@ Item {
             horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideRight
             text: shortcutOverlay.selectedLabel
-            font.pixelSize: themeStore.fontBody
+            font.pixelSize: ThemeStore.fontBody
             font.weight: Font.Medium
             color: isDark ? "#FFFFFF" : "#212121"
         }
@@ -157,7 +158,7 @@ Item {
         anchors.bottomMargin: 28
         width: containerWrapper.width
         height: confirmContent.height + 22
-        radius: themeStore.radiusModal
+        radius: ThemeStore.radiusModal
         color: isDark ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.95)
         border.width: 2
         border.color: "#FF9800"
@@ -188,7 +189,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: typeof translations !== "undefined"
                           ? translations.shortcutToConfirm : "to confirm"
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Bold
                     color: isDark ? "#FFFFFF" : "#000000"
                 }

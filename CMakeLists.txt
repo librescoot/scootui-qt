@@ -411,6 +411,15 @@ if(DESKTOP_MODE)
 endif()
 
 target_include_directories(scootui PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+# qt_add_qml_module generates registration code that includes each QML-exposed
+# type as <Foo.h>, so the directory holding it has to be on the include path.
+target_include_directories(scootui PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/stores
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/services
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/l10n
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/simulator
+)
 target_include_directories(scootui PRIVATE ${ZSTD_INCLUDE_DIRS})
 target_link_directories(scootui PRIVATE ${ZSTD_LIBRARY_DIRS})
 

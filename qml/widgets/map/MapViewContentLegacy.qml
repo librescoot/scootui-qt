@@ -2,6 +2,7 @@ import QtQuick
 import QtLocation
 import QtPositioning
 import MapLibre
+import ScootUI 1.0
 
 MapView {
     id: mapView
@@ -152,7 +153,7 @@ MapView {
         }
 
         function _applyThemePaint() {
-            var dark = (typeof themeStore !== "undefined") && themeStore.isDark
+            var dark = (typeof ThemeStore !== "undefined") && ThemeStore.isDark
             for (var i = 0; i < _themeParams.length; ++i) {
                 var tp = _themeParams[i]
                 tp.param.paint = dark ? tp.entry.paintDark : tp.entry.paintLight
@@ -162,7 +163,7 @@ MapView {
         Component.onCompleted: {
             if (typeof mapService === "undefined")
                 return
-            var dark = (typeof themeStore !== "undefined") && themeStore.isDark
+            var dark = (typeof ThemeStore !== "undefined") && ThemeStore.isDark
             var model = mapService.mapThemeLayers
             for (var i = 0; i < model.length; ++i) {
                 var entry = model[i]
@@ -183,7 +184,7 @@ MapView {
         // extrusion path and measured slower than the 3D view it replaced.
 
         Connections {
-            target: typeof themeStore !== "undefined" ? themeStore : null
+            target: typeof ThemeStore !== "undefined" ? ThemeStore : null
             function onThemeChanged() { routeStyle._applyThemePaint() }
         }
     }

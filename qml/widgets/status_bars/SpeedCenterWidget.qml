@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI 1.0
 
 Item {
     id: speedCenter
@@ -40,9 +41,9 @@ Item {
             id: speedText
             anchors.horizontalCenter: parent.horizontalCenter
             text: speedCenter.ecuStale ? "—" : Math.floor(speed).toString()
-            font.pixelSize: themeStore.fontXL
+            font.pixelSize: ThemeStore.fontXL
             font.weight: Font.Bold
-            color: themeStore.textColor
+            color: ThemeStore.textColor
             height: speedTight.tightBoundingRect.height
             verticalAlignment: Text.AlignVCenter
         }
@@ -51,8 +52,8 @@ Item {
             id: unitText
             anchors.horizontalCenter: parent.horizontalCenter
             text: "km/h"
-            font.pixelSize: themeStore.fontBody
-            color: themeStore.textSecondary
+            font.pixelSize: ThemeStore.fontBody
+            color: ThemeStore.textSecondary
             height: unitTight.tightBoundingRect.height
             verticalAlignment: Text.AlignVCenter
         }

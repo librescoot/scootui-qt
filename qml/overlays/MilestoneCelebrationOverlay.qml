@@ -75,7 +75,7 @@ Item {
         id: card
         width: Math.min(parent.width - 32, contentCol.implicitWidth + 60)
         height: contentCol.implicitHeight + 36
-        radius: themeStore && themeStore.radiusCard !== undefined ? themeStore.radiusCard * 1.5 : 18
+        radius: ThemeStore && ThemeStore.radiusCard !== undefined ? ThemeStore.radiusCard * 1.5 : 18
         anchors.centerIn: parent
         transformOrigin: Item.Center
         opacity: root.active ? 1 : 0
@@ -107,7 +107,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: root.theme.title
                 color: root.theme.fg
-                font.pixelSize: themeStore && themeStore.fontTitle !== undefined ? themeStore.fontTitle : 22
+                font.pixelSize: ThemeStore && ThemeStore.fontTitle !== undefined ? ThemeStore.fontTitle : 22
                 font.weight: Font.Medium
             }
             Text {

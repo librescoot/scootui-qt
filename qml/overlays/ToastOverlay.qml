@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import ScootUI 1.0
 
 Item {
     id: toastOverlay
@@ -21,7 +22,7 @@ Item {
                 id: toastItem
                 width: Math.min(contentRow.implicitWidth + 32, toastOverlay.width - 40)
                 height: contentRow.implicitHeight + 16
-                radius: themeStore.radiusCard
+                radius: ThemeStore.radiusCard
                 opacity: 0
 
                 readonly property bool hasIcon: modelData.icon !== undefined && modelData.icon !== ""
@@ -63,7 +64,7 @@ Item {
                         width: Math.min(implicitWidth, toastOverlay.width - 72 - (toastIcon.visible ? 30 : 0))
                         text: modelData.message
                         color: toastItem.contentColor
-                        font.pixelSize: themeStore.fontBody
+                        font.pixelSize: ThemeStore.fontBody
                         font.weight: Font.Medium
                         wrapMode: Text.WordWrap
                         horizontalAlignment: Text.AlignHCenter

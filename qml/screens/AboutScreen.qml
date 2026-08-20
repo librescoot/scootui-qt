@@ -1,12 +1,13 @@
 import QtQuick
 import QtQuick.Layouts
 import "../widgets/components"
+import ScootUI 1.0
 
 Rectangle {
     id: aboutScreen
-    color: typeof themeStore !== "undefined" && themeStore.isDark ? "black" : "white"
+    color: typeof ThemeStore !== "undefined" && ThemeStore.isDark ? "black" : "white"
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
     readonly property color textPrimary: isDark ? "#FFFFFF" : "#000000"
     readonly property color textSecondary: isDark ? "#99FFFFFF" : "#8A000000"
     readonly property color accentColor: isDark ? "#40C8F0" : "#007A99"
@@ -173,7 +174,7 @@ Rectangle {
                     text: typeof translations !== "undefined" ? translations.aboutFossDescription
                           : "Free and Open Source Firmware for unu Scooter Pro"
                     color: aboutScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.italic: true
                     horizontalAlignment: Text.AlignHCenter
                 }
@@ -185,7 +186,7 @@ Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: websiteUrl
                     color: aboutScreen.accentColor
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     horizontalAlignment: Text.AlignHCenter
                 }
 
@@ -196,7 +197,7 @@ Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: licenseId + "  \u00A9\u00A0" + copyrightYear + " Librescoot contributors"
                     color: aboutScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     horizontalAlignment: Text.AlignHCenter
                 }
 
@@ -221,7 +222,7 @@ Rectangle {
                                     width: 36
                                     text: modelData.label
                                     color: aboutScreen.textSecondary
-                                    font.pixelSize: themeStore.fontBody
+                                    font.pixelSize: ThemeStore.fontBody
                                     font.weight: Font.DemiBold
                                     horizontalAlignment: Text.AlignRight
                                     topPadding: 2
@@ -231,7 +232,7 @@ Rectangle {
                                 Text {
                                     text: modelData.value
                                     color: aboutScreen.textSecondary
-                                    font.pixelSize: themeStore.fontBody
+                                    font.pixelSize: ThemeStore.fontBody
                                     font.family: "monospace"
                                     topPadding: 2
                                     bottomPadding: 2
@@ -261,7 +262,7 @@ Rectangle {
                     color: aboutScreen.warningBg
                     border.color: aboutScreen.warningBorder
                     border.width: 1.5
-                    radius: themeStore.radiusCard
+                    radius: ThemeStore.radiusCard
 
                     Column {
                         id: warningContent
@@ -280,7 +281,7 @@ Rectangle {
                             Text {
                                 text: MaterialIcon.iconWarningAmber
                                 font.family: "Material Icons"
-                                font.pixelSize: themeStore.fontBody
+                                font.pixelSize: ThemeStore.fontBody
                                 color: aboutScreen.warningText
                             }
 
@@ -289,7 +290,7 @@ Rectangle {
                                       ? translations.aboutNonCommercialTitle
                                       : "NON-COMMERCIAL SOFTWARE"
                                 color: aboutScreen.warningText
-                                font.pixelSize: themeStore.fontBody
+                                font.pixelSize: ThemeStore.fontBody
                                 font.weight: Font.Bold
                                 font.letterSpacing: 1.0
                             }
@@ -302,7 +303,7 @@ Rectangle {
                                   ? translations.aboutCommercialProhibited
                                   : "Commercial distribution, resale, or preinstallation on devices for sale is prohibited under CC BY-NC-SA 4.0."
                             color: aboutScreen.textPrimary
-                            font.pixelSize: themeStore.fontBody
+                            font.pixelSize: ThemeStore.fontBody
                             lineHeight: 1.3
                             lineHeightMode: Text.ProportionalHeight
                             wrapMode: Text.WordWrap
@@ -315,7 +316,7 @@ Rectangle {
                                   ? translations.aboutScamWarning
                                   : "If you paid money for this software, or if you purchased a new scooter from a shop or vendor with this software preinstalled, you may have been the victim of a scam. Please report it at https://librescoot.org."
                             color: aboutScreen.textPrimary
-                            font.pixelSize: themeStore.fontBody
+                            font.pixelSize: ThemeStore.fontBody
                             font.weight: Font.DemiBold
                             lineHeight: 1.3
                             lineHeightMode: Text.ProportionalHeight
@@ -343,7 +344,7 @@ Rectangle {
                           ? translations.aboutOpenSourceComponents
                           : "OPEN SOURCE COMPONENTS"
                     color: aboutScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Bold
                     font.letterSpacing: 1.5
                 }
@@ -374,14 +375,14 @@ Rectangle {
                                     width: parent.width - licenseText.width
                                     text: modelData.name
                                     color: aboutScreen.textPrimary
-                                    font.pixelSize: themeStore.fontBody
+                                    font.pixelSize: ThemeStore.fontBody
                                 }
 
                                 Text {
                                     id: licenseText
                                     text: modelData.license
                                     color: aboutScreen.textSecondary
-                                    font.pixelSize: themeStore.fontBody
+                                    font.pixelSize: ThemeStore.fontBody
                                     font.family: "monospace"
                                 }
                             }
@@ -415,7 +416,7 @@ Rectangle {
                           ? translations.aboutSpecialThanks
                           : "SPECIAL THANKS TO THE EARLY TESTERS"
                     color: aboutScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Bold
                     font.letterSpacing: 1.5
                 }
@@ -446,7 +447,7 @@ Rectangle {
                             width: (parent.parent.width - 12) / 2
                             text: modelData
                             color: aboutScreen.textPrimary
-                            font.pixelSize: themeStore.fontBody
+                            font.pixelSize: ThemeStore.fontBody
                             elide: Text.ElideRight
                         }
                     }
@@ -462,7 +463,7 @@ Rectangle {
                           ? translations.aboutPatienceNote
                           : "And Cin and Tabitha for their patience with the scooters in the hallway."
                     color: aboutScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.italic: true
                     lineHeight: 1.4
                     lineHeightMode: Text.ProportionalHeight
@@ -488,7 +489,7 @@ Rectangle {
                           ? translations.aboutAuthorizedPartners
                           : "AUTHORIZED INSTALLATION PARTNERS"
                     color: aboutScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Bold
                     font.letterSpacing: 1.5
                 }
@@ -509,7 +510,7 @@ Rectangle {
                             width: parent.width
                             text: modelData.name
                             color: aboutScreen.textPrimary
-                            font.pixelSize: themeStore.fontBody
+                            font.pixelSize: ThemeStore.fontBody
                             font.weight: Font.DemiBold
                             wrapMode: Text.WordWrap
                         }
@@ -521,7 +522,7 @@ Rectangle {
                                 width: parent.parent.width
                                 text: modelData
                                 color: aboutScreen.textSecondary
-                                font.pixelSize: themeStore.fontBody
+                                font.pixelSize: ThemeStore.fontBody
                                 wrapMode: Text.WordWrap
                             }
                         }

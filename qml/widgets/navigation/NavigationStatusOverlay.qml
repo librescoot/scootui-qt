@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import "../components"
+import ScootUI 1.0
 
 Item {
     id: navStatusOverlay
@@ -33,9 +34,9 @@ Item {
         color: {
             switch (navStatusOverlay.navStatus) {
                 case statusCalculating:
-                case statusRerouting: return themeStore.statusNeutral
-                case statusArrived: return themeStore.statusSuccess
-                case statusError: return themeStore.statusError
+                case statusRerouting: return ThemeStore.statusNeutral
+                case statusArrived: return ThemeStore.statusSuccess
+                case statusError: return ThemeStore.statusError
                 default: return "transparent"
             }
         }
@@ -51,7 +52,7 @@ Item {
                 id: spinner
                 width: 16
                 height: 16
-                radius: themeStore.radiusCard
+                radius: ThemeStore.radiusCard
                 color: "transparent"
                 border.color: "white"
                 border.width: 2
@@ -64,7 +65,7 @@ Item {
                     color: {
                         switch (navStatusOverlay.navStatus) {
                             case statusCalculating:
-                            case statusRerouting: return themeStore.statusNeutral
+                            case statusRerouting: return ThemeStore.statusNeutral
                             default: return "transparent"
                         }
                     }
@@ -85,7 +86,7 @@ Item {
                 visible: navStatusOverlay.navStatus === statusArrived
                 text: MaterialIcon.iconPlace
                 font.family: "Material Icons"
-                font.pixelSize: themeStore.fontTitle
+                font.pixelSize: ThemeStore.fontTitle
                 color: "#FFFFFF"
             }
 
@@ -94,7 +95,7 @@ Item {
                 visible: navStatusOverlay.navStatus === statusError
                 text: MaterialIcon.iconWarningAmber
                 font.family: "Material Icons"
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 color: "white"
             }
 
@@ -110,7 +111,7 @@ Item {
                         default: return ""
                     }
                 }
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 font.weight: Font.Bold
                 color: "white"
             }
@@ -125,7 +126,7 @@ Item {
         width: offRouteRow.width + 20
         height: offRouteRow.height + 12
         radius: height / 2
-        color: themeStore.statusWarning
+        color: ThemeStore.statusWarning
         opacity: 0.85
         visible: navStatusOverlay.navStatus === statusNavigating &&
                  typeof navigationService !== "undefined" && navigationService.isOffRoute
@@ -138,13 +139,13 @@ Item {
             Text {
                 text: MaterialIcon.iconWarningAmber
                 font.family: "Material Icons"
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 color: "white"
             }
 
             Text {
                 text: translations.navOffRoute
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 font.weight: Font.Bold
                 color: "white"
             }

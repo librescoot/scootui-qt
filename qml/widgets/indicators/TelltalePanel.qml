@@ -1,5 +1,6 @@
 import QtQuick
 import "../components"
+import ScootUI 1.0
 
 // Floating telltale card, shared by cluster and map views. Sizes to the set
 // of active telltales; hidden entirely when none are on.
@@ -48,10 +49,10 @@ Rectangle {
     visible: anyActive
     width: telltaleRow.width + 16
     height: telltaleRow.height + 16
-    radius: themeStore.radiusCard
-    color: themeStore.isDark ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.9)
+    radius: ThemeStore.radiusCard
+    color: ThemeStore.isDark ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.9)
     border.width: 1
-    border.color: themeStore.isDark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.12)
+    border.color: ThemeStore.isDark ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(0, 0, 0, 0.12)
 
     Row {
         id: telltaleRow

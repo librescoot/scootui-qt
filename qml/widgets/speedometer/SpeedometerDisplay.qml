@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Shapes
 import "../indicators"
+import ScootUI 1.0
 
 Item {
     id: speedometer
@@ -18,7 +19,7 @@ Item {
     }
     readonly property real motorCurrent: typeof engineStore !== "undefined" ? engineStore.motorCurrent : 0
     readonly property bool ecuStale: typeof engineStore !== "undefined" && engineStore.faultCode === 20
-    readonly property bool isDark: themeStore.isDark
+    readonly property bool isDark: ThemeStore.isDark
 
     // Internal animated speed
     property real animatedSpeed: 0
@@ -322,7 +323,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         y: parent.height / 2 - height / 2
         text: speedometer.ecuStale ? "—" : Math.floor(speedometer.animatedSpeed).toString()
-        font.pixelSize: themeStore.fontDisplay
+        font.pixelSize: ThemeStore.fontDisplay
         font.weight: Font.Bold
         color: speedometer.isDark ? "#FFFFFF" : "#000000"
     }
@@ -334,7 +335,7 @@ Item {
         anchors.top: speedText.bottom
         anchors.topMargin: -12
         text: "km/h"
-        font.pixelSize: themeStore.fontTitle
+        font.pixelSize: ThemeStore.fontTitle
         color: speedometer.isDark ? "#99FFFFFF" : "#8A000000"
     }
 

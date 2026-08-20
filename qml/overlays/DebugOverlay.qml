@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI 1.0
 
 Item {
     id: debugOverlay
@@ -7,7 +8,7 @@ Item {
     z: 50
     visible: typeof dashboardStore !== "undefined" && dashboardStore.debugMode === "overlay"
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
     readonly property color panelBg: isDark ? Qt.rgba(0, 0, 0, 0.6) : Qt.rgba(1, 1, 1, 0.6)
     readonly property color defaultBorder: isDark ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(0, 0, 0, 0.26)
     readonly property color textColor: isDark ? "#FFFFFF" : "#000000"

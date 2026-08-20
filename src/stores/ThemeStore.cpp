@@ -1,13 +1,23 @@
 #include "ThemeStore.h"
 #include "SettingsStore.h"
 
+ThemeStore *ThemeStore::s_instance = nullptr;
+
 ThemeStore::ThemeStore(SettingsStore *settings, QObject *parent)
     : QObject(parent)
     , m_settings(settings)
 {
+    s_instance = this;
     connect(m_settings, &SettingsStore::themeChanged,
             this, &ThemeStore::onSettingsThemeChanged);
     onSettingsThemeChanged();
+}
+
+ThemeStore *ThemeStore::create(QQmlEngine *, QJSEngine *)
+{
+    Q_ASSERT(s_instance);
+    QJSEngine::setObjectOwnership(s_instance, QJSEngine::CppOwnership);
+    return s_instance;
 }
 
 void ThemeStore::onSettingsThemeChanged()

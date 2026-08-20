@@ -1,5 +1,6 @@
 import QtQuick
 import "../widgets/components"
+import ScootUI 1.0
 
 Item {
     id: autoLockOverlay
@@ -12,7 +13,7 @@ Item {
     property int remaining: typeof autoStandbyStore !== "undefined" ? autoStandbyStore.remainingSeconds : 0
 
     // Theme-aware colors. Orange countdown stays as-is (accent works in both modes).
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
     readonly property color scrimColor:    isDark ? "#000000" : "#FFFFFF"
     readonly property color cardColor:     isDark ? "#CC000000" : "#CCFFFFFF"
     readonly property color cardBorder:    isDark ? "#4DFFFFFF" : "#4D000000"
@@ -42,7 +43,7 @@ Item {
             color: autoLockOverlay.cardColor
             border.width: 1
             border.color: autoLockOverlay.cardBorder
-            radius: themeStore.radiusModal
+            radius: ThemeStore.radiusModal
 
             Column {
                 id: cardContent
@@ -58,7 +59,7 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: MaterialIcon.iconLock
                     font.family: "Material Icons"
-                    font.pixelSize: themeStore.fontHero
+                    font.pixelSize: ThemeStore.fontHero
                     color: autoLockOverlay.textPrimary
                 }
 
@@ -66,7 +67,7 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: typeof translations !== "undefined" ? translations.autoLockTitle : "Auto-Locking"
-                    font.pixelSize: themeStore.fontHeading
+                    font.pixelSize: ThemeStore.fontHeading
                     font.weight: Font.Bold
                     color: autoLockOverlay.textPrimary
                     horizontalAlignment: Text.AlignHCenter
@@ -78,7 +79,7 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: autoLockOverlay.remaining + "s"
-                    font.pixelSize: themeStore.fontHero
+                    font.pixelSize: ThemeStore.fontHero
                     font.weight: Font.Bold
                     color: "#FF9800"
                 }
@@ -89,7 +90,7 @@ Item {
                     text: typeof translations !== "undefined"
                           ? translations.autoLockCancelHint
                           : "Touch a brake or kickstand to cancel"
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     color: autoLockOverlay.textSecondary
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap

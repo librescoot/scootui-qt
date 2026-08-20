@@ -1,12 +1,13 @@
 import QtQuick
 import QtQuick.Layouts
 import "../widgets/components"
+import ScootUI 1.0
 
 Rectangle {
     id: faultsScreen
-    color: typeof themeStore !== "undefined" && themeStore.isDark ? "black" : "white"
+    color: typeof ThemeStore !== "undefined" && ThemeStore.isDark ? "black" : "white"
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
     readonly property color textPrimary: isDark ? "#FFFFFF" : "#000000"
     readonly property color textSecondary: isDark ? "#99FFFFFF" : "#8A000000"
     readonly property color textTertiary: isDark ? "#66FFFFFF" : "#5A000000"
@@ -85,7 +86,7 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 text: typeof translations !== "undefined" ? translations.menuFaults : "Faults"
                 color: faultsScreen.textPrimary
-                font.pixelSize: themeStore.fontBody + 6
+                font.pixelSize: ThemeStore.fontBody + 6
                 font.weight: Font.DemiBold
             }
 
@@ -101,7 +102,7 @@ Rectangle {
                     return total + " total"
                 }
                 color: faultsScreen.textSecondary
-                font.pixelSize: themeStore.fontCaption
+                font.pixelSize: ThemeStore.fontCaption
             }
 
             Rectangle {
@@ -162,7 +163,7 @@ Rectangle {
                                 Text {
                                     text: MaterialIcon.iconWarningAmber
                                     font.family: "Material Icons"
-                                    font.pixelSize: themeStore.fontBody
+                                    font.pixelSize: ThemeStore.fontBody
                                     color: parent.parent.parent.sevColor
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
@@ -180,7 +181,7 @@ Rectangle {
                                         text: modelData.sourceLabel
                                         color: faultsScreen.textPrimary
                                         opacity: parent.parent.parent.parent.textAlpha
-                                        font.pixelSize: themeStore.fontCaption
+                                        font.pixelSize: ThemeStore.fontCaption
                                         font.weight: Font.DemiBold
                                         font.letterSpacing: 0.5
                                     }
@@ -192,7 +193,7 @@ Rectangle {
                                     text: modelData.codeLabel
                                     color: parent.parent.parent.sevColor
                                     opacity: parent.parent.parent.textAlpha
-                                    font.pixelSize: themeStore.fontBody
+                                    font.pixelSize: ThemeStore.fontBody
                                     font.weight: Font.Bold
                                     font.family: "monospace"
                                 }
@@ -204,7 +205,7 @@ Rectangle {
                                     text: "×" + modelData.raiseCount
                                     color: faultsScreen.textSecondary
                                     opacity: parent.parent.parent.textAlpha
-                                    font.pixelSize: themeStore.fontCaption
+                                    font.pixelSize: ThemeStore.fontCaption
                                 }
 
                                 // Spacer pushing active/cleared badge to right
@@ -216,7 +217,7 @@ Rectangle {
                                         ? (typeof translations !== "undefined" ? translations.faultActive : "active")
                                         : (typeof translations !== "undefined" ? translations.faultCleared : "cleared")
                                     color: modelData.active ? parent.parent.parent.sevColor : faultsScreen.textTertiary
-                                    font.pixelSize: themeStore.fontCaption
+                                    font.pixelSize: ThemeStore.fontCaption
                                     font.weight: Font.DemiBold
                                     font.letterSpacing: 0.5
                                 }
@@ -229,7 +230,7 @@ Rectangle {
                                 text: modelData.description || ""
                                 color: faultsScreen.textPrimary
                                 opacity: parent.parent.textAlpha
-                                font.pixelSize: themeStore.fontBody
+                                font.pixelSize: ThemeStore.fontBody
                                 wrapMode: Text.WordWrap
                             }
 
@@ -238,7 +239,7 @@ Rectangle {
                                 width: parent.width
                                 color: faultsScreen.textSecondary
                                 opacity: parent.parent.textAlpha
-                                font.pixelSize: themeStore.fontMicro
+                                font.pixelSize: ThemeStore.fontMicro
                                 font.family: "monospace"
                                 wrapMode: Text.WordWrap
                                 text: {
@@ -283,7 +284,7 @@ Rectangle {
                         anchors.centerIn: parent
                         text: typeof translations !== "undefined" ? translations.faultsEmpty : "No faults recorded"
                         color: faultsScreen.textSecondary
-                        font.pixelSize: themeStore.fontBody
+                        font.pixelSize: ThemeStore.fontBody
                     }
                 }
 

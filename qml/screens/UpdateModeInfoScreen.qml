@@ -2,12 +2,13 @@ import QtQuick
 import QtQuick.Layouts
 import "../widgets/status_bars"
 import "../widgets/components"
+import ScootUI 1.0
 
 Rectangle {
     id: updateModeScreen
-    color: typeof themeStore !== "undefined" && themeStore.isDark ? "black" : "white"
+    color: typeof ThemeStore !== "undefined" && ThemeStore.isDark ? "black" : "white"
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
     readonly property color textPrimary: isDark ? "#FFFFFF" : "#000000"
     readonly property color textSecondary: isDark ? "#99FFFFFF" : "#8A000000"
     readonly property color dividerColor: isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.12)
@@ -106,7 +107,7 @@ Rectangle {
                             text: typeof translations !== "undefined"
                                   ? translations.updateModeTitle : "Update Mode"
                             color: updateModeScreen.textPrimary
-                            font.pixelSize: themeStore.fontTitle
+                            font.pixelSize: ThemeStore.fontTitle
                             font.weight: Font.Bold
                         }
 
@@ -116,7 +117,7 @@ Rectangle {
                                   ? translations.updateModeBody1
                                   : "Connect your laptop over USB — the scooter mounts as a drive. Drop updates on, pull logs off."
                             color: updateModeScreen.textPrimary
-                            font.pixelSize: themeStore.fontBody
+                            font.pixelSize: ThemeStore.fontBody
                             lineHeight: 1.3
                             lineHeightMode: Text.ProportionalHeight
                             wrapMode: Text.WordWrap
@@ -148,7 +149,7 @@ Rectangle {
                                   ? translations.updateModeScanHint
                                   : "Scan for full instructions"
                             color: updateModeScreen.textSecondary
-                            font.pixelSize: themeStore.fontMicro
+                            font.pixelSize: ThemeStore.fontMicro
                             wrapMode: Text.WordWrap
                         }
                     }
@@ -160,7 +161,7 @@ Rectangle {
                     text: typeof translations !== "undefined"
                           ? translations.updateModeBody2 : ""
                     color: updateModeScreen.textPrimary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     lineHeight: 1.3
                     lineHeightMode: Text.ProportionalHeight
                     wrapMode: Text.WordWrap
@@ -172,7 +173,7 @@ Rectangle {
                     text: typeof translations !== "undefined"
                           ? translations.updateModeBody3 : ""
                     color: updateModeScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     lineHeight: 1.3
                     lineHeightMode: Text.ProportionalHeight
                     wrapMode: Text.WordWrap

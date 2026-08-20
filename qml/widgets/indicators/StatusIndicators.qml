@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Effects
 import "../components"
+import ScootUI 1.0
 
 Row {
     id: statusIndicators
@@ -8,7 +9,7 @@ Row {
     layoutDirection: Qt.RightToLeft
 
     // Theme-aware icon color (matches Flutter's ColorFilter.mode srcIn)
-    readonly property color iconColor: typeof themeStore !== "undefined" && !themeStore.isDark
+    readonly property color iconColor: typeof ThemeStore !== "undefined" && !ThemeStore.isDark
                                         ? "#000000" : "#FFFFFF"
 
     readonly property int gpsState: typeof gpsStore !== "undefined" ? gpsStore.gpsState : 0
@@ -250,7 +251,7 @@ Row {
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.topMargin: 1
-            font.pixelSize: themeStore.fontMicro
+            font.pixelSize: ThemeStore.fontMicro
             font.weight: Font.Bold
             color: statusIndicators.iconColor
             visible: modemState >= 2 && accessTech !== ""

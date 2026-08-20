@@ -1,5 +1,6 @@
 import QtQuick
 import "../widgets/components"
+import ScootUI 1.0
 
 // Read-only technical summary, split into pages reached from the System > Info
 // submenu. The connectivity page exists so IMEI and ICCID can be read off the
@@ -7,9 +8,9 @@ import "../widgets/components"
 // the other two answer the usual support questions about boards and packs.
 Rectangle {
     id: systemInfoScreen
-    color: typeof themeStore !== "undefined" && themeStore.isDark ? "black" : "white"
+    color: typeof ThemeStore !== "undefined" && ThemeStore.isDark ? "black" : "white"
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
     readonly property color textPrimary: isDark ? "#FFFFFF" : "#000000"
     readonly property color textSecondary: isDark ? "#99FFFFFF" : "#8A000000"
     readonly property color dividerColor: isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.12)
@@ -212,7 +213,7 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 text: systemInfoScreen.pageTitle
                 color: systemInfoScreen.textPrimary
-                font.pixelSize: themeStore.fontBody + 6
+                font.pixelSize: ThemeStore.fontBody + 6
                 font.weight: Font.DemiBold
             }
 
@@ -329,7 +330,7 @@ Rectangle {
                         text: typeof translations !== "undefined"
                               ? translations.systemInfoUnavailable : "No data reported"
                         color: systemInfoScreen.textSecondary
-                        font.pixelSize: themeStore.fontBody
+                        font.pixelSize: ThemeStore.fontBody
                     }
                 }
 
@@ -386,7 +387,7 @@ Rectangle {
                 anchors.bottomMargin: 6
                 text: infoSection.sectionTitle
                 color: systemInfoScreen.textSecondary
-                font.pixelSize: themeStore.fontCaption
+                font.pixelSize: ThemeStore.fontCaption
                 font.weight: Font.Bold
                 font.letterSpacing: 1.5
             }
@@ -418,7 +419,7 @@ Rectangle {
                     text: modelData.label.slice(-1) === ":" ? modelData.label
                                                             : modelData.label + ":"
                     color: systemInfoScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                 }
 
                 Text {
@@ -430,7 +431,7 @@ Rectangle {
                     horizontalAlignment: Text.AlignRight
                     text: modelData.value
                     color: systemInfoScreen.textPrimary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.family: "monospace"
                     elide: Text.ElideRight
                 }

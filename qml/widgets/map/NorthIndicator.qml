@@ -1,4 +1,5 @@
 import QtQuick
+import ScootUI 1.0
 
 Item {
     id: northIndicator
@@ -6,11 +7,11 @@ Item {
     height: 24
 
     property real bearing: typeof mapService !== "undefined" ? mapService.mapBearing : 0
-    property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
 
     Rectangle {
         anchors.fill: parent
-        radius: themeStore.radiusModal
+        radius: ThemeStore.radiusModal
         color: isDark ? Qt.rgba(0.31, 0.31, 0.31, 0.9) : Qt.rgba(0.76, 0.76, 0.76, 0.9)
         border.width: 0.5
         border.color: isDark ? Qt.rgba(0.46, 0.46, 0.46, 0.9) : Qt.rgba(0.62, 0.62, 0.62, 0.9)

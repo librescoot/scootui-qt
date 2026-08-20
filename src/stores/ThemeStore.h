@@ -2,12 +2,15 @@
 
 #include <QObject>
 #include <QColor>
+#include <QtQml/qqmlengine.h>
 
 class SettingsStore;
 
 class ThemeStore : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(bool isDark READ isDark NOTIFY themeChanged)
     Q_PROPERTY(QString themeName READ themeName NOTIFY themeChanged)
     Q_PROPERTY(bool isAutoMode READ isAutoMode NOTIFY themeChanged)
@@ -52,6 +55,11 @@ class ThemeStore : public QObject
 public:
     explicit ThemeStore(SettingsStore *settings, QObject *parent = nullptr);
 
+    // Application constructs the one instance with its SettingsStore before the
+    // engine loads; create() hands QML that same object instead of letting the
+    // engine default-construct a second, settings-less one.
+    static ThemeStore *create(QQmlEngine *, QJSEngine *);
+
     bool isDark() const { return m_isDark; }
     bool isAutoMode() const { return m_isAutoMode; }
     QString themeName() const { return m_isDark ? QStringLiteral("dark") : QStringLiteral("light"); }
@@ -83,6 +91,8 @@ private slots:
     void onSettingsThemeChanged();
 
 private:
+    static ThemeStore *s_instance;
+
     SettingsStore *m_settings;
     bool m_isDark = true;
     bool m_isAutoMode = false;
