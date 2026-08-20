@@ -85,8 +85,16 @@ struct MapMetadata {
         QDir().mkpath(QFileInfo(path).absolutePath());
 
         // QSaveFile writes to a temp file and only replaces the target on a
-        // successful commit(), so a crash or power loss mid-write can't leave
-        // metadata.json truncated or half-written.
+        // successful commit(), so metadata.json is never seen truncated or
+        // half-written.
+        //
+        // That is integrity, not durability: QSaveFile does not fsync, so a
+        // power cut shortly after a write can revert the file to its previous
+        // contents entirely. Survivable here — a stale or missing metadata.json
+        // costs a re-check, not correctness — but do not copy this pattern for
+        // state that must not be lost. See OdometerMilestoneService's
+        // writeFileAtomic, or modem-service's data-usage counter, for the
+        // fsync-file-then-fsync-directory version.
         QSaveFile f(path);
         if (!f.open(QIODevice::WriteOnly))
             return false;

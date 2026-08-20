@@ -14,6 +14,7 @@
 #include <QTextStream>
 #include <QTimer>
 
+#include <fcntl.h>
 #include <unistd.h>
 
 #include <algorithm>
@@ -79,6 +80,16 @@ bool writeFileAtomic(const QString &path, const QByteArray &contents)
         qWarning() << "OdometerMilestone: failed to rename" << tmp << "to" << path;
         QFile::remove(tmp);
         return false;
+    }
+    // Fsyncing the file only commits its contents; the directory entry the
+    // rename created is a separate write, and without this the rename itself
+    // can be lost to a power cut while the data survives. modem-service's
+    // data-usage counter does the same.
+    const int dirFd = ::open(QFile::encodeName(fi.absolutePath()).constData(), O_RDONLY);
+    if (dirFd >= 0) {
+        if (::fsync(dirFd) != 0)
+            qWarning() << "OdometerMilestone: fsync failed for" << fi.absolutePath();
+        ::close(dirFd);
     }
     return true;
 }
