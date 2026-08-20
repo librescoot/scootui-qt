@@ -7,6 +7,11 @@ set(CMAKE_AUTOMOC ON)
 
 option(DESKTOP_MODE "Build for desktop development with simulator panel (QMapLibre optional)" OFF)
 
+# Escape hatch for build environments that have no QMapLibre (the armhf
+# cross-build container, see cross-build.sh). Produces a binary with no map
+# rendering. Never set this for a device or Yocto build.
+option(SCOOTUI_ALLOW_MISSING_QMAPLIBRE "Configure without QMapLibre instead of failing (reduced build: no map rendering)" OFF)
+
 find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Qml Svg Network Sql Concurrent)
 find_package(ZLIB REQUIRED)
 find_package(PkgConfig REQUIRED)
@@ -22,7 +27,11 @@ if(DESKTOP_MODE)
 else()
     find_package(QMapLibre QUIET COMPONENTS Core)
     if(NOT QMapLibre_FOUND)
-        find_package(QMapLibre REQUIRED)  # Legacy fallback
+        if(SCOOTUI_ALLOW_MISSING_QMAPLIBRE)
+            find_package(QMapLibre QUIET)  # Legacy fallback
+        else()
+            find_package(QMapLibre REQUIRED)  # Legacy fallback
+        endif()
     endif()
 endif()
 
@@ -41,6 +50,10 @@ if(QMapLibre_FOUND AND QMAPLIBRE_TARGET)
 else()
     set(HAS_QMAPLIBRE FALSE)
     message(STATUS "QMapLibre not found - map rendering disabled (placeholder will be shown)")
+    if(SCOOTUI_ALLOW_MISSING_QMAPLIBRE)
+        message(WARNING "SCOOTUI_ALLOW_MISSING_QMAPLIBRE is set and QMapLibre is absent. "
+                        "This is a reduced build with no map rendering - not equivalent to a device build.")
+    endif()
 endif()
 
 if(DESKTOP_MODE)

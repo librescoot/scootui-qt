@@ -1,13 +1,18 @@
-FROM debian:bookworm
+# armhf (i.MX6 / Cortex-A9) cross-build environment for scootui.
+#
+# Base is trixie rather than bookworm because bookworm ships Qt 6.4.2 and no
+# QtLocation at all: QtLocation only came back in Qt 6.5, and QMapLibre needs
+# it. Trixie's 6.8.2 is also much closer to the Qt the DBC image is built
+# against (6.9.x), which matters for anything measuring QML load/startup cost.
+FROM debian:trixie AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Add armhf architecture
 RUN dpkg --add-architecture armhf && apt-get update && apt-get upgrade -y
 
 # Native build tools + ARM cross-compiler
 RUN apt-get install -y --no-install-recommends \
-    build-essential cmake ninja-build pkg-config \
+    build-essential cmake ninja-build pkg-config git curl xz-utils ca-certificates \
     gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
 
 # Native Qt6 tools (moc, rcc, qmlcachegen, etc.)
@@ -20,19 +25,129 @@ RUN apt-get install -y --no-install-recommends \
 # armhf Qt6 development libraries + QML runtime plugins
 RUN apt-get install -y --no-install-recommends \
     qt6-base-dev:armhf \
+    qt6-base-private-dev:armhf \
     qt6-declarative-dev:armhf \
-    libqt6svg6-dev:armhf \
+    qt6-declarative-private-dev:armhf \
+    qt6-svg-dev:armhf \
+    qt6-positioning-dev:armhf \
+    qt6-location-dev:armhf \
     libqt6sql6-sqlite:armhf \
     libgl-dev:armhf \
     libglx-dev:armhf \
     libegl-dev:armhf \
     libgles-dev:armhf \
-    libqt6opengl6-dev:armhf \
     qml6-module-qtquick:armhf \
     qml6-module-qtqml-workerscript:armhf \
     qml6-module-qtquick-window:armhf \
     qml6-module-qtquick-shapes:armhf \
-    qml6-module-qtquick-layouts:armhf && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    qml6-module-qtquick-layouts:armhf \
+    qml6-module-qtquick-controls:armhf \
+    qml6-module-qtlocation:armhf
+
+# scootui's own non-Qt dependencies (CMakeLists: ZLIB, hiredis, libzstd) plus
+# the libraries QMapLibre links against.
+RUN apt-get install -y --no-install-recommends \
+    zlib1g-dev:armhf \
+    libhiredis-dev:armhf \
+    libzstd-dev:armhf \
+    libcurl4-openssl-dev:armhf \
+    libicu-dev:armhf \
+    libsqlite3-dev:armhf \
+    libpng-dev:armhf \
+    libjpeg-dev:armhf \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+
+# ---------------------------------------------------------------------------
+# QMapLibre. Debian does not package it, and CMakeLists.txt requires it for any
+# non-desktop build, so build the same revision the DBC image ships from source
+# and install it into the cross image. Layout below (/usr/qml/MapLibre,
+# /usr/plugins/geoservices) is what maplibre-native-qt installs by default and
+# what the device has, which is why src/main.cpp adds /usr/qml as an import
+# path.
+#
+# Keep QMAPLIBRE_REV in sync with SRCREV in meta-librescoot's
+# recipes-graphics/qmaplibre/qmaplibre_git.bb. It is pinned to the last commit
+# before the renderer moved to OpenGL ES 3.0+, which the i.MX6's GC880 does not
+# have. The recipe additionally applies a fill-extrusion depth-prepass patch
+# that is not applied here.
+# ---------------------------------------------------------------------------
+FROM base AS qmaplibre
+
+ARG QMAPLIBRE_REV=10c6d828bab661330cf9cb08d4d3bb9defb74582
+ARG QT_VERSION=6.8.2
+
+# maplibre-native-qt's location module compiles against Qt6::LocationPrivate,
+# and Debian ships no private headers for Location/Positioning (there is no
+# qt6-location-private-dev). Lay the matching upstream ones into the include
+# tree by hand; the ABI comes from the installed Debian libraries, so the
+# version has to be exactly the Qt in this image.
+RUN set -eu; \
+    inc=/usr/include/arm-linux-gnueabihf/qt6; \
+    mkdir -p /tmp/qtsrc && cd /tmp/qtsrc; \
+    for m in qtlocation qtpositioning; do \
+        curl -sSL -o "$m.tar.xz" \
+            "https://download.qt.io/archive/qt/${QT_VERSION%.*}/${QT_VERSION}/submodules/$m-everywhere-src-${QT_VERSION}.tar.xz"; \
+        tar xf "$m.tar.xz"; \
+    done; \
+    for pair in \
+        "QtLocation:qtlocation-everywhere-src-${QT_VERSION}/src/location" \
+        "QtPositioning:qtpositioning-everywhere-src-${QT_VERSION}/src/positioning" \
+        "QtPositioningQuick:qtpositioning-everywhere-src-${QT_VERSION}/src/positioningquick"; \
+    do \
+        mod="${pair%%:*}"; dir="${pair#*:}"; \
+        mkdir -p "$inc/$mod/$QT_VERSION/$mod/private"; \
+        find "/tmp/qtsrc/$dir" -name '*_p.h' -exec cp {} "$inc/$mod/$QT_VERSION/$mod/private/" \; ; \
+    done; \
+    rm -rf /tmp/qtsrc
+
+# gitsm:// in the recipe means the vendored maplibre-native comes in as a
+# submodule tree. Check the pinned revision out before touching submodules, or
+# the whole tree gets fetched twice: once at the tip, once at the pin. Shallow
+# submodules need the server to serve the pinned SHA, hence the fallback.
+RUN git clone --no-checkout https://github.com/maplibre/maplibre-native-qt.git /opt/mln && \
+    cd /opt/mln && git checkout -q "$QMAPLIBRE_REV" && \
+    ( git submodule update --init --recursive --depth 1 --jobs 4 || \
+      git submodule update --init --recursive --jobs 4 ) && \
+    git config --system --add safe.directory '*'
+
+# test/core links Qt::OpenGLWidgets unconditionally, so the tree does not
+# configure at all without Qt Widgets, BUILD_TESTING=OFF or not. Same change as
+# 0001-disable-tests.patch in the qmaplibre recipe.
+RUN cd /opt/mln && \
+    grep -q '^add_subdirectory(test)$' CMakeLists.txt && \
+    sed -i 's/^add_subdirectory(test)$/if(BUILD_TESTING)\n    add_subdirectory(test)\nendif()/' CMakeLists.txt
+
+# Same compiler and -mcpu settings as cmake/CrossCompile-armhf.cmake, spelled
+# out because the toolchain file is not in this build context.
+RUN PKG_CONFIG_LIBDIR=/usr/lib/arm-linux-gnueabihf/pkgconfig:/usr/share/pkgconfig \
+    cmake -S /opt/mln -B /opt/mln-build -G Ninja \
+        -DCMAKE_SYSTEM_NAME=Linux \
+        -DCMAKE_SYSTEM_PROCESSOR=arm \
+        -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc \
+        -DCMAKE_CXX_COMPILER=arm-linux-gnueabihf-g++ \
+        -DCMAKE_LIBRARY_ARCHITECTURE=arm-linux-gnueabihf \
+        -DCMAKE_C_FLAGS="-mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard" \
+        -DCMAKE_CXX_FLAGS="-mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard" \
+        -DCMAKE_PREFIX_PATH=/usr \
+        -DQT_HOST_PATH=/usr \
+        -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DMLN_QT_WITH_LOCATION=ON \
+        -DMLN_QT_WITH_WIDGETS=OFF \
+        -DMLN_WITH_OPENGL=ON \
+        -DBUILD_TESTING=OFF \
+        -DCMAKE_INSTALL_PREFIX=/usr && \
+    cmake --build /opt/mln-build -j"$(nproc)" && \
+    DESTDIR=/opt/mln-install cmake --install /opt/mln-build
+
+
+# ---------------------------------------------------------------------------
+# Final image: the toolchain plus QMapLibre, without the ~2.5 GB of maplibre
+# sources.
+# ---------------------------------------------------------------------------
+FROM base
+
+COPY --from=qmaplibre /opt/mln-install/usr /usr
 
 WORKDIR /src
