@@ -1,11 +1,12 @@
 import QtQuick
+import ScootUI 1.0
 
 Item {
     id: scaleBar
     width: barWidth
     height: 16
 
-    property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
     property real zoom: typeof mapService !== "undefined" ? mapService.mapZoom : 17
     property real latitude: typeof mapService !== "undefined" ? mapService.mapLatitude : 52
 
@@ -78,7 +79,7 @@ Item {
         anchors.bottomMargin: 4
         text: scaleBar.scaleText
         color: scaleBar.barColor
-        font.pixelSize: themeStore.fontCaption
+        font.pixelSize: ThemeStore.fontCaption
         font.weight: Font.Bold
         style: Text.Outline
         styleColor: isDark ? "black" : "white"

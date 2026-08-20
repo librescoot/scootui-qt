@@ -1,5 +1,6 @@
 import QtQuick
 import "../widgets/components"
+import ScootUI 1.0
 
 Item {
     id: umsOverlay
@@ -10,7 +11,7 @@ Item {
     property int usbProgress: typeof usbStore !== "undefined" ? usbStore.progress : 0
     property string usbDetail: typeof usbStore !== "undefined" ? usbStore.detail : ""
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
     readonly property color bgColor: isDark ? "#000000" : "#FFFFFF"
     readonly property color textPrimary: isDark ? "#FFFFFF" : "#000000"
     // 90% / 70% / 60% / 50% ramp, mirrored per theme
@@ -59,7 +60,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             visible: usbStatus === "preparing"
             text: typeof translations !== "undefined" ? translations.umsPreparing : "Preparing Storage"
-            font.pixelSize: themeStore.fontTitle
+            font.pixelSize: ThemeStore.fontTitle
             font.weight: Font.Bold
             color: umsOverlay.textPrimary
         }
@@ -74,7 +75,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: MaterialIcon.iconUsb
                 font.family: "Material Icons"
-                font.pixelSize: themeStore.fontHero
+                font.pixelSize: ThemeStore.fontHero
                 color: umsOverlay.textPrimary
             }
 
@@ -85,7 +86,7 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: typeof translations !== "undefined" ? translations.umsActive : "Update Mode"
-                    font.pixelSize: themeStore.fontHeading
+                    font.pixelSize: ThemeStore.fontHeading
                     font.weight: Font.Bold
                     color: umsOverlay.textPrimary
                 }
@@ -93,7 +94,7 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: typeof translations !== "undefined" ? translations.umsConnect : "Connect to Computer"
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     color: umsOverlay.textConnect
                 }
             }
@@ -116,7 +117,7 @@ Item {
                     anchors.centerIn: parent
                     width: 36
                     height: 36
-                    radius: themeStore.radiusModal
+                    radius: ThemeStore.radiusModal
                     color: "transparent"
                     border.color: umsOverlay.textPrimary
                     border.width: 3
@@ -143,7 +144,7 @@ Item {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: typeof translations !== "undefined" ? translations.umsProcessing : "Processing Files"
-                font.pixelSize: themeStore.fontTitle
+                font.pixelSize: ThemeStore.fontTitle
                 font.weight: Font.Bold
                 color: umsOverlay.textPrimary
             }
@@ -165,7 +166,7 @@ Item {
                     Text {
                         text: MaterialIcon.iconArrowForward
                         font.family: "Material Icons"
-                        font.pixelSize: themeStore.fontBody
+                        font.pixelSize: ThemeStore.fontBody
                         color: umsOverlay.textStep
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -173,7 +174,7 @@ Item {
                     Text {
                         id: stepText
                         text: usbStep
-                        font.pixelSize: themeStore.fontBody
+                        font.pixelSize: ThemeStore.fontBody
                         font.weight: Font.Medium
                         color: umsOverlay.textStep
                     }
@@ -216,7 +217,7 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: usbDetail
                         visible: usbDetail !== ""
-                        font.pixelSize: themeStore.fontBody
+                        font.pixelSize: ThemeStore.fontBody
                         color: umsOverlay.textDetail
                     }
                 }
@@ -235,7 +236,7 @@ Item {
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: modelData
-                        font.pixelSize: themeStore.fontBody
+                        font.pixelSize: ThemeStore.fontBody
                         color: umsOverlay.textLog
                         horizontalAlignment: Text.AlignHCenter
                         elide: Text.ElideRight
@@ -252,7 +253,7 @@ Item {
                      && usbStatus !== "processing" && usbStatus !== "idle"
                      && usbStatus !== ""
             text: usbStatus
-            font.pixelSize: themeStore.fontTitle
+            font.pixelSize: ThemeStore.fontTitle
             font.weight: Font.Bold
             color: umsOverlay.textPrimary
         }

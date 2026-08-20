@@ -1,17 +1,18 @@
 import QtQuick
+import ScootUI 1.0
 
 Rectangle {
     id: root
     property string roadName: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadName : ""
     property string roadRefs: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadRefs : ""
     property string roadType: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadType : ""
-    property real fontSize: themeStore.fontCaption
+    property real fontSize: ThemeStore.fontCaption
     property real maxTextWidth: 200
 
     visible: roadName.length > 0
     width: label.width + 8
     height: label.height + 4
-    radius: themeStore.radiusBar
+    radius: ThemeStore.radiusBar
 
     // German road sign styling based on road type
     color: {

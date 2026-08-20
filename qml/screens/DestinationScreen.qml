@@ -3,12 +3,13 @@ import QtQuick.Layouts
 import "../widgets/status_bars"
 import "../widgets/map"
 import "../widgets/components"
+import ScootUI 1.0
 
 Rectangle {
     id: destinationScreen
-    color: typeof themeStore !== "undefined" && themeStore.isDark ? "black" : "white"
+    color: typeof ThemeStore !== "undefined" && ThemeStore.isDark ? "black" : "white"
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
     readonly property color textPrimary: isDark ? "#FFFFFF" : "#000000"
     readonly property color textSecondary: isDark ? "#99FFFFFF" : "#8A000000"
 
@@ -50,7 +51,7 @@ Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: MaterialIcon.iconLocationOff
                     font.family: "Material Icons"
-                    font.pixelSize: themeStore.fontXL
+                    font.pixelSize: ThemeStore.fontXL
                     color: "#9E9E9E"  // Colors.grey
                 }
 
@@ -59,7 +60,7 @@ Rectangle {
                     text: typeof translations !== "undefined"
                           ? translations.destinationOfflineOnly
                           : "The destination selector only works with offline maps"
-                    font.pixelSize: themeStore.fontTitle
+                    font.pixelSize: ThemeStore.fontTitle
                     font.weight: Font.Bold
                     color: destinationScreen.textPrimary
                     horizontalAlignment: Text.AlignHCenter
@@ -72,7 +73,7 @@ Rectangle {
                     text: typeof translations !== "undefined"
                           ? translations.destinationInstallMapData
                           : "Please install the map data to use this feature"
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     color: "#9E9E9E"  // Colors.grey
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
@@ -125,7 +126,7 @@ Rectangle {
                 anchors.bottomMargin: 12
                 width: coordText.width + 24
                 height: coordText.height + 12
-                radius: themeStore.radiusCard
+                radius: ThemeStore.radiusCard
                 color: Qt.rgba(0, 0, 0, 0.7)
 
                 Text {
@@ -135,7 +136,7 @@ Rectangle {
                           ? mapService.mapLatitude.toFixed(5) + ", " + mapService.mapLongitude.toFixed(5)
                           : "N/A"
                     color: "white"
-                    font.pixelSize: themeStore.fontFeature
+                    font.pixelSize: ThemeStore.fontFeature
                 }
             }
         }
@@ -156,7 +157,7 @@ Rectangle {
             Text {
                 text: typeof translations !== "undefined" ? translations.navConfirmDest : "Confirm"
                 color: destinationScreen.textSecondary
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
             }
 
             Item { Layout.fillWidth: true }
@@ -164,7 +165,7 @@ Rectangle {
             Text {
                 text: typeof translations !== "undefined" ? translations.controlBack : "Back"
                 color: destinationScreen.textSecondary
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
             }
         }
     }

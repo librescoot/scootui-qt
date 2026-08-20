@@ -1,5 +1,6 @@
 import QtQuick
 import "../indicators"
+import ScootUI 1.0
 
 // Centre element of the top status bar. dashboard.show-clock picks the format:
 //
@@ -108,14 +109,14 @@ Item {
     // reserved width is a constant of the format rather than of the phase.
     TextMetrics {
         id: tmTime
-        font.pixelSize: themeStore.fontTitle
+        font.pixelSize: ThemeStore.fontTitle
         font.weight: Font.Medium
         font.features: {"tnum": 1}
         text: root.timeStr
     }
     TextMetrics {
         id: tmDate
-        font.pixelSize: themeStore.fontTitle
+        font.pixelSize: ThemeStore.fontTitle
         font.weight: Font.Medium
         font.features: {"tnum": 1}
         text: root.dateStr
@@ -149,17 +150,17 @@ Item {
             visible: root.mode === "date-time"
             day: root.dayNum
             iconSize: root.iconSize
-            color: themeStore.textColor
+            color: ThemeStore.textColor
         }
         Text {
             anchors.verticalCenter: parent.verticalCenter
             text: root.timeStr
-            font.pixelSize: themeStore.fontTitle
+            font.pixelSize: ThemeStore.fontTitle
             font.weight: Font.Medium
             // Tabular figures: without them the clock changes width as the
             // digits change, which moves the side budgets under it.
             font.features: {"tnum": 1}
-            color: themeStore.textColor
+            color: ThemeStore.textColor
         }
     }
 
@@ -168,10 +169,10 @@ Item {
     Text {
         anchors.centerIn: parent
         text: root.dateStr
-        font.pixelSize: themeStore.fontTitle
+        font.pixelSize: ThemeStore.fontTitle
         font.weight: Font.Medium
         font.features: {"tnum": 1}
-        color: themeStore.textColor
+        color: ThemeStore.textColor
         opacity: root.showingDate ? 1 : 0
         visible: opacity > 0
         Behavior on opacity { NumberAnimation { duration: root.fadeMs } }

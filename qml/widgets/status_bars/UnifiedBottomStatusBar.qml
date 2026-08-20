@@ -1,9 +1,10 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI 1.0
 
 Rectangle {
     id: bottomBar
-    color: typeof themeStore !== "undefined" ? themeStore.backgroundColor : "black"
+    color: typeof ThemeStore !== "undefined" ? ThemeStore.backgroundColor : "black"
     implicitHeight: Math.max(leftCol.height, centerItem.childrenRect.height, rightCol.height) + 8
 
     Component.onCompleted: if (typeof bootTimer !== "undefined")
@@ -21,7 +22,7 @@ Rectangle {
         anchors.top: parent.top
         width: parent.width
         height: 1
-        color: themeStore.borderColor
+        color: ThemeStore.borderColor
     }
 
     // Left side
@@ -37,17 +38,17 @@ Rectangle {
             spacing: 0
             Text {
                 text: typeof translations !== "undefined" ? translations.statusBarDuration : "Duration"
-                font.pixelSize: themeStore.fontCaption
+                font.pixelSize: ThemeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
                 font.capitalization: Font.AllUppercase
-                color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
+                color: ThemeStore.isDark ? "#99FFFFFF" : "#8A000000"
             }
             Text {
                 text: formatDuration(tripDuration)
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 font.weight: Font.Bold
-                color: themeStore.textColor
+                color: ThemeStore.textColor
             }
         }
 
@@ -55,25 +56,25 @@ Rectangle {
             spacing: 0
             Text {
                 text: typeof translations !== "undefined" ? translations.statusBarAvgSpeed : "Avg"
-                font.pixelSize: themeStore.fontCaption
+                font.pixelSize: ThemeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
                 font.capitalization: Font.AllUppercase
-                color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
+                color: ThemeStore.isDark ? "#99FFFFFF" : "#8A000000"
             }
             Row {
                 spacing: 2
                 Text {
                     id: avgValue
                     text: avgSpeed.toFixed(1)
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Bold
-                    color: themeStore.textColor
+                    color: ThemeStore.textColor
                 }
                 Text {
                     text: "km/h"
-                    font.pixelSize: themeStore.fontCaption
-                    color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
+                    font.pixelSize: ThemeStore.fontCaption
+                    color: ThemeStore.isDark ? "#99FFFFFF" : "#8A000000"
                     anchors.baseline: avgValue.baseline
                 }
             }
@@ -104,18 +105,18 @@ Rectangle {
             Text {
                 anchors.right: parent.right
                 text: typeof translations !== "undefined" ? translations.statusBarTrip : "Trip"
-                font.pixelSize: themeStore.fontCaption
+                font.pixelSize: ThemeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
                 font.capitalization: Font.AllUppercase
-                color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
+                color: ThemeStore.isDark ? "#99FFFFFF" : "#8A000000"
             }
             Text {
                 anchors.right: parent.right
                 text: (tripDistance).toFixed(1)
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 font.weight: Font.Bold
-                color: themeStore.textColor
+                color: ThemeStore.textColor
             }
         }
 
@@ -124,11 +125,11 @@ Rectangle {
             Text {
                 anchors.right: parent.right
                 text: typeof translations !== "undefined" ? translations.statusBarTotal : "Total"
-                font.pixelSize: themeStore.fontCaption
+                font.pixelSize: ThemeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
                 font.capitalization: Font.AllUppercase
-                color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
+                color: ThemeStore.isDark ? "#99FFFFFF" : "#8A000000"
             }
             Row {
                 anchors.right: parent.right
@@ -136,14 +137,14 @@ Rectangle {
                 Text {
                     id: totalValue
                     text: (Math.floor(odometer / 100) / 10).toFixed(1)
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Bold
-                    color: themeStore.textColor
+                    color: ThemeStore.textColor
                 }
                 Text {
                     text: "km"
-                    font.pixelSize: themeStore.fontCaption
-                    color: themeStore.isDark ? "#99FFFFFF" : "#8A000000"
+                    font.pixelSize: ThemeStore.fontCaption
+                    color: ThemeStore.isDark ? "#99FFFFFF" : "#8A000000"
                     anchors.baseline: totalValue.baseline
                 }
             }

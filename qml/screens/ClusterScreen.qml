@@ -6,9 +6,10 @@ import "../widgets/cluster"
 import "../widgets/indicators"
 import "../widgets/navigation"
 import "../widgets/components"
+import ScootUI 1.0
 Rectangle {
     id: clusterScreen
-    color: themeStore.backgroundColor
+    color: ThemeStore.backgroundColor
 
     Component.onCompleted: if (typeof bootTimer !== "undefined")
         console.log("[boot +" + bootTimer.elapsed() + "ms] ClusterScreen completed")

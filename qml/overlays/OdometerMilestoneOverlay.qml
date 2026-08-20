@@ -59,7 +59,7 @@ Item {
         id: card
         width: contentRow.implicitWidth + 24
         height: contentRow.implicitHeight + 12
-        radius: themeStore && themeStore.radiusCard !== undefined ? themeStore.radiusCard : 12
+        radius: ThemeStore && ThemeStore.radiusCard !== undefined ? ThemeStore.radiusCard : 12
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.rightMargin: 4
@@ -90,13 +90,13 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.theme.icon
                     color: root.theme.fg
-                    font.pixelSize: themeStore && themeStore.fontCaption !== undefined ? themeStore.fontCaption : 12
+                    font.pixelSize: ThemeStore && ThemeStore.fontCaption !== undefined ? ThemeStore.fontCaption : 12
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.theme.title
                     color: root.theme.fg
-                    font.pixelSize: themeStore && themeStore.fontCaption !== undefined ? themeStore.fontCaption : 12
+                    font.pixelSize: ThemeStore && ThemeStore.fontCaption !== undefined ? ThemeStore.fontCaption : 12
                     font.weight: Font.Medium
                 }
             }
@@ -104,7 +104,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: root.formatKm(root.milestoneKm)
                 color: root.theme.fg
-                font.pixelSize: themeStore && themeStore.fontBody !== undefined ? themeStore.fontBody : 16
+                font.pixelSize: ThemeStore && ThemeStore.fontBody !== undefined ? ThemeStore.fontBody : 16
                 font.weight: Font.Bold
             }
         }

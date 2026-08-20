@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Effects
 import "../components"
+import ScootUI 1.0
 
 Row {
     id: batteryDisplay
@@ -11,9 +12,9 @@ Row {
         console.log("[boot +" + bootTimer.elapsed() + "ms] BatteryDisplay completed")
 
     // Theme-aware icon color (matches Flutter's ColorFilter.mode srcIn)
-    readonly property color iconColor: typeof themeStore !== "undefined" && !themeStore.isDark
+    readonly property color iconColor: typeof ThemeStore !== "undefined" && !ThemeStore.isDark
                                         ? "#000000" : "#FFFFFF"
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
 
     // --- Enum int values ---
     // BatteryState: Unknown=0, Asleep=1, Idle=2, Active=3
@@ -99,7 +100,7 @@ Row {
             if (charge <= 10) return "#FF0000"
             if (charge <= 20) return "#FF7900"
         }
-        return themeStore.textColor
+        return ThemeStore.textColor
     }
 
     // --- Optional CBB / AUX charge indicators (icon-only) ---

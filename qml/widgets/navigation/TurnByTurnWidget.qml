@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import "../components"
+import ScootUI 1.0
 
 Item {
     id: tbtWidget
@@ -19,8 +20,8 @@ Item {
     // Guarded against null as well as undefined: ClusterScreen incubates this
     // through an asynchronous Loader, and `typeof null` is "object", so the
     // typeof check alone lets a null context property through to the read.
-    property bool isDark: (typeof themeStore !== "undefined" && themeStore)
-                          ? themeStore.isDark : true
+    property bool isDark: (typeof ThemeStore !== "undefined" && ThemeStore)
+                          ? ThemeStore.isDark : true
 
     // Maneuver type enum values (must match ManeuverType in C++)
     readonly property int mtOther: 0
@@ -187,7 +188,7 @@ Item {
                     text: parent.mDist <= iconThreshold(parent.mType)
                           ? maneuverIcon(parent.mType) : MaterialIcon.iconStraight
                     font.family: "Material Icons"
-                    font.pixelSize: themeStore.fontHero
+                    font.pixelSize: ThemeStore.fontHero
                     color: isDark ? "white" : "#212121"
                 }
             }
@@ -210,7 +211,7 @@ Item {
                              || !navigationService.currentIsStart
                     text: typeof navigationService !== "undefined"
                           ? formatDistance(navigationService.currentManeuverDistance) : ""
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Bold
                     color: isDark ? "white" : "#212121"
                     lineHeight: 1.0
@@ -222,7 +223,7 @@ Item {
                     Layout.fillWidth: true
                     text: typeof navigationService !== "undefined"
                           ? navigationService.currentVerbalInstruction : ""
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: isDark ? Font.Normal : Font.Medium
                     color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     wrapMode: Text.WordWrap
@@ -239,14 +240,14 @@ Item {
 
                     Text {
                         text: "Then"
-                        font.pixelSize: themeStore.fontBody
+                        font.pixelSize: ThemeStore.fontBody
                         color: isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
                     }
                     Text {
                         text: typeof navigationService !== "undefined"
                               ? maneuverIcon(navigationService.nextManeuverType) : ""
                         font.family: "Material Icons"
-                        font.pixelSize: themeStore.fontBody
+                        font.pixelSize: ThemeStore.fontBody
                         color: isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
                     }
                     Text {
@@ -263,7 +264,7 @@ Item {
                             if (name && name.length > 0) return name
                             return isArrive ? "arrive" : ""
                         }
-                        font.pixelSize: themeStore.fontBody
+                        font.pixelSize: ThemeStore.fontBody
                         color: isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
                         elide: Text.ElideRight
                     }
@@ -281,7 +282,7 @@ Item {
             implicitWidth: timeRow.width + 16
             implicitHeight: timeRow.height + 8
             color: isDark ? Qt.rgba(0, 0, 0, 0.95) : Qt.rgba(1, 1, 1, 0.98)
-            radius: themeStore.radiusCard
+            radius: ThemeStore.radiusCard
 
             // Left and Bottom borders
             Rectangle { anchors.left: parent.left; width: 1; height: parent.height; color: isDark ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.12) }

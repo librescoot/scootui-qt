@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import "../widgets/components"
+import ScootUI 1.0
 
 Item {
     id: menuOverlay
@@ -19,7 +20,7 @@ Item {
         anchors.fill: parent
         sourceItem: menuOverlay.blurSource
         blurAmount: 0.6
-        tintColor: themeStore.isDark
+        tintColor: ThemeStore.isDark
             ? Qt.rgba(0, 0, 0, 0.65)
             : Qt.rgba(1, 1, 1, 0.65)
     }
@@ -41,9 +42,9 @@ Item {
         Text {
             Layout.alignment: Qt.AlignHCenter
             text: menuStore.currentTitle
-            font.pixelSize: themeStore.fontHeading
+            font.pixelSize: ThemeStore.fontHeading
             font.weight: Font.Bold
-            color: themeStore.isDark ? "#FFFFFF" : "#000000"
+            color: ThemeStore.isDark ? "#FFFFFF" : "#000000"
         }
 
         Item { Layout.preferredHeight: 8 }
@@ -115,16 +116,16 @@ Item {
                 height: 40
                 visible: menuList.contentY > 5
                 gradient: Gradient {
-                    GradientStop { position: 0.0; color: themeStore.isDark ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.8) }
-                    GradientStop { position: 1.0; color: themeStore.isDark ? Qt.rgba(0, 0, 0, 0.0) : Qt.rgba(1, 1, 1, 0.0) }
+                    GradientStop { position: 0.0; color: ThemeStore.isDark ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.8) }
+                    GradientStop { position: 1.0; color: ThemeStore.isDark ? Qt.rgba(0, 0, 0, 0.0) : Qt.rgba(1, 1, 1, 0.0) }
                 }
 
                 Text {
                     anchors.centerIn: parent
                     text: MaterialIcon.iconKeyboardArrowUp
                     font.family: "Material Icons"
-                    font.pixelSize: themeStore.fontTitle
-                    color: themeStore.isDark ? "#8AFFFFFF" : "#8A000000" // white54 / black54
+                    font.pixelSize: ThemeStore.fontTitle
+                    color: ThemeStore.isDark ? "#8AFFFFFF" : "#8A000000" // white54 / black54
                 }
             }
 
@@ -136,16 +137,16 @@ Item {
                 height: 40
                 visible: menuList.contentY < (menuList.contentHeight - menuList.height - 5)
                 gradient: Gradient {
-                    GradientStop { position: 0.0; color: themeStore.isDark ? Qt.rgba(0, 0, 0, 0.0) : Qt.rgba(1, 1, 1, 0.0) }
-                    GradientStop { position: 1.0; color: themeStore.isDark ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.8) }
+                    GradientStop { position: 0.0; color: ThemeStore.isDark ? Qt.rgba(0, 0, 0, 0.0) : Qt.rgba(1, 1, 1, 0.0) }
+                    GradientStop { position: 1.0; color: ThemeStore.isDark ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.8) }
                 }
 
                 Text {
                     anchors.centerIn: parent
                     text: MaterialIcon.iconKeyboardArrowDown
                     font.family: "Material Icons"
-                    font.pixelSize: themeStore.fontTitle
-                    color: themeStore.isDark ? "#8AFFFFFF" : "#8A000000" // white54 / black54
+                    font.pixelSize: ThemeStore.fontTitle
+                    color: ThemeStore.isDark ? "#8AFFFFFF" : "#8A000000" // white54 / black54
                 }
             }
         }
@@ -154,14 +155,14 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: controlHints.height
-            color: themeStore.isDark ? Qt.rgba(0, 0, 0, 0.3) : Qt.rgba(1, 1, 1, 0.3)
+            color: ThemeStore.isDark ? Qt.rgba(0, 0, 0, 0.3) : Qt.rgba(1, 1, 1, 0.3)
 
             // Top border
             Rectangle {
                 anchors.top: parent.top
                 width: parent.width
                 height: 1
-                color: themeStore.isDark ? "#1AFFFFFF" : "#1F000000"
+                color: ThemeStore.isDark ? "#1AFFFFFF" : "#1F000000"
             }
 
             ControlHints {

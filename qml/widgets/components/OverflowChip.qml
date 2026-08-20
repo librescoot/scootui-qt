@@ -1,4 +1,5 @@
 import QtQuick
+import ScootUI 1.0
 
 // "…" chip with a small "+N" count: stands in for lower-priority status
 // glyphs the top bar hid to avoid running into the clock. Display-only;
@@ -27,7 +28,7 @@ Item {
         anchors.right: parent.right
         anchors.top: parent.top
         text: "+" + chip.count
-        font.pixelSize: themeStore.fontMicro
+        font.pixelSize: ThemeStore.fontMicro
         font.weight: Font.Bold
         color: chip.iconColor
     }

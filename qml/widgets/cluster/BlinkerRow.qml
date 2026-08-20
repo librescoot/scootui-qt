@@ -1,4 +1,5 @@
 import QtQuick
+import ScootUI 1.0
 
 Item {
     id: blinkerRow
@@ -19,7 +20,7 @@ Item {
     // Shared blink clock from VehicleStore
     readonly property real blinkOpacity: typeof vehicleStore !== "undefined" ? vehicleStore.blinkOpacity : 0
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
 
     Row {
         anchors.fill: parent

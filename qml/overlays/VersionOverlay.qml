@@ -1,4 +1,5 @@
 import QtQuick
+import ScootUI 1.0
 
 Item {
     id: versionOverlay
@@ -48,17 +49,17 @@ Item {
         anchors.rightMargin: 20
         width: infoColumn.width + 24
         height: infoColumn.height + 24
-        radius: themeStore.radiusCard
+        radius: ThemeStore.radiusCard
 
-        color: typeof themeStore !== "undefined" && themeStore.isDark
+        color: typeof ThemeStore !== "undefined" && ThemeStore.isDark
                ? "#B3000000"   // black 0.7 opacity
                : "#B3FFFFFF"   // white 0.7 opacity
         border.width: 1.5
-        border.color: typeof themeStore !== "undefined" && themeStore.isDark
+        border.color: typeof ThemeStore !== "undefined" && ThemeStore.isDark
                       ? "#FFFFFF"
                       : "#000000"
 
-        property color textColor: typeof themeStore !== "undefined" && themeStore.isDark
+        property color textColor: typeof ThemeStore !== "undefined" && ThemeStore.isDark
                                   ? "#FFFFFF" : "#000000"
 
         Column {
@@ -69,28 +70,28 @@ Item {
             Text {
                 text: "MDB: " + (typeof systemInfoService !== "undefined"
                       ? systemInfoService.mdbVersion : "unknown")
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
             }
 
             Text {
                 text: "DBC: " + (typeof systemInfoService !== "undefined"
                       ? systemInfoService.dbcVersion : "unknown")
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
             }
 
             Text {
                 text: "nRF: " + (typeof systemInfoService !== "undefined"
                       ? systemInfoService.nrfVersion : "unknown")
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
             }
 
             Text {
                 text: "ECU: " + (typeof systemInfoService !== "undefined"
                       ? systemInfoService.ecuVersion : "unknown")
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
             }
 
@@ -106,7 +107,7 @@ Item {
                 text: "AUX: " + (typeof auxBatteryStore !== "undefined"
                       ? auxBatteryStore.voltage + "mV " + auxBatteryStore.charge + "%"
                       : "unknown")
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
             }
 
@@ -114,7 +115,7 @@ Item {
                 text: "CBB: " + (typeof cbBatteryStore !== "undefined"
                       ? cbBatteryStore.charge + "%"
                       : "unknown")
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
             }
 
@@ -131,7 +132,7 @@ Item {
                 visible: typeof serialNumberService !== "undefined" && serialNumberService.available
                 text: "S/N: " + (typeof serialNumberService !== "undefined"
                       ? serialNumberService.serialNumber : "")
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
             }
         }

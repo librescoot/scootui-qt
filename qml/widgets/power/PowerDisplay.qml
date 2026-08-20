@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import "../components"
+import ScootUI 1.0
 
 Item {
     id: powerDisplay
@@ -20,12 +21,12 @@ Item {
     readonly property bool showReasonIcon: !regenAvailable
                                            && (regenReason === "cold" || regenReason === "hot"
                                                || regenReason === "full")
-    readonly property color trackColor: themeStore.isDark ? "#424242" : "#E0E0E0"
+    readonly property color trackColor: ThemeStore.isDark ? "#424242" : "#E0E0E0"
     // Reason-icon colors, theme-reactive (bright in dark, deep in light) for
     // legible contrast on the grey regen track.
-    readonly property color reasonColdColor: themeStore.isDark ? "#40C4FF" : "#0277BD" // blue
-    readonly property color reasonHotColor:  themeStore.isDark ? "#FF6E40" : "#D84315" // deep orange
-    readonly property color reasonFullColor: themeStore.isDark ? "#69F0AE" : "#2E7D32" // green
+    readonly property color reasonColdColor: ThemeStore.isDark ? "#40C4FF" : "#0277BD" // blue
+    readonly property color reasonHotColor:  ThemeStore.isDark ? "#FF6E40" : "#D84315" // deep orange
+    readonly property color reasonFullColor: ThemeStore.isDark ? "#69F0AE" : "#2E7D32" // green
 
     // 0 = kW (default), 1 = Amps
     readonly property int displayMode: typeof settingsStore !== "undefined" ? settingsStore.powerDisplayMode : 0
@@ -86,21 +87,21 @@ Item {
 
             Text {
                 text: translations.powerRegen
-                font.pixelSize: themeStore.fontCaption
+                font.pixelSize: ThemeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
                 font.capitalization: Font.AllUppercase
-                color: themeStore.textHint
+                color: ThemeStore.textHint
                 bottomPadding: -2
             }
             Item { Layout.fillWidth: true }
             Text {
                 text: translations.powerDischarge
-                font.pixelSize: themeStore.fontCaption
+                font.pixelSize: ThemeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
                 font.capitalization: Font.AllUppercase
-                color: themeStore.textHint
+                color: ThemeStore.textHint
                 bottomPadding: -2
             }
         }
@@ -117,7 +118,7 @@ Item {
                 width: parent.width / 2
                 height: 6
                 anchors.verticalCenter: parent.verticalCenter
-                radius: themeStore.radiusBar
+                radius: ThemeStore.radiusBar
                 color: powerDisplay.trackColor
             }
 
@@ -132,7 +133,7 @@ Item {
 
                 Rectangle {
                     anchors.fill: parent
-                    radius: themeStore.radiusBar
+                    radius: ThemeStore.radiusBar
                     color: powerDisplay.trackColor
                     visible: powerDisplay.regenAvailable
                 }
@@ -151,7 +152,7 @@ Item {
                         Rectangle {
                             width: 5
                             height: 6
-                            radius: themeStore.radiusBar
+                            radius: ThemeStore.radiusBar
                             color: powerDisplay.trackColor
                         }
                     }
@@ -183,7 +184,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 2
                 height: 8
-                color: themeStore.isDark ? "#66FFFFFF" : "#61000000"
+                color: ThemeStore.isDark ? "#66FFFFFF" : "#61000000"
             }
 
             // Regen bar (grows left from center)
@@ -191,7 +192,7 @@ Item {
                 visible: powerDisplay.regenAvailable && displayValue < -0.01
                 anchors.verticalCenter: parent.verticalCenter
                 height: 6
-                radius: themeStore.radiusBar
+                radius: ThemeStore.radiusBar
                 width: Math.min(Math.abs(displayValue) / maxRegen, 1.0) * (parent.width / 2)
                 x: parent.width / 2 - width
                 color: "#43A047"
@@ -203,7 +204,7 @@ Item {
                 x: parent.width / 2
                 anchors.verticalCenter: parent.verticalCenter
                 height: 6
-                radius: themeStore.radiusBar
+                radius: ThemeStore.radiusBar
                 width: Math.min(displayValue / maxDischarge, 1.0) * (parent.width / 2)
                 color: displayValue > boostThreshold ? "#FB8C00" : "#1E88E5"
             }
@@ -213,8 +214,8 @@ Item {
         Text {
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: 1
-            font.pixelSize: themeStore.fontBody
-            color: themeStore.textHint
+            font.pixelSize: ThemeStore.fontBody
+            color: ThemeStore.textHint
             text: {
                 if (ecuStale) return "—"
                 var absVal = Math.abs(displayValue)

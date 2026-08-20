@@ -2,12 +2,13 @@ import QtQuick
 import QtQuick.Layouts
 import "../widgets/status_bars"
 import "../widgets/components"
+import ScootUI 1.0
 
 Rectangle {
     id: hopOnInfoScreen
-    color: typeof themeStore !== "undefined" && themeStore.isDark ? "black" : "white"
+    color: typeof ThemeStore !== "undefined" && ThemeStore.isDark ? "black" : "white"
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
     readonly property color textPrimary: isDark ? "#FFFFFF" : "#000000"
     readonly property color textSecondary: isDark ? "#99FFFFFF" : "#8A000000"
     readonly property color dividerColor: isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.12)
@@ -86,7 +87,7 @@ Rectangle {
                     text: typeof translations !== "undefined"
                           ? translations.hopOnInfoTitle : "Hop On / Hop Off"
                     color: hopOnInfoScreen.textPrimary
-                    font.pixelSize: themeStore.fontTitle
+                    font.pixelSize: ThemeStore.fontTitle
                     font.weight: Font.Bold
                 }
 
@@ -96,7 +97,7 @@ Rectangle {
                     text: typeof translations !== "undefined"
                           ? translations.hopOnInfoBody1 : ""
                     color: hopOnInfoScreen.textPrimary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     lineHeight: 1.3
                     lineHeightMode: Text.ProportionalHeight
                     horizontalAlignment: Text.AlignHCenter
@@ -109,7 +110,7 @@ Rectangle {
                     text: typeof translations !== "undefined"
                           ? translations.hopOnInfoBody2 : ""
                     color: hopOnInfoScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     lineHeight: 1.3
                     lineHeightMode: Text.ProportionalHeight
                     horizontalAlignment: Text.AlignHCenter

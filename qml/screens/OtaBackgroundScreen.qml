@@ -1,5 +1,6 @@
 import QtQuick
 import "../widgets/components"
+import ScootUI 1.0
 
 Rectangle {
     id: otaScreen
@@ -65,7 +66,7 @@ Rectangle {
             width: otaScreen.width - 64
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
-            font.pixelSize: themeStore.fontBody
+            font.pixelSize: ThemeStore.fontBody
             color: Qt.rgba(1, 1, 1, 0.8)
             text: {
                 var tr = typeof translations !== "undefined" ? translations : null
@@ -108,7 +109,7 @@ Rectangle {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            font.pixelSize: themeStore.fontBody
+            font.pixelSize: ThemeStore.fontBody
             color: Qt.rgba(1, 1, 1, 0.5)
             visible: otaScreen.updateVersion !== ""
             text: otaScreen.updateVersion
@@ -117,7 +118,7 @@ Rectangle {
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             width: otaScreen.width - 64
-            font.pixelSize: themeStore.fontBody
+            font.pixelSize: ThemeStore.fontBody
             color: Qt.rgba(1, 1, 1, 0.6)
             visible: otaScreen.dbcStatus !== "idle" && !otaScreen.isError
             text: typeof translations !== "undefined" ? translations.otaScooterWillTurnOff : "Your scooter will turn off when done.\nYou can unlock it again at any point."
@@ -128,7 +129,7 @@ Rectangle {
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             width: otaScreen.width - 64
-            font.pixelSize: themeStore.fontBody
+            font.pixelSize: ThemeStore.fontBody
             color: "#ff5555"
             visible: otaScreen.isError && otaScreen.dbcErrorMessage !== ""
             text: otaScreen.dbcErrorMessage

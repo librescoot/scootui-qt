@@ -2,12 +2,13 @@ import QtQuick
 import QtQuick.Layouts
 import "../widgets/status_bars"
 import "../widgets/components"
+import ScootUI 1.0
 
 Rectangle {
     id: navSetupScreen
-    color: typeof themeStore !== "undefined" && themeStore.isDark ? "black" : "white"
+    color: typeof ThemeStore !== "undefined" && ThemeStore.isDark ? "black" : "white"
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
     readonly property color textPrimary: isDark ? "#FFFFFF" : "#000000"
     readonly property color textSecondary: isDark ? "#99FFFFFF" : "#8A000000"
     readonly property color accentColor: isDark ? "#40C8F0" : "#0090B8"
@@ -230,7 +231,7 @@ Rectangle {
                     width: parent.width
                     text: navSetupScreen.titleText
                     color: navSetupScreen.textPrimary
-                    font.pixelSize: themeStore.fontTitle
+                    font.pixelSize: ThemeStore.fontTitle
                     font.weight: Font.Bold
                     wrapMode: Text.WordWrap
                 }
@@ -245,14 +246,14 @@ Rectangle {
                             anchors.verticalCenter: parent.verticalCenter
                             text: navSetupScreen.mapsOk ? MaterialIcon.iconCheckCircleOutline : MaterialIcon.iconCancel
                             font.family: "Material Icons"
-                            font.pixelSize: themeStore.fontBody
+                            font.pixelSize: ThemeStore.fontBody
                             color: navSetupScreen.mapsOk ? navSetupScreen.checkColor : navSetupScreen.crossColor
                         }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             text: typeof translations !== "undefined" ? translations.navSetupLocalDisplayMaps : "Offline display maps"
                             color: navSetupScreen.textPrimary
-                            font.pixelSize: themeStore.fontBody
+                            font.pixelSize: ThemeStore.fontBody
                         }
                     }
 
@@ -263,14 +264,14 @@ Rectangle {
                             anchors.verticalCenter: parent.verticalCenter
                             text: navSetupScreen.routingOk ? MaterialIcon.iconCheckCircleOutline : MaterialIcon.iconCancel
                             font.family: "Material Icons"
-                            font.pixelSize: themeStore.fontBody
+                            font.pixelSize: ThemeStore.fontBody
                             color: navSetupScreen.routingOk ? navSetupScreen.checkColor : navSetupScreen.crossColor
                         }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             text: typeof translations !== "undefined" ? translations.navSetupRoutingEngine : "Routing engine"
                             color: navSetupScreen.textPrimary
-                            font.pixelSize: themeStore.fontBody
+                            font.pixelSize: ThemeStore.fontBody
                         }
                     }
                 }
@@ -299,7 +300,7 @@ Rectangle {
                     horizontalAlignment: Text.AlignHCenter
                     text: typeof translations !== "undefined" ? translations.navSetupScanForInstructions : "Scan for setup instructions"
                     color: navSetupScreen.textSecondary
-                    font.pixelSize: themeStore.fontMicro
+                    font.pixelSize: ThemeStore.fontMicro
                     wrapMode: Text.WordWrap
                 }
             }
@@ -337,7 +338,7 @@ Rectangle {
                     Layout.alignment: Qt.AlignHCenter
                     text: typeof translations !== "undefined" ? translations.navSetupDownloadNoInternet : "No internet connection"
                     color: navSetupScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                 }
 
                 // Waiting for GPS
@@ -346,7 +347,7 @@ Rectangle {
                     Layout.alignment: Qt.AlignHCenter
                     text: typeof translations !== "undefined" ? translations.navSetupDownloadWaitingGps : "Waiting for GPS fix..."
                     color: navSetupScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                 }
 
                 // Region resolved — name + size of what will actually download.
@@ -365,7 +366,7 @@ Rectangle {
                         return navSetupScreen.dlRegion + " (" + sizeMB + " MB)"
                     }
                     color: navSetupScreen.accentColor
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Bold
                 }
             }
@@ -376,7 +377,7 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 text: typeof translations !== "undefined" ? translations.navSetupCheckingUpdates : "Checking for updates..."
                 color: navSetupScreen.textSecondary
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
             }
 
             // Locating
@@ -385,7 +386,7 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 text: typeof translations !== "undefined" ? translations.navSetupDownloadLocating : "Detecting your region..."
                 color: navSetupScreen.textSecondary
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
             }
 
             // Downloading - progress bar + bytes
@@ -401,20 +402,20 @@ Rectangle {
                           ? translations.navSetupDownloadProgress.arg(Math.round(navSetupScreen.dlProgress * 100))
                           : "Downloading... " + Math.round(navSetupScreen.dlProgress * 100) + "%"
                     color: navSetupScreen.textPrimary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                 }
 
                 // Progress bar
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 6
-                    radius: themeStore.radiusBar
+                    radius: ThemeStore.radiusBar
                     color: isDark ? Qt.rgba(1,1,1,0.15) : Qt.rgba(0,0,0,0.1)
 
                     Rectangle {
                         width: parent.width * navSetupScreen.dlProgress
                         height: parent.height
-                        radius: themeStore.radiusBar
+                        radius: ThemeStore.radiusBar
                         color: navSetupScreen.accentColor
                     }
                 }
@@ -427,7 +428,7 @@ Rectangle {
                               .arg(Math.round(navSetupScreen.dlTotal / 1048576))
                           : Math.round(navSetupScreen.dlDownloaded / 1048576) + " / " + Math.round(navSetupScreen.dlTotal / 1048576) + " MB"
                     color: navSetupScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                 }
             }
 
@@ -437,7 +438,7 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 text: typeof translations !== "undefined" ? translations.navSetupDownloadInstalling : "Installing maps..."
                 color: navSetupScreen.textSecondary
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
             }
 
             // Done
@@ -446,7 +447,7 @@ Rectangle {
                 Layout.alignment: Qt.AlignHCenter
                 text: typeof translations !== "undefined" ? translations.navSetupDownloadDone : "Maps installed successfully"
                 color: navSetupScreen.doneColor
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 font.weight: Font.Bold
             }
 
@@ -460,7 +461,7 @@ Rectangle {
                     Layout.alignment: Qt.AlignHCenter
                     text: typeof translations !== "undefined" ? translations.navSetupDownloadError : "Download failed"
                     color: navSetupScreen.errorColor
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Bold
                 }
                 Text {
@@ -468,7 +469,7 @@ Rectangle {
                     Layout.alignment: Qt.AlignHCenter
                     text: navSetupScreen.dlError
                     color: navSetupScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
                 }
@@ -498,7 +499,7 @@ Rectangle {
                 return translations.navSetupRoutingBody
             }
             color: navSetupScreen.textSecondary
-            font.pixelSize: themeStore.fontBody
+            font.pixelSize: ThemeStore.fontBody
             lineHeight: 1.4
             lineHeightMode: Text.ProportionalHeight
             horizontalAlignment: Text.AlignHCenter

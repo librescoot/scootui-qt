@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import "../indicators"
+import ScootUI 1.0
 
 Rectangle {
     id: topBar
@@ -61,7 +62,7 @@ Rectangle {
         anchors.bottom: parent.bottom
         width: parent.width
         height: 1
-        color: themeStore.borderColor
+        color: ThemeStore.borderColor
     }
 
     RowLayout {

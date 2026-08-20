@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Particles
+import ScootUI 1.0
 
 // Drop this into a screen at a low z value so confetti falls behind widgets.
 // Listens to odometerMilestoneService.milestoneCelebrate and bursts when
@@ -24,8 +25,8 @@ Item {
     // through an asynchronous Loader, which evaluates bindings while the
     // context property can still be null — and `typeof null` is "object", so
     // the guard passes and the read throws. Default to dark, as elsewhere.
-    readonly property bool dark: (typeof themeStore !== "undefined" && themeStore)
-                                 ? themeStore.isDark : true
+    readonly property bool dark: (typeof ThemeStore !== "undefined" && ThemeStore)
+                                 ? ThemeStore.isDark : true
 
     readonly property var paletteStandard: dark
         ? ["#D4AF37", "#F6E27A", "#FFFFFF"]

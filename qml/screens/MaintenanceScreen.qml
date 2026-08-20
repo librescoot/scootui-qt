@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI 1.0
 
 Rectangle {
     id: maintenanceScreen
@@ -60,7 +61,7 @@ Rectangle {
                     color: "transparent"
                     border.color: "white"
                     border.width: 3
-                    radius: themeStore.radiusModal
+                    radius: ThemeStore.radiusModal
 
                     Rectangle {
                         width: 18
@@ -91,7 +92,7 @@ Rectangle {
                     width: maintenanceScreen.width - 64
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     color: Qt.rgba(1, 1, 1, 0.8)
                     text: {
                         var tr = typeof translations !== "undefined" ? translations : null
@@ -136,7 +137,7 @@ Rectangle {
                 // Version
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     color: Qt.rgba(1, 1, 1, 0.5)
                     visible: loadingMode.otaVersion !== ""
                     text: loadingMode.otaVersion
@@ -164,7 +165,7 @@ Rectangle {
                 Layout.fillWidth: true
                 text: "Trying to connect to vehicle system..."
                 color: "white"
-                font.pixelSize: themeStore.fontTitle
+                font.pixelSize: ThemeStore.fontTitle
                 font.weight: Font.Bold
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
@@ -187,7 +188,7 @@ Rectangle {
                       "the dashboard computer (DBC) and the middle driver board (MDB).\n\n" +
                       "Check the USB cable if this persists."
                 color: Qt.rgba(1, 1, 1, 0.70)
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 lineHeight: 1.4
                 lineHeightMode: Text.ProportionalHeight
                 wrapMode: Text.WordWrap
@@ -210,7 +211,7 @@ Rectangle {
                 text: "To put your scooter into drive mode anyway, raise the kickstand, " +
                       "hold both brakes and press the seatbox button."
                 color: Qt.rgba(1, 1, 1, 0.60)
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 lineHeight: 1.4
                 lineHeightMode: Text.ProportionalHeight
                 wrapMode: Text.WordWrap
@@ -226,7 +227,7 @@ Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         text: maintenanceScreen.stateRaw
         color: Qt.rgba(1, 1, 1, 0.54)
-        font.pixelSize: themeStore.fontBody
+        font.pixelSize: ThemeStore.fontBody
         visible: maintenanceScreen.stateRaw.length > 0
     }
 }

@@ -577,6 +577,14 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Register context properties
     auto *ctx = engine.rootContext();
+    // The module registration qt_add_qml_module generates for this executable
+    // does not take effect: QML resolves the types to undefined and the
+    // singleton create() is never called. Registering them here with the same
+    // public API the generated code uses fixes that. QML_ELEMENT/QML_SINGLETON
+    // stay on the classes so qmllint and qmltc still see them at build time.
+    // TODO: root-cause the generated registration and drop this.
+    qmlRegisterTypesAndRevisions<ThemeStore>("ScootUI", 1);
+
     ctx->setContextProperty(QStringLiteral("bootTimer"), new BootTimer(this));
     ctx->setContextProperty(QStringLiteral("engineStore"), engineStore);
     ctx->setContextProperty(QStringLiteral("vehicleStore"), vehicleStore);
@@ -596,7 +604,6 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("scooterStore"), scooterStore);
     ctx->setContextProperty(QStringLiteral("cbBatteryStore"), cbBatteryStore);
     ctx->setContextProperty(QStringLiteral("auxBatteryStore"), auxBatteryStore);
-    ctx->setContextProperty(QStringLiteral("themeStore"), themeStore);
     ctx->setContextProperty(QStringLiteral("screenStore"), screenStore);
     ctx->setContextProperty(QStringLiteral("menuStore"), menuStore);
     ctx->setContextProperty(QStringLiteral("hopOnStore"), hopOnStore);

@@ -1,6 +1,7 @@
 import QtQuick
 import "../widgets/status_bars"
 import "../widgets/components"
+import ScootUI 1.0
 
 // Confirmation for a release-channel switch, reached from
 // Settings > System > Updates > Switch Release Channel.
@@ -11,9 +12,9 @@ import "../widgets/components"
 // points at Update Mode instead of offering a download nothing could start.
 Rectangle {
     id: channelScreen
-    color: typeof themeStore !== "undefined" && themeStore.isDark ? "black" : "white"
+    color: typeof ThemeStore !== "undefined" && ThemeStore.isDark ? "black" : "white"
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    readonly property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
     readonly property color textPrimary: isDark ? "#FFFFFF" : "#000000"
     readonly property color textSecondary: isDark ? "#99FFFFFF" : "#8A000000"
     readonly property color dividerColor: isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.12)
@@ -125,7 +126,7 @@ Rectangle {
                 Text {
                     text: typeof translations !== "undefined" ? translations.channelSwitchTitle : ""
                     color: channelScreen.textSecondary
-                    font.pixelSize: themeStore.fontMicro
+                    font.pixelSize: ThemeStore.fontMicro
                     font.weight: Font.Medium
                     font.letterSpacing: 1.0
                 }
@@ -141,7 +142,7 @@ Rectangle {
                         visible: channelScreen.currentChannel !== ""
                         text: channelScreen.channelLabel(channelScreen.currentChannel)
                         color: channelScreen.textSecondary
-                        font.pixelSize: themeStore.fontHeading
+                        font.pixelSize: ThemeStore.fontHeading
                         font.weight: Font.Bold
                     }
 
@@ -150,7 +151,7 @@ Rectangle {
                         visible: channelScreen.currentChannel !== ""
                         text: MaterialIcon.iconArrowForward
                         font.family: "Material Icons"
-                        font.pixelSize: themeStore.fontTitle
+                        font.pixelSize: ThemeStore.fontTitle
                         color: channelScreen.textSecondary
                     }
 
@@ -158,7 +159,7 @@ Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                         text: channelScreen.channelLabel(channelScreen.targetChannel)
                         color: channelScreen.textPrimary
-                        font.pixelSize: themeStore.fontHeading
+                        font.pixelSize: ThemeStore.fontHeading
                         font.weight: Font.Bold
                     }
                 }
@@ -167,14 +168,14 @@ Rectangle {
                     visible: channelScreen.version !== ""
                     text: channelScreen.version
                     color: channelScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                 }
 
                 Text {
                     width: parent.width
                     text: channelScreen.bodyText()
                     color: channelScreen.textPrimary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     lineHeight: 1.3
                     lineHeightMode: Text.ProportionalHeight
                     wrapMode: Text.WordWrap
@@ -190,7 +191,7 @@ Rectangle {
                                 channelScreen.channelLabel(channelScreen.targetChannel))
                           : ""
                     color: channelScreen.textSecondary
-                    font.pixelSize: themeStore.fontBody
+                    font.pixelSize: ThemeStore.fontBody
                     lineHeight: 1.3
                     lineHeightMode: Text.ProportionalHeight
                     wrapMode: Text.WordWrap

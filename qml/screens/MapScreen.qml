@@ -6,10 +6,11 @@ import "../widgets/navigation"
 import "../widgets/cluster"
 import "../widgets/indicators"
 import "../widgets/map"
+import ScootUI 1.0
 
 Rectangle {
     id: mapScreen
-    color: typeof themeStore !== "undefined" ? themeStore.backgroundColor : "black"
+    color: typeof ThemeStore !== "undefined" ? ThemeStore.backgroundColor : "black"
 
     // Navigation status enum values
     readonly property int statusNavigating: 2
@@ -76,8 +77,8 @@ Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: MaterialIcon.iconGpsNotFixed
                     font.family: "Material Icons"
-                    font.pixelSize: themeStore.fontXL
-                    color: typeof themeStore !== "undefined" && themeStore.isDark
+                    font.pixelSize: ThemeStore.fontXL
+                    color: typeof ThemeStore !== "undefined" && ThemeStore.isDark
                            ? "#99FFFFFF" : "#8A000000"  // white60 / black54
                 }
 
@@ -85,8 +86,8 @@ Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: typeof translations !== "undefined"
                           ? translations.mapWaitingForGps : "Waiting for GPS fix"
-                    font.pixelSize: themeStore.fontBody
-                    color: typeof themeStore !== "undefined" && themeStore.isDark
+                    font.pixelSize: ThemeStore.fontBody
+                    color: typeof ThemeStore !== "undefined" && ThemeStore.isDark
                            ? "#FFFFFF" : "#000000"
                     horizontalAlignment: Text.AlignHCenter
                 }
@@ -104,12 +105,12 @@ Rectangle {
                     visible: typeof gpsStore !== "undefined"
                              && (gpsStore.hasTimestamp || gpsStore.satellitesVisible > 0)
 
-                    readonly property color labelColor: typeof themeStore !== "undefined" && themeStore.isDark
+                    readonly property color labelColor: typeof ThemeStore !== "undefined" && ThemeStore.isDark
                                                        ? "#99FFFFFF" : "#8A000000"
-                    readonly property color valueColor: typeof themeStore !== "undefined" && themeStore.isDark
+                    readonly property color valueColor: typeof ThemeStore !== "undefined" && ThemeStore.isDark
                                                        ? "#FFFFFF" : "#000000"
-                    readonly property int labelSize: themeStore.fontCaption
-                    readonly property int valueSize: themeStore.fontCaption
+                    readonly property int labelSize: ThemeStore.fontCaption
+                    readonly property int valueSize: ThemeStore.fontCaption
 
                     component InfoLabel : Text {
                         font.pixelSize: gpsInfoGrid.labelSize
@@ -222,8 +223,8 @@ Rectangle {
                 anchors.topMargin: 8
                 width: outOfCoverageRow.width + 24  // padding h:12
                 height: outOfCoverageRow.height + 16  // padding v:8
-                radius: themeStore.radiusCard
-                color: typeof themeStore !== "undefined" && themeStore.isDark
+                radius: ThemeStore.radiusCard
+                color: typeof ThemeStore !== "undefined" && ThemeStore.isDark
                        ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.9)
                 border.width: 1.5
                 border.color: Qt.rgba(1, 0.647, 0, 0.6)  // orange with 60% opacity
@@ -240,7 +241,7 @@ Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                         text: MaterialIcon.iconMap
                         font.family: "Material Icons"
-                        font.pixelSize: themeStore.fontBody
+                        font.pixelSize: ThemeStore.fontBody
                         color: "#FF9800"  // Colors.orange
                     }
 
@@ -248,7 +249,7 @@ Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                         text: typeof translations !== "undefined"
                               ? translations.mapOutOfCoverage : "No map data for current location"
-                        font.pixelSize: themeStore.fontBody
+                        font.pixelSize: ThemeStore.fontBody
                         font.weight: Font.Medium
                         color: "#FF9800"  // Colors.orange
                     }
@@ -264,9 +265,9 @@ Rectangle {
                          : "Set a destination to start navigation")
                       : (typeof translations !== "undefined" ? translations.navUnavailable
                          : "Navigation unavailable")
-                color: typeof themeStore !== "undefined" && themeStore.isDark
+                color: typeof ThemeStore !== "undefined" && ThemeStore.isDark
                        ? Qt.rgba(1, 1, 1, 0.4) : Qt.rgba(0, 0, 0, 0.4)
-                font.pixelSize: themeStore.fontBody
+                font.pixelSize: ThemeStore.fontBody
                 horizontalAlignment: Text.AlignHCenter
             }
 
@@ -310,11 +311,11 @@ Rectangle {
                 anchors.topMargin: 8
                 width: updateBadgeRow.width + 16
                 height: updateBadgeRow.height + 10
-                radius: themeStore.radiusCard
-                color: typeof themeStore !== "undefined" && themeStore.isDark
+                radius: ThemeStore.radiusCard
+                color: typeof ThemeStore !== "undefined" && ThemeStore.isDark
                        ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.9)
                 border.width: 1
-                border.color: typeof themeStore !== "undefined" && themeStore.isDark
+                border.color: typeof ThemeStore !== "undefined" && ThemeStore.isDark
                               ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.12)
                 visible: opacity > 0
                 z: 10
@@ -345,7 +346,7 @@ Rectangle {
                               ? translations.mapUpdateBadge : "Map update"
                         font.pixelSize: 12
                         font.weight: Font.Medium
-                        color: typeof themeStore !== "undefined" && themeStore.isDark
+                        color: typeof ThemeStore !== "undefined" && ThemeStore.isDark
                                ? "#FFFFFF" : "#000000"
                     }
                 }

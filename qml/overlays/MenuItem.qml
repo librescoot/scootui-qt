@@ -1,5 +1,6 @@
 import QtQuick
 import "../widgets/components"
+import ScootUI 1.0
 
 Rectangle {
     id: menuItem
@@ -20,9 +21,9 @@ Rectangle {
     // grow the row so it doesn't overlap the next item. 16 = Row top+bottom margin.
     height: Math.max(50, titleText.implicitHeight + 16)
     color: isSelected
-           ? (themeStore.isDark ? "#3DFFFFFF" : "#1F000000")
+           ? (ThemeStore.isDark ? "#3DFFFFFF" : "#1F000000")
            : "transparent"
-    radius: themeStore.radiusCard
+    radius: ThemeStore.radiusCard
 
     Row {
         anchors.fill: parent
@@ -42,7 +43,7 @@ Rectangle {
             text: MaterialIcon.iconWarningAmber
             font.family: "Material Icons"
             font.pixelSize: 18
-            color: themeStore.statusWarning
+            color: ThemeStore.statusWarning
         }
 
         // Leading icon (Flutter: optional Icon before title, size 20, white70/black54)
@@ -52,8 +53,8 @@ Rectangle {
             visible: menuItem.leadingIcon !== ""
             text: menuItem.leadingIcon
             font.family: "Material Icons"
-            font.pixelSize: themeStore.fontTitle
-            color: themeStore.isDark ? "#B3FFFFFF" : "#8A000000"
+            font.pixelSize: ThemeStore.fontTitle
+            color: ThemeStore.isDark ? "#B3FFFFFF" : "#8A000000"
         }
 
         // Title
@@ -66,9 +67,9 @@ Rectangle {
                    - (leadingIconText.visible ? leadingIconText.width + parent.spacing : 0)
                    - (cautionIcon.visible ? cautionIcon.width + parent.spacing : 0)
             text: menuItem.title
-            font.pixelSize: themeStore.fontTitle
+            font.pixelSize: ThemeStore.fontTitle
             font.weight: isSelected ? Font.Bold : Font.Normal
-            color: themeStore.isDark ? "#FFFFFF" : "#000000"
+            color: ThemeStore.isDark ? "#FFFFFF" : "#000000"
             elide: isSelected ? Text.ElideNone : Text.ElideRight
             wrapMode: isSelected ? Text.WordWrap : Text.NoWrap
             maximumLineCount: isSelected ? 100 : 1
@@ -81,9 +82,9 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             visible: menuItem.valueLabel !== ""
             text: menuItem.valueLabel
-            font.pixelSize: themeStore.fontBody
+            font.pixelSize: ThemeStore.fontBody
             font.weight: Font.Normal
-            color: themeStore.isDark ? "#B3FFFFFF" : "#8A000000"
+            color: ThemeStore.isDark ? "#B3FFFFFF" : "#8A000000"
             horizontalAlignment: Text.AlignRight
         }
 
@@ -119,8 +120,8 @@ Rectangle {
             color: {
                 // Flutter: check uses text color, chevron uses white70/black54
                 if (itemType === "setting" && currentValue === 1)
-                    return themeStore.isDark ? "#FFFFFF" : "#000000"
-                return themeStore.isDark ? "#B3FFFFFF" : "#8A000000"
+                    return ThemeStore.isDark ? "#FFFFFF" : "#000000"
+                return ThemeStore.isDark ? "#B3FFFFFF" : "#8A000000"
             }
         }
     }
