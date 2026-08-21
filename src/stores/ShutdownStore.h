@@ -14,7 +14,10 @@ class ShutdownStore : public QObject
     Q_PROPERTY(bool showBlackout READ showBlackout NOTIFY showBlackoutChanged)
 
 public:
-    explicit ShutdownStore(QObject *parent = nullptr);
+    // parent is deliberately not defaulted: a default-constructible type makes Qt
+    // pick SingletonConstructionMode::Constructor and build its own instance
+    // instead of calling create(), which would hand QML an unwired object.
+    explicit ShutdownStore(QObject *parent);
 
     bool isShuttingDown() const { return m_isShuttingDown; }
     bool showBlackout() const { return m_showBlackout; }

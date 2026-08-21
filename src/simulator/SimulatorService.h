@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QTimer>
 #include "routing/RouteModels.h"
+#include <QtQml/qqmlengine.h>
 
 class MdbRepository;
 class NavigationService;
@@ -11,19 +12,39 @@ class GestureSynth;
 class SimulatorService : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(bool autoDriveActive READ autoDriveActive NOTIFY autoDriveActiveChanged)
     Q_PROPERTY(double autoDriveSpeed READ autoDriveSpeed NOTIFY autoDriveSpeedChanged)
     Q_PROPERTY(bool simulatorMode READ simulatorMode CONSTANT)
+    Q_PROPERTY(bool available READ available CONSTANT)
     Q_PROPERTY(bool gpsFrozen READ gpsFrozen WRITE setGpsFrozen NOTIFY gpsFrozenChanged)
     Q_PROPERTY(QString clockOverride READ clockOverride WRITE setClockOverride NOTIFY clockOverrideChanged)
     Q_PROPERTY(QString dateOverride READ dateOverride WRITE setDateOverride NOTIFY dateOverrideChanged)
 
 public:
     explicit SimulatorService(MdbRepository *repo, NavigationService *nav, QObject *parent = nullptr);
+    // Inert instance for non-simulator builds. The type still resolves in QML so
+    // bindings type-check and qmltc can compile them; available() is false, no
+    // repository is attached, and the simulator panel is never loaded.
+    // parent is deliberately not defaulted: a default-constructible type makes Qt
+    // pick SingletonConstructionMode::Constructor and build its own instance
+    // instead of calling create(), which would hand QML an unwired object.
+    explicit SimulatorService(QObject *parent);
+
+    bool available() const { return m_available; }
+
+    static SimulatorService *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(SimulatorService *instance) { s_qmlInstance = instance; }
 
     bool autoDriveActive() const { return m_autoDriveActive; }
     double autoDriveSpeed() const { return m_autoDriveSpeed; }
-    bool simulatorMode() const { return true; }
+    bool simulatorMode() const { return m_available; }
     bool gpsFrozen() const { return m_gpsFrozen; }
     void setGpsFrozen(bool frozen) { if (frozen != m_gpsFrozen) { m_gpsFrozen = frozen; emit gpsFrozenChanged(); } }
     QString clockOverride() const { return m_clockOverride; }
@@ -196,6 +217,8 @@ signals:
     void dateOverrideChanged();
 
 private:
+    static inline SimulatorService *s_qmlInstance = nullptr;
+    bool m_available = false;
     void autoDriveTick();
     void updateRoadInfo();
     void applyDefaults();
@@ -209,8 +232,8 @@ private:
 
     int m_currentInstructionIndex = 0;
 
-    MdbRepository *m_repo;
-    NavigationService *m_nav;
+    MdbRepository *m_repo = nullptr;
+    NavigationService *m_nav = nullptr;
     GestureSynth *m_gestures = nullptr;
     QTimer *m_autoDriveTimer = nullptr;
     QTimer *m_gpsTimestampTimer = nullptr;

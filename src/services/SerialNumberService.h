@@ -13,7 +13,10 @@ class SerialNumberService : public QObject
     Q_PROPERTY(bool available READ available CONSTANT)
 
 public:
-    explicit SerialNumberService(QObject *parent = nullptr);
+    // parent is deliberately not defaulted: a default-constructible type makes Qt
+    // pick SingletonConstructionMode::Constructor and build its own instance
+    // instead of calling create(), which would hand QML an unwired object.
+    explicit SerialNumberService(QObject *parent);
 
     QString serialNumber() const { return m_serialNumber; }
     bool available() const { return !m_serialNumber.isEmpty(); }

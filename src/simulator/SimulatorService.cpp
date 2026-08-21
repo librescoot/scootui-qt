@@ -17,11 +17,17 @@
 #include <QJsonArray>
 #include <QDebug>
 
+SimulatorService::SimulatorService(QObject *parent)
+    : QObject(parent)
+{
+}
+
 SimulatorService::SimulatorService(MdbRepository *repo, NavigationService *nav, QObject *parent)
     : QObject(parent)
     , m_repo(repo)
     , m_nav(nav)
 {
+    m_available = true;
     // Stand in for vehicle-service's gesture detector: synthesize
     // "input-events" messages from the button edges we publish, so
     // InputHandler and other consumers behave identically under the

@@ -36,7 +36,10 @@ public:
     enum Status { Idle, Loading, Building, Ready, Error };
     Q_ENUM(Status)
 
-    explicit AddressDatabaseService(QObject *parent = nullptr);
+    // parent is deliberately not defaulted: a default-constructible type makes Qt
+    // pick SingletonConstructionMode::Constructor and build its own instance
+    // instead of calling create(), which would hand QML an unwired object.
+    explicit AddressDatabaseService(QObject *parent);
     ~AddressDatabaseService();
 
     int status() const { return m_status; }
