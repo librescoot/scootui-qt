@@ -37,7 +37,7 @@ Window {
         onActivated: SimulatorService.autoDriveSkip(20)
     }
 
-    readonly property var allowedStates: [
+    readonly property list<int> allowedStates: [
         Scooter.VehicleState.Unknown,
         Scooter.VehicleState.ReadyToDrive,
         Scooter.VehicleState.Parked,
@@ -47,25 +47,23 @@ Window {
         Scooter.VehicleState.WaitingHibernationSeatbox,
         Scooter.VehicleState.WaitingHibernationConfirm
     ]
-    readonly property int vehicleState: typeof VehicleStore !== "undefined" ? VehicleStore.state : Scooter.VehicleState.Unknown
-    readonly property int currentScreen: typeof ScreenStore !== "undefined" ? ScreenStore.currentScreen : 0
+    readonly property int vehicleState: VehicleStore.state
+    readonly property int currentScreen: ScreenStore.currentScreen
 
     readonly property bool showMaintenance: {
         // Prolonged Redis disconnect before ever connecting
-        if (typeof ConnectionStore !== "undefined"
-            && ConnectionStore.prolongedDisconnect
+        if (ConnectionStore.prolongedDisconnect
             && !ConnectionStore.hasEverConnected) return true
-        if (allowedStates.indexOf(vehicleState) === -1) return true
-        if (vehicleState === Scooter.VehicleState.Unknown && startupGraceElapsed) return true
+        if (root.allowedStates.indexOf(root.vehicleState) === -1) return true
+        if (root.vehicleState === Scooter.VehicleState.Unknown && root.startupGraceElapsed) return true
         return false
     }
 
     // Show connection info only for genuine connection failures, not for locked/transitional states
     readonly property bool maintenanceShowConnectionInfo: {
-        if (typeof ConnectionStore !== "undefined"
-            && ConnectionStore.prolongedDisconnect
+        if (ConnectionStore.prolongedDisconnect
             && !ConnectionStore.hasEverConnected) return true
-        if (vehicleState === Scooter.VehicleState.Unknown && startupGraceElapsed) return true
+        if (root.vehicleState === Scooter.VehicleState.Unknown && root.startupGraceElapsed) return true
         return false
     }
 
