@@ -5,36 +5,27 @@
 struct AppConfig {
     static inline QString settingsFilePath;
 
-    // Redis settings
-    static constexpr const char* redisSettingsCluster = "dashboard";
-    static constexpr const char* themeSettingKey = "dashboard.theme";
-    static constexpr const char* modeSettingKey = "dashboard.mode";
-    static constexpr const char* showRawSpeedKey = "dashboard.show-raw-speed";
-    static constexpr const char* batteryDisplayModeKey = "dashboard.battery-display-mode";
-    static constexpr const char* mapTypeKey = "dashboard.map.type";
-    static constexpr const char* mapRenderModeKey = "dashboard.map.render-mode";
-    static constexpr const char* redisSettingsPersistentCluster = "settings";
-
     // Valhalla routing
     static constexpr const char* valhallaOnDeviceEndpoint = "http://127.0.0.1:8002/";
     static constexpr const char* valhallaOnlineEndpoint = "https://valhalla1.openstreetmap.de/";
     static inline QString valhallaEndpoint = QStringLiteral("http://127.0.0.1:8002/");
     static constexpr const char* valhallaEndpointKey = "dashboard.valhalla-url";
 
-    // Brightness / auto-theme
+    // Auto theme. dbc-backlight publishes the OPT3001 reading in lux to the
+    // dashboard hash; these are the only knobs AutoThemeService has.
     static constexpr const char* brightnessKey = "brightness";
-    static constexpr double autoThemeLightThreshold = 25.0;
-    static constexpr double autoThemeDarkThreshold = 15.0;
-
-    // Battery
-    static constexpr double maxBatteryRangeKm = 45.0;
+    // Hysteresis band. Wide enough that a tree-lined street at night, which
+    // swings either side of the lamp level, sits inside it and triggers nothing.
+    static constexpr double autoThemeLightThreshold = 20.0;
+    static constexpr double autoThemeDarkThreshold = 8.0;
+    // How long the reading must stay past the threshold before the theme flips.
+    // Long enough to outlast a shadow at riding speed, short enough that a
+    // tunnel does not leave a white screen up.
+    static constexpr int autoThemeDwellMs = 2500;
+    // Minimum time between flips, on top of the dwell.
+    static constexpr int autoThemeLockoutMs = 10000;
 
     // Settings keys
     static constexpr const char* savedLocationsPrefix = "dashboard.saved-locations";
     static constexpr const char* recentDestinationsPrefix = "dashboard.recent-destinations";
-    static constexpr const char* languageSettingKey = "dashboard.language";
-    static constexpr const char* mapsAvailableKey = "dashboard.maps-available";
-    static constexpr const char* navigationAvailableKey = "dashboard.navigation-available";
-    static constexpr const char* blinkerStyleKey = "dashboard.blinker-style";
-    static constexpr const char* dualBatteryKey = "scooter.dual-battery";
 };

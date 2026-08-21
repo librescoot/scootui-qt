@@ -1,4 +1,5 @@
 #include "AutoThemeService.h"
+#include "core/AppConfig.h"
 #include "repositories/MdbRepository.h"
 #include "stores/ThemeStore.h"
 #include <QDebug>
@@ -17,7 +18,7 @@ AutoThemeService::AutoThemeService(MdbRepository *repo, ThemeStore *themeStore,
 
     // Also listen for pubsub brightness updates
     m_repo->subscribe(QStringLiteral("dashboard"), [this](const QString &, const QString &msg) {
-        if (msg.contains(QLatin1String("brightness")) && m_enabled) {
+        if (msg.contains(QLatin1String(AppConfig::brightnessKey)) && m_enabled) {
             QMetaObject::invokeMethod(this, &AutoThemeService::checkBrightness,
                                       Qt::QueuedConnection);
         }
@@ -42,6 +43,7 @@ void AutoThemeService::setEnabled(bool enabled)
     } else {
         m_pollTimer->stop();
         m_lockoutTimer->stop();
+        m_pendingSince.invalidate();
     }
 }
 
@@ -49,7 +51,8 @@ void AutoThemeService::checkBrightness()
 {
     if (!m_enabled) return;
 
-    const QString val = m_repo->get(QStringLiteral("dashboard"), QStringLiteral("brightness"));
+    const QString val = m_repo->get(QStringLiteral("dashboard"),
+                                    QLatin1String(AppConfig::brightnessKey));
     if (val.isEmpty()) return;
 
     bool ok = false;
@@ -59,42 +62,60 @@ void AutoThemeService::checkBrightness()
     processBrightness(lux);
 }
 
-void AutoThemeService::processBrightness(double rawLux)
+void AutoThemeService::processBrightness(double lux)
 {
-    if (m_smoothedBrightness < 0) {
-        m_smoothedBrightness = rawLux;
-    } else {
-        m_smoothedBrightness = SMOOTHING_ALPHA * rawLux
-                             + (1.0 - SMOOTHING_ALPHA) * m_smoothedBrightness;
-    }
-
-    bool shouldBeDark = m_currentlyDark;
-
+    // The threshold test runs on the raw reading. An EMA in front of it only
+    // delays the decision without rejecting anything a dwell doesn't reject
+    // better: from daylight, the alpha 0.7 filter this used to carry needed
+    // seven consecutive samples to decay below the 8 lux line, so riding into
+    // a tunnel left a white screen up for seven seconds.
+    bool wantDark = m_currentlyDark;
     if (m_currentlyDark) {
-        if (m_smoothedBrightness > LIGHT_THRESHOLD)
-            shouldBeDark = false;
+        if (lux > AppConfig::autoThemeLightThreshold)
+            wantDark = false;
     } else {
-        if (m_smoothedBrightness < DARK_THRESHOLD)
-            shouldBeDark = true;
+        if (lux < AppConfig::autoThemeDarkThreshold)
+            wantDark = true;
     }
 
     if (m_forceSync) {
-        // Re-entering auto mode: resync immediately, ignoring the lockout.
-        m_currentlyDark = shouldBeDark;
-        m_themeStore->setTheme(shouldBeDark ? QStringLiteral("dark") : QStringLiteral("light"));
-        m_lockoutTimer->start(LOCKOUT_MS);
+        // Re-entering auto mode: resync immediately, ignoring dwell and lockout.
         m_forceSync = false;
+        commitFlip(wantDark);
         return;
     }
 
-    if (shouldBeDark == m_currentlyDark)
-        return; // no flip warranted
+    if (wantDark == m_currentlyDark) {
+        m_pendingSince.invalidate();
+        return;
+    }
 
+    // The reading has to stay past the threshold for the whole dwell, and a
+    // single contrary one starts it over. Duration is the only thing that
+    // separates a tunnel from a tree-lined street: both are a deep drop from a
+    // lit baseline, but the shadows come back within a second or two at riding
+    // speed while the tunnel holds. dbc-backlight samples at about 5.8 Hz, so
+    // the dwell covers roughly fourteen readings and a tunnel commits a little
+    // under three seconds after it goes dark.
+    if (!m_pendingSince.isValid()) {
+        m_pendingSince.start();
+        return;
+    }
+    if (m_pendingSince.elapsed() < AppConfig::autoThemeDwellMs)
+        return;
+
+    // Dwell is satisfied but a recent flip still holds the floor. Keep the
+    // pending timer running so the flip lands as soon as the lockout expires.
     if (m_lockoutTimer->isActive())
-        return; // flipped too recently; hold the current level to avoid flicker
+        return;
 
-    // Commit the flip promptly, then lock out the reverse for LOCKOUT_MS.
-    m_currentlyDark = shouldBeDark;
-    m_themeStore->setTheme(shouldBeDark ? QStringLiteral("dark") : QStringLiteral("light"));
-    m_lockoutTimer->start(LOCKOUT_MS);
+    commitFlip(wantDark);
+}
+
+void AutoThemeService::commitFlip(bool dark)
+{
+    m_pendingSince.invalidate();
+    m_currentlyDark = dark;
+    m_themeStore->setTheme(dark ? QStringLiteral("dark") : QStringLiteral("light"));
+    m_lockoutTimer->start(AppConfig::autoThemeLockoutMs);
 }
