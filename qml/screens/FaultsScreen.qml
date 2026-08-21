@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import "../widgets/components"
 import ScootUI 1.0
 
 Rectangle {
@@ -58,7 +57,7 @@ Rectangle {
     readonly property var entries: typeof FaultsStore !== "undefined" ? FaultsStore.entries : []
 
     Connections {
-        target: typeof InputHandler !== "undefined" ? InputHandler : null
+        target: InputHandler
         function onLeftTap() {
             var maxY = Math.max(0, flickable.contentHeight - flickable.height)
             scrollAnim.to = Math.min(flickable.contentY + 120, maxY)

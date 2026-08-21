@@ -1,6 +1,5 @@
 import QtQuick
-import "../power"
-import "../indicators"
+import ScootUI 1.0
 
 Item {
     id: clusterBottom

@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import ScootUI 1.0
 
 Item {
     id: svgIcon

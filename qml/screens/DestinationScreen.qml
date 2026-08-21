@@ -1,8 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import "../widgets/status_bars"
-import "../widgets/map"
-import "../widgets/components"
 import ScootUI 1.0
 
 Rectangle {
@@ -15,7 +12,7 @@ Rectangle {
 
     // Right brake returns to map (centralized via InputHandler)
     Connections {
-        target: typeof InputHandler !== "undefined" ? InputHandler : null
+        target: InputHandler
         function onRightTap() {
             if (typeof ScreenStore !== "undefined") {
                 ScreenStore.setScreen(1) // Back to map

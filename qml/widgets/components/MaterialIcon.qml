@@ -1,5 +1,6 @@
 pragma Singleton
 import QtQuick
+import ScootUI 1.0
 
 // Central Material Icons codepoint registry.
 //

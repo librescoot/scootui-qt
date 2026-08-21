@@ -48,7 +48,6 @@ Item {
         color: "transparent"
         border.width: 2
         border.color: Qt.rgba(0.5, 0.5, 0.5, 0.6)
-        opacity: 0
         visible: !hasRecentFix
 
         SequentialAnimation on opacity {
@@ -76,7 +75,6 @@ Item {
         color: "transparent"
         border.width: 2
         border.color: Qt.rgba(0.5, 0.5, 0.5, 0.6)
-        opacity: 0
         visible: !hasRecentFix
 
         SequentialAnimation on opacity {

@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import "../widgets/components"
 import ScootUI 1.0
 
 Item {
@@ -26,7 +25,7 @@ Item {
     }
 
     Connections {
-        target: typeof InputHandler !== "undefined" ? InputHandler : null
+        target: InputHandler
         enabled: MenuStore.isOpen
         function onLeftTap()  { MenuStore.navigateDown() }
         function onLeftHold() { MenuStore.goBack()        }

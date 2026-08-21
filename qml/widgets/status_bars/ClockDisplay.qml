@@ -1,5 +1,4 @@
 import QtQuick
-import "../indicators"
 import ScootUI 1.0
 
 // Centre element of the top status bar. dashboard.show-clock picks the format:

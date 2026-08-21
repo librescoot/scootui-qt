@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Effects
-import "../components"
 import ScootUI 1.0
 
 Row {

@@ -1,7 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import "../widgets/status_bars"
-import "../widgets/components"
 import ScootUI 1.0
 
 Rectangle {
@@ -169,7 +167,7 @@ Rectangle {
     }
 
     Connections {
-        target: typeof AddressDatabaseService !== "undefined" ? AddressDatabaseService : null
+        target: AddressDatabaseService
 
         function onHouseNumbersReady(houses) {
             addressScreen.loadingHouseNumbers = false
@@ -451,7 +449,7 @@ Rectangle {
     }
 
     function matchCountText() {
-        var tr = typeof Translations !== "undefined" ? Translations : null
+        var tr = Translations
         if (phase === phaseCityLetters) {
             var count = AddressDatabaseService.getCityCount(cityPrefix)
             var label = tr ? tr.navCities : "cities"
@@ -471,7 +469,7 @@ Rectangle {
     // --- Input handling ---
 
     Connections {
-        target: typeof InputHandler !== "undefined" ? InputHandler : null
+        target: InputHandler
 
         function onLeftTap() {
             if (addressScreen.loadingHouseNumbers) return
@@ -549,7 +547,7 @@ Rectangle {
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: 8
             text: {
-                var tr = typeof Translations !== "undefined" ? Translations : null
+                var tr = Translations
                 switch (addressScreen.phase) {
                 case addressScreen.phaseCityLetters: return tr ? tr.navEnterCity : "Enter City"
                 case addressScreen.phaseCityList: return tr ? tr.navSelectCity : "Select City"
@@ -945,13 +943,13 @@ Rectangle {
 
                 leftAction: {
                     if (dbStatus !== statusReady) return ""
-                    var tr = typeof Translations !== "undefined" ? Translations : null
+                    var tr = Translations
                     if (addressScreen.phase === addressScreen.phaseConfirm)
                         return tr ? tr.controlBack : "Back"
                     return tr ? tr.controlScroll : "Scroll"
                 }
                 rightAction: {
-                    var tr = typeof Translations !== "undefined" ? Translations : null
+                    var tr = Translations
                     if (dbStatus === statusBuilding)
                         return tr ? tr.controlCancel : "Cancel"
                     if (dbStatus !== statusReady)

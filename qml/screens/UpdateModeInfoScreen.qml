@@ -1,7 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import "../widgets/status_bars"
-import "../widgets/components"
 import ScootUI 1.0
 
 Rectangle {
@@ -34,7 +32,7 @@ Rectangle {
     // Left tap scrolls while there's content below, then falls through to
     // Back. Right tap always confirms (Start). Matches NavigationSetup.
     Connections {
-        target: typeof InputHandler !== "undefined" ? InputHandler : null
+        target: InputHandler
         function onLeftTap() {
             if (updateModeScreen.canScrollDown) {
                 scrollAnim.to = Math.min(flickable.contentY + 100,

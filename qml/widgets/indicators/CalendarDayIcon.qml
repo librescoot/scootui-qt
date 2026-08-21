@@ -1,5 +1,5 @@
 import QtQuick
-import "../components"
+import ScootUI 1.0
 
 // A calendar glyph carrying the day of the month on its page.
 //

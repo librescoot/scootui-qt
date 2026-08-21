@@ -1,4 +1,5 @@
 import QtQuick
+import ScootUI 1.0
 
 Canvas {
     id: root

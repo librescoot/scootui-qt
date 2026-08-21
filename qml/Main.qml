@@ -1,9 +1,5 @@
 import QtQuick
 import ScootUI 1.0
-import "screens"
-import "widgets/blinker"
-import "widgets/shutdown"
-import "overlays"
 
 Window {
     id: root
@@ -85,7 +81,7 @@ Window {
     // Cancel startup timer when vehicle state becomes known;
     // auto-close parked-only screens when riding starts
     Connections {
-        target: typeof VehicleStore !== "undefined" ? VehicleStore : null
+        target: VehicleStore
         function onStateChanged() {
             if (VehicleStore.state !== Scooter.VehicleState.Unknown) {
                 startupTimer.stop()
@@ -104,7 +100,7 @@ Window {
 
     // Show permanent toast on mid-session Redis disconnect
     Connections {
-        target: typeof ConnectionStore !== "undefined" ? ConnectionStore : null
+        target: ConnectionStore
         function onProlongedDisconnectChanged() {
             if (typeof ConnectionStore !== "undefined" && typeof ToastService !== "undefined") {
                 if (ConnectionStore.prolongedDisconnect && ConnectionStore.hasEverConnected) {
@@ -138,7 +134,7 @@ Window {
     // Double-tap left brake opens menu on main screens
     Connections {
         id: doubleTapMenuOpener
-        target: typeof InputHandler !== "undefined" ? InputHandler : null
+        target: InputHandler
         enabled: typeof MenuStore !== "undefined" && !MenuStore.isOpen
                  && (root.currentScreen === Scooter.ScreenMode.Cluster
                      || root.currentScreen === Scooter.ScreenMode.Map
@@ -154,7 +150,7 @@ Window {
     // Trace double-taps that miss the opener (Connections disabled because of
     // screen or isOpen). This fires whenever the opener's gate is false.
     Connections {
-        target: typeof InputHandler !== "undefined" ? InputHandler : null
+        target: InputHandler
         enabled: !doubleTapMenuOpener.enabled
         function onLeftDoubleTap() {
             console.log("MENU: leftDoubleTap dropped by QML gate (currentScreen=" + root.currentScreen

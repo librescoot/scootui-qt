@@ -21,7 +21,7 @@ Rectangle {
     }
 
     Connections {
-        target: typeof VehicleStore !== "undefined" ? VehicleStore : null
+        target: VehicleStore
         function onStateChanged() {
             if (typeof DashboardStore !== "undefined")
                 DashboardStore.setBacklightEnabled(true)
@@ -95,7 +95,7 @@ Rectangle {
                     font.pixelSize: ThemeStore.fontBody
                     color: Qt.rgba(1, 1, 1, 0.8)
                     text: {
-                        var tr = typeof Translations !== "undefined" ? Translations : null
+                        var tr = Translations
                         switch (loadingMode.otaStatus) {
                             case "downloading": return tr ? tr.otaDownloadingUpdates : "Downloading update..."
                             case "preparing": return tr ? tr.otaPreparingUpdate : "Preparing update..."

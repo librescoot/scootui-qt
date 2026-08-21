@@ -15,7 +15,7 @@ Item {
     // need a MapView recreate. Theme switches do NOT change the URL: the map
     // recolors existing layers in place (see MapViewContent.qml), no reload.
     Connections {
-        target: typeof MapService !== "undefined" ? MapService : null
+        target: MapService
         function onStyleUrlChanged() {
             mapLoader.active = false
             mapLoader.active = true

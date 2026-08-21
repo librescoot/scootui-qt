@@ -1,5 +1,4 @@
 import QtQuick
-import "../components"
 import ScootUI 1.0
 
 // Floating telltale card, shared by cluster and map views. Sizes to the set

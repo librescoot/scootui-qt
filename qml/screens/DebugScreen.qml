@@ -33,7 +33,7 @@ Rectangle {
     // Left double-tap still opens the menu (handled in Main.qml); the menu
     // takes over the levers while it is open.
     Connections {
-        target: typeof InputHandler !== "undefined" ? InputHandler : null
+        target: InputHandler
         enabled: typeof MenuStore === "undefined" || !MenuStore.isOpen
         function onLeftTap() {
             var maxY = Math.max(0, flickable.contentHeight - flickable.height)

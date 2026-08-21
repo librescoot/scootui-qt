@@ -119,7 +119,7 @@ MapView {
     onHeightChanged: updateCamera()
 
     Connections {
-        target: typeof MapService !== "undefined" ? MapService : null
+        target: MapService
         function onIsReadyChanged() { mapView.updateCamera() }
         function onMapLatitudeChanged() { mapView.updateCamera() }
         function onMapLongitudeChanged() { mapView.updateCamera() }
@@ -129,7 +129,7 @@ MapView {
     }
 
     Connections {
-        target: typeof GpsStore !== "undefined" ? GpsStore : null
+        target: GpsStore
         function onLatitudeChanged() { mapView.updateCamera() }
         function onLongitudeChanged() { mapView.updateCamera() }
     }
@@ -191,7 +191,7 @@ MapView {
         // extrusion path and measured slower than the 3D view it replaced.
 
         Connections {
-            target: typeof ThemeStore !== "undefined" ? ThemeStore : null
+            target: ThemeStore
             function onThemeChanged() { routeStyle._applyThemePaint() }
         }
     }

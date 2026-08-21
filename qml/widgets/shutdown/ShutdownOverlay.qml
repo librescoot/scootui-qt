@@ -1,5 +1,4 @@
 import QtQuick
-import "../components"
 import ScootUI 1.0
 
 Item {
@@ -64,7 +63,7 @@ Item {
             color: Qt.rgba(1, 1, 1, 0.8)
             font.pixelSize: ThemeStore.fontBody
             text: {
-                var tr = typeof Translations !== "undefined" ? Translations : null
+                var tr = Translations
                 switch (shutdownOverlay.otaActiveStatus) {
                     case "downloading": return tr ? tr.otaDownloadingUpdates : "Downloading update..."
                     case "preparing": return tr ? tr.otaPreparingUpdate : "Preparing update..."
@@ -99,7 +98,7 @@ Item {
     }
 
     Connections {
-        target: typeof ShutdownStore !== "undefined" ? ShutdownStore : null
+        target: ShutdownStore
 
         function onShuttingDownChanged() {
             if (ShutdownStore.isShuttingDown && !ShutdownStore.showBlackout) {

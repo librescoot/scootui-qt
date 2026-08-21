@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Shapes
-import "../indicators"
 import ScootUI 1.0
 
 Item {

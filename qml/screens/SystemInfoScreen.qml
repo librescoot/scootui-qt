@@ -1,5 +1,4 @@
 import QtQuick
-import "../widgets/components"
 import ScootUI 1.0
 
 // Read-only technical summary, split into pages reached from the System > Info
@@ -183,7 +182,7 @@ Rectangle {
     onPageChanged: flickable.contentY = 0
 
     Connections {
-        target: typeof InputHandler !== "undefined" ? InputHandler : null
+        target: InputHandler
         function onLeftTap() {
             var maxY = Math.max(0, flickable.contentHeight - flickable.height)
             scrollAnim.to = Math.min(flickable.contentY + 120, maxY)

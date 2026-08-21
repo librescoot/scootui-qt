@@ -1,5 +1,4 @@
 import QtQuick
-import "../widgets/components"
 import ScootUI 1.0
 
 Rectangle {
@@ -69,7 +68,7 @@ Rectangle {
             font.pixelSize: ThemeStore.fontBody
             color: Qt.rgba(1, 1, 1, 0.8)
             text: {
-                var tr = typeof Translations !== "undefined" ? Translations : null
+                var tr = Translations
                 switch (otaScreen.dbcStatus) {
                     case "downloading": return tr ? tr.otaDownloadingUpdates : "Downloading update..."
                     case "preparing": return tr ? tr.otaPreparingUpdate : "Preparing update..."

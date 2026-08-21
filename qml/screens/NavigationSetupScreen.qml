@@ -1,7 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import "../widgets/status_bars"
-import "../widgets/components"
 import ScootUI 1.0
 
 Rectangle {
@@ -144,7 +142,7 @@ Rectangle {
     // once there's nothing left to scroll; right is the primary action
     // (Download) or Back as a fallback when no action is available.
     Connections {
-        target: typeof InputHandler !== "undefined" ? InputHandler : null
+        target: InputHandler
         function onLeftTap() {
             if (navSetupScreen.canScrollDown) {
                 scrollAnim.to = Math.min(flickable.contentY + 100,

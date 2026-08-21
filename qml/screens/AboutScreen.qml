@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import "../widgets/components"
 import ScootUI 1.0
 
 Rectangle {
@@ -119,7 +118,7 @@ Rectangle {
 
     // Centralized brake gesture handling via InputHandler
     Connections {
-        target: typeof InputHandler !== "undefined" ? InputHandler : null
+        target: InputHandler
         function onLeftTap() { aboutScreen.scrollDown() }
         function onLeftHold() { aboutScreen.scrollUp() }
         function onRightTap() { aboutScreen.closeScreen() }

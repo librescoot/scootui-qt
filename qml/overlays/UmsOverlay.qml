@@ -1,5 +1,4 @@
 import QtQuick
-import "../widgets/components"
 import ScootUI 1.0
 
 Item {
@@ -34,7 +33,7 @@ Item {
     }
 
     Connections {
-        target: typeof InputHandler !== "undefined" ? InputHandler : null
+        target: InputHandler
         // Keyed on brake:left:hold, the same 3s gesture ums-service exits
         // on, so the two sides cannot disagree about what the rider did.
         function onLeftBrakeHold() {

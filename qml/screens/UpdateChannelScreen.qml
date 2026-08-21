@@ -1,6 +1,4 @@
 import QtQuick
-import "../widgets/status_bars"
-import "../widgets/components"
 import ScootUI 1.0
 
 // Confirmation for a release-channel switch, reached from
@@ -89,7 +87,7 @@ Rectangle {
 
     // confirm() only changes settings; leaving the screen is this screen's job.
     Connections {
-        target: typeof UpdateChannelService !== "undefined" ? UpdateChannelService : null
+        target: UpdateChannelService
         function onSwitchConfirmed() {
             if (typeof ScreenStore !== "undefined")
                 ScreenStore.closeUpdateChannel()
@@ -97,7 +95,7 @@ Rectangle {
     }
 
     Connections {
-        target: typeof InputHandler !== "undefined" ? InputHandler : null
+        target: InputHandler
         function onLeftTap()  { channelScreen.cancelBack() }
         function onRightTap() { channelScreen.confirmSwitch() }
     }

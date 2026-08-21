@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import "../components"
 import ScootUI 1.0
 
 Item {

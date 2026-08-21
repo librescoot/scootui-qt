@@ -12,7 +12,7 @@ Item {
     visible: currentPin !== "" && !hopOn
 
     Connections {
-        target: typeof BluetoothStore !== "undefined" ? BluetoothStore : null
+        target: BluetoothStore
 
         function onPinCodeChanged() {
             var pin = BluetoothStore.pinCode

@@ -59,6 +59,10 @@ int main(int argc, char *argv[])
     BOOT_MARK("QQmlApplicationEngine ready");
 
     // Ensure QMapLibre QML modules (MapLibre.Location) are found
+    // The ScootUI module's qmldir lives at :/ScootUI/qmldir (resource prefix "/",
+    // since QTP0001 is OLD here). Without this the engine resolves the module
+    // from the C++ registry only, and the composite QML types are invisible.
+    engine.addImportPath(QStringLiteral("qrc:/"));
     engine.addImportPath(QStringLiteral("/usr/local/qml"));
     engine.addImportPath(QStringLiteral("/usr/qml"));
 

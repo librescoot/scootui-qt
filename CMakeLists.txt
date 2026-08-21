@@ -7,7 +7,10 @@ set(CMAKE_AUTOMOC ON)
 
 option(DESKTOP_MODE "Build for desktop development with simulator panel (QMapLibre optional)" OFF)
 
-find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Qml Svg Network Sql Concurrent)
+# QuickPrivate/QuickEffectsPrivate: qmltc-generated code includes the private
+# headers of the types it compiles, MultiEffect among them. Both cmake configs
+# ship in the DBC recipe-sysroot (Qt 6.11), so no QML file needs excluding.
+find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Qml Svg Network Sql Concurrent QuickPrivate QuickEffectsPrivate QuickLayoutsPrivate QuickShapesPrivate QuickParticlesPrivate)
 find_package(ZLIB REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(HIREDIS REQUIRED hiredis)
@@ -282,12 +285,51 @@ set(QML_FILES
 set_source_files_properties(qml/widgets/components/MaterialIcon.qml
     PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
+# Root type is QtLocation's MapView, and qmltc cannot compile a type whose base
+# lives in another QML module. Nothing to do with our own types; these two load
+# through the QML VM as before.
+set_source_files_properties(
+    qml/widgets/map/MapViewContent.qml
+    qml/widgets/map/MapViewContentLegacy.qml
+    PROPERTIES QT_QML_SKIP_TYPE_COMPILER TRUE)
+
+# qmltc exclusions. Two root causes, plus the types that embed them: qmltc has to
+# skip a whole file if any type it instantiates was skipped.
+#
+#   Canvas       QQuickCanvasItem is not exported from any Qt library, shared or
+#                static, so generated code that embeds one cannot link. Porting
+#                these to QtQuick.Shapes brings them back, the way the
+#                speedometer dial was already ported.
+#   MapView      lives in QtLocation; qmltc cannot compile a type whose base
+#                comes from another QML module.
+#   Controls     QtQuick.Controls uses optional imports, unsupported by qmltc.
+#                Only the desktop simulator panel pulls it in.
+#
+# Cascade from the above: Main, ClusterScreen, MapScreen, TurnByTurnWidget.
+# Nothing here is about MultiEffect: QuickEffectsPrivate links fine on both
+# desktop and the DBC sysroot, so every effect-using file is compiled.
+set_source_files_properties(
+    qml/screens/MotionDebugScreen.qml
+    qml/widgets/navigation/RoundaboutIcon.qml
+    qml/widgets/navigation/RoundaboutIconFromMap.qml
+    qml/widgets/map/NorthIndicator.qml
+    qml/widgets/map/ScaleBar.qml
+    qml/widgets/map/VehicleMarker.qml
+    qml/widgets/map/MapViewContent.qml
+    qml/widgets/map/MapViewContentLegacy.qml
+    qml/simulator/SimulatorWindow.qml
+    qml/Main.qml
+    qml/screens/ClusterScreen.qml
+    qml/screens/MapScreen.qml
+    qml/widgets/navigation/TurnByTurnWidget.qml
+    PROPERTIES QT_QML_SKIP_TYPE_COMPILER TRUE)
+
 qt_add_qml_module(scootui
     URI ScootUI
     VERSION 1.0
     QML_FILES ${QML_FILES}
+    ENABLE_TYPE_COMPILER
     RESOURCES
-        qml/widgets/components/qmldir
         assets/icons/librescoot-turn-left.svg
         assets/icons/librescoot-turn-right.svg
         assets/icons/librescoot-keep-left.svg
@@ -394,6 +436,11 @@ target_link_directories(scootui PRIVATE ${HIREDIS_LIBRARY_DIRS})
 
 target_link_libraries(scootui PRIVATE
     Qt6::Quick
+    Qt6::QuickPrivate
+    Qt6::QuickEffectsPrivate
+    Qt6::QuickLayoutsPrivate
+    Qt6::QuickShapesPrivate
+    Qt6::QuickParticlesPrivate
     Qt6::Svg
     Qt6::Network
     Qt6::Sql
