@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Shapes
+import ScootUI 1.0
 
 Item {
     id: root
@@ -31,7 +32,7 @@ Item {
             streetFeatures = []
             return
         }
-        if (typeof roadInfoService === "undefined") {
+        if (typeof RoadInfoService === "undefined") {
             streetFeatures = []
             return
         }
@@ -39,7 +40,7 @@ Item {
         var lon = renderData.centerLon
         var latDelta = (bboxMeters / 2) / 111320
         var lonDelta = (bboxMeters / 2) / (111320 * Math.cos(lat * Math.PI / 180))
-        streetFeatures = roadInfoService.streetsInBbox(lat - latDelta, lon - lonDelta,
+        streetFeatures = RoadInfoService.streetsInBbox(lat - latDelta, lon - lonDelta,
                                                         lat + latDelta, lon + lonDelta)
     }
 
@@ -343,8 +344,8 @@ Item {
     RoundaboutIcon {
         anchors.centerIn: parent
         visible: !root.hasMap
-        exitNumber: typeof navigationService !== "undefined"
-                    ? Math.max(1, navigationService.roundaboutExitCount) : 1
+        exitNumber: typeof NavigationService !== "undefined"
+                    ? Math.max(1, NavigationService.roundaboutExitCount) : 1
         isDark: root.isDark
         size: root.size
     }

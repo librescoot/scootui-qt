@@ -2,10 +2,13 @@
 
 #include "SyncableStore.h"
 #include "models/Enums.h"
+#include <QtQml/qqmlengine.h>
 
 class AuxBatteryStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(int dateStreamEnable READ dateStreamEnable NOTIFY dateStreamEnableChanged)
     Q_PROPERTY(int voltage READ voltage NOTIFY voltageChanged)
     Q_PROPERTY(int charge READ charge NOTIFY chargeChanged)
@@ -44,4 +47,18 @@ private:
     bool m_voltageValid = false;
     bool m_chargeValid = false;
     ScootEnums::AuxChargeStatus m_chargeStatus = ScootEnums::AuxChargeStatus::FloatCharge;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static AuxBatteryStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(AuxBatteryStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline AuxBatteryStore *s_qmlInstance = nullptr;
 };

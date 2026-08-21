@@ -15,15 +15,15 @@ Rectangle {
     readonly property color accentColor: isDark ? "#FF9800" : "#E65100"
 
     function startLearn() {
-        if (typeof screenStore !== "undefined")
-            screenStore.closeHopOnInfo()
-        if (typeof hopOnStore !== "undefined")
-            hopOnStore.startLearning()
+        if (typeof ScreenStore !== "undefined")
+            ScreenStore.closeHopOnInfo()
+        if (typeof HopOnStore !== "undefined")
+            HopOnStore.startLearning()
     }
 
     function cancelBack() {
-        if (typeof screenStore !== "undefined")
-            screenStore.closeHopOnInfo()
+        if (typeof ScreenStore !== "undefined")
+            ScreenStore.closeHopOnInfo()
     }
 
     readonly property bool canScrollDown: flickable.contentHeight > flickable.height
@@ -31,7 +31,7 @@ Rectangle {
     readonly property bool canScrollUp: flickable.contentY > 2
 
     Connections {
-        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        target: typeof InputHandler !== "undefined" ? InputHandler : null
         function onLeftTap() {
             if (hopOnInfoScreen.canScrollDown) {
                 scrollAnim.to = Math.min(flickable.contentY + 100,
@@ -84,8 +84,8 @@ Rectangle {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined"
-                          ? translations.hopOnInfoTitle : "Hop On / Hop Off"
+                    text: typeof Translations !== "undefined"
+                          ? Translations.hopOnInfoTitle : "Hop On / Hop Off"
                     color: hopOnInfoScreen.textPrimary
                     font.pixelSize: ThemeStore.fontTitle
                     font.weight: Font.Bold
@@ -94,8 +94,8 @@ Rectangle {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: bodyColumn.width - 48
-                    text: typeof translations !== "undefined"
-                          ? translations.hopOnInfoBody1 : ""
+                    text: typeof Translations !== "undefined"
+                          ? Translations.hopOnInfoBody1 : ""
                     color: hopOnInfoScreen.textPrimary
                     font.pixelSize: ThemeStore.fontBody
                     lineHeight: 1.3
@@ -107,8 +107,8 @@ Rectangle {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: bodyColumn.width - 48
-                    text: typeof translations !== "undefined"
-                          ? translations.hopOnInfoBody2 : ""
+                    text: typeof Translations !== "undefined"
+                          ? Translations.hopOnInfoBody2 : ""
                     color: hopOnInfoScreen.textSecondary
                     font.pixelSize: ThemeStore.fontBody
                     lineHeight: 1.3
@@ -140,10 +140,10 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 leftAction: hopOnInfoScreen.canScrollDown
-                    ? (typeof translations !== "undefined" ? translations.controlScroll : "Scroll")
-                    : (typeof translations !== "undefined" ? translations.controlBack : "Back")
-                rightAction: typeof translations !== "undefined"
-                             ? translations.updateModeStart : "Start"
+                    ? (typeof Translations !== "undefined" ? Translations.controlScroll : "Scroll")
+                    : (typeof Translations !== "undefined" ? Translations.controlBack : "Back")
+                rightAction: typeof Translations !== "undefined"
+                             ? Translations.updateModeStart : "Start"
             }
         }
     }

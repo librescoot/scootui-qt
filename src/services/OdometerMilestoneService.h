@@ -5,6 +5,7 @@
 #include <QSet>
 #include <QString>
 #include <QTimer>
+#include <QtQml/qqmlengine.h>
 
 class EngineStore;
 class VehicleStore;
@@ -14,6 +15,8 @@ class SettingsStore;
 class OdometerMilestoneService : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(bool easterEggsEnabled READ easterEggsEnabled WRITE setEasterEggsEnabled NOTIFY easterEggsEnabledChanged)
 
 public:
@@ -105,4 +108,18 @@ private:
     QString easterEggsPath() const;
     bool loadEasterEggsEnabled() const;
     void saveEasterEggsEnabled(bool enabled);
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static OdometerMilestoneService *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(OdometerMilestoneService *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline OdometerMilestoneService *s_qmlInstance = nullptr;
 };

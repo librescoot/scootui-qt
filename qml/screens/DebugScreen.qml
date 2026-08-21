@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI 1.0
 
 Rectangle {
     id: debugScreen
@@ -24,16 +25,16 @@ Rectangle {
         return String(value);
     }
 
-    readonly property bool hasNet: typeof internetStore !== "undefined"
-    readonly property bool hasModem: typeof modemStore !== "undefined"
+    readonly property bool hasNet: typeof InternetStore !== "undefined"
+    readonly property bool hasModem: typeof ModemStore !== "undefined"
 
     // The content is taller than the viewport and the DBC has no touchscreen,
     // so the Flickable needs brake-lever scrolling to be reachable at all.
     // Left double-tap still opens the menu (handled in Main.qml); the menu
     // takes over the levers while it is open.
     Connections {
-        target: typeof inputHandler !== "undefined" ? inputHandler : null
-        enabled: typeof menuStore === "undefined" || !menuStore.isOpen
+        target: typeof InputHandler !== "undefined" ? InputHandler : null
+        enabled: typeof MenuStore === "undefined" || !MenuStore.isOpen
         function onLeftTap() {
             var maxY = Math.max(0, flickable.contentHeight - flickable.height)
             scrollAnim.to = Math.min(flickable.contentY + 120, maxY)
@@ -93,7 +94,7 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "VEHICLE"
                     entries: [
-                        { label: "State", value: debugScreen.safeVal(typeof vehicleStore !== "undefined", typeof vehicleStore !== "undefined" ? vehicleStore.stateRaw : "") }
+                        { label: "State", value: debugScreen.safeVal(typeof VehicleStore !== "undefined", typeof VehicleStore !== "undefined" ? VehicleStore.stateRaw : "") }
                     ]
                 }
 
@@ -101,9 +102,9 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "ENGINE"
                     entries: [
-                        { label: "Speed", value: debugScreen.safeVal(typeof engineStore !== "undefined", typeof engineStore !== "undefined" ? engineStore.speed.toFixed(1) + " km/h" : "") },
-                        { label: "RPM", value: debugScreen.safeVal(typeof engineStore !== "undefined", typeof engineStore !== "undefined" ? engineStore.rpm.toFixed(0) + " RPM" : "") },
-                        { label: "Odometer", value: debugScreen.safeVal(typeof engineStore !== "undefined", typeof engineStore !== "undefined" ? (engineStore.odometer / 1000).toFixed(1) + " km" : "") }
+                        { label: "Speed", value: debugScreen.safeVal(typeof EngineStore !== "undefined", typeof EngineStore !== "undefined" ? EngineStore.speed.toFixed(1) + " km/h" : "") },
+                        { label: "RPM", value: debugScreen.safeVal(typeof EngineStore !== "undefined", typeof EngineStore !== "undefined" ? EngineStore.rpm.toFixed(0) + " RPM" : "") },
+                        { label: "Odometer", value: debugScreen.safeVal(typeof EngineStore !== "undefined", typeof EngineStore !== "undefined" ? (EngineStore.odometer / 1000).toFixed(1) + " km" : "") }
                     ]
                 }
 
@@ -111,11 +112,11 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "SWITCHES"
                     entries: [
-                        { label: "Kickstand", value: debugScreen.safeVal(typeof vehicleStore !== "undefined", typeof vehicleStore !== "undefined" ? vehicleStore.kickstand : "") },
-                        { label: "Seatbox Lock", value: debugScreen.safeVal(typeof vehicleStore !== "undefined", typeof vehicleStore !== "undefined" ? vehicleStore.seatboxLock : "") },
-                        { label: "Brake L", value: debugScreen.safeVal(typeof vehicleStore !== "undefined", typeof vehicleStore !== "undefined" ? vehicleStore.brakeLeft : "") },
-                        { label: "Brake R", value: debugScreen.safeVal(typeof vehicleStore !== "undefined", typeof vehicleStore !== "undefined" ? vehicleStore.brakeRight : "") },
-                        { label: "Blinker", value: debugScreen.safeVal(typeof vehicleStore !== "undefined", typeof vehicleStore !== "undefined" ? vehicleStore.blinkerState : "") }
+                        { label: "Kickstand", value: debugScreen.safeVal(typeof VehicleStore !== "undefined", typeof VehicleStore !== "undefined" ? VehicleStore.kickstand : "") },
+                        { label: "Seatbox Lock", value: debugScreen.safeVal(typeof VehicleStore !== "undefined", typeof VehicleStore !== "undefined" ? VehicleStore.seatboxLock : "") },
+                        { label: "Brake L", value: debugScreen.safeVal(typeof VehicleStore !== "undefined", typeof VehicleStore !== "undefined" ? VehicleStore.brakeLeft : "") },
+                        { label: "Brake R", value: debugScreen.safeVal(typeof VehicleStore !== "undefined", typeof VehicleStore !== "undefined" ? VehicleStore.brakeRight : "") },
+                        { label: "Blinker", value: debugScreen.safeVal(typeof VehicleStore !== "undefined", typeof VehicleStore !== "undefined" ? VehicleStore.blinkerState : "") }
                     ]
                 }
 
@@ -123,9 +124,9 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "GPS"
                     entries: [
-                        { label: "Latitude", value: debugScreen.safeVal(typeof gpsStore !== "undefined", typeof gpsStore !== "undefined" ? gpsStore.latitude.toFixed(6) : "") },
-                        { label: "Longitude", value: debugScreen.safeVal(typeof gpsStore !== "undefined", typeof gpsStore !== "undefined" ? gpsStore.longitude.toFixed(6) : "") },
-                        { label: "Altitude", value: debugScreen.safeVal(typeof gpsStore !== "undefined", typeof gpsStore !== "undefined" ? gpsStore.altitude.toFixed(1) + " m" : "") }
+                        { label: "Latitude", value: debugScreen.safeVal(typeof GpsStore !== "undefined", typeof GpsStore !== "undefined" ? GpsStore.latitude.toFixed(6) : "") },
+                        { label: "Longitude", value: debugScreen.safeVal(typeof GpsStore !== "undefined", typeof GpsStore !== "undefined" ? GpsStore.longitude.toFixed(6) : "") },
+                        { label: "Altitude", value: debugScreen.safeVal(typeof GpsStore !== "undefined", typeof GpsStore !== "undefined" ? GpsStore.altitude.toFixed(1) + " m" : "") }
                     ]
                 }
 
@@ -155,14 +156,14 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "INTERNET"
                     entries: [
-                        { label: "Modem", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.modemState : "") },
-                        { label: "Connectivity", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.connectivity : "") },
-                        { label: "Status", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.status : "") },
-                        { label: "Cloud", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.unuCloud : "") },
-                        { label: "IP", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.ipAddress : "") },
-                        { label: "Access Tech", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.accessTech : "") },
-                        { label: "Signal", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.signalQuality + "%" : "") },
-                        { label: "Health", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.modemHealth : "") }
+                        { label: "Modem", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? InternetStore.modemState : "") },
+                        { label: "Connectivity", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? InternetStore.connectivity : "") },
+                        { label: "Status", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? InternetStore.status : "") },
+                        { label: "Cloud", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? InternetStore.unuCloud : "") },
+                        { label: "IP", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? InternetStore.ipAddress : "") },
+                        { label: "Access Tech", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? InternetStore.accessTech : "") },
+                        { label: "Signal", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? InternetStore.signalQuality + "%" : "") },
+                        { label: "Health", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? InternetStore.modemHealth : "") }
                     ]
                 }
 
@@ -173,9 +174,9 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "SIM / MODEM IDENTITY"
                     entries: [
-                        { label: "IMEI", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.simImei : "") },
-                        { label: "ICCID", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.simIccid : "") },
-                        { label: "IMSI", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.simImsi : "") }
+                        { label: "IMEI", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? InternetStore.simImei : "") },
+                        { label: "ICCID", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? InternetStore.simIccid : "") },
+                        { label: "IMSI", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? InternetStore.simImsi : "") }
                     ]
                 }
 
@@ -183,17 +184,17 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "MODEM"
                     entries: [
-                        { label: "Operator", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.operatorName : "") },
-                        { label: "Operator Code", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.operatorCode : "") },
-                        { label: "Registration", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.registration : "") },
-                        { label: "Roaming", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.isRoaming : "") },
-                        { label: "Power", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.powerState : "") },
-                        { label: "SIM State", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.simState : "") },
-                        { label: "SIM Lock", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.simLock : "") },
-                        { label: "PIN Action", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.pinAction : "") },
-                        { label: "APN Action", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.apnAction : "") },
-                        { label: "Reg Fail", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.registrationFail : "") },
-                        { label: "Error", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? modemStore.errorState : "") }
+                        { label: "Operator", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? ModemStore.operatorName : "") },
+                        { label: "Operator Code", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? ModemStore.operatorCode : "") },
+                        { label: "Registration", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? ModemStore.registration : "") },
+                        { label: "Roaming", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? ModemStore.isRoaming : "") },
+                        { label: "Power", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? ModemStore.powerState : "") },
+                        { label: "SIM State", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? ModemStore.simState : "") },
+                        { label: "SIM Lock", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? ModemStore.simLock : "") },
+                        { label: "PIN Action", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? ModemStore.pinAction : "") },
+                        { label: "APN Action", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? ModemStore.apnAction : "") },
+                        { label: "Reg Fail", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? ModemStore.registrationFail : "") },
+                        { label: "Error", value: debugScreen.safeVal(debugScreen.hasModem, debugScreen.hasModem ? ModemStore.errorState : "") }
                     ]
                 }
 
@@ -201,8 +202,8 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "OTA"
                     entries: [
-                        { label: "DBC Status", value: debugScreen.safeVal(typeof otaStore !== "undefined", typeof otaStore !== "undefined" ? otaStore.dbcStatus : "") },
-                        { label: "DBC Download", value: debugScreen.safeVal(typeof otaStore !== "undefined", typeof otaStore !== "undefined" ? otaStore.dbcDownloadProgress + "%" : "") }
+                        { label: "DBC Status", value: debugScreen.safeVal(typeof OtaStore !== "undefined", typeof OtaStore !== "undefined" ? OtaStore.dbcStatus : "") },
+                        { label: "DBC Download", value: debugScreen.safeVal(typeof OtaStore !== "undefined", typeof OtaStore !== "undefined" ? OtaStore.dbcDownloadProgress + "%" : "") }
                     ]
                 }
 

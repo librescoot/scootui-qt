@@ -4,11 +4,14 @@
 #include <QVariantList>
 
 #include "../repositories/MdbRepository.h"
+#include <QtQml/qqmlengine.h>
 
 // Loads firmware version data from Redis and exposes it for QML display.
 class SystemInfoService : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(QVariantList versionRows READ versionRows NOTIFY versionRowsChanged)
     Q_PROPERTY(QVariantList deviceRows READ deviceRows NOTIFY versionRowsChanged)
     Q_PROPERTY(QString mdbVersion READ mdbVersion NOTIFY versionRowsChanged)
@@ -50,4 +53,18 @@ private:
     QString m_dbcVersion;
     QString m_nrfVersion;
     QString m_ecuVersion;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static SystemInfoService *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(SystemInfoService *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline SystemInfoService *s_qmlInstance = nullptr;
 };

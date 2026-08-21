@@ -51,14 +51,14 @@ Window {
         Scooter.VehicleState.WaitingHibernationSeatbox,
         Scooter.VehicleState.WaitingHibernationConfirm
     ]
-    readonly property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : Scooter.VehicleState.Unknown
-    readonly property int currentScreen: typeof screenStore !== "undefined" ? screenStore.currentScreen : 0
+    readonly property int vehicleState: typeof VehicleStore !== "undefined" ? VehicleStore.state : Scooter.VehicleState.Unknown
+    readonly property int currentScreen: typeof ScreenStore !== "undefined" ? ScreenStore.currentScreen : 0
 
     readonly property bool showMaintenance: {
         // Prolonged Redis disconnect before ever connecting
-        if (typeof connectionStore !== "undefined"
-            && connectionStore.prolongedDisconnect
-            && !connectionStore.hasEverConnected) return true
+        if (typeof ConnectionStore !== "undefined"
+            && ConnectionStore.prolongedDisconnect
+            && !ConnectionStore.hasEverConnected) return true
         if (allowedStates.indexOf(vehicleState) === -1) return true
         if (vehicleState === Scooter.VehicleState.Unknown && startupGraceElapsed) return true
         return false
@@ -66,9 +66,9 @@ Window {
 
     // Show connection info only for genuine connection failures, not for locked/transitional states
     readonly property bool maintenanceShowConnectionInfo: {
-        if (typeof connectionStore !== "undefined"
-            && connectionStore.prolongedDisconnect
-            && !connectionStore.hasEverConnected) return true
+        if (typeof ConnectionStore !== "undefined"
+            && ConnectionStore.prolongedDisconnect
+            && !ConnectionStore.hasEverConnected) return true
         if (vehicleState === Scooter.VehicleState.Unknown && startupGraceElapsed) return true
         return false
     }
@@ -85,51 +85,51 @@ Window {
     // Cancel startup timer when vehicle state becomes known;
     // auto-close parked-only screens when riding starts
     Connections {
-        target: typeof vehicleStore !== "undefined" ? vehicleStore : null
+        target: typeof VehicleStore !== "undefined" ? VehicleStore : null
         function onStateChanged() {
-            if (vehicleStore.state !== Scooter.VehicleState.Unknown) {
+            if (VehicleStore.state !== Scooter.VehicleState.Unknown) {
                 startupTimer.stop()
             }
-            if (vehicleStore.state === Scooter.VehicleState.ReadyToDrive
-                    && typeof screenStore !== "undefined") {
-                if (screenStore.currentScreen === Scooter.ScreenMode.About)
-                    screenStore.closeAbout()
-                else if (screenStore.currentScreen === Scooter.ScreenMode.Faults)
-                    screenStore.closeFaults()
-                else if (screenStore.currentScreen === Scooter.ScreenMode.SystemInfo)
-                    screenStore.closeSystemInfo()
+            if (VehicleStore.state === Scooter.VehicleState.ReadyToDrive
+                    && typeof ScreenStore !== "undefined") {
+                if (ScreenStore.currentScreen === Scooter.ScreenMode.About)
+                    ScreenStore.closeAbout()
+                else if (ScreenStore.currentScreen === Scooter.ScreenMode.Faults)
+                    ScreenStore.closeFaults()
+                else if (ScreenStore.currentScreen === Scooter.ScreenMode.SystemInfo)
+                    ScreenStore.closeSystemInfo()
             }
         }
     }
 
     // Show permanent toast on mid-session Redis disconnect
     Connections {
-        target: typeof connectionStore !== "undefined" ? connectionStore : null
+        target: typeof ConnectionStore !== "undefined" ? ConnectionStore : null
         function onProlongedDisconnectChanged() {
-            if (typeof connectionStore !== "undefined" && typeof toastService !== "undefined") {
-                if (connectionStore.prolongedDisconnect && connectionStore.hasEverConnected) {
-                    toastService.showPermanentError(
-                        typeof translations !== "undefined"
-                            ? translations.redisDisconnected
+            if (typeof ConnectionStore !== "undefined" && typeof ToastService !== "undefined") {
+                if (ConnectionStore.prolongedDisconnect && ConnectionStore.hasEverConnected) {
+                    ToastService.showPermanentError(
+                        typeof Translations !== "undefined"
+                            ? Translations.redisDisconnected
                             : "System connection lost",
                         "redis-disconnect"
                     )
                 } else {
-                    toastService.dismiss("redis-disconnect")
+                    ToastService.dismiss("redis-disconnect")
                 }
             }
         }
         function onUsingBackupConnectionChanged() {
-            if (typeof connectionStore !== "undefined" && typeof toastService !== "undefined") {
-                if (connectionStore.usingBackupConnection) {
-                    toastService.showPermanentError(
-                        typeof translations !== "undefined"
-                            ? translations.usbDisconnected
+            if (typeof ConnectionStore !== "undefined" && typeof ToastService !== "undefined") {
+                if (ConnectionStore.usingBackupConnection) {
+                    ToastService.showPermanentError(
+                        typeof Translations !== "undefined"
+                            ? Translations.usbDisconnected
                             : "USB connection interrupted",
                         "usb-disconnect"
                     )
                 } else {
-                    toastService.dismiss("usb-disconnect")
+                    ToastService.dismiss("usb-disconnect")
                 }
             }
         }
@@ -138,27 +138,27 @@ Window {
     // Double-tap left brake opens menu on main screens
     Connections {
         id: doubleTapMenuOpener
-        target: typeof inputHandler !== "undefined" ? inputHandler : null
-        enabled: typeof menuStore !== "undefined" && !menuStore.isOpen
+        target: typeof InputHandler !== "undefined" ? InputHandler : null
+        enabled: typeof MenuStore !== "undefined" && !MenuStore.isOpen
                  && (root.currentScreen === Scooter.ScreenMode.Cluster
                      || root.currentScreen === Scooter.ScreenMode.Map
                      || root.currentScreen === Scooter.ScreenMode.Debug)
         function onLeftDoubleTap() {
             console.log("MENU: onLeftDoubleTap (currentScreen=" + root.currentScreen
-                        + ", isOpen=" + menuStore.isOpen
+                        + ", isOpen=" + MenuStore.isOpen
                         + ", showMaintenance=" + root.showMaintenance + ")")
-            menuStore.open()
+            MenuStore.open()
         }
     }
 
     // Trace double-taps that miss the opener (Connections disabled because of
     // screen or isOpen). This fires whenever the opener's gate is false.
     Connections {
-        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        target: typeof InputHandler !== "undefined" ? InputHandler : null
         enabled: !doubleTapMenuOpener.enabled
         function onLeftDoubleTap() {
             console.log("MENU: leftDoubleTap dropped by QML gate (currentScreen=" + root.currentScreen
-                        + ", isOpen=" + (typeof menuStore !== "undefined" ? menuStore.isOpen : "?")
+                        + ", isOpen=" + (typeof MenuStore !== "undefined" ? MenuStore.isOpen : "?")
                         + ", showMaintenance=" + root.showMaintenance + ")")
         }
     }

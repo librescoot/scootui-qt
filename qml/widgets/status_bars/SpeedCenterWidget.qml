@@ -9,13 +9,13 @@ Item {
 
 
     readonly property real speed: {
-        if (typeof settingsStore !== "undefined" && typeof engineStore !== "undefined") {
-            if (settingsStore.showRawSpeed && engineStore.hasRawSpeed)
-                return engineStore.rawSpeed
+        if (typeof SettingsStore !== "undefined" && typeof EngineStore !== "undefined") {
+            if (SettingsStore.showRawSpeed && EngineStore.hasRawSpeed)
+                return EngineStore.rawSpeed
         }
-        return typeof engineStore !== "undefined" ? engineStore.speed : 0
+        return typeof EngineStore !== "undefined" ? EngineStore.speed : 0
     }
-    readonly property bool ecuStale: typeof engineStore !== "undefined" && engineStore.faultCode === 20
+    readonly property bool ecuStale: typeof EngineStore !== "undefined" && EngineStore.faultCode === 20
 
     // Tight bounding rect metrics for pixel-perfect sizing
     TextMetrics {

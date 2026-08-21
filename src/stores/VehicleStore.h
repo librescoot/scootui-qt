@@ -4,10 +4,13 @@
 #include "models/Enums.h"
 #include <QTimer>
 #include <QSet>
+#include <QtQml/qqmlengine.h>
 
 class VehicleStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(int blinkerState READ blinkerState NOTIFY blinkerStateChanged)
     Q_PROPERTY(int blinkerSwitch READ blinkerSwitch NOTIFY blinkerSwitchChanged)
     Q_PROPERTY(qreal blinkOpacity READ blinkOpacity NOTIFY blinkOpacityChanged)
@@ -139,4 +142,18 @@ private:
     ScootEnums::Toggle m_isUnableToDrive = ScootEnums::Toggle::Off;
     ScootEnums::Toggle m_mainPower = ScootEnums::Toggle::Off;
     QSet<int> m_faults;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static VehicleStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(VehicleStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline VehicleStore *s_qmlInstance = nullptr;
 };

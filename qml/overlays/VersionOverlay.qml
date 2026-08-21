@@ -5,11 +5,11 @@ Item {
     id: versionOverlay
     anchors.fill: parent
 
-    property bool bothBrakes: typeof vehicleStore !== "undefined"
-                              ? (vehicleStore.brakeLeft === 0 && vehicleStore.brakeRight === 0)
+    property bool bothBrakes: typeof VehicleStore !== "undefined"
+                              ? (VehicleStore.brakeLeft === 0 && VehicleStore.brakeRight === 0)
                               : false
-    property bool canShow: typeof vehicleStore !== "undefined" && typeof menuStore !== "undefined"
-                           ? (vehicleStore.state === 4 && !menuStore.isOpen)
+    property bool canShow: typeof VehicleStore !== "undefined" && typeof MenuStore !== "undefined"
+                           ? (VehicleStore.state === 4 && !MenuStore.isOpen)
                            : false
     property bool showOverlay: false
 
@@ -23,8 +23,8 @@ Item {
     }
 
     onShowOverlayChanged: {
-        if (showOverlay && typeof systemInfoService !== "undefined")
-            systemInfoService.loadVersions()
+        if (showOverlay && typeof SystemInfoService !== "undefined")
+            SystemInfoService.loadVersions()
     }
 
     Timer {
@@ -68,29 +68,29 @@ Item {
             spacing: 4
 
             Text {
-                text: "MDB: " + (typeof systemInfoService !== "undefined"
-                      ? systemInfoService.mdbVersion : "unknown")
+                text: "MDB: " + (typeof SystemInfoService !== "undefined"
+                      ? SystemInfoService.mdbVersion : "unknown")
                 font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
             }
 
             Text {
-                text: "DBC: " + (typeof systemInfoService !== "undefined"
-                      ? systemInfoService.dbcVersion : "unknown")
+                text: "DBC: " + (typeof SystemInfoService !== "undefined"
+                      ? SystemInfoService.dbcVersion : "unknown")
                 font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
             }
 
             Text {
-                text: "nRF: " + (typeof systemInfoService !== "undefined"
-                      ? systemInfoService.nrfVersion : "unknown")
+                text: "nRF: " + (typeof SystemInfoService !== "undefined"
+                      ? SystemInfoService.nrfVersion : "unknown")
                 font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
             }
 
             Text {
-                text: "ECU: " + (typeof systemInfoService !== "undefined"
-                      ? systemInfoService.ecuVersion : "unknown")
+                text: "ECU: " + (typeof SystemInfoService !== "undefined"
+                      ? SystemInfoService.ecuVersion : "unknown")
                 font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
             }
@@ -104,16 +104,16 @@ Item {
             }
 
             Text {
-                text: "AUX: " + (typeof auxBatteryStore !== "undefined"
-                      ? auxBatteryStore.voltage + "mV " + auxBatteryStore.charge + "%"
+                text: "AUX: " + (typeof AuxBatteryStore !== "undefined"
+                      ? AuxBatteryStore.voltage + "mV " + AuxBatteryStore.charge + "%"
                       : "unknown")
                 font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
             }
 
             Text {
-                text: "CBB: " + (typeof cbBatteryStore !== "undefined"
-                      ? cbBatteryStore.charge + "%"
+                text: "CBB: " + (typeof CbBatteryStore !== "undefined"
+                      ? CbBatteryStore.charge + "%"
                       : "unknown")
                 font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
@@ -121,7 +121,7 @@ Item {
 
             // Serial number
             Rectangle {
-                visible: typeof serialNumberService !== "undefined" && serialNumberService.available
+                visible: typeof SerialNumberService !== "undefined" && SerialNumberService.available
                 width: parent.width
                 height: 1
                 color: parent.parent.textColor
@@ -129,9 +129,9 @@ Item {
             }
 
             Text {
-                visible: typeof serialNumberService !== "undefined" && serialNumberService.available
-                text: "S/N: " + (typeof serialNumberService !== "undefined"
-                      ? serialNumberService.serialNumber : "")
+                visible: typeof SerialNumberService !== "undefined" && SerialNumberService.available
+                text: "S/N: " + (typeof SerialNumberService !== "undefined"
+                      ? SerialNumberService.serialNumber : "")
                 font.pixelSize: ThemeStore.fontBody
                 color: parent.parent.textColor
             }

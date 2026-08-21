@@ -18,7 +18,7 @@ Item {
     // HopOnStore.Mode.Locked == 2
     readonly property int modeLocked: 2
 
-    property int mode: typeof hopOnStore !== "undefined" ? hopOnStore.mode : 0
+    property int mode: typeof HopOnStore !== "undefined" ? HopOnStore.mode : 0
 
     visible: mode === modeLocked
 
@@ -70,7 +70,7 @@ Item {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.hopOnLockedTitle : "Hop-on active"
+                    text: typeof Translations !== "undefined" ? Translations.hopOnLockedTitle : "Hop-on active"
                     font.pixelSize: typeof ThemeStore !== "undefined" ? ThemeStore.fontHeading : 28
                     font.weight: Font.Bold
                     color: lockOverlay.textPrimary
@@ -81,7 +81,7 @@ Item {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.hopOnLockedHint : "Press your combo to unlock"
+                    text: typeof Translations !== "undefined" ? Translations.hopOnLockedHint : "Press your combo to unlock"
                     font.pixelSize: typeof ThemeStore !== "undefined" ? ThemeStore.fontBody : 18
                     color: lockOverlay.textSecondary
                     horizontalAlignment: Text.AlignHCenter

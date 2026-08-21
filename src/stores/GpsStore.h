@@ -3,10 +3,13 @@
 #include "SyncableStore.h"
 #include "models/Enums.h"
 #include <QElapsedTimer>
+#include <QtQml/qqmlengine.h>
 
 class GpsStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(double latitude READ latitude NOTIFY latitudeChanged)
     Q_PROPERTY(double longitude READ longitude NOTIFY longitudeChanged)
     Q_PROPERTY(double course READ course NOTIFY courseChanged)
@@ -149,4 +152,18 @@ private:
     ScootEnums::GpsState m_gpsState = ScootEnums::GpsState::Off;
     bool m_active = false;
     bool m_connected = false;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static GpsStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(GpsStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline GpsStore *s_qmlInstance = nullptr;
 };

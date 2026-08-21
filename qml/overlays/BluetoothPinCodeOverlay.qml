@@ -7,15 +7,15 @@ Item {
 
     property string currentPin: ""
 
-    property bool hopOn: typeof vehicleStore !== "undefined" && vehicleStore.hopOnActive
+    property bool hopOn: typeof VehicleStore !== "undefined" && VehicleStore.hopOnActive
 
     visible: currentPin !== "" && !hopOn
 
     Connections {
-        target: typeof bluetoothStore !== "undefined" ? bluetoothStore : null
+        target: typeof BluetoothStore !== "undefined" ? BluetoothStore : null
 
         function onPinCodeChanged() {
-            var pin = bluetoothStore.pinCode
+            var pin = BluetoothStore.pinCode
             if (pin !== "") {
                 btPinOverlay.currentPin = pin
                 dismissTimer.restart()
@@ -46,7 +46,7 @@ Item {
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: translations.blePinPrompt
+                text: Translations.blePinPrompt
                 font.pixelSize: ThemeStore.fontTitle
                 color: "#FFFFFF"
             }

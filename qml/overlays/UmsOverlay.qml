@@ -6,10 +6,10 @@ Item {
     id: umsOverlay
     anchors.fill: parent
 
-    property string usbStatus: typeof usbStore !== "undefined" ? usbStore.status : "idle"
-    property string usbStep: typeof usbStore !== "undefined" ? usbStore.step : ""
-    property int usbProgress: typeof usbStore !== "undefined" ? usbStore.progress : 0
-    property string usbDetail: typeof usbStore !== "undefined" ? usbStore.detail : ""
+    property string usbStatus: typeof UsbStore !== "undefined" ? UsbStore.status : "idle"
+    property string usbStep: typeof UsbStore !== "undefined" ? UsbStore.step : ""
+    property int usbProgress: typeof UsbStore !== "undefined" ? UsbStore.progress : 0
+    property string usbDetail: typeof UsbStore !== "undefined" ? UsbStore.detail : ""
 
     readonly property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
     readonly property color bgColor: isDark ? "#000000" : "#FFFFFF"
@@ -34,7 +34,7 @@ Item {
     }
 
     Connections {
-        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        target: typeof InputHandler !== "undefined" ? InputHandler : null
         // Keyed on brake:left:hold, the same 3s gesture ums-service exits
         // on, so the two sides cannot disagree about what the rider did.
         function onLeftBrakeHold() {
@@ -59,7 +59,7 @@ Item {
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             visible: usbStatus === "preparing"
-            text: typeof translations !== "undefined" ? translations.umsPreparing : "Preparing Storage"
+            text: typeof Translations !== "undefined" ? Translations.umsPreparing : "Preparing Storage"
             font.pixelSize: ThemeStore.fontTitle
             font.weight: Font.Bold
             color: umsOverlay.textPrimary
@@ -85,7 +85,7 @@ Item {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.umsActive : "Update Mode"
+                    text: typeof Translations !== "undefined" ? Translations.umsActive : "Update Mode"
                     font.pixelSize: ThemeStore.fontHeading
                     font.weight: Font.Bold
                     color: umsOverlay.textPrimary
@@ -93,7 +93,7 @@ Item {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.umsConnect : "Connect to Computer"
+                    text: typeof Translations !== "undefined" ? Translations.umsConnect : "Connect to Computer"
                     font.pixelSize: ThemeStore.fontBody
                     color: umsOverlay.textConnect
                 }
@@ -143,7 +143,7 @@ Item {
 
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: typeof translations !== "undefined" ? translations.umsProcessing : "Processing Files"
+                text: typeof Translations !== "undefined" ? Translations.umsProcessing : "Processing Files"
                 font.pixelSize: ThemeStore.fontTitle
                 font.weight: Font.Bold
                 color: umsOverlay.textPrimary
@@ -231,7 +231,7 @@ Item {
                 spacing: 2
 
                 Repeater {
-                    model: typeof umsLogStore !== "undefined" ? umsLogStore.logEntries : []
+                    model: typeof UmsLogStore !== "undefined" ? UmsLogStore.logEntries : []
 
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -268,9 +268,9 @@ Item {
         anchors.leftMargin: 12
         anchors.rightMargin: 12
         visible: usbStatus === "active" || usbStatus === "preparing"
-        leftLabel: typeof translations !== "undefined" ? translations.controlLeftBrakeHold : "Left Brake (Hold)"
-        leftAction: typeof translations !== "undefined"
-                    ? (usbStatus === "preparing" ? translations.controlCancel : translations.umsHoldExit)
+        leftLabel: typeof Translations !== "undefined" ? Translations.controlLeftBrakeHold : "Left Brake (Hold)"
+        leftAction: typeof Translations !== "undefined"
+                    ? (usbStatus === "preparing" ? Translations.controlCancel : Translations.umsHoldExit)
                     : (usbStatus === "preparing" ? "Cancel" : "Exit")
     }
 }

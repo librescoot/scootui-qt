@@ -1,10 +1,13 @@
 #pragma once
 
 #include "SyncableStore.h"
+#include <QtQml/qqmlengine.h>
 
 class OtaStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(QString dbcStatus READ dbcStatus NOTIFY dbcStatusChanged)
     Q_PROPERTY(QString dbcUpdateVersion READ dbcUpdateVersion NOTIFY dbcUpdateVersionChanged)
     Q_PROPERTY(QString dbcUpdateMethod READ dbcUpdateMethod NOTIFY dbcUpdateMethodChanged)
@@ -105,4 +108,18 @@ private:
     QString m_mdbPreviewStatus;
     QString m_mdbPreviewVersion;
     qint64 m_mdbPreviewSize = 0;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static OtaStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(OtaStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline OtaStore *s_qmlInstance = nullptr;
 };

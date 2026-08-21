@@ -15,17 +15,17 @@ Rectangle {
     readonly property color textSecondary: isDark ? "#99FFFFFF" : "#8A000000"
     readonly property color dividerColor: isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.12)
 
-    readonly property bool hasNet: typeof internetStore !== "undefined"
-    readonly property bool hasModem: typeof modemStore !== "undefined"
-    readonly property bool hasBle: typeof bluetoothStore !== "undefined"
-    readonly property bool hasCbb: typeof cbBatteryStore !== "undefined"
-    readonly property bool hasAux: typeof auxBatteryStore !== "undefined"
+    readonly property bool hasNet: typeof InternetStore !== "undefined"
+    readonly property bool hasModem: typeof ModemStore !== "undefined"
+    readonly property bool hasBle: typeof BluetoothStore !== "undefined"
+    readonly property bool hasCbb: typeof CbBatteryStore !== "undefined"
+    readonly property bool hasAux: typeof AuxBatteryStore !== "undefined"
 
     // Page indices mirror ScreenStore::SystemInfoPage.
     readonly property int pageDevice: 0
     readonly property int pageConnectivity: 1
     readonly property int pageBatteries: 2
-    readonly property int page: typeof screenStore !== "undefined" ? screenStore.systemInfoPage : 0
+    readonly property int page: typeof ScreenStore !== "undefined" ? ScreenStore.systemInfoPage : 0
 
     readonly property string placeholder: "-"
 
@@ -50,12 +50,12 @@ Rectangle {
     // Looking a string up by key defeats QML's dependency tracking, so every
     // binding built from t() also reads `lang` to re-evaluate on a language
     // change. Dropping that read makes labels stick in the old language.
-    readonly property string lang: typeof translations !== "undefined"
-                                   ? translations.language : "en"
+    readonly property string lang: typeof Translations !== "undefined"
+                                   ? Translations.language : "en"
 
     function t(key, fallback) {
-        return typeof translations !== "undefined" && translations[key] !== undefined
-               ? translations[key] : fallback
+        return typeof Translations !== "undefined" && Translations[key] !== undefined
+               ? Translations[key] : fallback
     }
 
     function mvToV(mv) {
@@ -64,11 +64,11 @@ Rectangle {
 
     // ---- Device page ----
 
-    readonly property var versionRows: typeof systemInfoService !== "undefined"
-                                       ? systemInfoService.versionRows : []
+    readonly property var versionRows: typeof SystemInfoService !== "undefined"
+                                       ? SystemInfoService.versionRows : []
     readonly property var deviceRows: {
         void systemInfoScreen.lang
-        var src = typeof systemInfoService !== "undefined" ? systemInfoService.deviceRows : []
+        var src = typeof SystemInfoService !== "undefined" ? SystemInfoService.deviceRows : []
         return src.map(function (r) {
             return { label: systemInfoScreen.t(r.key, r.key), value: r.value }
         })
@@ -77,33 +77,33 @@ Rectangle {
     // ---- Connectivity page ----
 
     readonly property var identityRows: [
-        { label: "IMEI", value: hasNet ? shown(internetStore.simImei) : placeholder },
-        { label: "ICCID", value: hasNet ? shown(internetStore.simIccid) : placeholder },
-        { label: "IMSI", value: hasNet ? shown(internetStore.simImsi) : placeholder }
+        { label: "IMEI", value: hasNet ? shown(InternetStore.simImei) : placeholder },
+        { label: "ICCID", value: hasNet ? shown(InternetStore.simIccid) : placeholder },
+        { label: "IMSI", value: hasNet ? shown(InternetStore.simImsi) : placeholder }
     ]
 
     readonly property var networkRows: (void systemInfoScreen.lang, present([
-        { label: t("infoOperator", "Operator"), value: hasModem && modemStore.operatorName !== ""
-            ? modemStore.operatorName
-              + (modemStore.operatorCode !== "" ? " (" + modemStore.operatorCode + ")" : "")
+        { label: t("infoOperator", "Operator"), value: hasModem && ModemStore.operatorName !== ""
+            ? ModemStore.operatorName
+              + (ModemStore.operatorCode !== "" ? " (" + ModemStore.operatorCode + ")" : "")
             : "" },
-        { label: t("infoAccessTech", "Access tech"), value: hasNet ? internetStore.accessTech : "" },
-        { label: t("infoSignal", "Signal"), value: hasNet && internetStore.signalQuality > 0
-            ? internetStore.signalQuality + "%" : "" },
-        { label: t("infoRegistration", "Registration"), value: hasModem && modemStore.registration !== ""
-            ? modemStore.registration
-              + (modemStore.isRoaming ? " (" + t("infoRoaming", "roaming") + ")" : "")
+        { label: t("infoAccessTech", "Access tech"), value: hasNet ? InternetStore.accessTech : "" },
+        { label: t("infoSignal", "Signal"), value: hasNet && InternetStore.signalQuality > 0
+            ? InternetStore.signalQuality + "%" : "" },
+        { label: t("infoRegistration", "Registration"), value: hasModem && ModemStore.registration !== ""
+            ? ModemStore.registration
+              + (ModemStore.isRoaming ? " (" + t("infoRoaming", "roaming") + ")" : "")
             : "" },
-        { label: t("infoSim", "SIM"), value: hasModem ? modemStore.simState : "" },
-        { label: t("infoConnectivity", "Connectivity"), value: hasNet ? internetStore.connectivity : "" },
-        { label: t("infoIpAddress", "IP address"), value: hasNet ? internetStore.ipAddress : "" }
+        { label: t("infoSim", "SIM"), value: hasModem ? ModemStore.simState : "" },
+        { label: t("infoConnectivity", "Connectivity"), value: hasNet ? InternetStore.connectivity : "" },
+        { label: t("infoIpAddress", "IP address"), value: hasNet ? InternetStore.ipAddress : "" }
     ]))
 
     // ConnectionStatus enum: 0 = Connected, 1 = Disconnected (models/Enums.h).
     readonly property var bluetoothRows: (void systemInfoScreen.lang, present([
-        { label: t("infoMac", "MAC"), value: hasBle ? bluetoothStore.macAddress : "" },
+        { label: t("infoMac", "MAC"), value: hasBle ? BluetoothStore.macAddress : "" },
         { label: t("infoStatus", "Status"), value: hasBle
-            ? (bluetoothStore.status === 0 ? t("infoConnected", "Connected")
+            ? (BluetoothStore.status === 0 ? t("infoConnected", "Connected")
                                            : t("infoDisconnected", "Disconnected"))
             : "" }
     ]))
@@ -130,26 +130,26 @@ Rectangle {
     readonly property var battery1Rows: typeof battery1Store !== "undefined"
                                         ? (void systemInfoScreen.lang, packRows(battery1Store)) : []
 
-    readonly property var cbbRows: hasCbb && cbBatteryStore.present
+    readonly property var cbbRows: hasCbb && CbBatteryStore.present
         ? (void systemInfoScreen.lang, present([
-        { label: t("infoSerial", "Serial"), value: cbBatteryStore.serialNumber },
-        { label: t("infoUniqueId", "Unique ID"), value: cbBatteryStore.uniqueId },
-        { label: t("infoPartNumber", "Part number"), value: cbBatteryStore.partNumber },
-        { label: t("infoHealth", "Health"), value: cbBatteryStore.stateOfHealth > 0
-            ? cbBatteryStore.stateOfHealth + "%" : "" },
-        { label: t("infoCycles", "Cycles"), value: cbBatteryStore.cycleCount > 0
-            ? String(cbBatteryStore.cycleCount) : "" },
-        { label: t("infoCharge", "Charge"), value: cbBatteryStore.chargeValid
-            ? cbBatteryStore.charge + "%" : "" }
+        { label: t("infoSerial", "Serial"), value: CbBatteryStore.serialNumber },
+        { label: t("infoUniqueId", "Unique ID"), value: CbBatteryStore.uniqueId },
+        { label: t("infoPartNumber", "Part number"), value: CbBatteryStore.partNumber },
+        { label: t("infoHealth", "Health"), value: CbBatteryStore.stateOfHealth > 0
+            ? CbBatteryStore.stateOfHealth + "%" : "" },
+        { label: t("infoCycles", "Cycles"), value: CbBatteryStore.cycleCount > 0
+            ? String(CbBatteryStore.cycleCount) : "" },
+        { label: t("infoCharge", "Charge"), value: CbBatteryStore.chargeValid
+            ? CbBatteryStore.charge + "%" : "" }
     ])) : []
 
     // The AUX pack has no fuel gauge, so charge is a 5-bucket estimate derived
     // from the same ADC reading as the voltage. Label it as such.
     readonly property var auxRows: (void systemInfoScreen.lang, present([
-        { label: t("infoVoltage", "Voltage"), value: hasAux && auxBatteryStore.voltageValid
-            ? mvToV(auxBatteryStore.voltage) : "" },
-        { label: t("infoChargeEstimated", "Charge (est.)"), value: hasAux && auxBatteryStore.chargeValid
-            ? auxBatteryStore.charge + "%" : "" }
+        { label: t("infoVoltage", "Voltage"), value: hasAux && AuxBatteryStore.voltageValid
+            ? mvToV(AuxBatteryStore.voltage) : "" },
+        { label: t("infoChargeEstimated", "Charge (est.)"), value: hasAux && AuxBatteryStore.chargeValid
+            ? AuxBatteryStore.charge + "%" : "" }
     ]))
 
     readonly property bool pageIsEmpty: {
@@ -163,21 +163,21 @@ Rectangle {
     }
 
     readonly property string pageTitle: {
-        if (typeof translations === "undefined")
+        if (typeof Translations === "undefined")
             return "System Info"
-        if (page === pageConnectivity) return translations.menuInfoConnectivity
-        if (page === pageBatteries) return translations.menuInfoBatteries
-        return translations.menuInfoComponents
+        if (page === pageConnectivity) return Translations.menuInfoConnectivity
+        if (page === pageBatteries) return Translations.menuInfoBatteries
+        return Translations.menuInfoComponents
     }
 
     Component.onCompleted: {
-        if (typeof systemInfoService !== "undefined")
-            systemInfoService.loadVersions()
+        if (typeof SystemInfoService !== "undefined")
+            SystemInfoService.loadVersions()
     }
 
     function closeScreen() {
-        if (typeof screenStore !== "undefined")
-            screenStore.closeSystemInfo()
+        if (typeof ScreenStore !== "undefined")
+            ScreenStore.closeSystemInfo()
     }
 
     // Reset the scroll position when switching pages, otherwise a short page
@@ -185,7 +185,7 @@ Rectangle {
     onPageChanged: flickable.contentY = 0
 
     Connections {
-        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        target: typeof InputHandler !== "undefined" ? InputHandler : null
         function onLeftTap() {
             var maxY = Math.max(0, flickable.contentHeight - flickable.height)
             scrollAnim.to = Math.min(flickable.contentY + 120, maxY)
@@ -249,72 +249,72 @@ Rectangle {
                 InfoSection {
                     width: content.width
                     pageActive: systemInfoScreen.page === systemInfoScreen.pageDevice
-                    sectionTitle: typeof translations !== "undefined"
-                                  ? translations.systemInfoFirmware : "FIRMWARE"
+                    sectionTitle: typeof Translations !== "undefined"
+                                  ? Translations.systemInfoFirmware : "FIRMWARE"
                     rows: systemInfoScreen.versionRows
                 }
 
                 InfoSection {
                     width: content.width
                     pageActive: systemInfoScreen.page === systemInfoScreen.pageDevice
-                    sectionTitle: typeof translations !== "undefined"
-                                  ? translations.systemInfoBoards : "BOARDS"
+                    sectionTitle: typeof Translations !== "undefined"
+                                  ? Translations.systemInfoBoards : "BOARDS"
                     rows: systemInfoScreen.deviceRows
                 }
 
                 InfoSection {
                     width: content.width
                     pageActive: systemInfoScreen.page === systemInfoScreen.pageConnectivity
-                    sectionTitle: typeof translations !== "undefined"
-                                  ? translations.systemInfoBluetooth : "BLUETOOTH"
+                    sectionTitle: typeof Translations !== "undefined"
+                                  ? Translations.systemInfoBluetooth : "BLUETOOTH"
                     rows: systemInfoScreen.bluetoothRows
                 }
 
                 InfoSection {
                     width: content.width
                     pageActive: systemInfoScreen.page === systemInfoScreen.pageConnectivity
-                    sectionTitle: typeof translations !== "undefined"
-                                  ? translations.systemInfoIdentity : "SIM / MODEM IDENTITY"
+                    sectionTitle: typeof Translations !== "undefined"
+                                  ? Translations.systemInfoIdentity : "SIM / MODEM IDENTITY"
                     rows: systemInfoScreen.identityRows
                 }
 
                 InfoSection {
                     width: content.width
                     pageActive: systemInfoScreen.page === systemInfoScreen.pageConnectivity
-                    sectionTitle: typeof translations !== "undefined"
-                                  ? translations.systemInfoNetwork : "NETWORK"
+                    sectionTitle: typeof Translations !== "undefined"
+                                  ? Translations.systemInfoNetwork : "NETWORK"
                     rows: systemInfoScreen.networkRows
                 }
 
                 InfoSection {
                     width: content.width
                     pageActive: systemInfoScreen.page === systemInfoScreen.pageBatteries
-                    sectionTitle: typeof translations !== "undefined"
-                                  ? translations.systemInfoBattery0 : "BATTERY 1"
+                    sectionTitle: typeof Translations !== "undefined"
+                                  ? Translations.systemInfoBattery0 : "BATTERY 1"
                     rows: systemInfoScreen.battery0Rows
                 }
 
                 InfoSection {
                     width: content.width
                     pageActive: systemInfoScreen.page === systemInfoScreen.pageBatteries
-                    sectionTitle: typeof translations !== "undefined"
-                                  ? translations.systemInfoBattery1 : "BATTERY 2"
+                    sectionTitle: typeof Translations !== "undefined"
+                                  ? Translations.systemInfoBattery1 : "BATTERY 2"
                     rows: systemInfoScreen.battery1Rows
                 }
 
                 InfoSection {
                     width: content.width
                     pageActive: systemInfoScreen.page === systemInfoScreen.pageBatteries
-                    sectionTitle: typeof translations !== "undefined"
-                                  ? translations.systemInfoCbb : "CONNECTIVITY BATTERY"
+                    sectionTitle: typeof Translations !== "undefined"
+                                  ? Translations.systemInfoCbb : "CONNECTIVITY BATTERY"
                     rows: systemInfoScreen.cbbRows
                 }
 
                 InfoSection {
                     width: content.width
                     pageActive: systemInfoScreen.page === systemInfoScreen.pageBatteries
-                    sectionTitle: typeof translations !== "undefined"
-                                  ? translations.systemInfoAux : "AUX BATTERY"
+                    sectionTitle: typeof Translations !== "undefined"
+                                  ? Translations.systemInfoAux : "AUX BATTERY"
                     rows: systemInfoScreen.auxRows
                 }
 
@@ -327,8 +327,8 @@ Rectangle {
 
                     Text {
                         anchors.centerIn: parent
-                        text: typeof translations !== "undefined"
-                              ? translations.systemInfoUnavailable : "No data reported"
+                        text: typeof Translations !== "undefined"
+                              ? Translations.systemInfoUnavailable : "No data reported"
                         color: systemInfoScreen.textSecondary
                         font.pixelSize: ThemeStore.fontBody
                     }
@@ -357,10 +357,10 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                leftAction: typeof translations !== "undefined"
-                            ? translations.aboutScrollAction : "Scroll"
-                rightAction: typeof translations !== "undefined"
-                             ? translations.aboutBackAction : "Back"
+                leftAction: typeof Translations !== "undefined"
+                            ? Translations.aboutScrollAction : "Scroll"
+                rightAction: typeof Translations !== "undefined"
+                             ? Translations.aboutBackAction : "Back"
             }
         }
     }

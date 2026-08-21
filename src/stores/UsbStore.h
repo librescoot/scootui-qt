@@ -1,10 +1,13 @@
 #pragma once
 
 #include "SyncableStore.h"
+#include <QtQml/qqmlengine.h>
 
 class UsbStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(QString status READ status NOTIFY statusChanged)
     Q_PROPERTY(QString mode READ mode NOTIFY modeChanged)
     Q_PROPERTY(QString step READ step NOTIFY stepChanged)
@@ -39,4 +42,18 @@ private:
     QString m_step;
     int m_progress = 0;
     QString m_detail;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static UsbStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(UsbStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline UsbStore *s_qmlInstance = nullptr;
 };

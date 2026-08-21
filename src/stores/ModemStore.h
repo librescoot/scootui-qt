@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SyncableStore.h"
+#include <QtQml/qqmlengine.h>
 
 // Mirrors the `modem` hash published by modem-service. The identity fields
 // (IMEI/ICCID/IMSI) live on the `internet` hash and stay in InternetStore;
@@ -8,6 +9,8 @@
 class ModemStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(QString powerState READ powerState NOTIFY powerStateChanged)
     Q_PROPERTY(QString simState READ simState NOTIFY simStateChanged)
     Q_PROPERTY(QString simLock READ simLock NOTIFY simLockChanged)
@@ -72,4 +75,18 @@ private:
     QString m_errorState;
     QString m_pinAction;
     QString m_apnAction;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static ModemStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(ModemStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline ModemStore *s_qmlInstance = nullptr;
 };

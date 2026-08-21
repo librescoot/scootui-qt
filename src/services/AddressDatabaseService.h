@@ -11,6 +11,7 @@
 #include <QVector>
 #include <atomic>
 #include <memory>
+#include <QtQml/qqmlengine.h>
 
 struct AddressEntry {
     QString city;
@@ -24,6 +25,8 @@ struct AddressEntry {
 class AddressDatabaseService : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(int status READ status NOTIFY statusChanged)
     Q_PROPERTY(double buildProgress READ buildProgress NOTIFY buildProgressChanged)
     Q_PROPERTY(int addressCount READ addressCount NOTIFY addressCountChanged)
@@ -157,4 +160,18 @@ private:
 public:
     static const QString MbtilesPath;
     static const QString CachePath;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static AddressDatabaseService *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(AddressDatabaseService *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline AddressDatabaseService *s_qmlInstance = nullptr;
 };

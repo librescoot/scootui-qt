@@ -14,9 +14,9 @@ Item {
     // HopOnStore.Mode.Learning == 1
     readonly property int modeLearning: 1
 
-    property int mode: typeof hopOnStore !== "undefined" ? hopOnStore.mode : 0
-    property var tokens: typeof hopOnStore !== "undefined" ? hopOnStore.capturedTokens : []
-    property int idleMs: typeof hopOnStore !== "undefined" ? hopOnStore.idleMillisRemaining : 0
+    property int mode: typeof HopOnStore !== "undefined" ? HopOnStore.mode : 0
+    property var tokens: typeof HopOnStore !== "undefined" ? HopOnStore.capturedTokens : []
+    property int idleMs: typeof HopOnStore !== "undefined" ? HopOnStore.idleMillisRemaining : 0
 
     visible: mode === modeLearning
 
@@ -74,7 +74,7 @@ Item {
                 // Title
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.hopOnLearnTitle : "Press your sequence"
+                    text: typeof Translations !== "undefined" ? Translations.hopOnLearnTitle : "Press your sequence"
                     font.pixelSize: typeof ThemeStore !== "undefined" ? ThemeStore.fontHeading : 28
                     font.weight: Font.Bold
                     color: learnOverlay.textPrimary
@@ -152,7 +152,7 @@ Item {
                 // Hint
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.hopOnLearnHint : "Saves 5 s after the last press."
+                    text: typeof Translations !== "undefined" ? Translations.hopOnLearnHint : "Saves 5 s after the last press."
                     font.pixelSize: typeof ThemeStore !== "undefined" ? ThemeStore.fontBody : 18
                     color: learnOverlay.textSecondary
                     horizontalAlignment: Text.AlignHCenter

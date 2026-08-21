@@ -2,10 +2,13 @@
 
 #include "SyncableStore.h"
 #include "models/Enums.h"
+#include <QtQml/qqmlengine.h>
 
 class CbBatteryStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(int charge READ charge NOTIFY chargeChanged)
     // Whether charge has actually been reported (distinguishes a real 0 from
     // "never received"; the default below is not real data).
@@ -84,4 +87,18 @@ private:
     QString m_partNumber;
     QString m_serialNumber;
     QString m_uniqueId;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static CbBatteryStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(CbBatteryStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline CbBatteryStore *s_qmlInstance = nullptr;
 };

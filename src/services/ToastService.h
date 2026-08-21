@@ -4,6 +4,7 @@
 #include <QVariantList>
 #include <QTimer>
 #include <QUuid>
+#include <QtQml/qqmlengine.h>
 
 struct ToastEntry {
     QString id;
@@ -16,6 +17,8 @@ struct ToastEntry {
 class ToastService : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(QVariantList toasts READ toasts NOTIFY toastsChanged)
 
 public:
@@ -40,4 +43,18 @@ private:
     void scheduleRemoval(const QString &id, int ms);
 
     QList<ToastEntry> m_toasts;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static ToastService *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(ToastService *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline ToastService *s_qmlInstance = nullptr;
 };

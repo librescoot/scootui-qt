@@ -10,10 +10,13 @@
 #include "models/Enums.h"
 #include "models/MapMetadata.h"
 #include "utils/ZstdDecompressor.h"
+#include <QtQml/qqmlengine.h>
 
 class MapDownloadService : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(int status READ status NOTIFY statusChanged)
     Q_PROPERTY(double progress READ progress NOTIFY progressChanged)
     Q_PROPERTY(QString regionName READ regionName NOTIFY regionNameChanged)
@@ -199,4 +202,18 @@ private:
     QString m_rejectedCompressedDigest;
 
     static const QHash<QString, QString> s_stateToSlug;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static MapDownloadService *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(MapDownloadService *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline MapDownloadService *s_qmlInstance = nullptr;
 };

@@ -7,7 +7,7 @@ Item {
     id: menuOverlay
     anchors.fill: parent
     visible: opacity > 0
-    opacity: menuStore.isOpen ? 1.0 : 0.0
+    opacity: MenuStore.isOpen ? 1.0 : 0.0
 
     property Item blurSource
 
@@ -26,11 +26,11 @@ Item {
     }
 
     Connections {
-        target: typeof inputHandler !== "undefined" ? inputHandler : null
-        enabled: menuStore.isOpen
-        function onLeftTap()  { menuStore.navigateDown() }
-        function onLeftHold() { menuStore.goBack()        }
-        function onRightTap() { menuStore.selectItem()   }
+        target: typeof InputHandler !== "undefined" ? InputHandler : null
+        enabled: MenuStore.isOpen
+        function onLeftTap()  { MenuStore.navigateDown() }
+        function onLeftHold() { MenuStore.goBack()        }
+        function onRightTap() { MenuStore.selectItem()   }
     }
 
     ColumnLayout {
@@ -41,7 +41,7 @@ Item {
         // Title
         Text {
             Layout.alignment: Qt.AlignHCenter
-            text: menuStore.currentTitle
+            text: MenuStore.currentTitle
             font.pixelSize: ThemeStore.fontHeading
             font.weight: Font.Bold
             color: ThemeStore.isDark ? "#FFFFFF" : "#000000"
@@ -63,15 +63,15 @@ Item {
                 bottomMargin: 8
                 spacing: 2
                 clip: true
-                model: menuStore.currentItems
-                currentIndex: menuStore.selectedIndex
+                model: MenuStore.currentItems
+                currentIndex: MenuStore.selectedIndex
                 highlightMoveDuration: 150
 
                 delegate: MenuItem {
                     width: menuList.width
                     title: modelData.title
                     itemType: modelData.type
-                    isSelected: index === menuStore.selectedIndex
+                    isSelected: index === MenuStore.selectedIndex
                     currentValue: modelData.currentValue
                     hasChildren: modelData.hasChildren
                     leadingIcon: modelData.leadingIcon !== undefined ? modelData.leadingIcon : ""
@@ -170,10 +170,10 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                leftAction: typeof translations !== "undefined"
-                            ? translations.controlScroll : "Scroll"
-                rightAction: typeof translations !== "undefined"
-                             ? translations.controlSelect : "Select"
+                leftAction: typeof Translations !== "undefined"
+                            ? Translations.controlScroll : "Scroll"
+                rightAction: typeof Translations !== "undefined"
+                             ? Translations.controlSelect : "Select"
             }
         }
     }

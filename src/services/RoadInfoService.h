@@ -7,6 +7,7 @@
 #include <QList>
 #include <QVariantList>
 #include "VectorTileDecoder.h"
+#include <QtQml/qqmlengine.h>
 
 class GpsStore;
 class SpeedLimitStore;
@@ -15,6 +16,8 @@ class NavigationService;
 class RoadInfoService : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
 
 public:
     explicit RoadInfoService(GpsStore *gps, SpeedLimitStore *speedLimit,
@@ -65,4 +68,18 @@ private:
     static constexpr int ClearAfterMisses = 3; // clear road name after N consecutive no-match results
 
     int m_consecutiveMisses = 0;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static RoadInfoService *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(RoadInfoService *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline RoadInfoService *s_qmlInstance = nullptr;
 };

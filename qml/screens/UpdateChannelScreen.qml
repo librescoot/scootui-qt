@@ -27,27 +27,27 @@ Rectangle {
     readonly property int stateUnavailable: 4
     readonly property int stateFailed: 5
 
-    readonly property int svcState: typeof updateChannelService !== "undefined"
-                                    ? updateChannelService.state : stateIdle
-    readonly property string targetChannel: typeof updateChannelService !== "undefined"
-                                            ? updateChannelService.targetChannel : ""
-    readonly property string currentChannel: typeof updateChannelService !== "undefined"
-                                             ? updateChannelService.currentChannel : ""
-    readonly property string version: typeof updateChannelService !== "undefined"
-                                      ? updateChannelService.version : ""
-    readonly property real totalBytes: typeof updateChannelService !== "undefined"
-                                       ? updateChannelService.totalBytes : 0
+    readonly property int svcState: typeof UpdateChannelService !== "undefined"
+                                    ? UpdateChannelService.state : stateIdle
+    readonly property string targetChannel: typeof UpdateChannelService !== "undefined"
+                                            ? UpdateChannelService.targetChannel : ""
+    readonly property string currentChannel: typeof UpdateChannelService !== "undefined"
+                                             ? UpdateChannelService.currentChannel : ""
+    readonly property string version: typeof UpdateChannelService !== "undefined"
+                                      ? UpdateChannelService.version : ""
+    readonly property real totalBytes: typeof UpdateChannelService !== "undefined"
+                                       ? UpdateChannelService.totalBytes : 0
 
     // Confirming is only offered where it would actually do something: the
     // channel exists (or we merely failed to price it) and we are online.
     readonly property bool canConfirm: svcState === stateReady || svcState === stateFailed
 
     function channelLabel(channel) {
-        if (typeof translations === "undefined")
+        if (typeof Translations === "undefined")
             return channel
-        if (channel === "stable")  return translations.channelStable
-        if (channel === "testing") return translations.channelTesting
-        if (channel === "nightly") return translations.channelNightly
+        if (channel === "stable")  return Translations.channelStable
+        if (channel === "testing") return Translations.channelTesting
+        if (channel === "nightly") return Translations.channelNightly
         return channel
     }
 
@@ -60,14 +60,14 @@ Rectangle {
     }
 
     function bodyText() {
-        if (typeof translations === "undefined")
+        if (typeof Translations === "undefined")
             return ""
         switch (svcState) {
-        case stateChecking:    return translations.channelSwitchChecking
-        case stateReady:       return translations.channelSwitchSize.arg(formatBytes(totalBytes))
-        case stateFailed:      return translations.channelSwitchSizeUnknown
-        case stateUnavailable: return translations.channelSwitchUnavailable.arg(channelLabel(targetChannel))
-        case stateOffline:     return translations.channelSwitchOffline
+        case stateChecking:    return Translations.channelSwitchChecking
+        case stateReady:       return Translations.channelSwitchSize.arg(formatBytes(totalBytes))
+        case stateFailed:      return Translations.channelSwitchSizeUnknown
+        case stateUnavailable: return Translations.channelSwitchUnavailable.arg(channelLabel(targetChannel))
+        case stateOffline:     return Translations.channelSwitchOffline
         }
         return ""
     }
@@ -75,29 +75,29 @@ Rectangle {
     function confirmSwitch() {
         if (!canConfirm)
             return
-        updateChannelService.confirm()
-        if (typeof toastService !== "undefined" && typeof translations !== "undefined")
-            toastService.showInfo(translations.channelSwitchDownloadStarted)
+        UpdateChannelService.confirm()
+        if (typeof ToastService !== "undefined" && typeof Translations !== "undefined")
+            ToastService.showInfo(Translations.channelSwitchDownloadStarted)
     }
 
     function cancelBack() {
-        if (typeof updateChannelService !== "undefined")
-            updateChannelService.cancel()
-        if (typeof screenStore !== "undefined")
-            screenStore.closeUpdateChannel()
+        if (typeof UpdateChannelService !== "undefined")
+            UpdateChannelService.cancel()
+        if (typeof ScreenStore !== "undefined")
+            ScreenStore.closeUpdateChannel()
     }
 
     // confirm() only changes settings; leaving the screen is this screen's job.
     Connections {
-        target: typeof updateChannelService !== "undefined" ? updateChannelService : null
+        target: typeof UpdateChannelService !== "undefined" ? UpdateChannelService : null
         function onSwitchConfirmed() {
-            if (typeof screenStore !== "undefined")
-                screenStore.closeUpdateChannel()
+            if (typeof ScreenStore !== "undefined")
+                ScreenStore.closeUpdateChannel()
         }
     }
 
     Connections {
-        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        target: typeof InputHandler !== "undefined" ? InputHandler : null
         function onLeftTap()  { channelScreen.cancelBack() }
         function onRightTap() { channelScreen.confirmSwitch() }
     }
@@ -124,7 +124,7 @@ Rectangle {
                 spacing: 14
 
                 Text {
-                    text: typeof translations !== "undefined" ? translations.channelSwitchTitle : ""
+                    text: typeof Translations !== "undefined" ? Translations.channelSwitchTitle : ""
                     color: channelScreen.textSecondary
                     font.pixelSize: ThemeStore.fontMicro
                     font.weight: Font.Medium
@@ -186,8 +186,8 @@ Rectangle {
                 Text {
                     width: parent.width
                     visible: channelScreen.svcState === channelScreen.stateOffline
-                    text: typeof translations !== "undefined"
-                          ? translations.channelSwitchOfflineHint.arg(
+                    text: typeof Translations !== "undefined"
+                          ? Translations.channelSwitchOfflineHint.arg(
                                 channelScreen.channelLabel(channelScreen.targetChannel))
                           : ""
                     color: channelScreen.textSecondary
@@ -217,11 +217,11 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                leftAction: typeof translations === "undefined"
+                leftAction: typeof Translations === "undefined"
                     ? "Back"
-                    : (channelScreen.canConfirm ? translations.controlCancel : translations.controlBack)
-                rightAction: channelScreen.canConfirm && typeof translations !== "undefined"
-                    ? translations.controlConfirm : ""
+                    : (channelScreen.canConfirm ? Translations.controlCancel : Translations.controlBack)
+                rightAction: channelScreen.canConfirm && typeof Translations !== "undefined"
+                    ? Translations.controlConfirm : ""
             }
         }
     }

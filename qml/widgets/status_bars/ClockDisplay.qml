@@ -67,7 +67,7 @@ Item {
     readonly property bool dateIsPlausible: effectiveDate.getFullYear() >= minPlausibleYear
 
     readonly property string setting: {
-        var s = typeof settingsStore !== "undefined" ? settingsStore.showClock : "always"
+        var s = typeof SettingsStore !== "undefined" ? SettingsStore.showClock : "always"
         return s === "" ? "always" : s
     }
 
@@ -88,11 +88,11 @@ Item {
     readonly property string monthStr: {
         // A Q_INVOKABLE call carries no binding dependency of its own; naming
         // the language is what re-runs this when the rider switches it.
-        translations.language
-        return translations.monthAbbrev(effectiveDate.getMonth() + 1)
+        Translations.language
+        return Translations.monthAbbrev(effectiveDate.getMonth() + 1)
     }
     // German wants the ordinal point on the day ("17. Aug"), English does not.
-    readonly property string dateStr: translations.dateDayMonth.arg(dayNum).arg(monthStr)
+    readonly property string dateStr: Translations.dateDayMonth.arg(dayNum).arg(monthStr)
 
     property bool showingDate: false
 

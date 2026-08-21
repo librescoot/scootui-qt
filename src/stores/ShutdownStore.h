@@ -1,12 +1,15 @@
 #pragma once
 
 #include <QObject>
+#include <QtQml/qqmlengine.h>
 
 class VehicleStore;
 
 class ShutdownStore : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(bool isShuttingDown READ isShuttingDown NOTIFY shuttingDownChanged)
     Q_PROPERTY(bool showBlackout READ showBlackout NOTIFY showBlackoutChanged)
 
@@ -33,4 +36,18 @@ private:
     bool m_isShuttingDown = false;
     bool m_showBlackout = false;
     bool m_wasInDriveState = false;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static ShutdownStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(ShutdownStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline ShutdownStore *s_qmlInstance = nullptr;
 };

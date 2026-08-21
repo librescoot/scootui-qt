@@ -14,8 +14,8 @@ Item {
     // banner at distance=0 for regular turns (only kStart/Arrive were kept
     // visible there), which blanked the banner at the exact shape index of
     // every turn — precisely when the rider needs the "execute now" cue.
-    visible: typeof navigationService !== "undefined" && navigationService.isNavigating
-             && navigationService.hasCurrentManeuver
+    visible: typeof NavigationService !== "undefined" && NavigationService.isNavigating
+             && NavigationService.hasCurrentManeuver
 
     // Guarded against null as well as undefined: ClusterScreen incubates this
     // through an asynchronous Loader, and `typeof null` is "object", so the
@@ -139,10 +139,10 @@ Item {
                 Layout.preferredWidth: 80
                 Layout.preferredHeight: 80
 
-                property int mType: typeof navigationService !== "undefined"
-                                    ? navigationService.currentManeuverType : 0
-                property double mDist: typeof navigationService !== "undefined"
-                                       ? navigationService.currentManeuverDistance : 0
+                property int mType: typeof NavigationService !== "undefined"
+                                    ? NavigationService.currentManeuverType : 0
+                property double mDist: typeof NavigationService !== "undefined"
+                                       ? NavigationService.currentManeuverDistance : 0
                 property bool isRoundabout: (mType === mtRoundaboutEnter || mType === mtRoundaboutExit)
                                             && mDist <= iconThreshold(mType)
                 // Keep L/R uses two-tone SVGs (active arm bright, inactive arm
@@ -156,8 +156,8 @@ Item {
                     anchors.centerIn: parent
                     active: parent.isRoundabout
                     sourceComponent: RoundaboutIconFromMap {
-                        renderData: typeof navigationService !== "undefined"
-                                    ? navigationService.currentRoundaboutRender : null
+                        renderData: typeof NavigationService !== "undefined"
+                                    ? NavigationService.currentRoundaboutRender : null
                         isDark: tbtWidget.isDark
                         size: 64
                     }
@@ -207,10 +207,10 @@ Item {
                 // because the rider is AT the start and 0 m is noise.
                 Text {
                     Layout.fillWidth: true
-                    visible: typeof navigationService === "undefined"
-                             || !navigationService.currentIsStart
-                    text: typeof navigationService !== "undefined"
-                          ? formatDistance(navigationService.currentManeuverDistance) : ""
+                    visible: typeof NavigationService === "undefined"
+                             || !NavigationService.currentIsStart
+                    text: typeof NavigationService !== "undefined"
+                          ? formatDistance(NavigationService.currentManeuverDistance) : ""
                     font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Bold
                     color: isDark ? "white" : "#212121"
@@ -221,8 +221,8 @@ Item {
                 // runaway instruction can't blow out the banner height.
                 Text {
                     Layout.fillWidth: true
-                    text: typeof navigationService !== "undefined"
-                          ? navigationService.currentVerbalInstruction : ""
+                    text: typeof NavigationService !== "undefined"
+                          ? NavigationService.currentVerbalInstruction : ""
                     font.pixelSize: ThemeStore.fontBody
                     font.weight: isDark ? Font.Normal : Font.Medium
                     color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
@@ -235,7 +235,7 @@ Item {
                 // Next instruction preview
                 RowLayout {
                     Layout.fillWidth: true
-                    visible: typeof navigationService !== "undefined" && navigationService.showNextPreview
+                    visible: typeof NavigationService !== "undefined" && NavigationService.showNextPreview
                     spacing: 4
 
                     Text {
@@ -244,8 +244,8 @@ Item {
                         color: isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
                     }
                     Text {
-                        text: typeof navigationService !== "undefined"
-                              ? maneuverIcon(navigationService.nextManeuverType) : ""
+                        text: typeof NavigationService !== "undefined"
+                              ? maneuverIcon(NavigationService.nextManeuverType) : ""
                         font.family: "Material Icons"
                         font.pixelSize: ThemeStore.fontBody
                         color: isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
@@ -257,9 +257,9 @@ Item {
                         // a street. Fall back to "arrive" so the preview
                         // reads "Then [flag] arrive" rather than a bare flag.
                         text: {
-                            if (typeof navigationService === "undefined") return ""
-                            var nt = navigationService.nextManeuverType
-                            var name = navigationService.nextStreetName
+                            if (typeof NavigationService === "undefined") return ""
+                            var nt = NavigationService.nextManeuverType
+                            var name = NavigationService.nextStreetName
                             var isArrive = (nt === mtArrive || nt === mtArriveRight || nt === mtArriveLeft)
                             if (name && name.length > 0) return name
                             return isArrive ? "arrive" : ""
@@ -300,8 +300,8 @@ Item {
                     spacing: 2
                     Text { text: MaterialIcon.iconSpeed; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
-                        text: typeof navigationService !== "undefined"
-                              ? formatDistance(navigationService.distanceToDestination) : ""
+                        text: typeof NavigationService !== "undefined"
+                              ? formatDistance(NavigationService.distanceToDestination) : ""
                         font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
                 }
@@ -311,8 +311,8 @@ Item {
                     spacing: 2
                     Text { text: MaterialIcon.iconTimer; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
-                        text: typeof navigationService !== "undefined"
-                              ? formatRemainingTime(navigationService.remainingDuration) : ""
+                        text: typeof NavigationService !== "undefined"
+                              ? formatRemainingTime(NavigationService.remainingDuration) : ""
                         font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
                 }
@@ -322,7 +322,7 @@ Item {
                     spacing: 2
                     Text { text: MaterialIcon.iconFlag; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
-                        text: typeof navigationService !== "undefined" ? navigationService.eta : ""
+                        text: typeof NavigationService !== "undefined" ? NavigationService.eta : ""
                         font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
                 }

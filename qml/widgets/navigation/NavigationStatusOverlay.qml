@@ -15,8 +15,8 @@ Item {
     readonly property int statusArrived: 4
     readonly property int statusError: 5
 
-    property int navStatus: typeof navigationService !== "undefined"
-                            ? navigationService.status : 0
+    property int navStatus: typeof NavigationService !== "undefined"
+                            ? NavigationService.status : 0
 
     visible: navStatus === statusCalculating ||
              navStatus === statusRerouting ||
@@ -102,12 +102,12 @@ Item {
             Text {
                 text: {
                     switch (navStatusOverlay.navStatus) {
-                        case statusCalculating: return translations.navCalculating
-                        case statusRerouting: return translations.navRecalculating
-                        case statusArrived: return translations.navArrived
+                        case statusCalculating: return Translations.navCalculating
+                        case statusRerouting: return Translations.navRecalculating
+                        case statusArrived: return Translations.navArrived
                         case statusError:
-                            return typeof navigationService !== "undefined"
-                                   ? navigationService.errorMessage : translations.navRouteError
+                            return typeof NavigationService !== "undefined"
+                                   ? NavigationService.errorMessage : Translations.navRouteError
                         default: return ""
                     }
                 }
@@ -129,7 +129,7 @@ Item {
         color: ThemeStore.statusWarning
         opacity: 0.85
         visible: navStatusOverlay.navStatus === statusNavigating &&
-                 typeof navigationService !== "undefined" && navigationService.isOffRoute
+                 typeof NavigationService !== "undefined" && NavigationService.isOffRoute
 
         RowLayout {
             id: offRouteRow
@@ -144,7 +144,7 @@ Item {
             }
 
             Text {
-                text: translations.navOffRoute
+                text: Translations.navOffRoute
                 font.pixelSize: ThemeStore.fontBody
                 font.weight: Font.Bold
                 color: "white"

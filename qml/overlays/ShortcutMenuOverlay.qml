@@ -6,7 +6,7 @@ import ScootUI 1.0
 Item {
     id: shortcutOverlay
     anchors.fill: parent
-    visible: shortcutMenuStore.visible
+    visible: ShortcutMenuStore.visible
 
     property Item blurSource
     property bool isDark: ThemeStore.isDark
@@ -14,23 +14,23 @@ Item {
     // Caption for a slot. The theme and view icons show the state they switch
     // to rather than the current one, so these name the target as well.
     function itemLabel(idx) {
-        if (typeof translations === "undefined")
+        if (typeof Translations === "undefined")
             return ""
         switch (idx) {
         case 0:
-            if (ThemeStore.isAutoMode) return translations.shortcutThemeDark
-            if (ThemeStore.isDark) return translations.shortcutThemeLight
-            return translations.shortcutThemeAuto
+            if (ThemeStore.isAutoMode) return Translations.shortcutThemeDark
+            if (ThemeStore.isDark) return Translations.shortcutThemeLight
+            return Translations.shortcutThemeAuto
         case 1:
-            return screenStore.currentScreen === 0 ? translations.shortcutViewMap
-                                                   : translations.shortcutViewCluster
-        case 2: return translations.shortcutToggleHazards
-        case 3: return translations.shortcutDebugOverlay
+            return ScreenStore.currentScreen === 0 ? Translations.shortcutViewMap
+                                                   : Translations.shortcutViewCluster
+        case 2: return Translations.shortcutToggleHazards
+        case 3: return Translations.shortcutDebugOverlay
         default: return ""
         }
     }
 
-    readonly property string selectedLabel: itemLabel(shortcutMenuStore.selectedIndex)
+    readonly property string selectedLabel: itemLabel(ShortcutMenuStore.selectedIndex)
 
     // Main bottom container. Fixed width, inset 40 on each side: sizing it to
     // the content instead meant the bar grew and shrank by 20 px as the
@@ -92,7 +92,7 @@ Item {
                     Rectangle {
                         id: menuItemRect
                         anchors.centerIn: parent
-                        property bool isSelected: index === shortcutMenuStore.selectedIndex
+                        property bool isSelected: index === ShortcutMenuStore.selectedIndex
                         property color itemColor: isSelected ? "#FF9800" : (isDark ? "#FFFFFF" : "#212121")
 
                         width: isSelected ? 80 : 60
@@ -117,7 +117,7 @@ Item {
                                         if (ThemeStore.isDark) return MaterialIcon.iconLightMode
                                         return MaterialIcon.iconContrast
                                     case 1: // View
-                                        return screenStore.currentScreen === 0 ? MaterialIcon.iconMap : MaterialIcon.iconSpeed
+                                        return ScreenStore.currentScreen === 0 ? MaterialIcon.iconMap : MaterialIcon.iconSpeed
                                     case 2: // Hazards
                                         return MaterialIcon.iconWarningAmber
                                     case 3: // Debug
@@ -162,7 +162,7 @@ Item {
         color: isDark ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.95)
         border.width: 2
         border.color: "#FF9800"
-        visible: shortcutMenuStore.confirming
+        visible: ShortcutMenuStore.confirming
 
         Column {
             id: confirmContent
@@ -187,8 +187,8 @@ Item {
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: typeof translations !== "undefined"
-                          ? translations.shortcutToConfirm : "to confirm"
+                    text: typeof Translations !== "undefined"
+                          ? Translations.shortcutToConfirm : "to confirm"
                     font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Bold
                     color: isDark ? "#FFFFFF" : "#000000"
@@ -221,7 +221,7 @@ Item {
                         id: confirmAnim
                         from: 0
                         to: 1
-                        duration: shortcutMenuStore.confirmTimeoutMs
+                        duration: ShortcutMenuStore.confirmTimeoutMs
                     }
                 }
             }

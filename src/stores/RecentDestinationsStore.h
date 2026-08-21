@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QVariantList>
 #include "models/RecentDestination.h"
+#include <QtQml/qqmlengine.h>
 
 class MdbRepository;
 class RecentDestinationsService;
@@ -14,6 +15,8 @@ class ToastService;
 class RecentDestinationsStore : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(QVariantList destinations READ destinations NOTIFY destinationsChanged)
     Q_PROPERTY(int count READ count NOTIFY destinationsChanged)
 
@@ -53,4 +56,18 @@ private:
     ToastService *m_toast;
 
     QList<RecentDestination> m_destinations; // newest first
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static RecentDestinationsStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(RecentDestinationsStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline RecentDestinationsStore *s_qmlInstance = nullptr;
 };

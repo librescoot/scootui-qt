@@ -4,6 +4,7 @@
 #include <QStringList>
 #include <QString>
 #include <QTimer>
+#include <QtQml/qqmlengine.h>
 
 class VehicleStore;
 class SettingsStore;
@@ -39,6 +40,8 @@ class ScreenStore;
 class HopOnStore : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(int mode READ mode NOTIFY modeChanged)
     Q_PROPERTY(QStringList capturedTokens READ capturedTokens NOTIFY capturedTokensChanged)
     Q_PROPERTY(int idleMillisRemaining READ idleMillisRemaining NOTIFY idleMillisRemainingChanged)
@@ -146,4 +149,18 @@ private:
     int m_lastHornButton = -1;
     int m_lastBlinkerSwitch = -1;
     int m_lastSeatboxButton = -1;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static HopOnStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(HopOnStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline HopOnStore *s_qmlInstance = nullptr;
 };

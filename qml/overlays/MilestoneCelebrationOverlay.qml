@@ -15,8 +15,8 @@ Item {
     property int intensity: 0
     property bool active: false
 
-    readonly property int currentScreen: screenStore && screenStore.currentScreen !== undefined
-                                         ? screenStore.currentScreen : 0
+    readonly property int currentScreen: ScreenStore && ScreenStore.currentScreen !== undefined
+                                         ? ScreenStore.currentScreen : 0
     readonly property bool allowedScreen: currentScreen === Scooter.ScreenMode.Cluster
                                        || currentScreen === Scooter.ScreenMode.Map
 
@@ -39,13 +39,13 @@ Item {
     }
 
     Connections {
-        target: odometerMilestoneService ? odometerMilestoneService : null
+        target: OdometerMilestoneService ? OdometerMilestoneService : null
         function onMilestoneCelebrate(km, intens, tagIn) {
             if (!root.allowedScreen) {
                 // Skip to next queued item — overlay only renders on
                 // cluster/map.
                 Qt.callLater(function() {
-                    odometerMilestoneService.advanceCelebration()
+                    OdometerMilestoneService.advanceCelebration()
                 })
                 return
             }
@@ -65,8 +65,8 @@ Item {
             root.active = false
             // Give the exit animation a beat before the next banner pops in.
             Qt.callLater(function() {
-                if (typeof odometerMilestoneService !== "undefined")
-                    odometerMilestoneService.advanceCelebration()
+                if (typeof OdometerMilestoneService !== "undefined")
+                    OdometerMilestoneService.advanceCelebration()
             })
         }
     }

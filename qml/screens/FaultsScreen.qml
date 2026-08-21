@@ -51,14 +51,14 @@ Rectangle {
     }
 
     function closeScreen() {
-        if (typeof screenStore !== "undefined")
-            screenStore.closeFaults()
+        if (typeof ScreenStore !== "undefined")
+            ScreenStore.closeFaults()
     }
 
-    readonly property var entries: typeof faultsStore !== "undefined" ? faultsStore.entries : []
+    readonly property var entries: typeof FaultsStore !== "undefined" ? FaultsStore.entries : []
 
     Connections {
-        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        target: typeof InputHandler !== "undefined" ? InputHandler : null
         function onLeftTap() {
             var maxY = Math.max(0, flickable.contentHeight - flickable.height)
             scrollAnim.to = Math.min(flickable.contentY + 120, maxY)
@@ -84,7 +84,7 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.leftMargin: 20
                 anchors.verticalCenter: parent.verticalCenter
-                text: typeof translations !== "undefined" ? translations.menuFaults : "Faults"
+                text: typeof Translations !== "undefined" ? Translations.menuFaults : "Faults"
                 color: faultsScreen.textPrimary
                 font.pixelSize: ThemeStore.fontBody + 6
                 font.weight: Font.DemiBold
@@ -95,7 +95,7 @@ Rectangle {
                 anchors.rightMargin: 20
                 anchors.verticalCenter: parent.verticalCenter
                 text: {
-                    var active = typeof faultsStore !== "undefined" ? faultsStore.activeCount : 0
+                    var active = typeof FaultsStore !== "undefined" ? FaultsStore.activeCount : 0
                     var total = faultsScreen.entries.length
                     if (active > 0)
                         return active + " active / " + total + " total"
@@ -214,8 +214,8 @@ Rectangle {
                                 Text {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: modelData.active
-                                        ? (typeof translations !== "undefined" ? translations.faultActive : "active")
-                                        : (typeof translations !== "undefined" ? translations.faultCleared : "cleared")
+                                        ? (typeof Translations !== "undefined" ? Translations.faultActive : "active")
+                                        : (typeof Translations !== "undefined" ? Translations.faultCleared : "cleared")
                                     color: modelData.active ? parent.parent.parent.sevColor : faultsScreen.textTertiary
                                     font.pixelSize: ThemeStore.fontCaption
                                     font.weight: Font.DemiBold
@@ -282,7 +282,7 @@ Rectangle {
 
                     Text {
                         anchors.centerIn: parent
-                        text: typeof translations !== "undefined" ? translations.faultsEmpty : "No faults recorded"
+                        text: typeof Translations !== "undefined" ? Translations.faultsEmpty : "No faults recorded"
                         color: faultsScreen.textSecondary
                         font.pixelSize: ThemeStore.fontBody
                     }
@@ -311,10 +311,10 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                leftAction: typeof translations !== "undefined"
-                            ? translations.aboutScrollAction : "Scroll"
-                rightAction: typeof translations !== "undefined"
-                             ? translations.aboutBackAction : "Back"
+                leftAction: typeof Translations !== "undefined"
+                            ? Translations.aboutScrollAction : "Scroll"
+                rightAction: typeof Translations !== "undefined"
+                             ? Translations.aboutBackAction : "Back"
             }
         }
     }

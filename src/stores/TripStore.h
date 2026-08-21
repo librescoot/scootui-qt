@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QTimer>
 #include <QElapsedTimer>
+#include <QtQml/qqmlengine.h>
 
 class EngineStore;
 class VehicleStore;
@@ -10,6 +11,8 @@ class VehicleStore;
 class TripStore : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(double distance READ distance NOTIFY distanceChanged)
     Q_PROPERTY(int duration READ duration NOTIFY durationChanged)
     Q_PROPERTY(double averageSpeed READ averageSpeed NOTIFY averageSpeedChanged)
@@ -49,4 +52,18 @@ private:
     int m_duration = 0;
     double m_averageSpeed = 0;
     bool m_overrideActive = false;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static TripStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(TripStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline TripStore *s_qmlInstance = nullptr;
 };

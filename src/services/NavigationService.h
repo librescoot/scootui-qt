@@ -6,6 +6,7 @@
 #include <QVariantMap>
 #include "routing/RouteModels.h"
 #include "routing/ValhallaClient.h"
+#include <QtQml/qqmlengine.h>
 
 class GpsStore;
 class NavigationStore;
@@ -18,6 +19,8 @@ class MapService;
 class NavigationService : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
 
     // Navigation status
     Q_PROPERTY(int status READ status NOTIFY statusChanged)
@@ -282,4 +285,18 @@ private:
     // ToastService's error duration so the pill and its toast go together.
     static constexpr int ErrorLingerMs = 5000;
     QTimer *m_errorLinger = nullptr;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static NavigationService *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(NavigationService *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline NavigationService *s_qmlInstance = nullptr;
 };

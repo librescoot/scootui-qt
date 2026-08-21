@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QNetworkAccessManager>
 #include <QTimer>
+#include <QtQml/qqmlengine.h>
 
 class SettingsStore;
 class InternetStore;
@@ -11,6 +12,8 @@ class MdbRepository;
 class NavigationAvailabilityService : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(bool localDisplayMapsAvailable READ localDisplayMapsAvailable NOTIFY availabilityChanged)
     Q_PROPERTY(bool routingAvailable READ routingAvailable NOTIFY availabilityChanged)
 
@@ -51,4 +54,18 @@ private:
     bool m_mapsAvailable = false;
     bool m_routingAvailable = false;
     bool m_overrideActive = false;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static NavigationAvailabilityService *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(NavigationAvailabilityService *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline NavigationAvailabilityService *s_qmlInstance = nullptr;
 };

@@ -1,9 +1,10 @@
 import QtQuick
+import ScootUI 1.0
 
 Item {
     id: serviceModeOverlay
     anchors.fill: parent
-    visible: typeof settingsStore !== "undefined" && settingsStore.serviceActive === "true"
+    visible: typeof SettingsStore !== "undefined" && SettingsStore.serviceActive === "true"
 
     Rectangle {
         anchors.top: parent.top
@@ -15,7 +16,7 @@ Item {
 
         Text {
             anchors.centerIn: parent
-            text: typeof translations !== "undefined" ? translations.serviceModeActive : "Service Mode Active"
+            text: typeof Translations !== "undefined" ? Translations.serviceModeActive : "Service Mode Active"
             color: "white"
             font.bold: true
             font.pixelSize: 12

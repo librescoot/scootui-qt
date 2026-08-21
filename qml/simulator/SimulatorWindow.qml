@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import ScootUI 1.0
 
 ApplicationWindow {
     id: simWindow
@@ -37,19 +38,19 @@ ApplicationWindow {
                 text: "Cluster"; small: true
                 ButtonGroup.group: screenGroup
                 checkable: true; checked: true
-                onClicked: screenStore.setScreen(0)
+                onClicked: ScreenStore.setScreen(0)
             }
             SimButton {
                 text: "Map"; small: true
                 ButtonGroup.group: screenGroup
                 checkable: true
-                onClicked: screenStore.setScreen(1)
+                onClicked: ScreenStore.setScreen(1)
             }
             SimButton {
                 text: "About"; small: true
                 ButtonGroup.group: screenGroup
                 checkable: true
-                onClicked: screenStore.setScreen(4)
+                onClicked: ScreenStore.setScreen(4)
             }
             SimButton {
                 text: "SysInfo"; small: true
@@ -57,15 +58,15 @@ ApplicationWindow {
                 checkable: true
                 // Re-tapping cycles System / Connectivity / Batteries, which on
                 // the vehicle are three separate System > Info menu entries.
-                onClicked: screenStore.showSystemInfo(
-                    screenStore.currentScreen === 15 // ScreenMode.SystemInfo
-                        ? (screenStore.systemInfoPage + 1) % 3 : 0)
+                onClicked: ScreenStore.showSystemInfo(
+                    ScreenStore.currentScreen === 15 // ScreenMode.SystemInfo
+                        ? (ScreenStore.systemInfoPage + 1) % 3 : 0)
             }
             SimButton {
                 text: "Debug"; small: true
                 ButtonGroup.group: screenGroup
                 checkable: true
-                onClicked: screenStore.setScreen(3) // ScreenMode.Debug
+                onClicked: ScreenStore.setScreen(3) // ScreenMode.Debug
             }
 
             Item { Layout.fillWidth: true }
@@ -189,31 +190,31 @@ ApplicationWindow {
                 SimLabel { text: "Maps" }
                 Switch {
                     id: mapsAvailSwitch
-                    checked: typeof navAvailabilityService !== "undefined"
-                             && navAvailabilityService.localDisplayMapsAvailable
+                    checked: typeof NavigationAvailabilityService !== "undefined"
+                             && NavigationAvailabilityService.localDisplayMapsAvailable
                     palette.highlight: "#2196F3"
                     onToggled: {
-                        if (typeof navAvailabilityService !== "undefined")
-                            navAvailabilityService.setOverride(checked, routingAvailSwitch.checked)
+                        if (typeof NavigationAvailabilityService !== "undefined")
+                            NavigationAvailabilityService.setOverride(checked, routingAvailSwitch.checked)
                     }
                 }
                 SimLabel { text: "Routing" }
                 Switch {
                     id: routingAvailSwitch
-                    checked: typeof navAvailabilityService !== "undefined"
-                             && navAvailabilityService.routingAvailable
+                    checked: typeof NavigationAvailabilityService !== "undefined"
+                             && NavigationAvailabilityService.routingAvailable
                     palette.highlight: "#2196F3"
                     onToggled: {
-                        if (typeof navAvailabilityService !== "undefined")
-                            navAvailabilityService.setOverride(mapsAvailSwitch.checked, checked)
+                        if (typeof NavigationAvailabilityService !== "undefined")
+                            NavigationAvailabilityService.setOverride(mapsAvailSwitch.checked, checked)
                     }
                 }
                 Item { Layout.fillWidth: true }
                 SimButton {
                     text: "Auto"; small: true; color: "#666"
                     onClicked: {
-                        if (typeof navAvailabilityService !== "undefined")
-                            navAvailabilityService.clearOverride()
+                        if (typeof NavigationAvailabilityService !== "undefined")
+                            NavigationAvailabilityService.clearOverride()
                     }
                 }
             }
@@ -223,8 +224,8 @@ ApplicationWindow {
                 SimButton {
                     text: "Clear"; small: true; color: "#f44336"
                     onClicked: {
-                        if (typeof navigationService !== "undefined")
-                            navigationService.clearNavigation()
+                        if (typeof NavigationService !== "undefined")
+                            NavigationService.clearNavigation()
                     }
                 }
             }
@@ -288,8 +289,8 @@ ApplicationWindow {
                         avg = dist / (dur / 3600.0)
                         tripAvgField.text = avg.toFixed(1)
                     }
-                    if (typeof tripStore !== "undefined")
-                        tripStore.setOverride(dist, Math.round(dur), avg)
+                    if (typeof TripStore !== "undefined")
+                        TripStore.setOverride(dist, Math.round(dur), avg)
                 }
 
                 Text { text: "clock"; color: "#999"; font.pixelSize: 9 }
@@ -363,13 +364,13 @@ ApplicationWindow {
                     ToolTip.text: "Freeze trip timer"
                     ToolTip.visible: hovered
                     onToggled: {
-                        if (typeof tripStore === "undefined") return
+                        if (typeof TripStore === "undefined") return
                         if (checked) {
-                            tripStore.setOverride(tripStore.distance,
-                                                  tripStore.duration,
-                                                  tripStore.averageSpeed)
+                            TripStore.setOverride(TripStore.distance,
+                                                  TripStore.duration,
+                                                  TripStore.averageSpeed)
                         } else {
-                            tripStore.clearOverride()
+                            TripStore.clearOverride()
                         }
                     }
                 }
@@ -380,8 +381,8 @@ ApplicationWindow {
                         simulator.clockOverride = ""
                         dateOverrideField.text = ""
                         simulator.dateOverride = ""
-                        if (typeof tripStore !== "undefined")
-                            tripStore.clearOverride()
+                        if (typeof TripStore !== "undefined")
+                            TripStore.clearOverride()
                         freezeTripSwitch.checked = false
                     }
                 }
@@ -468,11 +469,11 @@ ApplicationWindow {
                         spacing: 6
                         SimLabel { text: "Easter" }
                         CheckBox {
-                            checked: typeof odometerMilestoneService !== "undefined"
-                                     && odometerMilestoneService.easterEggsEnabled
+                            checked: typeof OdometerMilestoneService !== "undefined"
+                                     && OdometerMilestoneService.easterEggsEnabled
                             onToggled: {
-                                if (typeof odometerMilestoneService !== "undefined")
-                                    odometerMilestoneService.easterEggsEnabled = checked
+                                if (typeof OdometerMilestoneService !== "undefined")
+                                    OdometerMilestoneService.easterEggsEnabled = checked
                             }
                         }
                         Text {
@@ -633,8 +634,8 @@ ApplicationWindow {
                     checked: simulator.gpsFrozen
                     onToggled: {
                         simulator.gpsFrozen = checked
-                        if (typeof mapService !== "undefined")
-                            mapService.deadReckoningPaused = checked
+                        if (typeof MapService !== "undefined")
+                            MapService.deadReckoningPaused = checked
                     }
                     palette.highlight: "#2196F3"
                 }
@@ -1111,11 +1112,11 @@ ApplicationWindow {
                 SimLabel { text: "USB" }
                 SimButton {
                     text: "Disconnect"; small: true; color: "#f44336"
-                    onClicked: connectionStore.simulateUsbDisconnect(true)
+                    onClicked: ConnectionStore.simulateUsbDisconnect(true)
                 }
                 SimButton {
                     text: "Reconnect"; small: true; color: "#4caf50"
-                    onClicked: connectionStore.simulateUsbDisconnect(false)
+                    onClicked: ConnectionStore.simulateUsbDisconnect(false)
                 }
                 Item { Layout.preferredWidth: 8 }
                 SimLabel { text: "UMS" }
@@ -1324,12 +1325,12 @@ ApplicationWindow {
                     }
                     Text {
                         Layout.fillWidth: true
-                        visible: typeof autoStandbyStore !== "undefined"
-                                 && autoStandbyStore.remainingSeconds > 0
-                        text: "Remaining: " + (typeof autoStandbyStore !== "undefined"
-                              ? autoStandbyStore.remainingSeconds : 0) + "s"
-                        color: typeof autoStandbyStore !== "undefined"
-                               && autoStandbyStore.remainingSeconds <= 60 ? "#FF9800" : "#4caf50"
+                        visible: typeof AutoStandbyStore !== "undefined"
+                                 && AutoStandbyStore.remainingSeconds > 0
+                        text: "Remaining: " + (typeof AutoStandbyStore !== "undefined"
+                              ? AutoStandbyStore.remainingSeconds : 0) + "s"
+                        color: typeof AutoStandbyStore !== "undefined"
+                               && AutoStandbyStore.remainingSeconds <= 60 ? "#FF9800" : "#4caf50"
                         font.pixelSize: 11
                         horizontalAlignment: Text.AlignHCenter
                     }

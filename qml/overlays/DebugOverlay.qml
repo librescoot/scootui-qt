@@ -6,7 +6,7 @@ Item {
     id: debugOverlay
     anchors.fill: parent
     z: 50
-    visible: typeof dashboardStore !== "undefined" && dashboardStore.debugMode === "overlay"
+    visible: typeof DashboardStore !== "undefined" && DashboardStore.debugMode === "overlay"
 
     readonly property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
     readonly property color panelBg: isDark ? Qt.rgba(0, 0, 0, 0.6) : Qt.rgba(1, 1, 1, 0.6)
@@ -102,7 +102,7 @@ Item {
     }
 
     function enumName(enumVal, names) {
-        // engineStore.throttle is exposed as a bool while every other toggle
+        // EngineStore.throttle is exposed as a bool while every other toggle
         // here is an enum int. names[true] means names["true"], which is
         // undefined rather than names[1], so booleans need their own mapping.
         // The toggle enums put On first, so true is names[0].
@@ -128,14 +128,14 @@ Item {
     readonly property var auxChargeStatusNames: ["NotCharging", "FloatCharge", "AbsorptionCharge", "BulkCharge"]
 
     // Safe accessors
-    function vs(prop) { return typeof vehicleStore !== "undefined" ? vehicleStore[prop] : 0 }
-    function es(prop) { return typeof engineStore !== "undefined" ? engineStore[prop] : 0 }
-    function gs(prop) { return typeof gpsStore !== "undefined" ? gpsStore[prop] : 0 }
-    function is_(prop) { return typeof internetStore !== "undefined" ? internetStore[prop] : 0 }
+    function vs(prop) { return typeof VehicleStore !== "undefined" ? VehicleStore[prop] : 0 }
+    function es(prop) { return typeof EngineStore !== "undefined" ? EngineStore[prop] : 0 }
+    function gs(prop) { return typeof GpsStore !== "undefined" ? GpsStore[prop] : 0 }
+    function is_(prop) { return typeof InternetStore !== "undefined" ? InternetStore[prop] : 0 }
     function b0(prop) { return typeof battery0Store !== "undefined" ? battery0Store[prop] : 0 }
     function b1(prop) { return typeof battery1Store !== "undefined" ? battery1Store[prop] : 0 }
-    function aux(prop) { return typeof auxBatteryStore !== "undefined" ? auxBatteryStore[prop] : 0 }
-    function cb(prop) { return typeof cbBatteryStore !== "undefined" ? cbBatteryStore[prop] : 0 }
+    function aux(prop) { return typeof AuxBatteryStore !== "undefined" ? AuxBatteryStore[prop] : 0 }
+    function cb(prop) { return typeof CbBatteryStore !== "undefined" ? CbBatteryStore[prop] : 0 }
 
     // =====================================================================
     // 1. Vehicle State — centered, below status bar
@@ -153,7 +153,7 @@ Item {
         Text {
             id: vehStateText
             anchors.centerIn: parent
-            text: typeof vehicleStore !== "undefined" ? vehicleStore.stateRaw : "?"
+            text: typeof VehicleStore !== "undefined" ? VehicleStore.stateRaw : "?"
             font.pixelSize: 12
             font.bold: true
             color: debugOverlay.textColor
@@ -349,7 +349,7 @@ Item {
                 spacing: 0
                 Text { text: "TECH: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof internetStore !== "undefined" ? internetStore.accessTech : "?"
+                    text: typeof InternetStore !== "undefined" ? InternetStore.accessTech : "?"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -374,8 +374,8 @@ Item {
                 spacing: 0
                 Text { text: "BRI: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: (typeof dashboardStore !== "undefined" && dashboardStore.brightness >= 0)
-                          ? dashboardStore.brightness.toFixed(1) + " lx" : "N/A"
+                    text: (typeof DashboardStore !== "undefined" && DashboardStore.brightness >= 0)
+                          ? DashboardStore.brightness.toFixed(1) + " lx" : "N/A"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -383,8 +383,8 @@ Item {
                 spacing: 0
                 Text { text: "BLT: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: (typeof dashboardStore !== "undefined" && dashboardStore.backlight >= 0)
-                          ? dashboardStore.backlight : "N/A"
+                    text: (typeof DashboardStore !== "undefined" && DashboardStore.backlight >= 0)
+                          ? DashboardStore.backlight : "N/A"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -392,7 +392,7 @@ Item {
                 spacing: 0
                 Text { text: "THM: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof settingsStore !== "undefined" ? settingsStore.theme : "N/A"
+                    text: typeof SettingsStore !== "undefined" ? SettingsStore.theme : "N/A"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -426,7 +426,7 @@ Item {
                 spacing: 0
                 Text { text: "RPM: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof engineStore !== "undefined" ? Math.floor(engineStore.rpm).toString() : "?"
+                    text: typeof EngineStore !== "undefined" ? Math.floor(EngineStore.rpm).toString() : "?"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -434,8 +434,8 @@ Item {
                 spacing: 0
                 Text { text: "PWR: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof engineStore !== "undefined"
-                          ? (engineStore.motorVoltage * engineStore.motorCurrent / 1000000).toFixed(0) + " W"
+                    text: typeof EngineStore !== "undefined"
+                          ? (EngineStore.motorVoltage * EngineStore.motorCurrent / 1000000).toFixed(0) + " W"
                           : "?"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
@@ -446,9 +446,9 @@ Item {
                 Text {
                     text: {
                         var s = enumName(es("kers"), toggleNames)
-                        if (typeof engineStore !== "undefined")
-                            s += "  " + (engineStore.acceptedRegenVoltage / 1000).toFixed(1) + " V / "
-                               + (engineStore.acceptedRegenCurrent / 1000).toFixed(1) + " A"
+                        if (typeof EngineStore !== "undefined")
+                            s += "  " + (EngineStore.acceptedRegenVoltage / 1000).toFixed(1) + " V / "
+                               + (EngineStore.acceptedRegenCurrent / 1000).toFixed(1) + " A"
                         return s
                     }
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
@@ -459,10 +459,10 @@ Item {
                 Text { text: "REGEN: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
                     text: {
-                        if (typeof engineStore === "undefined") return "?"
-                        var s = engineStore.regenAvailable ? "yes" : "no"
-                        s += " (" + engineStore.regenReason + ")"
-                        s += "  " + (engineStore.regenExpected / 1000).toFixed(1) + " A"
+                        if (typeof EngineStore === "undefined") return "?"
+                        var s = EngineStore.regenAvailable ? "yes" : "no"
+                        s += " (" + EngineStore.regenReason + ")"
+                        s += "  " + (EngineStore.regenExpected / 1000).toFixed(1) + " A"
                         return s
                     }
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
@@ -491,8 +491,8 @@ Item {
                 spacing: 0
                 Text { text: "MOTOR V: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof engineStore !== "undefined"
-                          ? (engineStore.motorVoltage / 1000).toFixed(1) + " V" : "?"
+                    text: typeof EngineStore !== "undefined"
+                          ? (EngineStore.motorVoltage / 1000).toFixed(1) + " V" : "?"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -500,8 +500,8 @@ Item {
                 spacing: 0
                 Text { text: "MOTOR I: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof engineStore !== "undefined"
-                          ? (engineStore.motorCurrent / 1000).toFixed(1) + " A" : "?"
+                    text: typeof EngineStore !== "undefined"
+                          ? (EngineStore.motorCurrent / 1000).toFixed(1) + " A" : "?"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -509,8 +509,8 @@ Item {
                 spacing: 0
                 Text { text: "TEMP: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: typeof engineStore !== "undefined"
-                          ? engineStore.temperature.toFixed(1) + "\u00B0C" : "?"
+                    text: typeof EngineStore !== "undefined"
+                          ? EngineStore.temperature.toFixed(1) + "\u00B0C" : "?"
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
