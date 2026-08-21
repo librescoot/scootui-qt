@@ -427,6 +427,7 @@ target_include_directories(scootui PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 # qt_add_qml_module generates registration code that includes each QML-exposed
 # type as <Foo.h>, so the directory holding it has to be on the include path.
 target_include_directories(scootui PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/models
     ${CMAKE_CURRENT_SOURCE_DIR}/src/stores
     ${CMAKE_CURRENT_SOURCE_DIR}/src/services
     ${CMAKE_CURRENT_SOURCE_DIR}/src/l10n

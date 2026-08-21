@@ -3,9 +3,11 @@
 #include <QObject>
 #include <QString>
 #include <QHash>
+#include <QtQml/qqmlengine.h>
 
 namespace ScootEnums {
 Q_NAMESPACE
+QML_NAMED_ELEMENT(Scooter)
 Q_CLASSINFO("RegisterEnumClassesUnscoped", "false")
 
 enum class ConnectionStatus { Connected, Disconnected };
