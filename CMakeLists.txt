@@ -151,6 +151,7 @@ set(CPP_HEADERS
     src/stores/EngineStore.h
     src/stores/VehicleStore.h
     src/stores/BatteryStore.h
+    src/stores/Batteries.h
     src/stores/GpsStore.h
     src/stores/MotionStore.h
     src/stores/BluetoothStore.h

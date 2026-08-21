@@ -125,10 +125,8 @@ Rectangle {
         ])
     }
 
-    readonly property var battery0Rows: typeof battery0Store !== "undefined"
-                                        ? (void systemInfoScreen.lang, packRows(battery0Store)) : []
-    readonly property var battery1Rows: typeof battery1Store !== "undefined"
-                                        ? (void systemInfoScreen.lang, packRows(battery1Store)) : []
+    readonly property var battery0Rows: (void systemInfoScreen.lang, packRows(Batteries.slot0))
+    readonly property var battery1Rows: (void systemInfoScreen.lang, packRows(Batteries.slot1))
 
     readonly property var cbbRows: hasCbb && CbBatteryStore.present
         ? (void systemInfoScreen.lang, present([

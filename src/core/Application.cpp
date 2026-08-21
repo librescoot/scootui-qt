@@ -8,6 +8,7 @@
 #include "stores/EngineStore.h"
 #include "stores/VehicleStore.h"
 #include "stores/BatteryStore.h"
+#include "stores/Batteries.h"
 #include "stores/GpsStore.h"
 #include "stores/MotionStore.h"
 #include "stores/BluetoothStore.h"
@@ -579,8 +580,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("bootTimer"), new BootTimer(this));
     EngineStore::setQmlInstance(engineStore);
     VehicleStore::setQmlInstance(vehicleStore);
-    ctx->setContextProperty(QStringLiteral("battery0Store"), battery0Store);
-    ctx->setContextProperty(QStringLiteral("battery1Store"), battery1Store);
+    Batteries::setQmlInstance(new Batteries(battery0Store, battery1Store, this));
     GpsStore::setQmlInstance(gpsStore);
     MotionStore::setQmlInstance(motionStore);
     BluetoothStore::setQmlInstance(bluetoothStore);
