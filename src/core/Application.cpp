@@ -161,7 +161,6 @@ bool Application::initialize(QQmlApplicationEngine &engine)
         m_repository = std::make_unique<RedisMdbRepository>(redisHost, redisPort, QStringLiteral("192.168.8.1"));
     }
 
-    qmlRegisterUncreatableMetaObject(ScootEnums::staticMetaObject, "ScootUI", 1, 0, "Scooter", "");
 
     BOOT_MARK("createStores() start");
     createStores(engine);
@@ -577,14 +576,6 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Register context properties
     auto *ctx = engine.rootContext();
-    // The module registration qt_add_qml_module generates for this executable
-    // does not take effect: QML resolves the types to undefined and the
-    // singleton create() is never called. Registering them here with the same
-    // public API the generated code uses fixes that. QML_ELEMENT/QML_SINGLETON
-    // stay on the classes so qmllint and qmltc still see them at build time.
-    // TODO: root-cause the generated registration and drop this.
-    qmlRegisterTypesAndRevisions<ThemeStore>("ScootUI", 1);
-
     ctx->setContextProperty(QStringLiteral("bootTimer"), new BootTimer(this));
     ctx->setContextProperty(QStringLiteral("engineStore"), engineStore);
     ctx->setContextProperty(QStringLiteral("vehicleStore"), vehicleStore);
