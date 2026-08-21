@@ -6,6 +6,14 @@ Rectangle {
     color: "black"
 
     property bool showConnectionInfo: false
+
+    // The spinner below is the only thing on this screen that animates, and a
+    // running animation keeps Qt Quick rendering every single frame. This
+    // screen shows for any state outside allowedStates, including stand-by,
+    // and then turns the backlight off itself, so without this gate it spends
+    // the whole time drawing a spinner into a panel that is switched off.
+    readonly property bool displayLit: typeof dashboardStore === "undefined"
+                                       || dashboardStore.backlightEnabled
     property string stateRaw: typeof vehicleStore !== "undefined" ? vehicleStore.stateRaw : ""
 
     // Turn off backlight after 15s to save power during unattended maintenance/updates
@@ -75,7 +83,7 @@ Rectangle {
                         to: 360
                         duration: 1000
                         loops: Animation.Infinite
-                        running: loadingMode.visible
+                        running: loadingMode.visible && maintenanceScreen.displayLit
                     }
                 }
             }

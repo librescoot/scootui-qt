@@ -14,6 +14,7 @@ SyncSettings DashboardStore::syncSettings() const
             {QStringLiteral("debug"), QStringLiteral("debug")},
             {QStringLiteral("brightness"), QStringLiteral("brightness")},
             {QStringLiteral("backlight"), QStringLiteral("backlight")},
+            {QStringLiteral("backlight-enabled"), QStringLiteral("backlight-enabled")},
         },
         {},
         {}
@@ -48,6 +49,14 @@ void DashboardStore::applyFieldUpdate(const QString &variable, const QString &va
         if (ok && v != m_backlight) {
             m_backlight = v;
             emit backlightChanged();
+        }
+    } else if (variable == QLatin1String("backlight-enabled")) {
+        // Match dbc-backlight: a missing key means enabled, anything that
+        // isn't the literal "true" once set means disabled.
+        const bool v = value.isEmpty() || value == QLatin1String("true");
+        if (v != m_backlightEnabled) {
+            m_backlightEnabled = v;
+            emit backlightEnabledChanged();
         }
     }
 }
