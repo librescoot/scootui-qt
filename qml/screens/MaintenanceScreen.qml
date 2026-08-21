@@ -7,13 +7,13 @@ Rectangle {
 
     property bool showConnectionInfo: false
 
-    // The spinner below is the only thing on this screen that animates, and a
-    // running animation keeps Qt Quick rendering every single frame. This
-    // screen shows for any state outside allowedStates, including stand-by,
-    // and then turns the backlight off itself, so without this gate it spends
-    // the whole time drawing a spinner into a panel that is switched off.
-    readonly property bool displayLit: typeof dashboardStore === "undefined"
-                                       || dashboardStore.backlightEnabled
+    // Steps per second for the spinner below, and the rotation each step
+    // applies. Every visual change costs one frame and a frame costs about the
+    // same whatever is in it, so this number, not the drawing, is what the
+    // spinner costs: on the DBC each step per second is roughly half a percent
+    // of a core. 12 x 30 degrees keeps one revolution per second.
+    readonly property int spinnerStepsPerSecond: 12
+    readonly property int spinnerStepDegrees: 30
     property string stateRaw: typeof vehicleStore !== "undefined" ? vehicleStore.stateRaw : ""
 
     // Turn off backlight after 15s to save power during unattended maintenance/updates
@@ -78,17 +78,15 @@ Rectangle {
                         anchors.top: parent.top
                     }
 
-                    // Stepped rather than a continuous RotationAnimation. Every
-                    // visual change costs one frame, and a frame costs about the
-                    // same whatever is in it: at 59 fps this spinner alone was
-                    // 18% of a core on the DBC with the renderer reporting no
-                    // work at all. Twelve steps a second is the usual throbber
-                    // cadence and keeps the same one revolution per second.
+                    // Stepped rather than a continuous RotationAnimation: that
+                    // asked for a frame every vsync, 59 a second, and cost 18%
+                    // of a core with the renderer reporting no work at all.
                     Timer {
-                        interval: 1000 / 12
+                        interval: 1000 / maintenanceScreen.spinnerStepsPerSecond
                         repeat: true
-                        running: loadingMode.visible && maintenanceScreen.displayLit
-                        onTriggered: spinner.rotation = (spinner.rotation + 30) % 360
+                        running: loadingMode.visible
+                        onTriggered: spinner.rotation =
+                            (spinner.rotation + maintenanceScreen.spinnerStepDegrees) % 360
                     }
                 }
             }
