@@ -293,35 +293,27 @@ set_source_files_properties(
     qml/widgets/map/MapViewContentLegacy.qml
     PROPERTIES QT_QML_SKIP_TYPE_COMPILER TRUE)
 
-# qmltc exclusions. Two root causes, plus the types that embed them: qmltc has to
-# skip a whole file if any type it instantiates was skipped.
+# qmltc exclusions. Six files, and nothing cascades from them.
 #
-#   Canvas       QQuickCanvasItem is not exported from any Qt library, shared or
-#                static, so generated code that embeds one cannot link. Porting
-#                these to QtQuick.Shapes brings them back, the way the
-#                speedometer dial was already ported.
-#   MapView      lives in QtLocation; qmltc cannot compile a type whose base
-#                comes from another QML module.
-#   Controls     QtQuick.Controls uses optional imports, unsupported by qmltc.
-#                Only the desktop simulator panel pulls it in.
+#   Canvas    QQuickCanvasItem is compiled into libQt6Quick but exported from no
+#             library, so generated code embedding one cannot link. The three
+#             left are reached through URL Loaders, which keeps the reference
+#             dynamic so their parents still compile. NorthIndicator, ScaleBar
+#             and VehicleMarker were ported to QtQuick.Shapes instead, the way
+#             the speedometer dial already was.
+#   MapView   base type from QtLocation; MapViewWidget already loads these by URL.
+#   Controls  QtQuick.Controls uses optional imports, which qmltc rejects. Only
+#             the desktop simulator panel pulls Controls in.
 #
-# Cascade from the above: Main, ClusterScreen, MapScreen, TurnByTurnWidget.
-# Nothing here is about MultiEffect: QuickEffectsPrivate links fine on both
-# desktop and the DBC sysroot, so every effect-using file is compiled.
+# Nothing here is MultiEffect: QuickEffectsPrivate links on desktop and ships in
+# the DBC recipe-sysroot, so every effect-using file compiles.
 set_source_files_properties(
     qml/screens/MotionDebugScreen.qml
     qml/widgets/navigation/RoundaboutIcon.qml
     qml/widgets/navigation/RoundaboutIconFromMap.qml
-    qml/widgets/map/NorthIndicator.qml
-    qml/widgets/map/ScaleBar.qml
-    qml/widgets/map/VehicleMarker.qml
     qml/widgets/map/MapViewContent.qml
     qml/widgets/map/MapViewContentLegacy.qml
     qml/simulator/SimulatorWindow.qml
-    qml/Main.qml
-    qml/screens/ClusterScreen.qml
-    qml/screens/MapScreen.qml
-    qml/widgets/navigation/TurnByTurnWidget.qml
     PROPERTIES QT_QML_SKIP_TYPE_COMPILER TRUE)
 
 qt_add_qml_module(scootui

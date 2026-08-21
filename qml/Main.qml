@@ -215,7 +215,17 @@ Window {
     Component { id: maintenanceComponent; MaintenanceScreen {} }
     Component { id: aboutComponent; AboutScreen {} }
     Component { id: debugComponent; DebugScreen {} }
-    Component { id: motionDebugComponent; MotionDebugScreen {} }
+    // MotionDebugScreen draws with Canvas, which qmltc cannot compile, and a
+    // direct reference would stop Main compiling with it. Loading it by URL keeps
+    // the reference dynamic. It is a dev-only screen behind a Component, so the
+    // extra Loader costs nothing on the normal path.
+    Component {
+        id: motionDebugComponent
+        Loader {
+            anchors.fill: parent
+            source: "qrc:/ScootUI/qml/screens/MotionDebugScreen.qml"
+        }
+    }
     Component { id: otaBgComponent; OtaBackgroundScreen {} }
     Component { id: addressComponent; AddressSelectionScreen {} }
     Component { id: navSetupComponent; NavigationSetupScreen {} }

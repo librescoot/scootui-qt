@@ -151,15 +151,29 @@ Item {
                 property bool isKeepFork: (mType === mtKeepLeft || mType === mtKeepRight)
                                           && mDist <= iconThreshold(mType)
 
+                // RoundaboutIconFromMap reaches RoundaboutIcon, which draws with
+                // Canvas and cannot be type-compiled. Loading it by URL keeps the
+                // reference dynamic so this widget, and the cluster above it, still
+                // compile. The properties move to Binding elements because a URL
+                // Loader has no place to declare them.
                 Loader {
+                    id: roundaboutLoader
                     anchors.centerIn: parent
                     active: parent.isRoundabout
-                    sourceComponent: RoundaboutIconFromMap {
-                        renderData: typeof NavigationService !== "undefined"
-                                    ? NavigationService.currentRoundaboutRender : null
-                        isDark: tbtWidget.isDark
-                        size: 64
-                    }
+                    source: "qrc:/ScootUI/qml/widgets/navigation/RoundaboutIconFromMap.qml"
+                    onLoaded: item.size = 64
+                }
+                Binding {
+                    target: roundaboutLoader.item
+                    property: "renderData"
+                    value: NavigationService.currentRoundaboutRender
+                    when: roundaboutLoader.status === Loader.Ready
+                }
+                Binding {
+                    target: roundaboutLoader.item
+                    property: "isDark"
+                    value: tbtWidget.isDark
+                    when: roundaboutLoader.status === Loader.Ready
                 }
 
                 Image {

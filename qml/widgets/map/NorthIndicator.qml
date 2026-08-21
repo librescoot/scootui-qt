@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Shapes
 import ScootUI 1.0
 
 Item {
@@ -6,19 +7,29 @@ Item {
     width: 24
     height: 24
 
-    property real bearing: typeof MapService !== "undefined" ? MapService.mapBearing : 0
-    property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
+    property real bearing: MapService.mapBearing
+    property bool isDark: ThemeStore.isDark
 
     Rectangle {
         anchors.fill: parent
         radius: ThemeStore.radiusModal
-        color: isDark ? Qt.rgba(0.31, 0.31, 0.31, 0.9) : Qt.rgba(0.76, 0.76, 0.76, 0.9)
+        color: northIndicator.isDark ? Qt.rgba(0.31, 0.31, 0.31, 0.9) : Qt.rgba(0.76, 0.76, 0.76, 0.9)
         border.width: 0.5
-        border.color: isDark ? Qt.rgba(0.46, 0.46, 0.46, 0.9) : Qt.rgba(0.62, 0.62, 0.62, 0.9)
+        border.color: northIndicator.isDark ? Qt.rgba(0.46, 0.46, 0.46, 0.9) : Qt.rgba(0.62, 0.62, 0.62, 0.9)
 
-        Canvas {
+        // Two needles meeting at the centre. Shapes rather than Canvas: the fill
+        // colours are live bindings, so the south needle now follows a theme
+        // change on its own. The Canvas version only repainted when its size
+        // changed, so it kept the boot-time colour.
+        Shape {
+            id: needles
             anchors.fill: parent
+            preferredRendererType: Shape.CurveRenderer
             rotation: -northIndicator.bearing
+
+            readonly property real cx: width / 2
+            readonly property real cy: height / 2
+            readonly property real r: width / 2
 
             Behavior on rotation {
                 RotationAnimation {
@@ -28,31 +39,24 @@ Item {
                 }
             }
 
-            onPaint: {
-                var ctx = getContext("2d")
-                ctx.clearRect(0, 0, width, height)
+            ShapePath {
+                fillColor: "#FF0000"
+                strokeColor: "transparent"
+                startX: needles.cx
+                startY: needles.cy - needles.r * 0.8
+                PathLine { x: needles.cx + needles.r * 0.3; y: needles.cy }
+                PathLine { x: needles.cx - needles.r * 0.3; y: needles.cy }
+                PathLine { x: needles.cx; y: needles.cy - needles.r * 0.8 }
+            }
 
-                var cx = width / 2
-                var cy = height / 2
-                var r = width / 2
-
-                // North needle (red)
-                ctx.fillStyle = "#FF0000"
-                ctx.beginPath()
-                ctx.moveTo(cx, cy - r * 0.8)
-                ctx.lineTo(cx + r * 0.3, cy)
-                ctx.lineTo(cx - r * 0.3, cy)
-                ctx.closePath()
-                ctx.fill()
-
-                // South needle (gray)
-                ctx.fillStyle = northIndicator.isDark ? "#9E9E9E" : "#757575"
-                ctx.beginPath()
-                ctx.moveTo(cx, cy + r * 0.8)
-                ctx.lineTo(cx + r * 0.3, cy)
-                ctx.lineTo(cx - r * 0.3, cy)
-                ctx.closePath()
-                ctx.fill()
+            ShapePath {
+                fillColor: northIndicator.isDark ? "#9E9E9E" : "#757575"
+                strokeColor: "transparent"
+                startX: needles.cx
+                startY: needles.cy + needles.r * 0.8
+                PathLine { x: needles.cx + needles.r * 0.3; y: needles.cy }
+                PathLine { x: needles.cx - needles.r * 0.3; y: needles.cy }
+                PathLine { x: needles.cx; y: needles.cy + needles.r * 0.8 }
             }
         }
     }
