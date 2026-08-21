@@ -22,7 +22,10 @@ class ToastService : public QObject
     Q_PROPERTY(QVariantList toasts READ toasts NOTIFY toastsChanged)
 
 public:
-    explicit ToastService(QObject *parent = nullptr);
+    // parent is deliberately not defaulted: a default-constructible type makes Qt
+    // pick SingletonConstructionMode::Constructor and build its own instance
+    // instead of calling create(), which would hand QML an unwired object.
+    explicit ToastService(QObject *parent);
 
     QVariantList toasts() const;
 

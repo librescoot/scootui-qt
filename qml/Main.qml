@@ -14,31 +14,31 @@ Window {
     title: "ScootUI"
 
     // In desktop/simulator mode, position left of center so simulator panel fits beside it
-    x: typeof simulator !== "undefined" ? Screen.width / 2 - (width + 480 + 20) / 2 : Screen.desktopAvailableWidth / 2 - width / 2
+    x: SimulatorService.available ? Screen.width / 2 - (width + 480 + 20) / 2 : Screen.desktopAvailableWidth / 2 - width / 2
     y: Screen.height / 2 - height / 2
 
     // Simulator-only debugging keys. The vehicle has no keyboard, and these are
     // bound to the simulator service which does not exist outside sim mode.
     Shortcut {
-        enabled: typeof simulator !== "undefined" && simulator !== null
+        enabled: SimulatorService.available
         sequence: "+"
-        onActivated: simulator.setAutoDriveTimeScale(simulator.autoDriveTimeScale() * 2)
+        onActivated: SimulatorService.setAutoDriveTimeScale(SimulatorService.autoDriveTimeScale() * 2)
     }
     Shortcut {
-        enabled: typeof simulator !== "undefined" && simulator !== null
+        enabled: SimulatorService.available
         sequence: "-"
-        onActivated: simulator.setAutoDriveTimeScale(simulator.autoDriveTimeScale() / 2)
+        onActivated: SimulatorService.setAutoDriveTimeScale(SimulatorService.autoDriveTimeScale() / 2)
     }
     Shortcut {
-        enabled: typeof simulator !== "undefined" && simulator !== null
+        enabled: SimulatorService.available
         sequence: "0"
-        onActivated: simulator.setAutoDriveTimeScale(1)
+        onActivated: SimulatorService.setAutoDriveTimeScale(1)
     }
     // Jump ahead 20 simulated seconds, enough to clear the maneuver in front.
     Shortcut {
-        enabled: typeof simulator !== "undefined" && simulator !== null
+        enabled: SimulatorService.available
         sequence: "f"
-        onActivated: simulator.autoDriveSkip(20)
+        onActivated: SimulatorService.autoDriveSkip(20)
     }
 
     readonly property var allowedStates: [

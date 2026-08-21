@@ -625,16 +625,16 @@ void Application::createStores(QQmlApplicationEngine &engine)
     FaultsStore::setQmlInstance(faultsStore);
     UpdateChannelService::setQmlInstance(m_updateChannelService);
 
-    // Simulator service (created in sim mode, null otherwise)
-    if (m_simulatorMode) {
+    // The QML singleton always needs an object, so build an inert one outside
+    // simulator mode rather than leaving it null. Registered here, before the
+    // engine loads, so no QML can ask for the singleton first.
+    if (m_simulatorMode)
         m_simulatorService = new SimulatorService(repo, m_navigationService, this);
-        ctx->setContextProperty(QStringLiteral("simulator"), m_simulatorService);
-        ctx->setContextProperty(QStringLiteral("simulatorMode"), true);
+    else
+        m_simulatorService = new SimulatorService(this);
+    SimulatorService::setQmlInstance(m_simulatorService);
+    if (m_simulatorMode)
         setupSimulatorAutoDrive();
-    } else {
-        ctx->setContextProperty(QStringLiteral("simulator"), nullptr);
-        ctx->setContextProperty(QStringLiteral("simulatorMode"), false);
-    }
 
     // Store references for lifecycle management
     m_stores = {engineStore, vehicleStore, battery0Store, battery1Store,

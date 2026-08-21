@@ -51,9 +51,9 @@ Item {
     // undefined (Application.cpp), and `typeof null` is "object", so the null
     // check is the one that matters here. Main.qml guards the same way.
     readonly property string clockOverride:
-        (typeof simulator !== "undefined" && simulator !== null) ? simulator.clockOverride : ""
+        SimulatorService.available ? SimulatorService.clockOverride : ""
     readonly property string dateOverride:
-        (typeof simulator !== "undefined" && simulator !== null) ? simulator.dateOverride : ""
+        SimulatorService.available ? SimulatorService.dateOverride : ""
 
     // Parsed by hand rather than through Date.fromLocaleDateString so the
     // simulator field means the same thing under either UI language.

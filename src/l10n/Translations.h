@@ -544,7 +544,10 @@ class Translations : public QObject
     Q_PROPERTY(QString language READ language NOTIFY languageChanged)
 
 public:
-    explicit Translations(QObject *parent = nullptr);
+    // parent is deliberately not defaulted: a default-constructible type makes Qt
+    // pick SingletonConstructionMode::Constructor and build its own instance
+    // instead of calling create(), which would hand QML an unwired object.
+    explicit Translations(QObject *parent);
 
     Q_INVOKABLE void setLanguage(const QString &lang);
     QString language() const { return m_language; }
