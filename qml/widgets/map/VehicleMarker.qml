@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Shapes
 import ScootUI 1.0
 
 Item {
@@ -48,7 +49,6 @@ Item {
         color: "transparent"
         border.width: 2
         border.color: Qt.rgba(0.5, 0.5, 0.5, 0.6)
-        opacity: 0
         visible: !hasRecentFix
 
         SequentialAnimation on opacity {
@@ -76,7 +76,6 @@ Item {
         color: "transparent"
         border.width: 2
         border.color: Qt.rgba(0.5, 0.5, 0.5, 0.6)
-        opacity: 0
         visible: !hasRecentFix
 
         SequentialAnimation on opacity {
@@ -112,12 +111,13 @@ Item {
         Behavior on border.color { ColorAnimation { duration: 300 } }
 
         // Navigation arrow
-        Canvas {
+        // The heading arrow. Shapes rather than Canvas: fillColor is a live
+        // binding, so the onFillColorChanged/requestPaint pair is gone too.
+        Shape {
             anchors.centerIn: parent
             width: 24
             height: 24
-
-            property color fillColor: vehicleMarker.arrowColor
+            preferredRendererType: Shape.CurveRenderer
 
             // Points along the true heading (north-oriented 2D) / up in
             // direction-oriented and 3D views.
@@ -127,18 +127,15 @@ Item {
                 angle: vehicleMarker.headingAngle
             }
 
-            onFillColorChanged: requestPaint()
-            onPaint: {
-                var ctx = getContext("2d")
-                ctx.clearRect(0, 0, width, height)
-                ctx.fillStyle = fillColor
-                ctx.beginPath()
-                ctx.moveTo(12, 2)
-                ctx.lineTo(20, 20)
-                ctx.lineTo(12, 15)
-                ctx.lineTo(4, 20)
-                ctx.closePath()
-                ctx.fill()
+            ShapePath {
+                fillColor: vehicleMarker.arrowColor
+                strokeColor: "transparent"
+                startX: 12
+                startY: 2
+                PathLine { x: 20; y: 20 }
+                PathLine { x: 12; y: 15 }
+                PathLine { x: 4;  y: 20 }
+                PathLine { x: 12; y: 2 }
             }
         }
     }

@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Shapes
 import ScootUI 1.0
 
 Item {
@@ -6,9 +7,9 @@ Item {
     width: barWidth
     height: 16
 
-    property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
-    property real zoom: typeof MapService !== "undefined" ? MapService.mapZoom : 17
-    property real latitude: typeof MapService !== "undefined" ? MapService.mapLatitude : 52
+    property bool isDark: ThemeStore.isDark
+    property real zoom: MapService.mapZoom
+    property real latitude: MapService.mapLatitude
 
     readonly property real metersPerPixel: (40075000 * Math.cos(latitude * Math.PI / 180)) / (256 * Math.pow(2, zoom))
     readonly property real maxWidthPx: 160
@@ -33,44 +34,49 @@ Item {
         : scaleMeters + " m"
     readonly property color barColor: isDark ? "#9E9E9E" : "#616161"
 
-    Canvas {
-        id: canvas
+    // The bracket, drawn with Shapes rather than Canvas so the geometry and the
+    // colour are plain bindings. That also drops the three requestPaint handlers
+    // this needed to track zoom, latitude and theme.
+    Shape {
+        id: bracket
         anchors.fill: parent
+        preferredRendererType: Shape.CurveRenderer
 
-        onPaint: {
-            var ctx = getContext("2d")
-            ctx.clearRect(0, 0, width, height)
+        readonly property real barH: 8
 
-            var bw = scaleBar.barWidth
-            var barH = 8
+        // Left tick
+        ShapePath {
+            strokeColor: scaleBar.barColor
+            strokeWidth: 2
+            fillColor: "transparent"
+            capStyle: ShapePath.FlatCap
+            startX: 1
+            startY: bracket.height
+            PathLine { x: 1; y: bracket.height - bracket.barH }
+        }
 
-            // Scale bar (⊥──⊥ shape)
-            ctx.strokeStyle = Qt.colorEqual(scaleBar.barColor, scaleBar.barColor) ? scaleBar.barColor : "#9E9E9E"
-            ctx.lineWidth = 2
+        // Bottom bar
+        ShapePath {
+            strokeColor: scaleBar.barColor
+            strokeWidth: 2
+            fillColor: "transparent"
+            capStyle: ShapePath.FlatCap
+            startX: 1
+            startY: bracket.height - 1
+            PathLine { x: scaleBar.barWidth - 1; y: bracket.height - 1 }
+        }
 
-            // Left vertical tick
-            ctx.beginPath()
-            ctx.moveTo(1, height)
-            ctx.lineTo(1, height - barH)
-            ctx.stroke()
-
-            // Bottom horizontal bar
-            ctx.beginPath()
-            ctx.moveTo(1, height - 1)
-            ctx.lineTo(bw - 1, height - 1)
-            ctx.stroke()
-
-            // Right vertical tick
-            ctx.beginPath()
-            ctx.moveTo(bw - 1, height)
-            ctx.lineTo(bw - 1, height - barH)
-            ctx.stroke()
+        // Right tick
+        ShapePath {
+            strokeColor: scaleBar.barColor
+            strokeWidth: 2
+            fillColor: "transparent"
+            capStyle: ShapePath.FlatCap
+            startX: scaleBar.barWidth - 1
+            startY: bracket.height
+            PathLine { x: scaleBar.barWidth - 1; y: bracket.height - bracket.barH }
         }
     }
-
-    onZoomChanged: canvas.requestPaint()
-    onLatitudeChanged: canvas.requestPaint()
-    onIsDarkChanged: canvas.requestPaint()
 
     // Text with outline centered above the bar
     Text {
@@ -82,6 +88,6 @@ Item {
         font.pixelSize: ThemeStore.fontCaption
         font.weight: Font.Bold
         style: Text.Outline
-        styleColor: isDark ? "black" : "white"
+        styleColor: scaleBar.isDark ? "black" : "white"
     }
 }

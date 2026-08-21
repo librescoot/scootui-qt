@@ -41,7 +41,7 @@ Window {
         onActivated: SimulatorService.autoDriveSkip(20)
     }
 
-    readonly property var allowedStates: [
+    readonly property list<int> allowedStates: [
         Scooter.VehicleState.Unknown,
         Scooter.VehicleState.ReadyToDrive,
         Scooter.VehicleState.Parked,
@@ -59,7 +59,7 @@ Window {
         if (typeof ConnectionStore !== "undefined"
             && ConnectionStore.prolongedDisconnect
             && !ConnectionStore.hasEverConnected) return true
-        if (allowedStates.indexOf(vehicleState) === -1) return true
+        if (root.allowedStates.indexOf(root.vehicleState) === -1) return true
         if (vehicleState === Scooter.VehicleState.Unknown && startupGraceElapsed) return true
         return false
     }
