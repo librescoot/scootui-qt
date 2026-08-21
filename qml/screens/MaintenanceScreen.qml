@@ -78,12 +78,17 @@ Rectangle {
                         anchors.top: parent.top
                     }
 
-                    RotationAnimation on rotation {
-                        from: 0
-                        to: 360
-                        duration: 1000
-                        loops: Animation.Infinite
+                    // Stepped rather than a continuous RotationAnimation. Every
+                    // visual change costs one frame, and a frame costs about the
+                    // same whatever is in it: at 59 fps this spinner alone was
+                    // 18% of a core on the DBC with the renderer reporting no
+                    // work at all. Twelve steps a second is the usual throbber
+                    // cadence and keeps the same one revolution per second.
+                    Timer {
+                        interval: 1000 / 12
+                        repeat: true
                         running: loadingMode.visible && maintenanceScreen.displayLit
+                        onTriggered: spinner.rotation = (spinner.rotation + 30) % 360
                     }
                 }
             }
