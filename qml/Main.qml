@@ -255,10 +255,17 @@ Window {
         z: 900
     }
 
+    // Gated on the same condition as the overlay's own `visible`, because
+    // merely existing costs real work here: it binds to the fastest-moving
+    // fields there are (brightness, backlight, rpm, motor current, throttle)
+    // and a binding that changes a Text marks it dirty and buys a frame even
+    // while invisible. On a dark maintenance screen that was 7.6 fps of
+    // rendering for an overlay nobody had asked for.
     Loader {
         anchors.fill: parent
         z: 50
         asynchronous: true
+        active: typeof dashboardStore !== "undefined" && dashboardStore.debugMode === "overlay"
         sourceComponent: Component { DebugOverlay { anchors.fill: parent } }
     }
 
