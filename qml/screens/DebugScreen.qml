@@ -134,10 +134,10 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "BATTERY 0"
                     entries: [
-                        { label: "Present", value: debugScreen.safeVal(typeof battery0Store !== "undefined", typeof battery0Store !== "undefined" ? battery0Store.present : "") },
-                        { label: "State", value: debugScreen.safeVal(typeof battery0Store !== "undefined", typeof battery0Store !== "undefined" ? battery0Store.batteryState : "") },
-                        { label: "Charge", value: debugScreen.safeVal(typeof battery0Store !== "undefined", typeof battery0Store !== "undefined" ? battery0Store.charge + "%" : "") },
-                        { label: "Voltage", value: debugScreen.safeVal(typeof battery0Store !== "undefined", typeof battery0Store !== "undefined" ? battery0Store.voltage + " mV" : "") }
+                        { label: "Present", value: debugScreen.safeVal(true, Batteries.slot0.present) },
+                        { label: "State", value: debugScreen.safeVal(true, Batteries.slot0.batteryState) },
+                        { label: "Charge", value: debugScreen.safeVal(true, Batteries.slot0.charge + "%") },
+                        { label: "Voltage", value: debugScreen.safeVal(true, Batteries.slot0.voltage + " mV") }
                     ]
                 }
 
@@ -145,10 +145,10 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "BATTERY 1"
                     entries: [
-                        { label: "Present", value: debugScreen.safeVal(typeof battery1Store !== "undefined", typeof battery1Store !== "undefined" ? battery1Store.present : "") },
-                        { label: "State", value: debugScreen.safeVal(typeof battery1Store !== "undefined", typeof battery1Store !== "undefined" ? battery1Store.batteryState : "") },
-                        { label: "Charge", value: debugScreen.safeVal(typeof battery1Store !== "undefined", typeof battery1Store !== "undefined" ? battery1Store.charge + "%" : "") },
-                        { label: "Voltage", value: debugScreen.safeVal(typeof battery1Store !== "undefined", typeof battery1Store !== "undefined" ? battery1Store.voltage + " mV" : "") }
+                        { label: "Present", value: debugScreen.safeVal(true, Batteries.slot1.present) },
+                        { label: "State", value: debugScreen.safeVal(true, Batteries.slot1.batteryState) },
+                        { label: "Charge", value: debugScreen.safeVal(true, Batteries.slot1.charge + "%") },
+                        { label: "Voltage", value: debugScreen.safeVal(true, Batteries.slot1.voltage + " mV") }
                     ]
                 }
 

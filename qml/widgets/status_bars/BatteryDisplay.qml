@@ -32,19 +32,19 @@ Row {
     readonly property int acsNotCharging: 0
 
     // --- Battery 0 ---
-    readonly property int charge0: typeof battery0Store !== "undefined" ? battery0Store.charge : 0
-    readonly property bool present0: typeof battery0Store !== "undefined" ? battery0Store.present : false
-    readonly property int soh0: typeof battery0Store !== "undefined" ? battery0Store.stateOfHealth : 100
-    readonly property int battState0: typeof battery0Store !== "undefined" ? battery0Store.batteryState : 0
-    readonly property var faults0: typeof battery0Store !== "undefined" ? battery0Store.faults : []
+    readonly property int charge0: true ? Batteries.slot0.charge : 0
+    readonly property bool present0: true ? Batteries.slot0.present : false
+    readonly property int soh0: true ? Batteries.slot0.stateOfHealth : 100
+    readonly property int battState0: true ? Batteries.slot0.batteryState : 0
+    readonly property var faults0: true ? Batteries.slot0.faults : []
     readonly property bool hasFault0: present0 && faults0.length > 0
 
     // --- Battery 1 ---
-    readonly property int charge1: typeof battery1Store !== "undefined" ? battery1Store.charge : 0
-    readonly property bool present1: typeof battery1Store !== "undefined" ? battery1Store.present : false
-    readonly property int soh1: typeof battery1Store !== "undefined" ? battery1Store.stateOfHealth : 100
-    readonly property int battState1: typeof battery1Store !== "undefined" ? battery1Store.batteryState : 0
-    readonly property var faults1: typeof battery1Store !== "undefined" ? battery1Store.faults : []
+    readonly property int charge1: true ? Batteries.slot1.charge : 0
+    readonly property bool present1: true ? Batteries.slot1.present : false
+    readonly property int soh1: true ? Batteries.slot1.stateOfHealth : 100
+    readonly property int battState1: true ? Batteries.slot1.batteryState : 0
+    readonly property var faults1: true ? Batteries.slot1.faults : []
     readonly property bool hasFault1: present1 && faults1.length > 0
     readonly property bool showDual: present1
 

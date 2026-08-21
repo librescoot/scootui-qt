@@ -22,8 +22,8 @@ Rectangle {
     // fault:code snapshot, which can lag a clear and would latch the light.
     readonly property bool engineFault: {
         if (!hasVehicle) return false
-        var battery0Active = typeof battery0Store !== "undefined"
-                             && battery0Store.present && battery0Store.batteryState === 3
+        var battery0Active = true
+                             && Batteries.slot0.present && Batteries.slot0.batteryState === 3
         return VehicleStore.isUnableToDrive === 0
             || engineFaultActive
             || (VehicleStore.mainPower === 1
@@ -36,10 +36,10 @@ Rectangle {
 
     // Turtle: a present, active pack at or below 20% caps motor power.
     readonly property bool turtle: {
-        var b0 = typeof battery0Store !== "undefined" && battery0Store.present
-                 && battery0Store.batteryState === 3 && battery0Store.charge <= 20
-        var b1 = typeof battery1Store !== "undefined" && battery1Store.present
-                 && battery1Store.batteryState === 3 && battery1Store.charge <= 20
+        var b0 = true && Batteries.slot0.present
+                 && Batteries.slot0.batteryState === 3 && Batteries.slot0.charge <= 20
+        var b1 = true && Batteries.slot1.present
+                 && Batteries.slot1.batteryState === 3 && Batteries.slot1.charge <= 20
         return b0 || b1
     }
 

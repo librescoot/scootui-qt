@@ -132,8 +132,8 @@ Item {
     function es(prop) { return typeof EngineStore !== "undefined" ? EngineStore[prop] : 0 }
     function gs(prop) { return typeof GpsStore !== "undefined" ? GpsStore[prop] : 0 }
     function is_(prop) { return typeof InternetStore !== "undefined" ? InternetStore[prop] : 0 }
-    function b0(prop) { return typeof battery0Store !== "undefined" ? battery0Store[prop] : 0 }
-    function b1(prop) { return typeof battery1Store !== "undefined" ? battery1Store[prop] : 0 }
+    function b0(prop) { return Batteries.slot0[prop] }
+    function b1(prop) { return Batteries.slot1[prop] }
     function aux(prop) { return typeof AuxBatteryStore !== "undefined" ? AuxBatteryStore[prop] : 0 }
     function cb(prop) { return typeof CbBatteryStore !== "undefined" ? CbBatteryStore[prop] : 0 }
 
@@ -532,7 +532,7 @@ Item {
 
             // Battery 0
             Rectangle {
-                property bool present: typeof battery0Store !== "undefined" && battery0Store.present
+                property bool present: true && Batteries.slot0.present
                 property int charge: b0("charge")
                 width: b0Col.width + 20
                 height: b0Col.height + 10
@@ -561,7 +561,7 @@ Item {
                         }
                         Text {
                             text: " - " + b0("cycleCount") + " cyc - fw " +
-                                  (typeof battery0Store !== "undefined" ? battery0Store.firmwareVersion : "?")
+                                  (true ? Batteries.slot0.firmwareVersion : "?")
                             font.pixelSize: 9; color: "#9E9E9E"
                         }
                     }
@@ -581,7 +581,7 @@ Item {
 
             // Battery 1
             Rectangle {
-                property bool present: typeof battery1Store !== "undefined" && battery1Store.present
+                property bool present: true && Batteries.slot1.present
                 property int charge: b1("charge")
                 width: b1Col.width + 20
                 height: b1Col.height + 10
@@ -610,7 +610,7 @@ Item {
                         }
                         Text {
                             text: " - " + b1("cycleCount") + " cyc - fw " +
-                                  (typeof battery1Store !== "undefined" ? battery1Store.firmwareVersion : "?")
+                                  (true ? Batteries.slot1.firmwareVersion : "?")
                             font.pixelSize: 9; color: "#9E9E9E"
                         }
                     }

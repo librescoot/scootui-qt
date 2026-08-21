@@ -4,10 +4,12 @@
 #include "models/Enums.h"
 
 #include <QSet>
+#include <QtQml/qqmlengine.h>
 
 class BatteryStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ANONYMOUS
     Q_PROPERTY(bool present READ present NOTIFY presentChanged)
     Q_PROPERTY(int batteryState READ batteryState NOTIFY batteryStateChanged)
     Q_PROPERTY(int voltage READ voltage NOTIFY voltageChanged)
