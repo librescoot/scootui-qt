@@ -1,5 +1,11 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#if __has_include(<main.h>)
+// qmltc emits one C++ class per QML type into .qmltc/<target>/. Including the
+// root lets us instantiate the compiled Main instead of interpreting Main.qml.
+#  include <main.h>
+#  define SCOOTUI_HAVE_QMLTC 1
+#endif
 #include <QQmlComponent>
 #include <QQmlContext>
 #include <QQuickWindow>
@@ -107,6 +113,33 @@ int main(int argc, char *argv[])
 
     const QUrl url(QStringLiteral("qrc:/ScootUI/qml/Main.qml"));
     BOOT_MARK("engine.load() starting");
+#ifdef SCOOTUI_HAVE_QMLTC
+    // Enabling ENABLE_TYPE_COMPILER only *builds* the compiled classes. Nothing
+    // uses them unless the root is constructed from C++ like this; engine.load()
+    // goes on interpreting the QML, which is why turning the flag on alone
+    // changed nothing on the DBC (844ms vs 842ms for engine.load).
+    //
+    // Opt-in for now: the compiled root still fails on two counts. Main.qml:53
+    // reads allowedStates before its binding has run ("Cannot call method
+    // indexOf of undefined"), and completion crashes inside an asynchronous
+    // Loader incubation under Main::QML_completeComponent. Both need fixing
+    // before this can be the default.
+    if (qEnvironmentVariableIsSet("SCOOTUI_QMLTC")) {
+        // parent goes through the constructor: QQuickWindow::setParent takes a
+        // QWindow*, so the QObject overload is not reachable here.
+        auto *root = new ScootUI::Main(&engine, &engine);
+        BOOT_MARK("qmltc root constructed");
+        // objectCreated never fires for a type-compiled root, so the display
+        // handoff is wired here instead.
+        QObject::connect(root, &QQuickWindow::frameSwapped, &application,
+            [&application]() {
+                BOOT_MARK("first frameSwapped");
+                application.uiPresented();
+            },
+            Qt::SingleShotConnection);
+        root->setVisible(true);
+    } else
+#endif
     if (qEnvironmentVariableIsSet("SCOOTUI_SPLIT_LOAD")) {
         // Same work engine.load() does, in two halves, to see which one costs.
         // Compiling resolves every type Main.qml names, including the screen
