@@ -119,11 +119,14 @@ int main(int argc, char *argv[])
     // goes on interpreting the QML, which is why turning the flag on alone
     // changed nothing on the DBC (844ms vs 842ms for engine.load).
     //
-    // Opt-in for now: the compiled root still fails on two counts. Main.qml:53
-    // reads allowedStates before its binding has run ("Cannot call method
-    // indexOf of undefined"), and completion crashes inside an asynchronous
-    // Loader incubation under Main::QML_completeComponent. Both need fixing
-    // before this can be the default.
+    // Opt-in: the compiled root segfaults while a Loader completes, inside
+    // QQmlObjectCreator::create reached from Main::QML_completeComponent. It is
+    // not the asynchronous flag (it happens with every Loader synchronous) and
+    // not an outer-id reference from an inline Component (moving those bindings
+    // out relocates the crash rather than clearing it). qmltc is a Tech Preview
+    // that "might not compile an arbitrary QML program", and Main.qml drives
+    // fifteen Loaders off inline Components, so this needs an upstream answer
+    // or a restructure of the screen switcher, not a QML tweak.
     if (qEnvironmentVariableIsSet("SCOOTUI_QMLTC")) {
         // parent goes through the constructor: QQuickWindow::setParent takes a
         // QWindow*, so the QObject overload is not reachable here.
