@@ -132,6 +132,44 @@ ssh deep-blue 'redis-cli -p 6380 shutdown nosave; rm -rf /tmp/testredis'
 Check `redis-cli hget vehicle state` on the real instance before and after. It
 should not have moved.
 
+## Finding what keeps the UI rendering
+
+Qt Quick renders every frame for as long as any animation is running, whether
+or not the result is visible. One `loops: Animation.Infinite` behind an
+invisible item, or behind a backlight that has been switched off, pins the DBC
+at 59 Hz and costs about a quarter of a core for nothing.
+
+The symptom is easy to confirm and easy to misread. `QSG_RENDER_TIMING=1` shows
+frames arriving every 15 to 16 ms while the renderer reports no work at all:
+
+```
+polishAndSync: start, elapsed since last call: 16 ms
+time in renderer: total=0ms, preprocess=0, updates=0, rendering=0
+```
+
+Frames with `updates=0, rendering=0` mean the scene graph has nothing to draw
+and something is still asking for a new frame. That is an animation, not a
+dirty item, so looking for what changed on screen will not find it.
+
+`SCOOTUI_DUMP_ANIMATIONS=1` lists every running animation every three seconds,
+with the QML file it came from:
+
+```
+$ SCOOTUI_DUMP_ANIMATIONS=1 SCOOTUI_REDIS_HOST=127.0.0.1:6399 ./build/bin/scootui
+RUNNING-ANIM QQuickRotationAnimation qrc:/ScootUI/qml/screens/MaintenanceScreen.qml
+RUNNING-ANIM-TOTAL 1
+```
+
+Run it against a scratch Redis seeded with the state you care about, since what
+is running depends entirely on which screens and overlays are live. On the
+target the same variable works, but it is usually quicker to reproduce the
+state locally.
+
+When you find one, the fix is almost never to stop the animation outright. It
+is to give `running:` a condition that means "someone can actually see this".
+Item visibility is not that condition: an item can be visible in the scene
+while the panel it is drawn on is switched off.
+
 ## Gotchas
 
 The screen is mostly black in `stand-by`. Anything you are trying to see needs

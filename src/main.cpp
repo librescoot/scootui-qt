@@ -7,6 +7,7 @@
 #include <QFont>
 #include <QDebug>
 #include <QElapsedTimer>
+#include <QTimer>
 #include <exception>
 
 #include "core/EnvConfig.h"
@@ -129,6 +130,33 @@ int main(int argc, char *argv[])
     if (application.isSimulatorMode()) {
         const QUrl simUrl(QStringLiteral("qrc:/ScootUI/qml/simulator/SimulatorWindow.qml"));
         engine.load(simUrl);
+    }
+
+    // TEMPORARY DIAGNOSTIC: dump every running QML animation with the file it
+    // came from. Qt Quick keeps rendering at full frame rate while any
+    // animation runs, even one whose target is invisible.
+    if (qEnvironmentVariableIsSet("SCOOTUI_DUMP_ANIMATIONS")) {
+        auto *dumpTimer = new QTimer(&app);
+        QObject::connect(dumpTimer, &QTimer::timeout, [&engine]() {
+            int n = 0;
+            for (QObject *root : engine.rootObjects()) {
+                for (QObject *o : root->findChildren<QObject *>()) {
+                    const QByteArray cls = o->metaObject()->className();
+                    if (!cls.contains("Animation") && !cls.contains("Animator"))
+                        continue;
+                    const QVariant r = o->property("running");
+                    if (!r.isValid() || !r.toBool())
+                        continue;
+                    QString where;
+                    if (QQmlContext *c = qmlContext(o))
+                        where = c->baseUrl().toString();
+                    qInfo().noquote() << "RUNNING-ANIM" << cls << where;
+                    ++n;
+                }
+            }
+            qInfo().noquote() << "RUNNING-ANIM-TOTAL" << n;
+        });
+        dumpTimer->start(3000);
     }
 
     // Safety net: catch exceptions from MapLibre's internal sqlite reader
