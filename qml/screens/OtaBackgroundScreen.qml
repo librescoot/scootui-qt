@@ -6,15 +6,15 @@ Rectangle {
     id: otaScreen
     color: "black"
 
-    readonly property bool locked: typeof vehicleStore !== "undefined" && vehicleStore.state === 4
+    readonly property bool locked: typeof VehicleStore !== "undefined" && VehicleStore.state === 4
 
     onLockedChanged: {
         if (locked) {
             backlightTimer.restart()
         } else {
             backlightTimer.stop()
-            if (typeof dashboardStore !== "undefined")
-                dashboardStore.setBacklightEnabled(true)
+            if (typeof DashboardStore !== "undefined")
+                DashboardStore.setBacklightEnabled(true)
         }
     }
 
@@ -23,22 +23,22 @@ Rectangle {
         interval: 15000
         running: otaScreen.locked
         onTriggered: {
-            if (typeof dashboardStore !== "undefined")
-                dashboardStore.setBacklightEnabled(false)
+            if (typeof DashboardStore !== "undefined")
+                DashboardStore.setBacklightEnabled(false)
         }
     }
 
     Component.onDestruction: {
-        if (typeof dashboardStore !== "undefined")
-            dashboardStore.setBacklightEnabled(true)
+        if (typeof DashboardStore !== "undefined")
+            DashboardStore.setBacklightEnabled(true)
     }
 
-    readonly property string dbcStatus: typeof otaStore !== "undefined" ? otaStore.dbcStatus : "idle"
-    readonly property int downloadProgress: typeof otaStore !== "undefined" ? otaStore.dbcDownloadProgress : 0
-    readonly property int installProgress: typeof otaStore !== "undefined" ? otaStore.dbcInstallProgress : 0
-    readonly property string updateVersion: typeof otaStore !== "undefined" ? otaStore.dbcUpdateVersion : ""
-    readonly property string dbcError: typeof otaStore !== "undefined" ? otaStore.dbcError : ""
-    readonly property string dbcErrorMessage: typeof otaStore !== "undefined" ? otaStore.dbcErrorMessage : ""
+    readonly property string dbcStatus: typeof OtaStore !== "undefined" ? OtaStore.dbcStatus : "idle"
+    readonly property int downloadProgress: typeof OtaStore !== "undefined" ? OtaStore.dbcDownloadProgress : 0
+    readonly property int installProgress: typeof OtaStore !== "undefined" ? OtaStore.dbcInstallProgress : 0
+    readonly property string updateVersion: typeof OtaStore !== "undefined" ? OtaStore.dbcUpdateVersion : ""
+    readonly property string dbcError: typeof OtaStore !== "undefined" ? OtaStore.dbcError : ""
+    readonly property string dbcErrorMessage: typeof OtaStore !== "undefined" ? OtaStore.dbcErrorMessage : ""
 
     readonly property int currentProgress: {
         if (dbcStatus === "downloading") return downloadProgress
@@ -69,7 +69,7 @@ Rectangle {
             font.pixelSize: ThemeStore.fontBody
             color: Qt.rgba(1, 1, 1, 0.8)
             text: {
-                var tr = typeof translations !== "undefined" ? translations : null
+                var tr = typeof Translations !== "undefined" ? Translations : null
                 switch (otaScreen.dbcStatus) {
                     case "downloading": return tr ? tr.otaDownloadingUpdates : "Downloading update..."
                     case "preparing": return tr ? tr.otaPreparingUpdate : "Preparing update..."
@@ -121,7 +121,7 @@ Rectangle {
             font.pixelSize: ThemeStore.fontBody
             color: Qt.rgba(1, 1, 1, 0.6)
             visible: otaScreen.dbcStatus !== "idle" && !otaScreen.isError
-            text: typeof translations !== "undefined" ? translations.otaScooterWillTurnOff : "Your scooter will turn off when done.\nYou can unlock it again at any point."
+            text: typeof Translations !== "undefined" ? Translations.otaScooterWillTurnOff : "Your scooter will turn off when done.\nYou can unlock it again at any point."
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
         }

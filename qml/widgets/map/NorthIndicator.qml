@@ -6,7 +6,7 @@ Item {
     width: 24
     height: 24
 
-    property real bearing: typeof mapService !== "undefined" ? mapService.mapBearing : 0
+    property real bearing: typeof MapService !== "undefined" ? MapService.mapBearing : 0
     property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
 
     Rectangle {

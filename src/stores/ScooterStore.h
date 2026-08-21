@@ -3,10 +3,13 @@
 #include <QElapsedTimer>
 
 #include "SyncableStore.h"
+#include <QtQml/qqmlengine.h>
 
 class ScooterStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(double temperature READ temperature NOTIFY temperatureChanged)
     Q_PROPERTY(bool hasTemperature READ hasTemperature NOTIFY temperatureChanged)
     Q_PROPERTY(bool isFrostWarning READ isFrostWarning NOTIFY frostChanged)
@@ -48,4 +51,18 @@ private:
     bool m_hasTemperature = false;
     bool m_isFrostWarning = false;
     QElapsedTimer m_smoothingClock;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static ScooterStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(ScooterStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline ScooterStore *s_qmlInstance = nullptr;
 };

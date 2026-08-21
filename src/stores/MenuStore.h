@@ -5,6 +5,7 @@
 #include <QVariantList>
 #include <QStringList>
 #include <memory>
+#include <QtQml/qqmlengine.h>
 
 class MenuNode;
 class SettingsStore;
@@ -29,6 +30,8 @@ class UpdateChannelService;
 class MenuStore : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(bool isOpen READ isOpen NOTIFY isOpenChanged)
     Q_PROPERTY(QString currentTitle READ currentTitle NOTIFY menuChanged)
     Q_PROPERTY(QVariantList currentItems READ currentItems NOTIFY menuChanged)
@@ -115,4 +118,18 @@ private:
     // the first item. Drop navigation input in the first few ms after open.
     QElapsedTimer m_openedAt;
     static constexpr qint64 kOpenInputGraceMs = 150;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static MenuStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(MenuStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline MenuStore *s_qmlInstance = nullptr;
 };

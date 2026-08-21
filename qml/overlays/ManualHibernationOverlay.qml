@@ -14,9 +14,9 @@ Item {
     readonly property int stateWaitingHibernationSeatbox: 15
     readonly property int stateWaitingHibernationConfirm: 16
 
-    property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : 0
-    property bool bothBrakesHeld: typeof vehicleStore !== "undefined"
-                                  ? (vehicleStore.brakeLeft === 1 && vehicleStore.brakeRight === 1)
+    property int vehicleState: typeof VehicleStore !== "undefined" ? VehicleStore.state : 0
+    property bool bothBrakesHeld: typeof VehicleStore !== "undefined"
+                                  ? (VehicleStore.brakeLeft === 1 && VehicleStore.brakeRight === 1)
                                   : false
 
     property bool isHibernating: vehicleState === stateWaitingHibernation
@@ -117,7 +117,7 @@ Item {
                 // Title
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.hibernatePrompt : ""
+                    text: typeof Translations !== "undefined" ? Translations.hibernatePrompt : ""
                     font.pixelSize: ThemeStore.fontHeading
                     font.weight: Font.Bold
                     color: hibernationOverlay.textPrimary
@@ -129,7 +129,7 @@ Item {
                 // Subtitle
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.hibernateTapKeycard : ""
+                    text: typeof Translations !== "undefined" ? Translations.hibernateTapKeycard : ""
                     font.pixelSize: ThemeStore.fontBody
                     color: hibernationOverlay.textPrimary
                 }
@@ -147,7 +147,7 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     visible: !countdownActive && !bothBrakesHeld
-                    text: typeof translations !== "undefined" ? translations.hibernationOrHoldBrakes : ""
+                    text: typeof Translations !== "undefined" ? Translations.hibernationOrHoldBrakes : ""
                     font.pixelSize: ThemeStore.fontBody
                     color: hibernationOverlay.textSecondary
                 }
@@ -155,7 +155,7 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     visible: countdown === 0 && !countdownActive
-                    text: typeof translations !== "undefined" ? translations.hibernationKeepHoldingBrakes : ""
+                    text: typeof Translations !== "undefined" ? Translations.hibernationKeepHoldingBrakes : ""
                     font.pixelSize: ThemeStore.fontBody
                     color: hibernationOverlay.textSecondary
                 }
@@ -189,7 +189,7 @@ Item {
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: typeof translations !== "undefined" ? translations.hibernationCancel : ""
+                                text: typeof Translations !== "undefined" ? Translations.hibernationCancel : ""
                                 font.pixelSize: ThemeStore.fontBody
                                 font.weight: Font.Bold
                                 color: hibernationOverlay.textPrimary
@@ -197,7 +197,7 @@ Item {
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: typeof translations !== "undefined" ? translations.hibernationKickstand : ""
+                                text: typeof Translations !== "undefined" ? Translations.hibernationKickstand : ""
                                 font.pixelSize: ThemeStore.fontBody
                                 color: hibernationOverlay.textSecondary
                             }
@@ -228,7 +228,7 @@ Item {
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: typeof translations !== "undefined" ? translations.hibernationConfirm : ""
+                                text: typeof Translations !== "undefined" ? Translations.hibernationConfirm : ""
                                 font.pixelSize: ThemeStore.fontBody
                                 font.weight: Font.Bold
                                 color: hibernationOverlay.textPrimary
@@ -236,7 +236,7 @@ Item {
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: typeof translations !== "undefined" ? translations.hibernationTapKeycardToConfirm : ""
+                                text: typeof Translations !== "undefined" ? Translations.hibernationTapKeycardToConfirm : ""
                                 font.pixelSize: ThemeStore.fontBody
                                 color: hibernationOverlay.textSecondary
                             }
@@ -270,7 +270,7 @@ Item {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: typeof translations !== "undefined" ? translations.hibernateSeatboxOpen : ""
+            text: typeof Translations !== "undefined" ? Translations.hibernateSeatboxOpen : ""
             font.pixelSize: ThemeStore.fontHeading
             font.weight: Font.Bold
             color: "#000000"
@@ -278,7 +278,7 @@ Item {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: typeof translations !== "undefined" ? translations.hibernateCloseSeatbox : ""
+            text: typeof Translations !== "undefined" ? Translations.hibernateCloseSeatbox : ""
             font.pixelSize: ThemeStore.fontBody
             color: "#000000"
         }
@@ -307,7 +307,7 @@ Item {
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: typeof translations !== "undefined" ? translations.hibernating : ""
+            text: typeof Translations !== "undefined" ? Translations.hibernating : ""
             font.pixelSize: ThemeStore.fontHeading
             font.weight: Font.Bold
             color: hibernationOverlay.textPrimary

@@ -7,7 +7,7 @@ Item {
     anchors.fill: parent
     z: 900
 
-    property var toastModel: typeof toastService !== "undefined" ? toastService.toasts : []
+    property var toastModel: typeof ToastService !== "undefined" ? ToastService.toasts : []
 
     Column {
         anchors.top: parent.top

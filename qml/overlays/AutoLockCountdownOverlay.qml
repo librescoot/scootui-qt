@@ -9,8 +9,8 @@ Item {
     // VehicleState.Parked = 4 (see src/models/Enums.h: Unknown, StandBy, ReadyToDrive, Off, Parked)
     readonly property int stateParked: 4
 
-    property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : 0
-    property int remaining: typeof autoStandbyStore !== "undefined" ? autoStandbyStore.remainingSeconds : 0
+    property int vehicleState: typeof VehicleStore !== "undefined" ? VehicleStore.state : 0
+    property int remaining: typeof AutoStandbyStore !== "undefined" ? AutoStandbyStore.remainingSeconds : 0
 
     // Theme-aware colors. Orange countdown stays as-is (accent works in both modes).
     readonly property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
@@ -66,7 +66,7 @@ Item {
                 // Title
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.autoLockTitle : "Auto-Locking"
+                    text: typeof Translations !== "undefined" ? Translations.autoLockTitle : "Auto-Locking"
                     font.pixelSize: ThemeStore.fontHeading
                     font.weight: Font.Bold
                     color: autoLockOverlay.textPrimary
@@ -87,8 +87,8 @@ Item {
                 // Cancel hint
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined"
-                          ? translations.autoLockCancelHint
+                    text: typeof Translations !== "undefined"
+                          ? Translations.autoLockCancelHint
                           : "Touch a brake or kickstand to cancel"
                     font.pixelSize: ThemeStore.fontBody
                     color: autoLockOverlay.textSecondary

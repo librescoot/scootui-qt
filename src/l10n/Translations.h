@@ -3,10 +3,13 @@
 #include <QObject>
 #include <QByteArray>
 #include <QHash>
+#include <QtQml/qqmlengine.h>
 
 class Translations : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
 
     // Menu strings
     // Exposed so QML that looks strings up dynamically (by key rather than
@@ -1081,4 +1084,18 @@ private:
 
     QString m_language = QStringLiteral("en");
     QHash<QString, QHash<QString, QString>> m_strings;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static Translations *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(Translations *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline Translations *s_qmlInstance = nullptr;
 };

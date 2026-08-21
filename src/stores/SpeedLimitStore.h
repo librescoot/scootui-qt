@@ -1,10 +1,13 @@
 #pragma once
 
 #include "SyncableStore.h"
+#include <QtQml/qqmlengine.h>
 
 class SpeedLimitStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(QString speedLimit READ speedLimit NOTIFY speedLimitChanged)
     Q_PROPERTY(QString roadName READ roadName NOTIFY roadNameChanged)
     // Comma-joined road references ("B 2, B 5"). Empty if the road has no
@@ -47,4 +50,18 @@ private:
     QString m_roadRefs;
     QString m_roadType;
     double m_roadBearing = -1;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static SpeedLimitStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(SpeedLimitStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline SpeedLimitStore *s_qmlInstance = nullptr;
 };

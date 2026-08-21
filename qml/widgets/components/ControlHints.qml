@@ -36,7 +36,7 @@ Item {
 
             Text {
                 text: controlHints.leftLabel !== "" ? controlHints.leftLabel
-                    : (typeof translations !== "undefined" ? translations.controlLeftBrake : "Left Brake")
+                    : (typeof Translations !== "undefined" ? Translations.controlLeftBrake : "Left Brake")
                 color: controlHints.secondaryColor
                 font.pixelSize: ThemeStore.fontMicro
                 font.weight: Font.Medium
@@ -72,7 +72,7 @@ Item {
 
             Text {
                 anchors.right: parent.right
-                text: typeof translations !== "undefined" ? translations.controlRightBrake : "Right Brake"
+                text: typeof Translations !== "undefined" ? Translations.controlRightBrake : "Right Brake"
                 color: controlHints.secondaryColor
                 font.pixelSize: ThemeStore.fontMicro
                 font.weight: Font.Medium

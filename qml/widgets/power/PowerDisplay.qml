@@ -6,14 +6,14 @@ import ScootUI 1.0
 Item {
     id: powerDisplay
 
-    readonly property real motorCurrent: typeof engineStore !== "undefined" ? engineStore.motorCurrent : 0
-    readonly property real motorVoltage: typeof engineStore !== "undefined" ? engineStore.motorVoltage : 0
-    readonly property bool ecuStale: typeof engineStore !== "undefined" && engineStore.faultCode === 20
+    readonly property real motorCurrent: typeof EngineStore !== "undefined" ? EngineStore.motorCurrent : 0
+    readonly property real motorVoltage: typeof EngineStore !== "undefined" ? EngineStore.motorVoltage : 0
+    readonly property bool ecuStale: typeof EngineStore !== "undefined" && EngineStore.faultCode === 20
 
     // Regen availability, derived by ecu-service. Default to available when the
     // store isn't present so the bar reads solid.
-    readonly property bool regenAvailable: typeof engineStore !== "undefined" ? engineStore.regenAvailable : true
-    readonly property string regenReason: typeof engineStore !== "undefined" ? engineStore.regenReason : "none"
+    readonly property bool regenAvailable: typeof EngineStore !== "undefined" ? EngineStore.regenAvailable : true
+    readonly property string regenReason: typeof EngineStore !== "undefined" ? EngineStore.regenReason : "none"
     // A reason icon (cold/hot/full) is shown at the regen end of the bar. Other
     // off-reasons (user-disabled, standstill) still dash the track but carry no
     // icon — standstill is the normal state at every stop, so an icon there would
@@ -29,7 +29,7 @@ Item {
     readonly property color reasonFullColor: ThemeStore.isDark ? "#69F0AE" : "#2E7D32" // green
 
     // 0 = kW (default), 1 = Amps
-    readonly property int displayMode: typeof settingsStore !== "undefined" ? settingsStore.powerDisplayMode : 0
+    readonly property int displayMode: typeof SettingsStore !== "undefined" ? SettingsStore.powerDisplayMode : 0
     readonly property bool isAmpsMode: displayMode === 1
 
     // Current in A, Power in kW (voltage in mV × current in mA → W, /1e6 → kW)
@@ -37,7 +37,7 @@ Item {
     readonly property real powerKw: (motorVoltage * motorCurrent) / 1000000000
 
     // Regen scale stays fixed (doubled for dual-battery setups).
-    readonly property bool isDualBattery: typeof settingsStore !== "undefined" && settingsStore.dualBattery
+    readonly property bool isDualBattery: typeof SettingsStore !== "undefined" && SettingsStore.dualBattery
     readonly property real maxRegenA: isDualBattery ? 20 : 10
     readonly property real maxRegenKw: isDualBattery ? 1.08 : 0.54
     // Boost = above the motor's rated continuous output.
@@ -86,7 +86,7 @@ Item {
             Layout.fillWidth: true
 
             Text {
-                text: translations.powerRegen
+                text: Translations.powerRegen
                 font.pixelSize: ThemeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
@@ -96,7 +96,7 @@ Item {
             }
             Item { Layout.fillWidth: true }
             Text {
-                text: translations.powerDischarge
+                text: Translations.powerDischarge
                 font.pixelSize: ThemeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5

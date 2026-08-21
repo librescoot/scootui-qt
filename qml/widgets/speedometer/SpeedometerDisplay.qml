@@ -11,14 +11,14 @@ Item {
 
     // Properties from stores
     readonly property real targetSpeed: {
-        if (typeof settingsStore !== "undefined" && typeof engineStore !== "undefined") {
-            if (settingsStore.showRawSpeed && engineStore.hasRawSpeed)
-                return engineStore.rawSpeed
+        if (typeof SettingsStore !== "undefined" && typeof EngineStore !== "undefined") {
+            if (SettingsStore.showRawSpeed && EngineStore.hasRawSpeed)
+                return EngineStore.rawSpeed
         }
-        return typeof engineStore !== "undefined" ? engineStore.speed : 0
+        return typeof EngineStore !== "undefined" ? EngineStore.speed : 0
     }
-    readonly property real motorCurrent: typeof engineStore !== "undefined" ? engineStore.motorCurrent : 0
-    readonly property bool ecuStale: typeof engineStore !== "undefined" && engineStore.faultCode === 20
+    readonly property real motorCurrent: typeof EngineStore !== "undefined" ? EngineStore.motorCurrent : 0
+    readonly property bool ecuStale: typeof EngineStore !== "undefined" && EngineStore.faultCode === 20
     readonly property bool isDark: ThemeStore.isDark
 
     // Internal animated speed

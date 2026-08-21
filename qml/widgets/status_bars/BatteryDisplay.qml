@@ -49,12 +49,12 @@ Row {
     readonly property bool showDual: present1
 
     // --- Battery display mode ---
-    readonly property bool showAsRange: typeof settingsStore !== "undefined"
-                                         && settingsStore.batteryDisplayMode === "range"
+    readonly property bool showAsRange: typeof SettingsStore !== "undefined"
+                                         && SettingsStore.batteryDisplayMode === "range"
 
     // "icon" hides the value text entirely, leaving just the battery icons.
-    readonly property bool showText: typeof settingsStore === "undefined"
-                                     || settingsStore.batteryDisplayMode !== "icon"
+    readonly property bool showText: typeof SettingsStore === "undefined"
+                                     || SettingsStore.batteryDisplayMode !== "icon"
 
     function valueString(charge, soh, withDecimals) {
         if (!showAsRange)
@@ -109,18 +109,18 @@ Row {
     // real fuel gauge), AUX by voltage (no gauge, see the aux thresholds below).
     // Detailed charge/voltage is available via the hold-both-brakes parked view,
     // so the status bar stays icon-only.
-    readonly property string cbVisibility: typeof settingsStore !== "undefined" ? settingsStore.showCbBattery : "warning"
-    readonly property string auxVisibility: typeof settingsStore !== "undefined" ? settingsStore.showAuxBattery : "warning"
+    readonly property string cbVisibility: typeof SettingsStore !== "undefined" ? SettingsStore.showCbBattery : "warning"
+    readonly property string auxVisibility: typeof SettingsStore !== "undefined" ? SettingsStore.showAuxBattery : "warning"
 
-    readonly property bool cbPresent: typeof cbBatteryStore !== "undefined" && cbBatteryStore.present
-    readonly property int cbCharge: typeof cbBatteryStore !== "undefined" ? cbBatteryStore.charge : 0
-    readonly property bool cbChargeValid: typeof cbBatteryStore !== "undefined" && cbBatteryStore.chargeValid
+    readonly property bool cbPresent: typeof CbBatteryStore !== "undefined" && CbBatteryStore.present
+    readonly property int cbCharge: typeof CbBatteryStore !== "undefined" ? CbBatteryStore.charge : 0
+    readonly property bool cbChargeValid: typeof CbBatteryStore !== "undefined" && CbBatteryStore.chargeValid
     readonly property bool cbLow: cbChargeValid && cbCharge < 50
 
-    readonly property int auxCharge: typeof auxBatteryStore !== "undefined" ? auxBatteryStore.charge : 0
-    readonly property bool auxChargeValid: typeof auxBatteryStore !== "undefined" && auxBatteryStore.chargeValid
-    readonly property int auxVoltageMv: typeof auxBatteryStore !== "undefined" ? auxBatteryStore.voltage : 0
-    readonly property bool auxVoltageValid: typeof auxBatteryStore !== "undefined" && auxBatteryStore.voltageValid
+    readonly property int auxCharge: typeof AuxBatteryStore !== "undefined" ? AuxBatteryStore.charge : 0
+    readonly property bool auxChargeValid: typeof AuxBatteryStore !== "undefined" && AuxBatteryStore.chargeValid
+    readonly property int auxVoltageMv: typeof AuxBatteryStore !== "undefined" ? AuxBatteryStore.voltage : 0
+    readonly property bool auxVoltageValid: typeof AuxBatteryStore !== "undefined" && AuxBatteryStore.voltageValid
 
     // AUX 12V thresholds, in mV. The AUX pack has no fuel gauge: mdb-nrf52
     // quantizes this same voltage into 5 SoC buckets (0/25/50/75/100), so SoC
@@ -250,37 +250,37 @@ Row {
     }
 
     // --- Seatbox ---
-    readonly property bool seatboxOpen: typeof vehicleStore !== "undefined"
-                                         ? vehicleStore.seatboxLock !== slClosed : false
+    readonly property bool seatboxOpen: typeof VehicleStore !== "undefined"
+                                         ? VehicleStore.seatboxLock !== slClosed : false
 
     // --- Battery warning conditions ---
     // CB battery not present
-    readonly property bool cbNotPresent: typeof cbBatteryStore !== "undefined" && !cbBatteryStore.present
+    readonly property bool cbNotPresent: typeof CbBatteryStore !== "undefined" && !CbBatteryStore.present
 
     // CB warning: charge < 50%, not charging, main present & active, seatbox closed
     readonly property bool cbWarningCondition: {
-        if (typeof cbBatteryStore === "undefined" || typeof vehicleStore === "undefined") return false
-        if (!cbBatteryStore.present) return false
-        return cbBatteryStore.charge < 50
-            && cbBatteryStore.chargeStatus !== csCharging
+        if (typeof CbBatteryStore === "undefined" || typeof VehicleStore === "undefined") return false
+        if (!CbBatteryStore.present) return false
+        return CbBatteryStore.charge < 50
+            && CbBatteryStore.chargeStatus !== csCharging
             && present0 && charge0 > 0 && battState0 === bsActive
-            && vehicleStore.seatboxLock === slClosed
+            && VehicleStore.seatboxLock === slClosed
     }
     // AUX low voltage: not charging, main present, seatbox closed. Replaces the
     // old SoC <= 25% gate - voltage is the same signal without the bucketing.
     readonly property bool auxLowVoltageCondition: {
-        if (typeof auxBatteryStore === "undefined" || typeof vehicleStore === "undefined") return false
+        if (typeof AuxBatteryStore === "undefined" || typeof VehicleStore === "undefined") return false
         return auxVoltageValid && auxVoltageMv < auxWarnVoltageMv
-            && auxBatteryStore.chargeStatus === acsNotCharging
+            && AuxBatteryStore.chargeStatus === acsNotCharging
             && present0
-            && vehicleStore.seatboxLock === slClosed
+            && VehicleStore.seatboxLock === slClosed
     }
     // AUX critical voltage: main present, seatbox closed
     readonly property bool auxCriticalCondition: {
-        if (typeof auxBatteryStore === "undefined" || typeof vehicleStore === "undefined") return false
+        if (typeof AuxBatteryStore === "undefined" || typeof VehicleStore === "undefined") return false
         return auxVoltageValid && auxVoltageMv < auxCriticalVoltageMv
             && present0
-            && vehicleStore.seatboxLock === slClosed
+            && VehicleStore.seatboxLock === slClosed
     }
 
     // --- "Stranded" warnings: backup battery low while NO main battery is inserted ---
@@ -293,14 +293,14 @@ Row {
     // CBB low and stranded: reuse the 50% SoC gate. Only act on a reported SoC -
     // "never received" is not a low reading.
     readonly property bool cbStrandedCondition: {
-        if (typeof cbBatteryStore === "undefined") return false
-        return noMainBattery && cbBatteryStore.present
-            && cbBatteryStore.chargeValid && cbBatteryStore.charge < 50
+        if (typeof CbBatteryStore === "undefined") return false
+        return noMainBattery && CbBatteryStore.present
+            && CbBatteryStore.chargeValid && CbBatteryStore.charge < 50
     }
     // AUX low and stranded: low aux voltage while no main battery is inserted.
     // Mirrors the C++ BackupBatteryMonitor, which drives the actual toast.
     readonly property bool auxStrandedCondition: {
-        if (typeof auxBatteryStore === "undefined") return false
+        if (typeof AuxBatteryStore === "undefined") return false
         if (!noMainBattery) return false
         return auxVoltageValid && auxVoltageMv < auxLowVoltageMv
     }

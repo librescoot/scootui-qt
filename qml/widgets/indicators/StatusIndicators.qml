@@ -12,31 +12,31 @@ Row {
     readonly property color iconColor: typeof ThemeStore !== "undefined" && !ThemeStore.isDark
                                         ? "#000000" : "#FFFFFF"
 
-    readonly property int gpsState: typeof gpsStore !== "undefined" ? gpsStore.gpsState : 0
-    readonly property bool gpsRecentFix: typeof gpsStore !== "undefined" ? gpsStore.hasRecentFix : false
-    readonly property bool gpsHasTimestamp: typeof gpsStore !== "undefined" ? gpsStore.hasTimestamp : false
-    readonly property int btStatus: typeof bluetoothStore !== "undefined" ? bluetoothStore.status : 1
-    readonly property string btServiceHealth: typeof bluetoothStore !== "undefined" ? bluetoothStore.serviceHealth : ""
-    readonly property int modemState: typeof internetStore !== "undefined" ? internetStore.modemState : 0
+    readonly property int gpsState: typeof GpsStore !== "undefined" ? GpsStore.gpsState : 0
+    readonly property bool gpsRecentFix: typeof GpsStore !== "undefined" ? GpsStore.hasRecentFix : false
+    readonly property bool gpsHasTimestamp: typeof GpsStore !== "undefined" ? GpsStore.hasTimestamp : false
+    readonly property int btStatus: typeof BluetoothStore !== "undefined" ? BluetoothStore.status : 1
+    readonly property string btServiceHealth: typeof BluetoothStore !== "undefined" ? BluetoothStore.serviceHealth : ""
+    readonly property int modemState: typeof InternetStore !== "undefined" ? InternetStore.modemState : 0
     // Connectivity classification from modem-service: gates whether the internet
     // icon is worth showing at all. "" = unknown (treat as hidden).
-    readonly property string connectivity: typeof internetStore !== "undefined" ? internetStore.connectivity : ""
-    readonly property int cloudStatus: typeof internetStore !== "undefined" ? internetStore.unuCloud : 1
+    readonly property string connectivity: typeof InternetStore !== "undefined" ? InternetStore.connectivity : ""
+    readonly property int cloudStatus: typeof InternetStore !== "undefined" ? InternetStore.unuCloud : 1
     // Cloud applies only if a cloud client (radio-gaga / uplink-service) has
     // published unu-cloud. Absent -> de-clouded scooter -> icon hidden.
-    readonly property bool hasCloud: typeof internetStore !== "undefined" ? internetStore.hasUnuCloud : false
-    readonly property int signalQuality: typeof internetStore !== "undefined" ? internetStore.signalQuality : 0
-    readonly property string accessTech: typeof internetStore !== "undefined" ? internetStore.accessTech : ""
-    readonly property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : 0
-    readonly property bool otaActive: typeof otaStore !== "undefined" ? otaStore.isActive : false
-    readonly property string otaDbcStatus: typeof otaStore !== "undefined" ? otaStore.dbcStatus : "idle"
-    readonly property int otaDbcDownloadProgress: typeof otaStore !== "undefined" ? otaStore.dbcDownloadProgress : 0
-    readonly property int otaDbcInstallProgress: typeof otaStore !== "undefined" ? otaStore.dbcInstallProgress : 0
-    readonly property string otaMdbStatus: typeof otaStore !== "undefined" ? otaStore.mdbStatus : "idle"
-    readonly property int otaMdbDownloadProgress: typeof otaStore !== "undefined" ? otaStore.mdbDownloadProgress : 0
-    readonly property int otaMdbInstallProgress: typeof otaStore !== "undefined" ? otaStore.mdbInstallProgress : 0
+    readonly property bool hasCloud: typeof InternetStore !== "undefined" ? InternetStore.hasUnuCloud : false
+    readonly property int signalQuality: typeof InternetStore !== "undefined" ? InternetStore.signalQuality : 0
+    readonly property string accessTech: typeof InternetStore !== "undefined" ? InternetStore.accessTech : ""
+    readonly property int vehicleState: typeof VehicleStore !== "undefined" ? VehicleStore.state : 0
+    readonly property bool otaActive: typeof OtaStore !== "undefined" ? OtaStore.isActive : false
+    readonly property string otaDbcStatus: typeof OtaStore !== "undefined" ? OtaStore.dbcStatus : "idle"
+    readonly property int otaDbcDownloadProgress: typeof OtaStore !== "undefined" ? OtaStore.dbcDownloadProgress : 0
+    readonly property int otaDbcInstallProgress: typeof OtaStore !== "undefined" ? OtaStore.dbcInstallProgress : 0
+    readonly property string otaMdbStatus: typeof OtaStore !== "undefined" ? OtaStore.mdbStatus : "idle"
+    readonly property int otaMdbDownloadProgress: typeof OtaStore !== "undefined" ? OtaStore.mdbDownloadProgress : 0
+    readonly property int otaMdbInstallProgress: typeof OtaStore !== "undefined" ? OtaStore.mdbInstallProgress : 0
 
-    // otaStore.isActive() is true when EITHER board is busy, so this row appears
+    // OtaStore.isActive() is true when EITHER board is busy, so this row appears
     // during an MDB-only update too. Everything below therefore keys off the
     // board that is actually working rather than the DBC alone: keyed off the
     // DBC, an MDB update left the icon with an empty source and the row drew a
@@ -51,26 +51,26 @@ Row {
     // a map download was invisible outside the Map and Navigation screen even
     // though it pulls hundreds of MB and holds DBC power while it runs.
     // Downloading(3) / Installing(4) from ScootEnums::MapDownloadStatus.
-    readonly property int mapDlStatus: typeof mapDownloadService !== "undefined"
-                                       ? mapDownloadService.status : 0
-    readonly property double mapDlProgress: typeof mapDownloadService !== "undefined"
-                                            ? mapDownloadService.progress : 0
+    readonly property int mapDlStatus: typeof MapDownloadService !== "undefined"
+                                       ? MapDownloadService.status : 0
+    readonly property double mapDlProgress: typeof MapDownloadService !== "undefined"
+                                            ? MapDownloadService.progress : 0
     readonly property bool mapDlActive: mapDlStatus === 3 || mapDlStatus === 4
     readonly property string mapDlProgressText: mapDlActive
                                                 ? "" + Math.round(mapDlProgress * 100) : ""
 
     // Visibility settings from SettingsStore (values: "always", "active-or-error", "error", "never")
-    readonly property string showGpsSetting: typeof settingsStore !== "undefined" ? settingsStore.showGps : "error"
-    readonly property string showBtSetting: typeof settingsStore !== "undefined" ? settingsStore.showBluetooth : "active-or-error"
-    readonly property string showCloudSetting: typeof settingsStore !== "undefined" ? settingsStore.showCloud : "active-or-error"
-    readonly property string showInternetSetting: typeof settingsStore !== "undefined" ? settingsStore.showInternet : "active-or-error"
+    readonly property string showGpsSetting: typeof SettingsStore !== "undefined" ? SettingsStore.showGps : "error"
+    readonly property string showBtSetting: typeof SettingsStore !== "undefined" ? SettingsStore.showBluetooth : "active-or-error"
+    readonly property string showCloudSetting: typeof SettingsStore !== "undefined" ? SettingsStore.showCloud : "active-or-error"
+    readonly property string showInternetSetting: typeof SettingsStore !== "undefined" ? SettingsStore.showInternet : "active-or-error"
 
     // Temperature state, hoisted from tempRow so the width model can see it.
-    readonly property double temp: typeof scooterStore !== "undefined" ? scooterStore.temperature : 0
-    readonly property bool hasTemp: typeof scooterStore !== "undefined" && scooterStore.hasTemperature
-    readonly property string tempMode: typeof settingsStore !== "undefined"
-                                       ? settingsStore.showTemperature : "warning"
-    readonly property bool isFrostWarning: typeof scooterStore !== "undefined" && scooterStore.isFrostWarning
+    readonly property double temp: typeof ScooterStore !== "undefined" ? ScooterStore.temperature : 0
+    readonly property bool hasTemp: typeof ScooterStore !== "undefined" && ScooterStore.hasTemperature
+    readonly property string tempMode: typeof SettingsStore !== "undefined"
+                                       ? SettingsStore.showTemperature : "warning"
+    readonly property bool isFrostWarning: typeof ScooterStore !== "undefined" && ScooterStore.isFrostWarning
     readonly property bool tempShown: hasTemp && tempMode !== "never"
                                       && (tempMode === "always" || isFrostWarning)
     // U+200A HAIR SPACE between number and degree sign.

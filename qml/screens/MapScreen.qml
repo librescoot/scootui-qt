@@ -16,8 +16,8 @@ Rectangle {
     readonly property int statusNavigating: 2
     readonly property int statusArrived: 4
 
-    property int navStatus: typeof navigationService !== "undefined"
-                            ? navigationService.status : 0
+    property int navStatus: typeof NavigationService !== "undefined"
+                            ? NavigationService.status : 0
     property bool hasNav: navStatus === statusNavigating || navStatus === statusArrived
 
     // GPS state enum values (must match GpsState in C++)
@@ -26,11 +26,11 @@ Rectangle {
     readonly property int gpsFixEstablished: 2
     readonly property int gpsError: 3
 
-    property int currentGpsState: typeof gpsStore !== "undefined" ? gpsStore.gpsState : 0
+    property int currentGpsState: typeof GpsStore !== "undefined" ? GpsStore.gpsState : 0
     property bool hasGpsFix: currentGpsState === gpsFixEstablished
-    property bool hasRecentFix: typeof gpsStore !== "undefined" ? gpsStore.hasRecentFix : false
-    property bool mapReady: typeof mapService !== "undefined" && mapService.isReady
-    property bool hasRoute: typeof navigationService !== "undefined" && navigationService.hasRoute
+    property bool hasRecentFix: typeof GpsStore !== "undefined" ? GpsStore.hasRecentFix : false
+    property bool mapReady: typeof MapService !== "undefined" && MapService.isReady
+    property bool hasRoute: typeof NavigationService !== "undefined" && NavigationService.hasRoute
 
     // Full-screen "waiting for GPS" takes over only when there's no position
     // we can do anything useful with: no recent fix AND no route to dead-
@@ -84,8 +84,8 @@ Rectangle {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined"
-                          ? translations.mapWaitingForGps : "Waiting for GPS fix"
+                    text: typeof Translations !== "undefined"
+                          ? Translations.mapWaitingForGps : "Waiting for GPS fix"
                     font.pixelSize: ThemeStore.fontBody
                     color: typeof ThemeStore !== "undefined" && ThemeStore.isDark
                            ? "#FFFFFF" : "#000000"
@@ -102,8 +102,8 @@ Rectangle {
                     // are useful while waiting for a fix. hasTimestamp alone
                     // would keep this hidden on a cold boot until the first
                     // fix; satellitesVisible > 0 covers the search window.
-                    visible: typeof gpsStore !== "undefined"
-                             && (gpsStore.hasTimestamp || gpsStore.satellitesVisible > 0)
+                    visible: typeof GpsStore !== "undefined"
+                             && (GpsStore.hasTimestamp || GpsStore.satellitesVisible > 0)
 
                     readonly property color labelColor: typeof ThemeStore !== "undefined" && ThemeStore.isDark
                                                        ? "#99FFFFFF" : "#8A000000"
@@ -126,7 +126,7 @@ Rectangle {
                     InfoLabel { text: "Fix" }
                     InfoValue {
                         text: {
-                            var f = gpsStore.fix
+                            var f = GpsStore.fix
                             if (!f || f === "none") return "—"
                             return f.toUpperCase()
                         }
@@ -134,36 +134,36 @@ Rectangle {
 
                     InfoLabel { text: "Satellites" }
                     InfoValue {
-                        text: gpsStore.satellitesUsed + " / " + gpsStore.satellitesVisible
+                        text: GpsStore.satellitesUsed + " / " + GpsStore.satellitesVisible
                     }
 
                     InfoLabel { text: "SNR" }
                     InfoValue {
-                        text: gpsStore.snr > 0 ? gpsStore.snr.toFixed(1) + " dB" : "—"
+                        text: GpsStore.snr > 0 ? GpsStore.snr.toFixed(1) + " dB" : "—"
                     }
 
                     InfoLabel { text: "Accuracy" }
                     InfoValue {
-                        text: gpsStore.eph > 0 ? "±" + gpsStore.eph.toFixed(1) + " m" : "—"
+                        text: GpsStore.eph > 0 ? "±" + GpsStore.eph.toFixed(1) + " m" : "—"
                     }
 
                     InfoLabel { text: "HDOP / PDOP" }
                     InfoValue {
-                        text: (gpsStore.hdop > 0 ? gpsStore.hdop.toFixed(1) : "—")
+                        text: (GpsStore.hdop > 0 ? GpsStore.hdop.toFixed(1) : "—")
                               + " / "
-                              + (gpsStore.pdop > 0 ? gpsStore.pdop.toFixed(1) : "—")
+                              + (GpsStore.pdop > 0 ? GpsStore.pdop.toFixed(1) : "—")
                     }
 
                     InfoLabel { text: "Mode" }
                     InfoValue {
-                        text: gpsStore.mode || "—"
+                        text: GpsStore.mode || "—"
                     }
 
                     InfoLabel { text: "Last TTFF" }
                     InfoValue {
-                        text: gpsStore.lastTtffSeconds > 0
-                              ? gpsStore.lastTtffSeconds.toFixed(0) + " s"
-                                + (gpsStore.lastTtffMode ? " (" + gpsStore.lastTtffMode + ")" : "")
+                        text: GpsStore.lastTtffSeconds > 0
+                              ? GpsStore.lastTtffSeconds.toFixed(0) + " s"
+                                + (GpsStore.lastTtffMode ? " (" + GpsStore.lastTtffMode + ")" : "")
                               : "—"
                     }
                 }
@@ -191,13 +191,13 @@ Rectangle {
             VehicleMarker {
                 id: vehicleMarkerItem
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: parent.height / 2 + (typeof mapService !== "undefined" ? mapService.vehicleOffsetY : 0) - height / 2
-                visible: typeof mapService !== "undefined" && mapService.isReady
+                y: parent.height / 2 + (typeof MapService !== "undefined" ? MapService.vehicleOffsetY : 0) - height / 2
+                visible: typeof MapService !== "undefined" && MapService.isReady
                 transform: Rotation {
                     origin.x: vehicleMarkerItem.width / 2
                     origin.y: vehicleMarkerItem.height / 2
                     axis { x: 1; y: 0; z: 0 }
-                    angle: (typeof settingsStore !== "undefined" && settingsStore.mapViewMode === 1) ? 0 : 55
+                    angle: (typeof SettingsStore !== "undefined" && SettingsStore.mapViewMode === 1) ? 0 : 55
                 }
             }
 
@@ -228,7 +228,7 @@ Rectangle {
                        ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.9)
                 border.width: 1.5
                 border.color: Qt.rgba(1, 0.647, 0, 0.6)  // orange with 60% opacity
-                visible: typeof mapService !== "undefined" && mapService.isOutOfCoverage
+                visible: typeof MapService !== "undefined" && MapService.isOutOfCoverage
                 z: 10
 
                 Row {
@@ -247,8 +247,8 @@ Rectangle {
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: typeof translations !== "undefined"
-                              ? translations.mapOutOfCoverage : "No map data for current location"
+                        text: typeof Translations !== "undefined"
+                              ? Translations.mapOutOfCoverage : "No map data for current location"
                         font.pixelSize: ThemeStore.fontBody
                         font.weight: Font.Medium
                         color: "#FF9800"  // Colors.orange
@@ -259,11 +259,11 @@ Rectangle {
             // No-map message (shown when not navigating and no map position)
             Text {
                 anchors.centerIn: parent
-                visible: !mapScreen.hasNav && (typeof mapService === "undefined" || !mapService.isReady)
-                text: typeof navigationService !== "undefined"
-                      ? (typeof translations !== "undefined" ? translations.navSetDestination
+                visible: !mapScreen.hasNav && (typeof MapService === "undefined" || !MapService.isReady)
+                text: typeof NavigationService !== "undefined"
+                      ? (typeof Translations !== "undefined" ? Translations.navSetDestination
                          : "Set a destination to start navigation")
-                      : (typeof translations !== "undefined" ? translations.navUnavailable
+                      : (typeof Translations !== "undefined" ? Translations.navUnavailable
                          : "Navigation unavailable")
                 color: typeof ThemeStore !== "undefined" && ThemeStore.isDark
                        ? Qt.rgba(1, 1, 1, 0.4) : Qt.rgba(0, 0, 0, 0.4)
@@ -320,8 +320,8 @@ Rectangle {
                 visible: opacity > 0
                 z: 10
 
-                property bool shouldShow: typeof mapDownloadService !== "undefined"
-                                          && mapDownloadService.updateAvailable
+                property bool shouldShow: typeof MapDownloadService !== "undefined"
+                                          && MapDownloadService.updateAvailable
                 property bool fadingOut: false
 
                 opacity: shouldShow && !fadingOut ? 1.0 : 0.0
@@ -342,8 +342,8 @@ Rectangle {
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: typeof translations !== "undefined"
-                              ? translations.mapUpdateBadge : "Map update"
+                        text: typeof Translations !== "undefined"
+                              ? Translations.mapUpdateBadge : "Map update"
                         font.pixelSize: 12
                         font.weight: Font.Medium
                         color: typeof ThemeStore !== "undefined" && ThemeStore.isDark
@@ -358,9 +358,9 @@ Rectangle {
                 }
 
                 Connections {
-                    target: typeof vehicleStore !== "undefined" ? vehicleStore : null
+                    target: typeof VehicleStore !== "undefined" ? VehicleStore : null
                     function onStateChanged() {
-                        if (vehicleStore.state === 2) { // ReadyToDrive
+                        if (VehicleStore.state === 2) { // ReadyToDrive
                             if (mapUpdateBadge.shouldShow)
                                 fadeBadgeTimer.start()
                         } else {
@@ -377,7 +377,7 @@ Rectangle {
                 anchors.bottom: scaleBar.top
                 anchors.rightMargin: 8
                 anchors.bottomMargin: 4
-                visible: typeof mapService !== "undefined" && mapService.isReady
+                visible: typeof MapService !== "undefined" && MapService.isReady
             }
 
             // Scale bar (bottom-right)
@@ -387,7 +387,7 @@ Rectangle {
                 anchors.bottom: parent.bottom
                 anchors.rightMargin: 8
                 anchors.bottomMargin: 8
-                visible: typeof mapService !== "undefined" && mapService.isReady
+                visible: typeof MapService !== "undefined" && MapService.isReady
             }
 
             // Warning telltales (bottom left)

@@ -4,10 +4,13 @@
 #include "models/Enums.h"
 
 #include <QSet>
+#include <QtQml/qqmlengine.h>
 
 class BluetoothStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(int status READ status NOTIFY statusChanged)
     Q_PROPERTY(QString macAddress READ macAddress NOTIFY macAddressChanged)
     Q_PROPERTY(QString pinCode READ pinCode NOTIFY pinCodeChanged)
@@ -49,4 +52,18 @@ private:
     QString m_serviceError;
     QString m_lastUpdate;
     QSet<int> m_faults;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static BluetoothStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(BluetoothStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline BluetoothStore *s_qmlInstance = nullptr;
 };

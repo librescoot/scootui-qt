@@ -5,6 +5,7 @@
 #include <QSet>
 #include <QString>
 #include <QVariantList>
+#include <QtQml/qqmlengine.h>
 
 class BatteryStore;
 class EngineStore;
@@ -22,6 +23,8 @@ class Translations;
 class FaultsStore : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(QVariantList entries READ entries NOTIFY entriesChanged)
     Q_PROPERTY(int activeCount READ activeCount NOTIFY entriesChanged)
 
@@ -57,4 +60,18 @@ private:
 
     QVariantList m_entries;
     int m_activeCount = 0;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static FaultsStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(FaultsStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline FaultsStore *s_qmlInstance = nullptr;
 };

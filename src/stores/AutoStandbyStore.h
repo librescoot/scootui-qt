@@ -1,10 +1,13 @@
 #pragma once
 
 #include "SyncableStore.h"
+#include <QtQml/qqmlengine.h>
 
 class AutoStandbyStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(qint64 deadline READ deadline NOTIFY deadlineChanged)
     Q_PROPERTY(int remainingSeconds READ remainingSeconds NOTIFY remainingSecondsChanged)
 
@@ -28,4 +31,18 @@ private:
     qint64 m_deadline = 0;       // Unix seconds; 0 = no timer active
     int m_remainingSeconds = 0;  // max(0, deadline - now); 0 when inactive
     QTimer m_tickTimer;          // 1 Hz tick while a deadline is active
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static AutoStandbyStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(AutoStandbyStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline AutoStandbyStore *s_qmlInstance = nullptr;
 };

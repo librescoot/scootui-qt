@@ -43,8 +43,8 @@ Rectangle {
     ]
 
     Component.onCompleted: {
-        if (typeof systemInfoService !== "undefined")
-            systemInfoService.loadVersions()
+        if (typeof SystemInfoService !== "undefined")
+            SystemInfoService.loadVersions()
     }
 
     // Easter egg state machines. true=down, false=up.
@@ -89,37 +89,37 @@ Rectangle {
 
     function closeScreen() {
         if (eggStep === eggSeq.length) {
-            if (typeof settingsService !== "undefined") {
-                var next = settingsService.toggleBootAnimation()
-                if (typeof toastService !== "undefined" && next !== "") {
+            if (typeof SettingsService !== "undefined") {
+                var next = SettingsService.toggleBootAnimation()
+                if (typeof ToastService !== "undefined" && next !== "") {
                     if (next === "windowsxp")
-                        toastService.showSuccess(typeof translations !== "undefined"
-                            ? translations.aboutGenuineAdvantage : "Genuine Advantage activated.")
+                        ToastService.showSuccess(typeof Translations !== "undefined"
+                            ? Translations.aboutGenuineAdvantage : "Genuine Advantage activated.")
                     else
-                        toastService.showInfo(typeof translations !== "undefined"
-                            ? translations.aboutBootThemeRestored : "Boot theme: Librescoot restored.")
+                        ToastService.showInfo(typeof Translations !== "undefined"
+                            ? Translations.aboutBootThemeRestored : "Boot theme: Librescoot restored.")
                 }
             }
         }
         if (milestoneEggStep === milestoneEggSeq.length) {
-            if (typeof odometerMilestoneService !== "undefined") {
-                var enabled = !odometerMilestoneService.easterEggsEnabled
-                odometerMilestoneService.easterEggsEnabled = enabled
-                if (typeof toastService !== "undefined") {
-                    toastService.showInfo(enabled
+            if (typeof OdometerMilestoneService !== "undefined") {
+                var enabled = !OdometerMilestoneService.easterEggsEnabled
+                OdometerMilestoneService.easterEggsEnabled = enabled
+                if (typeof ToastService !== "undefined") {
+                    ToastService.showInfo(enabled
                         ? "Milestone easter eggs unlocked"
                         : "Milestone easter eggs locked")
                 }
             }
         }
-        if (typeof screenStore !== "undefined") {
-            screenStore.closeAbout()
+        if (typeof ScreenStore !== "undefined") {
+            ScreenStore.closeAbout()
         }
     }
 
     // Centralized brake gesture handling via InputHandler
     Connections {
-        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        target: typeof InputHandler !== "undefined" ? InputHandler : null
         function onLeftTap() { aboutScreen.scrollDown() }
         function onLeftHold() { aboutScreen.scrollUp() }
         function onRightTap() { aboutScreen.closeScreen() }
@@ -171,7 +171,7 @@ Rectangle {
                 // FOSS description
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined" ? translations.aboutFossDescription
+                    text: typeof Translations !== "undefined" ? Translations.aboutFossDescription
                           : "Free and Open Source Firmware for unu Scooter Pro"
                     color: aboutScreen.textSecondary
                     font.pixelSize: ThemeStore.fontBody
@@ -204,15 +204,15 @@ Rectangle {
                 // Firmware version rows
                 Loader {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    active: typeof systemInfoService !== "undefined" &&
-                            systemInfoService.versionRows.length > 0
+                    active: typeof SystemInfoService !== "undefined" &&
+                            SystemInfoService.versionRows.length > 0
                     sourceComponent: Column {
                         spacing: 0
                         topPadding: 16
 
                         Repeater {
-                            model: typeof systemInfoService !== "undefined"
-                                   ? systemInfoService.versionRows : []
+                            model: typeof SystemInfoService !== "undefined"
+                                   ? SystemInfoService.versionRows : []
 
                             Row {
                                 spacing: 6
@@ -286,8 +286,8 @@ Rectangle {
                             }
 
                             Text {
-                                text: typeof translations !== "undefined"
-                                      ? translations.aboutNonCommercialTitle
+                                text: typeof Translations !== "undefined"
+                                      ? Translations.aboutNonCommercialTitle
                                       : "NON-COMMERCIAL SOFTWARE"
                                 color: aboutScreen.warningText
                                 font.pixelSize: ThemeStore.fontBody
@@ -299,8 +299,8 @@ Rectangle {
                         // Commercial prohibited text
                         Text {
                             width: parent.width
-                            text: typeof translations !== "undefined"
-                                  ? translations.aboutCommercialProhibited
+                            text: typeof Translations !== "undefined"
+                                  ? Translations.aboutCommercialProhibited
                                   : "Commercial distribution, resale, or preinstallation on devices for sale is prohibited under CC BY-NC-SA 4.0."
                             color: aboutScreen.textPrimary
                             font.pixelSize: ThemeStore.fontBody
@@ -312,8 +312,8 @@ Rectangle {
                         // Scam warning
                         Text {
                             width: parent.width
-                            text: typeof translations !== "undefined"
-                                  ? translations.aboutScamWarning
+                            text: typeof Translations !== "undefined"
+                                  ? Translations.aboutScamWarning
                                   : "If you paid money for this software, or if you purchased a new scooter from a shop or vendor with this software preinstalled, you may have been the victim of a scam. Please report it at https://librescoot.org."
                             color: aboutScreen.textPrimary
                             font.pixelSize: ThemeStore.fontBody
@@ -340,8 +340,8 @@ Rectangle {
                 // FOSS Components header
                 Text {
                     x: 40
-                    text: typeof translations !== "undefined"
-                          ? translations.aboutOpenSourceComponents
+                    text: typeof Translations !== "undefined"
+                          ? Translations.aboutOpenSourceComponents
                           : "OPEN SOURCE COMPONENTS"
                     color: aboutScreen.textSecondary
                     font.pixelSize: ThemeStore.fontBody
@@ -412,8 +412,8 @@ Rectangle {
                 // Special Thanks header
                 Text {
                     x: 40
-                    text: typeof translations !== "undefined"
-                          ? translations.aboutSpecialThanks
+                    text: typeof Translations !== "undefined"
+                          ? Translations.aboutSpecialThanks
                           : "SPECIAL THANKS TO THE EARLY TESTERS"
                     color: aboutScreen.textSecondary
                     font.pixelSize: ThemeStore.fontBody
@@ -459,8 +459,8 @@ Rectangle {
                 Text {
                     x: 40
                     width: parent.width - 80
-                    text: typeof translations !== "undefined"
-                          ? translations.aboutPatienceNote
+                    text: typeof Translations !== "undefined"
+                          ? Translations.aboutPatienceNote
                           : "And Cin and Tabitha for their patience with the scooters in the hallway."
                     color: aboutScreen.textSecondary
                     font.pixelSize: ThemeStore.fontBody
@@ -485,8 +485,8 @@ Rectangle {
                 // Authorized installation partners header
                 Text {
                     x: 40
-                    text: typeof translations !== "undefined"
-                          ? translations.aboutAuthorizedPartners
+                    text: typeof Translations !== "undefined"
+                          ? Translations.aboutAuthorizedPartners
                           : "AUTHORIZED INSTALLATION PARTNERS"
                     color: aboutScreen.textSecondary
                     font.pixelSize: ThemeStore.fontBody
@@ -553,10 +553,10 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                leftAction: typeof translations !== "undefined"
-                            ? translations.aboutScrollAction : "Scroll"
-                rightAction: typeof translations !== "undefined"
-                             ? translations.aboutBackAction : "Back"
+                leftAction: typeof Translations !== "undefined"
+                            ? Translations.aboutScrollAction : "Scroll"
+                rightAction: typeof Translations !== "undefined"
+                             ? Translations.aboutBackAction : "Back"
             }
         }
     }

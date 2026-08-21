@@ -36,20 +36,20 @@ Item {
 
     // OTA status during shutdown (centered, persistent after fade)
     readonly property string otaActiveStatus: {
-        if (typeof otaStore === "undefined") return "idle"
-        return otaStore.dbcStatus !== "idle" ? otaStore.dbcStatus : otaStore.mdbStatus
+        if (typeof OtaStore === "undefined") return "idle"
+        return OtaStore.dbcStatus !== "idle" ? OtaStore.dbcStatus : OtaStore.mdbStatus
     }
     readonly property string otaActiveVersion: {
-        if (typeof otaStore === "undefined") return ""
-        return otaStore.dbcStatus !== "idle" ? otaStore.dbcUpdateVersion : otaStore.mdbUpdateVersion
+        if (typeof OtaStore === "undefined") return ""
+        return OtaStore.dbcStatus !== "idle" ? OtaStore.dbcUpdateVersion : OtaStore.mdbUpdateVersion
     }
 
     Column {
         anchors.centerIn: parent
         spacing: 16
         visible: overlay.opacity > 0.9
-                 && typeof otaStore !== "undefined"
-                 && otaStore.isActive
+                 && typeof OtaStore !== "undefined"
+                 && OtaStore.isActive
 
         OtaStatusIcon {
             anchors.horizontalCenter: parent.horizontalCenter
@@ -64,7 +64,7 @@ Item {
             color: Qt.rgba(1, 1, 1, 0.8)
             font.pixelSize: ThemeStore.fontBody
             text: {
-                var tr = typeof translations !== "undefined" ? translations : null
+                var tr = typeof Translations !== "undefined" ? Translations : null
                 switch (shutdownOverlay.otaActiveStatus) {
                     case "downloading": return tr ? tr.otaDownloadingUpdates : "Downloading update..."
                     case "preparing": return tr ? tr.otaPreparingUpdate : "Preparing update..."
@@ -90,7 +90,7 @@ Item {
             wrapMode: Text.WordWrap
             color: Qt.rgba(1, 1, 1, 0.6)
             font.pixelSize: ThemeStore.fontBody
-            text: typeof translations !== "undefined" ? translations.otaScooterWillTurnOff : "Your scooter will turn off when done.\nYou can unlock it again at any point."
+            text: typeof Translations !== "undefined" ? Translations.otaScooterWillTurnOff : "Your scooter will turn off when done.\nYou can unlock it again at any point."
             visible: {
                 var s = shutdownOverlay.otaActiveStatus
                 return s !== "idle" && s !== "error" && s !== "error-failed"
@@ -99,12 +99,12 @@ Item {
     }
 
     Connections {
-        target: typeof shutdownStore !== "undefined" ? shutdownStore : null
+        target: typeof ShutdownStore !== "undefined" ? ShutdownStore : null
 
         function onShuttingDownChanged() {
-            if (shutdownStore.isShuttingDown && !shutdownStore.showBlackout) {
+            if (ShutdownStore.isShuttingDown && !ShutdownStore.showBlackout) {
                 shutdownAnim.start()
-            } else if (!shutdownStore.isShuttingDown) {
+            } else if (!ShutdownStore.isShuttingDown) {
                 shutdownAnim.stop()
                 blackoutAnim.stop()
                 overlay.opacity = 0
@@ -112,7 +112,7 @@ Item {
         }
 
         function onShowBlackoutChanged() {
-            if (shutdownStore.showBlackout) {
+            if (ShutdownStore.showBlackout) {
                 shutdownAnim.stop()
                 blackoutAnim.start()
             }

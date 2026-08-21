@@ -7,8 +7,8 @@ Item {
     height: 16
 
     property bool isDark: typeof ThemeStore !== "undefined" ? ThemeStore.isDark : true
-    property real zoom: typeof mapService !== "undefined" ? mapService.mapZoom : 17
-    property real latitude: typeof mapService !== "undefined" ? mapService.mapLatitude : 52
+    property real zoom: typeof MapService !== "undefined" ? MapService.mapZoom : 17
+    property real latitude: typeof MapService !== "undefined" ? MapService.mapLatitude : 52
 
     readonly property real metersPerPixel: (40075000 * Math.cos(latitude * Math.PI / 180)) / (256 * Math.pow(2, zoom))
     readonly property real maxWidthPx: 160

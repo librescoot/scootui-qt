@@ -2,12 +2,15 @@
 
 #include <QObject>
 #include <QString>
+#include <QtQml/qqmlengine.h>
 
 class MdbRepository;
 
 class SettingsService : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
 
 public:
     explicit SettingsService(MdbRepository *repo, QObject *parent = nullptr);
@@ -65,4 +68,18 @@ private:
     void writeSetting(const QString &key, const QString &value);
     void writeOtaSetting(const QString &suffix, const QString &value);
     MdbRepository *m_repo;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static SettingsService *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(SettingsService *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline SettingsService *s_qmlInstance = nullptr;
 };

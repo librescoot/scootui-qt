@@ -29,7 +29,7 @@ MapView {
         
         PluginParameter {
             name: "maplibre.map.styles"
-            value: typeof mapService !== "undefined" ? mapService.styleUrl : ""
+            value: typeof MapService !== "undefined" ? MapService.styleUrl : ""
         }
         
         PluginParameter {
@@ -43,22 +43,22 @@ MapView {
         }
     }
 
-    map.zoomLevel: typeof mapService !== "undefined" ? mapService.mapZoom : 15
-    map.bearing: typeof mapService !== "undefined" ? mapService.mapBearing : 0
+    map.zoomLevel: typeof MapService !== "undefined" ? MapService.mapZoom : 15
+    map.bearing: typeof MapService !== "undefined" ? MapService.mapBearing : 0
     // 3D (default) tilts the map back to show forward perspective; 2D is
     // a flat top-down view. In 3D the tilt eases off as the camera zooms in
     // for a maneuver: zoom already tracks distance to the next turn, and at
     // full tilt the street names lie almost flat and cannot be read.
-    map.tilt: (typeof settingsStore !== "undefined" && settingsStore.mapViewMode === 1)
+    map.tilt: (typeof SettingsStore !== "undefined" && SettingsStore.mapViewMode === 1)
               ? 0
-              : (typeof mapService !== "undefined" ? mapService.mapTilt : 60)
+              : (typeof MapService !== "undefined" ? MapService.mapTilt : 60)
 
     function vehicleCoordinate() {
-        if (typeof mapService !== "undefined" && mapService.isReady) {
-            return QtPositioning.coordinate(mapService.mapLatitude, mapService.mapLongitude)
+        if (typeof MapService !== "undefined" && MapService.isReady) {
+            return QtPositioning.coordinate(MapService.mapLatitude, MapService.mapLongitude)
         }
-        if (typeof gpsStore !== "undefined" && gpsStore.latitude !== 0) {
-            return QtPositioning.coordinate(gpsStore.latitude, gpsStore.longitude)
+        if (typeof GpsStore !== "undefined" && GpsStore.latitude !== 0) {
+            return QtPositioning.coordinate(GpsStore.latitude, GpsStore.longitude)
         }
         return QtPositioning.coordinate(52.520008, 13.404954)
     }
@@ -67,17 +67,17 @@ MapView {
     // zoom to 15-17.5, so there is otherwise no way to look at the tiles above
     // or below that. Middle click hands the camera back to the dynamic zoom.
     WheelHandler {
-        enabled: typeof mapService !== "undefined" && mapService.debugZoomEnabled
+        enabled: typeof MapService !== "undefined" && MapService.debugZoomEnabled
         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
         onWheel: function (event) {
-            mapService.debugZoomBy(event.angleDelta.y / 480.0)
+            MapService.debugZoomBy(event.angleDelta.y / 480.0)
         }
     }
 
     TapHandler {
-        enabled: typeof mapService !== "undefined" && mapService.debugZoomEnabled
+        enabled: typeof MapService !== "undefined" && MapService.debugZoomEnabled
         acceptedButtons: Qt.MiddleButton
-        onTapped: mapService.debugResetZoom()
+        onTapped: MapService.debugResetZoom()
     }
 
     function updateCamera() {
@@ -86,11 +86,11 @@ MapView {
         var vehicleCoord = vehicleCoordinate()
         if (!vehicleCoord || !vehicleCoord.isValid) return
 
-        if (typeof mapService !== "undefined" && mapService.isReady) {
+        if (typeof MapService !== "undefined" && MapService.isReady) {
             // mapLatitude/mapLongitude is the vehicle position.
             // Place it at the vehicle screen point (offset below center);
             // Qt handles the bearing-aware pivot so the map rotates around the marker.
-            var offsetY = mapService.vehicleOffsetY
+            var offsetY = MapService.vehicleOffsetY
             var pt = Qt.point(map.width / 2, map.height / 2 + offsetY)
 
             if (typeof map.alignCoordinateToPoint === "function") {
@@ -119,7 +119,7 @@ MapView {
     onHeightChanged: updateCamera()
 
     Connections {
-        target: typeof mapService !== "undefined" ? mapService : null
+        target: typeof MapService !== "undefined" ? MapService : null
         function onIsReadyChanged() { mapView.updateCamera() }
         function onMapLatitudeChanged() { mapView.updateCamera() }
         function onMapLongitudeChanged() { mapView.updateCamera() }
@@ -129,7 +129,7 @@ MapView {
     }
 
     Connections {
-        target: typeof gpsStore !== "undefined" ? gpsStore : null
+        target: typeof GpsStore !== "undefined" ? GpsStore : null
         function onLatitudeChanged() { mapView.updateCamera() }
         function onLongitudeChanged() { mapView.updateCamera() }
     }
@@ -145,7 +145,7 @@ MapView {
             id: routeSource
             styleId: "route"
             type: "geojson"
-            property string data: typeof mapService !== "undefined" ? mapService.routeGeoJson : ""
+            property string data: typeof MapService !== "undefined" ? MapService.routeGeoJson : ""
             onDataChanged: updateNotify()
         }
 
@@ -168,10 +168,10 @@ MapView {
         }
 
         Component.onCompleted: {
-            if (typeof mapService === "undefined")
+            if (typeof MapService === "undefined")
                 return
             var dark = (typeof ThemeStore !== "undefined") && ThemeStore.isDark
-            var model = mapService.mapThemeLayers
+            var model = MapService.mapThemeLayers
             for (var i = 0; i < model.length; ++i) {
                 var entry = model[i]
                 var param = themeLayerComponent.createObject(routeStyle, {

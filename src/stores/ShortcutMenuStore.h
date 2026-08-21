@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QTimer>
+#include <QtQml/qqmlengine.h>
 
 class ThemeStore;
 class VehicleStore;
@@ -13,6 +14,8 @@ class SettingsService;
 class ShortcutMenuStore : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(bool visible READ visible NOTIFY visibleChanged)
     Q_PROPERTY(int selectedIndex READ selectedIndex NOTIFY selectionChanged)
     Q_PROPERTY(bool confirming READ confirming NOTIFY confirmingChanged)
@@ -70,4 +73,18 @@ private:
     static constexpr int ITEM_COUNT = 4;
     static constexpr int ITEM_CYCLE_MS = 750;
     static constexpr int CONFIRM_TIMEOUT_MS = 3000;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static ShortcutMenuStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(ShortcutMenuStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline ShortcutMenuStore *s_qmlInstance = nullptr;
 };

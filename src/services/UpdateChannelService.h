@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QString>
 #include <QTimer>
+#include <QtQml/qqmlengine.h>
 
 class InternetStore;
 class OtaStore;
@@ -23,6 +24,8 @@ class SystemInfoService;
 class UpdateChannelService : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(int state READ state NOTIFY stateChanged)
     Q_PROPERTY(QString targetChannel READ targetChannel NOTIFY targetChannelChanged)
     Q_PROPERTY(QString currentChannel READ currentChannel NOTIFY targetChannelChanged)
@@ -91,4 +94,18 @@ private:
     // whatever the last snapshot left. This coalesces the burst into one
     // evaluation after the whole snapshot has landed.
     QTimer m_evaluate;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static UpdateChannelService *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(UpdateChannelService *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline UpdateChannelService *s_qmlInstance = nullptr;
 };

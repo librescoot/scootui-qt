@@ -17,23 +17,23 @@ Rectangle {
     readonly property color doneColor: "#4CAF50"
     readonly property color errorColor: "#F44336"
 
-    readonly property bool mapsOk: typeof navAvailabilityService !== "undefined"
-                                    ? navAvailabilityService.localDisplayMapsAvailable : false
-    readonly property bool routingOk: typeof navAvailabilityService !== "undefined"
-                                       ? navAvailabilityService.routingAvailable : false
+    readonly property bool mapsOk: typeof NavigationAvailabilityService !== "undefined"
+                                    ? NavigationAvailabilityService.localDisplayMapsAvailable : false
+    readonly property bool routingOk: typeof NavigationAvailabilityService !== "undefined"
+                                       ? NavigationAvailabilityService.routingAvailable : false
 
     // Setup mode: 0=DisplayMaps, 1=Routing, 2=Both
-    readonly property int mode: typeof screenStore !== "undefined" ? screenStore.setupMode : 2
+    readonly property int mode: typeof ScreenStore !== "undefined" ? ScreenStore.setupMode : 2
 
     // Download service bindings
-    readonly property bool hasDownloadService: typeof mapDownloadService !== "undefined" && mapDownloadService !== null
-    readonly property int dlStatus: hasDownloadService ? mapDownloadService.status : 0
-    readonly property double dlProgress: hasDownloadService ? mapDownloadService.progress : 0
-    readonly property string dlRegion: hasDownloadService ? mapDownloadService.regionName : ""
-    readonly property string dlError: hasDownloadService ? mapDownloadService.errorMessage : ""
-    readonly property bool dlUpdateAvailable: hasDownloadService ? mapDownloadService.updateAvailable : false
-    readonly property real dlDownloaded: hasDownloadService ? mapDownloadService.downloadedBytes : 0
-    readonly property real dlTotal: hasDownloadService ? mapDownloadService.totalBytes : 0
+    readonly property bool hasDownloadService: typeof MapDownloadService !== "undefined" && MapDownloadService !== null
+    readonly property int dlStatus: hasDownloadService ? MapDownloadService.status : 0
+    readonly property double dlProgress: hasDownloadService ? MapDownloadService.progress : 0
+    readonly property string dlRegion: hasDownloadService ? MapDownloadService.regionName : ""
+    readonly property string dlError: hasDownloadService ? MapDownloadService.errorMessage : ""
+    readonly property bool dlUpdateAvailable: hasDownloadService ? MapDownloadService.updateAvailable : false
+    readonly property real dlDownloaded: hasDownloadService ? MapDownloadService.downloadedBytes : 0
+    readonly property real dlTotal: hasDownloadService ? MapDownloadService.totalBytes : 0
 
     // Status enum values (matching MapDownloadStatus)
     readonly property int statusIdle: 0
@@ -45,16 +45,16 @@ Rectangle {
     readonly property int statusError: 6
 
     // Connectivity
-    readonly property bool isOnline: typeof internetStore !== "undefined"
-                                      ? internetStore.modemState === 2 : false // ModemState::Connected
+    readonly property bool isOnline: typeof InternetStore !== "undefined"
+                                      ? InternetStore.modemState === 2 : false // ModemState::Connected
     // hasValidGps: any non-zero coordinate. The gps.state field flaps to
     // "searching" on transient TPV mode 0/1 while lat/lng stay valid in
     // Redis — gating the menu on FixEstablished surfaced "Waiting for GPS
     // fix" mid-navigation when we plainly knew where we were.
-    readonly property bool hasGps: typeof gpsStore !== "undefined"
-                                    ? gpsStore.hasValidGps : false
-    readonly property double gpsLat: typeof gpsStore !== "undefined" ? gpsStore.latitude : 0
-    readonly property double gpsLng: typeof gpsStore !== "undefined" ? gpsStore.longitude : 0
+    readonly property bool hasGps: typeof GpsStore !== "undefined"
+                                    ? GpsStore.hasValidGps : false
+    readonly property double gpsLat: typeof GpsStore !== "undefined" ? GpsStore.latitude : 0
+    readonly property double gpsLng: typeof GpsStore !== "undefined" ? GpsStore.longitude : 0
 
     // Download button logic
     readonly property bool showDisplayRow: mode === 0 || mode === 2
@@ -62,9 +62,9 @@ Rectangle {
 
     readonly property bool hasRelevantPartial: {
         if (!hasDownloadService) return false
-        if (mode === 0) return mapDownloadService.hasPartialDisplayDownload
-        if (mode === 1) return mapDownloadService.hasPartialRoutingDownload
-        return mapDownloadService.hasPartialDisplayDownload || mapDownloadService.hasPartialRoutingDownload
+        if (mode === 0) return MapDownloadService.hasPartialDisplayDownload
+        if (mode === 1) return MapDownloadService.hasPartialRoutingDownload
+        return MapDownloadService.hasPartialDisplayDownload || MapDownloadService.hasPartialRoutingDownload
     }
 
     // What the download button will actually fetch given the current mode and
@@ -88,39 +88,39 @@ Rectangle {
                                          && willDownloadAnything
     readonly property string downloadButtonLabel: {
         if (dlUpdateAvailable)
-            return typeof translations !== "undefined" ? translations.navSetupUpdateButton : "Update"
+            return typeof Translations !== "undefined" ? Translations.navSetupUpdateButton : "Update"
         if (hasRelevantPartial)
-            return typeof translations !== "undefined" ? translations.navSetupResumeButton : "Resume"
-        return typeof translations !== "undefined" ? translations.navSetupDownloadButton : "Download"
+            return typeof Translations !== "undefined" ? Translations.navSetupResumeButton : "Resume"
+        return typeof Translations !== "undefined" ? Translations.navSetupDownloadButton : "Download"
     }
 
     // Title logic
     readonly property string titleText: {
-        if (typeof translations === "undefined") return "Navigation Setup"
-        if (mode === 0) return translations.navSetupTitleMapsUnavailable
-        if (mode === 1) return translations.navSetupTitleRoutingUnavailable
-        if (!mapsOk && !routingOk) return translations.navSetupTitleBothUnavailable
-        if (!mapsOk) return translations.navSetupTitleMapsUnavailable
-        if (!routingOk) return translations.navSetupTitleRoutingUnavailable
-        return translations.navSetupTitle
+        if (typeof Translations === "undefined") return "Navigation Setup"
+        if (mode === 0) return Translations.navSetupTitleMapsUnavailable
+        if (mode === 1) return Translations.navSetupTitleRoutingUnavailable
+        if (!mapsOk && !routingOk) return Translations.navSetupTitleBothUnavailable
+        if (!mapsOk) return Translations.navSetupTitleMapsUnavailable
+        if (!routingOk) return Translations.navSetupTitleRoutingUnavailable
+        return Translations.navSetupTitle
     }
 
     // Auto-resolve region when GPS becomes available
     onHasGpsChanged: {
         if (hasGps && isOnline && dlRegion === "" && hasDownloadService) {
-            mapDownloadService.resolveRegion(gpsLat, gpsLng)
+            MapDownloadService.resolveRegion(gpsLat, gpsLng)
         }
     }
 
     onIsOnlineChanged: {
         if (hasGps && isOnline && dlRegion === "" && hasDownloadService) {
-            mapDownloadService.resolveRegion(gpsLat, gpsLng)
+            MapDownloadService.resolveRegion(gpsLat, gpsLng)
         }
     }
 
     Component.onCompleted: {
         if (hasGps && isOnline && dlRegion === "" && hasDownloadService) {
-            mapDownloadService.resolveRegion(gpsLat, gpsLng)
+            MapDownloadService.resolveRegion(gpsLat, gpsLng)
         }
     }
 
@@ -132,19 +132,19 @@ Rectangle {
     function triggerDownload() {
         if (!canDownload || !hasDownloadService)
             return
-        mapDownloadService.startDownload(gpsLat, gpsLng, willDownloadDisplay, willDownloadRouting)
+        MapDownloadService.startDownload(gpsLat, gpsLng, willDownloadDisplay, willDownloadRouting)
     }
 
     function closeSelf() {
-        if (typeof screenStore !== "undefined")
-            screenStore.closeNavigationSetup()
+        if (typeof ScreenStore !== "undefined")
+            ScreenStore.closeNavigationSetup()
     }
 
     // Input handling: left scrolls through content and falls through to Back
     // once there's nothing left to scroll; right is the primary action
     // (Download) or Back as a fallback when no action is available.
     Connections {
-        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        target: typeof InputHandler !== "undefined" ? InputHandler : null
         function onLeftTap() {
             if (navSetupScreen.canScrollDown) {
                 scrollAnim.to = Math.min(flickable.contentY + 100,
@@ -170,10 +170,10 @@ Rectangle {
 
     // Recheck availability when download completes
     Connections {
-        target: hasDownloadService ? mapDownloadService : null
+        target: hasDownloadService ? MapDownloadService : null
         function onDownloadComplete() {
-            if (typeof navAvailabilityService !== "undefined") {
-                navAvailabilityService.recheck()
+            if (typeof NavigationAvailabilityService !== "undefined") {
+                NavigationAvailabilityService.recheck()
             }
         }
     }
@@ -251,7 +251,7 @@ Rectangle {
                         }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: typeof translations !== "undefined" ? translations.navSetupLocalDisplayMaps : "Offline display maps"
+                            text: typeof Translations !== "undefined" ? Translations.navSetupLocalDisplayMaps : "Offline display maps"
                             color: navSetupScreen.textPrimary
                             font.pixelSize: ThemeStore.fontBody
                         }
@@ -269,7 +269,7 @@ Rectangle {
                         }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: typeof translations !== "undefined" ? translations.navSetupRoutingEngine : "Routing engine"
+                            text: typeof Translations !== "undefined" ? Translations.navSetupRoutingEngine : "Routing engine"
                             color: navSetupScreen.textPrimary
                             font.pixelSize: ThemeStore.fontBody
                         }
@@ -298,7 +298,7 @@ Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: 110
                     horizontalAlignment: Text.AlignHCenter
-                    text: typeof translations !== "undefined" ? translations.navSetupScanForInstructions : "Scan for setup instructions"
+                    text: typeof Translations !== "undefined" ? Translations.navSetupScanForInstructions : "Scan for setup instructions"
                     color: navSetupScreen.textSecondary
                     font.pixelSize: ThemeStore.fontMicro
                     wrapMode: Text.WordWrap
@@ -336,7 +336,7 @@ Rectangle {
                 Text {
                     visible: !navSetupScreen.isOnline
                     Layout.alignment: Qt.AlignHCenter
-                    text: typeof translations !== "undefined" ? translations.navSetupDownloadNoInternet : "No internet connection"
+                    text: typeof Translations !== "undefined" ? Translations.navSetupDownloadNoInternet : "No internet connection"
                     color: navSetupScreen.textSecondary
                     font.pixelSize: ThemeStore.fontBody
                 }
@@ -345,7 +345,7 @@ Rectangle {
                 Text {
                     visible: navSetupScreen.isOnline && !navSetupScreen.hasGps
                     Layout.alignment: Qt.AlignHCenter
-                    text: typeof translations !== "undefined" ? translations.navSetupDownloadWaitingGps : "Waiting for GPS fix..."
+                    text: typeof Translations !== "undefined" ? Translations.navSetupDownloadWaitingGps : "Waiting for GPS fix..."
                     color: navSetupScreen.textSecondary
                     font.pixelSize: ThemeStore.fontBody
                 }
@@ -359,8 +359,8 @@ Rectangle {
                     text: {
                         var total = 0
                         if (navSetupScreen.hasDownloadService) {
-                            if (navSetupScreen.willDownloadDisplay) total += mapDownloadService.estimatedDisplayBytes
-                            if (navSetupScreen.willDownloadRouting) total += mapDownloadService.estimatedRoutingBytes
+                            if (navSetupScreen.willDownloadDisplay) total += MapDownloadService.estimatedDisplayBytes
+                            if (navSetupScreen.willDownloadRouting) total += MapDownloadService.estimatedRoutingBytes
                         }
                         var sizeMB = Math.round(total / 1048576)
                         return navSetupScreen.dlRegion + " (" + sizeMB + " MB)"
@@ -375,7 +375,7 @@ Rectangle {
             Text {
                 visible: navSetupScreen.dlStatus === navSetupScreen.statusCheckingUpdates
                 Layout.alignment: Qt.AlignHCenter
-                text: typeof translations !== "undefined" ? translations.navSetupCheckingUpdates : "Checking for updates..."
+                text: typeof Translations !== "undefined" ? Translations.navSetupCheckingUpdates : "Checking for updates..."
                 color: navSetupScreen.textSecondary
                 font.pixelSize: ThemeStore.fontBody
             }
@@ -384,7 +384,7 @@ Rectangle {
             Text {
                 visible: navSetupScreen.dlStatus === navSetupScreen.statusLocating
                 Layout.alignment: Qt.AlignHCenter
-                text: typeof translations !== "undefined" ? translations.navSetupDownloadLocating : "Detecting your region..."
+                text: typeof Translations !== "undefined" ? Translations.navSetupDownloadLocating : "Detecting your region..."
                 color: navSetupScreen.textSecondary
                 font.pixelSize: ThemeStore.fontBody
             }
@@ -398,8 +398,8 @@ Rectangle {
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
-                    text: typeof translations !== "undefined"
-                          ? translations.navSetupDownloadProgress.arg(Math.round(navSetupScreen.dlProgress * 100))
+                    text: typeof Translations !== "undefined"
+                          ? Translations.navSetupDownloadProgress.arg(Math.round(navSetupScreen.dlProgress * 100))
                           : "Downloading... " + Math.round(navSetupScreen.dlProgress * 100) + "%"
                     color: navSetupScreen.textPrimary
                     font.pixelSize: ThemeStore.fontBody
@@ -422,8 +422,8 @@ Rectangle {
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
-                    text: typeof translations !== "undefined"
-                          ? translations.navSetupDownloadProgressBytes
+                    text: typeof Translations !== "undefined"
+                          ? Translations.navSetupDownloadProgressBytes
                               .arg(Math.round(navSetupScreen.dlDownloaded / 1048576))
                               .arg(Math.round(navSetupScreen.dlTotal / 1048576))
                           : Math.round(navSetupScreen.dlDownloaded / 1048576) + " / " + Math.round(navSetupScreen.dlTotal / 1048576) + " MB"
@@ -436,7 +436,7 @@ Rectangle {
             Text {
                 visible: navSetupScreen.dlStatus === navSetupScreen.statusInstalling
                 Layout.alignment: Qt.AlignHCenter
-                text: typeof translations !== "undefined" ? translations.navSetupDownloadInstalling : "Installing maps..."
+                text: typeof Translations !== "undefined" ? Translations.navSetupDownloadInstalling : "Installing maps..."
                 color: navSetupScreen.textSecondary
                 font.pixelSize: ThemeStore.fontBody
             }
@@ -445,7 +445,7 @@ Rectangle {
             Text {
                 visible: navSetupScreen.dlStatus === navSetupScreen.statusDone
                 Layout.alignment: Qt.AlignHCenter
-                text: typeof translations !== "undefined" ? translations.navSetupDownloadDone : "Maps installed successfully"
+                text: typeof Translations !== "undefined" ? Translations.navSetupDownloadDone : "Maps installed successfully"
                 color: navSetupScreen.doneColor
                 font.pixelSize: ThemeStore.fontBody
                 font.weight: Font.Bold
@@ -459,7 +459,7 @@ Rectangle {
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
-                    text: typeof translations !== "undefined" ? translations.navSetupDownloadError : "Download failed"
+                    text: typeof Translations !== "undefined" ? Translations.navSetupDownloadError : "Download failed"
                     color: navSetupScreen.errorColor
                     font.pixelSize: ThemeStore.fontBody
                     font.weight: Font.Bold
@@ -489,14 +489,14 @@ Rectangle {
             Layout.rightMargin: 40
             Layout.maximumWidth: parent.width - 80
             text: {
-                if (typeof translations === "undefined") return ""
+                if (typeof Translations === "undefined") return ""
                 if (!navSetupScreen.willDownloadAnything)
-                    return translations.navSetupAllSet
+                    return Translations.navSetupAllSet
                 if (navSetupScreen.willDownloadDisplay && navSetupScreen.willDownloadRouting)
-                    return translations.navSetupNoRoutingBody
+                    return Translations.navSetupNoRoutingBody
                 if (navSetupScreen.willDownloadDisplay)
-                    return translations.navSetupDisplayMapsBody
-                return translations.navSetupRoutingBody
+                    return Translations.navSetupDisplayMapsBody
+                return Translations.navSetupRoutingBody
             }
             color: navSetupScreen.textSecondary
             font.pixelSize: ThemeStore.fontBody
@@ -525,14 +525,14 @@ Rectangle {
         ControlHints {
             Layout.fillWidth: true
             leftAction: navSetupScreen.canScrollDown
-                ? (typeof translations !== "undefined" ? translations.controlScroll : "Scroll")
-                : (typeof translations !== "undefined" ? translations.controlBack : "Back")
+                ? (typeof Translations !== "undefined" ? Translations.controlScroll : "Scroll")
+                : (typeof Translations !== "undefined" ? Translations.controlBack : "Back")
             rightAction: {
                 if (navSetupScreen.canDownload)
                     return navSetupScreen.downloadButtonLabel
                 if (!navSetupScreen.canScrollDown)
                     return ""
-                return typeof translations !== "undefined" ? translations.controlBack : "Back"
+                return typeof Translations !== "undefined" ? Translations.controlBack : "Back"
             }
         }
     }

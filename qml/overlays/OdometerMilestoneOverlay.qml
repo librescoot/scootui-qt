@@ -13,8 +13,8 @@ Item {
     property string tag: ""
     property bool active: false
 
-    readonly property int currentScreen: screenStore && screenStore.currentScreen !== undefined
-                                         ? screenStore.currentScreen : 0
+    readonly property int currentScreen: ScreenStore && ScreenStore.currentScreen !== undefined
+                                         ? ScreenStore.currentScreen : 0
     readonly property bool allowedScreen: currentScreen === Scooter.ScreenMode.Cluster
                                        || currentScreen === Scooter.ScreenMode.Map
 
@@ -38,7 +38,7 @@ Item {
     }
 
     Connections {
-        target: odometerMilestoneService ? odometerMilestoneService : null
+        target: OdometerMilestoneService ? OdometerMilestoneService : null
         function onMilestoneCrossed(km, intens, tag) {
             if (!root.allowedScreen) return
             root.milestoneKm = km

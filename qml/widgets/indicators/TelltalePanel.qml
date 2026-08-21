@@ -7,12 +7,12 @@ import ScootUI 1.0
 Rectangle {
     id: panel
 
-    readonly property bool hasVehicle: typeof vehicleStore !== "undefined"
-    readonly property int vehicleState: hasVehicle ? vehicleStore.state : 0
-    readonly property bool usbDisconnected: typeof connectionStore !== "undefined"
-                                            && connectionStore.usingBackupConnection
-    readonly property bool engineFaultActive: typeof engineStore !== "undefined"
-                                              && engineStore.faults.length > 0
+    readonly property bool hasVehicle: typeof VehicleStore !== "undefined"
+    readonly property int vehicleState: hasVehicle ? VehicleStore.state : 0
+    readonly property bool usbDisconnected: typeof ConnectionStore !== "undefined"
+                                            && ConnectionStore.usingBackupConnection
+    readonly property bool engineFaultActive: typeof EngineStore !== "undefined"
+                                              && EngineStore.faults.length > 0
 
     // VehicleState: ReadyToDrive = 2, Parked = 4. Toggle: On = 0, Off = 1.
     // BatteryState: Active = 3. SeatboxLock: Open = 0, Closed = 1.
@@ -24,14 +24,14 @@ Rectangle {
         if (!hasVehicle) return false
         var battery0Active = typeof battery0Store !== "undefined"
                              && battery0Store.present && battery0Store.batteryState === 3
-        return vehicleStore.isUnableToDrive === 0
+        return VehicleStore.isUnableToDrive === 0
             || engineFaultActive
-            || (vehicleStore.mainPower === 1
-                && vehicleStore.seatboxLock === 1
+            || (VehicleStore.mainPower === 1
+                && VehicleStore.seatboxLock === 1
                 && (vehicleState === 4 || vehicleState === 2 || battery0Active))
     }
 
-    readonly property bool hazards: hasVehicle && vehicleStore.blinkerState === 3
+    readonly property bool hazards: hasVehicle && VehicleStore.blinkerState === 3
     readonly property bool parked: vehicleState === 4
 
     // Turtle: a present, active pack at or below 20% caps motor power.
@@ -67,7 +67,7 @@ Rectangle {
         IndicatorLight {
             active: panel.hazards
             blinking: true
-            blinkSource: panel.hasVehicle ? vehicleStore.blinkOpacity : -1
+            blinkSource: panel.hasVehicle ? VehicleStore.blinkOpacity : -1
             source: "qrc:/ScootUI/assets/icons/librescoot-hazards.svg"
         }
 

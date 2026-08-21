@@ -3,9 +3,9 @@ import ScootUI 1.0
 
 Rectangle {
     id: root
-    property string roadName: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadName : ""
-    property string roadRefs: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadRefs : ""
-    property string roadType: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadType : ""
+    property string roadName: typeof SpeedLimitStore !== "undefined" ? SpeedLimitStore.roadName : ""
+    property string roadRefs: typeof SpeedLimitStore !== "undefined" ? SpeedLimitStore.roadRefs : ""
+    property string roadType: typeof SpeedLimitStore !== "undefined" ? SpeedLimitStore.roadType : ""
     property real fontSize: ThemeStore.fontCaption
     property real maxTextWidth: 200
 

@@ -1,10 +1,13 @@
 #pragma once
 
 #include "SyncableStore.h"
+#include <QtQml/qqmlengine.h>
 
 class DashboardStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(QString debugMode READ debugMode NOTIFY debugModeChanged)
     // Ambient illuminance in lux and the resulting backlight level, both from
     // the `dashboard` hash (dbc-backlight-service). <0 means not yet reported.
@@ -33,4 +36,18 @@ private:
     QString m_debugMode = QStringLiteral("off");
     double m_brightness = -1.0;
     int m_backlight = -1;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static DashboardStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(DashboardStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline DashboardStore *s_qmlInstance = nullptr;
 };

@@ -6,6 +6,7 @@
 #include <QVariantList>
 #include <QPair>
 #include <QDateTime>
+#include <QtQml/qqmlengine.h>
 
 class GpsStore;
 class EngineStore;
@@ -18,6 +19,8 @@ class MotionStore;
 class MapService : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
 
     Q_PROPERTY(double mapLatitude READ mapLatitude NOTIFY mapLatitudeChanged)
     Q_PROPERTY(double mapLongitude READ mapLongitude NOTIFY mapLongitudeChanged)
@@ -426,4 +429,18 @@ private:
     // Restarted on every motion:heading push; updateBearing reads its elapsed
     // time to decide whether the magnetic heading is fresh enough to steer by.
     QElapsedTimer m_headingAge;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static MapService *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(MapService *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline MapService *s_qmlInstance = nullptr;
 };

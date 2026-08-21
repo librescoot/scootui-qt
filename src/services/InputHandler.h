@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QtQml/qqmlengine.h>
 
 class VehicleStore;
 class MdbRepository;
@@ -12,6 +13,8 @@ class MdbRepository;
 class InputHandler : public QObject
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
 
 public:
     explicit InputHandler(VehicleStore *vehicle, MdbRepository *repo,
@@ -35,4 +38,18 @@ private:
 
     VehicleStore *m_vehicle;
     MdbRepository *m_repo;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static InputHandler *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(InputHandler *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline InputHandler *s_qmlInstance = nullptr;
 };

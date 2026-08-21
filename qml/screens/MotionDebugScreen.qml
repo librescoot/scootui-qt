@@ -47,7 +47,7 @@ Rectangle {
                              gps:  new Array(bufLen).fill(NaN) })
     property int headIdx: 0
 
-    // Engine speed/throttle buffer (sampled from engineStore at 10 Hz tick)
+    // Engine speed/throttle buffer (sampled from EngineStore at 10 Hz tick)
     property var engineBuf: ({ speed:    new Array(bufLen).fill(0),
                                throttle: new Array(bufLen).fill(0) })
     property int engineIdx: 0
@@ -64,7 +64,7 @@ Rectangle {
         }
     }
 
-    // Sample engineStore at a steady 10 Hz so the chart has uniform time
+    // Sample EngineStore at a steady 10 Hz so the chart has uniform time
     // steps (the store updates whenever the engine ECU pushes, which is
     // bursty).
     Timer {
@@ -72,28 +72,28 @@ Rectangle {
         running: true
         repeat: true
         onTriggered: {
-            screen.engineBuf.speed[screen.engineIdx] = engineStore.speed
-            screen.engineBuf.throttle[screen.engineIdx] = engineStore.throttle
+            screen.engineBuf.speed[screen.engineIdx] = EngineStore.speed
+            screen.engineBuf.throttle[screen.engineIdx] = EngineStore.throttle
             screen.engineIdx = (screen.engineIdx + 1) % screen.bufLen
         }
     }
 
     Connections {
-        target: motionStore
+        target: MotionStore
         function onSensorsChanged() {
-            screen.gyroBuf.x[screen.gyroIdx] = motionStore.gyroX
-            screen.gyroBuf.y[screen.gyroIdx] = motionStore.gyroY
-            screen.gyroBuf.z[screen.gyroIdx] = motionStore.gyroZ
+            screen.gyroBuf.x[screen.gyroIdx] = MotionStore.gyroX
+            screen.gyroBuf.y[screen.gyroIdx] = MotionStore.gyroY
+            screen.gyroBuf.z[screen.gyroIdx] = MotionStore.gyroZ
             screen.gyroIdx = (screen.gyroIdx + 1) % screen.bufLen
             horizon.requestPaint()
         }
         function onHeadingChanged() {
-            screen.headBuf.raw[screen.headIdx]  = motionStore.headingRawDeg
-            screen.headBuf.fast[screen.headIdx] = motionStore.headingFastDeg
-            screen.headBuf.med[screen.headIdx]  = motionStore.headingDeg
-            screen.headBuf.slow[screen.headIdx] = motionStore.headingSlowDeg
+            screen.headBuf.raw[screen.headIdx]  = MotionStore.headingRawDeg
+            screen.headBuf.fast[screen.headIdx] = MotionStore.headingFastDeg
+            screen.headBuf.med[screen.headIdx]  = MotionStore.headingDeg
+            screen.headBuf.slow[screen.headIdx] = MotionStore.headingSlowDeg
             screen.headBuf.gps[screen.headIdx]  =
-                (gpsStore && gpsStore.hasValidGps) ? gpsStore.course : NaN
+                (GpsStore && GpsStore.hasValidGps) ? GpsStore.course : NaN
             screen.headIdx = (screen.headIdx + 1) % screen.bufLen
             compass.requestPaint()
         }
@@ -125,9 +125,9 @@ Rectangle {
                     // Vehicle-frame NED accel: at rest level (ax,ay,az)=(0,0,-g).
                     // Use level-aware tilt formulas so 0 = level (instead of
                     // the standard NED Tait-Bryan which gives 180° at rest).
-                    const ax = motionStore.accelX
-                    const ay = motionStore.accelY
-                    const az = motionStore.accelZ
+                    const ax = MotionStore.accelX
+                    const ay = MotionStore.accelY
+                    const az = MotionStore.accelZ
                     const roll = Math.atan2(ay, -az)     // + = right lean
                     const pitch = Math.atan2(ax, -az)    // + = nose up
 
@@ -194,9 +194,9 @@ Rectangle {
                     ctx.textAlign = "right"
                     ctx.fillText("P " + (pitch * 180 / Math.PI).toFixed(1) + "°", width - 4, 4)
                     ctx.textAlign = "left"; ctx.textBaseline = "bottom"
-                    ctx.fillText("|a|" + motionStore.accelMagnitude.toFixed(2) + "g", 4, height - 4)
+                    ctx.fillText("|a|" + MotionStore.accelMagnitude.toFixed(2) + "g", 4, height - 4)
                     ctx.textAlign = "right"
-                    ctx.fillText(motionStore.tiltCompensated ? "tilt-comp" : "X/Y only",
+                    ctx.fillText(MotionStore.tiltCompensated ? "tilt-comp" : "X/Y only",
                                  width - 4, height - 4)
                 }
             }
@@ -267,9 +267,9 @@ Rectangle {
                     ctx.font = "11px monospace"
                     ctx.fillStyle = "#ddd"
                     ctx.textAlign = "right"; ctx.textBaseline = "bottom"
-                    ctx.fillText("X " + motionStore.gyroX.toFixed(1) + "°/s", width - 4, height - 30)
-                    ctx.fillText("Y " + motionStore.gyroY.toFixed(1) + "°/s", width - 4, height - 16)
-                    ctx.fillText("Z " + motionStore.gyroZ.toFixed(1) + "°/s", width - 4, height - 2)
+                    ctx.fillText("X " + MotionStore.gyroX.toFixed(1) + "°/s", width - 4, height - 30)
+                    ctx.fillText("Y " + MotionStore.gyroY.toFixed(1) + "°/s", width - 4, height - 16)
+                    ctx.fillText("Z " + MotionStore.gyroZ.toFixed(1) + "°/s", width - 4, height - 2)
                 }
             }
         }
@@ -336,15 +336,15 @@ Rectangle {
                     }
 
                     // GPS course (red, dashed) — only shown with a fix
-                    if (gpsStore && gpsStore.hasValidGps)
-                        needle(gpsStore.course, "#ff4040", r - 2, 2, [4, 3])
+                    if (GpsStore && GpsStore.hasValidGps)
+                        needle(GpsStore.course, "#ff4040", r - 2, 2, [4, 3])
 
                     // Magnetic heading needles, longest = freshest, all same length
                     // category but slightly stepped to avoid total overlap.
-                    needle(motionStore.headingSlowDeg, "#c060ff", r - 8,  2)
-                    needle(motionStore.headingDeg,     "#3aa0ff", r - 14, 2)
-                    needle(motionStore.headingFastDeg, "#ffaa44", r - 20, 2)
-                    needle(motionStore.headingRawDeg,  "#7fc8ff", r - 26, 2)
+                    needle(MotionStore.headingSlowDeg, "#c060ff", r - 8,  2)
+                    needle(MotionStore.headingDeg,     "#3aa0ff", r - 14, 2)
+                    needle(MotionStore.headingFastDeg, "#ffaa44", r - 20, 2)
+                    needle(MotionStore.headingRawDeg,  "#7fc8ff", r - 26, 2)
 
                     ctx.fillStyle = "#bbb"
                     ctx.beginPath(); ctx.arc(cx, cy, 3, 0, 2 * Math.PI); ctx.fill()
@@ -352,21 +352,21 @@ Rectangle {
                     // Numeric corner readouts
                     ctx.font = "10px monospace"
                     ctx.textAlign = "left"; ctx.textBaseline = "top"
-                    if (gpsStore && gpsStore.hasValidGps) {
+                    if (GpsStore && GpsStore.hasValidGps) {
                         ctx.fillStyle = "#ff4040"
-                        ctx.fillText("GPS  " + gpsStore.course.toFixed(0) + "°", 4, 4)
+                        ctx.fillText("GPS  " + GpsStore.course.toFixed(0) + "°", 4, 4)
                     }
-                    ctx.fillStyle = "#7fc8ff"; ctx.fillText("raw  " + motionStore.headingRawDeg.toFixed(0) + "°", 4, 18)
-                    ctx.fillStyle = "#ffaa44"; ctx.fillText("fast " + motionStore.headingFastDeg.toFixed(0) + "°", 4, 30)
-                    ctx.fillStyle = "#3aa0ff"; ctx.fillText("med  " + motionStore.headingDeg.toFixed(0) + "°", 4, 42)
-                    ctx.fillStyle = "#c060ff"; ctx.fillText("slow " + motionStore.headingSlowDeg.toFixed(0) + "°", 4, 54)
+                    ctx.fillStyle = "#7fc8ff"; ctx.fillText("raw  " + MotionStore.headingRawDeg.toFixed(0) + "°", 4, 18)
+                    ctx.fillStyle = "#ffaa44"; ctx.fillText("fast " + MotionStore.headingFastDeg.toFixed(0) + "°", 4, 30)
+                    ctx.fillStyle = "#3aa0ff"; ctx.fillText("med  " + MotionStore.headingDeg.toFixed(0) + "°", 4, 42)
+                    ctx.fillStyle = "#c060ff"; ctx.fillText("slow " + MotionStore.headingSlowDeg.toFixed(0) + "°", 4, 54)
 
                     ctx.textAlign = "right"
                     ctx.fillStyle = "#999"
-                    ctx.fillText("±" + motionStore.accuracyDeg.toFixed(1) + "°", width - 4, 4)
-                    ctx.fillText("|B|" + motionStore.magStrengthUT.toFixed(1), width - 4, 16)
-                    if (gpsStore && gpsStore.hasValidGps) {
-                        let d = motionStore.headingDeg - gpsStore.course
+                    ctx.fillText("±" + MotionStore.accuracyDeg.toFixed(1) + "°", width - 4, 4)
+                    ctx.fillText("|B|" + MotionStore.magStrengthUT.toFixed(1), width - 4, 16)
+                    if (GpsStore && GpsStore.hasValidGps) {
+                        let d = MotionStore.headingDeg - GpsStore.course
                         d = ((d + 540) % 360) - 180
                         ctx.fillStyle = "#dddd66"
                         ctx.fillText("Δ " + (d >= 0 ? "+" : "") + d.toFixed(0) + "°",
@@ -466,7 +466,7 @@ Rectangle {
                         }
 
                         // Throttle band (top 10 px): filled where throttle is
-                        // engaged. engineStore.throttle is a bool, true =
+                        // engaged. EngineStore.throttle is a bool, true =
                         // engaged.
                         ctx.fillStyle = "#553300"
                         for (let i = 0; i < screen.bufLen; ++i) {
@@ -500,7 +500,7 @@ Rectangle {
                         ctx.fillText("speed 0–60 kph", 4, 2)
                         ctx.textAlign = "right"
                         ctx.fillStyle = "#66dd66"
-                        ctx.fillText(engineStore.speed.toFixed(0) + " kph", width - 4, 2)
+                        ctx.fillText(EngineStore.speed.toFixed(0) + " kph", width - 4, 2)
 
                         ctx.fillStyle = "#888"
                         ctx.textBaseline = "middle"; ctx.textAlign = "right"
@@ -510,11 +510,11 @@ Rectangle {
                         }
 
                         // Throttle indicator
-                        ctx.fillStyle = engineStore.throttle ? "#ff8800" : "#553300"
+                        ctx.fillStyle = EngineStore.throttle ? "#ff8800" : "#553300"
                         ctx.fillRect(4, 12, 12, 6)
                         ctx.fillStyle = "#888"
                         ctx.textAlign = "left"; ctx.textBaseline = "top"
-                        ctx.fillText("throttle " + (engineStore.throttle ? "on" : "off"),
+                        ctx.fillText("throttle " + (EngineStore.throttle ? "on" : "off"),
                                      20, 11)
                     }
                 }

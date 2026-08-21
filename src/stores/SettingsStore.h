@@ -2,10 +2,13 @@
 
 #include "SyncableStore.h"
 #include "models/Enums.h"
+#include <QtQml/qqmlengine.h>
 
 class SettingsStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
     Q_PROPERTY(QString theme READ theme NOTIFY themeChanged)
     Q_PROPERTY(QString mode READ mode NOTIFY modeChanged)
     Q_PROPERTY(QString backlightMode READ backlightMode NOTIFY backlightModeChanged)
@@ -227,4 +230,18 @@ private:
     QString m_otaCheckInterval = QStringLiteral("6h");
     // @schema updates.mdb.last-check-time
     QString m_otaLastCheck;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static SettingsStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(SettingsStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline SettingsStore *s_qmlInstance = nullptr;
 };

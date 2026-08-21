@@ -18,13 +18,13 @@ Rectangle {
     // handle the rest. confirmUpdateMode also closes the info screen so
     // the overlay renders over whatever we came from.
     function confirmEnter() {
-        if (typeof screenStore !== "undefined")
-            screenStore.confirmUpdateMode()
+        if (typeof ScreenStore !== "undefined")
+            ScreenStore.confirmUpdateMode()
     }
 
     function cancelBack() {
-        if (typeof screenStore !== "undefined")
-            screenStore.closeUpdateModeInfo()
+        if (typeof ScreenStore !== "undefined")
+            ScreenStore.closeUpdateModeInfo()
     }
 
     readonly property bool canScrollDown: flickable.contentHeight > flickable.height
@@ -34,7 +34,7 @@ Rectangle {
     // Left tap scrolls while there's content below, then falls through to
     // Back. Right tap always confirms (Start). Matches NavigationSetup.
     Connections {
-        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        target: typeof InputHandler !== "undefined" ? InputHandler : null
         function onLeftTap() {
             if (updateModeScreen.canScrollDown) {
                 scrollAnim.to = Math.min(flickable.contentY + 100,
@@ -64,7 +64,7 @@ Rectangle {
 
         // Scrollable body — title+body1 share the top row with a QR pinned
         // top-right, body2/body3 flow full-width below. The Flickable sits
-        // between the top bar and the fixed footer so long translations
+        // between the top bar and the fixed footer so long Translations
         // never push the control hints off the bottom of the screen.
         Flickable {
             id: flickable
@@ -104,8 +104,8 @@ Rectangle {
                         spacing: 10
 
                         Text {
-                            text: typeof translations !== "undefined"
-                                  ? translations.updateModeTitle : "Update Mode"
+                            text: typeof Translations !== "undefined"
+                                  ? Translations.updateModeTitle : "Update Mode"
                             color: updateModeScreen.textPrimary
                             font.pixelSize: ThemeStore.fontTitle
                             font.weight: Font.Bold
@@ -113,8 +113,8 @@ Rectangle {
 
                         Text {
                             width: parent.width
-                            text: typeof translations !== "undefined"
-                                  ? translations.updateModeBody1
+                            text: typeof Translations !== "undefined"
+                                  ? Translations.updateModeBody1
                                   : "Connect your laptop over USB — the scooter mounts as a drive. Drop updates on, pull logs off."
                             color: updateModeScreen.textPrimary
                             font.pixelSize: ThemeStore.fontBody
@@ -145,8 +145,8 @@ Rectangle {
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: 110
                             horizontalAlignment: Text.AlignHCenter
-                            text: typeof translations !== "undefined"
-                                  ? translations.updateModeScanHint
+                            text: typeof Translations !== "undefined"
+                                  ? Translations.updateModeScanHint
                                   : "Scan for full instructions"
                             color: updateModeScreen.textSecondary
                             font.pixelSize: ThemeStore.fontMicro
@@ -158,8 +158,8 @@ Rectangle {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: bodyColumn.width - 48
-                    text: typeof translations !== "undefined"
-                          ? translations.updateModeBody2 : ""
+                    text: typeof Translations !== "undefined"
+                          ? Translations.updateModeBody2 : ""
                     color: updateModeScreen.textPrimary
                     font.pixelSize: ThemeStore.fontBody
                     lineHeight: 1.3
@@ -170,8 +170,8 @@ Rectangle {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: bodyColumn.width - 48
-                    text: typeof translations !== "undefined"
-                          ? translations.updateModeBody3 : ""
+                    text: typeof Translations !== "undefined"
+                          ? Translations.updateModeBody3 : ""
                     color: updateModeScreen.textSecondary
                     font.pixelSize: ThemeStore.fontBody
                     lineHeight: 1.3
@@ -204,10 +204,10 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 leftAction: updateModeScreen.canScrollDown
-                    ? (typeof translations !== "undefined" ? translations.controlScroll : "Scroll")
-                    : (typeof translations !== "undefined" ? translations.controlBack : "Back")
-                rightAction: typeof translations !== "undefined"
-                             ? translations.updateModeStart : "Start"
+                    ? (typeof Translations !== "undefined" ? Translations.controlScroll : "Scroll")
+                    : (typeof Translations !== "undefined" ? Translations.controlBack : "Back")
+                rightAction: typeof Translations !== "undefined"
+                             ? Translations.updateModeStart : "Start"
             }
         }
     }

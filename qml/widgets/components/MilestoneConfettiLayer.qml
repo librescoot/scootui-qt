@@ -3,7 +3,7 @@ import QtQuick.Particles
 import ScootUI 1.0
 
 // Drop this into a screen at a low z value so confetti falls behind widgets.
-// Listens to odometerMilestoneService.milestoneCelebrate and bursts when
+// Listens to OdometerMilestoneService.milestoneCelebrate and bursts when
 // the scooter parks after a ride that crossed milestones.
 Item {
     id: root
@@ -64,7 +64,7 @@ Item {
     }
 
     Connections {
-        target: odometerMilestoneService ? odometerMilestoneService : null
+        target: OdometerMilestoneService ? OdometerMilestoneService : null
         function onMilestoneCelebrate(km, intens, tagIn) {
             root.tag = tagIn
             root.intensity = intens

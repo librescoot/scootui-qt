@@ -12,10 +12,10 @@ Rectangle {
 
     default property alias centerContent: centerItem.data
 
-    readonly property real tripDistance: typeof tripStore !== "undefined" ? tripStore.distance : 0
-    readonly property int tripDuration: typeof tripStore !== "undefined" ? tripStore.duration : 0
-    readonly property real avgSpeed: typeof tripStore !== "undefined" ? tripStore.averageSpeed : 0
-    readonly property real odometer: typeof engineStore !== "undefined" ? engineStore.odometer : 0
+    readonly property real tripDistance: typeof TripStore !== "undefined" ? TripStore.distance : 0
+    readonly property int tripDuration: typeof TripStore !== "undefined" ? TripStore.duration : 0
+    readonly property real avgSpeed: typeof TripStore !== "undefined" ? TripStore.averageSpeed : 0
+    readonly property real odometer: typeof EngineStore !== "undefined" ? EngineStore.odometer : 0
 
     // Top border
     Rectangle {
@@ -37,7 +37,7 @@ Rectangle {
         Column {
             spacing: 0
             Text {
-                text: typeof translations !== "undefined" ? translations.statusBarDuration : "Duration"
+                text: typeof Translations !== "undefined" ? Translations.statusBarDuration : "Duration"
                 font.pixelSize: ThemeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
@@ -55,7 +55,7 @@ Rectangle {
         Column {
             spacing: 0
             Text {
-                text: typeof translations !== "undefined" ? translations.statusBarAvgSpeed : "Avg"
+                text: typeof Translations !== "undefined" ? Translations.statusBarAvgSpeed : "Avg"
                 font.pixelSize: ThemeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
@@ -104,7 +104,7 @@ Rectangle {
             spacing: 0
             Text {
                 anchors.right: parent.right
-                text: typeof translations !== "undefined" ? translations.statusBarTrip : "Trip"
+                text: typeof Translations !== "undefined" ? Translations.statusBarTrip : "Trip"
                 font.pixelSize: ThemeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5
@@ -124,7 +124,7 @@ Rectangle {
             spacing: 0
             Text {
                 anchors.right: parent.right
-                text: typeof translations !== "undefined" ? translations.statusBarTotal : "Total"
+                text: typeof Translations !== "undefined" ? Translations.statusBarTotal : "Total"
                 font.pixelSize: ThemeStore.fontCaption
                 font.weight: Font.Medium
                 font.letterSpacing: 0.5

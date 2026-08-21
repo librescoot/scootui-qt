@@ -7,7 +7,7 @@ Rectangle {
     color: "black"
 
     property bool showConnectionInfo: false
-    property string stateRaw: typeof vehicleStore !== "undefined" ? vehicleStore.stateRaw : ""
+    property string stateRaw: typeof VehicleStore !== "undefined" ? VehicleStore.stateRaw : ""
 
     // Turn off backlight after 15s to save power during unattended maintenance/updates
     Timer {
@@ -15,22 +15,22 @@ Rectangle {
         interval: 15000
         running: true
         onTriggered: {
-            if (typeof dashboardStore !== "undefined")
-                dashboardStore.setBacklightEnabled(false)
+            if (typeof DashboardStore !== "undefined")
+                DashboardStore.setBacklightEnabled(false)
         }
     }
 
     Connections {
-        target: typeof vehicleStore !== "undefined" ? vehicleStore : null
+        target: typeof VehicleStore !== "undefined" ? VehicleStore : null
         function onStateChanged() {
-            if (typeof dashboardStore !== "undefined")
-                dashboardStore.setBacklightEnabled(true)
+            if (typeof DashboardStore !== "undefined")
+                DashboardStore.setBacklightEnabled(true)
         }
     }
 
     Component.onDestruction: {
-        if (typeof dashboardStore !== "undefined")
-            dashboardStore.setBacklightEnabled(true)
+        if (typeof DashboardStore !== "undefined")
+            DashboardStore.setBacklightEnabled(true)
     }
 
     // --- Loading mode (default): silent spinner + optional OTA progress ---
@@ -39,11 +39,11 @@ Rectangle {
         anchors.fill: parent
         visible: !showConnectionInfo
 
-        readonly property bool otaActive: typeof dashboardStore !== "undefined" && otaStore.isActive
-        readonly property string otaStatus: typeof dashboardStore !== "undefined" ? otaStore.dbcStatus : "idle"
-        readonly property int otaDownloadProgress: typeof dashboardStore !== "undefined" ? otaStore.dbcDownloadProgress : 0
-        readonly property int otaInstallProgress: typeof dashboardStore !== "undefined" ? otaStore.dbcInstallProgress : 0
-        readonly property string otaVersion: typeof dashboardStore !== "undefined" ? otaStore.dbcUpdateVersion : ""
+        readonly property bool otaActive: typeof DashboardStore !== "undefined" && OtaStore.isActive
+        readonly property string otaStatus: typeof DashboardStore !== "undefined" ? OtaStore.dbcStatus : "idle"
+        readonly property int otaDownloadProgress: typeof DashboardStore !== "undefined" ? OtaStore.dbcDownloadProgress : 0
+        readonly property int otaInstallProgress: typeof DashboardStore !== "undefined" ? OtaStore.dbcInstallProgress : 0
+        readonly property string otaVersion: typeof DashboardStore !== "undefined" ? OtaStore.dbcUpdateVersion : ""
 
         Column {
             anchors.centerIn: parent
@@ -95,7 +95,7 @@ Rectangle {
                     font.pixelSize: ThemeStore.fontBody
                     color: Qt.rgba(1, 1, 1, 0.8)
                     text: {
-                        var tr = typeof translations !== "undefined" ? translations : null
+                        var tr = typeof Translations !== "undefined" ? Translations : null
                         switch (loadingMode.otaStatus) {
                             case "downloading": return tr ? tr.otaDownloadingUpdates : "Downloading update..."
                             case "preparing": return tr ? tr.otaPreparingUpdate : "Preparing update..."

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SyncableStore.h"
+#include <QtQml/qqmlengine.h>
 
 // MotionStore subscribes to motion-service's two pub/sub channels:
 //   motion:sensors  — 10 Hz JSON snapshot {timestamp, accel, gyro, mag}
@@ -12,6 +13,8 @@
 class MotionStore : public SyncableStore
 {
     Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
 
     // Heading payload (motion:heading)
     Q_PROPERTY(double headingDeg READ headingDeg NOTIFY headingChanged)
@@ -107,4 +110,18 @@ private:
     double m_gyroX = 0.0, m_gyroY = 0.0, m_gyroZ = 0.0, m_gyroMagnitude = 0.0;
     double m_magX = 0.0, m_magY = 0.0, m_magZ = 0.0, m_magMagnitude = 0.0;
     qint64 m_sensorsTimestamp = 0;
+
+public:
+    // Application owns the instance and wires its dependencies before the engine
+    // loads. create() hands QML that object instead of a default-constructed one.
+    static MotionStore *create(QQmlEngine *, QJSEngine *)
+    {
+        Q_ASSERT(s_qmlInstance);
+        QJSEngine::setObjectOwnership(s_qmlInstance, QJSEngine::CppOwnership);
+        return s_qmlInstance;
+    }
+    static void setQmlInstance(MotionStore *instance) { s_qmlInstance = instance; }
+
+private:
+    static inline MotionStore *s_qmlInstance = nullptr;
 };
