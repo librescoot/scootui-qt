@@ -73,6 +73,12 @@ SCOOTUI_REDIS_HOST=none ./build/bin/scootui
 
 Setting `SCOOTUI_REDIS_HOST=none` runs without a Redis connection, using the built-in simulator instead.
 
+### Testing on a real DBC
+
+See [TESTING.md](TESTING.md) for capturing screenshots off the running display
+(`/dev/fb0` is not the scanout buffer) and for driving arbitrary vehicle state
+through a scratch Redis instead of the live one.
+
 ### Target Build (Cross-compilation)
 
 Cross-compile for the i.MX6 (armhf) target using Docker:
