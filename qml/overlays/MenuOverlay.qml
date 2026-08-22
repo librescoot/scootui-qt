@@ -30,6 +30,12 @@ Item {
         function onLeftTap()  { menuStore.navigateDown() }
         function onLeftHold() { menuStore.goBack()        }
         function onRightTap() { menuStore.selectItem()   }
+        // The 3 s hold leaves the menu from any depth, deliberately without a
+        // row in the bar: an escape from four levels down is worth having and
+        // is not worth 19 px of every screen to advertise. It arrives after
+        // the 800 ms long-tap has already popped one level, so from the root
+        // the menu has closed before this can fire.
+        function onLeftBrakeHold() { menuStore.close() }
     }
 
     ColumnLayout {
