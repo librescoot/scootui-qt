@@ -525,10 +525,16 @@ Rectangle {
         // would already say Back (no point repeating it).
         ControlHints {
             Layout.fillWidth: true
-            leftAction: navSetupScreen.canScrollDown
+            // The hold hint comes and goes with the scroll position; pin the
+            // height so the content above does not shift while scrolling.
+            reservedRows: 2
+            leftTap: navSetupScreen.canScrollDown
                 ? (typeof translations !== "undefined" ? translations.controlScroll : "Scroll")
                 : (typeof translations !== "undefined" ? translations.controlBack : "Back")
-            rightAction: {
+            leftHold: navSetupScreen.canScrollUp
+                ? (typeof translations !== "undefined" ? translations.controlScrollUp : "Scroll up")
+                : ""
+            rightTap: {
                 if (navSetupScreen.canDownload)
                     return navSetupScreen.downloadButtonLabel
                 if (!navSetupScreen.canScrollDown)

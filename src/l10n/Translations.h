@@ -233,6 +233,11 @@ class Translations : public QObject
     Q_PROPERTY(QString controlSelect READ controlSelect NOTIFY languageChanged)
     Q_PROPERTY(QString controlNext READ controlNext NOTIFY languageChanged)
     Q_PROPERTY(QString controlScroll READ controlScroll NOTIFY languageChanged)
+    Q_PROPERTY(QString controlScrollUp READ controlScrollUp NOTIFY languageChanged)
+    Q_PROPERTY(QString controlClose READ controlClose NOTIFY languageChanged)
+    Q_PROPERTY(QString gestureTap READ gestureTap NOTIFY languageChanged)
+    Q_PROPERTY(QString gestureHold READ gestureHold NOTIFY languageChanged)
+    Q_PROPERTY(QString gestureHoldLong READ gestureHoldLong NOTIFY languageChanged)
     Q_PROPERTY(QString controlCancel READ controlCancel NOTIFY languageChanged)
     Q_PROPERTY(QString navGo READ navGo NOTIFY languageChanged)
     Q_PROPERTY(QString controlLeftBrake READ controlLeftBrake NOTIFY languageChanged)
@@ -779,6 +784,11 @@ public:
     QString controlSelect() const { return lookup("controlSelect"); }
     QString controlNext() const { return lookup("controlNext"); }
     QString controlScroll() const { return lookup("controlScroll"); }
+    QString controlScrollUp() const { return lookup("controlScrollUp"); }
+    QString controlClose() const { return lookup("controlClose"); }
+    QString gestureTap() const { return lookup("gestureTap"); }
+    QString gestureHold() const { return lookup("gestureHold"); }
+    QString gestureHoldLong() const { return lookup("gestureHoldLong"); }
     QString controlCancel() const { return lookup("controlCancel"); }
     QString navGo() const { return lookup("navGo"); }
     QString controlLeftBrake() const { return lookup("controlLeftBrake"); }

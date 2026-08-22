@@ -554,10 +554,12 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                leftAction: typeof translations !== "undefined"
-                            ? translations.aboutScrollAction : "Scroll"
-                rightAction: typeof translations !== "undefined"
-                             ? translations.aboutBackAction : "Back"
+                leftTap: typeof translations !== "undefined"
+                         ? translations.aboutScrollAction : "Scroll"
+                leftHold: typeof translations !== "undefined"
+                          ? translations.controlScrollUp : "Scroll up"
+                rightTap: typeof translations !== "undefined"
+                          ? translations.aboutBackAction : "Back"
             }
         }
     }

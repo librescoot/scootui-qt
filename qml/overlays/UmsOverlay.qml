@@ -267,8 +267,8 @@ Item {
         anchors.leftMargin: 12
         anchors.rightMargin: 12
         visible: usbStatus === "active" || usbStatus === "preparing"
-        leftLabel: typeof translations !== "undefined" ? translations.controlLeftBrakeHold : "Left Brake (Hold)"
-        leftAction: typeof translations !== "undefined"
+        // The 3 s hold, which is the gesture ums-service itself exits on.
+        leftHoldLong: typeof translations !== "undefined"
                     ? (usbStatus === "preparing" ? translations.controlCancel : translations.umsHoldExit)
                     : (usbStatus === "preparing" ? "Cancel" : "Exit")
     }

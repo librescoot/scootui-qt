@@ -218,10 +218,10 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                leftAction: typeof translations === "undefined"
+                leftTap: typeof translations === "undefined"
                     ? "Back"
                     : (channelScreen.canConfirm ? translations.controlCancel : translations.controlBack)
-                rightAction: channelScreen.canConfirm && typeof translations !== "undefined"
+                rightTap: channelScreen.canConfirm && typeof translations !== "undefined"
                     ? translations.controlConfirm : ""
             }
         }

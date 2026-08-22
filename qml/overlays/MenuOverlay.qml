@@ -169,10 +169,20 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                leftAction: typeof translations !== "undefined"
-                            ? translations.controlScroll : "Scroll"
-                rightAction: typeof translations !== "undefined"
-                             ? translations.controlSelect : "Select"
+                // A level with one entry has nothing to scroll through.
+                leftTap: !menuStore.canScrollDown ? ""
+                       : (typeof translations !== "undefined"
+                          ? translations.controlScroll : "Scroll")
+                // At the root the hold leaves the menu rather than going up a
+                // level, so it says so.
+                leftHold: {
+                    if (typeof translations === "undefined")
+                        return menuStore.isRoot ? "Close" : "Back"
+                    return menuStore.isRoot ? translations.controlClose
+                                            : translations.controlBack
+                }
+                rightTap: typeof translations !== "undefined"
+                          ? translations.controlSelect : "Select"
             }
         }
     }

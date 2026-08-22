@@ -63,5 +63,9 @@ void InputHandler::onInputEvent(const QString &message)
     } else if (side == QLatin1String("right")) {
         if (gesture == QLatin1String("tap"))
             emit rightTap();
+        else if (gesture == QLatin1String("long-tap"))
+            emit rightHold();
+        else if (gesture == QLatin1String("hold"))
+            emit rightBrakeHold();
     }
 }

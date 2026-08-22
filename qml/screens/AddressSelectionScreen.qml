@@ -942,14 +942,20 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
 
-                leftAction: {
+                // The tap cycles letters and list entries; it does nothing on
+                // the confirm step, where only the hold is bound.
+                leftTap: {
                     if (dbStatus !== statusReady) return ""
+                    if (addressScreen.phase === addressScreen.phaseConfirm) return ""
                     var tr = typeof translations !== "undefined" ? translations : null
-                    if (addressScreen.phase === addressScreen.phaseConfirm)
-                        return tr ? tr.controlBack : "Back"
                     return tr ? tr.controlScroll : "Scroll"
                 }
-                rightAction: {
+                leftHold: {
+                    if (dbStatus !== statusReady) return ""
+                    var tr = typeof translations !== "undefined" ? translations : null
+                    return tr ? tr.controlBack : "Back"
+                }
+                rightTap: {
                     var tr = typeof translations !== "undefined" ? translations : null
                     if (dbStatus === statusBuilding)
                         return tr ? tr.controlCancel : "Cancel"

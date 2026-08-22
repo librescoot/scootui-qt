@@ -665,6 +665,24 @@ void Translations::initStrings()
     en[QStringLiteral("controlScroll")] = QStringLiteral("Scroll");
     de[QStringLiteral("controlScroll")] = QStringLiteral("Scrollen");
 
+    en[QStringLiteral("controlScrollUp")] = QStringLiteral("Scroll up");
+    de[QStringLiteral("controlScrollUp")] = QStringLiteral("Hoch scrollen");
+
+    en[QStringLiteral("controlClose")] = QStringLiteral("Close");
+    de[QStringLiteral("controlClose")] = QStringLiteral("Schlie\u00DFen");
+
+    // Gesture names for the hint bar, already cased for display. The duration
+    // trails the verb in English and leads it in German, so these are three
+    // independent strings rather than one format with a number slotted in.
+    en[QStringLiteral("gestureTap")] = QStringLiteral("TAP");
+    de[QStringLiteral("gestureTap")] = QStringLiteral("TAP");
+
+    en[QStringLiteral("gestureHold")] = QStringLiteral("HOLD");
+    de[QStringLiteral("gestureHold")] = QStringLiteral("HALTEN");
+
+    en[QStringLiteral("gestureHoldLong")] = QStringLiteral("HOLD 3S");
+    de[QStringLiteral("gestureHoldLong")] = QStringLiteral("3S HALTEN");
+
     en[QStringLiteral("controlCancel")] = QStringLiteral("Cancel");
     de[QStringLiteral("controlCancel")] = QStringLiteral("Abbrechen");
 

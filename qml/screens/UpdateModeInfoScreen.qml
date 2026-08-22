@@ -204,11 +204,17 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                leftAction: updateModeScreen.canScrollDown
+                // The hold hint comes and goes with the scroll position; pin
+                // the height so the content above does not shift while scrolling.
+                reservedRows: 2
+                leftTap: updateModeScreen.canScrollDown
                     ? (typeof translations !== "undefined" ? translations.controlScroll : "Scroll")
                     : (typeof translations !== "undefined" ? translations.controlBack : "Back")
-                rightAction: typeof translations !== "undefined"
-                             ? translations.updateModeStart : "Start"
+                leftHold: updateModeScreen.canScrollUp
+                    ? (typeof translations !== "undefined" ? translations.controlScrollUp : "Scroll up")
+                    : ""
+                rightTap: typeof translations !== "undefined"
+                          ? translations.updateModeStart : "Start"
             }
         }
     }
