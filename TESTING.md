@@ -170,6 +170,61 @@ is to give `running:` a condition that means "someone can actually see this".
 Item visibility is not that condition: an item can be visible in the scene
 while the panel it is drawn on is switched off.
 
+## What a frame costs
+
+Frames cost about the same whatever is in them. The scene graph reports its own
+work, and on this UI it is consistently nothing:
+
+```
+time in renderer: total=0ms, preprocess=0, updates=0, rendering=0
+```
+
+All of the cost is the polish, sync, swap cycle around it. That makes CPU close
+to linear in frames per second and almost independent of what is drawn. Measured
+on the desktop build, one screen, three update rates:
+
+| frames/10s | CPU |
+|---|---|
+| 627 | 18% |
+| 245 | 8% |
+| 122 | 4% |
+
+On the DBC the same relationship holds at roughly half a percent of a core per
+frame per second, over a floor of about 3%.
+
+Two things follow. Making a widget visually simpler buys you nothing. Making it
+update less often buys you everything, in direct proportion.
+
+It also means `RotationAnimator` and friends are a trap here. Animators drive
+the render thread rather than the property system, and left to themselves they
+run as fast as the machine allows instead of at the display rate: swapping one
+`RotationAnimation` for a `RotationAnimator` took the desktop build to 1325 fps
+and 278% of a core.
+
+### The global frame cap we did not take
+
+Capping the whole UI at 30 Hz is possible and was considered. Two mechanisms:
+
+`QT_QPA_EGLFS_SWAPINTERVAL=2` in the unit file, already there set to `1`, makes
+each present wait two vblanks for about 29.5 Hz on the 59.1 Hz panel. Whether it
+is honoured needs testing rather than assuming, since swap intervals above 1 are
+often clamped by GBM/Mesa and the eglfs_kms backend schedules its own page flips
+under `QT_QPA_EGLFS_KMS_ATOMIC=1`.
+
+A custom `QAnimationDriver` advancing `QUnifiedTimer` on a 30 Hz timer is the
+robust version, and narrower than it sounds: it throttles animations but not
+repaints caused by data changes marking items dirty.
+
+Neither is being done, for two reasons. The costs are real (map panning is where
+30 Hz shows, input gains up to 16 ms, and presentation quantises to vblank
+multiples so an overrunning frame drops to 19.7 Hz rather than degrading
+gently). More importantly, a cap rations waste instead of removing it. Both
+render-cost problems found so far were work done for something nobody could see,
+a spinner animating against a blank panel and a debug overlay instantiated
+permanently while switched off. A global cap would have halved the price of both
+and left them in place. Look for the work first; a cap is what you reach for
+when there is no waste left to find.
+
 ## Gotchas
 
 The screen is mostly black in `stand-by`. Anything you are trying to see needs
