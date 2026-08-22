@@ -177,6 +177,8 @@ Rectangle {
     function closeScreen() {
         if (typeof screenStore !== "undefined")
             screenStore.closeSystemInfo()
+        if (typeof menuStore !== "undefined")
+            menuStore.resume()
     }
 
     // Reset the scroll position when switching pages, otherwise a short page

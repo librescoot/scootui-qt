@@ -23,6 +23,8 @@ Rectangle {
     function cancelBack() {
         if (typeof screenStore !== "undefined")
             screenStore.closeHopOnInfo()
+        if (typeof menuStore !== "undefined")
+            menuStore.resume()
     }
 
     readonly property bool canScrollDown: flickable.contentHeight > flickable.height

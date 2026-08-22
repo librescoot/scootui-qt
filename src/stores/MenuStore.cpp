@@ -370,14 +370,14 @@ void MenuStore::rebuildMenuTree()
 
     // Navigation setup info (always available for proactive offline downloads)
     navNode->addChild(MenuNode::action(QStringLiteral("nav_setup"), tr->menuNavSetup(), [this]() {
-        close();
+        closeForScreen();
         if (m_screenStore) m_screenStore->showNavigationSetup(2); // Both
     }));
 
     // === Set up Navigation (visible when routing is not ready) ===
     m_rootNode->addChild(MenuNode::action(QStringLiteral("setup_navigation"),
         tr->menuSetupNavigation(), [this]() {
-            close();
+            closeForScreen();
             if (m_screenStore) m_screenStore->showNavigationSetup(1); // Routing
         }, [this]() {
             return !isRoutingReady();
@@ -389,7 +389,7 @@ void MenuStore::rebuildMenuTree()
     // two view-switch entries.
     m_rootNode->addChild(MenuNode::action(QStringLiteral("setup_map_mode"),
         tr->menuSetupMapMode(), [this]() {
-            close();
+            closeForScreen();
             if (m_screenStore) m_screenStore->showNavigationSetup(0); // DisplayMaps
         }, [this]() {
             if (!m_screenStore || m_screenStore->currentScreen() != 0) return false;
@@ -449,7 +449,7 @@ void MenuStore::rebuildMenuTree()
                                 .arg(tr->menuFaults())
                                 .arg(m_faults->activeCount());
         m_rootNode->addChild(MenuNode::action(QStringLiteral("faults_root"), label, [this]() {
-            close();
+            closeForScreen();
             if (m_screenStore)
                 m_screenStore->showFaults();
         }));
@@ -522,7 +522,7 @@ void MenuStore::rebuildMenuTree()
         if (!m_hopOn->hasCombo()) {
             vehicleNode->addChild(MenuNode::action(QStringLiteral("settings_hop_on"),
                 tr->menuHopOn(), [this]() {
-                    close();
+                    closeForScreen();
                     if (m_screenStore)
                         m_screenStore->showHopOnInfo();
                 }));
@@ -906,7 +906,7 @@ void MenuStore::rebuildMenuTree()
     }
 
     systemNode->addChild(MenuNode::action(QStringLiteral("enter_ums"), tr->menuEnterUms(), [this]() {
-        close();
+        closeForScreen();
         if (m_screenStore)
             m_screenStore->showUpdateModeInfo();
     }));
@@ -1051,7 +1051,7 @@ void MenuStore::rebuildMenuTree()
                             return;
                         }
                         m_updateChannel->beginSwitch(value);
-                        close();
+                        closeForScreen();
                         if (m_screenStore)
                             m_screenStore->showUpdateChannel();
                     }));
@@ -1126,7 +1126,7 @@ void MenuStore::rebuildMenuTree()
         for (const auto &p : pages) {
             const int page = p.page;
             infoNode->addChild(MenuNode::action(QLatin1String(p.id), p.title, [this, page]() {
-                close();
+                closeForScreen();
                 if (m_screenStore)
                     m_screenStore->showSystemInfo(page);
             }));
@@ -1134,13 +1134,13 @@ void MenuStore::rebuildMenuTree()
 
         infoNode->addChild(MenuNode::action(QStringLiteral("faults"),
                                             withCount(tr->menuFaults()), [this]() {
-            close();
+            closeForScreen();
             if (m_screenStore)
                 m_screenStore->showFaults();
         }));
 
         infoNode->addChild(MenuNode::action(QStringLiteral("about"), tr->menuAbout(), [this]() {
-            close();
+            closeForScreen();
             if (m_screenStore)
                 m_screenStore->showAbout();
         }));
@@ -1266,8 +1266,14 @@ void MenuStore::toggle()
 }
 void MenuStore::open()
 {
+    openAt({}, {}, 0);
+}
+
+void MenuStore::openAt(const QStringList &path, const QList<int> &indexStack, int index)
+{
     qDebug() << "MenuStore: open requested, vehicleState" << m_vehicle->state()
-             << "isOpen" << m_isOpen << "hopOnMode" << (m_hopOn ? m_hopOn->mode() : -1);
+             << "isOpen" << m_isOpen << "hopOnMode" << (m_hopOn ? m_hopOn->mode() : -1)
+             << "path" << path;
 
     if (!m_vehicle->isParked()) {
         qDebug() << "MenuStore: open dropped - not parked, vehicleState" << m_vehicle->state();
@@ -1283,10 +1289,14 @@ void MenuStore::open()
     }
 
     qDebug() << "MenuStore: opening menu";
+    clearResume();
     m_isOpen = true;
-    m_pathStack.clear();
-    m_indexStack.clear();
-    m_selectedIndex = 0;
+    // rebuildMenuTree() replays the path against the tree it just built and
+    // stops at the first level that no longer exists, so a stale path lands
+    // on the nearest surviving ancestor rather than nowhere.
+    m_pathStack = path;
+    m_indexStack = indexStack;
+    m_selectedIndex = index;
     m_openedAt.start();
     rebuildMenuTree();
     if (m_repo) {
@@ -1297,8 +1307,39 @@ void MenuStore::open()
     emit isOpenChanged();
 }
 
+void MenuStore::closeForScreen()
+{
+    const QStringList path = m_pathStack;
+    const QList<int> indexStack = m_indexStack;
+    const int index = m_selectedIndex;
+    close();
+    m_resumePath = path;
+    m_resumeIndexStack = indexStack;
+    m_resumeIndex = index;
+    m_resumeArmed = true;
+}
+
+void MenuStore::resume()
+{
+    if (!m_resumeArmed) return;
+    const QStringList path = m_resumePath;
+    const QList<int> indexStack = m_resumeIndexStack;
+    const int index = m_resumeIndex;
+    clearResume();
+    openAt(path, indexStack, index);
+}
+
+void MenuStore::clearResume()
+{
+    m_resumeArmed = false;
+    m_resumePath.clear();
+    m_resumeIndexStack.clear();
+    m_resumeIndex = 0;
+}
+
 void MenuStore::close()
 {
+    clearResume();
     if (!m_isOpen) return;
     m_isOpen = false;
     m_selectedIndex = 0;

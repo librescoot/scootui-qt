@@ -84,6 +84,8 @@ Rectangle {
             updateChannelService.cancel()
         if (typeof screenStore !== "undefined")
             screenStore.closeUpdateChannel()
+        if (typeof menuStore !== "undefined")
+            menuStore.resume()
     }
 
     // confirm() only changes settings; leaving the screen is this screen's job.

@@ -67,6 +67,11 @@ public:
     Q_INVOKABLE void toggle();
     Q_INVOKABLE void open();
     Q_INVOKABLE void close();
+    // Closes the menu to hand the display to a full-screen page, remembering
+    // where in the tree we stood. resume() puts the rider back on that level
+    // when the page is dismissed; any other close() drops the memory.
+    void closeForScreen();
+    Q_INVOKABLE void resume();
     Q_INVOKABLE void navigateUp();
     Q_INVOKABLE void navigateDown();
     Q_INVOKABLE void selectItem();
@@ -77,6 +82,8 @@ signals:
     void menuChanged();
 
 private:
+    void openAt(const QStringList &path, const QList<int> &indexStack, int index);
+    void clearResume();
     void rebuildMenuTree();
     QString lastMapCheckLabel() const;
     QString lastCheckLabel(const QString &iso) const;
@@ -108,6 +115,12 @@ private:
     int m_selectedIndex = 0;
     QStringList m_pathStack;      // node IDs for navigation depth
     QList<int> m_indexStack;      // selected index at each depth
+
+    // Where closeForScreen() left off, replayed by resume().
+    QStringList m_resumePath;
+    QList<int> m_resumeIndexStack;
+    int m_resumeIndex = 0;
+    bool m_resumeArmed = false;
     bool m_executingAction = false; // guard against reentrant rebuilds
 
     // vehicle-service emits "tap" right before "double-tap" on a double-tap.

@@ -52,6 +52,8 @@ Rectangle {
     function closeScreen() {
         if (typeof screenStore !== "undefined")
             screenStore.closeFaults()
+        if (typeof menuStore !== "undefined")
+            menuStore.resume()
     }
 
     readonly property var entries: typeof faultsStore !== "undefined" ? faultsStore.entries : []

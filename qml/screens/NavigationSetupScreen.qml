@@ -137,6 +137,8 @@ Rectangle {
     function closeSelf() {
         if (typeof screenStore !== "undefined")
             screenStore.closeNavigationSetup()
+        if (typeof menuStore !== "undefined")
+            menuStore.resume()
     }
 
     // Input handling: left scrolls through content and falls through to Back
