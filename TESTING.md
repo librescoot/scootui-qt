@@ -203,19 +203,18 @@ and 278% of a core.
 
 ### The global frame cap we did not take
 
-Capping the whole UI at 30 Hz is possible and was considered. Two mechanisms:
+Capping the whole UI at 30 Hz is possible and was considered.
 
-`QT_QPA_EGLFS_SWAPINTERVAL=2` in the unit file, already there set to `1`, makes
-each present wait two vblanks for about 29.5 Hz on the 59.1 Hz panel. Whether it
-is honoured needs testing rather than assuming, since swap intervals above 1 are
-often clamped by GBM/Mesa and the eglfs_kms backend schedules its own page flips
-under `QT_QPA_EGLFS_KMS_ATOMIC=1`.
+`QT_QPA_EGLFS_SWAPINTERVAL` is not the lever it looks like. `eglSwapBuffers`
+does not block on etnaviv/imx-drm, so a swap interval has nothing to act on;
+what paces rendering is the page-flip wait in the eglfs_kms backend under
+`QT_QPA_EGLFS_KMS_ATOMIC=1`. Setting it to `2` would very likely do nothing.
 
-A custom `QAnimationDriver` advancing `QUnifiedTimer` on a 30 Hz timer is the
-robust version, and narrower than it sounds: it throttles animations but not
-repaints caused by data changes marking items dirty.
+That leaves one mechanism: a custom `QAnimationDriver` advancing
+`QUnifiedTimer` on a 30 Hz timer. It is narrower than it sounds, throttling
+animations but not repaints caused by data changes marking items dirty.
 
-Neither is being done, for two reasons. The costs are real (map panning is where
+It is not being done, for two reasons. The costs are real (map panning is where
 30 Hz shows, input gains up to 16 ms, and presentation quantises to vblank
 multiples so an overrunning frame drops to 19.7 Hz rather than degrading
 gently). More importantly, a cap rations waste instead of removing it. Both
