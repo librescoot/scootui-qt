@@ -46,8 +46,11 @@ SyncSettings SettingsStore::syncSettings() const
             {QStringLiteral("milestoneCelebrations"), QStringLiteral("dashboard.milestone-celebrations")},
             {QStringLiteral("serviceActive"), QStringLiteral("dashboard.service-mode-active")},
             {QStringLiteral("otaChannel"), QStringLiteral("updates.mdb.channel")},
+            {QStringLiteral("otaChannelDbc"), QStringLiteral("updates.dbc.channel")},
             {QStringLiteral("otaMethod"), QStringLiteral("updates.mdb.method")},
+            {QStringLiteral("otaMethodDbc"), QStringLiteral("updates.dbc.method")},
             {QStringLiteral("otaCheckInterval"), QStringLiteral("updates.mdb.check-interval")},
+            {QStringLiteral("otaCheckIntervalDbc"), QStringLiteral("updates.dbc.check-interval")},
             {QStringLiteral("otaLastCheck"), QStringLiteral("updates.mdb.last-check-time")},
         },
         {}, {}
@@ -135,10 +138,18 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
         }
     } else if (variable == QLatin1String("updates.mdb.channel")) {
         if (value != m_otaChannel) { m_otaChannel = value; emit otaChannelChanged(); }
+    // The DBC half of each pair reuses the MDB signal: it moves the same
+    // setting, and every consumer wants to hear about a change on either board.
+    } else if (variable == QLatin1String("updates.dbc.channel")) {
+        if (value != m_otaChannelDbc) { m_otaChannelDbc = value; emit otaChannelChanged(); }
     } else if (variable == QLatin1String("updates.mdb.method")) {
         if (value != m_otaMethod) { m_otaMethod = value; emit otaMethodChanged(); }
+    } else if (variable == QLatin1String("updates.dbc.method")) {
+        if (value != m_otaMethodDbc) { m_otaMethodDbc = value; emit otaMethodChanged(); }
     } else if (variable == QLatin1String("updates.mdb.check-interval")) {
         if (value != m_otaCheckInterval) { m_otaCheckInterval = value; emit otaCheckIntervalChanged(); }
+    } else if (variable == QLatin1String("updates.dbc.check-interval")) {
+        if (value != m_otaCheckIntervalDbc) { m_otaCheckIntervalDbc = value; emit otaCheckIntervalChanged(); }
     } else if (variable == QLatin1String("updates.mdb.last-check-time")) {
         if (value != m_otaLastCheck) { m_otaLastCheck = value; emit otaLastCheckChanged(); }
     }

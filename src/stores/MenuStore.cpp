@@ -927,6 +927,16 @@ void MenuStore::rebuildMenuTree()
         auto *updatesNode = systemNode->addChild(MenuNode::submenu(
             QStringLiteral("settings_updates"), tr->menuUpdates(), tr->menuUpdatesHeader()));
 
+        // Every entry below writes the MDB and DBC keys together, so the two
+        // normally agree and one value speaks for both. lsc or a hand-edited
+        // settings.toml can move one without the other, and then no single
+        // value is the setting: name both boards rather than quietly showing
+        // the MDB one. Nothing is marked as current in that state either, so
+        // picking any option writes the pair again and heals the split.
+        auto splitLabel = [](const QString &mdb, const QString &dbc) {
+            return QStringLiteral("MDB %1 / DBC %2").arg(mdb, dbc);
+        };
+
         // Check Frequency. "0" disables scheduled checks entirely; the manual
         // entry below is then the only way an update is ever found. Nothing
         // below 6h is offered: releases do not land more often than that, and
@@ -941,7 +951,8 @@ void MenuStore::rebuildMenuTree()
                 {QStringLiteral("3d"),  QStringLiteral("72h")},
                 {QStringLiteral("7d"),  QStringLiteral("168h")},
             };
-            const QString currentInterval = settings->otaCheckInterval();
+            const bool freqSplit = settings->otaCheckIntervalDiverged();
+            const QString currentInterval = freqSplit ? QString() : settings->otaCheckInterval();
 
             QList<CycleOption> options;
             int index = -1;
@@ -958,7 +969,10 @@ void MenuStore::rebuildMenuTree()
             // An interval set outside this menu (lsc, settings.toml) need not be
             // one of the six offered here. Show what it actually is rather than
             // silently mislabelling it as the option the cycle happens to sit on.
-            if (index < 0 && !currentInterval.isEmpty())
+            if (freqSplit)
+                freqNode->setValueLabel(splitLabel(settings->otaCheckInterval(),
+                                                   settings->otaCheckIntervalDbc()));
+            else if (index < 0 && !currentInterval.isEmpty())
                 freqNode->setValueLabel(currentInterval);
         }
 
@@ -988,11 +1002,19 @@ void MenuStore::rebuildMenuTree()
         // current value still rides on the parent row so the list says which
         // one is set without being entered.
         {
+            const bool typeSplit = settings->otaMethodDiverged();
             const bool full = settings->otaMethod() == QLatin1String("full");
             auto *typeNode = updatesNode->addChild(MenuNode::submenu(
                 QStringLiteral("settings_update_type"), tr->menuUpdateType(),
                 tr->menuUpdateTypeHeader()));
-            typeNode->setValueLabel(full ? tr->menuUpdateTypeFull() : tr->menuUpdateTypeDelta());
+            auto methodLabel = [tr](const QString &v) {
+                return v == QLatin1String("full") ? tr->menuUpdateTypeFull()
+                                                  : tr->menuUpdateTypeDelta();
+            };
+            typeNode->setValueLabel(
+                typeSplit ? splitLabel(methodLabel(settings->otaMethod()),
+                                       methodLabel(settings->otaMethodDbc()))
+                          : methodLabel(settings->otaMethod()));
             typeNode->setCaution(true);
 
             struct Choice { const char *id; QString label; QString value; };
@@ -1000,7 +1022,8 @@ void MenuStore::rebuildMenuTree()
                 {"update_type_delta", tr->menuUpdateTypeDelta(), QStringLiteral("delta")},
                 {"update_type_full",  tr->menuUpdateTypeFull(),  QStringLiteral("full")},
             };
-            const QString current = full ? QStringLiteral("full") : QStringLiteral("delta");
+            const QString current = typeSplit ? QString()
+                                  : (full ? QStringLiteral("full") : QStringLiteral("delta"));
             for (const auto &c : choices) {
                 const QString value = c.value;
                 const bool isCurrent = (value == current);
@@ -1022,7 +1045,9 @@ void MenuStore::rebuildMenuTree()
                 tr->menuUpdateChannelHeader()));
             channelNode->setCaution(true);
 
-            const QString current = m_updateChannel->currentChannel();
+            const bool channelSplit = settings->otaChannelDiverged();
+            const QString current = channelSplit ? QString()
+                                                 : m_updateChannel->currentChannel();
             struct Choice { const char *id; QString label; QString value; };
             const Choice choices[] = {
                 {"update_channel_stable", tr->channelStable(), QStringLiteral("stable")},
@@ -1031,9 +1056,21 @@ void MenuStore::rebuildMenuTree()
             };
             // Same list drives the row's trailing label, so the label and the
             // checkmark can never disagree about which channel is set.
-            for (const auto &c : choices) {
-                if (c.value == current)
-                    channelNode->setValueLabel(c.label);
+            auto channelLabel = [&choices](const QString &v) {
+                for (const auto &c : choices) {
+                    if (c.value == v)
+                        return c.label;
+                }
+                return v;   // set outside this menu to something we cannot name
+            };
+            if (channelSplit) {
+                channelNode->setValueLabel(splitLabel(channelLabel(settings->otaChannel()),
+                                                      channelLabel(settings->otaChannelDbc())));
+            } else {
+                for (const auto &c : choices) {
+                    if (c.value == current)
+                        channelNode->setValueLabel(c.label);
+                }
             }
             for (const auto &c : choices) {
                 const QString value = c.value;

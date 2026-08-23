@@ -44,9 +44,20 @@ class SettingsStore : public SyncableStore
     // OTA settings are written to both updates.mdb.* and updates.dbc.*; the
     // MDB copy is mirrored here as the one the dashboard reads back, because
     // the two are only ever set together.
+    // The MDB value of each OTA setting, and the DBC value beside it. The UI
+    // writes the pair together, so they normally agree; lsc or a hand-edited
+    // settings.toml can set one without the other, and then neither board's
+    // value is "the" setting. The Dbc and Diverged properties share the base
+    // signal so one connection covers a change on either board.
     Q_PROPERTY(QString otaChannel READ otaChannel NOTIFY otaChannelChanged)
+    Q_PROPERTY(QString otaChannelDbc READ otaChannelDbc NOTIFY otaChannelChanged)
+    Q_PROPERTY(bool otaChannelDiverged READ otaChannelDiverged NOTIFY otaChannelChanged)
     Q_PROPERTY(QString otaMethod READ otaMethod NOTIFY otaMethodChanged)
+    Q_PROPERTY(QString otaMethodDbc READ otaMethodDbc NOTIFY otaMethodChanged)
+    Q_PROPERTY(bool otaMethodDiverged READ otaMethodDiverged NOTIFY otaMethodChanged)
     Q_PROPERTY(QString otaCheckInterval READ otaCheckInterval NOTIFY otaCheckIntervalChanged)
+    Q_PROPERTY(QString otaCheckIntervalDbc READ otaCheckIntervalDbc NOTIFY otaCheckIntervalChanged)
+    Q_PROPERTY(bool otaCheckIntervalDiverged READ otaCheckIntervalDiverged NOTIFY otaCheckIntervalChanged)
     Q_PROPERTY(QString otaLastCheck READ otaLastCheck NOTIFY otaLastCheckChanged)
 
 public:
@@ -88,8 +99,14 @@ public:
     bool milestoneCelebrations() const { return m_milestoneCelebrations == QLatin1String("true"); }
     QString serviceActive() const { return m_serviceActive; }
     QString otaChannel() const { return m_otaChannel; }
+    QString otaChannelDbc() const { return m_otaChannelDbc; }
+    bool otaChannelDiverged() const { return boardsDiverge(m_otaChannel, m_otaChannelDbc); }
     QString otaMethod() const { return m_otaMethod; }
+    QString otaMethodDbc() const { return m_otaMethodDbc; }
+    bool otaMethodDiverged() const { return boardsDiverge(m_otaMethod, m_otaMethodDbc); }
     QString otaCheckInterval() const { return m_otaCheckInterval; }
+    QString otaCheckIntervalDbc() const { return m_otaCheckIntervalDbc; }
+    bool otaCheckIntervalDiverged() const { return boardsDiverge(m_otaCheckInterval, m_otaCheckIntervalDbc); }
     QString otaLastCheck() const { return m_otaLastCheck; }
 
     // Helper
@@ -217,20 +234,34 @@ private:
     QString m_mapTrafficOverlay = QStringLiteral("false");
     // @schema dashboard.milestone-celebrations
     QString m_milestoneCelebrations = QStringLiteral("false");
-    // @schema dashboard.service-mode-active
+    // dashboard.service-mode-active: runtime status published by
+    // settings-service, not a setting a rider picks. No @schema annotation:
+    // that marks a user-visible setting this repo covers, and this is neither.
     QString m_serviceActive = QStringLiteral("false");
-    // One field per setting covers both boards: the UI writes the MDB and DBC
-    // keys together (SettingsService::writeOtaSetting) because the two ship as
-    // a pair, and reads back the MDB one as the value to display.
+    // The UI writes the MDB and DBC keys together
+    // (SettingsService::writeOtaSetting) because the two boards ship as a
+    // pair, so both halves are read back and kept, and a disagreement between
+    // them is a state the menu has to be able to show.
     // @schema updates.mdb.channel
-    // @schema updates.dbc.channel
     QString m_otaChannel;
+    // @schema updates.dbc.channel
+    QString m_otaChannelDbc;
     // @schema updates.mdb.method
-    // @schema updates.dbc.method
     QString m_otaMethod = QStringLiteral("delta");
+    // @schema updates.dbc.method
+    QString m_otaMethodDbc = QStringLiteral("delta");
     // @schema updates.mdb.check-interval
-    // @schema updates.dbc.check-interval
     QString m_otaCheckInterval = QStringLiteral("6h");
-    // @schema updates.mdb.last-check-time
+    // @schema updates.dbc.check-interval
+    QString m_otaCheckIntervalDbc = QStringLiteral("6h");
+    // updates.mdb.last-check-time: reported by update-service, not settable
+    // here, so it carries no @schema annotation.
     QString m_otaLastCheck;
+
+    // Two boards only disagree once both have reported. An empty value is a
+    // key nothing has written yet, which is not the same as a different one.
+    static bool boardsDiverge(const QString &mdb, const QString &dbc)
+    {
+        return !mdb.isEmpty() && !dbc.isEmpty() && mdb != dbc;
+    }
 };
