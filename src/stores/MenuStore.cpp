@@ -930,12 +930,11 @@ void MenuStore::rebuildMenuTree()
         // Every entry below writes the MDB and DBC keys together, so the two
         // normally agree and one value speaks for both. lsc or a hand-edited
         // settings.toml can move one without the other, and then no single
-        // value is the setting: name both boards rather than quietly showing
-        // the MDB one. Nothing is marked as current in that state either, so
-        // picking any option writes the pair again and heals the split.
-        auto splitLabel = [](const QString &mdb, const QString &dbc) {
-            return QStringLiteral("MDB %1 / DBC %2").arg(mdb, dbc);
-        };
+        // value is the setting: say so and leave it at that. Which board is
+        // where is a question for lsc, not for a menu whose only offer is one
+        // channel on both. Nothing is marked as current in that state either,
+        // so picking any option writes the pair again and heals it.
+        const QString divergedLabel = tr->menuDiverged();
 
         // Check Frequency. "0" disables scheduled checks entirely; the manual
         // entry below is then the only way an update is ever found. Nothing
@@ -969,11 +968,12 @@ void MenuStore::rebuildMenuTree()
             // An interval set outside this menu (lsc, settings.toml) need not be
             // one of the six offered here. Show what it actually is rather than
             // silently mislabelling it as the option the cycle happens to sit on.
-            if (freqSplit)
-                freqNode->setValueLabel(splitLabel(settings->otaCheckInterval(),
-                                                   settings->otaCheckIntervalDbc()));
-            else if (index < 0 && !currentInterval.isEmpty())
+            if (freqSplit) {
+                freqNode->setValueLabel(divergedLabel);
+                freqNode->setCaution(true);
+            } else if (index < 0 && !currentInterval.isEmpty()) {
                 freqNode->setValueLabel(currentInterval);
+            }
         }
 
         // Check for Updates Now. The only way to look while the scheduled
@@ -1011,10 +1011,8 @@ void MenuStore::rebuildMenuTree()
                 return v == QLatin1String("full") ? tr->menuUpdateTypeFull()
                                                   : tr->menuUpdateTypeDelta();
             };
-            typeNode->setValueLabel(
-                typeSplit ? splitLabel(methodLabel(settings->otaMethod()),
-                                       methodLabel(settings->otaMethodDbc()))
-                          : methodLabel(settings->otaMethod()));
+            typeNode->setValueLabel(typeSplit ? divergedLabel
+                                              : methodLabel(settings->otaMethod()));
             typeNode->setCaution(true);
 
             struct Choice { const char *id; QString label; QString value; };
@@ -1056,16 +1054,8 @@ void MenuStore::rebuildMenuTree()
             };
             // Same list drives the row's trailing label, so the label and the
             // checkmark can never disagree about which channel is set.
-            auto channelLabel = [&choices](const QString &v) {
-                for (const auto &c : choices) {
-                    if (c.value == v)
-                        return c.label;
-                }
-                return v;   // set outside this menu to something we cannot name
-            };
             if (channelSplit) {
-                channelNode->setValueLabel(splitLabel(channelLabel(settings->otaChannel()),
-                                                      channelLabel(settings->otaChannelDbc())));
+                channelNode->setValueLabel(divergedLabel);
             } else {
                 for (const auto &c : choices) {
                     if (c.value == current)
@@ -1227,6 +1217,31 @@ MenuNode *MenuStore::findCurrentNode() const
         if (!found) return m_rootNode.get();
     }
     return node;
+}
+
+// The level a Back lands on, for the hold hint. Empty at the root, where the
+// hold leaves the menu instead of going up.
+QString MenuStore::parentTitle() const
+{
+    if (m_pathStack.isEmpty() || !m_rootNode)
+        return {};
+    if (m_pathStack.size() == 1)
+        return m_translations->menuMainMenu();
+
+    MenuNode *node = m_rootNode.get();
+    for (int i = 0; i < m_pathStack.size() - 1; ++i) {
+        MenuNode *next = nullptr;
+        for (auto *child : node->visibleChildren()) {
+            if (child->id() == m_pathStack[i]) {
+                next = child;
+                break;
+            }
+        }
+        if (!next)
+            return {};
+        node = next;
+    }
+    return node->title();
 }
 
 QString MenuStore::currentTitle() const

@@ -184,8 +184,14 @@ Item {
                 leftHold: {
                     if (typeof translations === "undefined")
                         return menuStore.isRoot ? "Close" : "Back"
-                    return menuStore.isRoot ? translations.controlClose
-                                            : translations.controlBack
+                    if (menuStore.isRoot)
+                        return translations.controlClose
+                    // Name the level it lands on. The hold row has the bar to
+                    // itself (nothing binds a right hold), so even the longest
+                    // German level name fits.
+                    return menuStore.parentTitle === ""
+                         ? translations.controlBack
+                         : translations.controlBackTo.arg(menuStore.parentTitle)
                 }
                 rightTap: typeof translations !== "undefined"
                           ? translations.controlSelect : "Select"

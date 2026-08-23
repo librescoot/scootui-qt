@@ -662,14 +662,29 @@ void Translations::initStrings()
     en[QStringLiteral("controlNext")] = QStringLiteral("Next Item");
     de[QStringLiteral("controlNext")] = QStringLiteral("N\u00E4chster Eintrag");
 
-    en[QStringLiteral("controlScroll")] = QStringLiteral("Scroll");
-    de[QStringLiteral("controlScroll")] = QStringLiteral("Scrollen");
+    en[QStringLiteral("controlScroll")] = QStringLiteral("Scroll down");
+    de[QStringLiteral("controlScroll")] = QStringLiteral("Runter scrollen");
 
     en[QStringLiteral("controlScrollUp")] = QStringLiteral("Scroll up");
     de[QStringLiteral("controlScrollUp")] = QStringLiteral("Hoch scrollen");
 
     en[QStringLiteral("controlClose")] = QStringLiteral("Close");
     de[QStringLiteral("controlClose")] = QStringLiteral("Schlie\u00DFen");
+
+    // Shown instead of a value when the MDB and DBC halves of a paired setting
+    // disagree. The menu never creates that state; lsc or a hand-edited
+    // settings.toml can.
+    en[QStringLiteral("menuDiverged")] = QStringLiteral("Diverged");
+    de[QStringLiteral("menuDiverged")] = QStringLiteral("Uneinheitlich");
+
+    // The hold names the level it lands on. German takes a colon rather than
+    // "zu": the levels have mixed genders, so "zu" would need zur/zum per
+    // entry and reads wrong with a bare plural.
+    en[QStringLiteral("controlBackTo")] = QStringLiteral("Back to %1");
+    de[QStringLiteral("controlBackTo")] = QStringLiteral("Zur\u00FCck: %1");
+
+    en[QStringLiteral("menuMainMenu")] = QStringLiteral("Main Menu");
+    de[QStringLiteral("menuMainMenu")] = QStringLiteral("Hauptmen\u00FC");
 
     // Gesture names for the hint bar, already cased for display. The duration
     // trails the verb in English and leads it in German, so these are three

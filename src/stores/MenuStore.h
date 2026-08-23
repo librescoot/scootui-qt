@@ -34,6 +34,7 @@ class MenuStore : public QObject
     Q_PROPERTY(QVariantList currentItems READ currentItems NOTIFY menuChanged)
     Q_PROPERTY(int selectedIndex READ selectedIndex NOTIFY menuChanged)
     Q_PROPERTY(bool isRoot READ isRoot NOTIFY menuChanged)
+    Q_PROPERTY(QString parentTitle READ parentTitle NOTIFY menuChanged)
     Q_PROPERTY(bool canScrollUp READ canScrollUp NOTIFY menuChanged)
     Q_PROPERTY(bool canScrollDown READ canScrollDown NOTIFY menuChanged)
 
@@ -61,6 +62,7 @@ public:
     QVariantList currentItems() const;
     int selectedIndex() const { return m_selectedIndex; }
     bool isRoot() const { return m_pathStack.isEmpty(); }
+    QString parentTitle() const;
     bool canScrollUp() const;
     bool canScrollDown() const;
 

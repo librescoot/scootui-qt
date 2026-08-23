@@ -29,6 +29,15 @@ Item {
     readonly property color wordColor: isDark ? "#8AFFFFFF" : "#8A000000"
     readonly property color wordInkColor: isDark ? "#000000" : "#FFFFFF"
     readonly property real capsulePad: 5
+    // Qt counts one letterSpacing after the last character too, so a Text's
+    // implicitWidth is a pixel wider than the ink. Centring the box would sit
+    // the word that pixel left of centre in the capsule; the width is taken
+    // off the box so the ink is what gets centred.
+    readonly property real wordSpacing: 1
+    // The ink box alone still leaves the capsule looking right-heavy on the
+    // panel, so the right edge comes in by this much. Trimmed off the width
+    // only: the word is placed from the left, so the left padding is untouched.
+    readonly property real capsuleTrim: 1
     readonly property real wordSize: typeof themeStore !== "undefined" ? themeStore.fontMicro : 10
 
     // The duration leads the verb in German and trails it in English, so these
@@ -79,19 +88,36 @@ Item {
         Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             visible: hintRow.label !== ""
-            width: capsuleText.implicitWidth + controlHints.capsulePad * 2
+            width: capsuleInk.tightBoundingRect.width + controlHints.capsulePad * 2
+                   - controlHints.capsuleTrim
             height: 13
             radius: 6.5
             color: controlHints.wordColor
 
+            // The advance box is not the ink. Qt counts a trailing
+            // letterSpacing into implicitWidth, and a glyph carries its own
+            // side bearings on top of that: P leaves more air to its right
+            // than D does, so centring the box sat TAP visibly left of centre
+            // while HOLD looked fine. tightBoundingRect is the ink itself, so
+            // the capsule is sized and the word placed by that instead.
+            TextMetrics {
+                id: capsuleInk
+                font: capsuleText.font
+                text: hintRow.word
+            }
+
             Text {
                 id: capsuleText
-                anchors.centerIn: parent
+                // Horizontal only. tightBoundingRect is baseline-relative, so
+                // its y is no use for placing the item; the vertical centre of
+                // an all-caps word is close enough on a 13 px capsule anyway.
+                x: controlHints.capsulePad - capsuleInk.tightBoundingRect.x
+                anchors.verticalCenter: parent.verticalCenter
                 text: hintRow.word
                 color: controlHints.wordInkColor
                 font.pixelSize: controlHints.wordSize
                 font.weight: Font.Bold
-                font.letterSpacing: 1
+                font.letterSpacing: controlHints.wordSpacing
             }
         }
 

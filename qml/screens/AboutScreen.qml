@@ -555,11 +555,11 @@ Rectangle {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 leftTap: typeof translations !== "undefined"
-                         ? translations.aboutScrollAction : "Scroll"
+                         ? translations.controlScroll : "Scroll down"
                 leftHold: typeof translations !== "undefined"
                           ? translations.controlScrollUp : "Scroll up"
                 rightTap: typeof translations !== "undefined"
-                          ? translations.aboutBackAction : "Back"
+                          ? translations.controlBack : "Back"
             }
         }
     }

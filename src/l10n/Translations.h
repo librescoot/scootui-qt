@@ -235,6 +235,9 @@ class Translations : public QObject
     Q_PROPERTY(QString controlScroll READ controlScroll NOTIFY languageChanged)
     Q_PROPERTY(QString controlScrollUp READ controlScrollUp NOTIFY languageChanged)
     Q_PROPERTY(QString controlClose READ controlClose NOTIFY languageChanged)
+    Q_PROPERTY(QString menuDiverged READ menuDiverged NOTIFY languageChanged)
+    Q_PROPERTY(QString controlBackTo READ controlBackTo NOTIFY languageChanged)
+    Q_PROPERTY(QString menuMainMenu READ menuMainMenu NOTIFY languageChanged)
     Q_PROPERTY(QString gestureTap READ gestureTap NOTIFY languageChanged)
     Q_PROPERTY(QString gestureHold READ gestureHold NOTIFY languageChanged)
     Q_PROPERTY(QString gestureHoldLong READ gestureHoldLong NOTIFY languageChanged)
@@ -786,6 +789,9 @@ public:
     QString controlScroll() const { return lookup("controlScroll"); }
     QString controlScrollUp() const { return lookup("controlScrollUp"); }
     QString controlClose() const { return lookup("controlClose"); }
+    QString menuDiverged() const { return lookup("menuDiverged"); }
+    QString controlBackTo() const { return lookup("controlBackTo"); }
+    QString menuMainMenu() const { return lookup("menuMainMenu"); }
     QString gestureTap() const { return lookup("gestureTap"); }
     QString gestureHold() const { return lookup("gestureHold"); }
     QString gestureHoldLong() const { return lookup("gestureHoldLong"); }
