@@ -804,8 +804,9 @@ void SimulatorService::loadPreset(const QString &name)
                     QStringLiteral("0e0421d4ee6ba0ab"));
         setBluetoothMac(QStringLiteral("f6:7e:c2:32:b3:bf"));
         m_repo->set(QStringLiteral("scooter"), QStringLiteral("temperature"), QStringLiteral("18.5"));
-        // Use online routing in simulator (no local valhalla)
-        m_repo->set(QStringLiteral("dashboard"), QStringLiteral("dashboard.valhalla-url"),
+        // Use online routing in simulator (no local valhalla). SettingsStore
+        // syncs this out of the "settings" hash, not "dashboard".
+        m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.valhalla-url"),
                     QLatin1String(AppConfig::valhallaOnlineEndpoint));
     } else if (name == QLatin1String("ready")) {
         loadPreset(QStringLiteral("parked"));
@@ -1137,19 +1138,138 @@ void SimulatorService::updateRoadInfo()
     }
 }
 
+namespace {
+
+struct SimPlace {
+    QString label;
+    double latitude;
+    double longitude;
+    QString timestamp;
+};
+
+// Saved locations and recent destinations, laid out exactly as
+// SavedLocationsService::loadAll() and RecentDestinationsService::loadAll()
+// expect to read them back: 7-decimal coordinates and ISO-8601 UTC stamps.
+// The stamps are fixed rather than "now" so every run sorts the same way.
+void seedNavigationPlaces(MdbRepository *repo)
+{
+    const QList<SimPlace> saved = {
+        {QStringLiteral("Brandenburger Tor"), 52.5162746, 13.3777041, QStringLiteral("2026-03-14T09:12:00Z")},
+        // Full geocoder output, not a place name. Saved locations are labelled
+        // with whatever the reverse geocode returned, and a long one is the
+        // case that overruns the menu header and the row: keep one here so the
+        // simulator can reproduce it.
+        {QStringLiteral("Karl-Liebknecht-Stra\u00DFe 8, 10178 Berlin, Deutschland"),
+         52.5103100, 13.4344700, QStringLiteral("2026-03-21T17:48:00Z")},
+        {QStringLiteral("Tempelhofer Feld"),  52.4757000, 13.4030000, QStringLiteral("2026-04-02T11:05:00Z")},
+    };
+    const QList<SimPlace> recent = {
+        {QStringLiteral("Mauerpark"),      52.5407000, 13.4022000, QStringLiteral("2026-04-26T18:40:00Z")},
+        {QStringLiteral("Museumsinsel"),   52.5169000, 13.4004000, QStringLiteral("2026-04-24T12:05:00Z")},
+        {QStringLiteral("Treptower Park"), 52.4879000, 13.4693000, QStringLiteral("2026-04-19T15:22:00Z")},
+    };
+
+    auto field = [](const char *prefix, int id, const QString &name) {
+        return QStringLiteral("%1.%2.%3").arg(QLatin1String(prefix)).arg(id).arg(name);
+    };
+    // Only the last field of a record publishes, so the stores reload once the
+    // whole entry is in the hash rather than on a half-written one.
+    auto write = [repo](const QString &key, const QString &value, bool publish = false) {
+        repo->set(QStringLiteral("settings"), key, value, publish);
+    };
+
+    for (int i = 0; i < saved.size(); ++i) {
+        const SimPlace &p = saved.at(i);
+        write(field(AppConfig::savedLocationsPrefix, i, QStringLiteral("latitude")),
+              QString::number(p.latitude, 'f', 7));
+        write(field(AppConfig::savedLocationsPrefix, i, QStringLiteral("longitude")),
+              QString::number(p.longitude, 'f', 7));
+        write(field(AppConfig::savedLocationsPrefix, i, QStringLiteral("label")), p.label);
+        write(field(AppConfig::savedLocationsPrefix, i, QStringLiteral("created-at")), p.timestamp);
+        write(field(AppConfig::savedLocationsPrefix, i, QStringLiteral("last-used-at")), p.timestamp, true);
+    }
+
+    for (int i = 0; i < recent.size(); ++i) {
+        const SimPlace &p = recent.at(i);
+        write(field(AppConfig::recentDestinationsPrefix, i, QStringLiteral("latitude")),
+              QString::number(p.latitude, 'f', 7));
+        write(field(AppConfig::recentDestinationsPrefix, i, QStringLiteral("longitude")),
+              QString::number(p.longitude, 'f', 7));
+        write(field(AppConfig::recentDestinationsPrefix, i, QStringLiteral("label")), p.label);
+        write(field(AppConfig::recentDestinationsPrefix, i, QStringLiteral("used-at")), p.timestamp, true);
+    }
+}
+
+} // namespace
+
 void SimulatorService::applyDefaults()
 {
-    // Set initial settings
-    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.theme"), QStringLiteral("dark"));
-    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.language"), QStringLiteral("en"));
-    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.battery-display-mode"), QStringLiteral("percentage"));
-    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.map.type"), QStringLiteral("online"));
-    m_repo->set(QStringLiteral("settings"), QStringLiteral("scooter.dual-battery"), QStringLiteral("true"));
-    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.show-gps"), QStringLiteral("always"));
-    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.show-bluetooth"), QStringLiteral("always"));
-    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.show-cloud"), QStringLiteral("always"));
-    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.show-internet"), QStringLiteral("always"));
-    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.show-clock"), QStringLiteral("always"));
+    // Every key SettingsStore syncs out of the "settings" hash, in the order
+    // its SyncSettings lists them. A key left unseeded keeps the SettingsStore
+    // member default, which is invisible to anything reading Redis and leaves
+    // the matching menu row showing a value nobody set.
+    setSetting(QStringLiteral("dashboard.theme"), QStringLiteral("dark"));
+    setSetting(QStringLiteral("dashboard.mode"), QStringLiteral("speedometer"));
+    setSetting(QStringLiteral("dashboard.backlight-mode"), QStringLiteral("auto"));
+    setSetting(QStringLiteral("dashboard.show-raw-speed"), QStringLiteral("false"));
+    setSetting(QStringLiteral("dashboard.battery-display-mode"), QStringLiteral("percentage"));
+    setSetting(QStringLiteral("dashboard.map.type"), QStringLiteral("online"));
+    setSetting(QStringLiteral("dashboard.map.view-mode"), QStringLiteral("3d"));
+    setSetting(QStringLiteral("dashboard.map.north-oriented"), QStringLiteral("false"));
+    setSetting(QStringLiteral("dashboard.map.render-mode"), QStringLiteral("vector"));
+    // No local valhalla on a desktop, so route planning only works online.
+    setSetting(QStringLiteral("dashboard.valhalla-url"),
+               QLatin1String(AppConfig::valhallaOnlineEndpoint));
+    setSetting(QStringLiteral("dashboard.route-preference"), QStringLiteral("fastest"));
+    setSetting(QStringLiteral("dashboard.avoid-cobblestone"), QStringLiteral("medium"));
+    setSetting(QStringLiteral("dashboard.language"), QStringLiteral("en"));
+    setSetting(QStringLiteral("dashboard.power-display-mode"), QStringLiteral("kw"));
+    setSetting(QStringLiteral("dashboard.blinker-style"), QStringLiteral("icon"));
+    setSetting(QStringLiteral("scooter.dbc-blinker-led"), QStringLiteral("disabled"));
+    setSetting(QStringLiteral("scooter.dual-battery"), QStringLiteral("true"));
+    setSetting(QStringLiteral("scooter.horn-when-seatbox-open"), QStringLiteral("false"));
+
+    // Status bar: everything on, so a dev sees each widget without hunting
+    // through the menu for it. "warning" would hide most of them here.
+    setSetting(QStringLiteral("dashboard.show-gps"), QStringLiteral("always"));
+    setSetting(QStringLiteral("dashboard.show-bluetooth"), QStringLiteral("always"));
+    setSetting(QStringLiteral("dashboard.show-cloud"), QStringLiteral("always"));
+    setSetting(QStringLiteral("dashboard.show-internet"), QStringLiteral("always"));
+    setSetting(QStringLiteral("dashboard.show-clock"), QStringLiteral("always"));
+    setSetting(QStringLiteral("dashboard.show-temperature"), QStringLiteral("always"));
+    setSetting(QStringLiteral("dashboard.show-cb-battery"), QStringLiteral("always"));
+    setSetting(QStringLiteral("dashboard.show-aux-battery"), QStringLiteral("always"));
+
+    setSetting(QStringLiteral("alarm.enabled"), QStringLiteral("true"));
+    setSetting(QStringLiteral("alarm.honk"), QStringLiteral("false"));
+    // 10/20/30 are the only durations the menu offers; anything else renders
+    // under the wrong label.
+    setSetting(QStringLiteral("alarm.duration"), QStringLiteral("30"));
+    // Pipe-delimited token list (HopOnStore: LB, RB, HORN, BL, BR). Seeded so
+    // the hop-on entry is armed and can be unlocked from the brake buttons.
+    setSetting(QStringLiteral("dashboard.hop-on-combo"), QStringLiteral("LB|RB|LB"));
+
+    // Map update checks stay off: they would reach out to the tile server on
+    // every simulator launch.
+    setSetting(QStringLiteral("dashboard.maps.check-for-updates"), QStringLiteral("false"));
+    setSetting(QStringLiteral("dashboard.maps.auto-download"), QStringLiteral("false"));
+    setSetting(QStringLiteral("dashboard.map.traffic-overlay"), QStringLiteral("false"));
+    setSetting(QStringLiteral("dashboard.milestone-celebrations"), QStringLiteral("true"));
+    setSetting(QStringLiteral("dashboard.service-mode-active"), QStringLiteral("false"));
+
+    // OTA. Both boards get the same value, the way SettingsService writes them.
+    setSetting(QStringLiteral("updates.mdb.channel"), QStringLiteral("stable"));
+    setSetting(QStringLiteral("updates.dbc.channel"), QStringLiteral("stable"));
+    setSetting(QStringLiteral("updates.mdb.method"), QStringLiteral("delta"));
+    setSetting(QStringLiteral("updates.dbc.method"), QStringLiteral("delta"));
+    setSetting(QStringLiteral("updates.mdb.check-interval"), QStringLiteral("6h"));
+    setSetting(QStringLiteral("updates.dbc.check-interval"), QStringLiteral("6h"));
+    // Rendered as an age ("3h ago"), so this one is relative to launch: a fixed
+    // date would read as a five-digit hour count.
+    setSetting(QStringLiteral("updates.mdb.last-check-time"),
+               QDateTime::currentDateTimeUtc().addSecs(-3 * 3600).toString(Qt::ISODate));
+
+    seedNavigationPlaces(m_repo);
 
     // Engine firmware
     m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("fw-version"), QStringLiteral("2.1.0-sim"));
