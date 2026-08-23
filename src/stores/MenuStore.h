@@ -85,6 +85,11 @@ signals:
 
 private:
     void openAt(const QStringList &path, const QList<int> &indexStack, int index);
+    // Records which row the selection is on, by id. Call it whenever the
+    // selection moves, never at rebuild time: visibility conditions are
+    // evaluated live, so by the time a rebuild runs the list has already
+    // taken the change that is about to shift the rows.
+    void rememberSelection();
     void clearResume();
     void rebuildMenuTree();
     QString lastMapCheckLabel() const;
@@ -119,6 +124,8 @@ private:
     QList<int> m_indexStack;      // selected index at each depth
 
     // Where closeForScreen() left off, replayed by resume().
+    QString m_selectedId;
+
     QStringList m_resumePath;
     QList<int> m_resumeIndexStack;
     int m_resumeIndex = 0;

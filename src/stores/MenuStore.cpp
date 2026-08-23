@@ -1194,10 +1194,39 @@ void MenuStore::rebuildMenuTree()
         }
         if (!found) break;
     }
-    m_selectedIndex = qBound(0, savedIndex,
-                             qMax(0, (int)current->visibleChildren().size() - 1));
+    // Restore onto the row the selection was last known to be on, by id.
+    // m_selectedId was recorded while the list still had its old shape, which
+    // is the whole point: an entry appearing or disappearing above it shifts
+    // every row below, and cycling Navigation Routing to Offline reveals Avoid
+    // Cobblestone higher up the same list.
+    const auto restoredChildren = current->visibleChildren();
+    int selected = -1;
+    if (!m_selectedId.isEmpty()) {
+        for (int i = 0; i < restoredChildren.size(); ++i) {
+            if (restoredChildren[i]->id() == m_selectedId) {
+                selected = i;
+                break;
+            }
+        }
+    }
+    // The row itself can be the one that went away, in which case its old
+    // position is the closest thing to where the rider was looking.
+    m_selectedIndex = selected >= 0
+                    ? selected
+                    : qBound(0, savedIndex, qMax(0, (int)restoredChildren.size() - 1));
+    rememberSelection();
 
     emitMenuChanged();
+}
+
+void MenuStore::rememberSelection()
+{
+    m_selectedId.clear();
+    if (MenuNode *node = findCurrentNode()) {
+        const auto children = node->visibleChildren();
+        if (m_selectedIndex >= 0 && m_selectedIndex < children.size())
+            m_selectedId = children[m_selectedIndex]->id();
+    }
 }
 
 MenuNode *MenuStore::findCurrentNode() const
@@ -1402,6 +1431,7 @@ void MenuStore::navigateUp()
     int totalCount = node->visibleChildren().size();
     if (totalCount <= 1) return;
     m_selectedIndex = (m_selectedIndex - 1 + totalCount) % totalCount;
+    rememberSelection();
     emitMenuChanged();
 }
 
@@ -1413,6 +1443,7 @@ void MenuStore::navigateDown()
     int totalCount = node->visibleChildren().size();
     if (totalCount <= 1) return;
     m_selectedIndex = (m_selectedIndex + 1) % totalCount;
+    rememberSelection();
     emitMenuChanged();
 }
 
@@ -1437,6 +1468,7 @@ void MenuStore::selectItem()
         m_pathStack.append(selected->id());
         m_indexStack.append(m_selectedIndex);
         m_selectedIndex = 0;
+        rememberSelection();
         emitMenuChanged();
     } else {
         // Guard: prevent signal-triggered rebuildMenuTree() during action
@@ -1457,8 +1489,22 @@ void MenuStore::goBack()
     if (m_pathStack.isEmpty()) {
         close();
     } else {
-        m_pathStack.removeLast();
+        const QString leaving = m_pathStack.takeLast();
         m_selectedIndex = m_indexStack.isEmpty() ? 0 : m_indexStack.takeLast();
+        // Land back on the row that was entered, found by id. The level may
+        // have gained or lost entries while the rider was inside it, and the
+        // stored index would then point at whatever slid into that slot.
+        if (MenuNode *node = findCurrentNode()) {
+            const auto children = node->visibleChildren();
+            for (int i = 0; i < children.size(); ++i) {
+                if (children[i]->id() == leaving) {
+                    m_selectedIndex = i;
+                    break;
+                }
+            }
+            m_selectedIndex = qBound(0, m_selectedIndex, qMax(0, (int)children.size() - 1));
+        }
+        rememberSelection();
         emitMenuChanged();
     }
 }
