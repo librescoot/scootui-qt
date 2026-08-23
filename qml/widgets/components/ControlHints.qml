@@ -67,6 +67,36 @@ Item {
     implicitHeight: Math.max(40, 15 + Math.max(rowCount, reservedRows) * 19)
     height: implicitHeight
 
+    // One row per duration, shared by both levers. Left and right live in the
+    // same row item rather than in two columns that happen to be centred the
+    // same way: with separate columns nothing structurally ties a left hint to
+    // its right counterpart, and the right side drifted to the middle of a
+    // two-row bar. Here a hint cannot be on a different line from its partner.
+    component SlotRow: Item {
+        id: slotRow
+
+        property string word: ""
+        property string leftLabel: ""
+        property string rightLabel: ""
+
+        height: 18
+
+        HintGroup {
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            word: slotRow.word
+            label: slotRow.leftLabel
+        }
+
+        HintGroup {
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            mirrored: true
+            word: slotRow.word
+            label: slotRow.rightLabel
+        }
+    }
+
     // The capsule runs straight into its verb rather than sitting in a column
     // sized to the widest word. Holding the verbs on one margin would leave
     // TAP 20 px from the word it belongs to in German, where HALTEN sits right
@@ -74,7 +104,7 @@ Item {
     // need a column to keep it from floating. The capsules all start at the
     // screen margin, which is the alignment that matters on a bar anchored to
     // the edge.
-    component HintRow: Row {
+    component HintGroup: Row {
         id: hintRow
 
         property string word: ""
@@ -83,11 +113,11 @@ Item {
 
         height: 18
         spacing: 7
+        visible: label !== ""
         layoutDirection: mirrored ? Qt.RightToLeft : Qt.LeftToRight
 
         Rectangle {
             anchors.verticalCenter: parent.verticalCenter
-            visible: hintRow.label !== ""
             width: capsuleInk.tightBoundingRect.width + controlHints.capsulePad * 2
                    - controlHints.capsuleTrim
             height: 13
@@ -97,9 +127,8 @@ Item {
             // The advance box is not the ink. Qt counts a trailing
             // letterSpacing into implicitWidth, and a glyph carries its own
             // side bearings on top of that: P leaves more air to its right
-            // than D does, so centring the box sat TAP visibly left of centre
-            // while HOLD looked fine. tightBoundingRect is the ink itself, so
-            // the capsule is sized and the word placed by that instead.
+            // than D does. tightBoundingRect is the ink itself, so the capsule
+            // is sized and the word placed by that instead.
             TextMetrics {
                 id: capsuleInk
                 font: capsuleText.font
@@ -110,7 +139,7 @@ Item {
                 id: capsuleText
                 // Horizontal only. tightBoundingRect is baseline-relative, so
                 // its y is no use for placing the item; the vertical centre of
-                // an all-caps word is close enough on a 13 px capsule anyway.
+                // an all-caps word is close enough on a 13 px capsule.
                 x: controlHints.capsulePad - capsuleInk.tightBoundingRect.x
                 anchors.verticalCenter: parent.verticalCenter
                 text: hintRow.word
@@ -132,53 +161,32 @@ Item {
 
     Column {
         anchors.left: parent.left
-        anchors.leftMargin: 8
-        anchors.verticalCenter: parent.verticalCenter
-        spacing: 1
-
-        HintRow {
-            visible: controlHints.slotTap
-            word: controlHints.wordTap
-            label: controlHints.leftTap
-        }
-        HintRow {
-            visible: controlHints.slotHold
-            word: controlHints.wordHold
-            label: controlHints.leftHold
-        }
-        HintRow {
-            visible: controlHints.slotHoldLong
-            word: controlHints.wordHoldLong
-            label: controlHints.leftHoldLong
-        }
-    }
-
-    Column {
         anchors.right: parent.right
+        anchors.leftMargin: 8
         anchors.rightMargin: 8
         anchors.verticalCenter: parent.verticalCenter
         spacing: 1
 
-        HintRow {
-            anchors.right: parent.right
+        SlotRow {
+            width: parent.width
             visible: controlHints.slotTap
-            mirrored: true
             word: controlHints.wordTap
-            label: controlHints.rightTap
+            leftLabel: controlHints.leftTap
+            rightLabel: controlHints.rightTap
         }
-        HintRow {
-            anchors.right: parent.right
+        SlotRow {
+            width: parent.width
             visible: controlHints.slotHold
-            mirrored: true
             word: controlHints.wordHold
-            label: controlHints.rightHold
+            leftLabel: controlHints.leftHold
+            rightLabel: controlHints.rightHold
         }
-        HintRow {
-            anchors.right: parent.right
+        SlotRow {
+            width: parent.width
             visible: controlHints.slotHoldLong
-            mirrored: true
             word: controlHints.wordHoldLong
-            label: controlHints.rightHoldLong
+            leftLabel: controlHints.leftHoldLong
+            rightLabel: controlHints.rightHoldLong
         }
     }
 }
