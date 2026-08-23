@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 #
-# Check that every user-visible setting in the schema has a
-# corresponding // @schema <key> annotation in the source.
+# Check that every user-visible setting in the schema has a corresponding
+# // @schema <key> annotation in the source.
+#
+# The check is one-directional. Annotating a setting that is not user-visible
+# is fine and is not reported: the marker records which key backs a field, and
+# a field can back a key nobody is meant to change. Only an annotation naming
+# a key the schema does not have at all is worth a word, since it covers
+# nothing and is usually a typo or a key that has since been removed.
 #
 set -euo pipefail
 
@@ -32,6 +38,9 @@ mapfile -t VISIBLE_KEYS < <(
         | .key' "$SCHEMA" | sort
 )
 
+# Every key the schema defines, whatever its visibility.
+mapfile -t ALL_KEYS < <(jq -r 'keys[]' "$SCHEMA" | sort)
+
 # Collect annotated keys from source
 mapfile -t ANNOTATED_KEYS < <(
     grep -rh '// @schema ' "$SRC" \
@@ -61,23 +70,24 @@ for key in "${VISIBLE_KEYS[@]}"; do
     fi
 done
 
-# Check for stale annotations (annotated but not user-visible)
+# Check for annotations naming a key the schema does not define. Annotating a
+# non-user-visible key is deliberate and not reported.
 for ak in "${ANNOTATED_KEYS[@]}"; do
     found=false
-    for key in "${VISIBLE_KEYS[@]}"; do
+    for key in "${ALL_KEYS[@]}"; do
         if [[ "$key" == "$ak" ]]; then
             found=true
             break
         fi
     done
     if ! $found; then
-        echo "WARNING: @schema annotation '$ak' is not a user-visible setting in schema"
+        echo "WARNING: @schema annotation '$ak' names no key in the schema"
         : $((WARNINGS++))
     fi
 done
 
 echo ""
-echo "Schema coverage: ${#VISIBLE_KEYS[@]} user-visible settings, ${#ANNOTATED_KEYS[@]} annotated"
+echo "Schema coverage: ${#VISIBLE_KEYS[@]} user-visible settings, ${#ANNOTATED_KEYS[@]} annotated keys"
 echo "Errors: $ERRORS, Warnings: $WARNINGS"
 
 [[ $ERRORS -gt 0 ]] && exit 1

@@ -234,9 +234,11 @@ private:
     QString m_mapTrafficOverlay = QStringLiteral("false");
     // @schema dashboard.milestone-celebrations
     QString m_milestoneCelebrations = QStringLiteral("false");
-    // dashboard.service-mode-active: runtime status published by
-    // settings-service, not a setting a rider picks. No @schema annotation:
-    // that marks a user-visible setting this repo covers, and this is neither.
+    // Runtime status published by settings-service rather than a setting a
+    // rider picks, so the schema has it user-visible false. Annotated anyway:
+    // the marker records which key backs the field, and coverage only cares
+    // that no user-visible setting is missing one.
+    // @schema dashboard.service-mode-active
     QString m_serviceActive = QStringLiteral("false");
     // The UI writes the MDB and DBC keys together
     // (SettingsService::writeOtaSetting) because the two boards ship as a
@@ -254,8 +256,9 @@ private:
     QString m_otaCheckInterval = QStringLiteral("6h");
     // @schema updates.dbc.check-interval
     QString m_otaCheckIntervalDbc = QStringLiteral("6h");
-    // updates.mdb.last-check-time: reported by update-service, not settable
-    // here, so it carries no @schema annotation.
+    // Reported by update-service, not settable here, so it is user-visible
+    // false in the schema. Annotated for the same reason as the field above.
+    // @schema updates.mdb.last-check-time
     QString m_otaLastCheck;
 
     // Two boards only disagree once both have reported. An empty value is a
