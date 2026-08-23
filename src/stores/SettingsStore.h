@@ -219,11 +219,17 @@ private:
     QString m_milestoneCelebrations = QStringLiteral("false");
     // @schema dashboard.service-mode-active
     QString m_serviceActive = QStringLiteral("false");
+    // One field per setting covers both boards: the UI writes the MDB and DBC
+    // keys together (SettingsService::writeOtaSetting) because the two ship as
+    // a pair, and reads back the MDB one as the value to display.
     // @schema updates.mdb.channel
+    // @schema updates.dbc.channel
     QString m_otaChannel;
     // @schema updates.mdb.method
+    // @schema updates.dbc.method
     QString m_otaMethod = QStringLiteral("delta");
     // @schema updates.mdb.check-interval
+    // @schema updates.dbc.check-interval
     QString m_otaCheckInterval = QStringLiteral("6h");
     // @schema updates.mdb.last-check-time
     QString m_otaLastCheck;
