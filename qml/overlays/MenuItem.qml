@@ -15,9 +15,9 @@ Rectangle {
     // Channel, both of which cost a full-image download to get wrong.
     property bool caution: false
 
-    // 50px base slot (ListView spacing: 4 handles the inter-item gap). When
-    // selected, the title switches to WordWrap and may span several lines —
-    // grow the row so it doesn't overlap the next item. 16 = Row top+bottom margin.
+    // 50px base slot (ListView spacing: 4 handles the inter-item gap). A
+    // selected row wraps its title to at most two lines, so grow the row to fit
+    // rather than let it overlap the next one. 16 = Row top+bottom margin.
     height: Math.max(50, titleText.implicitHeight + 16)
     color: isSelected
            ? (themeStore.isDark ? "#3DFFFFFF" : "#1F000000")
@@ -69,9 +69,14 @@ Rectangle {
             font.pixelSize: themeStore.fontTitle
             font.weight: isSelected ? Font.Bold : Font.Normal
             color: themeStore.isDark ? "#FFFFFF" : "#000000"
-            elide: isSelected ? Text.ElideNone : Text.ElideRight
+            // Selecting a row wraps its title so a long one can be read, but
+            // only so far: a saved location carries a geocoded address, and
+            // unbounded wrapping turns one row into four and pushes the rest of
+            // the list off the screen. Three lines is enough for the addresses
+            // the geocoder returns, and is where it stops.
+            elide: Text.ElideRight
             wrapMode: isSelected ? Text.WordWrap : Text.NoWrap
-            maximumLineCount: isSelected ? 100 : 1
+            maximumLineCount: isSelected ? 3 : 1
         }
 
         // Trailing value label: the current option on inline cycle settings, or

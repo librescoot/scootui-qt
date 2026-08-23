@@ -43,12 +43,21 @@ Item {
         anchors.topMargin: 24   // Leave space for top status bar
         spacing: 0
 
-        // Title
+        // Title. A saved location's submenu takes the location's own label as
+        // its header, and that label is a geocoded address, so the header has
+        // to be bounded: unconstrained it ran off both edges of the panel. The
+        // full address is readable on the row that opens it, which wraps.
         Text {
-            Layout.alignment: Qt.AlignHCenter
+            Layout.fillWidth: true
+            Layout.leftMargin: 24
+            Layout.rightMargin: 24
+            horizontalAlignment: Text.AlignHCenter
             text: menuStore.currentTitle
             font.pixelSize: themeStore.fontHeading
             font.weight: Font.Bold
+            wrapMode: Text.WordWrap
+            maximumLineCount: 2
+            elide: Text.ElideRight
             color: themeStore.isDark ? "#FFFFFF" : "#000000"
         }
 
