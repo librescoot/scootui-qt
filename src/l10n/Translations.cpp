@@ -450,7 +450,7 @@ void Translations::initStrings()
     de[QStringLiteral("menuUpdateFrequency")] = QStringLiteral("Update-Zeitplan");
 
     en[QStringLiteral("menuUpdateCheckNow")] = QStringLiteral("Check for Updates Now");
-    de[QStringLiteral("menuUpdateCheckNow")] = QStringLiteral("Jetzt auf Updates prüfen");
+    de[QStringLiteral("menuUpdateCheckNow")] = QStringLiteral("Jetzt prüfen");
 
     en[QStringLiteral("channelStable")] = QStringLiteral("Stable");
     de[QStringLiteral("channelStable")] = QStringLiteral("Stabil");
