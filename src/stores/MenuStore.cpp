@@ -307,6 +307,7 @@ void MenuStore::rebuildMenuTree()
             auto *destNode = MenuNode::submenu(
                 QStringLiteral("recent_dest_%1").arg(destId), label);
             recentNode->addChild(destNode);
+            destNode->setPrimaryChildId(QStringLiteral("start_recent_%1").arg(destId));
 
             destNode->addChild(MenuNode::action(
                 QStringLiteral("start_recent_%1").arg(destId),
@@ -357,6 +358,7 @@ void MenuStore::rebuildMenuTree()
             auto *locNode = MenuNode::submenu(
                 QStringLiteral("saved_loc_%1").arg(locId), label);
             savedLocsNode->addChild(locNode);
+            locNode->setPrimaryChildId(QStringLiteral("start_nav_%1").arg(locId));
 
             locNode->addChild(MenuNode::action(
                 QStringLiteral("start_nav_%1").arg(locId),
@@ -943,6 +945,9 @@ void MenuStore::rebuildMenuTree()
     if (m_updateChannel) {
         auto *updatesNode = systemNode->addChild(MenuNode::submenu(
             QStringLiteral("settings_updates"), tr->menuUpdates(), tr->menuUpdatesHeader()));
+        // The only row in here a rider taps more than once in the vehicle's
+        // life. The other three are set once and left.
+        updatesNode->setPrimaryChildId(QStringLiteral("settings_update_check_now"));
 
         // Every entry below writes the MDB and DBC keys together, so the two
         // normally agree and one value speaks for both. lsc or a hand-edited
@@ -1288,6 +1293,53 @@ QString MenuStore::parentTitle() const
         node = next;
     }
     return node->title();
+}
+
+// The row a right long-tap would act on: the selected row's declared primary
+// child, looked up among the children it would show if entered. Returns
+// nothing when the row declares none, or when the child it names is hidden by
+// its own predicate.
+MenuNode *MenuStore::selectedPrimaryNode() const
+{
+    MenuNode *node = findCurrentNode();
+    if (!node)
+        return nullptr;
+
+    const auto rows = node->visibleChildren();
+    if (m_selectedIndex < 0 || m_selectedIndex >= rows.size())
+        return nullptr;
+
+    const QString primaryId = rows[m_selectedIndex]->primaryChildId();
+    if (primaryId.isEmpty())
+        return nullptr;
+
+    for (auto *child : rows[m_selectedIndex]->visibleChildren()) {
+        if (child->id() == primaryId)
+            return child;
+    }
+    return nullptr;
+}
+
+QString MenuStore::selectedPrimaryLabel() const
+{
+    MenuNode *primary = selectedPrimaryNode();
+    return primary ? primary->title() : QString();
+}
+
+void MenuStore::activatePrimary()
+{
+    MenuNode *primary = selectedPrimaryNode();
+    if (!primary)
+        return;
+
+    // Same guard selectItem() takes round an action: starting a route or
+    // touching the saved list signals a rebuild that would destroy the tree
+    // this call is standing in.
+    auto action = primary->action();
+    m_executingAction = true;
+    if (action) action();
+    m_executingAction = false;
+    rebuildMenuTree();
 }
 
 QString MenuStore::currentTitle() const

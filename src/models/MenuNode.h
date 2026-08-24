@@ -35,6 +35,11 @@ public:
     // like is QML's call, which also keeps the glyph's codepoint inside
     // MaterialIcon.qml, the only file scripts/subset-fonts.sh reads.
     bool caution() const { return m_caution; }
+    // The child a right long-tap runs without entering this submenu. An id
+    // rather than a second copy of the child's action, so the two cannot
+    // drift apart, and so the shortcut goes away with the child when the
+    // child's own visibility predicate hides it.
+    QString primaryChildId() const { return m_primaryChildId; }
     QString currentValueLabel() const {
         if (!m_valueLabel.isEmpty()) return m_valueLabel;
         if (m_cycleOptions.isEmpty()) return {};
@@ -47,6 +52,7 @@ public:
     // reports state alongside what it does.
     void setValueLabel(const QString &t) { m_valueLabel = t; }
     void setCaution(bool c) { m_caution = c; }
+    void setPrimaryChildId(const QString &id) { m_primaryChildId = id; }
     void setCurrentValue(int v) { m_currentValue = v; }
     void setOnAction(std::function<void()> fn) { m_onAction = std::move(fn); }
     void setIsVisible(std::function<bool()> fn) { m_isVisible = std::move(fn); }
@@ -123,6 +129,7 @@ public:
 private:
     QString m_id;
     QString m_title;
+    QString m_primaryChildId;
     QString m_headerTitle;
     QString m_valueLabel;
     MenuNodeType m_type;

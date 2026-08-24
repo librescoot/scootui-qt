@@ -30,6 +30,10 @@ Item {
         function onLeftTap()  { menuStore.navigateDown() }
         function onLeftHold() { menuStore.goBack()        }
         function onRightTap() { menuStore.selectItem()   }
+        // Right long-tap runs the selected row's primary action without
+        // entering it. Only ever bound to something cheap to undo: at 800 ms
+        // a deliberate but slow select crosses the same threshold.
+        function onRightHold() { menuStore.activatePrimary() }
         // The 3 s hold leaves the menu from any depth, deliberately without a
         // row in the bar: an escape from four levels down is worth having and
         // is not worth 19 px of every screen to advertise. It arrives after
@@ -202,8 +206,16 @@ Item {
                          ? translations.controlBack
                          : translations.controlBackTo.arg(menuStore.parentTitle)
                 }
+                // Plain "Back" for when naming the level would collide with
+                // the shortcut on the same row.
+                leftHoldShort: typeof translations !== "undefined"
+                               ? translations.controlBack : "Back"
                 rightTap: typeof translations !== "undefined"
                           ? translations.controlSelect : "Select"
+                // Named by the row it would run, so the shortcut says what it
+                // does rather than that it exists. Empty on rows that declare
+                // no primary action, which is most of them.
+                rightHold: menuStore.selectedPrimaryLabel
             }
         }
     }

@@ -19,6 +19,10 @@ Item {
     property string rightTap: ""
     property string rightHold: ""
 
+    // Shorter stand-in for leftHold, used only when the full label would run
+    // into the right hint. Leave it empty to say there is no shorter form.
+    property string leftHoldShort: ""
+
     // The 3 s hold. Reserved for close and cancel, so the long hold means the
     // same thing on every screen that binds it.
     property string leftHoldLong: ""
@@ -77,15 +81,58 @@ Item {
 
         property string word: ""
         property string leftLabel: ""
+        // Used in place of leftLabel when the pair would not fit.
+        property string leftLabelShort: ""
         property string rightLabel: ""
 
         height: 18
+
+        // Both sides anchor to opposite edges, so an over-long pair meets in
+        // the middle rather than pushing each other out. German finds this
+        // first: "Zurueck: Einstellungen" against "Jetzt auf Updates pruefen"
+        // overruns a 480 px bar by a comfortable margin.
+        //
+        // Measured off the full labels rather than off the rendered groups,
+        // which would make the width depend on the label that depends on the
+        // width. Both sides carry the same word, so one capsule measurement
+        // does for both.
+        TextMetrics {
+            id: rowWordInk
+            font.pixelSize: controlHints.wordSize
+            font.weight: Font.Bold
+            font.letterSpacing: controlHints.wordSpacing
+            text: slotRow.word
+        }
+        TextMetrics {
+            id: leftInk
+            font.pixelSize: 17
+            font.weight: Font.DemiBold
+            text: slotRow.leftLabel
+        }
+        TextMetrics {
+            id: rightInk
+            font.pixelSize: 17
+            font.weight: Font.DemiBold
+            text: slotRow.rightLabel
+        }
+
+        readonly property real capsuleWidth: rowWordInk.tightBoundingRect.width
+                                             + controlHints.capsulePad * 2
+                                             - controlHints.capsuleTrim
+        // 7 is HintGroup's capsule-to-label spacing; 12 is the smallest gap
+        // that still reads as two separate hints rather than one run of text.
+        readonly property bool cramped: rightLabel !== "" && width > 0
+            && capsuleWidth * 2 + 14 + leftInk.width + rightInk.width + 12 > width
 
         HintGroup {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
             word: slotRow.word
-            label: slotRow.leftLabel
+            // The right hint names an action the rider may not know exists;
+            // the left one restates the gesture they just used to get here.
+            // So the left one gives way.
+            label: (slotRow.cramped && slotRow.leftLabelShort !== "")
+                   ? slotRow.leftLabelShort : slotRow.leftLabel
         }
 
         HintGroup {
@@ -179,6 +226,7 @@ Item {
             visible: controlHints.slotHold
             word: controlHints.wordHold
             leftLabel: controlHints.leftHold
+            leftLabelShort: controlHints.leftHoldShort
             rightLabel: controlHints.rightHold
         }
         SlotRow {

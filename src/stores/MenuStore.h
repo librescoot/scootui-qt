@@ -37,6 +37,9 @@ class MenuStore : public QObject
     Q_PROPERTY(QString parentTitle READ parentTitle NOTIFY menuChanged)
     Q_PROPERTY(bool canScrollUp READ canScrollUp NOTIFY menuChanged)
     Q_PROPERTY(bool canScrollDown READ canScrollDown NOTIFY menuChanged)
+    // The action a right long-tap would run on the selected row, named
+    // so the hint bar can print it. Empty when the row has no shortcut.
+    Q_PROPERTY(QString selectedPrimaryLabel READ selectedPrimaryLabel NOTIFY menuChanged)
 
 public:
     explicit MenuStore(SettingsStore *settings, VehicleStore *vehicle,
@@ -65,6 +68,7 @@ public:
     QString parentTitle() const;
     bool canScrollUp() const;
     bool canScrollDown() const;
+    QString selectedPrimaryLabel() const;
 
     Q_INVOKABLE void toggle();
     Q_INVOKABLE void open();
@@ -78,6 +82,8 @@ public:
     Q_INVOKABLE void navigateDown();
     Q_INVOKABLE void selectItem();
     Q_INVOKABLE void goBack();
+    // Runs the selected row's primary child without entering it.
+    Q_INVOKABLE void activatePrimary();
 
 signals:
     void isOpenChanged();
@@ -95,6 +101,7 @@ private:
     QString lastMapCheckLabel() const;
     QString lastCheckLabel(const QString &iso) const;
     MenuNode *findCurrentNode() const;
+    MenuNode *selectedPrimaryNode() const;
     void emitMenuChanged();
     bool isRoutingReady() const;
 
