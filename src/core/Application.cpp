@@ -273,6 +273,11 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // Wire MapService's dead-reckoned position into NavigationService so
     // TBT and off-route detection update smoothly between GPS samples.
     m_navigationService->setMapService(m_mapService);
+    // Share the free-drive road match: RoadInfoService selects one segment
+    // for metadata, while MapService projects its independent physical pose
+    // onto that segment for presentation only.
+    m_roadInfoService->setMapService(m_mapService);
+    m_mapService->setRoadInfoService(m_roadInfoService);
 
     // Navigation availability (B6)
     m_navAvailability = new NavigationAvailabilityService(settingsStore, internetStore, repo, this);

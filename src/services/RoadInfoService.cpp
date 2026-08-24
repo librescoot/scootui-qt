@@ -1,6 +1,8 @@
 #include "RoadInfoService.h"
 #include "AddressDatabaseService.h"
+#include "MapService.h"
 #include "NavigationService.h"
+#include "RoadMatchPolicy.h"
 #include "stores/GpsStore.h"
 #include "stores/SpeedLimitStore.h"
 
@@ -13,6 +15,7 @@
 #include <QVariantMap>
 #include <QtMath>
 #include <algorithm>
+#include <limits>
 
 static const QSet<QString> s_roadTypes = {
     QStringLiteral("motorway"), QStringLiteral("trunk"),
@@ -21,6 +24,49 @@ static const QSet<QString> s_roadTypes = {
     QStringLiteral("residential"), QStringLiteral("living_street"),
     QStringLiteral("service")
 };
+
+namespace {
+constexpr double EarthRadiusMeters = 6371000.0;
+
+void projectOntoSegment(double lat, double lon,
+                        double lat1, double lon1,
+                        double lat2, double lon2,
+                        double &snappedLat, double &snappedLon,
+                        double &distance)
+{
+    const double cosLat = std::max(0.01, std::cos(lat * M_PI / 180.0));
+    const double ax = (lon1 - lon) * M_PI / 180.0
+        * EarthRadiusMeters * cosLat;
+    const double ay = (lat1 - lat) * M_PI / 180.0 * EarthRadiusMeters;
+    const double bx = (lon2 - lon) * M_PI / 180.0
+        * EarthRadiusMeters * cosLat;
+    const double by = (lat2 - lat) * M_PI / 180.0 * EarthRadiusMeters;
+    const double dx = bx - ax;
+    const double dy = by - ay;
+    const double denominator = dx * dx + dy * dy;
+    const double t = denominator > 1e-9
+        ? std::clamp(-(ax * dx + ay * dy) / denominator, 0.0, 1.0)
+        : 0.0;
+    const double px = ax + t * dx;
+    const double py = ay + t * dy;
+    distance = std::hypot(px, py);
+    snappedLat = lat + py / EarthRadiusMeters * 180.0 / M_PI;
+    snappedLon = lon + px / (EarthRadiusMeters * cosLat) * 180.0 / M_PI;
+}
+
+double segmentBearing(double lat1, double lon1, double lat2, double lon2)
+{
+    const double dLon = (lon2 - lon1) * M_PI / 180.0;
+    const double y = std::sin(dLon) * std::cos(lat2 * M_PI / 180.0);
+    const double x = std::cos(lat1 * M_PI / 180.0)
+            * std::sin(lat2 * M_PI / 180.0)
+        - std::sin(lat1 * M_PI / 180.0)
+            * std::cos(lat2 * M_PI / 180.0) * std::cos(dLon);
+    if (std::abs(x) < 1e-10 && std::abs(y) < 1e-10)
+        return -1.0;
+    return std::fmod(std::atan2(y, x) * 180.0 / M_PI + 360.0, 360.0);
+}
+}
 
 RoadInfoService::RoadInfoService(GpsStore *gps, SpeedLimitStore *speedLimit,
                                    NavigationService *navigation,
@@ -69,6 +115,19 @@ RoadInfoService::~RoadInfoService()
             db.close();
         }
         QSqlDatabase::removeDatabase(m_dbConnectionName);
+    }
+}
+
+void RoadInfoService::setMapService(MapService *map)
+{
+    if (m_map == map)
+        return;
+    if (m_map)
+        disconnect(m_map, nullptr, this, nullptr);
+    m_map = map;
+    if (m_map) {
+        connect(m_map, &MapService::vehiclePositionChanged,
+                this, &RoadInfoService::onVehiclePositionChanged);
     }
 }
 
@@ -122,6 +181,7 @@ void RoadInfoService::reloadMbtiles()
 
 void RoadInfoService::countMissAndMaybeClear()
 {
+    clearRoadMatch();
     if (++m_consecutiveMisses >= ClearAfterMisses) {
         m_speedLimit->setRoadNameDirect(QString());
         m_speedLimit->setRoadRefsDirect(QString());
@@ -131,14 +191,25 @@ void RoadInfoService::countMissAndMaybeClear()
     }
 }
 
+void RoadInfoService::clearRoadMatch()
+{
+    if (!m_hasConfidentRoadMatch && m_previousMatchKey.isEmpty())
+        return;
+    m_hasConfidentRoadMatch = false;
+    m_previousMatchKey.clear();
+    m_matchDistanceMeters = 0;
+    emit roadMatchChanged();
+}
+
 void RoadInfoService::onGpsChanged()
 {
-    // Use hasValidGps (non-zero coords) rather than hasGpsFix — modem-service
-    // flips gps.state to "searching" on transient TPV mode 0/1 reports while
-    // the last lat/lng stay live in Redis, and we don't want to wipe the
-    // road-info pill every time that happens.
+    if (m_map && m_map->hasVehiclePosition()) {
+        onVehiclePositionChanged();
+        return;
+    }
     if (!m_gps || !m_gps->hasValidGps()) {
         m_consecutiveMisses = ClearAfterMisses;
+        clearRoadMatch();
         m_speedLimit->setRoadNameDirect(QString());
         m_speedLimit->setRoadRefsDirect(QString());
         m_speedLimit->setRoadTypeDirect(QString());
@@ -147,7 +218,7 @@ void RoadInfoService::onGpsChanged()
         return;
     }
 
-    if (m_lastUpdate.elapsed() < ThrottleMs)
+    if (m_lastUpdate.elapsed() < UpdateIntervalMs)
         return;
 
     m_lastUpdate.restart();
@@ -159,6 +230,18 @@ void RoadInfoService::onGpsChanged()
         reloadMbtiles();
 
     updateRoadInfo(m_gps->latitude(), m_gps->longitude());
+}
+
+void RoadInfoService::onVehiclePositionChanged()
+{
+    if (!m_map || !m_map->hasVehiclePosition())
+        return;
+    if (m_lastUpdate.elapsed() < UpdateIntervalMs)
+        return;
+    m_lastUpdate.restart();
+    if (!m_dbOpen)
+        reloadMbtiles();
+    updateRoadInfo(m_map->vehicleLatitude(), m_map->vehicleLongitude());
 }
 
 int RoadInfoService::lonToTileX(double lon, int zoom)
@@ -178,228 +261,250 @@ int RoadInfoService::latToTileY(double lat, int zoom)
 
 void RoadInfoService::updateRoadInfo(double lat, double lon)
 {
-    // Route-driven path: when Valhalla's per-edge attributes are available
-    // for the segment we're on, they are the authoritative source — same
-    // edges that decided the route, posted speed limit straight from the
-    // routing graph, tunnel/bridge state from the graph topology rather
-    // than from a 2D tile geometry race that can flip with sub-meter GPS
-    // noise. Bearing isn't set here; MapService uses routeSegmentBearing()
-    // when navigating, so the tile-derived roadBearing is unused anyway.
-    if (m_navigation && m_navigation->hasCurrentEdgeAttrs()) {
-        m_consecutiveMisses = 0;
+    const bool hasRouteAttrs = m_navigation
+        && m_navigation->hasCurrentEdgeAttrs();
+    auto publishRouteAttrs = [this]() {
         m_speedLimit->setRoadNameDirect(m_navigation->currentEdgeName());
         m_speedLimit->setRoadRefsDirect(
             m_navigation->currentEdgeRefs().join(QStringLiteral(", ")));
         m_speedLimit->setRoadTypeDirect(m_navigation->currentEdgeRoadClass());
-        int kph = m_navigation->currentEdgeSpeedLimitKph();
+        const int kph = m_navigation->currentEdgeSpeedLimitKph();
         m_speedLimit->setSpeedLimitDirect(
             kph > 0 ? QString::number(kph) : QString());
+    };
+
+    // A complete route edge is authoritative and avoids doing any tile work.
+    // Partial trace attributes fall through so missing name/class/speed fields
+    // can be filled from the local vector tile.
+    if (hasRouteAttrs
+        && !m_navigation->currentEdgeName().isEmpty()
+        && !m_navigation->currentEdgeRoadClass().isEmpty()
+        && m_navigation->currentEdgeSpeedLimitKph() > 0) {
+        publishRouteAttrs();
+        clearRoadMatch();
+        m_consecutiveMisses = 0;
         return;
     }
 
-    if (!m_dbOpen)
-        return;
-
-    int tileX = lonToTileX(lon, QueryZoom);
-    int tileY = latToTileY(lat, QueryZoom);
-    quint64 cacheKey = (static_cast<quint64>(tileX) << 32)
-                       | static_cast<quint64>(static_cast<uint32_t>(tileY));
-
-    // Get or load tile
-    VectorTile::Tile *tile = nullptr;
-    if (m_tileCache.contains(cacheKey)) {
-        tile = &m_tileCache[cacheKey];
-        m_cacheOrder.removeOne(cacheKey);
-        m_cacheOrder.append(cacheKey);
-    } else {
-        QSqlDatabase db = QSqlDatabase::database(m_dbConnectionName);
-        QSqlQuery query(db);
-        query.prepare(QStringLiteral(
-            "SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?"));
-        query.addBindValue(QueryZoom);
-        query.addBindValue(tileX);
-        query.addBindValue(tileY);
-
-        if (!query.exec() || !query.next()) {
-            countMissAndMaybeClear();
-            return;
+    if (!m_dbOpen) {
+        if (hasRouteAttrs) {
+            publishRouteAttrs();
+            clearRoadMatch();
         }
-
-        QByteArray tileData = query.value(0).toByteArray();
-        QByteArray decompressed = VectorTile::gunzip(tileData);
-        if (decompressed.isEmpty()) {
-            countMissAndMaybeClear();
-            return;
-        }
-
-        // Evict oldest if cache full
-        while (m_cacheOrder.size() >= MaxCachedTiles) {
-            quint64 evict = m_cacheOrder.takeFirst();
-            m_tileCache.remove(evict);
-        }
-
-        m_tileCache.insert(cacheKey, VectorTile::parse(decompressed));
-        m_cacheOrder.append(cacheKey);
-        tile = &m_tileCache[cacheKey];
-    }
-
-    // Find streets layer
-    const VectorTile::Layer *streetsLayer = nullptr;
-    for (const auto &layer : tile->layers) {
-        if (layer.name == QLatin1String("streets")) {
-            streetsLayer = &layer;
-            break;
-        }
-    }
-    if (!streetsLayer || streetsLayer->features.isEmpty()) {
-        countMissAndMaybeClear();
         return;
     }
 
-    const double n = std::pow(2.0, QueryZoom);
-    const double extent = streetsLayer->extent;
-
-    // Build candidate list: for each linestring feature whose kind passes the
-    // vehicle-road filter, find the closest segment to the GPS point and its
-    // distance. We keep all candidates so a route-aware second pass can pick
-    // by name match instead of pure geometry — overlapping ways at the same
-    // lat/lon (Tiergarten Tunnel under Straße des 17. Juni) make the bare
-    // nearest-segment race effectively random.
     struct Candidate {
-        const VectorTile::Feature *feature = nullptr;
-        double dist = std::numeric_limits<double>::max();
-        double segLat1 = 0, segLon1 = 0, segLat2 = 0, segLon2 = 0;
-        bool isTunnel = false;
+        RoadMatchCandidateScore policy;
+        QString name;
+        QString refs;
+        QString kind;
+        QString maxspeed;
+        double lat1 = 0, lon1 = 0, lat2 = 0, lon2 = 0;
+        double snappedLat = 0, snappedLon = 0;
+        double actualDistanceMeters = std::numeric_limits<double>::max();
     };
     QList<Candidate> candidates;
 
-    for (const auto &feature : streetsLayer->features) {
-        if (feature.type != 2) // LINESTRING only
-            continue;
+    const int centerX = lonToTileX(lon, QueryZoom);
+    const int centerY = latToTileY(lat, QueryZoom);
+    const int tileCount = 1 << QueryZoom;
+    const double n = std::pow(2.0, QueryZoom);
 
-        // Filter to vehicle road types
-        auto kindIt = feature.properties.constFind(QStringLiteral("kind"));
-        if (kindIt == feature.properties.constEnd() || !s_roadTypes.contains(kindIt.value()))
-            continue;
-
-        QVector<QPointF> tilePoints = VectorTile::decodeLineString(feature.geometry);
-
-        Candidate cand;
-        cand.feature = &feature;
-        cand.isTunnel = (feature.properties.value(QStringLiteral("tunnel")) == QLatin1String("true"));
-
-        for (int i = 0; i < tilePoints.size() - 1; ++i) {
-            // Convert tile coordinates to geographic (TMS: Y flipped within tile)
-            double lon1 = (tileX + tilePoints[i].x() / extent) / n * 360.0 - 180.0;
-            double yMerc1 = 1.0 - (tileY + 1.0 - tilePoints[i].y() / extent) / n;
-            double lat1 = std::atan(std::sinh(M_PI * (1.0 - 2.0 * yMerc1))) * 180.0 / M_PI;
-
-            double lon2 = (tileX + tilePoints[i + 1].x() / extent) / n * 360.0 - 180.0;
-            double yMerc2 = 1.0 - (tileY + 1.0 - tilePoints[i + 1].y() / extent) / n;
-            double lat2 = std::atan(std::sinh(M_PI * (1.0 - 2.0 * yMerc2))) * 180.0 / M_PI;
-
-            // Point-to-segment distance (Euclidean in lat/lon, sufficient for nearest)
-            double dx = lon2 - lon1;
-            double dy = lat2 - lat1;
-            double px = lon - lon1;
-            double py = lat - lat1;
-            double denom = dx * dx + dy * dy;
-            if (denom < 1e-15)
+    // Search the 3x3 neighborhood. Looking only in the coordinate's own tile
+    // misses roads just across a z14 boundary even when they are a few metres
+    // away, producing a regular metadata blank near tile seams.
+    for (int ox = -1; ox <= 1; ++ox) {
+        for (int oy = -1; oy <= 1; ++oy) {
+            const int tileX = centerX + ox;
+            const int tileY = centerY + oy;
+            if (tileX < 0 || tileY < 0
+                || tileX >= tileCount || tileY >= tileCount)
                 continue;
 
-            double t = std::clamp((px * dx + py * dy) / denom, 0.0, 1.0);
-            double closestLon = lon1 + t * dx;
-            double closestLat = lat1 + t * dy;
-
-            double distLon = lon - closestLon;
-            double distLat = lat - closestLat;
-            double dist = distLon * distLon + distLat * distLat;
-
-            if (dist < cand.dist) {
-                cand.dist = dist;
-                cand.segLat1 = lat1; cand.segLon1 = lon1;
-                cand.segLat2 = lat2; cand.segLon2 = lon2;
+            const quint64 cacheKey = (static_cast<quint64>(tileX) << 32)
+                | static_cast<quint64>(static_cast<uint32_t>(tileY));
+            if (!m_tileCache.contains(cacheKey)) {
+                QSqlDatabase db = QSqlDatabase::database(m_dbConnectionName);
+                QSqlQuery query(db);
+                query.prepare(QStringLiteral(
+                    "SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?"));
+                query.addBindValue(QueryZoom);
+                query.addBindValue(tileX);
+                query.addBindValue(tileY);
+                if (!query.exec() || !query.next())
+                    continue;
+                const QByteArray decompressed =
+                    VectorTile::gunzip(query.value(0).toByteArray());
+                if (decompressed.isEmpty())
+                    continue;
+                while (m_cacheOrder.size() >= MaxCachedTiles) {
+                    const quint64 evict = m_cacheOrder.takeFirst();
+                    m_tileCache.remove(evict);
+                }
+                m_tileCache.insert(cacheKey, VectorTile::parse(decompressed));
             }
-        }
+            m_cacheOrder.removeOne(cacheKey);
+            m_cacheOrder.append(cacheKey);
 
-        if (cand.feature && cand.dist < std::numeric_limits<double>::max())
-            candidates.append(cand);
-    }
-
-    if (candidates.isEmpty()) {
-        countMissAndMaybeClear();
-        return;
-    }
-
-    std::sort(candidates.begin(), candidates.end(),
-              [](const Candidate &a, const Candidate &b) { return a.dist < b.dist; });
-
-    const Candidate *chosen = nullptr;
-
-    // Route-aware: when navigating, prefer the closest candidate whose name
-    // matches the road we're currently driving along (per the route's last
-    // passed maneuver). This is what fixes the Tiergarten case — the tunnel
-    // and the surface road overlap geometrically, but only one matches the
-    // route's current edge name.
-    QString routeName = m_navigation
-        ? m_navigation->currentSegmentStreetName() : QString();
-    if (!routeName.isEmpty()) {
-        for (const auto &cand : candidates) {
-            const QString candName = cand.feature->properties.value(QStringLiteral("name"));
-            if (!candName.isEmpty() &&
-                candName.compare(routeName, Qt::CaseInsensitive) == 0) {
-                chosen = &cand;
-                break; // candidates are dist-sorted, first match is nearest
-            }
-        }
-    }
-
-    // Fallback: nearest, but if that nearest is a tunnel, prefer a non-tunnel
-    // alternative within ~2× its distance. Surface and tunnel ways at the
-    // same location project to virtually identical 2D distances; without this
-    // tie-break the choice flips with sub-meter GPS noise.
-    if (!chosen) {
-        chosen = &candidates.first();
-        if (chosen->isTunnel) {
-            for (const auto &cand : candidates) {
-                if (!cand.isTunnel && cand.dist < chosen->dist * 2.0) {
-                    chosen = &cand;
+            const VectorTile::Tile &tile = m_tileCache[cacheKey];
+            const VectorTile::Layer *streetsLayer = nullptr;
+            for (const auto &layer : tile.layers) {
+                if (layer.name == QLatin1String("streets")) {
+                    streetsLayer = &layer;
                     break;
                 }
             }
+            if (!streetsLayer)
+                continue;
+            const double extent = streetsLayer->extent;
+
+            for (const auto &feature : streetsLayer->features) {
+                if (feature.type != 2)
+                    continue;
+                const QString kind =
+                    feature.properties.value(QStringLiteral("kind"));
+                if (!s_roadTypes.contains(kind))
+                    continue;
+                const QVector<QPointF> points =
+                    VectorTile::decodeLineString(feature.geometry);
+                if (points.size() < 2)
+                    continue;
+
+                Candidate candidate;
+                candidate.name =
+                    feature.properties.value(QStringLiteral("name"));
+                candidate.kind = kind;
+                candidate.maxspeed =
+                    feature.properties.value(QStringLiteral("maxspeed"));
+                const QString refRaw =
+                    feature.properties.value(QStringLiteral("ref"));
+                QStringList refParts = refRaw.split(
+                    QLatin1Char(';'), Qt::SkipEmptyParts);
+                for (QString &part : refParts)
+                    part = part.trimmed();
+                candidate.refs = refParts.join(QStringLiteral(", "));
+                candidate.policy.tunnel =
+                    feature.properties.value(QStringLiteral("tunnel"))
+                    == QLatin1String("true");
+
+                for (int i = 0; i + 1 < points.size(); ++i) {
+                    const double lon1 = (tileX + points[i].x() / extent)
+                        / n * 360.0 - 180.0;
+                    const double mercY1 = 1.0 - (tileY + 1.0
+                        - points[i].y() / extent) / n;
+                    const double lat1 = std::atan(std::sinh(
+                        M_PI * (1.0 - 2.0 * mercY1))) * 180.0 / M_PI;
+                    const double lon2 = (tileX + points[i + 1].x() / extent)
+                        / n * 360.0 - 180.0;
+                    const double mercY2 = 1.0 - (tileY + 1.0
+                        - points[i + 1].y() / extent) / n;
+                    const double lat2 = std::atan(std::sinh(
+                        M_PI * (1.0 - 2.0 * mercY2))) * 180.0 / M_PI;
+
+                    double snappedLat, snappedLon, distance;
+                    projectOntoSegment(lat, lon, lat1, lon1, lat2, lon2,
+                                       snappedLat, snappedLon, distance);
+                    if (distance < candidate.actualDistanceMeters) {
+                        candidate.actualDistanceMeters = distance;
+                        candidate.lat1 = lat1; candidate.lon1 = lon1;
+                        candidate.lat2 = lat2; candidate.lon2 = lon2;
+                        candidate.snappedLat = snappedLat;
+                        candidate.snappedLon = snappedLon;
+                    }
+                }
+                if (!std::isfinite(candidate.actualDistanceMeters))
+                    continue;
+                candidate.policy.distanceMeters =
+                    candidate.actualDistanceMeters;
+                candidate.policy.bearingDegrees = segmentBearing(
+                    candidate.lat1, candidate.lon1,
+                    candidate.lat2, candidate.lon2);
+                candidate.policy.key = candidate.name
+                    + QLatin1Char('|') + candidate.refs
+                    + QLatin1Char('|') + candidate.kind
+                    + QLatin1Char('|')
+                    + QString::number((candidate.lat1 + candidate.lat2) * 0.5,
+                                      'f', 5)
+                    + QLatin1Char('|')
+                    + QString::number((candidate.lon1 + candidate.lon2) * 0.5,
+                                      'f', 5);
+                candidates.append(candidate);
+            }
         }
     }
 
-    m_consecutiveMisses = 0;
+    const GpsSample gps = m_gps ? m_gps->currentSample() : GpsSample{};
+    const bool headingReliable = m_gps && gps.hasValidCoordinate()
+        && gps.hasFix() && m_gps->timestampAgeMs() <= 2500
+        && gps.speedKmh >= 3.0 && std::isfinite(gps.course);
+    double maxDistance = 35.0;
+    if (m_map)
+        maxDistance = std::clamp(m_map->positionUncertaintyMeters() + 8.0,
+                                 15.0, 40.0);
+    else if (gps.ephMeters > 0.0)
+        maxDistance = std::clamp(gps.ephMeters * 1.5 + 8.0, 15.0, 40.0);
 
-    QString name = chosen->feature->properties.value(QStringLiteral("name"));
-    QString kind = chosen->feature->properties.value(QStringLiteral("kind"));
-    QString maxspeed = chosen->feature->properties.value(QStringLiteral("maxspeed"));
-
-    // Tile `ref` is OSM-style semicolon-joined ("B 2;B 5"). Split, trim, and
-    // re-join with comma+space to match the route path's formatting.
-    QString refRaw = chosen->feature->properties.value(QStringLiteral("ref"));
-    QString refs;
-    if (!refRaw.isEmpty()) {
-        QStringList parts = refRaw.split(QLatin1Char(';'), Qt::SkipEmptyParts);
-        for (auto &p : parts) p = p.trimmed();
-        refs = parts.join(QStringLiteral(", "));
+    QList<RoadMatchCandidateScore> policyCandidates;
+    policyCandidates.reserve(candidates.size());
+    const QString routeName = m_navigation
+        ? m_navigation->currentSegmentStreetName() : QString();
+    for (const Candidate &candidate : candidates) {
+        auto score = candidate.policy;
+        if (!routeName.isEmpty()
+            && candidate.name.compare(routeName, Qt::CaseInsensitive) == 0) {
+            score.distanceMeters = std::max(0.0, score.distanceMeters - 12.0);
+        }
+        policyCandidates.append(score);
+    }
+    const RoadMatchSelection selection = RoadMatchPolicy::select(
+        policyCandidates, gps.course, headingReliable,
+        m_previousMatchKey, maxDistance);
+    if (selection.index < 0) {
+        if (hasRouteAttrs) {
+            publishRouteAttrs();
+            clearRoadMatch();
+            m_consecutiveMisses = 0;
+        } else {
+            countMissAndMaybeClear();
+        }
+        return;
     }
 
+    const Candidate &chosen = candidates[selection.index];
+    m_consecutiveMisses = 0;
+    QString name = chosen.name;
+    QString refs = chosen.refs;
+    QString kind = chosen.kind;
+    QString maxspeed = chosen.maxspeed;
+    if (hasRouteAttrs) {
+        if (!m_navigation->currentEdgeName().isEmpty())
+            name = m_navigation->currentEdgeName();
+        if (!m_navigation->currentEdgeRefs().isEmpty())
+            refs = m_navigation->currentEdgeRefs().join(QStringLiteral(", "));
+        if (!m_navigation->currentEdgeRoadClass().isEmpty())
+            kind = m_navigation->currentEdgeRoadClass();
+        if (m_navigation->currentEdgeSpeedLimitKph() > 0)
+            maxspeed = QString::number(m_navigation->currentEdgeSpeedLimitKph());
+    }
     m_speedLimit->setSpeedLimitDirect(maxspeed);
     m_speedLimit->setRoadNameDirect(name);
     m_speedLimit->setRoadRefsDirect(refs);
     m_speedLimit->setRoadTypeDirect(kind);
+    m_speedLimit->setRoadBearingDirect(chosen.policy.bearingDegrees);
 
-    // Compute bearing of chosen segment
-    double dLon = (chosen->segLon2 - chosen->segLon1) * M_PI / 180.0;
-    double y = std::sin(dLon) * std::cos(chosen->segLat2 * M_PI / 180.0);
-    double x = std::cos(chosen->segLat1 * M_PI / 180.0) * std::sin(chosen->segLat2 * M_PI / 180.0) -
-               std::sin(chosen->segLat1 * M_PI / 180.0) * std::cos(chosen->segLat2 * M_PI / 180.0) * std::cos(dLon);
-    double bearing = (std::abs(x) < 1e-10 && std::abs(y) < 1e-10)
-        ? -1.0
-        : std::fmod(std::atan2(y, x) * 180.0 / M_PI + 360.0, 360.0);
-    m_speedLimit->setRoadBearingDirect(bearing);
+    const bool freeDrive = !m_navigation || !m_navigation->hasRoute();
+    const bool confident = freeDrive && selection.confident;
+    const bool changed = confident != m_hasConfidentRoadMatch
+        || chosen.lat1 != m_matchLat1 || chosen.lon1 != m_matchLon1
+        || chosen.lat2 != m_matchLat2 || chosen.lon2 != m_matchLon2;
+    m_hasConfidentRoadMatch = confident;
+    m_matchLat1 = chosen.lat1; m_matchLon1 = chosen.lon1;
+    m_matchLat2 = chosen.lat2; m_matchLon2 = chosen.lon2;
+    m_matchDistanceMeters = chosen.actualDistanceMeters;
+    m_previousMatchKey = confident ? chosen.policy.key : QString();
+    if (changed)
+        emit roadMatchChanged();
 }
 
 QString RoadInfoService::lookupNearestAddress(double lat, double lon)

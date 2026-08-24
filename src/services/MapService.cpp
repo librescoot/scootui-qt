@@ -1,4 +1,5 @@
 #include "MapService.h"
+#include "RoadInfoService.h"
 #include "NavigationService.h"
 #include "stores/GpsStore.h"
 #include "stores/EngineStore.h"
@@ -1185,6 +1186,22 @@ void MapService::onDeadReckoningTick()
     if (routeUsable && m_drLocked && m_currentRouteSegment >= 0) {
         presentationLat = m_segmentSnappedLat;
         presentationLng = m_segmentSnappedLng;
+    } else if (m_routeShape.isEmpty() && m_roadInfo
+               && m_roadInfo->hasConfidentRoadMatch()) {
+        // In free-drive mode, use the same heading-aware road segment that
+        // supplies street/speed metadata. Project the continuously advancing
+        // physical estimate on every render tick, so the marker moves smoothly
+        // along the road while the heavier tile match runs only once per second.
+        double roadLat, roadLng, roadDistance;
+        projectOntoSegment(
+            m_drLatitude, m_drLongitude,
+            m_roadInfo->matchedSegmentLat1(), m_roadInfo->matchedSegmentLon1(),
+            m_roadInfo->matchedSegmentLat2(), m_roadInfo->matchedSegmentLon2(),
+            roadLat, roadLng, roadDistance);
+        if (roadDistance <= FreeDriveSnapReleaseMeters) {
+            presentationLat = roadLat;
+            presentationLng = roadLng;
+        }
     }
 
     double compensatedLat = presentationLat;

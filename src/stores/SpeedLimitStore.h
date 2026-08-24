@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SyncableStore.h"
+#include <QElapsedTimer>
 
 class SpeedLimitStore : public SyncableStore
 {
@@ -42,9 +43,13 @@ protected:
     void applyFieldUpdate(const QString &variable, const QString &value) override;
 
 private:
+    void markDirectUpdate();
+
     QString m_speedLimit;
     QString m_roadName;
     QString m_roadRefs;
     QString m_roadType;
     double m_roadBearing = -1;
+    QElapsedTimer m_directUpdateAge;
+    static constexpr int DirectAuthorityHoldMs = 2500;
 };

@@ -165,6 +165,7 @@ set(CPP_HEADERS
     src/stores/UsbStore.h
     src/stores/UmsLogStore.h
     src/stores/SpeedLimitStore.h
+    src/stores/SpeedLimitParser.h
     src/stores/AutoStandbyStore.h
     src/stores/CbBatteryStore.h
     src/stores/AuxBatteryStore.h
@@ -200,6 +201,7 @@ set(CPP_HEADERS
     src/services/VectorTileDecoder.h
     src/services/MapDownloadService.h
     src/services/RoadInfoService.h
+    src/services/RoadMatchPolicy.h
     src/services/OdometerMilestoneService.h
     src/models/MapMetadata.h
     src/routing/RouteModels.h
@@ -468,4 +470,20 @@ if(BUILD_TESTING)
     target_include_directories(reroute_policy_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(reroute_policy_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME reroute_policy_test COMMAND reroute_policy_test)
+
+    qt_add_executable(road_match_policy_test
+        tests/RoadMatchPolicyTest.cpp
+        src/services/RoadMatchPolicy.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+        src/stores/SyncableStore.cpp
+        src/stores/SyncableStore.h
+        src/stores/SpeedLimitStore.cpp
+        src/stores/SpeedLimitStore.h
+        src/stores/SpeedLimitParser.h
+    )
+    target_include_directories(road_match_policy_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(road_match_policy_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME road_match_policy_test COMMAND road_match_policy_test)
 endif()

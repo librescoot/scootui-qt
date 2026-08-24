@@ -16,6 +16,7 @@ class SettingsStore;
 class ThemeStore;
 class SpeedLimitStore;
 class MotionStore;
+class RoadInfoService;
 
 class MapService : public QObject
 {
@@ -58,6 +59,7 @@ public:
                         NavigationService *navigation, SettingsStore *settings,
                         ThemeStore *theme, SpeedLimitStore *speedLimit,
                         MotionStore *motion, QObject *parent = nullptr);
+    void setRoadInfoService(RoadInfoService *roadInfo) { m_roadInfo = roadInfo; }
     ~MapService() override;
 
     void reloadMbtiles();
@@ -232,6 +234,7 @@ private:
     static constexpr double MaxEstimatorEphMeters = 50.0;
     static constexpr double DefaultGpsUncertaintyMeters = 15.0;
     static constexpr double MaxPositionUncertaintyMeters = 500.0;
+    static constexpr double FreeDriveSnapReleaseMeters = 25.0;
 
     static constexpr double StationarySpeedMs = 0.3;   // below this, assume no motion
     static constexpr double StationaryGpsBlendScale = 0.10;
@@ -321,6 +324,7 @@ private:
     ThemeStore *m_theme;
     SpeedLimitStore *m_speedLimit;
     MotionStore *m_motion;
+    RoadInfoService *m_roadInfo = nullptr;
 
     // --- Mbtiles path (resolved at construction) ---
     QString m_mbtilesPath;
