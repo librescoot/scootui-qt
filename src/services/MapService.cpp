@@ -1,4 +1,5 @@
 #include "MapService.h"
+#include "MapCameraPolicy.h"
 #include "RoadInfoService.h"
 #include "NavigationService.h"
 #include "stores/GpsStore.h"
@@ -215,9 +216,9 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
     m_overviewTimer->setInterval(OverviewHoldMs);
     connect(m_overviewTimer, &QTimer::timeout, this, &MapService::onOverviewTimeout);
 
-    // --- Dead reckoning timer at 15 Hz ---
+    // --- Dead reckoning and render timer at 20 Hz ---
     m_tickTimer->setTimerType(Qt::PreciseTimer);
-    m_tickTimer->setInterval(static_cast<int>(TickIntervalMs));
+    m_tickTimer->setInterval(TickIntervalMs);
     connect(m_tickTimer, &QTimer::timeout, this, &MapService::onDeadReckoningTick);
 
     m_elapsed.start();
@@ -342,6 +343,7 @@ void MapService::setRouteWaypoints(const QVariantList &waypoints)
     // one remains visible but the vehicle follows the unconstrained estimate.
     m_drLocked = lockNewRoute;
     m_routeSnapState.reset(lockNewRoute);
+    m_projectionCadence.reset();
 
     updateRouteGeoJson();
     refreshRouteProjection();
@@ -372,6 +374,7 @@ void MapService::clearRoute()
     m_lastRouteBearing = -1;
     m_drLocked = true;
     m_routeSnapState.reset(true);
+    m_projectionCadence.reset();
 
     m_routeCoordinates.clear();
     emit routeCoordinatesChanged();
@@ -570,9 +573,18 @@ void MapService::onRouteChanged()
 
     updateRouteFromNavigation();
 
-    // Brief zoom-out to give the rider route context
-    m_routeOverviewActive = true;
-    m_overviewTimer->start();
+    // Initial routes get a brief extent-aware overview. A reroute must not
+    // repeatedly pull the camera away from the rider; its new geometry is
+    // already evaluated against the physical pose on the next estimator tick.
+    if (!m_navigation->lastRouteWasReroute()) {
+        m_overviewZoom = MapCameraPolicy::routeOverviewZoom(
+            m_navigation->routeWaypoints(), OverviewMinZoom, OverviewMaxZoom);
+        m_routeOverviewActive = true;
+        m_overviewTimer->start();
+    } else {
+        m_routeOverviewActive = false;
+        m_overviewTimer->stop();
+    }
 }
 
 void MapService::onOverviewTimeout()
@@ -729,13 +741,11 @@ void MapService::rebuildStyleUrl()
     QString url;
     if (useLocal) {
         url = rewriteStyleForMbtiles(qrcPath, m_mbtilesPath);
-    } else if (!showTraffic || m_view2D) {
-        // Online mode still needs a rewritten style whenever the embedded one
-        // does not already match: traffic disabled, 2D flat buildings, or both.
-        url = rewriteStyleVariant(qrcPath);
     } else {
-        url = qrcPath;
-        qDebug() << "MapService: using online style:" << url;
+        // Always materialize the online style. Besides traffic/2D variants,
+        // this guarantees the native route source and correctly ordered route
+        // layers exist in the normal traffic-enabled 3D configuration too.
+        url = rewriteStyleVariant(qrcPath);
     }
 
     if (url != m_styleUrl) {
@@ -1084,7 +1094,7 @@ double MapService::effectiveSpeedKmh() const
 }
 
 // ---------------------------------------------------------------------------
-// Dead reckoning tick (15 Hz)
+// Dead reckoning tick (20 Hz)
 // ---------------------------------------------------------------------------
 
 void MapService::onDeadReckoningTick()
@@ -1141,8 +1151,13 @@ void MapService::onDeadReckoningTick()
                          gpsTrajectory || speedKmh >= MinSpeedForTrajectoryKmh);
     }
 
-    if (haveRouteShape)
-        refreshRouteProjection(); // distance is from physical pose, before presentation snap
+    if (haveRouteShape) {
+        // Segment projection is cheap and stays at render rate. The global
+        // nearest scan used for off-route distance runs at the same exact 5 Hz
+        // phase as NavigationService instead of scanning the full route 20 Hz.
+        const bool fullProjection = m_projectionCadence.advance();
+        refreshRouteProjection(fullProjection);
+    }
 
     routeUsable = haveRouteShape && !m_navigation->isOffRoute()
         && !m_navigation->isRerouting();
@@ -1228,8 +1243,8 @@ void MapService::onDeadReckoningTick()
     }
 
     // Notify downstream consumers (e.g. NavigationService for TBT) of the
-    // updated DR position. Fires at the 15 Hz tick rate; consumers should
-    // throttle if they do expensive work.
+    // updated DR position. Navigation and road-info consumers divide this
+    // shared 20 Hz cadence by exact integer ratios.
     emit vehiclePositionChanged();
 
     // ----- isReady -----
@@ -1307,10 +1322,10 @@ void MapService::updateDynamicZoom(double dt)
     double minClamp;
 
     if (m_routeOverviewActive) {
-        // During overview: zoom out to OverviewZoom at a faster rate
-        effectiveTarget = OverviewZoom;
+        // During overview: zoom out to the extent-derived target faster.
+        effectiveTarget = m_overviewZoom;
         smoothRate = OverviewZoomRate;
-        minClamp = OverviewZoom;
+        minClamp = OverviewMinZoom;
     } else {
         double newTarget = computeTargetZoom();
         if (std::abs(newTarget - m_targetZoom) > ZoomHysteresis) {
@@ -1373,11 +1388,10 @@ double MapService::computeTargetZoom() const
         if (dist <= 0)
             return DefaultZoom;
 
-        // Multi-turn look-ahead: if a second maneuver is within 150m, use the closer one
+        // A close second maneuver needs a wider view that contains both turns.
         double dist2 = distanceToSecondManeuver();
-        if (dist2 > 0 && dist2 < MultiTurnLookAheadMeters) {
-            dist = std::min(dist, dist2);
-        }
+        dist = MapCameraPolicy::maneuverFocusDistance(
+            dist, dist2, MultiTurnLookAheadMeters);
     }
 
     if (dist <= NearDist)
@@ -1693,7 +1707,7 @@ MapService::SegmentMatch MapService::matchRouteSegment(double lat, double lng,
     return best;
 }
 
-void MapService::refreshRouteProjection()
+void MapService::refreshRouteProjection(bool fullScan)
 {
     if (m_routeShape.size() < 2) {
         // No route — clear projection
@@ -1724,25 +1738,30 @@ void MapService::refreshRouteProjection()
     // rejoins the route at a different segment than where they left —
     // otherwise distFromRoute would stay large (stuck projecting onto the
     // frozen pre-off-route segment) and isOffRoute hysteresis never clears.
-    double sLat = m_drLatitude, sLng = m_drLongitude;
-    double dist = std::numeric_limits<double>::max();
-    for (int i = 0; i < m_routeShape.size() - 1; ++i) {
-        const auto &A = m_routeShape[i];
-        const auto &B = m_routeShape[i + 1];
-        double candLat, candLng, candDist;
-        projectOntoSegment(m_drLatitude, m_drLongitude,
-                           A.first, A.second, B.first, B.second,
-                           candLat, candLng, candDist);
-        if (candDist < dist) {
-            dist = candDist;
-            sLat = candLat;
-            sLng = candLng;
+    double sLat = m_snappedLat;
+    double sLng = m_snappedLng;
+    double dist = m_distFromRoute;
+    if (fullScan) {
+        sLat = m_drLatitude;
+        sLng = m_drLongitude;
+        dist = std::numeric_limits<double>::max();
+        for (int i = 0; i < m_routeShape.size() - 1; ++i) {
+            const auto &A = m_routeShape[i];
+            const auto &B = m_routeShape[i + 1];
+            double candLat, candLng, candDist;
+            projectOntoSegment(m_drLatitude, m_drLongitude,
+                               A.first, A.second, B.first, B.second,
+                               candLat, candLng, candDist);
+            if (candDist < dist) {
+                dist = candDist;
+                sLat = candLat;
+                sLng = candLng;
+            }
         }
+        m_snappedLat = sLat;
+        m_snappedLng = sLng;
+        m_distFromRoute = dist;
     }
-
-    m_snappedLat = sLat;
-    m_snappedLng = sLng;
-    m_distFromRoute = dist;
 
     // Segment-aligned projection: snap DR position onto the matcher's current
     // segment specifically (not the geometrically nearest). NavigationService

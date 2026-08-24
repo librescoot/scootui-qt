@@ -91,8 +91,7 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
 
     m_rerouteRetry = new QTimer(this);
     m_rerouteRetry->setSingleShot(true);
-    m_rerouteRetry->setInterval(ValhallaClient::RerouteCooldownMs
-                                + ValhallaClient::DebounceIntervalMs);
+    m_rerouteRetry->setInterval(ValhallaClient::RerouteCooldownMs);
     connect(m_rerouteRetry, &QTimer::timeout, this, [this]() {
         if (!m_isOffRoute || !m_route.isValid())
             return;
@@ -135,7 +134,6 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
             requestRoute(ValhallaClient::Reason::LanguageChange);
     });
 
-    m_lastDrUpdate.start();
 }
 
 void NavigationService::setMapService(MapService *map)
@@ -145,31 +143,18 @@ void NavigationService::setMapService(MapService *map)
     if (m_map) {
         connect(m_map, &MapService::vehiclePositionChanged,
                 this, &NavigationService::onVehiclePositionChanged);
-        // Segment updates arrive from MapService's GPS-edge matcher AND
-        // from DR-tick advancement. Both route through routeProjectionChanged;
-        // re-use the same throttled update path so TBT reflects matcher
-        // decisions promptly (instead of waiting up to 200 ms for the next
-        // DR tick to elapse).
-        connect(m_map, &MapService::routeProjectionChanged,
-                this, &NavigationService::onVehiclePositionChanged);
     }
 }
 
 void NavigationService::onVehiclePositionChanged()
 {
-    // Drive TBT from DR. Throttled to DrUpdateMinIntervalMs so route
-    // snapping + upcoming-instruction walks don't run at the full 15 Hz
-    // tick rate.
     if (m_status != NavigationStatus::Navigating &&
         m_status != NavigationStatus::Rerouting &&
         m_status != NavigationStatus::Arrived)
         return;
 
-    if (m_lastDrUpdate.isValid() &&
-        m_lastDrUpdate.elapsed() < DrUpdateMinIntervalMs)
+    if (!m_navigationCadence.advance())
         return;
-
-    m_lastDrUpdate.restart();
     updateNavigationState();
 }
 
@@ -610,6 +595,7 @@ void NavigationService::setDestination(double lat, double lng, const QString &ad
     m_isOffRoute = false;
     m_rerouteGate.reset();
     m_rerouteRetry->stop();
+    m_navigationCadence.reset();
     m_wasArrived = false;
     m_currentSegmentIndex = 0;
     m_hasLastPassedManeuver = false;
@@ -667,6 +653,7 @@ void NavigationService::clearNavigation()
     m_isOffRoute = false;
     m_rerouteGate.reset();
     m_rerouteRetry->stop();
+    m_navigationCadence.reset();
     m_wasArrived = false;
     m_currentSegmentIndex = 0;
     m_hasLastPassedManeuver = false;
@@ -693,6 +680,7 @@ void NavigationService::clearNavigation()
 
 void NavigationService::setRoute(const Route &route)
 {
+    m_activeRouteReason = ValhallaClient::Reason::Initial;
     onRouteCalculated(route);
 }
 
@@ -716,7 +704,6 @@ void NavigationService::onGpsChanged()
         (m_status == NavigationStatus::Navigating ||
          m_status == NavigationStatus::Rerouting ||
          m_status == NavigationStatus::Arrived)) {
-        m_lastDrUpdate.restart();
         updateNavigationState();
     }
 
@@ -818,6 +805,7 @@ void NavigationService::onRouteCalculated(const Route &route)
     m_isOffRoute = false;
     m_rerouteGate.reset();
     m_rerouteRetry->stop();
+    m_navigationCadence.reset();
 
     if (!m_destination.isValid() && !route.waypoints.isEmpty()) {
         m_destination = route.waypoints.last();

@@ -7,6 +7,7 @@
 #include <QList>
 #include <QVariantList>
 #include "VectorTileDecoder.h"
+#include "NavigationCadence.h"
 
 class GpsStore;
 class SpeedLimitStore;
@@ -74,12 +75,15 @@ private:
     QHash<quint64, VectorTile::Tile> m_tileCache;
     QList<quint64> m_cacheOrder; // oldest first
 
-    static constexpr int UpdateIntervalMs = 1000;
+    static constexpr int FallbackUpdateIntervalMs =
+        NavigationCadence::RenderTickMs * NavigationCadence::RoadInfoEveryTicks;
     static constexpr int QueryZoom = 14;
     static constexpr int MaxCachedTiles = 50;
     static constexpr int ClearAfterMisses = 3; // clear road name after N consecutive no-match results
 
     int m_consecutiveMisses = 0;
+    NavigationCadence::TickDivider m_updateCadence{
+        NavigationCadence::RoadInfoEveryTicks};
     QString m_previousMatchKey;
     bool m_hasConfidentRoadMatch = false;
     double m_matchLat1 = 0;

@@ -38,7 +38,7 @@ MapView {
 
         PluginParameter {
             name: "maplibre.items.insert_before"
-            value: "building"
+            value: "buildings"
         }
     }
 
@@ -46,7 +46,9 @@ MapView {
     map.bearing: typeof mapService !== "undefined" ? mapService.mapBearing : 0
     // 3D (default) tilts the map back to show forward perspective; 2D is
     // a flat top-down view.
-    map.tilt: (typeof settingsStore !== "undefined" && settingsStore.mapViewMode === 1) ? 0 : 85
+    map.tilt: (typeof settingsStore !== "undefined" && settingsStore.mapViewMode === 1)
+              ? 0
+              : (typeof mapService !== "undefined" ? mapService.mapTilt : 60)
 
     function vehicleCoordinate() {
         if (typeof mapService !== "undefined" && mapService.isReady) {
@@ -99,20 +101,16 @@ MapView {
     Connections {
         target: typeof mapService !== "undefined" ? mapService : null
         function onIsReadyChanged() { mapView.updateCamera() }
-        function onMapLatitudeChanged() { mapView.updateCamera() }
-        function onMapLongitudeChanged() { mapView.updateCamera() }
-        function onMapZoomChanged() { mapView.updateCamera() }
-        function onMapBearingChanged() { mapView.updateCamera() }
+        function onVehiclePositionChanged() { mapView.updateCamera() }
         function onVehicleOffsetYChanged() { mapView.updateCamera() }
     }
 
     Connections {
         target: typeof gpsStore !== "undefined" ? gpsStore : null
-        function onLatitudeChanged() { mapView.updateCamera() }
-        function onLongitudeChanged() { mapView.updateCamera() }
+        function onSampleChanged() { mapView.updateCamera() }
     }
 
-    // Route rendered as native MapLibre layers (inserted before "building" layer
+    // Route rendered as native MapLibre layers (inserted before "buildings" layer
     // so that 3D building extrusions properly occlude the route line)
     MapLibre.style: Style {
         id: routeStyle

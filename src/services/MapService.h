@@ -4,6 +4,7 @@
 #include <QTimer>
 #include <QElapsedTimer>
 #include <QVariantList>
+#include "services/NavigationCadence.h"
 #include <QPair>
 #include <QDateTime>
 
@@ -211,7 +212,7 @@ private:
 
     // Recompute m_snappedLat/Lng/m_distFromRoute from current DR position
     // and m_currentRouteSegment. Emits routeProjectionChanged if values moved.
-    void refreshRouteProjection();
+    void refreshRouteProjection(bool fullScan = true);
 
     // Bearing along the current route segment, or -1 if not on route
     double routeSegmentBearing() const;
@@ -219,7 +220,7 @@ private:
     // --- Constants ---
 
     // Dead reckoning
-    static constexpr double TickIntervalMs = 66.0;
+    static constexpr int TickIntervalMs = NavigationCadence::RenderTickMs;
     // Output-side compensation covers only render-path latency now that the
     // GPS sample itself is age-corrected on input. Was 0.15 s.
     static constexpr double LatencyCompensationSec = 0.05;
@@ -267,7 +268,8 @@ private:
     static constexpr double MultiTurnLookAheadMeters = 150.0;
 
     // Route overview (zoom out briefly after route calculation)
-    static constexpr double OverviewZoom = 15.0;
+    static constexpr double OverviewMinZoom = 11.0;
+    static constexpr double OverviewMaxZoom = 15.0;
     static constexpr double OverviewZoomRate = 2.0;
     static constexpr int OverviewHoldMs = 3000;
 
@@ -335,6 +337,8 @@ private:
 
     // --- Timers ---
     QTimer *m_tickTimer;
+    NavigationCadence::TickDivider m_projectionCadence{
+        NavigationCadence::NavigationEveryTicks};
     QElapsedTimer m_elapsed;
 
     // --- Camera state ---
@@ -409,6 +413,7 @@ private:
     // --- Route overview state ---
     QTimer *m_overviewTimer = nullptr;
     bool m_routeOverviewActive = false;
+    double m_overviewZoom = OverviewMaxZoom;
 
     // --- Rotation smoothing state ---
     double m_smoothedTarget = 0;

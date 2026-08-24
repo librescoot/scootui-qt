@@ -125,6 +125,7 @@ void RoadInfoService::setMapService(MapService *map)
     if (m_map)
         disconnect(m_map, nullptr, this, nullptr);
     m_map = map;
+    m_updateCadence.reset();
     if (m_map) {
         connect(m_map, &MapService::vehiclePositionChanged,
                 this, &RoadInfoService::onVehiclePositionChanged);
@@ -203,10 +204,8 @@ void RoadInfoService::clearRoadMatch()
 
 void RoadInfoService::onGpsChanged()
 {
-    if (m_map && m_map->hasVehiclePosition()) {
-        onVehiclePositionChanged();
+    if (m_map && m_map->hasVehiclePosition())
         return;
-    }
     if (!m_gps || !m_gps->hasValidGps()) {
         m_consecutiveMisses = ClearAfterMisses;
         clearRoadMatch();
@@ -218,14 +217,14 @@ void RoadInfoService::onGpsChanged()
         return;
     }
 
-    if (m_lastUpdate.elapsed() < UpdateIntervalMs)
+    if (m_lastUpdate.elapsed() < FallbackUpdateIntervalMs)
         return;
 
     m_lastUpdate.restart();
 
     // Self-heal: if the mbtiles wasn't available when we constructed (cold boot
     // before /data mounted), pick it up as soon as it appears. Throttled to the
-    // 3 s tick above, and reloadMbtiles() is idempotent once open.
+    // 1 Hz fallback above, and reloadMbtiles() is idempotent once open.
     if (!m_dbOpen)
         reloadMbtiles();
 
@@ -236,9 +235,8 @@ void RoadInfoService::onVehiclePositionChanged()
 {
     if (!m_map || !m_map->hasVehiclePosition())
         return;
-    if (m_lastUpdate.elapsed() < UpdateIntervalMs)
+    if (!m_updateCadence.advance())
         return;
-    m_lastUpdate.restart();
     if (!m_dbOpen)
         reloadMbtiles();
     updateRoadInfo(m_map->vehicleLatitude(), m_map->vehicleLongitude());

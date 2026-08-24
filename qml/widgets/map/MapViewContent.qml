@@ -120,17 +120,16 @@ MapView {
     Connections {
         target: typeof mapService !== "undefined" ? mapService : null
         function onIsReadyChanged() { mapView.updateCamera() }
-        function onMapLatitudeChanged() { mapView.updateCamera() }
-        function onMapLongitudeChanged() { mapView.updateCamera() }
-        function onMapZoomChanged() { mapView.updateCamera() }
-        function onMapBearingChanged() { mapView.updateCamera() }
+        // One atomic camera update per estimator tick. Latitude, longitude,
+        // zoom and bearing still notify their bindings individually, but must
+        // not each trigger a separate alignCoordinateToPoint call.
+        function onVehiclePositionChanged() { mapView.updateCamera() }
         function onVehicleOffsetYChanged() { mapView.updateCamera() }
     }
 
     Connections {
         target: typeof gpsStore !== "undefined" ? gpsStore : null
-        function onLatitudeChanged() { mapView.updateCamera() }
-        function onLongitudeChanged() { mapView.updateCamera() }
+        function onSampleChanged() { mapView.updateCamera() }
     }
 
     // Route rendered as native MapLibre layers, inserted before the buildings
@@ -146,6 +145,25 @@ MapView {
             type: "geojson"
             property string data: typeof mapService !== "undefined" ? mapService.routeGeoJson : ""
             onDataChanged: updateNotify()
+        }
+
+        // These also act as a fallback if style rewriting fails. When the
+        // emitted style already contains the same IDs, QMapLibre updates those
+        // native layers in place and preserves their intended insertion depth.
+        LayerParameter {
+            styleId: "route-border"
+            type: "line"
+            property string source: "route"
+            layout: { "line-cap": "round", "line-join": "round" }
+            paint: { "line-color": "#1565C0", "line-width": 11 }
+        }
+
+        LayerParameter {
+            styleId: "route-fill"
+            type: "line"
+            property string source: "route"
+            layout: { "line-cap": "round", "line-join": "round" }
+            paint: { "line-color": "#42A5F5", "line-width": 7 }
         }
 
         // Theme recolor: override the paint of existing style layers in place

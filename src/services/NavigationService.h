@@ -7,6 +7,7 @@
 #include "routing/ReroutePolicy.h"
 #include "routing/RouteModels.h"
 #include "routing/ValhallaClient.h"
+#include "services/NavigationCadence.h"
 
 class GpsStore;
 class NavigationStore;
@@ -72,6 +73,9 @@ public:
     bool isNavigating() const { return m_status == NavigationStatus::Navigating; }
     bool isRerouting() const { return m_status == NavigationStatus::Rerouting; }
     bool hasRoute() const { return m_route.isValid(); }
+    bool lastRouteWasReroute() const {
+        return m_activeRouteReason == ValhallaClient::Reason::Reroute;
+    }
     QString errorMessage() const { return m_errorMessage; }
 
     double destLatitude() const { return m_destination.latitude; }
@@ -233,16 +237,15 @@ private:
     ValhallaClient *m_valhalla;
     MapService *m_map = nullptr;
 
-    // Throttle DR-driven nav updates; the 15 Hz DR tick is too fast for the
-    // route snapping + upcoming-instruction walk, and QML bindings churn
-    // faster than they can be meaningfully consumed.
-    QElapsedTimer m_lastDrUpdate;
+    // Exact integer division of the 20 Hz estimator tick avoids elapsed-time
+    // jitter turning a nominal 5 Hz update into an alternating 4/5 Hz beat.
+    NavigationCadence::TickDivider m_navigationCadence{
+        NavigationCadence::NavigationEveryTicks};
     // Elapsed since the current route was calculated. Used as a safety
     // valve to drop kStart-family maneuvers if the segment tracker hasn't
     // advanced past segment 0 for a while (rider stationary after setting
     // destination, or segment 0 is longer than typical).
     QElapsedTimer m_routeStartedAt;
-    static constexpr int DrUpdateMinIntervalMs = 200;  // 5 Hz
     // How long the kStart banner lingers before being dropped if the rider
     // hasn't advanced past segment 0 yet. Matches "a few seconds" — long
     // enough to read the initial heading, short enough to get out of the

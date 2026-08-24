@@ -186,6 +186,8 @@ set(CPP_HEADERS
     src/services/NavigationService.h
     src/services/ToastService.h
     src/services/MapService.h
+    src/services/MapCameraPolicy.h
+    src/services/NavigationCadence.h
     src/services/LowTemperatureMonitor.h
     src/services/BluetoothHealthMonitor.h
     src/services/HandlebarLockMonitor.h
@@ -486,4 +488,14 @@ if(BUILD_TESTING)
     target_include_directories(road_match_policy_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(road_match_policy_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME road_match_policy_test COMMAND road_match_policy_test)
+
+    qt_add_executable(map_timing_test
+        tests/MapTimingTest.cpp
+        src/services/MapCameraPolicy.h
+        src/services/NavigationCadence.h
+        src/routing/RouteModels.h
+    )
+    target_include_directories(map_timing_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(map_timing_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME map_timing_test COMMAND map_timing_test)
 endif()
