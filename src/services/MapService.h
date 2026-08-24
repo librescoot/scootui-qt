@@ -231,6 +231,12 @@ private:
     static constexpr double CatchupRate = 0.5;         // /s — closes half of deficit per second
     static constexpr double MaxCatchupPerTick = 0.5;   // meters — clamp per-tick correction
     static constexpr double StationarySpeedMs = 0.3;   // below this, assume no motion
+    // A stationary GPS receiver still reports a few km/h of noise, so GPS speed
+    // is only believed well clear of it.
+    static constexpr double GpsSpeedTrustKmh = 15.0;
+    // ECU comm-lost fault. The one state where a 0 from the ECU carries no
+    // information; the cluster renders speed as "-" for the same reason.
+    static constexpr int EcuCommLostFaultCode = 20;
 
     static constexpr double BlendRateNormal = 2.0;
     static constexpr double BlendRateLarge = 5.0;
@@ -311,6 +317,9 @@ private:
     mutable int m_lastEmittedSegment = -2;
 
     // --- Store pointers ---
+    // Speed for motion decisions: the ECU normally, GPS while the ECU is silent.
+    double effectiveSpeedKmh() const;
+
     GpsStore *m_gps;
     EngineStore *m_engine;
     NavigationService *m_navigation;

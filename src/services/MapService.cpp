@@ -321,7 +321,7 @@ void MapService::setRouteWaypoints(const QVariantList &waypoints)
     // right, but the trajectory check guards against unusual cases where
     // the new shape doesn't begin exactly at the rider's current location.
     if (m_hasInitialPosition && m_routeShape.size() >= 2) {
-        double speedKmh = m_engine->speed();
+        double speedKmh = effectiveSpeedKmh();
         bool haveTrajectory = speedKmh >= MinSpeedForTrajectoryKmh;
         SegmentMatch seeded = matchRouteSegment(m_drLatitude, m_drLongitude,
                                                  m_displayBearing, haveTrajectory,
@@ -463,8 +463,8 @@ void MapService::onGpsPositionChanged()
         return;
     }
 
-    double ecuSpeedMs = m_engine->speed() * (1000.0 / 3600.0);
-    bool stationary = ecuSpeedMs < StationarySpeedMs;
+    double speedMs = effectiveSpeedKmh() * (1000.0 / 3600.0);
+    bool stationary = speedMs < StationarySpeedMs;
 
     // Input-side age compensation: the GPS fix represents where the rider
     // WAS some time ago (receiver NMEA buffer + consumer age). Project it
@@ -487,7 +487,7 @@ void MapService::onGpsPositionChanged()
                 if (rb >= 0) motionBearing = rb;
             }
             projectForward(gpsLat, gpsLng, motionBearing,
-                           ecuSpeedMs * (ageMs / 1000.0),
+                           speedMs * (ageMs / 1000.0),
                            gpsLat, gpsLng);
         }
     }
@@ -540,7 +540,7 @@ void MapService::onGpsPositionChanged()
     // meaningful — DR uses straight-line projection during that window).
     if (!stationary && m_routeShape.size() >= 2 &&
         !(m_navigation && (m_navigation->isOffRoute() || m_navigation->isRerouting()))) {
-        double speedKmh = m_engine->speed();
+        double speedKmh = effectiveSpeedKmh();
         bool haveTrajectory = speedKmh >= MinSpeedForTrajectoryKmh;
         double trajectoryBearing = m_displayBearing;
 
@@ -1101,6 +1101,21 @@ QString MapService::rewriteStyleVariant(const QString &qrcPath)
     return fileUrl;
 }
 
+// The ECU owns speed whenever it is talking, including when it reports 0: that
+// is a parked scooter, not a missing reading. Only once ecu-service raises E20
+// does a 0 mean "no idea" - that is the state the cluster renders as "-"
+// instead of a number - and GPS stands in. A stationary receiver still reports
+// a few km/h of noise, so GPS speed only counts above GpsSpeedTrustKmh; below
+// that we would rather have no motion signal than a fictitious one.
+double MapService::effectiveSpeedKmh() const
+{
+    if (m_engine->faultCode() != EcuCommLostFaultCode)
+        return m_engine->speed();
+
+    const double gpsKmh = m_gps ? m_gps->speed() : 0.0;
+    return gpsKmh >= GpsSpeedTrustKmh ? gpsKmh : 0.0;
+}
+
 // ---------------------------------------------------------------------------
 // Dead reckoning tick (15 Hz)
 // ---------------------------------------------------------------------------
@@ -1117,8 +1132,8 @@ void MapService::onDeadReckoningTick()
     if (dt > 0.5)
         dt = 0.5;
 
-    // ----- Speed (from ECU, km/h -> m/s) -----
-    double speedKmh = m_engine->speed();
+    // ----- Speed (ECU, or GPS while the ECU is silent; km/h -> m/s) -----
+    double speedKmh = effectiveSpeedKmh();
     double speedMs = speedKmh * (1000.0 / 3600.0);
 
     // ----- Odometer-primary distance (odometer = truth, speed = feedforward) -----
@@ -1601,7 +1616,7 @@ double MapService::routeSegmentBearing() const
 
 void MapService::updateBearing(double dt)
 {
-    double speedKmh = m_engine->speed();
+    double speedKmh = effectiveSpeedKmh();
 
     // m_drLocked couples rotation to the sticky-snap lock state — once the
     // marker starts following GPS (break-away), the map rotation switches to
