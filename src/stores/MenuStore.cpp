@@ -93,6 +93,17 @@ MenuStore::~MenuStore() = default;
 void MenuStore::setNavigationService(NavigationService *svc)
 {
     m_navigationService = svc;
+    if (m_navigationService) {
+        // Both signals: nav_stop's predicate reads hasRoute(), which notifies
+        // on routeChanged, and the rest of the Navigation submenu turns on
+        // status. Every path that clears the route happens to change status
+        // too today, so statusChanged alone would work by coincidence.
+        connect(m_navigationService, &NavigationService::statusChanged,
+                this, &MenuStore::rebuildMenuTree);
+        connect(m_navigationService, &NavigationService::routeChanged,
+                this, &MenuStore::rebuildMenuTree);
+    }
+    rebuildMenuTree();
 }
 
 void MenuStore::setSavedLocationsStore(SavedLocationsStore *store)
@@ -364,11 +375,15 @@ void MenuStore::rebuildMenuTree()
         }
     }
 
-    // Stop navigation
+    // Stop navigation, shown while there's a route to cancel. hasRoute()
+    // rather than isNavigating() so the entry stays put through Rerouting
+    // and Arrived, which still hold a route but aren't the Navigating status.
     navNode->addChild(MenuNode::action(QStringLiteral("nav_stop"),
         tr->menuStopNavigation(), [this]() {
             if (m_navigationService) m_navigationService->clearNavigation();
             close();
+        }, [this]() {
+            return m_navigationService && m_navigationService->hasRoute();
         }));
 
     // Navigation setup info (always available for proactive offline downloads)
