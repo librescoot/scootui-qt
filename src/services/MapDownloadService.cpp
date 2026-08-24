@@ -40,10 +40,9 @@ const QHash<QString, QString> MapDownloadService::s_stateToSlug = {
     {QStringLiteral("Thüringen"), QStringLiteral("thueringen")},
 };
 
-MapDownloadService::MapDownloadService(bool simulatorMode, QObject *parent)
+MapDownloadService::MapDownloadService(QObject *parent)
     : QObject(parent)
     , m_nam(new QNetworkAccessManager(this))
-    , m_simulatorMode(simulatorMode)
 {
     m_metadata = MapMetadata::load();
     if (!m_metadata.region.isEmpty()) {

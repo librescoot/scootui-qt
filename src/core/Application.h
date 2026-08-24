@@ -48,6 +48,7 @@ public:
     // systemd READY=1. Idempotent.
     void uiPresented();
     bool isSimulatorMode() const { return m_simulatorMode; }
+    bool isInMemoryBackend() const { return m_inMemoryBackend; }
 
 private:
     void fadeInOverlay();
@@ -114,6 +115,8 @@ private:
     SettingsStore *m_settingsStore = nullptr;
     InternetStore *m_internetStore = nullptr;
     bool m_simulatorMode = false;
+    bool m_inMemoryBackend = false;
+    QString m_backendDescription;
     bool m_mapDownloadHoldActive = false;
     bool m_uiPresented = false;
     bool m_redisReady = false;

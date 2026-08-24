@@ -16,6 +16,21 @@ void EnvConfig::initialize()
         qDebug() << "Using settings file from environment:" << configPath;
     }
 
+    // Simulator panel: SCOOTUI_SIMULATOR=1/true/on, or 0/false/off
+    const QString simStr = env.value(QStringLiteral("SCOOTUI_SIMULATOR")).trimmed().toLower();
+    if (!simStr.isEmpty()) {
+        const bool on = (simStr == QLatin1String("1") || simStr == QLatin1String("true")
+                         || simStr == QLatin1String("on") || simStr == QLatin1String("yes"));
+        const bool off = (simStr == QLatin1String("0") || simStr == QLatin1String("false")
+                          || simStr == QLatin1String("off") || simStr == QLatin1String("no"));
+        if (on || off) {
+            m_simulatorOverride = on ? 1 : 0;
+            qDebug() << "Simulator panel forced" << (on ? "on" : "off") << "by environment";
+        } else {
+            qWarning() << "Ignoring unrecognised SCOOTUI_SIMULATOR value:" << simStr;
+        }
+    }
+
     // Resolution: SCOOTUI_RESOLUTION=widthxheight
     const QString resStr = env.value(QStringLiteral("SCOOTUI_RESOLUTION"));
     if (!resStr.isEmpty()) {

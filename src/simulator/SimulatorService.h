@@ -19,7 +19,11 @@ class SimulatorService : public QObject
     Q_PROPERTY(QString dateOverride READ dateOverride WRITE setDateOverride NOTIFY dateOverrideChanged)
 
 public:
-    explicit SimulatorService(MdbRepository *repo, NavigationService *nav, QObject *parent = nullptr);
+    // seedDefaults writes a full vehicle state into the repository. That is
+    // what makes the simulator usable on a desktop and what would trample a
+    // real Redis, so the caller decides, and the panel can ask for it later.
+    explicit SimulatorService(MdbRepository *repo, NavigationService *nav,
+                              bool seedDefaults, QObject *parent = nullptr);
 
     bool autoDriveActive() const { return m_autoDriveActive; }
     double autoDriveSpeed() const { return m_autoDriveSpeed; }
@@ -34,6 +38,10 @@ public:
     void setDateOverride(const QString &v) { if (v != m_dateOverride) { m_dateOverride = v; emit dateOverrideChanged(); } }
 
     // Vehicle
+    // Seed a full vehicle state. Called at construction only when the caller
+    // said it is safe; otherwise the panel offers it as an explicit action.
+    Q_INVOKABLE void applyDefaults();
+
     Q_INVOKABLE void setVehicleState(const QString &state);
     Q_INVOKABLE void setKickstand(const QString &state);
     Q_INVOKABLE void setBlinkerState(const QString &state);
@@ -198,7 +206,7 @@ signals:
 private:
     void autoDriveTick();
     void updateRoadInfo();
-    void applyDefaults();
+
     void setBatteryField(int slot, const QString &field, const QString &value);
 
     // Refreshes the auto-standby deadline (= now + m_autoStandbySeconds) if a

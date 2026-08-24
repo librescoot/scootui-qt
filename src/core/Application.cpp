@@ -146,12 +146,16 @@ Application::~Application()
 
 bool Application::initialize(QQmlApplicationEngine &engine)
 {
+    // Two independent choices. Which repository backs the UI, and whether the
+    // simulator panel runs on top of it. They used to be one: "no Redis host"
+    // meant both, which ruled out driving a dedicated Redis from the panel or
+    // mirroring a vehicle's.
     const QString redisHost = EnvConfig::redisHost();
-    if (redisHost.isEmpty() || redisHost == QLatin1String("none")) {
-        qDebug() << "Using InMemoryMdbRepository (simulator mode)";
+    m_inMemoryBackend = redisHost.isEmpty() || redisHost == QLatin1String("none");
+    if (m_inMemoryBackend) {
+        qDebug() << "Using InMemoryMdbRepository";
         m_repository = std::make_unique<InMemoryMdbRepository>();
-        m_simulatorMode = true;
-        // Use online routing in simulator (no local Valhalla server)
+        // No local Valhalla behind an in-memory repo, so routing goes online.
         m_repository->set(QStringLiteral("settings"),
                           QLatin1String(AppConfig::valhallaEndpointKey),
                           QLatin1String(AppConfig::valhallaOnlineEndpoint));
@@ -160,6 +164,13 @@ bool Application::initialize(QQmlApplicationEngine &engine)
         qDebug() << "Connecting to Redis at" << redisHost << ":" << redisPort;
         m_repository = std::make_unique<RedisMdbRepository>(redisHost, redisPort, QStringLiteral("192.168.8.1"));
     }
+
+    m_backendDescription = m_inMemoryBackend
+                         ? QStringLiteral("in-memory")
+                         : QStringLiteral("%1:%2").arg(redisHost).arg(EnvConfig::redisPort());
+    m_simulatorMode = EnvConfig::simulatorEnabled(m_inMemoryBackend);
+    qDebug() << "Simulator panel:" << (m_simulatorMode ? "on" : "off")
+             << "backend:" << (m_inMemoryBackend ? QStringLiteral("in-memory") : redisHost);
 
     qmlRegisterUncreatableMetaObject(ScootEnums::staticMetaObject, "ScootUI", 1, 0, "Scooter", "");
 
@@ -191,7 +202,10 @@ void Application::createStores(QQmlApplicationEngine &engine)
     auto *modemStore = new ModemStore(repo, this);
     auto *navigationStore = new NavigationStore(repo, this);
     auto *settingsStore = new SettingsStore(repo, this);
-    if (m_simulatorMode)
+    // The in-memory repository is filled in before the stores exist, so there
+    // is no change notification to catch up on. A Redis backend has its sync
+    // worker for that. This follows the backend, not the panel.
+    if (m_inMemoryBackend)
         settingsStore->refreshAllFields();
     auto *otaStore = new OtaStore(repo, this);
     auto *usbStore = new UsbStore(repo, this);
@@ -264,7 +278,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_navAvailability = new NavigationAvailabilityService(settingsStore, internetStore, repo, this);
 
     // Map download service
-    m_mapDownloadService = new MapDownloadService(m_simulatorMode, this);
+    m_mapDownloadService = new MapDownloadService(this);
     m_gpsStore = gpsStore;
     m_vehicleStore = vehicleStore;
     m_settingsStore = settingsStore;
@@ -629,8 +643,16 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Simulator service (created in sim mode, null otherwise)
     if (m_simulatorMode) {
-        m_simulatorService = new SimulatorService(repo, m_navigationService, this);
+        // Seed only into the in-memory repository. Against a real Redis the
+        // same call would overwrite whatever the vehicle or the services on
+        // that instance had already put there, so it becomes a button in the
+        // panel instead of something launching the app does to you.
+        m_simulatorService = new SimulatorService(repo, m_navigationService,
+                                                  m_inMemoryBackend, this);
         ctx->setContextProperty(QStringLiteral("simulator"), m_simulatorService);
+        // The panel writes into whatever backs it, so it says what that is.
+        ctx->setContextProperty(QStringLiteral("simulatorBackend"), m_backendDescription);
+        ctx->setContextProperty(QStringLiteral("simulatorSeeded"), m_inMemoryBackend);
         ctx->setContextProperty(QStringLiteral("simulatorMode"), true);
         setupSimulatorAutoDrive();
     } else {

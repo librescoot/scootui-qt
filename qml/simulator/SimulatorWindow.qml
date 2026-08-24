@@ -4,7 +4,11 @@ import QtQuick.Layouts
 
 ApplicationWindow {
     id: simWindow
-    title: "ScootUI Simulator"
+    // Every control here writes into whichever repository backs the app, so the
+    // title says which one. Against a real Redis that is worth knowing before
+    // pressing anything.
+    title: "ScootUI Simulator (" + (typeof simulatorBackend !== "undefined"
+                                    ? simulatorBackend : "?") + ")"
     // Kept in step with Main.qml, which positions the 480 px UI window to the
     // left of this one by the same gap. Wide enough that the pinned header row
     // fits without horizontal scrolling.
@@ -194,6 +198,14 @@ ApplicationWindow {
                             columns: 3
                             columnSpacing: 4
                             rowSpacing: 4
+                            // Writes a full default state. Runs automatically at
+                            // startup only for the in-memory backend; against a
+                            // Redis it stays deliberate, since it overwrites
+                            // whatever is already in that instance.
+                            SimButton { text: "Seed"; small: true; Layout.fillWidth: true
+                                        color: (typeof simulatorSeeded !== "undefined" && simulatorSeeded)
+                                               ? "#555555" : "#FF9800"
+                                        onClicked: simulator.applyDefaults() }
                             SimButton { text: "Parked"; small: true; Layout.fillWidth: true; onClicked: simulator.loadPreset("parked") }
                             SimButton { text: "Ready"; small: true; Layout.fillWidth: true; onClicked: simulator.loadPreset("ready") }
                             SimButton { text: "Driving"; small: true; Layout.fillWidth: true; onClicked: simulator.loadPreset("driving") }

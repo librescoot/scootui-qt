@@ -71,7 +71,14 @@ cmake --build build -j$(nproc)
 SCOOTUI_REDIS_HOST=none ./build/bin/scootui
 ```
 
-Setting `SCOOTUI_REDIS_HOST=none` runs without a Redis connection, using the built-in simulator instead.
+Setting `SCOOTUI_REDIS_HOST=none` runs without a Redis connection, using the in-memory
+repository and the built-in simulator.
+
+The two are separate switches. `SCOOTUI_SIMULATOR=1` runs the simulator panel against a
+real Redis, for driving a dedicated instance with services alongside it or for mirroring
+a vehicle. In that case the panel does not seed anything at startup, since that would
+overwrite whatever is already in the instance; the Seed button next to the vehicle
+presets does it on request. The window title says which backend the panel is driving.
 
 ### Testing on a real DBC
 
@@ -147,7 +154,8 @@ assets/
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `SCOOTUI_REDIS_HOST` | `192.168.7.1` | Redis host (use `none` to disable). Supports `host:port` format |
+| `SCOOTUI_REDIS_HOST` | `192.168.7.1` | Redis host (use `none` for the in-memory repository). Supports `host:port` format |
+| `SCOOTUI_SIMULATOR` | follows the backend | `1`/`0` to force the simulator panel on or off. Unset it is on for the in-memory repository and off against Redis |
 | `SCOOTUI_RESOLUTION` | `480x480` | Display resolution (`WIDTHxHEIGHT`). UI scales automatically |
 | `SCOOTUI_SETTINGS_PATH` | _(none)_ | Path to persistent settings file |
 

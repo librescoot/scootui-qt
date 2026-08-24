@@ -17,7 +17,8 @@
 #include <QJsonArray>
 #include <QDebug>
 
-SimulatorService::SimulatorService(MdbRepository *repo, NavigationService *nav, QObject *parent)
+SimulatorService::SimulatorService(MdbRepository *repo, NavigationService *nav,
+                                   bool seedDefaults, QObject *parent)
     : QObject(parent)
     , m_repo(repo)
     , m_nav(nav)
@@ -52,7 +53,8 @@ SimulatorService::SimulatorService(MdbRepository *repo, NavigationService *nav, 
     });
     m_gpsTimestampTimer->start();
 
-    applyDefaults();
+    if (seedDefaults)
+        applyDefaults();
 }
 
 // --- Vehicle ---

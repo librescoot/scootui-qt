@@ -27,7 +27,7 @@ class MapDownloadService : public QObject
     Q_PROPERTY(qint64 estimatedRoutingBytes READ estimatedRoutingBytes NOTIFY estimatesChanged)
 
 public:
-    explicit MapDownloadService(bool simulatorMode, QObject *parent = nullptr);
+    explicit MapDownloadService(QObject *parent = nullptr);
 
     int status() const { return static_cast<int>(m_status); }
     double progress() const { return m_progress; }
@@ -138,7 +138,6 @@ private:
     QNetworkAccessManager *m_nam;
     QNetworkReply *m_currentReply = nullptr;
     QFile *m_currentFile = nullptr;
-    bool m_simulatorMode;
     bool m_cancelled = false;
     // Set while an update check is waiting on region resolution to finish.
     bool m_pendingUpdateCheck = false;
