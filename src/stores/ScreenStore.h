@@ -58,7 +58,8 @@ public:
     int setupMode() const { return m_setupMode; }
     int systemInfoPage() const { return m_systemInfoPage; }
 
-    enum SystemInfoPage { SystemInfoDevice = 0, SystemInfoConnectivity = 1, SystemInfoBatteries = 2 };
+    enum SystemInfoPage { SystemInfoDevice = 0, SystemInfoConnectivity = 1, SystemInfoBatteries = 2,
+                          SystemInfoMaps = 3 };
     Q_ENUM(SystemInfoPage)
 
 signals:

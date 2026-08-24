@@ -71,6 +71,10 @@ class Translations : public QObject
     Q_PROPERTY(QString systemInfoNetwork READ systemInfoNetwork NOTIFY languageChanged)
     Q_PROPERTY(QString menuInfoConnectivity READ menuInfoConnectivity NOTIFY languageChanged)
     Q_PROPERTY(QString menuInfoBatteries READ menuInfoBatteries NOTIFY languageChanged)
+    Q_PROPERTY(QString menuInfoMaps READ menuInfoMaps NOTIFY languageChanged)
+    Q_PROPERTY(QString systemInfoMapsRegion READ systemInfoMapsRegion NOTIFY languageChanged)
+    Q_PROPERTY(QString systemInfoMapsDisplay READ systemInfoMapsDisplay NOTIFY languageChanged)
+    Q_PROPERTY(QString systemInfoMapsRouting READ systemInfoMapsRouting NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoBoards READ systemInfoBoards NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoBluetooth READ systemInfoBluetooth NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoBattery0 READ systemInfoBattery0 NOTIFY languageChanged)
@@ -614,6 +618,10 @@ public:
     QString systemInfoNetwork() const { return lookup("systemInfoNetwork"); }
     QString menuInfoConnectivity() const { return lookup("menuInfoConnectivity"); }
     QString menuInfoBatteries() const { return lookup("menuInfoBatteries"); }
+    QString menuInfoMaps() const { return lookup("menuInfoMaps"); }
+    QString systemInfoMapsRegion() const { return lookup("systemInfoMapsRegion"); }
+    QString systemInfoMapsDisplay() const { return lookup("systemInfoMapsDisplay"); }
+    QString systemInfoMapsRouting() const { return lookup("systemInfoMapsRouting"); }
     QString systemInfoBoards() const { return lookup("systemInfoBoards"); }
     QString systemInfoBluetooth() const { return lookup("systemInfoBluetooth"); }
     QString systemInfoBattery0() const { return lookup("systemInfoBattery0"); }

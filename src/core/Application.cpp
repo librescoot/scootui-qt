@@ -282,8 +282,9 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // Navigation availability (B6)
     m_navAvailability = new NavigationAvailabilityService(settingsStore, internetStore, repo, this);
 
-    // Map download service
-    m_mapDownloadService = new MapDownloadService(this);
+    // Map download service. Takes the repository so it can mirror what is
+    // installed into the `maps` hash on the MDB.
+    m_mapDownloadService = new MapDownloadService(repo, this);
     m_gpsStore = gpsStore;
     m_vehicleStore = vehicleStore;
     m_settingsStore = settingsStore;
@@ -715,6 +716,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
             repo->set(QStringLiteral("dashboard"), QStringLiteral("serial-number"),
                       m_serialNumberService->serialNumber());
         }
+        if (m_mapDownloadService)
+            m_mapDownloadService->publishToRedis();
         repo->dashboardReady();
         // The first call runs before the worker has connected (the prewarm uses
         // its own throwaway context), so isConnected() is what decides whether

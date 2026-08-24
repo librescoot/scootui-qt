@@ -1171,6 +1171,7 @@ void MenuStore::rebuildMenuTree()
             {"info_components", tr->menuInfoComponents(), ScreenStore::SystemInfoDevice},
             {"info_connectivity", tr->menuInfoConnectivity(), ScreenStore::SystemInfoConnectivity},
             {"info_batteries", tr->menuInfoBatteries(), ScreenStore::SystemInfoBatteries},
+            {"info_maps", tr->menuInfoMaps(), ScreenStore::SystemInfoMaps},
         };
         for (const auto &p : pages) {
             const int page = p.page;

@@ -6,10 +6,13 @@
 #include <QFile>
 #include <QCryptographicHash>
 #include <QFutureWatcher>
+#include <QVariantMap>
 #include <functional>
 #include "models/Enums.h"
 #include "models/MapMetadata.h"
 #include "utils/ZstdDecompressor.h"
+
+class MdbRepository;
 
 class MapDownloadService : public QObject
 {
@@ -25,9 +28,15 @@ class MapDownloadService : public QObject
     Q_PROPERTY(bool hasPartialRoutingDownload READ hasPartialRoutingDownload NOTIFY partialStateChanged)
     Q_PROPERTY(qint64 estimatedDisplayBytes READ estimatedDisplayBytes NOTIFY estimatesChanged)
     Q_PROPERTY(qint64 estimatedRoutingBytes READ estimatedRoutingBytes NOTIFY estimatesChanged)
+    // What is installed, keyed exactly as the `maps` Redis hash is, so the
+    // info screen and MDB-side consumers cannot show different things.
+    Q_PROPERTY(QVariantMap mapInfo READ collectMapState NOTIFY mapInfoChanged)
 
 public:
-    explicit MapDownloadService(QObject *parent = nullptr);
+    // repo may be null (desktop builds without a repository). When it is set,
+    // every change to the on-disk metadata is mirrored into the `maps` hash so
+    // MDB-side consumers can read what is installed without touching the DBC.
+    explicit MapDownloadService(MdbRepository *repo = nullptr, QObject *parent = nullptr);
 
     int status() const { return static_cast<int>(m_status); }
     double progress() const { return m_progress; }
@@ -72,6 +81,15 @@ public:
     QString lastUpdateCheck() const { return m_metadata.lastUpdateCheck; }
     bool shouldCheckForUpdates() const;
 
+    // Re-publish the `maps` hash. Called on every Redis reconnect, because the
+    // MDB's valkey keeps nothing across a reboot and the dashboard is the only
+    // thing that can restate what is installed.
+    void publishToRedis();
+
+    // The installed-map facts, keyed as the `maps` hash fields are. Absent
+    // fields are simply missing from the map rather than present and empty.
+    QVariantMap collectMapState() const;
+
 signals:
     void statusChanged();
     void progressChanged();
@@ -84,10 +102,16 @@ signals:
     // Fires once per completed update check, whether or not anything changed,
     // so a manual check can report back even when there is nothing to report.
     void updateCheckCompleted(bool updateFound);
+    void mapInfoChanged();
 
 private:
     void setStatus(ScootEnums::MapDownloadStatus s);
     void setError(const QString &msg);
+
+    // Save metadata.json and mirror it into Redis. Every mutation of
+    // m_metadata goes through here: a save that skips the publish leaves the
+    // hash describing tiles that are no longer installed.
+    void persistMetadata();
 
     // Pipeline stages
     void doResolveSlug(double lat, double lng);
@@ -135,6 +159,7 @@ private:
     QString routingDestPath() const;
     bool hasEnoughDiskSpace(qint64 needed) const;
 
+    MdbRepository *m_repo = nullptr;
     QNetworkAccessManager *m_nam;
     QNetworkReply *m_currentReply = nullptr;
     QFile *m_currentFile = nullptr;

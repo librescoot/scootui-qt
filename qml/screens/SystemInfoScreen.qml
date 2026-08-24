@@ -24,6 +24,7 @@ Rectangle {
     readonly property int pageDevice: 0
     readonly property int pageConnectivity: 1
     readonly property int pageBatteries: 2
+    readonly property int pageMaps: 3
     readonly property int page: typeof screenStore !== "undefined" ? screenStore.systemInfoPage : 0
 
     readonly property string placeholder: "-"
@@ -151,6 +152,69 @@ Rectangle {
             ? auxBatteryStore.charge + "%" : "" }
     ]))
 
+    // ---- Maps page ----
+
+    // Keyed exactly as the `maps` Redis hash, so what the rider reads here and
+    // what a consumer reads over Redis cannot disagree.
+    readonly property var mapInfo: typeof mapDownloadService !== "undefined"
+                                   ? mapDownloadService.mapInfo : ({})
+
+    function humanBytes(bytes) {
+        var n = Number(bytes)
+        if (!isFinite(n) || n <= 0)
+            return ""
+        // Decimal MB, matching how the tile repos quote their sizes.
+        if (n >= 1000000000)
+            return (n / 1000000000).toFixed(1) + " GB"
+        return Math.round(n / 1000000) + " MB"
+    }
+
+    // Full sha256 does not fit the 480px panel and is not read digit by digit
+    // anyway. The leading 12 are plenty to tell two builds apart by eye.
+    function shortDigest(digest) {
+        return digest ? String(digest).substring(0, 12) : ""
+    }
+
+    // ISO-8601 down to the day. The time of day of an upstream tile build is
+    // noise for someone answering "how old are my maps".
+    function shortDate(iso) {
+        if (!iso)
+            return ""
+        var t = String(iso).indexOf("T")
+        return t > 0 ? String(iso).substring(0, t) : String(iso)
+    }
+
+    function yesNo(value) {
+        return value === "true" ? t("infoYes", "Yes") : t("infoNo", "No")
+    }
+
+    readonly property var mapRegionRows: (void systemInfoScreen.lang, present([
+        { label: t("infoRegion", "Region"),
+          value: mapInfo["region-name"] || mapInfo["region"] || "" },
+        { label: t("infoLastChecked", "Last checked"),
+          value: shortDate(mapInfo["last-update-check"]) },
+        { label: t("infoUpdateAvailable", "Update available"),
+          value: mapInfo["update-available"] !== undefined
+                 ? yesNo(mapInfo["update-available"]) : "" }
+    ]))
+
+    // An artifact with no entry at all is absent from disk, which is worth
+    // saying outright rather than rendering as a section with no rows.
+    function tileRows(prefix) {
+        void systemInfoScreen.lang
+        if (mapInfo[prefix + ":size"] === undefined)
+            return [{ label: t("infoStatus", "Status"), value: t("infoNotInstalled", "Not installed") }]
+        return present([
+            { label: t("infoSize", "Size"), value: humanBytes(mapInfo[prefix + ":size"]) },
+            { label: t("infoChecksum", "Checksum"), value: shortDigest(mapInfo[prefix + ":sha256"]) },
+            { label: t("infoPublished", "Published"), value: shortDate(mapInfo[prefix + ":published-at"]) },
+            { label: t("infoInstalled", "Installed"), value: shortDate(mapInfo[prefix + ":mtime"]) }
+        ])
+    }
+
+    readonly property var mapDisplayRows: (void systemInfoScreen.lang, tileRows("map"))
+    readonly property var mapRoutingRows: (void systemInfoScreen.lang, tileRows("routing"))
+
     readonly property bool pageIsEmpty: {
         if (page === pageConnectivity)
             return identityRows.length === 0 && networkRows.length === 0
@@ -158,6 +222,10 @@ Rectangle {
         if (page === pageBatteries)
             return battery0Rows.length === 0 && battery1Rows.length === 0
                    && cbbRows.length === 0 && auxRows.length === 0
+        // tileRows() always returns at least a "not installed" row, so the maps
+        // page is never empty.
+        if (page === pageMaps)
+            return false
         return versionRows.length === 0 && deviceRows.length === 0
     }
 
@@ -166,6 +234,7 @@ Rectangle {
             return "System Info"
         if (page === pageConnectivity) return translations.menuInfoConnectivity
         if (page === pageBatteries) return translations.menuInfoBatteries
+        if (page === pageMaps) return translations.menuInfoMaps
         return translations.menuInfoComponents
     }
 
@@ -317,6 +386,30 @@ Rectangle {
                     sectionTitle: typeof translations !== "undefined"
                                   ? translations.systemInfoAux : "AUX BATTERY"
                     rows: systemInfoScreen.auxRows
+                }
+
+                InfoSection {
+                    width: content.width
+                    pageActive: systemInfoScreen.page === systemInfoScreen.pageMaps
+                    sectionTitle: typeof translations !== "undefined"
+                                  ? translations.systemInfoMapsRegion : "REGION"
+                    rows: systemInfoScreen.mapRegionRows
+                }
+
+                InfoSection {
+                    width: content.width
+                    pageActive: systemInfoScreen.page === systemInfoScreen.pageMaps
+                    sectionTitle: typeof translations !== "undefined"
+                                  ? translations.systemInfoMapsDisplay : "DISPLAY TILES"
+                    rows: systemInfoScreen.mapDisplayRows
+                }
+
+                InfoSection {
+                    width: content.width
+                    pageActive: systemInfoScreen.page === systemInfoScreen.pageMaps
+                    sectionTitle: typeof translations !== "undefined"
+                                  ? translations.systemInfoMapsRouting : "ROUTING TILES"
+                    rows: systemInfoScreen.mapRoutingRows
                 }
 
                 // Shown when a whole page has nothing to report, so it never

@@ -1,11 +1,14 @@
 #include "MapDownloadService.h"
 
+#include "repositories/MdbRepository.h"
 #include "utils/ZstdDecompressor.h"
 
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QDateTime>
 #include <QDir>
+#include <QFileInfo>
 #include <QStorageInfo>
 #include <QDebug>
 #include <QtConcurrent>
@@ -40,8 +43,36 @@ const QHash<QString, QString> MapDownloadService::s_stateToSlug = {
     {QStringLiteral("Thüringen"), QStringLiteral("thueringen")},
 };
 
-MapDownloadService::MapDownloadService(QObject *parent)
+// Display names for every slug the tile repos publish. Kept apart from
+// s_stateToSlug because that one is keyed on what Nominatim returns for a
+// German state and is used to resolve a position; this one only ever renders.
+// Regions outside Germany have no Nominatim entry and so appear only here.
+static const QHash<QString, QString> s_slugToDisplayName = {
+    {QStringLiteral("baden-wuerttemberg"), QStringLiteral("Baden-Württemberg")},
+    {QStringLiteral("bayern"), QStringLiteral("Bayern")},
+    {QStringLiteral("belgium"), QStringLiteral("Belgium")},
+    {QStringLiteral("berlin_brandenburg"), QStringLiteral("Berlin & Brandenburg")},
+    {QStringLiteral("bremen"), QStringLiteral("Bremen")},
+    {QStringLiteral("hamburg"), QStringLiteral("Hamburg")},
+    {QStringLiteral("hessen"), QStringLiteral("Hessen")},
+    {QStringLiteral("ile-de-france"), QStringLiteral("Île-de-France")},
+    {QStringLiteral("italy-nord-ovest"), QStringLiteral("Italy (North-West)")},
+    {QStringLiteral("luxembourg"), QStringLiteral("Luxembourg")},
+    {QStringLiteral("mecklenburg-vorpommern"), QStringLiteral("Mecklenburg-Vorpommern")},
+    {QStringLiteral("netherlands"), QStringLiteral("Netherlands")},
+    {QStringLiteral("niedersachsen"), QStringLiteral("Niedersachsen (incl. Bremen)")},
+    {QStringLiteral("nordrhein-westfalen"), QStringLiteral("Nordrhein-Westfalen")},
+    {QStringLiteral("rheinland-pfalz"), QStringLiteral("Rheinland-Pfalz")},
+    {QStringLiteral("saarland"), QStringLiteral("Saarland")},
+    {QStringLiteral("sachsen"), QStringLiteral("Sachsen")},
+    {QStringLiteral("sachsen-anhalt"), QStringLiteral("Sachsen-Anhalt")},
+    {QStringLiteral("schleswig-holstein"), QStringLiteral("Schleswig-Holstein")},
+    {QStringLiteral("thueringen"), QStringLiteral("Thüringen")},
+};
+
+MapDownloadService::MapDownloadService(MdbRepository *repo, QObject *parent)
     : QObject(parent)
+    , m_repo(repo)
     , m_nam(new QNetworkAccessManager(this))
 {
     m_metadata = MapMetadata::load();
@@ -55,6 +86,10 @@ MapDownloadService::MapDownloadService(QObject *parent)
 
     adoptInstalledMaps();
     computeMissingDigests();
+
+    // Both of the above persist only when they changed something. A vehicle
+    // where neither fired still has to state what it has.
+    publishToRedis();
 
     // Check for partial downloads
     emit partialStateChanged();
@@ -97,6 +132,94 @@ void MapDownloadService::reloadMetadata()
              << (m_resolvedSlug.isEmpty() ? QStringLiteral("(none)") : m_resolvedSlug)
              << "lastCheck" << (m_metadata.lastUpdateCheck.isEmpty()
                                 ? QStringLiteral("(never)") : m_metadata.lastUpdateCheck);
+}
+
+// The Redis hash holding installed map state. Lives on the MDB, so anything on
+// either board can read what the dashboard has without powering the DBC up and
+// SSHing into it.
+static const QLatin1String MapsHash{"maps"};
+
+// Every field collectMapState() can produce. publishToRedis() walks this to
+// decide what to remove: a field the current state does not carry has to be
+// deleted, not left behind describing tiles that are no longer installed.
+static const char *const MapsFields[] = {
+    "region", "region-name",
+    "map:sha256", "map:size", "map:published-at", "map:mtime",
+    "routing:sha256", "routing:size", "routing:published-at", "routing:mtime",
+    "last-update-check", "update-available",
+};
+
+QVariantMap MapDownloadService::collectMapState() const
+{
+    QVariantMap state;
+
+    const auto put = [&state](const QString &key, const QString &value) {
+        if (!value.isEmpty())
+            state.insert(key, value);
+    };
+
+    // Size and mtime come from the filesystem, not from metadata.json. A
+    // vehicle flashed by the installer has the tiles but no bookkeeping, and
+    // "installed, provenance unknown" has to be distinguishable from "no tiles
+    // at all". The metadata entry can also outlive the file, since nothing
+    // rewrites metadata.json when someone removes an artifact by hand.
+    const auto describe = [&put](const QString &prefix, const QString &path,
+                                 const std::optional<MapTileInfo> &info) {
+        const QFileInfo fi{path};
+        if (!fi.exists())
+            return;
+        put(prefix + QStringLiteral(":size"), QString::number(fi.size()));
+        put(prefix + QStringLiteral(":mtime"), fi.lastModified().toUTC().toString(Qt::ISODate));
+        if (info) {
+            put(prefix + QStringLiteral(":sha256"), info->digest);
+            put(prefix + QStringLiteral(":published-at"), info->publishedAt);
+        }
+    };
+
+    describe(QStringLiteral("map"), displayDestPath(), m_metadata.displayTiles);
+    describe(QStringLiteral("routing"), routingDestPath(), m_metadata.valhallaTiles);
+
+    put(QStringLiteral("region"), m_metadata.region);
+    put(QStringLiteral("region-name"), displayNameForSlug(m_metadata.region));
+    put(QStringLiteral("last-update-check"), m_metadata.lastUpdateCheck);
+    state.insert(QStringLiteral("update-available"),
+                 m_metadata.updateAvailable ? QStringLiteral("true") : QStringLiteral("false"));
+
+    return state;
+}
+
+void MapDownloadService::persistMetadata()
+{
+    MapMetadata::save(m_metadata);
+    publishToRedis();
+}
+
+void MapDownloadService::publishToRedis()
+{
+    const QVariantMap state = collectMapState();
+    // Emitted before the repository check so the info screen still updates on
+    // desktop builds, which have no repository at all.
+    emit mapInfoChanged();
+
+    if (!m_repo)
+        return;
+
+    for (const char *name : MapsFields) {
+        const QString field = QLatin1String(name);
+        const auto it = state.constFind(field);
+        if (it != state.constEnd()) {
+            m_repo->set(MapsHash, field, it->toString());
+            continue;
+        }
+        // set() publishes the field name on the hash's channel; hdel() does
+        // not, so a subscriber would hear fields appear and never hear them go
+        // away. Pair the two by hand.
+        m_repo->hdel(MapsHash, field);
+        m_repo->publish(MapsHash, field);
+    }
+
+    m_repo->set(MapsHash, QStringLiteral("updated-at"),
+                QDateTime::currentDateTimeUtc().toString(Qt::ISODate));
 }
 
 bool MapDownloadService::hasPartialDisplayDownload() const
@@ -263,7 +386,7 @@ void MapDownloadService::checkForUpdates()
         }
 
         m_metadata.lastUpdateCheck = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
-        MapMetadata::save(m_metadata);
+        persistMetadata();
 
         // Go idle before announcing the update so a direct-connected slot that
         // reacts to updateAvailableChanged (e.g. Application's auto-download
@@ -274,7 +397,7 @@ void MapDownloadService::checkForUpdates()
         if (hasUpdate != m_updateAvailable) {
             m_updateAvailable = hasUpdate;
             m_metadata.updateAvailable = hasUpdate;
-            MapMetadata::save(m_metadata);
+            persistMetadata();
             emit updateAvailableChanged();
         }
 
@@ -374,7 +497,7 @@ void MapDownloadService::doResolveSlug(double lat, double lng)
         // downloading meant re-resolving on the next boot.
         if (m_metadata.region != m_resolvedSlug) {
             m_metadata.region = m_resolvedSlug;
-            MapMetadata::save(m_metadata);
+            persistMetadata();
         }
 
         if (m_pendingUpdateCheck) {
@@ -898,7 +1021,7 @@ void MapDownloadService::finishInstall(const QString &installSource, const QStri
     }
 
     m_metadata.region = m_resolvedSlug;
-    MapMetadata::save(m_metadata);
+    persistMetadata();
 
     emit partialStateChanged();
 
@@ -918,7 +1041,7 @@ void MapDownloadService::doFinishAll()
     if (m_updateAvailable) {
         m_updateAvailable = false;
         m_metadata.updateAvailable = false;
-        MapMetadata::save(m_metadata);
+        persistMetadata();
         emit updateAvailableChanged();
     }
     m_progress = 1.0;
@@ -938,15 +1061,9 @@ QString MapDownloadService::displayNameForSlug(const QString &slug) const
 {
     if (slug.isEmpty())
         return {};
-    if (slug == QLatin1String("berlin_brandenburg"))
-        return QStringLiteral("Berlin/Brandenburg");
-    if (slug == QLatin1String("niedersachsen"))
-        return QStringLiteral("Niedersachsen (incl. Bremen)");
-    for (auto it = s_stateToSlug.constBegin(); it != s_stateToSlug.constEnd(); ++it) {
-        if (it.value() == slug)
-            return it.key();
-    }
-    return slug;
+    // A slug the tile repos added since this build shipped still renders, just
+    // without the prettifying.
+    return s_slugToDisplayName.value(slug, slug);
 }
 
 QString MapDownloadService::mapsDir() const
@@ -1031,7 +1148,7 @@ void MapDownloadService::adoptInstalledMaps()
 
     if (changed) {
         qDebug() << "Adopting map files installed outside the dashboard";
-        MapMetadata::save(m_metadata);
+        persistMetadata();
     }
 }
 
@@ -1056,7 +1173,7 @@ bool MapDownloadService::adoptRegionFromManifest(const QJsonObject &manifest)
             m_resolvedSlug = it.key();
             m_regionName = displayNameForSlug(m_resolvedSlug);
             m_metadata.region = m_resolvedSlug;
-            MapMetadata::save(m_metadata);
+            persistMetadata();
             emit regionNameChanged();
             qDebug() << "Identified installed region from tile digests:" << m_resolvedSlug;
             return true;
@@ -1116,7 +1233,7 @@ void MapDownloadService::computeMissingDigests()
                 m_metadata.valhallaTiles->digest = digest;
                 qDebug() << "Computed routing map digest:" << digest;
             }
-            MapMetadata::save(m_metadata);
+            persistMetadata();
         });
         watcher->setFuture(future);
     }
