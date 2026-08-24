@@ -509,6 +509,9 @@ void Translations::initStrings()
     // Menu headers
     // -----------------------------------------------------------------------
 
+    en[QStringLiteral("menuNavigation")] = QStringLiteral("Navigation");
+    de[QStringLiteral("menuNavigation")] = QStringLiteral("Navigation");
+
     en[QStringLiteral("menuNavigationHeader")] = QStringLiteral("NAVIGATION");
     de[QStringLiteral("menuNavigationHeader")] = QStringLiteral("NAVIGATION");
 

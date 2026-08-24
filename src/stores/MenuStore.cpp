@@ -254,8 +254,11 @@ void MenuStore::rebuildMenuTree()
     }
 
     // === Navigation submenu (visible when display maps and routing are ready) ===
+    // The header was translated while the title next to it was a literal, the
+    // same mistake as the four headers below in the other direction. German
+    // happens to spell this one the same way, which is why it went unnoticed.
     auto *navNode = MenuNode::submenu(QStringLiteral("navigation"),
-                                       QStringLiteral("Navigation"),
+                                       tr->menuNavigation(),
                                        tr->menuNavigationHeader(),
                                        [this]() {
             bool hasLocalMaps = m_navAvailability && m_navAvailability->localDisplayMapsAvailable();
@@ -456,9 +459,11 @@ void MenuStore::rebuildMenuTree()
     }
 
     // === Settings submenu ===
+    // No explicit header: MenuNode falls back to the title uppercased, which
+    // is the same words already translated. Spelling the header out again as a
+    // literal is how these four ended up stuck in English.
     auto *settingsNode = MenuNode::submenu(QStringLiteral("settings"),
-                                           tr->menuSettings(),
-                                           QStringLiteral("SETTINGS"));
+                                           tr->menuSettings());
     m_rootNode->addChild(settingsNode);
 
     // Settings groups by topic. Ten flat entries did not fit the screen and
@@ -546,8 +551,7 @@ void MenuStore::rebuildMenuTree()
 
     // Status Bar (flat list of inline cycle settings)
     auto *statusBarNode = MenuNode::submenu(QStringLiteral("settings_status_bar"),
-                                            tr->menuStatusBar(),
-                                            QStringLiteral("STATUS BAR"));
+                                            tr->menuStatusBar());
 
 
     // Battery Display (inline cycle: Percentage → Range → Icons only)
@@ -653,8 +657,7 @@ void MenuStore::rebuildMenuTree()
 
     // Map & Navigation (flat list of inline cycle settings)
     auto *mapNavNode = MenuNode::submenu(QStringLiteral("settings_map"),
-                                         tr->menuMapNav(),
-                                         QStringLiteral("MAP"));
+                                         tr->menuMapNav());
     settingsNode->addChild(mapNavNode);
 
     // Map View (inline cycle: 3D → 2D). 2D is a flat top-down camera.
@@ -846,8 +849,7 @@ void MenuStore::rebuildMenuTree()
     }
 
     // Alarm
-    auto *alarmNode = MenuNode::submenu(QStringLiteral("settings_alarm"), tr->menuAlarm(),
-                                        QStringLiteral("ALARM"));
+    auto *alarmNode = MenuNode::submenu(QStringLiteral("settings_alarm"), tr->menuAlarm());
     vehicleNode->addChild(alarmNode);
     bool alarmOn = settings->alarmEnabled();
     bool alarmHonkOn = settings->alarmHonk();
@@ -1276,7 +1278,7 @@ QString MenuStore::parentTitle() const
 QString MenuStore::currentTitle() const
 {
     auto *node = findCurrentNode();
-    return node ? node->headerTitle() : QStringLiteral("MENU");
+    return node ? node->headerTitle() : m_translations->menuTitle();
 }
 
 QVariantList MenuStore::currentItems() const

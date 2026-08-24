@@ -179,6 +179,7 @@ class Translations : public QObject
     Q_PROPERTY(QString serviceModeActive READ serviceModeActive NOTIFY languageChanged)
 
     // Menu headers
+    Q_PROPERTY(QString menuNavigation READ menuNavigation NOTIFY languageChanged)
     Q_PROPERTY(QString menuNavigationHeader READ menuNavigationHeader NOTIFY languageChanged)
     Q_PROPERTY(QString menuSettingsHeader READ menuSettingsHeader NOTIFY languageChanged)
     Q_PROPERTY(QString menuThemeHeader READ menuThemeHeader NOTIFY languageChanged)
@@ -723,6 +724,7 @@ public:
     QString serviceModeActive() const { return lookup("serviceModeActive"); }
 
     // Menu headers
+    QString menuNavigation() const { return lookup("menuNavigation"); }
     QString menuNavigationHeader() const { return lookup("menuNavigationHeader"); }
     QString menuSettingsHeader() const { return lookup("menuSettingsHeader"); }
     QString menuThemeHeader() const { return lookup("menuThemeHeader"); }
