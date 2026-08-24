@@ -183,8 +183,7 @@ private:
     // the underlying condition resolved.
     void clearError();
     LatLng currentPosition() const;     // DR position when available, else raw GPS
-    LatLng currentGpsPosition() const;  // raw GPS only (for rerouting)
-    bool hasValidGps() const;
+    LatLng currentGpsPosition() const;
     RouteOrigin selectRouteOrigin() const;
     bool requestRoute(ValhallaClient::Reason reason);
     void armRerouteRetry();

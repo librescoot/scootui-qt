@@ -94,6 +94,11 @@ void GpsStore::applySnapshot(const QString &payload)
 
 void GpsStore::beginBatchUpdate()
 {
+    if (m_batchDepth == 0) {
+        m_batchWasValid = hasValidGps();
+        m_batchWasRecent = hasRecentFix();
+        m_batchAggregatePending = true;
+    }
     ++m_batchDepth;
 }
 
@@ -112,6 +117,13 @@ void GpsStore::finishBatch(bool forceSample)
 
     if (m_sampleDirty || m_forceSample)
         emit sampleChanged();
+    if (m_batchAggregatePending) {
+        if (hasValidGps() != m_batchWasValid)
+            emit hasValidGpsChanged();
+        if (hasRecentFix() != m_batchWasRecent)
+            emit recentFixChanged();
+        m_batchAggregatePending = false;
+    }
     m_sampleDirty = false;
     m_forceSample = false;
 }
@@ -163,7 +175,8 @@ void GpsStore::applyFieldUpdate(const QString &variable, const QString &value)
             bool wasValid = hasValidGps();
             m_latitude = v;
             emit latitudeChanged();
-            if (hasValidGps() != wasValid) emit hasValidGpsChanged();
+            if (m_batchDepth == 0 && hasValidGps() != wasValid)
+                emit hasValidGpsChanged();
             m_sampleDirty = true;
         }
     } else if (variable == QLatin1String("longitude")) {
@@ -172,7 +185,8 @@ void GpsStore::applyFieldUpdate(const QString &variable, const QString &value)
             bool wasValid = hasValidGps();
             m_longitude = v;
             emit longitudeChanged();
-            if (hasValidGps() != wasValid) emit hasValidGpsChanged();
+            if (m_batchDepth == 0 && hasValidGps() != wasValid)
+                emit hasValidGpsChanged();
             m_sampleDirty = true;
         }
     } else if (variable == QLatin1String("course")) {
@@ -194,8 +208,10 @@ void GpsStore::applyFieldUpdate(const QString &variable, const QString &value)
             m_timestampAge.restart();
             m_recentFixExpiry.start(static_cast<int>(m_recentFixThresholdMs + 1));
             emit timestampChanged();
-            if (hasRecentFix() != wasRecent) emit recentFixChanged();
-            if (hasValidGps() != wasValid) emit hasValidGpsChanged();
+            if (m_batchDepth == 0 && hasRecentFix() != wasRecent)
+                emit recentFixChanged();
+            if (m_batchDepth == 0 && hasValidGps() != wasValid)
+                emit hasValidGpsChanged();
             m_sampleDirty = true;
         }
     } else if (variable == QLatin1String("state")) {
@@ -204,7 +220,8 @@ void GpsStore::applyFieldUpdate(const QString &variable, const QString &value)
             bool wasRecent = hasRecentFix();
             m_gpsState = v;
             emit gpsStateChanged();
-            if (hasRecentFix() != wasRecent) emit recentFixChanged();
+            if (m_batchDepth == 0 && hasRecentFix() != wasRecent)
+                emit recentFixChanged();
             m_sampleDirty = true;
         }
     } else if (variable == QLatin1String("eph")) {

@@ -20,6 +20,7 @@ struct GpsSample {
         return std::isfinite(latitude) && std::isfinite(longitude)
             && latitude >= -90.0 && latitude <= 90.0
             && longitude >= -180.0 && longitude <= 180.0
+            && (latitude != 0.0 || longitude != 0.0)
             && !timestamp.isEmpty();
     }
 
@@ -167,6 +168,9 @@ private:
     void finishBatch(bool forceSample = false);
     bool m_tpvSubscribed = false;
     int m_batchDepth = 0;
+    bool m_batchWasValid = false;
+    bool m_batchWasRecent = false;
+    bool m_batchAggregatePending = false;
     bool m_sampleDirty = false;
     bool m_forceSample = false;
     double m_latitude = 0;

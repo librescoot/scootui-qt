@@ -21,6 +21,7 @@ void GpsStoreTest::snapshotIsPublishedAtomically()
 
     int samples = 0;
     QList<GpsSample> observed;
+    QSignalSpy validSpy(&store, &GpsStore::hasValidGpsChanged);
     connect(&store, &GpsStore::sampleChanged, this, [&]() {
         ++samples;
         observed.append(store.currentSample());
@@ -37,6 +38,7 @@ void GpsStoreTest::snapshotIsPublishedAtomically()
     QCOMPARE(observed.first().speedKmh, 31.2);
     QVERIFY(observed.first().hasValidCoordinate());
     QVERIFY(store.timestampAgeMs() < 100);
+    QCOMPARE(validSpy.count(), 1);
 }
 
 void GpsStoreTest::recentFixExpiresWithNotification()
@@ -64,6 +66,10 @@ void GpsStoreTest::rejectsIncompleteAndOutOfRangeCoordinates()
 
     sample.longitude = 13.4;
     QVERIFY(sample.hasValidCoordinate());
+
+    sample.latitude = 0.0;
+    sample.longitude = 0.0;
+    QVERIFY(!sample.hasValidCoordinate());
 
     sample.timestamp.clear();
     QVERIFY(!sample.hasValidCoordinate());

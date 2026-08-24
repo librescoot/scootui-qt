@@ -343,6 +343,7 @@ void MapService::setRouteWaypoints(const QVariantList &waypoints)
     // one remains visible but the vehicle follows the unconstrained estimate.
     m_drLocked = lockNewRoute;
     m_routeSnapState.reset(lockNewRoute);
+    m_lastWasOffRoute = false;
     m_projectionCadence.reset();
 
     updateRouteGeoJson();
@@ -374,6 +375,7 @@ void MapService::clearRoute()
     m_lastRouteBearing = -1;
     m_drLocked = true;
     m_routeSnapState.reset(true);
+    m_lastWasOffRoute = false;
     m_projectionCadence.reset();
 
     m_routeCoordinates.clear();
@@ -537,15 +539,6 @@ void MapService::onGpsPositionChanged()
 
     m_lastGpsLatitude = gpsLat;
     m_lastGpsLongitude = gpsLng;
-
-    // Off-route -> on-route transition: unlock the HWM so the matcher can
-    // land on any segment when the rider re-acquires the route. Without
-    // this, an overshoot-and-reverse back to a segment behind the old HWM
-    // leaves the matcher stuck on a segment the rider has already left.
-    bool nowOffRoute = m_navigation && m_navigation->isOffRoute();
-    if (m_lastWasOffRoute && !nowOffRoute)
-        m_maxReachedSegment = -1;
-    m_lastWasOffRoute = nowOffRoute;
 
     if (!stationary && recentFix && accurateEnough && m_routeShape.size() >= 2 &&
         !(m_navigation && (m_navigation->isOffRoute() || m_navigation->isRerouting()))) {
@@ -1121,6 +1114,13 @@ void MapService::onDeadReckoningTick()
 
     const bool haveRouteShape = m_routeShape.size() >= 2
         && m_currentRouteSegment >= 0;
+    // Observe deviation transitions on the estimator clock, not only on GPS
+    // arrivals. Rejoining during a GPS gap must still release the segment
+    // high-water mark so an overshoot-and-reverse can match an earlier leg.
+    const bool nowOffRoute = m_navigation && m_navigation->isOffRoute();
+    if (m_lastWasOffRoute && !nowOffRoute)
+        m_maxReachedSegment = -1;
+    m_lastWasOffRoute = nowOffRoute;
     bool routeUsable = haveRouteShape && !m_navigation->isOffRoute()
         && !m_navigation->isRerouting();
 

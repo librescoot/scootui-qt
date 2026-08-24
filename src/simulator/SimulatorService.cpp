@@ -34,10 +34,10 @@ SimulatorService::SimulatorService(MdbRepository *repo, NavigationService *nav,
 
     m_autoDriveTimer = new QTimer(this);
     // Match real hardware: modem-service publishes GPS at 1 Hz on the
-    // scooter. Running the sim at 10 Hz created a rate mismatch with
-    // MapService's 15 Hz DR tick and GpsStore's 4 Hz poll that manifested
-    // as per-poll forward-then-back marker jitter. 1 Hz sim tick keeps the
-    // ratios the same as production.
+    // scooter. Running the sim at 10 Hz created a rate mismatch with the
+    // 20 Hz estimator/render tick and manifested as per-update
+    // forward-then-back marker jitter. 1 Hz is an exact divisor and matches
+    // production modem-service.
     m_autoDriveTimer->setInterval(1000); // 1 Hz — matches production modem-service
     connect(m_autoDriveTimer, &QTimer::timeout, this, &SimulatorService::autoDriveTick);
 
@@ -350,12 +350,16 @@ void SimulatorService::setGpsPosition(double lat, double lng)
     m_autoDriveLng = lng;
     if (m_gpsFrozen) return;
     const QString now = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
+    // Store the whole fix before publishing once. Separate notifications used
+    // to expose the new latitude paired with the previous longitude in the
+    // simulator even though production gps:tpv samples are atomic.
     m_repo->set(QStringLiteral("gps"), QStringLiteral("latitude"),
-                QString::number(lat, 'f', 8));
+                QString::number(lat, 'f', 8), false);
     m_repo->set(QStringLiteral("gps"), QStringLiteral("longitude"),
-                QString::number(lng, 'f', 8));
-    m_repo->set(QStringLiteral("gps"), QStringLiteral("updated"), now);
-    m_repo->set(QStringLiteral("gps"), QStringLiteral("timestamp"), now);
+                QString::number(lng, 'f', 8), false);
+    m_repo->set(QStringLiteral("gps"), QStringLiteral("updated"), now, false);
+    m_repo->set(QStringLiteral("gps"), QStringLiteral("timestamp"), now, false);
+    m_repo->publish(QStringLiteral("gps"), QStringLiteral("position"));
 }
 
 void SimulatorService::setGpsCourse(double course)

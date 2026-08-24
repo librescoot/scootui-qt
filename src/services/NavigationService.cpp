@@ -692,8 +692,8 @@ void NavigationService::onGpsChanged()
     // so navigation and dead reckoning can continue through brief GPS gaps
     if (!m_gps) return;
 
-    bool hasPosition = (m_gps->latitude() != 0 || m_gps->longitude() != 0);
-    if (!hasPosition) return;
+    if (!m_gps->currentSample().hasValidCoordinate())
+        return;
 
     // Nav state is normally driven by MapService's DR tick via
     // onVehiclePositionChanged. Only run here as a fallback when DR isn't
@@ -1171,7 +1171,8 @@ void NavigationService::updateNextPreviewState()
 LatLng NavigationService::currentGpsPosition() const
 {
     if (!m_gps) return {};
-    return {m_gps->latitude(), m_gps->longitude()};
+    const GpsSample sample = m_gps->currentSample();
+    return {sample.latitude, sample.longitude};
 }
 
 LatLng NavigationService::currentPosition() const
@@ -1185,12 +1186,6 @@ LatLng NavigationService::currentPosition() const
         if (lat != 0 || lng != 0) return {lat, lng};
     }
     return currentGpsPosition();
-}
-
-bool NavigationService::hasValidGps() const
-{
-    if (!m_gps) return false;
-    return m_gps->hasValidGps();
 }
 
 RouteOrigin NavigationService::selectRouteOrigin() const
