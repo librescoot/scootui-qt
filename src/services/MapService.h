@@ -230,6 +230,10 @@ private:
     // term closes the gap between cumulative DR distance and odometer.
     static constexpr double CatchupRate = 0.5;         // /s — closes half of deficit per second
     static constexpr double MaxCatchupPerTick = 0.5;   // meters — clamp per-tick correction
+    // Second ceiling on the catchup, as a share of the travel the rider is
+    // actually making this tick. Keeps the correction tied to real motion
+    // instead of running at a flat metres-per-tick rate of its own.
+    static constexpr double MaxCatchupFraction = 0.5;
     static constexpr double StationarySpeedMs = 0.3;   // below this, assume no motion
     // A stationary GPS receiver still reports a few km/h of noise, so GPS speed
     // is only believed well clear of it.

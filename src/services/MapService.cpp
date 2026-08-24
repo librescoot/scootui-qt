@@ -1135,6 +1135,13 @@ void MapService::onDeadReckoningTick()
     // ----- Speed (ECU, or GPS while the ECU is silent; km/h -> m/s) -----
     double speedKmh = effectiveSpeedKmh();
     double speedMs = speedKmh * (1000.0 / 3600.0);
+    bool stationary = speedMs < StationarySpeedMs;
+
+    // Travel this tick from the speed feedforward, zeroed while stopped so
+    // speed noise doesn't integrate into the odometer ledger. Both branches
+    // below need it: the snapping one to keep the ledger honest, the
+    // projecting one to bound the catchup.
+    double ffAdvance = stationary ? 0.0 : speedMs * dt;
 
     // ----- Odometer-primary distance (odometer = truth, speed = feedforward) -----
     // Seed on first tick after we have a map position; odometer deltas from
@@ -1143,8 +1150,12 @@ void MapService::onDeadReckoningTick()
     // reconcile via a bounded catchup term so the map marker stays smooth.
     double odoNow = m_engine->odometer();
     if (!m_odoSeeded) {
-        if (odoNow > 0 || m_engine->odometer() == 0) {
-            // Accept even a zero reading — we just need a baseline.
+        // Wait for a real reading. EngineStore reports 0 until ecu-service has
+        // published, and seeding on that makes m_odoTarget the entire odometer
+        // the moment the first real value arrives, which pins the catchup at
+        // its ceiling for the rest of the session. A vehicle whose odometer
+        // genuinely reads 0 just runs on pure feedforward for its first 100 m.
+        if (odoNow > 0) {
             m_odoAtSeed = odoNow;
             m_odoTarget = 0;
             m_drTravelled = 0;
@@ -1165,6 +1176,13 @@ void MapService::onDeadReckoningTick()
 
     // ----- Snap animation -----
     if (m_isSnapping) {
+        // A snap is a display correction, not travel: the rider keeps covering
+        // ground while the marker slides. Advance the ledger anyway, or the
+        // whole snap duration books as odometer deficit that the catchup later
+        // pays out as motion the rider never made.
+        if (m_odoSeeded)
+            m_drTravelled += ffAdvance;
+
         m_snapProgress += dt / SnapAnimationDuration;
         if (m_snapProgress >= 1.0) {
             m_snapProgress = 1.0;
@@ -1183,16 +1201,24 @@ void MapService::onDeadReckoningTick()
         // ----- Project position forward -----
         // Feedforward: speed × dt between odometer edges.
         // Correction:  bounded pull toward odoTarget (ground truth).
-        double ffAdvance = speedMs * dt;
-        if (speedMs < StationarySpeedMs)
-            ffAdvance = 0;  // don't integrate speed noise while stopped
-
+        //
+        // The catchup ceiling is a share of this tick's own travel, so the
+        // marker can never move faster than a fixed multiple of the rider's
+        // actual speed. A flat metres-per-tick ceiling decouples the two: at a
+        // standstill ffAdvance is 0, which collapses the rewind bound to 0 and
+        // leaves a one-way forward creep running at the ceiling (0.5 m per
+        // 66 ms tick, 27 km/h) with nothing to oppose it, since GPS blending
+        // and route snapping are both disabled while stationary. Skip the
+        // whole term when stopped: the odometer isn't advancing either, so
+        // there is no travel to reconcile.
         double distMeters = ffAdvance;
-        if (m_odoSeeded) {
+        if (m_odoSeeded && !stationary) {
             double deficit = m_odoTarget - m_drTravelled;
+            double maxCatchup = std::min(ffAdvance * MaxCatchupFraction,
+                                          MaxCatchupPerTick);
             double correction = std::clamp(deficit * CatchupRate * dt,
-                                            -ffAdvance,            // never rewind
-                                            MaxCatchupPerTick);     // never lurch
+                                            -ffAdvance,     // never rewind
+                                            maxCatchup);    // never outrun the rider
             distMeters = std::max(0.0, ffAdvance + correction);
             m_drTravelled += distMeters;
         }
@@ -1214,10 +1240,9 @@ void MapService::onDeadReckoningTick()
         }
 
         // ----- GPS correction blending (only when GPS fix is recent) -----
-        // While stationary (ECU says we're not moving), skip GPS blending and
-        // route snapping — GPS jitter would otherwise slide the marker along
-        // the route and snap back when the fix recovers.
-        bool stationary = speedMs < StationarySpeedMs;
+        // While stationary, skip GPS blending and route snapping - GPS jitter
+        // would otherwise slide the marker along the route and snap back when
+        // the fix recovers.
         if (!stationary && m_gps->hasRecentFix()) {
             blendGpsCorrection(dt);
         }
