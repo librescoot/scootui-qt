@@ -84,6 +84,7 @@ public:
 
     double vehicleLatitude() const { return m_drLatitude; }
     double vehicleLongitude() const { return m_drLongitude; }
+    double positionUncertaintyMeters() const { return m_positionUncertaintyMeters; }
     bool hasVehiclePosition() const { return m_hasInitialPosition; }
 
     // Route-projection state — authoritative source for NavigationService.
@@ -229,6 +230,8 @@ private:
     // stale and letting uncertainty/reroute policy handle it.
     static constexpr double MaxGpsProjectionAgeMs = 2000.0;
     static constexpr double MaxEstimatorEphMeters = 50.0;
+    static constexpr double DefaultGpsUncertaintyMeters = 15.0;
+    static constexpr double MaxPositionUncertaintyMeters = 500.0;
 
     static constexpr double StationarySpeedMs = 0.3;   // below this, assume no motion
     static constexpr double StationaryGpsBlendScale = 0.10;
@@ -358,6 +361,7 @@ private:
     // --- Dead reckoning state ---
     double m_drLatitude = 0;
     double m_drLongitude = 0;
+    double m_positionUncertaintyMeters = MaxPositionUncertaintyMeters;
     double m_lastGpsLatitude = 0;
     double m_lastGpsLongitude = 0;
     bool m_hasInitialPosition = false;

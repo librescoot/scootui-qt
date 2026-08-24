@@ -459,4 +459,13 @@ if(BUILD_TESTING)
     target_include_directories(position_estimator_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(position_estimator_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME position_estimator_test COMMAND position_estimator_test)
+
+    qt_add_executable(reroute_policy_test
+        tests/ReroutePolicyTest.cpp
+        src/routing/ReroutePolicy.h
+        src/routing/RouteModels.h
+    )
+    target_include_directories(reroute_policy_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(reroute_policy_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME reroute_policy_test COMMAND reroute_policy_test)
 endif()

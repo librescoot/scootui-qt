@@ -4,6 +4,7 @@
 #include <QTimer>
 #include <QElapsedTimer>
 #include <QVariantMap>
+#include "routing/ReroutePolicy.h"
 #include "routing/RouteModels.h"
 #include "routing/ValhallaClient.h"
 
@@ -161,6 +162,7 @@ private slots:
     void onRouteError(const QString &error);
     void onRequestRejected(ValhallaClient::Reason reason,
                            ValhallaClient::RejectionCause cause);
+    void onRequestDispatched(ValhallaClient::Reason reason);
     void onVehiclePositionChanged();
 
 private:
@@ -179,6 +181,9 @@ private:
     LatLng currentPosition() const;     // DR position when available, else raw GPS
     LatLng currentGpsPosition() const;  // raw GPS only (for rerouting)
     bool hasValidGps() const;
+    RouteOrigin selectRouteOrigin() const;
+    bool requestRoute(ValhallaClient::Reason reason);
+    void armRerouteRetry();
 
     // Local wall-clock "now" derived from GPS time, formatted for Valhalla's
     // date_time.value, or empty when no trusted GPS time is available. GPS time
@@ -277,6 +282,13 @@ private:
     int m_prevLeadingShapeIdx = -1;
 
     QTimer *m_navDataDebounce = nullptr;
+
+    // A deviation is allowed one queued reroute until it is either dispatched
+    // or explicitly retried after the client's cooldown. This keeps the 5 Hz
+    // navigation update from continually replacing the pending request.
+    RerouteEpisodeGate m_rerouteGate;
+    QTimer *m_rerouteRetry = nullptr;
+    ValhallaClient::Reason m_activeRouteReason = ValhallaClient::Reason::Initial;
 
     // How long the error pill stays up before it drops itself. Matches
     // ToastService's error duration so the pill and its toast go together.

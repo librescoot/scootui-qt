@@ -8,6 +8,8 @@
 #include <QSslConfiguration>
 #include <QDebug>
 
+#include <cmath>
+
 ValhallaClient::ValhallaClient(QObject *parent)
     : QObject(parent)
     , m_endpoint(QStringLiteral("http://127.0.0.1:8002/"))
@@ -93,6 +95,14 @@ bool ValhallaClient::rateFloorActive() const
 
 void ValhallaClient::requestRoute(const LatLng &from, const LatLng &to, Reason reason)
 {
+    RouteOrigin origin;
+    origin.position = from;
+    origin.radiusMeters = 50;
+    requestRoute(origin, to, reason);
+}
+
+void ValhallaClient::requestRoute(const RouteOrigin &from, const LatLng &to, Reason reason)
+{
     m_pendingFrom = from;
     m_pendingTo = to;
     m_pendingReason = reason;
@@ -166,13 +176,14 @@ void ValhallaClient::dispatchPending()
 
     switch (result) {
     case DispatchResult::OK: {
-        LatLng from = m_pendingFrom;
+        RouteOrigin from = m_pendingFrom;
         LatLng to = m_pendingTo;
         Reason reason = m_pendingReason;
         m_hasPending = false;
         m_userRequestDeadline.stop();
 
         sendRouteRequest(from, to);
+        emit requestDispatched(reason);
 
         m_sinceLastDispatch.restart();
         m_firstAutoDispatch = false;
@@ -203,7 +214,7 @@ void ValhallaClient::dispatchPending()
     }
 }
 
-void ValhallaClient::sendRouteRequest(const LatLng &from, const LatLng &to)
+void ValhallaClient::sendRouteRequest(const RouteOrigin &from, const LatLng &to)
 {
     // Abort any in-flight reply before issuing a new request so its result
     // can't race ahead of the one we're about to dispatch
@@ -219,9 +230,14 @@ void ValhallaClient::sendRouteRequest(const LatLng &from, const LatLng &to)
 
     QJsonObject request;
     QJsonArray locations;
-    locations.append(QJsonObject{{QStringLiteral("lat"), from.latitude},
-                                  {QStringLiteral("lon"), from.longitude},
-                                  {QStringLiteral("radius"), 150}});
+    QJsonObject origin{{QStringLiteral("lat"), from.position.latitude},
+                       {QStringLiteral("lon"), from.position.longitude},
+                       {QStringLiteral("radius"), from.radiusMeters}};
+    if (from.heading >= 0.0 && std::isfinite(from.heading)) {
+        origin[QStringLiteral("heading")] = from.heading;
+        origin[QStringLiteral("heading_tolerance")] = from.headingToleranceDegrees;
+    }
+    locations.append(origin);
     locations.append(QJsonObject{{QStringLiteral("lat"), to.latitude},
                                   {QStringLiteral("lon"), to.longitude},
                                   {QStringLiteral("radius"), 150}});

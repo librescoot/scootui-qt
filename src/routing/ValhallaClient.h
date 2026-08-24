@@ -63,6 +63,7 @@ public:
     // Single entry point. Coalesces rapid callers via DebounceIntervalMs; latest
     // (from, to, reason) wins. Governance applied at dispatch time.
     void requestRoute(const LatLng &from, const LatLng &to, Reason reason);
+    void requestRoute(const RouteOrigin &from, const LatLng &to, Reason reason);
 
     // Cancel any pending + in-flight.
     void cancelPending();
@@ -96,6 +97,7 @@ signals:
     void rateLimited();
     void statusChecked(bool available);
     void requestRejected(ValhallaClient::Reason reason, ValhallaClient::RejectionCause cause);
+    void requestDispatched(ValhallaClient::Reason reason);
     void healthChanged();
     void tilesetLastModifiedChanged();
 
@@ -112,7 +114,7 @@ private:
 
     void dispatchPending();
     DispatchResult canDispatch(Reason reason, RejectionCause &cause) const;
-    void sendRouteRequest(const LatLng &from, const LatLng &to);
+    void sendRouteRequest(const RouteOrigin &from, const LatLng &to);
     void handleRouteReply(QNetworkReply *reply);
 
     // Lower-priority follow-up to a successful /route. Yields to any pending
@@ -142,7 +144,7 @@ private:
 
     // Debounce: latest pending request, dispatched when m_debounce fires
     QTimer m_debounce;
-    LatLng m_pendingFrom;
+    RouteOrigin m_pendingFrom;
     LatLng m_pendingTo;
     Reason m_pendingReason = Reason::Initial;
     bool m_hasPending = false;

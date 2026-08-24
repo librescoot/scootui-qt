@@ -434,6 +434,9 @@ void MapService::onGpsPositionChanged()
         m_hasInitialPosition = true;
         m_drLatitude = gpsLat;
         m_drLongitude = gpsLng;
+        m_positionUncertaintyMeters = sample.ephMeters > 0.0
+            ? std::clamp(sample.ephMeters, 3.0, MaxEstimatorEphMeters)
+            : DefaultGpsUncertaintyMeters;
         m_lastGpsLatitude = gpsLat;
         m_lastGpsLongitude = gpsLng;
         m_gpsErrorLatitude = 0;
@@ -506,6 +509,12 @@ void MapService::onGpsPositionChanged()
     if (recentFix && accurateEnough) {
         const double error = haversineDistance(m_drLatitude, m_drLongitude,
                                                gpsLat, gpsLng);
+        const double measurementUncertainty = sample.ephMeters > 0.0
+            ? std::clamp(sample.ephMeters, 3.0, MaxEstimatorEphMeters)
+            : DefaultGpsUncertaintyMeters;
+        m_positionUncertaintyMeters = std::max(
+            measurementUncertainty,
+            std::min(error, MaxPositionUncertaintyMeters));
         if (error > SnapUpperThreshold) {
             // A physically impossible estimator error is safer to reset than
             // to spend minutes recovering. This never implies a route snap.
@@ -1093,6 +1102,9 @@ void MapService::onDeadReckoningTick()
     double speedKmh = effectiveSpeedKmh();
     double speedMs = speedKmh * (1000.0 / 3600.0);
     bool stationary = speedMs < StationarySpeedMs;
+    m_positionUncertaintyMeters = std::min(
+        MaxPositionUncertaintyMeters,
+        m_positionUncertaintyMeters + dt * (0.5 + speedMs * 0.03));
     const double distMeters = m_odometerReconciler.advance(
         m_engine->odometer(), stationary ? 0.0 : speedMs, dt);
 

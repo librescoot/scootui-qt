@@ -70,6 +70,8 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
             this, &NavigationService::onRouteError);
     connect(m_valhalla, &ValhallaClient::requestRejected,
             this, &NavigationService::onRequestRejected);
+    connect(m_valhalla, &ValhallaClient::requestDispatched,
+            this, &NavigationService::onRequestDispatched);
 
     // Listen to GPS updates
     connect(gps, &GpsStore::sampleChanged, this, &NavigationService::onGpsChanged);
@@ -86,6 +88,17 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
     m_errorLinger->setSingleShot(true);
     m_errorLinger->setInterval(ErrorLingerMs);
     connect(m_errorLinger, &QTimer::timeout, this, &NavigationService::clearError);
+
+    m_rerouteRetry = new QTimer(this);
+    m_rerouteRetry->setSingleShot(true);
+    m_rerouteRetry->setInterval(ValhallaClient::RerouteCooldownMs
+                                + ValhallaClient::DebounceIntervalMs);
+    connect(m_rerouteRetry, &QTimer::timeout, this, [this]() {
+        if (!m_isOffRoute || !m_route.isValid())
+            return;
+        m_rerouteGate.retryReady();
+        updateNavigationState();
+    });
 
     auto debounceNav = [this]() { m_navDataDebounce->start(); };
     connect(nav, &NavigationStore::latitudeChanged, this, debounceNav);
@@ -109,10 +122,8 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
     auto applyRoutingPrefs = [this]() {
         m_valhalla->setRoutePreference(m_settings->routePreference());
         m_valhalla->setAvoidCobblestone(m_settings->avoidCobblestone());
-        if (isNavigating() && hasValidGps() && m_destination.isValid()) {
-            m_valhalla->requestRoute(currentGpsPosition(), m_destination,
-                                     ValhallaClient::Reason::Destination);
-        }
+        if (isNavigating() && m_destination.isValid())
+            requestRoute(ValhallaClient::Reason::Destination);
     };
     connect(settings, &SettingsStore::routePreferenceChanged, this, applyRoutingPrefs);
     connect(settings, &SettingsStore::avoidCobblestoneChanged, this, applyRoutingPrefs);
@@ -120,10 +131,8 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
     // Listen to language changes — recalculate route to get translated directions
     connect(settings, &SettingsStore::languageChanged, this, [this]() {
         m_valhalla->setLanguage(m_settings->language());
-        if (isNavigating() && hasValidGps() && m_destination.isValid()) {
-            m_valhalla->requestRoute(currentGpsPosition(), m_destination,
-                                     ValhallaClient::Reason::LanguageChange);
-        }
+        if (isNavigating() && m_destination.isValid())
+            requestRoute(ValhallaClient::Reason::LanguageChange);
     });
 
     m_lastDrUpdate.start();
@@ -599,6 +608,8 @@ void NavigationService::setDestination(double lat, double lng, const QString &ad
     m_remainingDuration = 0;
     m_distanceFromRoute = 0;
     m_isOffRoute = false;
+    m_rerouteGate.reset();
+    m_rerouteRetry->stop();
     m_wasArrived = false;
     m_currentSegmentIndex = 0;
     m_hasLastPassedManeuver = false;
@@ -635,17 +646,12 @@ void NavigationService::setDestination(double lat, double lng, const QString &ad
                 QString::number(lng, 'f', 6));
     m_repo->publish(QStringLiteral("navigation"), QStringLiteral("updated"));
 
-    if (!hasValidGps()) {
-        qDebug() << "NavigationService: waiting for GPS fix before calculating route";
-        return;
-    }
-    LatLng from = currentGpsPosition();
-    if (!from.isValid()) {
-        qDebug() << "NavigationService: GPS position is (0,0)";
+    if (!selectRouteOrigin().isValid()) {
+        qDebug() << "NavigationService: waiting for a trustworthy position before calculating route";
         return;
     }
     setStatus(NavigationStatus::Calculating);
-    m_valhalla->requestRoute(from, m_destination, ValhallaClient::Reason::Destination);
+    requestRoute(ValhallaClient::Reason::Destination);
 }
 
 void NavigationService::clearNavigation()
@@ -659,6 +665,8 @@ void NavigationService::clearNavigation()
     m_remainingDuration = 0;
     m_distanceFromRoute = 0;
     m_isOffRoute = false;
+    m_rerouteGate.reset();
+    m_rerouteRetry->stop();
     m_wasArrived = false;
     m_currentSegmentIndex = 0;
     m_hasLastPassedManeuver = false;
@@ -715,17 +723,13 @@ void NavigationService::onGpsChanged()
     // Recovery: destination loaded but route not yet calculated (GPS wasn't ready)
     if (m_destination.isValid() && !m_route.isValid() &&
         (m_status == NavigationStatus::Idle || m_status == NavigationStatus::Error)) {
-        if (hasValidGps()) {
+        if (selectRouteOrigin().isValid()) {
             LatLng pos = currentPosition();
             double dist = pos.distanceTo(m_destination);
             if (dist < ArrivalProximity) {
                 clearNavigation();
             } else {
-                LatLng from = currentGpsPosition();
-                if (from.isValid()) {
-                    m_valhalla->requestRoute(from, m_destination,
-                                             ValhallaClient::Reason::Recovery);
-                }
+                requestRoute(ValhallaClient::Reason::Recovery);
             }
         }
     }
@@ -774,15 +778,11 @@ void NavigationService::onNavigationDataChanged()
     // label when address is empty.
     emit destinationRequested(lat, lng, m_nav->address());
 
-    if (hasValidGps()) {
-        LatLng from = currentGpsPosition();
-        if (from.isValid()) {
-            setStatus(NavigationStatus::Calculating);
-            m_valhalla->requestRoute(from, m_destination,
-                                     ValhallaClient::Reason::Destination);
-        }
+    if (selectRouteOrigin().isValid()) {
+        setStatus(NavigationStatus::Calculating);
+        requestRoute(ValhallaClient::Reason::Destination);
     } else {
-        qDebug() << "NavigationService: waiting for GPS fix before calculating route";
+        qDebug() << "NavigationService: waiting for a trustworthy position before calculating route";
     }
 }
 
@@ -815,6 +815,9 @@ void NavigationService::onRouteCalculated(const Route &route)
     m_routeStartedAt.restart();
     m_hasLastPassedManeuver = false;
     m_prevLeadingShapeIdx = -1;
+    m_isOffRoute = false;
+    m_rerouteGate.reset();
+    m_rerouteRetry->stop();
 
     if (!m_destination.isValid() && !route.waypoints.isEmpty()) {
         m_destination = route.waypoints.last();
@@ -823,10 +826,16 @@ void NavigationService::onRouteCalculated(const Route &route)
 
     setStatus(NavigationStatus::Navigating);
     clearError();
+    // MapService handles routeChanged synchronously and recomputes distance
+    // from the independent physical pose. If this route was correlated onto
+    // the wrong road, the update below immediately starts a new deviation
+    // episode; the retry timer then asks again from a fresher origin after the
+    // router cooldown instead of trying to judge the response in isolation.
     emit routeChanged();
 
-    // Immediately update with current GPS position
-    if (hasValidGps()) {
+    // Immediately update with whichever physical position supplied the route
+    // origin (fresh GPS or a still-certain estimator fallback).
+    if (currentPosition().isValid()) {
         updateNavigationState();
     }
 
@@ -854,6 +863,14 @@ void NavigationService::onRouteAttributesReady(const QList<EdgeAttrs> &attrs)
 
 void NavigationService::onRouteError(const QString &error)
 {
+    if (m_activeRouteReason == ValhallaClient::Reason::Reroute
+        && m_route.isValid()) {
+        setStatus(NavigationStatus::Navigating);
+        armRerouteRetry();
+        qWarning() << "NavigationService: reroute failed; retaining existing route -"
+                   << error;
+        return;
+    }
     raiseError(error);
     qWarning() << "NavigationService: route error -" << error;
 }
@@ -877,20 +894,26 @@ void NavigationService::onRequestRejected(ValhallaClient::Reason reason,
         }
     }
 
-    // Auto rejections (Reroute/Recovery) silently drop the request; the next
-    // trigger (GPS edge, DR tick) will retry when the gate reopens. But the
-    // off-route handler already flipped status to Rerouting before the
-    // rejection landed — revert it so the "Recalculating route" toast doesn't
-    // hang forever when the user comes back onto the route or the gate stays
-    // closed. The off-route pill (status=Navigating && isOffRoute) covers the
-    // visible state if a deviation is still active.
+    // A rejected reroute was never sent, so keep the old route visible and
+    // reopen the episode gate when the client's cooldown has elapsed.
     if (reason == ValhallaClient::Reason::Reroute &&
         m_status == NavigationStatus::Rerouting && m_route.isValid()) {
         setStatus(NavigationStatus::Navigating);
     }
+    if (reason == ValhallaClient::Reason::Reroute)
+        armRerouteRetry();
 
     qDebug() << "NavigationService: request rejected reason=" << static_cast<int>(reason)
              << "cause=" << static_cast<int>(cause);
+}
+
+void NavigationService::onRequestDispatched(ValhallaClient::Reason reason)
+{
+    m_activeRouteReason = reason;
+    if (reason == ValhallaClient::Reason::Reroute && m_isOffRoute
+        && m_route.isValid()) {
+        setStatus(NavigationStatus::Rerouting);
+    }
 }
 
 // --- Internal ---
@@ -963,18 +986,23 @@ void NavigationService::updateNavigationState()
         m_isOffRoute = distFromRoute > OffRouteTolerance;
     }
 
-    // Reroute while off-route — ValhallaClient enforces cooldown/backoff.
-    // Status flips to Rerouting regardless of accept; if the client rejects,
-    // onRequestRejected handles the error path.
+    // Queue one reroute per deviation episode. The status only changes after
+    // ValhallaClient confirms dispatch, so a debounced/rejected request cannot
+    // leave the UI stuck on "Recalculating".
     if (m_isOffRoute) {
-        LatLng from = currentGpsPosition();
-        if (from.isValid() && m_destination.isValid()) {
-            m_valhalla->requestRoute(from, m_destination,
+        const RouteOrigin origin = selectRouteOrigin();
+        if (m_rerouteGate.shouldRequest(true, origin.isValid())
+            && m_destination.isValid()) {
+            m_valhalla->requestRoute(origin, m_destination,
                                      ValhallaClient::Reason::Reroute);
-            setStatus(NavigationStatus::Rerouting);
         }
     } else if (!m_isOffRoute && m_status == NavigationStatus::Error) {
+        m_rerouteGate.shouldRequest(false, false);
+        m_rerouteRetry->stop();
         clearError();
+    } else {
+        m_rerouteGate.shouldRequest(false, false);
+        m_rerouteRetry->stop();
     }
 
     // Find upcoming instructions. Pass the snapped position (not raw pos) so
@@ -1175,6 +1203,38 @@ bool NavigationService::hasValidGps() const
 {
     if (!m_gps) return false;
     return m_gps->hasValidGps();
+}
+
+RouteOrigin NavigationService::selectRouteOrigin() const
+{
+    RerouteOriginSelector::Input input;
+    if (m_gps) {
+        input.gps = m_gps->currentSample();
+        input.gpsAgeMs = m_gps->hasTimestamp() ? m_gps->timestampAgeMs() : -1;
+    }
+    if (m_map && m_map->hasVehiclePosition()) {
+        input.physicalEstimate = {m_map->vehicleLatitude(),
+                                  m_map->vehicleLongitude()};
+        input.physicalUncertaintyMeters = m_map->positionUncertaintyMeters();
+    }
+    return RerouteOriginSelector::select(input);
+}
+
+bool NavigationService::requestRoute(ValhallaClient::Reason reason)
+{
+    if (!m_destination.isValid())
+        return false;
+    const RouteOrigin origin = selectRouteOrigin();
+    if (!origin.isValid())
+        return false;
+    m_valhalla->requestRoute(origin, m_destination, reason);
+    return true;
+}
+
+void NavigationService::armRerouteRetry()
+{
+    if (m_isOffRoute && m_route.isValid() && !m_rerouteRetry->isActive())
+        m_rerouteRetry->start();
 }
 
 QString NavigationService::gpsDepartureTimeLocal() const

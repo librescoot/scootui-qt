@@ -10,7 +10,15 @@ struct LatLng {
     double latitude = 0;
     double longitude = 0;
 
-    bool isValid() const { return latitude != 0 || longitude != 0; }
+    bool isValid() const {
+        return std::isfinite(latitude) && std::isfinite(longitude)
+            && latitude >= -90.0 && latitude <= 90.0
+            && longitude >= -180.0 && longitude <= 180.0
+            // The default-constructed value is the application's unset
+            // sentinel. Coordinates on either equator/prime meridian remain
+            // valid; only their exact intersection is reserved.
+            && (latitude != 0.0 || longitude != 0.0);
+    }
 
     double distanceTo(const LatLng &other) const {
         constexpr double R = 6371000.0; // Earth radius in meters
@@ -41,6 +49,15 @@ struct LatLng {
         return latitude == o.latitude && longitude == o.longitude;
     }
     bool operator!=(const LatLng &o) const { return !(*this == o); }
+};
+
+struct RouteOrigin {
+    LatLng position;
+    int radiusMeters = 50;
+    double heading = -1.0;
+    int headingToleranceDegrees = 45;
+
+    bool isValid() const { return position.isValid(); }
 };
 
 enum class ManeuverType {
