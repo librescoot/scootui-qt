@@ -451,4 +451,12 @@ if(BUILD_TESTING)
     target_include_directories(gps_store_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(gps_store_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME gps_store_test COMMAND gps_store_test)
+
+    qt_add_executable(position_estimator_test
+        tests/PositionEstimatorTest.cpp
+        src/services/PositionEstimator.h
+    )
+    target_include_directories(position_estimator_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(position_estimator_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME position_estimator_test COMMAND position_estimator_test)
 endif()

@@ -7,6 +7,8 @@
 #include <QPair>
 #include <QDateTime>
 
+#include "services/PositionEstimator.h"
+
 class GpsStore;
 class EngineStore;
 class NavigationService;
@@ -138,13 +140,11 @@ private slots:
 
 private:
     // Dead reckoning
-    void projectPositionAlongRoute(double distMeters);
     void projectPositionStraight(double distMeters, double headingDeg);
-    void blendGpsCorrection(double dt);
-    void snapToRouteLine();
-    // Drives the m_drLocked state machine from m_distFromRoute. Must be
-    // called once per DR tick before snapToRouteLine.
-    void evaluateSnapLock();
+    void blendGpsCorrection(double dt, double rateScale = 1.0);
+    void evaluateSnapLock(int elapsedMs);
+    void updateRouteMatch(double lat, double lng, double trajectoryBearing,
+                          bool haveTrajectory);
 
     // Dynamic zoom
     void updateDynamicZoom(double dt);
@@ -224,17 +224,14 @@ private:
     // measurement and modem-service publish. Added to the consumer-side age
     // from GpsStore::timestampAgeMs to estimate the actual fix age.
     static constexpr double GpsReceiverBufferMs = 300.0;
+    // A receive-age estimate is useful for a fresh fix, but projecting a fix
+    // that is many seconds old along today's heading is worse than leaving it
+    // stale and letting uncertainty/reroute policy handle it.
+    static constexpr double MaxGpsProjectionAgeMs = 2000.0;
+    static constexpr double MaxEstimatorEphMeters = 50.0;
 
-    // Odometer-primary DR: odometer (100 m steps, meters) is the truth.
-    // Speed acts as feedforward between odometer edges; a bounded catchup
-    // term closes the gap between cumulative DR distance and odometer.
-    static constexpr double CatchupRate = 0.5;         // /s — closes half of deficit per second
-    static constexpr double MaxCatchupPerTick = 0.5;   // meters — clamp per-tick correction
-    // Second ceiling on the catchup, as a share of the travel the rider is
-    // actually making this tick. Keeps the correction tied to real motion
-    // instead of running at a flat metres-per-tick rate of its own.
-    static constexpr double MaxCatchupFraction = 0.5;
     static constexpr double StationarySpeedMs = 0.3;   // below this, assume no motion
+    static constexpr double StationaryGpsBlendScale = 0.10;
     // A stationary GPS receiver still reports a few km/h of noise, so GPS speed
     // is only believed well clear of it.
     static constexpr double GpsSpeedTrustKmh = 15.0;
@@ -244,18 +241,8 @@ private:
 
     static constexpr double BlendRateNormal = 2.0;
     static constexpr double BlendRateLarge = 5.0;
-    static constexpr double SnapThreshold = 50.0;
     static constexpr double SnapUpperThreshold = 500.0;
-    static constexpr double SnapAnimationDuration = 1.0;
     static constexpr double LargeErrorThreshold = 15.0;
-
-    // Sticky route snap: per-tick snap is "on" while DR is locked to the
-    // route line, "off" while DR is following GPS freely. Hysteresis +
-    // sustained-dwell timers prevent GPS jitter from flipping the mode.
-    static constexpr double SnapBreakAwayDist = 12.0;  // m above which we start considering unlock
-    static constexpr int    SnapBreakAwayMs   = 1500;  // dwell required before unlocking
-    static constexpr double SnapReLockDist    = 6.0;   // m below which we start considering re-lock
-    static constexpr int    SnapReLockMs      = 2000;  // dwell required before re-locking
 
     // Dynamic zoom
     static constexpr double DefaultZoom = 17.0;
@@ -392,27 +379,15 @@ private:
     double m_segmentSnappedLat = 0;
     double m_segmentSnappedLng = 0;
 
-    // Odometer-primary DR bookkeeping
-    bool m_odoSeeded = false;
-    double m_odoAtSeed = 0;       // meters — odometer snapshot at seed
-    double m_odoTarget = 0;       // meters since seed per odometer
-    double m_drTravelled = 0;     // meters since seed per our integration
+    OdometerReconciler m_odometerReconciler;
 
     // GPS correction blending
     double m_gpsErrorLatitude = 0;
     double m_gpsErrorLongitude = 0;
 
-    // Snap animation
-    bool m_isSnapping = false;
-    double m_snapProgress = 0;
-    double m_snapStartLat = 0;
-    double m_snapStartLng = 0;
-    double m_snapTargetLat = 0;
-    double m_snapTargetLng = 0;
-
     // Sticky route snap state
     bool m_drLocked = true;
-    QElapsedTimer m_lockTransitionTimer;
+    RouteSnapState m_routeSnapState;
 
     // --- Route shape for dead reckoning ---
     QList<QPair<double, double>> m_routeShape; // (lat, lng) pairs

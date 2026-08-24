@@ -319,25 +319,28 @@ void MapService::setRouteWaypoints(const QVariantList &waypoints)
     // starts its shape at the current position, so segment 0 is usually
     // right, but the trajectory check guards against unusual cases where
     // the new shape doesn't begin exactly at the rider's current location.
+    bool lockNewRoute = true;
     if (m_hasInitialPosition && m_routeShape.size() >= 2) {
         double speedKmh = effectiveSpeedKmh();
         bool haveTrajectory = speedKmh >= MinSpeedForTrajectoryKmh;
         SegmentMatch seeded = matchRouteSegment(m_drLatitude, m_drLongitude,
-                                                 m_displayBearing, haveTrajectory,
+                                                 m_gps->course(), haveTrajectory,
                                                  -1);
         m_currentRouteSegment = (seeded.index >= 0 &&
                                   seeded.perpDist < MatchAcceptanceDistance)
                                 ? seeded.index : 0;
+        lockNewRoute = seeded.index >= 0
+            && seeded.perpDist <= RouteSnapState::BreakAwayMeters;
     } else {
         m_currentRouteSegment = 0;
     }
     m_maxReachedSegment = m_currentRouteSegment;
     m_lastRouteBearing = -1;
-    // New shape: reset the snap-lock state machine. Reroute may land far from
-    // the rider, in which case break-away will trip again on its own; resetting
-    // avoids inheriting a stale "unlocked" state from the previous shape.
-    m_drLocked = true;
-    m_lockTransitionTimer.invalidate();
+    // Never force the presentation onto a newly returned route that starts far
+    // from the physical estimate. A close route starts locked; a questionable
+    // one remains visible but the vehicle follows the unconstrained estimate.
+    m_drLocked = lockNewRoute;
+    m_routeSnapState.reset(lockNewRoute);
 
     updateRouteGeoJson();
     refreshRouteProjection();
@@ -367,7 +370,7 @@ void MapService::clearRoute()
     m_maxReachedSegment = -1;
     m_lastRouteBearing = -1;
     m_drLocked = true;
-    m_lockTransitionTimer.invalidate();
+    m_routeSnapState.reset(true);
 
     m_routeCoordinates.clear();
     emit routeCoordinatesChanged();
@@ -415,14 +418,19 @@ void MapService::updateRouteGeoJson()
 
 void MapService::onGpsPositionChanged()
 {
-    double gpsLat = m_gps->latitude();
-    double gpsLng = m_gps->longitude();
-
-    if (gpsLat == 0 && gpsLng == 0)
+    const GpsSample sample = m_gps->currentSample();
+    if (!sample.hasValidCoordinate())
         return;
 
-    // First valid fix: initialise dead reckoning position
+    double gpsLat = sample.latitude;
+    double gpsLng = sample.longitude;
+
+    // Do not seed the estimator from a last-known coordinate accompanying a
+    // searching/error snapshot. Once seeded, that coordinate may remain a
+    // useful fallback, but startup needs an actual fix.
     if (!m_hasInitialPosition) {
+        if (!sample.hasFix())
+            return;
         m_hasInitialPosition = true;
         m_drLatitude = gpsLat;
         m_drLongitude = gpsLng;
@@ -435,7 +443,7 @@ void MapService::onGpsPositionChanged()
         // stationary at boot. updateBearing freezes below 1 km/h, so a bad
         // seed from GPS course (typically 0 when stationary) would persist
         // until the rider accelerated past the freeze threshold.
-        double seedBearing = m_gps->course();
+        double seedBearing = sample.course;
         if (m_routeShape.size() >= 2) {
             double rb = bearingBetween(m_routeShape[0].first,  m_routeShape[0].second,
                                         m_routeShape[1].first,  m_routeShape[1].second);
@@ -464,19 +472,23 @@ void MapService::onGpsPositionChanged()
 
     double speedMs = effectiveSpeedKmh() * (1000.0 / 3600.0);
     bool stationary = speedMs < StationarySpeedMs;
+    const bool accurateEnough = sample.hasAcceptableAccuracy(MaxEstimatorEphMeters);
+    const bool recentFix = m_gps->hasRecentFix();
 
     // Input-side age compensation: the GPS fix represents where the rider
     // WAS some time ago (receiver NMEA buffer + consumer age). Project it
     // forward along the rider's motion direction so subsequent blending
     // pulls DR toward "where GPS thinks we are NOW" rather than backwards
-    // in time. On-route we use the route segment bearing — aligned with
-    // DR's projectPositionAlongRoute advance and immune to the camera
-    // bearing's smoothing lag, which would otherwise inject a sideways
+    // in time. On-route we use the route segment bearing — aligned with the
+    // estimator's motion model and immune to the camera bearing's smoothing
+    // lag, which would otherwise inject a sideways
     // component into the error vector and send DR zig-zagging through
-    // every turn. Off-route we fall back to the smoothed display bearing.
-    if (!stationary) {
+    // every turn. Off-route we fall back to the smoothed display bearing. Only
+    // compensate genuinely fresh samples; projecting a many-seconds-old fix
+    // along the current heading creates a confident but fictitious position.
+    if (!stationary && recentFix && accurateEnough) {
         double ageMs = static_cast<double>(m_gps->timestampAgeMs()) + GpsReceiverBufferMs;
-        if (ageMs > 0) {
+        if (ageMs > 0 && ageMs <= MaxGpsProjectionAgeMs) {
             double motionBearing = m_displayBearing;
             bool onRouteForAge = !m_routeShape.isEmpty() && m_currentRouteSegment >= 0
                                  && m_navigation && m_navigation->isNavigating()
@@ -491,31 +503,23 @@ void MapService::onGpsPositionChanged()
         }
     }
 
-    // Compute GPS error (distance from DR position to compensated GPS fix)
-    double error = haversineDistance(m_drLatitude, m_drLongitude, gpsLat, gpsLng);
-
-    if (error > SnapUpperThreshold) {
-        // Extreme error: immediate reset
-        m_drLatitude = gpsLat;
-        m_drLongitude = gpsLng;
-        m_gpsErrorLatitude = 0;
-        m_gpsErrorLongitude = 0;
-        m_isSnapping = false;
-    } else if (!stationary && error > SnapThreshold
-               && !(m_navigation && (m_navigation->isOffRoute() || m_navigation->isRerouting()))) {
-        // Large jump while on-route: animated snap over SnapAnimationDuration.
-        // Off-route / rerouting windows fall through to gradual blending so
-        // the marker doesn't bounce between stale-route and real-GPS poses.
-        m_isSnapping = true;
-        m_snapProgress = 0;
-        m_snapStartLat = m_drLatitude;
-        m_snapStartLng = m_drLongitude;
-        m_snapTargetLat = gpsLat;
-        m_snapTargetLng = gpsLng;
-    } else if (!stationary) {
-        // Normal / small error: accumulate correction for gradual blending
-        m_gpsErrorLatitude = gpsLat - m_drLatitude;
-        m_gpsErrorLongitude = gpsLng - m_drLongitude;
+    if (recentFix && accurateEnough) {
+        const double error = haversineDistance(m_drLatitude, m_drLongitude,
+                                               gpsLat, gpsLng);
+        if (error > SnapUpperThreshold) {
+            // A physically impossible estimator error is safer to reset than
+            // to spend minutes recovering. This never implies a route snap.
+            m_drLatitude = gpsLat;
+            m_drLongitude = gpsLng;
+            m_gpsErrorLatitude = 0;
+            m_gpsErrorLongitude = 0;
+        } else {
+            // Physical estimate always follows the measurement, even at a
+            // stop. The tick applies a very low stationary gain so stable fixes
+            // can correct a bad parked position without following raw jitter.
+            m_gpsErrorLatitude = gpsLat - m_drLatitude;
+            m_gpsErrorLongitude = gpsLng - m_drLongitude;
+        }
     }
 
     m_lastGpsLatitude = gpsLat;
@@ -530,56 +534,10 @@ void MapService::onGpsPositionChanged()
         m_maxReachedSegment = -1;
     m_lastWasOffRoute = nowOffRoute;
 
-    // Re-evaluate the route segment using trajectory-aware matching: combines
-    // perpendicular distance, travel-direction alignment, and hysteresis bias
-    // toward the current segment. Prevents the marker from snapping backward
-    // on U-turns / sharp turns just because some earlier segment happens to
-    // be geometrically closer. Skip while stationary (GPS noise would bounce
-    // us between nearby segments) and while off-route (the stale shape isn't
-    // meaningful — DR uses straight-line projection during that window).
-    if (!stationary && m_routeShape.size() >= 2 &&
+    if (!stationary && recentFix && accurateEnough && m_routeShape.size() >= 2 &&
         !(m_navigation && (m_navigation->isOffRoute() || m_navigation->isRerouting()))) {
-        double speedKmh = effectiveSpeedKmh();
-        bool haveTrajectory = speedKmh >= MinSpeedForTrajectoryKmh;
-        double trajectoryBearing = m_displayBearing;
-
-        SegmentMatch m = matchRouteSegment(gpsLat, gpsLng,
-                                            trajectoryBearing, haveTrajectory,
-                                            m_currentRouteSegment);
-        if (m.index >= 0 && m.perpDist < MatchAcceptanceDistance) {
-            bool accept = false;
-            if (m_currentRouteSegment < 0 ||
-                m_currentRouteSegment >= m_routeShape.size() - 1) {
-                // No prior — take whatever matcher suggests
-                accept = true;
-            } else if (m.index == m_currentRouteSegment) {
-                accept = false;  // no change
-            } else {
-                // Require a meaningful cost improvement to switch segments
-                const auto &A = m_routeShape[m_currentRouteSegment];
-                const auto &B = m_routeShape[m_currentRouteSegment + 1];
-                double sLat, sLng, curDist;
-                projectOntoSegment(gpsLat, gpsLng,
-                                   A.first, A.second, B.first, B.second,
-                                   sLat, sLng, curDist);
-                double curCost = curDist - CurrentSegmentBonus;
-                if (haveTrajectory) {
-                    double segBearing = bearingBetween(A.first, A.second,
-                                                        B.first, B.second);
-                    double diff = std::abs(signedAngleDiff(trajectoryBearing, segBearing));
-                    if (diff > 90.0)
-                        curCost += ReverseDirectionPenalty + (diff - 90.0) * ReverseSlopePerDeg;
-                    else
-                        curCost += diff * SoftDirectionFactor;
-                }
-                accept = (m.cost + SwitchHysteresis < curCost);
-            }
-            if (accept) {
-                m_currentRouteSegment = m.index;
-                m_maxReachedSegment = std::max(m_maxReachedSegment,
-                                                m_currentRouteSegment);
-            }
-        }
+        updateRouteMatch(gpsLat, gpsLng, sample.course,
+                         sample.speedKmh >= MinSpeedForTrajectoryKmh);
     }
 
     // Refresh projection state exposed to NavigationService
@@ -1131,141 +1089,55 @@ void MapService::onDeadReckoningTick()
     if (dt > 0.5)
         dt = 0.5;
 
-    // ----- Speed (ECU, or GPS while the ECU is silent; km/h -> m/s) -----
+    // ----- Physical estimate -----
     double speedKmh = effectiveSpeedKmh();
     double speedMs = speedKmh * (1000.0 / 3600.0);
     bool stationary = speedMs < StationarySpeedMs;
+    const double distMeters = m_odometerReconciler.advance(
+        m_engine->odometer(), stationary ? 0.0 : speedMs, dt);
 
-    // Travel this tick from the speed feedforward, zeroed while stopped so
-    // speed noise doesn't integrate into the odometer ledger. Both branches
-    // below need it: the snapping one to keep the ledger honest, the
-    // projecting one to bound the catchup.
-    double ffAdvance = stationary ? 0.0 : speedMs * dt;
+    const bool haveRouteShape = m_routeShape.size() >= 2
+        && m_currentRouteSegment >= 0;
+    bool routeUsable = haveRouteShape && !m_navigation->isOffRoute()
+        && !m_navigation->isRerouting();
 
-    // ----- Odometer-primary distance (odometer = truth, speed = feedforward) -----
-    // Seed on first tick after we have a map position; odometer deltas from
-    // this point on represent cumulative travelled distance. Between odometer
-    // edges (100 m quantisation on the ECU) we advance with speed * dt and
-    // reconcile via a bounded catchup term so the map marker stays smooth.
-    double odoNow = m_engine->odometer();
-    if (!m_odoSeeded) {
-        // Wait for a real reading. EngineStore reports 0 until ecu-service has
-        // published, and seeding on that makes m_odoTarget the entire odometer
-        // the moment the first real value arrives, which pins the catchup at
-        // its ceiling for the rest of the session. A vehicle whose odometer
-        // genuinely reads 0 just runs on pure feedforward for its first 100 m.
-        if (odoNow > 0) {
-            m_odoAtSeed = odoNow;
-            m_odoTarget = 0;
-            m_drTravelled = 0;
-            m_odoSeeded = true;
-        }
-    } else {
-        double newTarget = odoNow - m_odoAtSeed;
-        if (newTarget < m_odoTarget - 1.0) {
-            // Odometer rolled back (reboot, reset, NIL read). Reseed so
-            // future deltas stay continuous; don't snap the DR position.
-            m_odoAtSeed = odoNow;
-            m_odoTarget = 0;
-            m_drTravelled = 0;
-        } else {
-            m_odoTarget = newTarget;
-        }
+    // Route geometry may inform the motion direction while the match is
+    // trusted, but it never overwrites the unconstrained physical coordinate.
+    double physicalBearing = m_displayBearing;
+    if (routeUsable && m_drLocked) {
+        const double rb = routeSegmentBearing();
+        if (rb >= 0.0)
+            physicalBearing = rb;
+    }
+    projectPositionStraight(distMeters, physicalBearing);
+
+    const GpsSample sample = m_gps->currentSample();
+    if (m_gps->hasRecentFix()
+        && sample.hasAcceptableAccuracy(MaxEstimatorEphMeters)) {
+        blendGpsCorrection(dt, stationary ? StationaryGpsBlendScale : 1.0);
     }
 
-    // ----- Snap animation -----
-    if (m_isSnapping) {
-        // A snap is a display correction, not travel: the rider keeps covering
-        // ground while the marker slides. Advance the ledger anyway, or the
-        // whole snap duration books as odometer deficit that the catchup later
-        // pays out as motion the rider never made.
-        if (m_odoSeeded)
-            m_drTravelled += ffAdvance;
+    // Advance the segment identity from the physical estimate between 1 Hz
+    // GPS samples. The route bearing is only a trajectory hint here; distance
+    // and hysteresis still decide the match.
+    if (!stationary && routeUsable) {
+        const bool gpsTrajectory = m_gps->hasRecentFix()
+            && sample.speedKmh >= MinSpeedForTrajectoryKmh;
+        updateRouteMatch(m_drLatitude, m_drLongitude,
+                         gpsTrajectory ? sample.course : physicalBearing,
+                         gpsTrajectory || speedKmh >= MinSpeedForTrajectoryKmh);
+    }
 
-        m_snapProgress += dt / SnapAnimationDuration;
-        if (m_snapProgress >= 1.0) {
-            m_snapProgress = 1.0;
-            m_isSnapping = false;
-            m_drLatitude = m_snapTargetLat;
-            m_drLongitude = m_snapTargetLng;
-            m_gpsErrorLatitude = 0;
-            m_gpsErrorLongitude = 0;
-        } else {
-            // Ease-out cubic
-            double t = 1.0 - (1.0 - m_snapProgress) * (1.0 - m_snapProgress) * (1.0 - m_snapProgress);
-            m_drLatitude = m_snapStartLat + (m_snapTargetLat - m_snapStartLat) * t;
-            m_drLongitude = m_snapStartLng + (m_snapTargetLng - m_snapStartLng) * t;
-        }
-    } else {
-        // ----- Project position forward -----
-        // Feedforward: speed × dt between odometer edges.
-        // Correction:  bounded pull toward odoTarget (ground truth).
-        //
-        // The catchup ceiling is a share of this tick's own travel, so the
-        // marker can never move faster than a fixed multiple of the rider's
-        // actual speed. A flat metres-per-tick ceiling decouples the two: at a
-        // standstill ffAdvance is 0, which collapses the rewind bound to 0 and
-        // leaves a one-way forward creep running at the ceiling (0.5 m per
-        // 66 ms tick, 27 km/h) with nothing to oppose it, since GPS blending
-        // and route snapping are both disabled while stationary. Skip the
-        // whole term when stopped: the odometer isn't advancing either, so
-        // there is no travel to reconcile.
-        double distMeters = ffAdvance;
-        if (m_odoSeeded && !stationary) {
-            double deficit = m_odoTarget - m_drTravelled;
-            double maxCatchup = std::min(ffAdvance * MaxCatchupFraction,
-                                          MaxCatchupPerTick);
-            double correction = std::clamp(deficit * CatchupRate * dt,
-                                            -ffAdvance,     // never rewind
-                                            maxCatchup);    // never outrun the rider
-            distMeters = std::max(0.0, ffAdvance + correction);
-            m_drTravelled += distMeters;
-        }
+    if (haveRouteShape)
+        refreshRouteProjection(); // distance is from physical pose, before presentation snap
 
-        // Route-locked DR (projection + snap) must not use the old route shape
-        // while off-route: the stale geometry pulls the marker back and, with
-        // globally-nearest segment selection, often *behind* the rider. Until
-        // the reroute lands with a new shape, fall back to straight-line DR.
-        bool haveRouteShape = !m_routeShape.isEmpty() && m_currentRouteSegment >= 0;
-        bool useRouteShape = haveRouteShape && !m_navigation->isOffRoute()
-                                             && !m_navigation->isRerouting();
-
-        if (useRouteShape) {
-            projectPositionAlongRoute(distMeters);
-        } else {
-            // Use the smoothed display bearing rather than raw GPS course so DR
-            // doesn't drift along a stale heading if the GPS fix is old.
-            projectPositionStraight(distMeters, m_displayBearing);
-        }
-
-        // ----- GPS correction blending (only when GPS fix is recent) -----
-        // While stationary, skip GPS blending and route snapping - GPS jitter
-        // would otherwise slide the marker along the route and snap back when
-        // the fix recovers.
-        if (!stationary && m_gps->hasRecentFix()) {
-            blendGpsCorrection(dt);
-        }
-
-        // ----- Sticky-route snap state machine -----
-        // Decide whether to lock DR to the route line or let it follow GPS,
-        // based on a debounced view of m_distFromRoute. Prevents the marker
-        // from oscillating between snap and GPS-blend at small deviations.
-        // Uses last tick's m_distFromRoute (refreshed at the bottom of the
-        // tick) — 67 ms latency is irrelevant against the dwell windows.
-        if (useRouteShape)
-            evaluateSnapLock();
-
-        // ----- Snap DR back onto the route line after GPS correction -----
-        if (!stationary && useRouteShape && m_drLocked) {
-            snapToRouteLine();
-        }
-
-        // Refresh the projection state NavigationService consumes. Cheap,
-        // tracks segment advancement done inside projectPositionAlongRoute
-        // as well as blend/snap shifts. Emits routeProjectionChanged only
-        // on meaningful change.
-        if (haveRouteShape)
-            refreshRouteProjection();
+    routeUsable = haveRouteShape && !m_navigation->isOffRoute()
+        && !m_navigation->isRerouting();
+    if (routeUsable) {
+        evaluateSnapLock(static_cast<int>(std::lround(dt * 1000.0)));
+    } else if (haveRouteShape) {
+        m_drLocked = false;
+        m_routeSnapState.reset(false);
     }
 
     // ----- Update bearing & zoom first (needed for offset calculation) -----
@@ -1288,15 +1160,25 @@ void MapService::onDeadReckoningTick()
     double compensationBearing = m_displayBearing;
     bool onRouteForComp = !m_routeShape.isEmpty() && m_currentRouteSegment >= 0
                           && m_navigation->isNavigating()
-                          && !m_navigation->isOffRoute();
+                          && !m_navigation->isOffRoute()
+                          && m_drLocked;
     if (onRouteForComp) {
         double rb = routeSegmentBearing();
         if (rb >= 0) compensationBearing = rb;
     }
-    double compensatedLat = m_drLatitude;
-    double compensatedLng = m_drLongitude;
+    // Presentation may be route matched; the physical pose above remains
+    // untouched and continues to drive off-route/reroute decisions.
+    double presentationLat = m_drLatitude;
+    double presentationLng = m_drLongitude;
+    if (routeUsable && m_drLocked && m_currentRouteSegment >= 0) {
+        presentationLat = m_segmentSnappedLat;
+        presentationLng = m_segmentSnappedLng;
+    }
+
+    double compensatedLat = presentationLat;
+    double compensatedLng = presentationLng;
     if (speedMs > 0.5) {
-        projectForward(m_drLatitude, m_drLongitude, compensationBearing,
+        projectForward(presentationLat, presentationLng, compensationBearing,
                        speedMs * LatencyCompensationSec,
                        compensatedLat, compensatedLng);
     }
@@ -1329,46 +1211,6 @@ void MapService::onDeadReckoningTick()
 }
 
 // ---------------------------------------------------------------------------
-// Dead reckoning: project along route geometry
-// ---------------------------------------------------------------------------
-
-void MapService::projectPositionAlongRoute(double distMeters)
-{
-    if (m_routeShape.size() < 2 || m_currentRouteSegment < 0)
-        return;
-
-    int seg = m_currentRouteSegment;
-    double remaining = distMeters;
-
-    while (remaining > 0 && seg < m_routeShape.size() - 1) {
-        double nextLat = m_routeShape[seg + 1].first;
-        double nextLng = m_routeShape[seg + 1].second;
-
-        double distOnSeg = haversineDistance(m_drLatitude, m_drLongitude, nextLat, nextLng);
-
-        if (remaining >= distOnSeg) {
-            // Advance to the end of this segment. When this is the final
-            // segment, seg reaches size-1 and the while loop exits; any
-            // excess distance past the destination is intentionally
-            // discarded so DR doesn't drift past the end of the route.
-            m_drLatitude = nextLat;
-            m_drLongitude = nextLng;
-            remaining -= distOnSeg;
-            seg++;
-        } else {
-            // Interpolate within current segment
-            double brng = bearingBetween(m_drLatitude, m_drLongitude, nextLat, nextLng);
-            projectForward(m_drLatitude, m_drLongitude, brng, remaining,
-                           m_drLatitude, m_drLongitude);
-            remaining = 0;
-        }
-    }
-
-    m_currentRouteSegment = seg;
-    m_maxReachedSegment = std::max(m_maxReachedSegment, m_currentRouteSegment);
-}
-
-// ---------------------------------------------------------------------------
 // Dead reckoning: project straight line
 // ---------------------------------------------------------------------------
 
@@ -1385,7 +1227,7 @@ void MapService::projectPositionStraight(double distMeters, double headingDeg)
 // GPS correction blending
 // ---------------------------------------------------------------------------
 
-void MapService::blendGpsCorrection(double dt)
+void MapService::blendGpsCorrection(double dt, double rateScale)
 {
     if (std::abs(m_gpsErrorLatitude) < 1e-10 && std::abs(m_gpsErrorLongitude) < 1e-10)
         return;
@@ -1401,7 +1243,7 @@ void MapService::blendGpsCorrection(double dt)
         blendRate = BlendRateLarge;
     }
 
-    double factor = std::min(1.0, blendRate * dt);
+    double factor = std::min(1.0, blendRate * rateScale * dt);
 
     m_drLatitude += m_gpsErrorLatitude * factor;
     m_drLongitude += m_gpsErrorLongitude * factor;
@@ -1414,103 +1256,11 @@ void MapService::blendGpsCorrection(double dt)
 // Sticky route snap state machine
 // ---------------------------------------------------------------------------
 
-void MapService::evaluateSnapLock()
+void MapService::evaluateSnapLock(int elapsedMs)
 {
     if (m_routeShape.size() < 2 || m_currentRouteSegment < 0)
         return;
-    // Don't perturb in-flight snap animations — they own DR until they finish.
-    if (m_isSnapping)
-        return;
-
-    if (m_drLocked) {
-        // While locked, watch for sustained large cross-track distance. When
-        // the rider has been beyond SnapBreakAwayDist for SnapBreakAwayMs the
-        // snap releases and DR is allowed to follow GPS via blendGpsCorrection.
-        if (m_distFromRoute > SnapBreakAwayDist) {
-            if (!m_lockTransitionTimer.isValid()) {
-                m_lockTransitionTimer.start();
-            } else if (m_lockTransitionTimer.elapsed() >= SnapBreakAwayMs) {
-                m_drLocked = false;
-                m_lockTransitionTimer.invalidate();
-            }
-        } else {
-            m_lockTransitionTimer.invalidate();
-        }
-    } else {
-        // While unlocked, watch for sustained close cross-track. After
-        // SnapReLockDist for SnapReLockMs, kick off a sanfter re-lock — reuse
-        // the existing snap-animation pipeline so DR eases onto the segment
-        // perpendicular foot over SnapAnimationDuration instead of jumping.
-        if (m_distFromRoute < SnapReLockDist) {
-            if (!m_lockTransitionTimer.isValid()) {
-                m_lockTransitionTimer.start();
-            } else if (m_lockTransitionTimer.elapsed() >= SnapReLockMs) {
-                m_drLocked = true;
-                m_lockTransitionTimer.invalidate();
-
-                if (m_currentRouteSegment + 1 < m_routeShape.size()) {
-                    m_isSnapping = true;
-                    m_snapProgress = 0;
-                    m_snapStartLat = m_drLatitude;
-                    m_snapStartLng = m_drLongitude;
-                    m_snapTargetLat = m_segmentSnappedLat;
-                    m_snapTargetLng = m_segmentSnappedLng;
-                }
-            }
-        } else {
-            m_lockTransitionTimer.invalidate();
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Snap DR position onto the current route segment (cross-track correction)
-// ---------------------------------------------------------------------------
-
-void MapService::snapToRouteLine()
-{
-    if (m_routeShape.size() < 2 || m_currentRouteSegment < 0
-            || m_currentRouteSegment >= m_routeShape.size() - 1)
-        return;
-
-    double aLat = m_routeShape[m_currentRouteSegment].first;
-    double aLon = m_routeShape[m_currentRouteSegment].second;
-    double bLat = m_routeShape[m_currentRouteSegment + 1].first;
-    double bLon = m_routeShape[m_currentRouteSegment + 1].second;
-
-    double cosLat = std::cos(m_drLatitude * DegToRad);
-    // Local metric offsets of segment endpoints from DR position
-    double ax = (aLon - m_drLongitude) * EarthRadius * cosLat * DegToRad;
-    double ay = (aLat - m_drLatitude) * EarthRadius * DegToRad;
-    double bx = (bLon - m_drLongitude) * EarthRadius * cosLat * DegToRad;
-    double by = (bLat - m_drLatitude) * EarthRadius * DegToRad;
-    double dx = bx - ax;
-    double dy = by - ay;
-    double lenSq = dx * dx + dy * dy;
-    if (lenSq < 1e-6)
-        return;
-
-    // Foot of perpendicular onto the infinite line through A-B. Clamping t
-    // to [0, 1] would tuck DR back to the segment endpoint when blend pushes
-    // it a hair past B mid-tick — producing the forward-then-step-back jitter
-    // at every waypoint crossing. projectPositionAlongRoute advances the
-    // segment index on the next tick, so this only needs cross-track pull.
-    double t = (-ax * dx - ay * dy) / lenSq;
-    double projX = ax + t * dx;  // meters east of DR position
-    double projY = ay + t * dy;  // meters north of DR position
-
-    m_drLatitude  += projY / EarthRadius * RadToDeg;
-    m_drLongitude += projX / (EarthRadius * cosLat) * RadToDeg;
-
-    // Clear the cross-track component of accumulated GPS error so subsequent
-    // blend steps don't immediately pull us off the route line again.
-    double errorCosLat = std::cos(m_drLatitude * DegToRad);
-    double ex = m_gpsErrorLongitude * EarthRadius * errorCosLat * DegToRad;
-    double ey = m_gpsErrorLatitude  * EarthRadius * DegToRad;
-    // Keep only the along-track component
-    double alongTrackFrac = (ex * dx + ey * dy) / lenSq;
-    m_gpsErrorLatitude  = alongTrackFrac * dy / (EarthRadius * DegToRad);
-    m_gpsErrorLongitude = alongTrackFrac * dx / (EarthRadius * errorCosLat * DegToRad);
+    m_drLocked = m_routeSnapState.update(m_distFromRoute, elapsedMs);
 }
 
 // ---------------------------------------------------------------------------
@@ -1795,6 +1545,49 @@ double MapService::normalizeAngle(double angle)
 // ---------------------------------------------------------------------------
 // Trajectory-aware segment matcher
 // ---------------------------------------------------------------------------
+
+void MapService::updateRouteMatch(double lat, double lng,
+                                  double trajectoryBearing,
+                                  bool haveTrajectory)
+{
+    SegmentMatch match = matchRouteSegment(lat, lng, trajectoryBearing,
+                                           haveTrajectory,
+                                           m_currentRouteSegment);
+    if (match.index < 0 || match.perpDist >= MatchAcceptanceDistance)
+        return;
+
+    bool accept = false;
+    if (m_currentRouteSegment < 0
+        || m_currentRouteSegment >= m_routeShape.size() - 1) {
+        accept = true;
+    } else if (match.index != m_currentRouteSegment) {
+        const auto &a = m_routeShape[m_currentRouteSegment];
+        const auto &b = m_routeShape[m_currentRouteSegment + 1];
+        double ignoredLat, ignoredLng, currentDistance;
+        projectOntoSegment(lat, lng, a.first, a.second, b.first, b.second,
+                           ignoredLat, ignoredLng, currentDistance);
+        double currentCost = currentDistance - CurrentSegmentBonus;
+        if (haveTrajectory) {
+            const double segmentBearing = bearingBetween(a.first, a.second,
+                                                         b.first, b.second);
+            const double difference = std::abs(
+                signedAngleDiff(trajectoryBearing, segmentBearing));
+            if (difference > 90.0) {
+                currentCost += ReverseDirectionPenalty
+                    + (difference - 90.0) * ReverseSlopePerDeg;
+            } else {
+                currentCost += difference * SoftDirectionFactor;
+            }
+        }
+        accept = match.cost + SwitchHysteresis < currentCost;
+    }
+
+    if (accept) {
+        m_currentRouteSegment = match.index;
+        m_maxReachedSegment = std::max(m_maxReachedSegment,
+                                       m_currentRouteSegment);
+    }
+}
 
 MapService::SegmentMatch MapService::matchRouteSegment(double lat, double lng,
                                                         double trajectoryBearing,
