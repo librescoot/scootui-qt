@@ -13,11 +13,15 @@ Item {
     // store isn't present so the bar reads solid.
     readonly property bool regenAvailable: typeof engineStore !== "undefined" ? engineStore.regenAvailable : true
     readonly property string regenReason: typeof engineStore !== "undefined" ? engineStore.regenReason : "none"
+    // Measured charging current is authoritative even if an availability update
+    // arrives late. Match ecu-service's 200 mA noise floor.
+    readonly property bool regenObserved: motorCurrent <= -200
+    readonly property bool regenDisplayAvailable: regenAvailable || regenObserved
     // A reason icon (cold/hot/full) is shown at the regen end of the bar. Other
     // off-reasons (user-disabled, standstill) still dash the track but carry no
     // icon — standstill is the normal state at every stop, so an icon there would
     // just flicker on and off.
-    readonly property bool showReasonIcon: !regenAvailable
+    readonly property bool showReasonIcon: !regenDisplayAvailable
                                            && (regenReason === "cold" || regenReason === "hot"
                                                || regenReason === "full")
     readonly property color trackColor: themeStore.isDark ? "#424242" : "#E0E0E0"
@@ -134,7 +138,7 @@ Item {
                     anchors.fill: parent
                     radius: themeStore.radiusBar
                     color: powerDisplay.trackColor
-                    visible: powerDisplay.regenAvailable
+                    visible: powerDisplay.regenDisplayAvailable
                 }
 
                 // Dashes packed toward the center, leaving room at the left end
@@ -145,7 +149,7 @@ Item {
                     anchors.leftMargin: powerDisplay.showReasonIcon ? 14 : 0
                     layoutDirection: Qt.RightToLeft
                     spacing: 3
-                    visible: !powerDisplay.regenAvailable
+                    visible: !powerDisplay.regenDisplayAvailable
                     Repeater {
                         model: Math.max(1, Math.floor((dashRow.width + 3) / (5 + 3)))
                         Rectangle {
@@ -188,7 +192,7 @@ Item {
 
             // Regen bar (grows left from center)
             Rectangle {
-                visible: powerDisplay.regenAvailable && displayValue < -0.01
+                visible: powerDisplay.regenDisplayAvailable && displayValue < -0.01
                 anchors.verticalCenter: parent.verticalCenter
                 height: 6
                 radius: themeStore.radiusBar
