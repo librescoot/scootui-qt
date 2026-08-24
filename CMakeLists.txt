@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
 project(scootui VERSION 1.0.0 LANGUAGES CXX)
 
+option(BUILD_TESTING "Build the ScootUI unit and scenario tests" OFF)
+include(CTest)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
@@ -431,3 +434,21 @@ install(TARGETS scootui
     BUNDLE DESTINATION .
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+if(BUILD_TESTING)
+    find_package(Qt6 6.4 REQUIRED COMPONENTS Test)
+
+    qt_add_executable(gps_store_test
+        tests/GpsStoreTest.cpp
+        src/repositories/MdbRepository.h
+        src/stores/GpsStore.cpp
+        src/stores/GpsStore.h
+        src/stores/SyncableStore.cpp
+        src/stores/SyncableStore.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+    )
+    target_include_directories(gps_store_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(gps_store_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME gps_store_test COMMAND gps_store_test)
+endif()

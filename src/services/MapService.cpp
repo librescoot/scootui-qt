@@ -172,8 +172,7 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
     });
 
     // --- GPS position updates ---
-    connect(m_gps, &GpsStore::latitudeChanged, this, &MapService::onGpsPositionChanged);
-    connect(m_gps, &GpsStore::longitudeChanged, this, &MapService::onGpsPositionChanged);
+    connect(m_gps, &GpsStore::sampleChanged, this, &MapService::onGpsPositionChanged);
 
     // --- Magnetic heading freshness ---
     // Restart the age timer on every motion:heading push so updateBearing can

@@ -47,6 +47,12 @@ protected:
     virtual SyncSettings syncSettings() const = 0;
     virtual void applyFieldUpdate(const QString &variable, const QString &value) = 0;
     virtual void applySetUpdate(const QString &name, const QStringList &members);
+    // Hooks for stores that expose a coherent aggregate snapshot in addition
+    // to individual properties. HGETALL fields are applied between these two
+    // calls, allowing consumers to be notified only after the full hash is
+    // internally consistent.
+    virtual void beginBatchUpdate() {}
+    virtual void endBatchUpdate() {}
     virtual QString discriminatorValue() const { return {}; }
 
     MdbRepository *m_repo;

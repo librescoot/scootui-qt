@@ -72,8 +72,7 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
             this, &NavigationService::onRequestRejected);
 
     // Listen to GPS updates
-    connect(gps, &GpsStore::latitudeChanged, this, &NavigationService::onGpsChanged);
-    connect(gps, &GpsStore::longitudeChanged, this, &NavigationService::onGpsChanged);
+    connect(gps, &GpsStore::sampleChanged, this, &NavigationService::onGpsChanged);
 
     // Listen to navigation store (destination set externally via Redis)
     // Debounce: lat/lng/destination signals may fire individually from doHgetall,

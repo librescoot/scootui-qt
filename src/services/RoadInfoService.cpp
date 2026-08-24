@@ -58,8 +58,7 @@ RoadInfoService::RoadInfoService(GpsStore *gps, SpeedLimitStore *speedLimit,
     // updateRoadInfo() needs no tile DB, and onGpsChanged() self-heals the DB
     // open once the file appears. Gating the connects on m_dbOpen used to leave
     // the whole pill dead (no writer) for the entire session in that race.
-    connect(gps, &GpsStore::latitudeChanged, this, &RoadInfoService::onGpsChanged);
-    connect(gps, &GpsStore::longitudeChanged, this, &RoadInfoService::onGpsChanged);
+    connect(gps, &GpsStore::sampleChanged, this, &RoadInfoService::onGpsChanged);
 }
 
 RoadInfoService::~RoadInfoService()

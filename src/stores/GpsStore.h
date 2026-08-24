@@ -3,6 +3,34 @@
 #include "SyncableStore.h"
 #include "models/Enums.h"
 #include <QElapsedTimer>
+#include <QTimer>
+#include <cmath>
+
+struct GpsSample {
+    double latitude = 0;
+    double longitude = 0;
+    double course = 0;       // degrees
+    double speedKmh = 0;
+    double ephMeters = 0;    // 0 means unavailable
+    double hdop = 0;
+    QString timestamp;
+    ScootEnums::GpsState state = ScootEnums::GpsState::Off;
+
+    bool hasValidCoordinate() const {
+        return std::isfinite(latitude) && std::isfinite(longitude)
+            && latitude >= -90.0 && latitude <= 90.0
+            && longitude >= -180.0 && longitude <= 180.0
+            && !timestamp.isEmpty();
+    }
+
+    bool hasFix() const {
+        return state == ScootEnums::GpsState::FixEstablished;
+    }
+
+    bool hasAcceptableAccuracy(double maxEphMeters) const {
+        return ephMeters <= 0.0 || ephMeters <= maxEphMeters;
+    }
+};
 
 class GpsStore : public SyncableStore
 {
@@ -28,14 +56,15 @@ class GpsStore : public SyncableStore
     Q_PROPERTY(QString mode READ mode NOTIFY modeChanged)
     Q_PROPERTY(double lastTtffSeconds READ lastTtffSeconds NOTIFY lastTtffSecondsChanged)
     Q_PROPERTY(QString lastTtffMode READ lastTtffMode NOTIFY lastTtffModeChanged)
-    Q_PROPERTY(bool hasRecentFix READ hasRecentFix NOTIFY timestampChanged)
+    Q_PROPERTY(bool hasRecentFix READ hasRecentFix NOTIFY recentFixChanged)
     Q_PROPERTY(bool hasTimestamp READ hasTimestamp NOTIFY timestampChanged)
     Q_PROPERTY(bool hasValidGps READ hasValidGps NOTIFY hasValidGpsChanged)
     Q_PROPERTY(bool active READ active NOTIFY activeChanged)
     Q_PROPERTY(bool connected READ connected NOTIFY connectedChanged)
 
 public:
-    explicit GpsStore(MdbRepository *repo, QObject *parent = nullptr);
+    explicit GpsStore(MdbRepository *repo, QObject *parent = nullptr,
+                      qint64 recentFixThresholdMs = RecentFixThresholdMs);
     ~GpsStore() override;
 
     void start() override;
@@ -68,19 +97,19 @@ public:
     bool hasTimestamp() const { return !m_timestamp.isEmpty(); }
     bool hasGpsFix() const { return m_gpsState == ScootEnums::GpsState::FixEstablished; }
 
-    // True when we have any non-zero coordinate. Decoupled from the gps.state
-    // field, which modem-service flips to "searching" on transient TPV mode
-    // 0/1 reports while leaving the last-known lat/lng in Redis untouched —
-    // so the marker keeps drawing on the map but a strict gpsState check
-    // would say "no GPS" for the duration of every blip.
-    bool hasValidGps() const { return m_latitude != 0.0 || m_longitude != 0.0; }
+    // True once a timestamped coordinate pair has arrived and both values are
+    // finite and in geographic range. Decoupled from gps.state, which may
+    // transiently return to "searching" while the last coordinate remains a
+    // useful fallback.
+    bool hasValidGps() const { return currentSample().hasValidCoordinate(); }
 
     // True when the GPS daemon reports fix-established AND the timestamp
     // field has been updated within the last 20 seconds (monotonic clock,
     // immune to system clock skew).
     bool hasRecentFix() const {
         return hasGpsFix() && m_timestampAge.isValid()
-            && m_timestampAge.elapsed() <= RecentFixThresholdMs;
+            && currentSample().hasValidCoordinate()
+            && m_timestampAge.elapsed() <= m_recentFixThresholdMs;
     }
 
     // Milliseconds since we last saw a new GPS timestamp field. Does NOT
@@ -88,6 +117,11 @@ public:
     // of the fix age should add that buffer themselves.
     qint64 timestampAgeMs() const {
         return m_timestampAge.isValid() ? m_timestampAge.elapsed() : 0;
+    }
+
+    GpsSample currentSample() const {
+        return {m_latitude, m_longitude, m_course, m_speed, m_eph, m_hdop,
+                m_timestamp, m_gpsState};
     }
 
     static constexpr qint64 RecentFixThresholdMs = 20000;
@@ -100,6 +134,10 @@ signals:
     void altitudeChanged();
     void updatedChanged();
     void timestampChanged();
+    // Emitted once per coherent gps:tpv/HGETALL snapshot. Position consumers
+    // must use this rather than combining latitudeChanged/longitudeChanged.
+    void sampleChanged();
+    void recentFixChanged();
     void gpsStateChanged();
     void ephChanged();
     void eptChanged();
@@ -121,10 +159,16 @@ signals:
 protected:
     SyncSettings syncSettings() const override;
     void applyFieldUpdate(const QString &variable, const QString &value) override;
+    void beginBatchUpdate() override;
+    void endBatchUpdate() override;
 
 private:
     void applySnapshot(const QString &payload);
+    void finishBatch(bool forceSample = false);
     bool m_tpvSubscribed = false;
+    int m_batchDepth = 0;
+    bool m_sampleDirty = false;
+    bool m_forceSample = false;
     double m_latitude = 0;
     double m_longitude = 0;
     double m_course = 0;
@@ -146,6 +190,8 @@ private:
     QString m_updated;
     QString m_timestamp;
     QElapsedTimer m_timestampAge;
+    QTimer m_recentFixExpiry;
+    qint64 m_recentFixThresholdMs;
     ScootEnums::GpsState m_gpsState = ScootEnums::GpsState::Off;
     bool m_active = false;
     bool m_connected = false;

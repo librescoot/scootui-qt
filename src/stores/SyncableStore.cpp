@@ -87,6 +87,7 @@ void SyncableStore::onFieldsReceived(const QString &channel, const FieldMap &fie
 {
     if (channel != m_cachedSettings.channel) return;
 
+    beginBatchUpdate();
     for (const auto &field : m_cachedSettings.fields) {
         const auto it = fields.constFind(field.variable);
         if (it != fields.constEnd()) {
@@ -95,6 +96,7 @@ void SyncableStore::onFieldsReceived(const QString &channel, const FieldMap &fie
             applyFieldUpdate(field.variable, QString());
         }
     }
+    endBatchUpdate();
 }
 
 void SyncableStore::onFieldFetched(const QString &channel, const QString &field, const QString &value)

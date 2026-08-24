@@ -11,9 +11,14 @@ namespace {
 constexpr auto kTpvChannel = "gps:tpv";
 }
 
-GpsStore::GpsStore(MdbRepository *repo, QObject *parent)
+GpsStore::GpsStore(MdbRepository *repo, QObject *parent,
+                   qint64 recentFixThresholdMs)
     : SyncableStore(repo, parent)
+    , m_recentFixThresholdMs(recentFixThresholdMs)
 {
+    m_recentFixExpiry.setSingleShot(true);
+    connect(&m_recentFixExpiry, &QTimer::timeout,
+            this, &GpsStore::recentFixChanged);
 }
 
 GpsStore::~GpsStore()
@@ -56,6 +61,8 @@ void GpsStore::applySnapshot(const QString &payload)
     if (err.error != QJsonParseError::NoError || !doc.isObject())
         return;
 
+    beginBatchUpdate();
+    m_forceSample = true;
     const auto obj = doc.object();
     for (auto it = obj.constBegin(); it != obj.constEnd(); ++it) {
         const QString &key = it.key();
@@ -82,6 +89,31 @@ void GpsStore::applySnapshot(const QString &payload)
         }
         applyFieldUpdate(key, s);
     }
+    endBatchUpdate();
+}
+
+void GpsStore::beginBatchUpdate()
+{
+    ++m_batchDepth;
+}
+
+void GpsStore::endBatchUpdate()
+{
+    finishBatch();
+}
+
+void GpsStore::finishBatch(bool forceSample)
+{
+    m_forceSample = m_forceSample || forceSample;
+    if (m_batchDepth > 0)
+        --m_batchDepth;
+    if (m_batchDepth != 0)
+        return;
+
+    if (m_sampleDirty || m_forceSample)
+        emit sampleChanged();
+    m_sampleDirty = false;
+    m_forceSample = false;
 }
 
 SyncSettings GpsStore::syncSettings() const
@@ -132,6 +164,7 @@ void GpsStore::applyFieldUpdate(const QString &variable, const QString &value)
             m_latitude = v;
             emit latitudeChanged();
             if (hasValidGps() != wasValid) emit hasValidGpsChanged();
+            m_sampleDirty = true;
         }
     } else if (variable == QLatin1String("longitude")) {
         auto v = value.toDouble();
@@ -140,26 +173,43 @@ void GpsStore::applyFieldUpdate(const QString &variable, const QString &value)
             m_longitude = v;
             emit longitudeChanged();
             if (hasValidGps() != wasValid) emit hasValidGpsChanged();
+            m_sampleDirty = true;
         }
     } else if (variable == QLatin1String("course")) {
         auto v = value.toDouble();
-        if (v != m_course) { m_course = v; emit courseChanged(); }
+        if (v != m_course) { m_course = v; emit courseChanged(); m_sampleDirty = true; }
     } else if (variable == QLatin1String("speed")) {
         auto v = value.toDouble();
-        if (v != m_speed) { m_speed = v; emit speedChanged(); }
+        if (v != m_speed) { m_speed = v; emit speedChanged(); m_sampleDirty = true; }
     } else if (variable == QLatin1String("altitude")) {
         auto v = value.toDouble();
         if (v != m_altitude) { m_altitude = v; emit altitudeChanged(); }
     } else if (variable == QLatin1String("updated")) {
         if (value != m_updated) { m_updated = value; emit updatedChanged(); }
     } else if (variable == QLatin1String("timestamp")) {
-        if (value != m_timestamp) { m_timestamp = value; m_timestampAge.restart(); emit timestampChanged(); }
+        if (value != m_timestamp) {
+            bool wasRecent = hasRecentFix();
+            bool wasValid = hasValidGps();
+            m_timestamp = value;
+            m_timestampAge.restart();
+            m_recentFixExpiry.start(static_cast<int>(m_recentFixThresholdMs + 1));
+            emit timestampChanged();
+            if (hasRecentFix() != wasRecent) emit recentFixChanged();
+            if (hasValidGps() != wasValid) emit hasValidGpsChanged();
+            m_sampleDirty = true;
+        }
     } else if (variable == QLatin1String("state")) {
         auto v = ScootEnums::parseGpsState(value);
-        if (v != m_gpsState) { m_gpsState = v; emit gpsStateChanged(); }
+        if (v != m_gpsState) {
+            bool wasRecent = hasRecentFix();
+            m_gpsState = v;
+            emit gpsStateChanged();
+            if (hasRecentFix() != wasRecent) emit recentFixChanged();
+            m_sampleDirty = true;
+        }
     } else if (variable == QLatin1String("eph")) {
         auto v = value.toDouble();
-        if (v != m_eph) { m_eph = v; emit ephChanged(); }
+        if (v != m_eph) { m_eph = v; emit ephChanged(); m_sampleDirty = true; }
     } else if (variable == QLatin1String("ept")) {
         auto v = value.toDouble();
         if (v != m_ept) { m_ept = v; emit eptChanged(); }
@@ -174,7 +224,7 @@ void GpsStore::applyFieldUpdate(const QString &variable, const QString &value)
         if (v != m_pdop) { m_pdop = v; emit pdopChanged(); }
     } else if (variable == QLatin1String("hdop")) {
         auto v = value.toDouble();
-        if (v != m_hdop) { m_hdop = v; emit hdopChanged(); }
+        if (v != m_hdop) { m_hdop = v; emit hdopChanged(); m_sampleDirty = true; }
     } else if (variable == QLatin1String("vdop")) {
         auto v = value.toDouble();
         if (v != m_vdop) { m_vdop = v; emit vdopChanged(); }
@@ -200,4 +250,7 @@ void GpsStore::applyFieldUpdate(const QString &variable, const QString &value)
         bool v = (value.compare(QLatin1String("true"), Qt::CaseInsensitive) == 0);
         if (v != m_connected) { m_connected = v; emit connectedChanged(); }
     }
+
+    if (m_batchDepth == 0 && m_sampleDirty)
+        finishBatch();
 }
