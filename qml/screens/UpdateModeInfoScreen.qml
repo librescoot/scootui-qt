@@ -37,19 +37,16 @@ Rectangle {
     Connections {
         target: typeof inputHandler !== "undefined" ? inputHandler : null
         function onLeftTap() {
-            if (updateModeScreen.canScrollDown) {
-                scrollAnim.to = Math.min(flickable.contentY + 100,
-                                          flickable.contentHeight - flickable.height)
-                scrollAnim.restart()
-            } else {
-                updateModeScreen.cancelBack()
-            }
+            if (!updateModeScreen.canScrollDown) return
+            scrollAnim.to = Math.min(flickable.contentY + 100,
+                                      flickable.contentHeight - flickable.height)
+            scrollAnim.restart()
         }
-        function onLeftHold() {
-            if (updateModeScreen.canScrollUp) {
-                scrollAnim.to = Math.max(flickable.contentY - 100, 0)
-                scrollAnim.restart()
-            }
+        function onLeftHold() { updateModeScreen.cancelBack() }
+        function onRightHold() {
+            if (!updateModeScreen.canScrollUp) return
+            scrollAnim.to = Math.max(flickable.contentY - 100, 0)
+            scrollAnim.restart()
         }
         function onRightTap() { updateModeScreen.confirmEnter() }
     }
@@ -209,8 +206,10 @@ Rectangle {
                 reservedRows: 2
                 leftTap: updateModeScreen.canScrollDown
                     ? (typeof translations !== "undefined" ? translations.controlScroll : "Scroll")
-                    : (typeof translations !== "undefined" ? translations.controlBack : "Back")
-                leftHold: updateModeScreen.canScrollUp
+                    : ""
+                leftHold: typeof translations !== "undefined"
+                          ? translations.controlBack : "Back"
+                rightHold: updateModeScreen.canScrollUp
                     ? (typeof translations !== "undefined" ? translations.controlScrollUp : "Scroll up")
                     : ""
                 rightTap: typeof translations !== "undefined"

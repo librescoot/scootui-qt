@@ -99,7 +99,7 @@ Rectangle {
 
     Connections {
         target: typeof inputHandler !== "undefined" ? inputHandler : null
-        function onLeftTap()  { channelScreen.cancelBack() }
+        function onLeftHold() { channelScreen.cancelBack() }
         function onRightTap() { channelScreen.confirmSwitch() }
     }
 
@@ -218,7 +218,7 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                leftTap: typeof translations === "undefined"
+                leftHold: typeof translations === "undefined"
                     ? "Back"
                     : (channelScreen.canConfirm ? translations.controlCancel : translations.controlBack)
                 rightTap: channelScreen.canConfirm && typeof translations !== "undefined"

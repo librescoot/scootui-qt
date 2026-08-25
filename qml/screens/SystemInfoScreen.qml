@@ -254,6 +254,10 @@ Rectangle {
     // opens already scrolled past its own content.
     onPageChanged: flickable.contentY = 0
 
+    readonly property bool canScrollDown: flickable.contentHeight > flickable.height
+                                           && flickable.contentY + flickable.height < flickable.contentHeight - 2
+    readonly property bool canScrollUp: flickable.contentY > 2
+
     Connections {
         target: typeof inputHandler !== "undefined" ? inputHandler : null
         function onLeftTap() {
@@ -261,11 +265,11 @@ Rectangle {
             scrollAnim.to = Math.min(flickable.contentY + 120, maxY)
             scrollAnim.restart()
         }
-        function onLeftHold() {
+        function onLeftHold() { systemInfoScreen.closeScreen() }
+        function onRightHold() {
             scrollAnim.to = Math.max(flickable.contentY - 120, 0)
             scrollAnim.restart()
         }
-        function onRightTap() { systemInfoScreen.closeScreen() }
     }
 
     Column {
@@ -451,12 +455,19 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                leftTap: typeof translations !== "undefined"
-                         ? translations.controlScroll : "Scroll down"
+                // The labels come and go with the scroll position; pin the row
+                // count so the content above does not shift while scrolling,
+                // and so the bar's height cannot feed back into the flickable
+                // it is sized against.
+                reservedRows: 2
+                leftTap: systemInfoScreen.canScrollDown
+                    ? (typeof translations !== "undefined" ? translations.controlScroll : "Scroll")
+                    : ""
                 leftHold: typeof translations !== "undefined"
-                          ? translations.controlScrollUp : "Scroll up"
-                rightTap: typeof translations !== "undefined"
                           ? translations.controlBack : "Back"
+                rightHold: systemInfoScreen.canScrollUp
+                    ? (typeof translations !== "undefined" ? translations.controlScrollUp : "Scroll up")
+                    : ""
             }
         }
     }

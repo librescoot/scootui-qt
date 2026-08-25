@@ -71,6 +71,13 @@ Rectangle {
     // Animated scroll target (Flutter: animateTo with 200ms easeOut)
     property real scrollTarget: 0
 
+    // Drives the hint labels only. The gestures themselves stay unconditional:
+    // trackEgg() has to keep counting once the page is already at an end, or
+    // the sequence is unenterable on a page short enough not to scroll.
+    readonly property bool canScrollDown: flickable.contentHeight > flickable.height
+                                           && flickable.contentY + flickable.height < flickable.contentHeight - 2
+    readonly property bool canScrollUp: flickable.contentY > 2
+
     function scrollDown() {
         var maxY = Math.max(0, flickable.contentHeight - flickable.height)
         scrollTarget = Math.min(flickable.contentY + 80, maxY)
@@ -121,9 +128,9 @@ Rectangle {
     // Centralized brake gesture handling via InputHandler
     Connections {
         target: typeof inputHandler !== "undefined" ? inputHandler : null
-        function onLeftTap() { aboutScreen.scrollDown() }
-        function onLeftHold() { aboutScreen.scrollUp() }
-        function onRightTap() { aboutScreen.closeScreen() }
+        function onLeftTap()   { aboutScreen.scrollDown() }
+        function onLeftHold()  { aboutScreen.closeScreen() }
+        function onRightHold() { aboutScreen.scrollUp() }
     }
 
     Column {
@@ -554,12 +561,19 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                leftTap: typeof translations !== "undefined"
-                         ? translations.controlScroll : "Scroll down"
+                // The labels come and go with the scroll position; pin the row
+                // count so the content above does not shift while scrolling,
+                // and so the bar's height cannot feed back into the flickable
+                // it is sized against.
+                reservedRows: 2
+                leftTap: aboutScreen.canScrollDown
+                    ? (typeof translations !== "undefined" ? translations.controlScroll : "Scroll")
+                    : ""
                 leftHold: typeof translations !== "undefined"
-                          ? translations.controlScrollUp : "Scroll up"
-                rightTap: typeof translations !== "undefined"
                           ? translations.controlBack : "Back"
+                rightHold: aboutScreen.canScrollUp
+                    ? (typeof translations !== "undefined" ? translations.controlScrollUp : "Scroll up")
+                    : ""
             }
         }
     }

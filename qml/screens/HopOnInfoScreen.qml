@@ -34,19 +34,16 @@ Rectangle {
     Connections {
         target: typeof inputHandler !== "undefined" ? inputHandler : null
         function onLeftTap() {
-            if (hopOnInfoScreen.canScrollDown) {
-                scrollAnim.to = Math.min(flickable.contentY + 100,
-                                          flickable.contentHeight - flickable.height)
-                scrollAnim.restart()
-            } else {
-                hopOnInfoScreen.cancelBack()
-            }
+            if (!hopOnInfoScreen.canScrollDown) return
+            scrollAnim.to = Math.min(flickable.contentY + 100,
+                                      flickable.contentHeight - flickable.height)
+            scrollAnim.restart()
         }
-        function onLeftHold() {
-            if (hopOnInfoScreen.canScrollUp) {
-                scrollAnim.to = Math.max(flickable.contentY - 100, 0)
-                scrollAnim.restart()
-            }
+        function onLeftHold() { hopOnInfoScreen.cancelBack() }
+        function onRightHold() {
+            if (!hopOnInfoScreen.canScrollUp) return
+            scrollAnim.to = Math.max(flickable.contentY - 100, 0)
+            scrollAnim.restart()
         }
         function onRightTap() { hopOnInfoScreen.startLearn() }
     }
@@ -145,8 +142,10 @@ Rectangle {
                 reservedRows: 2
                 leftTap: hopOnInfoScreen.canScrollDown
                     ? (typeof translations !== "undefined" ? translations.controlScroll : "Scroll")
-                    : (typeof translations !== "undefined" ? translations.controlBack : "Back")
-                leftHold: hopOnInfoScreen.canScrollUp
+                    : ""
+                leftHold: typeof translations !== "undefined"
+                          ? translations.controlBack : "Back"
+                rightHold: hopOnInfoScreen.canScrollUp
                     ? (typeof translations !== "undefined" ? translations.controlScrollUp : "Scroll up")
                     : ""
                 rightTap: typeof translations !== "undefined"

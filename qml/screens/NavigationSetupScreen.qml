@@ -141,31 +141,26 @@ Rectangle {
             menuStore.resume()
     }
 
-    // Input handling: left scrolls through content and falls through to Back
-    // once there's nothing left to scroll; right is the primary action
-    // (Download) or Back as a fallback when no action is available.
+    // Left scrolls and goes back; right is the primary action (Download) and
+    // scrolls back up. Right tap no longer doubles as Back: it used to close
+    // the screen while the bar showed nothing at all for it.
     Connections {
         target: typeof inputHandler !== "undefined" ? inputHandler : null
         function onLeftTap() {
-            if (navSetupScreen.canScrollDown) {
-                scrollAnim.to = Math.min(flickable.contentY + 100,
-                                          flickable.contentHeight - flickable.height)
-                scrollAnim.restart()
-            } else {
-                navSetupScreen.closeSelf()
-            }
+            if (!navSetupScreen.canScrollDown) return
+            scrollAnim.to = Math.min(flickable.contentY + 100,
+                                      flickable.contentHeight - flickable.height)
+            scrollAnim.restart()
         }
-        function onLeftHold() {
-            if (navSetupScreen.canScrollUp) {
-                scrollAnim.to = Math.max(flickable.contentY - 100, 0)
-                scrollAnim.restart()
-            }
-        }
+        function onLeftHold() { navSetupScreen.closeSelf() }
         function onRightTap() {
             if (navSetupScreen.canDownload)
                 navSetupScreen.triggerDownload()
-            else
-                navSetupScreen.closeSelf()
+        }
+        function onRightHold() {
+            if (!navSetupScreen.canScrollUp) return
+            scrollAnim.to = Math.max(flickable.contentY - 100, 0)
+            scrollAnim.restart()
         }
     }
 
@@ -518,29 +513,23 @@ Rectangle {
             color: isDark ? Qt.rgba(1,1,1,0.12) : Qt.rgba(0,0,0,0.12)
         }
 
-        // Control hints. Left reflects its next effect (Scroll while there
-        // is content below, then falls through to Back). Right is the
-        // primary action (Download/Update/Resume) when one is available,
-        // otherwise Back — but suppressed to empty when the left brake
-        // would already say Back (no point repeating it).
+        // Left scrolls while there is content below it, and always goes back
+        // on the hold. Right carries the primary action (Download/Update/
+        // Resume) when there is one, and scrolls back up on the hold.
         ControlHints {
             Layout.fillWidth: true
-            // The hold hint comes and goes with the scroll position; pin the
+            // The scroll hints come and go with the scroll position; pin the
             // height so the content above does not shift while scrolling.
             reservedRows: 2
             leftTap: navSetupScreen.canScrollDown
                 ? (typeof translations !== "undefined" ? translations.controlScroll : "Scroll")
-                : (typeof translations !== "undefined" ? translations.controlBack : "Back")
-            leftHold: navSetupScreen.canScrollUp
+                : ""
+            leftHold: typeof translations !== "undefined"
+                      ? translations.controlBack : "Back"
+            rightTap: navSetupScreen.canDownload ? navSetupScreen.downloadButtonLabel : ""
+            rightHold: navSetupScreen.canScrollUp
                 ? (typeof translations !== "undefined" ? translations.controlScrollUp : "Scroll up")
                 : ""
-            rightTap: {
-                if (navSetupScreen.canDownload)
-                    return navSetupScreen.downloadButtonLabel
-                if (!navSetupScreen.canScrollDown)
-                    return ""
-                return typeof translations !== "undefined" ? translations.controlBack : "Back"
-            }
         }
     }
 }
