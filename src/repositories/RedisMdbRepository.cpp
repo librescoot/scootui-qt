@@ -4,6 +4,7 @@
 #include <QDebug>
 #include <QCoreApplication>
 #include <QElapsedTimer>
+#include <utility>
 #include <hiredis/hiredis.h>
 
 RedisMdbRepository::RedisMdbRepository(const QString &host, quint16 port,
@@ -256,12 +257,86 @@ void RedisMdbRepository::set(const QString &channel, const QString &variable,
         m_cache[channel][variable] = value;
     }
 
-    if (m_worker) {
-        auto *w = m_worker;
-        QMetaObject::invokeMethod(w, [w, channel, variable, value, doPublish]() {
-            w->doSet(channel, variable, value, doPublish);
-        }, Qt::QueuedConnection);
+    dispatchWrite({PendingWrite::Hset, channel, variable, value, doPublish});
+}
+
+// Writes only reach Redis through the worker, and anything issued before the
+// worker has a link used to vanish silently: the worker is not created until
+// the first registerPollChannel(), and HiredisWorker drops commands it cannot
+// send. Park those writes here and replay them in order once a link is up.
+//
+// Armed for every disconnected stretch, not only the first, because a dropped
+// link loses writes the same way and the dashboard is the sole writer of the
+// hashes involved, so replaying its last value is what the caller asked for.
+// push() and publish() stay fire-and-forget: a command or a button event
+// replayed minutes later would be wrong rather than merely late.
+void RedisMdbRepository::dispatchWrite(const PendingWrite &write)
+{
+    {
+        QMutexLocker lock(&m_pendingMutex);
+        // A non-empty queue means a replay is still owed, so going direct here
+        // would let this write overtake writes issued before it.
+        if (!m_connected || !m_worker || !m_pendingWrites.isEmpty()) {
+            // A later write to the same field replaces the earlier one. That
+            // bounds the queue by the number of distinct fields touched and
+            // makes the value that lands the one the caller wrote last.
+            for (int i = 0; i < m_pendingWrites.size(); ++i) {
+                if (m_pendingWrites.at(i).key == write.key
+                    && m_pendingWrites.at(i).field == write.field) {
+                    m_pendingWrites.removeAt(i);
+                    break;
+                }
+            }
+
+            if (m_pendingWrites.size() >= kMaxPendingWrites) {
+                const PendingWrite dropped = m_pendingWrites.takeFirst();
+                qWarning() << "RedisMdbRepository: write queue full, dropping"
+                           << dropped.key << dropped.field;
+            }
+
+            m_pendingWrites.append(write);
+            return;
+        }
     }
+
+    sendWrite(write);
+}
+
+void RedisMdbRepository::sendWrite(const PendingWrite &write)
+{
+    auto *w = m_worker;
+    if (!w) return;
+
+    QMetaObject::invokeMethod(w, [w, write]() {
+        switch (write.op) {
+        case PendingWrite::Hset:
+            w->doSet(write.key, write.field, write.value, write.publish);
+            break;
+        case PendingWrite::Hdel:
+            w->doHdel(write.key, write.field);
+            break;
+        case PendingWrite::Sadd:
+            w->doAddToSet(write.key, write.field);
+            break;
+        case PendingWrite::Srem:
+            w->doRemoveFromSet(write.key, write.field);
+            break;
+        }
+    }, Qt::QueuedConnection);
+}
+
+void RedisMdbRepository::flushPendingWrites()
+{
+    // The lock is held across the whole drain so a write arriving meanwhile
+    // queues behind the replay instead of racing ahead of it.
+    QMutexLocker lock(&m_pendingMutex);
+    if (m_pendingWrites.isEmpty()) return;
+
+    qDebug() << "RedisMdbRepository: replaying" << m_pendingWrites.size()
+             << "writes queued while disconnected";
+    for (const PendingWrite &write : std::as_const(m_pendingWrites))
+        sendWrite(write);
+    m_pendingWrites.clear();
 }
 
 void RedisMdbRepository::push(const QString &channel, const QString &command)
@@ -305,32 +380,17 @@ void RedisMdbRepository::hdel(const QString &key, const QString &field)
             m_cache[key].remove(field);
     }
 
-    if (m_worker) {
-        auto *w = m_worker;
-        QMetaObject::invokeMethod(w, [w, key, field]() {
-            w->doHdel(key, field);
-        }, Qt::QueuedConnection);
-    }
+    dispatchWrite({PendingWrite::Hdel, key, field, QString(), false});
 }
 
 void RedisMdbRepository::addToSet(const QString &setKey, const QString &member)
 {
-    if (m_worker) {
-        auto *w = m_worker;
-        QMetaObject::invokeMethod(w, [w, setKey, member]() {
-            w->doAddToSet(setKey, member);
-        }, Qt::QueuedConnection);
-    }
+    dispatchWrite({PendingWrite::Sadd, setKey, member, QString(), false});
 }
 
 void RedisMdbRepository::removeFromSet(const QString &setKey, const QString &member)
 {
-    if (m_worker) {
-        auto *w = m_worker;
-        QMetaObject::invokeMethod(w, [w, setKey, member]() {
-            w->doRemoveFromSet(setKey, member);
-        }, Qt::QueuedConnection);
-    }
+    dispatchWrite({PendingWrite::Srem, setKey, member, QString(), false});
 }
 
 // Async fetch + cached read. The fetch is queued to the worker thread and
@@ -427,6 +487,9 @@ void RedisMdbRepository::onWorkerConnectionChanged(bool connected, bool usingBac
     bool wasUsingBackup = m_usingBackup;
     m_connected = connected;
     m_usingBackup = usingBackup;
+
+    if (connected)
+        flushPendingWrites();
 
     if (connected && !wasConnected) {
         m_prolongedTimer->stop();

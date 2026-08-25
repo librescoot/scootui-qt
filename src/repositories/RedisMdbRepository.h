@@ -4,6 +4,7 @@
 #include <QThread>
 #include <QTimer>
 #include <QMutex>
+#include <QList>
 
 class HiredisWorker;
 class PubsubWorker;
@@ -73,6 +74,26 @@ private:
     void retargetPubsub();
     void dispatchPubsubMessage(const QString &channel, const QString &payload);
 
+    // A hash or set write, either on its way to the worker or parked until the
+    // worker has a connection to send it over. See dispatchWrite().
+    struct PendingWrite {
+        enum Op { Hset, Hdel, Sadd, Srem };
+        Op op;
+        QString key;
+        QString field;
+        QString value;
+        bool publish;
+    };
+
+    void dispatchWrite(const PendingWrite &write);
+    void sendWrite(const PendingWrite &write);
+    void flushPendingWrites();
+
+    // Room for a full seed of every hash the dashboard writes several times
+    // over. Hitting the cap means the link has been down long enough that the
+    // oldest values are no longer worth replaying.
+    static constexpr int kMaxPendingWrites = 512;
+
     // Worker thread
     QThread *m_workerThread = nullptr;
     HiredisWorker *m_worker = nullptr;
@@ -102,6 +123,10 @@ private:
     // Prolonged disconnect tracking
     QTimer *m_prolongedTimer = nullptr;
     bool m_prolongedDisconnect = false;
+
+    // Writes issued while the worker had no connection, oldest first
+    QMutex m_pendingMutex;
+    QList<PendingWrite> m_pendingWrites;
 
     // Set/lrange results (for the few sync callers that need them)
     QMutex m_resultMutex;
