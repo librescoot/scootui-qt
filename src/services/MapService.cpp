@@ -135,6 +135,68 @@ static void projectOntoSegment(double lat, double lng,
     outLng = lng + (px / (EarthRadius * cosLat)) * RadToDeg;
 }
 
+// Same local ENU frame as projectOntoSegment, but reports the UNCLAMPED
+// along-segment parameter and the segment length. t < 0 means the point sits
+// before A, t > 1 that it sits past B; the overshoot in metres is
+// (t - 1) * length. Returns false for a degenerate segment.
+static bool segmentParam(double lat, double lng,
+                         double aLat, double aLon,
+                         double bLat, double bLon,
+                         double &tOut, double &lengthOut)
+{
+    const double cosLat = std::cos(lat * DegToRad);
+    const double ax = (aLon - lng) * EarthRadius * cosLat * DegToRad;
+    const double ay = (aLat - lat) * EarthRadius * DegToRad;
+    const double bx = (bLon - lng) * EarthRadius * cosLat * DegToRad;
+    const double by = (bLat - lat) * EarthRadius * DegToRad;
+    const double dx = bx - ax;
+    const double dy = by - ay;
+    const double lenSq = dx * dx + dy * dy;
+    if (lenSq < 1e-6)
+        return false;
+    tOut = (-ax * dx - ay * dy) / lenSq;
+    lengthOut = std::sqrt(lenSq);
+    return true;
+}
+
+// Point `offset` metres along the polyline from vertex `fromIndex`, forward for
+// a positive offset and backward for a negative one. Clamps at either end.
+static void walkPolyline(const QList<QPair<double, double>> &shape, int fromIndex,
+                         double offset, double &outLat, double &outLng)
+{
+    const int n = shape.size();
+    fromIndex = std::clamp(fromIndex, 0, n - 1);
+    outLat = shape[fromIndex].first;
+    outLng = shape[fromIndex].second;
+    if (n < 2 || !std::isfinite(offset))
+        return;
+
+    double remaining = std::abs(offset);
+    const int step = offset >= 0.0 ? 1 : -1;
+    int i = fromIndex;
+    while (remaining > 0.0) {
+        const int j = i + step;
+        if (j < 0 || j >= n)
+            return;
+        const double segLen = haversineDistance(shape[i].first, shape[i].second,
+                                                shape[j].first, shape[j].second);
+        if (segLen <= 1e-9) {
+            i = j;
+            continue;
+        }
+        if (remaining <= segLen) {
+            const double f = remaining / segLen;
+            outLat = shape[i].first + (shape[j].first - shape[i].first) * f;
+            outLng = shape[i].second + (shape[j].second - shape[i].second) * f;
+            return;
+        }
+        remaining -= segLen;
+        i = j;
+        outLat = shape[i].first;
+        outLng = shape[i].second;
+    }
+}
+
 // Signed angular difference in degrees, wrapped to [-180, 180].
 static double signedAngleDiff(double a, double b)
 {
@@ -201,6 +263,10 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
         m_northOriented = m_settings->mapNorthOriented();
         // Re-emit so the map/north indicator re-read the (now 0) effective bearing.
         emit mapBearingChanged();
+        // The 2D marker offset is gated on the same flag, and the camera aligns
+        // the vehicle coordinate to that offset, so both have to be told. Fires
+        // only when the rider flips the setting, not continuously.
+        emit vehicleOffsetYChanged();
     });
 
     // Mirror the current settings so a persisted 2D/north-oriented selection is
@@ -1772,13 +1838,63 @@ void MapService::refreshRouteProjection(bool fullScan)
         m_currentRouteSegment + 1 < m_routeShape.size()) {
         const auto &A = m_routeShape[m_currentRouteSegment];
         const auto &B = m_routeShape[m_currentRouteSegment + 1];
-        double segLat, segLng, segDist;
-        projectOntoSegment(m_drLatitude, m_drLongitude,
-                           A.first, A.second, B.first, B.second,
-                           segLat, segLng, segDist);
-        m_segmentSnappedLat = segLat;
-        m_segmentSnappedLng = segLng;
-        (void)segDist;
+        // The matcher is deliberately sticky: CurrentSegmentBonus plus
+        // SwitchHysteresis keep m_currentRouteSegment on the leg it is on
+        // until the next one wins by ~7.5 m of cost. That stickiness is right
+        // for identity and wrong for geometry. Clamping the projection to the
+        // current leg froze the presented position on the leg's far vertex for
+        // the whole hysteresis window, then teleported it the accumulated
+        // ~7.5-8 m the instant the matcher committed. Measured on a 25 km/h
+        // sim run: ~12 ticks at exactly 0.000 m followed by one tick of
+        // 7.5-8.3 m, once per route vertex.
+        //
+        // Carry the overshoot along the polyline instead. Inside the leg this
+        // is the same clamped projection as before; past either end it walks
+        // the arc length that the clamp used to throw away, so the point keeps
+        // moving at the vehicle's own speed and the matcher's later commit
+        // lands where the walk already is. Segment identity is untouched.
+        // Pick the leg to project onto from a short window around the
+        // matcher's segment rather than that segment alone, then carry any
+        // overshoot along the polyline instead of clamping it away.
+        int bestSeg = -1;
+        double bestDist = std::numeric_limits<double>::max();
+        double bestLat = m_drLatitude;
+        double bestLng = m_drLongitude;
+        const int lo = std::max(0, m_currentRouteSegment - PresentationWindowBack);
+        const int hi = std::min(static_cast<int>(m_routeShape.size()) - 1,
+                                m_currentRouteSegment + PresentationWindowFwd + 1);
+        for (int i = lo; i < hi; ++i) {
+            const auto &P = m_routeShape[i];
+            const auto &Q = m_routeShape[i + 1];
+            double cLat, cLng, cDist;
+            projectOntoSegment(m_drLatitude, m_drLongitude,
+                               P.first, P.second, Q.first, Q.second,
+                               cLat, cLng, cDist);
+            if (cDist < bestDist) {
+                bestDist = cDist;
+                bestSeg = i;
+                bestLat = cLat;
+                bestLng = cLng;
+            }
+        }
+
+        m_segmentSnappedLat = bestLat;
+        m_segmentSnappedLng = bestLng;
+        double t = 0.0, segLength = 0.0;
+        if (bestSeg >= 0
+            && segmentParam(m_drLatitude, m_drLongitude,
+                            m_routeShape[bestSeg].first, m_routeShape[bestSeg].second,
+                            m_routeShape[bestSeg + 1].first, m_routeShape[bestSeg + 1].second,
+                            t, segLength)
+            && (t < 0.0 || t > 1.0)) {
+            if (t > 1.0) {
+                walkPolyline(m_routeShape, bestSeg + 1, (t - 1.0) * segLength,
+                             m_segmentSnappedLat, m_segmentSnappedLng);
+            } else {
+                walkPolyline(m_routeShape, bestSeg, t * segLength,
+                             m_segmentSnappedLat, m_segmentSnappedLng);
+            }
+        }
     } else {
         m_segmentSnappedLat = m_drLatitude;
         m_segmentSnappedLng = m_drLongitude;

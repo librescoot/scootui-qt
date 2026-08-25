@@ -277,6 +277,24 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.margins: 8
+
+                // North-up 2D centres the marker in the space the banner leaves,
+                // so MapService needs to know whether the banner is up. Only the
+                // visibility travels: the reserved height is a constant there, so
+                // instruction text rewrapping cannot move the camera.
+                Binding {
+                    target: typeof mapService !== "undefined" ? mapService : null
+                    property: "tbtVisible"
+                    value: tbtWidget.visible
+                }
+
+                // Screens are Loader-swapped and DestinationScreen shares this
+                // MapService with a centred crosshair, so hand the flag back
+                // rather than leaving a stale true behind.
+                Component.onDestruction: {
+                    if (typeof mapService !== "undefined")
+                        mapService.tbtVisible = false
+                }
             }
 
             // Navigation status overlay (calculating, rerouting, arrived, error)

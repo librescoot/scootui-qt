@@ -43,6 +43,8 @@ class MapService : public QObject
     Q_PROPERTY(QVariantList routeCoordinates READ routeCoordinates NOTIFY routeCoordinatesChanged)
     Q_PROPERTY(QString routeGeoJson READ routeGeoJson NOTIFY routeGeoJsonChanged)
     Q_PROPERTY(double vehicleOffsetY READ vehicleOffsetY NOTIFY vehicleOffsetYChanged)
+    // Whether the turn-by-turn banner is on screen. Written by MapScreen.qml.
+    Q_PROPERTY(bool tbtVisible READ tbtVisible WRITE setTbtVisible NOTIFY tbtVisibleChanged)
     Q_PROPERTY(bool isOutOfCoverage READ isOutOfCoverage NOTIFY isOutOfCoverageChanged)
     Q_PROPERTY(bool deadReckoningPaused READ deadReckoningPaused WRITE setDeadReckoningPaused NOTIFY deadReckoningPausedChanged)
     Q_PROPERTY(double vehicleLatitude READ vehicleLatitude NOTIFY vehiclePositionChanged)
@@ -77,7 +79,29 @@ public:
     // later switch back to direction-oriented continues from the current heading.
     double mapBearing() const { return (m_view2D && m_northOriented) ? 0.0 : m_mapBearing; }
     double rawMapBearing() const { return m_mapBearing; }
-    double vehicleOffsetY() const { return m_view2D ? 0.0 : m_vehicleOffsetY; }
+    // Heading-up views put the marker below centre so more road is visible
+    // ahead than behind; 2D keeps the same offset as 3D so toggling the view
+    // mode does not move the marker. North-up is the exception: "ahead" is not
+    // up when the map is pinned north, so an offset would show the rider what
+    // is behind them half the time. Same condition as mapBearing() above, and
+    // for the same reason.
+    double vehicleOffsetY() const
+    {
+        if (m_view2D && m_northOriented)
+            return m_tbtVisible ? TbtReservedPx / 2.0 : 0.0;
+        return m_vehicleOffsetY;
+    }
+
+    bool tbtVisible() const { return m_tbtVisible; }
+    void setTbtVisible(bool visible)
+    {
+        if (visible == m_tbtVisible)
+            return;
+        m_tbtVisible = visible;
+        emit tbtVisibleChanged();
+        if (m_view2D && m_northOriented)
+            emit vehicleOffsetYChanged();
+    }
     bool isReady() const { return m_isReady; }
     QString styleUrl() const { return m_styleUrl; }
     QVariantList mapThemeLayers() const { return m_mapThemeLayers; }
@@ -128,6 +152,7 @@ signals:
     void routeCoordinatesChanged();
     void routeGeoJsonChanged();
     void vehicleOffsetYChanged();
+    void tbtVisibleChanged();
     void isOutOfCoverageChanged();
     void deadReckoningPausedChanged();
     void vehiclePositionChanged();
@@ -294,6 +319,11 @@ private:
 
     // Vehicle offset
     static constexpr double VehicleOffsetPx = 120.0;
+    // Height the turn-by-turn banner reserves at the top of the map area: its
+    // 96 px floor plus an 8 px anchor margin. Deliberately the reserved height
+    // and not the rendered one - the banner grows and shrinks as instruction
+    // text rewraps, and following that would move the camera mid-route.
+    static constexpr double TbtReservedPx = 104.0;
 
     // Trajectory-aware segment matching
     static constexpr int MatchWindowBack = 30;
@@ -308,6 +338,13 @@ private:
     static constexpr double ForwardStepPenalty = 0.5;          // m/step for skipping ahead
     static constexpr double SwitchHysteresis = 2.0;            // new must beat current by this much
     static constexpr double SnappedPosEpsilon = 0.5;           // m — don't emit below this
+
+    // Presentation-only projection window, in segments either side of the
+    // matcher's current segment. Deliberately short: it exists to keep the
+    // displayed point off the matcher's identity hysteresis, not to re-run
+    // route matching.
+    static constexpr int PresentationWindowBack = 1;
+    static constexpr int PresentationWindowFwd = 2;
 
     // Last-emitted projection state, for change detection on routeProjectionChanged
     mutable double m_lastEmittedSnapLat = 0;
@@ -357,6 +394,7 @@ private:
     QVariantList m_routeCoordinates;
     QString m_routeGeoJson;
     double m_vehicleOffsetY = VehicleOffsetPx;
+    bool m_tbtVisible = false;
 
     // --- Out-of-coverage state ---
     bool m_isOutOfCoverage = false;
