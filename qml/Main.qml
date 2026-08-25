@@ -202,7 +202,6 @@ Window {
                 case Scooter.ScreenMode.Ota:             comp = otaBgComponent;       name = "otaBg";       break
                 case Scooter.ScreenMode.AddressSelection:comp = addressComponent;     name = "address";     break
                 case Scooter.ScreenMode.NavigationSetup: comp = navSetupComponent;    name = "navSetup";    break
-                case Scooter.ScreenMode.Destination:     comp = destinationComponent; name = "destination"; break
                 case Scooter.ScreenMode.Faults:          comp = faultsComponent;      name = "faults";      break
                 case Scooter.ScreenMode.SystemInfo:      comp = systemInfoComponent;  name = "systemInfo";  break
                 case Scooter.ScreenMode.UpdateModeInfo:  comp = umsInfoComponent;     name = "umsInfo";     break
@@ -224,7 +223,6 @@ Window {
     Component { id: otaBgComponent; OtaBackgroundScreen {} }
     Component { id: addressComponent; AddressSelectionScreen {} }
     Component { id: navSetupComponent; NavigationSetupScreen {} }
-    Component { id: destinationComponent; DestinationScreen {} }
     Component { id: faultsComponent; FaultsScreen {} }
     Component { id: systemInfoComponent; SystemInfoScreen {} }
     Component { id: umsInfoComponent; UpdateModeInfoScreen {} }

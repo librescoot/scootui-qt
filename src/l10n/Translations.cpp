@@ -1556,14 +1556,8 @@ void Translations::initStrings()
     de[QStringLiteral("standbyCancel")] = QStringLiteral("Bremse dr\u00FCcken oder Seitenst\u00E4nder bewegen zum Abbrechen");
 
     // -----------------------------------------------------------------------
-    // Destination & map
+    // Map
     // -----------------------------------------------------------------------
-
-    en[QStringLiteral("destinationOfflineOnly")] = QStringLiteral("The destination selector only works with offline maps");
-    de[QStringLiteral("destinationOfflineOnly")] = QStringLiteral("Die Zielauswahl funktioniert nur mit Offline-Karten");
-
-    en[QStringLiteral("destinationInstallMapData")] = QStringLiteral("Please install the map data to use this feature");
-    de[QStringLiteral("destinationInstallMapData")] = QStringLiteral("Bitte installiere die Kartendaten, um diese Funktion zu nutzen");
 
     en[QStringLiteral("mapWaitingForGps")] = QStringLiteral("Waiting for GPS fix");
     de[QStringLiteral("mapWaitingForGps")] = QStringLiteral("Warte auf GPS-Signal");

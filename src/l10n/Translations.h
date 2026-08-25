@@ -532,8 +532,6 @@ class Translations : public QObject
     Q_PROPERTY(QString standbyCancel READ standbyCancel NOTIFY languageChanged)
 
     // Destination & map
-    Q_PROPERTY(QString destinationOfflineOnly READ destinationOfflineOnly NOTIFY languageChanged)
-    Q_PROPERTY(QString destinationInstallMapData READ destinationInstallMapData NOTIFY languageChanged)
     Q_PROPERTY(QString mapWaitingForGps READ mapWaitingForGps NOTIFY languageChanged)
     Q_PROPERTY(QString mapOutOfCoverage READ mapOutOfCoverage NOTIFY languageChanged)
 
@@ -1082,8 +1080,6 @@ public:
     QString standbyCancel() const { return lookup("standbyCancel"); }
 
     // Destination & map
-    QString destinationOfflineOnly() const { return lookup("destinationOfflineOnly"); }
-    QString destinationInstallMapData() const { return lookup("destinationInstallMapData"); }
     QString mapWaitingForGps() const { return lookup("mapWaitingForGps"); }
     QString mapOutOfCoverage() const { return lookup("mapOutOfCoverage"); }
 

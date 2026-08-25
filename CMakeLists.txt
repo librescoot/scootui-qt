@@ -237,7 +237,6 @@ set(QML_FILES
     qml/screens/MapScreen.qml
     qml/screens/AddressSelectionScreen.qml
     qml/screens/NavigationSetupScreen.qml
-    qml/screens/DestinationScreen.qml
     qml/screens/FaultsScreen.qml
     qml/screens/SystemInfoScreen.qml
     qml/screens/UpdateModeInfoScreen.qml

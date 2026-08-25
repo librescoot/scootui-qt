@@ -18,7 +18,6 @@ bool ScreenStore::isBrakeNavigated(ScootEnums::ScreenMode mode)
     case ScootEnums::ScreenMode::About:
     case ScootEnums::ScreenMode::AddressSelection:
     case ScootEnums::ScreenMode::NavigationSetup:
-    case ScootEnums::ScreenMode::Destination:
     case ScootEnums::ScreenMode::Faults:
     case ScootEnums::ScreenMode::SystemInfo:
     case ScootEnums::ScreenMode::UpdateModeInfo:
