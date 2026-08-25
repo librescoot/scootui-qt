@@ -30,6 +30,19 @@ Rectangle {
     id: screen
     color: "#0a0a0a"
 
+    // Left hold leaves, same as every other full-screen page. The panels fill
+    // all 480x480 so there is no room for a hint bar; without this the screen
+    // could only be left by writing the mode key back by hand.
+    Connections {
+        target: typeof inputHandler !== "undefined" ? inputHandler : null
+        function onLeftHold() {
+            if (typeof settingsService !== "undefined")
+                settingsService.updateMode("speedometer")
+            if (typeof screenStore !== "undefined")
+                screenStore.setScreen(0)
+        }
+    }
+
     // Sample buffers for the strip charts. Sized for ~30 s at 10 Hz.
     readonly property int bufLen: 300
 

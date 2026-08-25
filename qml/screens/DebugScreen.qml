@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import "../widgets/components"
 
 Rectangle {
     id: debugScreen
@@ -27,6 +28,19 @@ Rectangle {
     readonly property bool hasNet: typeof internetStore !== "undefined"
     readonly property bool hasModem: typeof modemStore !== "undefined"
 
+    readonly property bool canScrollDown: flickable.contentHeight > flickable.height
+                                           && flickable.contentY + flickable.height < flickable.contentHeight - 2
+    readonly property bool canScrollUp: flickable.contentY > 2
+
+    // Debug mode is entered by writing the mode key, so leaving has to write
+    // it back: switching the screen alone would be undone by the next sync.
+    function leaveScreen() {
+        if (typeof settingsService !== "undefined")
+            settingsService.updateMode("speedometer")
+        if (typeof screenStore !== "undefined")
+            screenStore.setScreen(0)
+    }
+
     // The content is taller than the viewport and the DBC has no touchscreen,
     // so the Flickable needs brake-lever scrolling to be reachable at all.
     // Left double-tap still opens the menu (handled in Main.qml); the menu
@@ -39,7 +53,8 @@ Rectangle {
             scrollAnim.to = Math.min(flickable.contentY + 120, maxY)
             scrollAnim.restart()
         }
-        function onLeftHold() {
+        function onLeftHold() { debugScreen.leaveScreen() }
+        function onRightHold() {
             scrollAnim.to = Math.max(flickable.contentY - 120, 0)
             scrollAnim.restart()
         }
@@ -271,6 +286,23 @@ Rectangle {
                     }
                 }
             }
+        }
+
+        // Debug can stay up while riding, and InputHandler drops every brake
+        // gesture off the parked states, so the bar would advertise levers
+        // that do nothing and cost a dense screen 53 px doing it.
+        ControlHints {
+            Layout.fillWidth: true
+            visible: typeof vehicleStore !== "undefined" && vehicleStore.parked
+            reservedRows: 2
+            leftTap: debugScreen.canScrollDown
+                ? (typeof translations !== "undefined" ? translations.controlScroll : "Scroll")
+                : ""
+            leftHold: typeof translations !== "undefined"
+                      ? translations.controlBack : "Back"
+            rightHold: debugScreen.canScrollUp
+                ? (typeof translations !== "undefined" ? translations.controlScrollUp : "Scroll up")
+                : ""
         }
     }
 }

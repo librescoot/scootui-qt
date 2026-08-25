@@ -418,24 +418,28 @@ void MenuStore::rebuildMenuTree()
             return !hasLocalMaps && !isOnlineMap;
         }));
 
-    // === Switch to Cluster View (only on map screen) ===
+    // === Switch to Cluster View (anywhere but the cluster) ===
+    // "Not already there" rather than "on the map". Keyed on the map, this
+    // entry disappeared on the debug screen, and Switch to Map was keyed on
+    // the cluster so it was missing there too: the debug screen offered no
+    // way back to a dashboard at all.
     m_rootNode->addChild(MenuNode::action(QStringLiteral("switch_cluster"),
         tr->menuSwitchToCluster(), [this]() {
             if (m_screenStore) m_screenStore->setScreen(0);
             m_settingsService->updateMode(QStringLiteral("speedometer"));
             close();
         }, [this]() {
-            return m_screenStore && m_screenStore->currentScreen() == 1;
+            return m_screenStore && m_screenStore->currentScreen() != 0;
         }));
 
-    // === Switch to Map View (only on cluster screen, requires local maps or online map type) ===
+    // === Switch to Map View (anywhere but the map, requires local maps or online map type) ===
     m_rootNode->addChild(MenuNode::action(QStringLiteral("switch_map"),
         tr->menuSwitchToMap(), [this]() {
             if (m_screenStore) m_screenStore->setScreen(1);
             m_settingsService->updateMode(QStringLiteral("navigation"));
             close();
         }, [this]() {
-            if (!m_screenStore || m_screenStore->currentScreen() != 0) return false;
+            if (!m_screenStore || m_screenStore->currentScreen() == 1) return false;
             bool hasLocalMaps = m_navAvailability && m_navAvailability->localDisplayMapsAvailable();
             bool isOnlineMap = m_settings->mapType() == static_cast<int>(ScootEnums::MapType::Online);
             return hasLocalMaps || isOnlineMap;

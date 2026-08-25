@@ -15,6 +15,9 @@ class VehicleStore : public SyncableStore
     Q_PROPERTY(int brakeRight READ brakeRight NOTIFY brakeRightChanged)
     Q_PROPERTY(int kickstand READ kickstand NOTIFY kickstandChanged)
     Q_PROPERTY(int state READ state NOTIFY stateChanged)
+    // The at-rest family as a binding. isParked() is a method, so QML
+    // reading it directly would never re-evaluate when the state moves.
+    Q_PROPERTY(bool parked READ isParked NOTIFY stateChanged)
     Q_PROPERTY(QString stateRaw READ stateRaw NOTIFY stateRawChanged)
     Q_PROPERTY(int handleBarLockSensor READ handleBarLockSensor NOTIFY handleBarLockSensorChanged)
     Q_PROPERTY(int handleBarLockState READ handleBarLockState NOTIFY handleBarLockStateChanged)
