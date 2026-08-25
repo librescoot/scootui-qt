@@ -64,6 +64,19 @@ void ScreenStore::setScreen(int screen)
     }
 }
 
+void ScreenStore::showAddressSelection()
+{
+    m_screenBeforeAddressSelection = m_currentScreen;
+    setScreen(static_cast<int>(ScootEnums::ScreenMode::AddressSelection));
+}
+
+// Cancelling out. Confirming a destination hands over to the map instead and
+// does not come through here.
+void ScreenStore::closeAddressSelection()
+{
+    setScreen(static_cast<int>(m_screenBeforeAddressSelection));
+}
+
 void ScreenStore::showAbout()
 {
     m_screenBeforeAbout = m_currentScreen;

@@ -298,10 +298,20 @@ Rectangle {
         }
     }
 
+    // Backing out past the first character leaves the screen. Restores the
+    // screen this was opened from and reopens the menu on the level it was
+    // opened from, like every other full-screen page; confirming a
+    // destination still hands over to the map instead.
+    function cancelBack() {
+        if (typeof screenStore !== "undefined")
+            screenStore.closeAddressSelection()
+        if (typeof menuStore !== "undefined")
+            menuStore.resume()
+    }
+
     function _backFromCityLetters() {
         if (cityPrefix.length === 0) {
-            if (typeof screenStore !== "undefined")
-                screenStore.setScreen(1)
+            addressScreen.cancelBack()
             return
         }
         cityPrefix = cityPrefix.slice(0, -1)
@@ -444,6 +454,11 @@ Rectangle {
         if (typeof navigationService !== "undefined") {
             navigationService.setDestination(destLat, destLng, addressLabel)
         }
+        // A chosen destination hands over to the map rather than backing out,
+        // so drop the menu level cancelBack() would have returned to. close()
+        // clears it even though the menu is already shut.
+        if (typeof menuStore !== "undefined")
+            menuStore.close()
         if (typeof screenStore !== "undefined") {
             screenStore.setScreen(1)
         }
@@ -498,8 +513,7 @@ Rectangle {
                 return
             }
             if (addressScreen.dbStatus !== addressScreen.statusReady) {
-                if (typeof screenStore !== "undefined")
-                    screenStore.setScreen(1)
+                addressScreen.cancelBack()
                 return
             }
 

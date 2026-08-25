@@ -27,6 +27,8 @@ public:
     Q_PROPERTY(int systemInfoPage READ systemInfoPage NOTIFY systemInfoPageChanged)
 
     Q_INVOKABLE void setScreen(int screen);
+    Q_INVOKABLE void showAddressSelection();
+    Q_INVOKABLE void closeAddressSelection();
     Q_INVOKABLE void showAbout();
     Q_INVOKABLE void closeAbout();
     Q_INVOKABLE void showNavigationSetup(int setupMode = 2);
@@ -74,6 +76,7 @@ private:
 
     MdbRepository *m_repo;
     ScootEnums::ScreenMode m_currentScreen = ScootEnums::ScreenMode::Cluster;
+    ScootEnums::ScreenMode m_screenBeforeAddressSelection = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeAbout = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeNavSetup = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeFaults = ScootEnums::ScreenMode::Cluster;

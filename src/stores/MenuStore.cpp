@@ -282,8 +282,8 @@ void MenuStore::rebuildMenuTree()
     // Enter destination code
     navNode->addChild(MenuNode::action(QStringLiteral("nav_enter_code"),
         tr->menuEnterDestinationCode(), [this]() {
-            close();
-            if (m_screenStore) m_screenStore->setScreen(7); // AddressSelection
+            closeForScreen();
+            if (m_screenStore) m_screenStore->showAddressSelection();
         }));
 
     // Recent destinations submenu (nested under Navigation) — last 10
