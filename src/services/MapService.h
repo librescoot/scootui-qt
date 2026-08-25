@@ -339,13 +339,6 @@ private:
     static constexpr double SwitchHysteresis = 2.0;            // new must beat current by this much
     static constexpr double SnappedPosEpsilon = 0.5;           // m — don't emit below this
 
-    // Presentation-only projection window, in segments either side of the
-    // matcher's current segment. Deliberately short: it exists to keep the
-    // displayed point off the matcher's identity hysteresis, not to re-run
-    // route matching.
-    static constexpr int PresentationWindowBack = 1;
-    static constexpr int PresentationWindowFwd = 2;
-
     // Last-emitted projection state, for change detection on routeProjectionChanged
     mutable double m_lastEmittedSnapLat = 0;
     mutable double m_lastEmittedSnapLng = 0;

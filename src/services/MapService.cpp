@@ -1848,50 +1848,38 @@ void MapService::refreshRouteProjection(bool fullScan)
         // sim run: ~12 ticks at exactly 0.000 m followed by one tick of
         // 7.5-8.3 m, once per route vertex.
         //
-        // Carry the overshoot along the polyline instead. Inside the leg this
-        // is the same clamped projection as before; past either end it walks
-        // the arc length that the clamp used to throw away, so the point keeps
-        // moving at the vehicle's own speed and the matcher's later commit
-        // lands where the walk already is. Segment identity is untouched.
-        // Pick the leg to project onto from a short window around the
-        // matcher's segment rather than that segment alone, then carry any
-        // overshoot along the polyline instead of clamping it away.
-        int bestSeg = -1;
-        double bestDist = std::numeric_limits<double>::max();
-        double bestLat = m_drLatitude;
-        double bestLng = m_drLongitude;
-        const int lo = std::max(0, m_currentRouteSegment - PresentationWindowBack);
-        const int hi = std::min(static_cast<int>(m_routeShape.size()) - 1,
-                                m_currentRouteSegment + PresentationWindowFwd + 1);
-        for (int i = lo; i < hi; ++i) {
-            const auto &P = m_routeShape[i];
-            const auto &Q = m_routeShape[i + 1];
-            double cLat, cLng, cDist;
-            projectOntoSegment(m_drLatitude, m_drLongitude,
-                               P.first, P.second, Q.first, Q.second,
-                               cLat, cLng, cDist);
-            if (cDist < bestDist) {
-                bestDist = cDist;
-                bestSeg = i;
-                bestLat = cLat;
-                bestLng = cLng;
-            }
-        }
-
-        m_segmentSnappedLat = bestLat;
-        m_segmentSnappedLng = bestLng;
+        // So carry the overshoot along the polyline instead of clamping it
+        // away. Inside the leg this is the same projection as before; past
+        // either end it walks the arc length the clamp used to throw away, so
+        // the point keeps moving at the vehicle's own speed and the matcher's
+        // later commit lands where the walk already is. Segment identity is
+        // untouched.
+        //
+        // The leg stays the matcher's own. Picking the nearest leg from a
+        // short window around it instead looks equivalent and is not: at a
+        // 90-degree corner the estimate runs wide of the vertex, both legs are
+        // then several metres away, and the nearest of the two flips back and
+        // forth for the ~1 s it takes GPS to pull the estimate back onto the
+        // route. Measured over five right-angle corners at 25 km/h, a +-1/+2
+        // window turned 7 corner ticks above 1 m into 28, and added forward
+        // spikes of up to 8 m to the backward ones; widening it to +-10 changed
+        // nothing, because the flip is always between the two legs that meet at
+        // the corner.
+        double segDist = 0.0;
+        projectOntoSegment(m_drLatitude, m_drLongitude,
+                           A.first, A.second, B.first, B.second,
+                           m_segmentSnappedLat, m_segmentSnappedLng, segDist);
+        (void)segDist;
         double t = 0.0, segLength = 0.0;
-        if (bestSeg >= 0
-            && segmentParam(m_drLatitude, m_drLongitude,
-                            m_routeShape[bestSeg].first, m_routeShape[bestSeg].second,
-                            m_routeShape[bestSeg + 1].first, m_routeShape[bestSeg + 1].second,
-                            t, segLength)
+        if (segmentParam(m_drLatitude, m_drLongitude,
+                         A.first, A.second, B.first, B.second, t, segLength)
             && (t < 0.0 || t > 1.0)) {
             if (t > 1.0) {
-                walkPolyline(m_routeShape, bestSeg + 1, (t - 1.0) * segLength,
+                walkPolyline(m_routeShape, m_currentRouteSegment + 1,
+                             (t - 1.0) * segLength,
                              m_segmentSnappedLat, m_segmentSnappedLng);
             } else {
-                walkPolyline(m_routeShape, bestSeg, t * segLength,
+                walkPolyline(m_routeShape, m_currentRouteSegment, t * segLength,
                              m_segmentSnappedLat, m_segmentSnappedLng);
             }
         }
