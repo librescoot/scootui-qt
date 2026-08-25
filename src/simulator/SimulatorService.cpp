@@ -973,9 +973,12 @@ void SimulatorService::stopAutoDrive()
         emit autoDriveActiveChanged();
     }
     m_autoDriveSpeed = 0;
-    m_route = Route();
-    m_routeWaypointIndex = 0;
-    m_currentInstructionIndex = 0;
+    // Keep the route. NavigationService still holds and draws it, so clearing
+    // only this copy desynced the two: the route stayed on screen while
+    // autoDriveTick() fell through to the routeless branch and drove due north
+    // along m_autoDriveBearing's default of 0. Keeping the waypoint index means
+    // a stop/start resumes instead of restarting. loadTestRoute() resets both
+    // when a new route actually arrives.
     emit autoDriveSpeedChanged();
     setSpeed(0);
     setGpsSpeed(0);
