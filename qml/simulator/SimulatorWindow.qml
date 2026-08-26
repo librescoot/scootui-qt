@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import ScootUI 1.0
 
 ApplicationWindow {
     id: simWindow
@@ -70,7 +71,7 @@ ApplicationWindow {
                 // Re-tapping cycles System / Connectivity / Batteries, which on
                 // the vehicle are three separate System > Info menu entries.
                 onClicked: screenStore.showSystemInfo(
-                    screenStore.currentScreen === 15 // ScreenMode.SystemInfo
+                    screenStore.currentScreen === Scooter.ScreenMode.SystemInfo
                         ? (screenStore.systemInfoPage + 1) % 3 : 0)
             }
             SimButton {
