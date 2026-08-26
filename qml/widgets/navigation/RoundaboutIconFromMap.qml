@@ -239,12 +239,35 @@ Item {
         }
         if (!(R >= 4)) return null
 
-        // Rotate by the approach road's own direction of travel, so the road
-        // the rider is on runs straight down out of the ring. Taken over the
-        // whole drawn approach stub, so what is vertical is exactly what gets
-        // drawn, not a tangent the geometry then curves away from.
+        // The approach is drawn shorter than the exit. An approach road is
+        // already bending into the junction well before it gets there: over the
+        // full stub at Ernst-Reuter-Platz the outermost fifth alone swings 28
+        // degrees off the rest. Keeping only the stretch beside the ring leaves
+        // a piece of road that is genuinely straight, which is what lets the
+        // rotation below make it vertical rather than merely average out.
         var entry = path[entryIdx]
-        var back = path[0]
+        var entryStubM = Math.max(12, 0.45 * R)
+        var mPerLonE = metresPerLon(entry[0])
+        var approachLL = []
+        var acc = 0, k = entryIdx
+        while (k > 0 && acc < entryStubM) {
+            var sdE = (path[k][1] - path[k - 1][1]) * mPerLonE
+            var sdN = (path[k][0] - path[k - 1][0]) * 111320
+            var segLen = Math.sqrt(sdE * sdE + sdN * sdN)
+            if (acc + segLen >= entryStubM) {
+                var t = (segLen > 1e-6) ? (entryStubM - acc) / segLen : 0
+                approachLL.unshift([path[k][0] + (path[k - 1][0] - path[k][0]) * t,
+                                    path[k][1] + (path[k - 1][1] - path[k][1]) * t])
+                break
+            }
+            acc += segLen
+            k--
+            approachLL.unshift(path[k])
+        }
+
+        // Rotate by that stretch's own direction, so the road the rider is on
+        // runs straight down out of the ring.
+        var back = approachLL.length > 0 ? approachLL[0] : path[0]
         var rot = bearingDeg(back[0], back[1], entry[0], entry[1]) * Math.PI / 180
         var cb = Math.cos(rot), sb = Math.sin(rot)
         var mPerLon = metresPerLon(cLat)
@@ -258,8 +281,8 @@ Item {
         // line sits on the same road the grey arm draws. Only the on-ring arc
         // is snapped onto the fitted circle, so it never drifts off the ring.
         var routeEN = []
-        for (var b = 0; b < entryIdx; b++)
-            routeEN.push(toEN(path[b][0], path[b][1]))
+        for (var b2 = 0; b2 < approachLL.length; b2++)
+            routeEN.push(toEN(approachLL[b2][0], approachLL[b2][1]))
         for (var i = entryIdx; i <= exitIdx; i++) {
             var ap0 = toEN(path[i][0], path[i][1])
             var ar = Math.sqrt(ap0.x * ap0.x + ap0.y * ap0.y)
