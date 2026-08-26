@@ -50,19 +50,19 @@ ApplicationWindow {
                 text: "Cluster"; small: true; fixedWidth: 54
                 ButtonGroup.group: screenGroup
                 checkable: true; checked: true
-                onClicked: screenStore.setScreen(0)
+                onClicked: screenStore.setScreen(Scooter.ScreenMode.Cluster)
             }
             SimButton {
                 text: "Map"; small: true; fixedWidth: 54
                 ButtonGroup.group: screenGroup
                 checkable: true
-                onClicked: screenStore.setScreen(1)
+                onClicked: screenStore.setScreen(Scooter.ScreenMode.Map)
             }
             SimButton {
                 text: "About"; small: true; fixedWidth: 54
                 ButtonGroup.group: screenGroup
                 checkable: true
-                onClicked: screenStore.setScreen(4)
+                onClicked: screenStore.setScreen(Scooter.ScreenMode.About)
             }
             SimButton {
                 text: "SysInfo"; small: true; fixedWidth: 54
@@ -78,7 +78,7 @@ ApplicationWindow {
                 text: "Debug"; small: true; fixedWidth: 54
                 ButtonGroup.group: screenGroup
                 checkable: true
-                onClicked: screenStore.setScreen(3) // ScreenMode.Debug
+                onClicked: screenStore.setScreen(Scooter.ScreenMode.Debug)
             }
 
             Item { Layout.fillWidth: true }

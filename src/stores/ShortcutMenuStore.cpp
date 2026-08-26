@@ -169,13 +169,12 @@ void ShortcutMenuStore::toggleView()
 {
     if (!m_screenStore) return;
 
-    // Toggle between Cluster (0) and Map (1)
-    int current = m_screenStore->currentScreen();
-    if (current == 0) {
-        m_screenStore->setScreen(1);
+    const ScootEnums::ScreenMode current = m_screenStore->currentScreenMode();
+    if (current == ScootEnums::ScreenMode::Cluster) {
+        m_screenStore->setScreen(static_cast<int>(ScootEnums::ScreenMode::Map));
         m_settingsService->updateMode(QStringLiteral("navigation"));
-    } else if (current == 1) {
-        m_screenStore->setScreen(0);
+    } else if (current == ScootEnums::ScreenMode::Map) {
+        m_screenStore->setScreen(static_cast<int>(ScootEnums::ScreenMode::Cluster));
         m_settingsService->updateMode(QStringLiteral("speedometer"));
     }
 }

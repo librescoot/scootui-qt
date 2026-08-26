@@ -39,7 +39,7 @@ Rectangle {
             if (typeof settingsService !== "undefined")
                 settingsService.updateMode("speedometer")
             if (typeof screenStore !== "undefined")
-                screenStore.setScreen(0)
+                screenStore.setScreen(Scooter.ScreenMode.Cluster)
         }
     }
 

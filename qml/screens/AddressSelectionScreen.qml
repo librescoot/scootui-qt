@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI 1.0
 import "../widgets/status_bars"
 import "../widgets/components"
 
@@ -460,7 +461,7 @@ Rectangle {
         if (typeof menuStore !== "undefined")
             menuStore.close()
         if (typeof screenStore !== "undefined") {
-            screenStore.setScreen(1)
+            screenStore.setScreen(Scooter.ScreenMode.Map)
         }
     }
 

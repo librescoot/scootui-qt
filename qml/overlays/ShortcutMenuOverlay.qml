@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI 1.0
 import "../widgets/components"
 
 Item {
@@ -21,8 +22,9 @@ Item {
             if (themeStore.isDark) return translations.shortcutThemeLight
             return translations.shortcutThemeAuto
         case 1:
-            return screenStore.currentScreen === 0 ? translations.shortcutViewMap
-                                                   : translations.shortcutViewCluster
+            return screenStore.currentScreen === Scooter.ScreenMode.Cluster
+                   ? translations.shortcutViewMap
+                   : translations.shortcutViewCluster
         case 2: return translations.shortcutToggleHazards
         case 3: return translations.shortcutDebugOverlay
         default: return ""
@@ -116,7 +118,7 @@ Item {
                                         if (themeStore.isDark) return MaterialIcon.iconLightMode
                                         return MaterialIcon.iconContrast
                                     case 1: // View
-                                        return screenStore.currentScreen === 0 ? MaterialIcon.iconMap : MaterialIcon.iconSpeed
+                                        return screenStore.currentScreen === Scooter.ScreenMode.Cluster ? MaterialIcon.iconMap : MaterialIcon.iconSpeed
                                     case 2: // Hazards
                                         return MaterialIcon.iconWarningAmber
                                     case 3: // Debug

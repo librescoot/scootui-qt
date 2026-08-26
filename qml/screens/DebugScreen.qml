@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI 1.0
 import "../widgets/components"
 
 Rectangle {
@@ -38,7 +39,7 @@ Rectangle {
         if (typeof settingsService !== "undefined")
             settingsService.updateMode("speedometer")
         if (typeof screenStore !== "undefined")
-            screenStore.setScreen(0)
+            screenStore.setScreen(Scooter.ScreenMode.Cluster)
     }
 
     // The content is taller than the viewport and the DBC has no touchscreen,

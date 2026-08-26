@@ -412,7 +412,8 @@ void MenuStore::rebuildMenuTree()
             closeForScreen();
             if (m_screenStore) m_screenStore->showNavigationSetup(0); // DisplayMaps
         }, [this]() {
-            if (!m_screenStore || m_screenStore->currentScreen() != 0) return false;
+            if (!m_screenStore
+                || m_screenStore->currentScreenMode() != ScootEnums::ScreenMode::Cluster) return false;
             bool hasLocalMaps = m_navAvailability && m_navAvailability->localDisplayMapsAvailable();
             bool isOnlineMap = m_settings->mapType() == static_cast<int>(ScootEnums::MapType::Online);
             return !hasLocalMaps && !isOnlineMap;
@@ -425,21 +426,25 @@ void MenuStore::rebuildMenuTree()
     // way back to a dashboard at all.
     m_rootNode->addChild(MenuNode::action(QStringLiteral("switch_cluster"),
         tr->menuSwitchToCluster(), [this]() {
-            if (m_screenStore) m_screenStore->setScreen(0);
+            if (m_screenStore)
+                m_screenStore->setScreen(static_cast<int>(ScootEnums::ScreenMode::Cluster));
             m_settingsService->updateMode(QStringLiteral("speedometer"));
             close();
         }, [this]() {
-            return m_screenStore && m_screenStore->currentScreen() != 0;
+            return m_screenStore
+                && m_screenStore->currentScreenMode() != ScootEnums::ScreenMode::Cluster;
         }));
 
     // === Switch to Map View (anywhere but the map, requires local maps or online map type) ===
     m_rootNode->addChild(MenuNode::action(QStringLiteral("switch_map"),
         tr->menuSwitchToMap(), [this]() {
-            if (m_screenStore) m_screenStore->setScreen(1);
+            if (m_screenStore)
+                m_screenStore->setScreen(static_cast<int>(ScootEnums::ScreenMode::Map));
             m_settingsService->updateMode(QStringLiteral("navigation"));
             close();
         }, [this]() {
-            if (!m_screenStore || m_screenStore->currentScreen() == 1) return false;
+            if (!m_screenStore
+                || m_screenStore->currentScreenMode() == ScootEnums::ScreenMode::Map) return false;
             bool hasLocalMaps = m_navAvailability && m_navAvailability->localDisplayMapsAvailable();
             bool isOnlineMap = m_settings->mapType() == static_cast<int>(ScootEnums::MapType::Online);
             return hasLocalMaps || isOnlineMap;
