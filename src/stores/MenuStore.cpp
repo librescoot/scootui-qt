@@ -1408,20 +1408,11 @@ QVariantList MenuStore::currentItems() const
     return list;
 }
 
-bool MenuStore::canScrollUp() const
+bool MenuStore::canScroll() const
 {
     auto *node = findCurrentNode();
     if (!node) return false;
-    int totalCount = node->visibleChildren().size();
-    return totalCount > 1;
-}
-
-bool MenuStore::canScrollDown() const
-{
-    auto *node = findCurrentNode();
-    if (!node) return false;
-    int totalCount = node->visibleChildren().size();
-    return totalCount > 1;
+    return node->visibleChildren().size() > 1;
 }
 
 void MenuStore::toggle()

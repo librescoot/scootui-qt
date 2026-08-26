@@ -35,8 +35,11 @@ class MenuStore : public QObject
     Q_PROPERTY(int selectedIndex READ selectedIndex NOTIFY menuChanged)
     Q_PROPERTY(bool isRoot READ isRoot NOTIFY menuChanged)
     Q_PROPERTY(QString parentTitle READ parentTitle NOTIFY menuChanged)
-    Q_PROPERTY(bool canScrollUp READ canScrollUp NOTIFY menuChanged)
-    Q_PROPERTY(bool canScrollDown READ canScrollDown NOTIFY menuChanged)
+    // True when the level has somewhere else to go, which is any level with
+    // more than one row. Not a direction: the list wraps, so there is no end
+    // to be at, and the two directional predicates this replaces were the
+    // same expression under names that promised a position check neither did.
+    Q_PROPERTY(bool canScroll READ canScroll NOTIFY menuChanged)
     // The action a right long-tap would run on the selected row, named
     // so the hint bar can print it. Empty when the row has no shortcut.
     Q_PROPERTY(QString selectedPrimaryLabel READ selectedPrimaryLabel NOTIFY menuChanged)
@@ -66,8 +69,7 @@ public:
     int selectedIndex() const { return m_selectedIndex; }
     bool isRoot() const { return m_pathStack.isEmpty(); }
     QString parentTitle() const;
-    bool canScrollUp() const;
-    bool canScrollDown() const;
+    bool canScroll() const;
     QString selectedPrimaryLabel() const;
 
     Q_INVOKABLE void toggle();

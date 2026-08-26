@@ -189,7 +189,7 @@ Item {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 // A level with one entry has nothing to scroll through.
-                leftTap: !menuStore.canScrollDown ? ""
+                leftTap: !menuStore.canScroll ? ""
                        : (typeof translations !== "undefined"
                           ? translations.controlScroll : "Scroll")
                 // At the root the hold leaves the menu rather than going up a
