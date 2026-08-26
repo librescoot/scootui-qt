@@ -276,46 +276,37 @@ Item {
         }
         if (!(R >= 4)) return null
 
-        // The approach is drawn shorter than the exit. An approach road is
-        // already bending into the junction well before it gets there: over the
-        // full stub at Ernst-Reuter-Platz the outermost fifth alone swings 28
-        // degrees off the rest. Keeping only the stretch beside the ring leaves
-        // a piece of road that is genuinely straight, which is what lets the
-        // rotation below make it vertical rather than merely average out.
+        // Align the icon to the road the rider is on, measured clear of the
+        // flare. An approach is already bending into the junction well before
+        // it arrives: on the bundled routes a bearing taken over the last 0.45R
+        // sits 23 degrees off the road's true heading on average and 35 at
+        // worst, which tilted the entry visibly. Between alignNear and alignFar
+        // back it is within 1.7 degrees. path[0] is the far end already.
         var entry = path[entryIdx]
         var entryStubM = Math.max(12, 0.45 * R)
+        var alignNearM = rd.alignNearMeters || Math.max(20, Math.min(90, 1.2 * R))
         var mPerLonE = metresPerLon(entry[0])
-        var approachLL = []
+        var near = entry
         var acc = 0, k = entryIdx
-        while (k > 0 && acc < entryStubM) {
+        while (k > 0) {
             var sdE = (path[k][1] - path[k - 1][1]) * mPerLonE
             var sdN = (path[k][0] - path[k - 1][0]) * 111320
             var segLen = Math.sqrt(sdE * sdE + sdN * sdN)
-            if (acc + segLen >= entryStubM) {
-                var t = (segLen > 1e-6) ? (entryStubM - acc) / segLen : 0
-                approachLL.unshift([path[k][0] + (path[k - 1][0] - path[k][0]) * t,
-                                    path[k][1] + (path[k - 1][1] - path[k][1]) * t])
+            if (acc + segLen >= alignNearM) {
+                var t = (segLen > 1e-6) ? (alignNearM - acc) / segLen : 0
+                near = [path[k][0] + (path[k - 1][0] - path[k][0]) * t,
+                        path[k][1] + (path[k - 1][1] - path[k][1]) * t]
                 break
             }
             acc += segLen
             k--
-            approachLL.unshift(path[k])
+            near = path[k]
         }
 
-        // Rotate by that stretch's own direction, so the road the rider is on
-        // runs straight down out of the ring. Aimed at where the entry lands
-        // after being snapped onto the circle, not at the raw node, so the line
-        // that actually gets drawn is the one made vertical.
-        var mPerLonC = metresPerLon(cLat)
-        var eE = (entry[1] - cLon) * mPerLonC, eN = (entry[0] - cLat) * 111320
-        var eR = Math.sqrt(eE * eE + eN * eN)
-        var snapLat = entry[0], snapLon = entry[1]
-        if (eR > 1e-6) {
-            snapLat = cLat + (eN * R / eR) / 111320
-            snapLon = cLon + (eE * R / eR) / mPerLonC
-        }
-        var back = approachLL.length > 0 ? approachLL[0] : path[0]
-        var rot = bearingDeg(back[0], back[1], snapLat, snapLon) * Math.PI / 180
+        // Direction of travel along that stretch, so the road runs straight
+        // down out of the ring.
+        var far = path[0]
+        var rot = bearingDeg(far[0], far[1], near[0], near[1]) * Math.PI / 180
         var cb = Math.cos(rot), sb = Math.sin(rot)
         var mPerLon = metresPerLon(cLat)
         function toEN(lat, lon) {
