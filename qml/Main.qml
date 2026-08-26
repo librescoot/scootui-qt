@@ -199,7 +199,6 @@ Window {
                 case Scooter.ScreenMode.MotionDebug:        comp = motionDebugComponent;    name = "motion-debug";   break
                 case Scooter.ScreenMode.About:           comp = aboutComponent;       name = "about";       break
                 case Scooter.ScreenMode.Maintenance:     comp = maintenanceComponent; name = "maintenance"; break
-                case Scooter.ScreenMode.Ota:             comp = otaBgComponent;       name = "otaBg";       break
                 case Scooter.ScreenMode.AddressSelection:comp = addressComponent;     name = "address";     break
                 case Scooter.ScreenMode.NavigationSetup: comp = navSetupComponent;    name = "navSetup";    break
                 case Scooter.ScreenMode.Faults:          comp = faultsComponent;      name = "faults";      break
@@ -220,7 +219,6 @@ Window {
     Component { id: aboutComponent; AboutScreen {} }
     Component { id: debugComponent; DebugScreen {} }
     Component { id: motionDebugComponent; MotionDebugScreen {} }
-    Component { id: otaBgComponent; OtaBackgroundScreen {} }
     Component { id: addressComponent; AddressSelectionScreen {} }
     Component { id: navSetupComponent; NavigationSetupScreen {} }
     Component { id: faultsComponent; FaultsScreen {} }

@@ -1256,8 +1256,6 @@ void Translations::initStrings()
     en[QStringLiteral("otaWaitingForReboot")] = QStringLiteral("Update installed. Waiting for reboot");
     de[QStringLiteral("otaWaitingForReboot")] = QStringLiteral("Update installiert. Warte auf Neustart");
 
-    en[QStringLiteral("otaStatusWaitingForReboot")] = QStringLiteral("Waiting for reboot");
-    de[QStringLiteral("otaStatusWaitingForReboot")] = QStringLiteral("Warte auf Neustart");
 
     en[QStringLiteral("otaStatusDownloading")] = QStringLiteral("Downloading");
     de[QStringLiteral("otaStatusDownloading")] = QStringLiteral("Wird heruntergeladen");
@@ -1277,8 +1275,6 @@ void Translations::initStrings()
     en[QStringLiteral("otaInstallFailedShort")] = QStringLiteral("Install failed");
     de[QStringLiteral("otaInstallFailedShort")] = QStringLiteral("Installation fehlgeschlagen");
 
-    en[QStringLiteral("otaRebootFailed")] = QStringLiteral("Reboot failed");
-    de[QStringLiteral("otaRebootFailed")] = QStringLiteral("Neustart fehlgeschlagen");
 
     en[QStringLiteral("otaUpdateError")] = QStringLiteral("Update error");
     de[QStringLiteral("otaUpdateError")] = QStringLiteral("Update-Fehler");

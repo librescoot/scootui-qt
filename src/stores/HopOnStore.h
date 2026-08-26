@@ -106,8 +106,7 @@ private:
     static constexpr int kCountdownTickMs = 100;
     static constexpr int kMinComboLength = 2;
     // Delay after entering hop-on Locked mode before the dashboard
-    // backlight is turned off. Mirrors the OTA screen pattern at
-    // qml/screens/OtaBackgroundScreen.qml. The user gets enough time to
+    // backlight is turned off. The user gets enough time to
     // see the lock screen and orient themselves before the display goes
     // dark.
     static constexpr int kBacklightDelayMs = 30000;

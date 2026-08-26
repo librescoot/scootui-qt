@@ -233,7 +233,6 @@ set(QML_FILES
     qml/screens/AboutScreen.qml
     qml/screens/DebugScreen.qml
     qml/screens/MotionDebugScreen.qml
-    qml/screens/OtaBackgroundScreen.qml
     qml/screens/MapScreen.qml
     qml/screens/AddressSelectionScreen.qml
     qml/screens/NavigationSetupScreen.qml

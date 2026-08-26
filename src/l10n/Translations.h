@@ -423,14 +423,12 @@ class Translations : public QObject
     Q_PROPERTY(QString otaInstallingUpdates READ otaInstallingUpdates NOTIFY languageChanged)
     Q_PROPERTY(QString otaInstallFailed READ otaInstallFailed NOTIFY languageChanged)
     Q_PROPERTY(QString otaWaitingForReboot READ otaWaitingForReboot NOTIFY languageChanged)
-    Q_PROPERTY(QString otaStatusWaitingForReboot READ otaStatusWaitingForReboot NOTIFY languageChanged)
     Q_PROPERTY(QString otaStatusDownloading READ otaStatusDownloading NOTIFY languageChanged)
     Q_PROPERTY(QString otaStatusInstalling READ otaStatusInstalling NOTIFY languageChanged)
     Q_PROPERTY(QString otaUpdate READ otaUpdate NOTIFY languageChanged)
     Q_PROPERTY(QString otaInvalidRelease READ otaInvalidRelease NOTIFY languageChanged)
     Q_PROPERTY(QString otaDownloadFailedShort READ otaDownloadFailedShort NOTIFY languageChanged)
     Q_PROPERTY(QString otaInstallFailedShort READ otaInstallFailedShort NOTIFY languageChanged)
-    Q_PROPERTY(QString otaRebootFailed READ otaRebootFailed NOTIFY languageChanged)
     Q_PROPERTY(QString otaUpdateError READ otaUpdateError NOTIFY languageChanged)
     Q_PROPERTY(QString otaPreparingUpdate READ otaPreparingUpdate NOTIFY languageChanged)
     Q_PROPERTY(QString otaPendingReboot READ otaPendingReboot NOTIFY languageChanged)
@@ -971,14 +969,12 @@ public:
     QString otaInstallingUpdates() const { return lookup("otaInstallingUpdates"); }
     QString otaInstallFailed() const { return lookup("otaInstallFailed"); }
     QString otaWaitingForReboot() const { return lookup("otaWaitingForReboot"); }
-    QString otaStatusWaitingForReboot() const { return lookup("otaStatusWaitingForReboot"); }
     QString otaStatusDownloading() const { return lookup("otaStatusDownloading"); }
     QString otaStatusInstalling() const { return lookup("otaStatusInstalling"); }
     QString otaUpdate() const { return lookup("otaUpdate"); }
     QString otaInvalidRelease() const { return lookup("otaInvalidRelease"); }
     QString otaDownloadFailedShort() const { return lookup("otaDownloadFailedShort"); }
     QString otaInstallFailedShort() const { return lookup("otaInstallFailedShort"); }
-    QString otaRebootFailed() const { return lookup("otaRebootFailed"); }
     QString otaUpdateError() const { return lookup("otaUpdateError"); }
     QString otaPreparingUpdate() const { return lookup("otaPreparingUpdate"); }
     QString otaPendingReboot() const { return lookup("otaPendingReboot"); }

@@ -8,7 +8,7 @@ Item {
     // The ota-status SVGs are baked fill="white", so they only read correctly on
     // a dark surface. Tint them like every other neutral icon rather than
     // relying on the artwork's own colour. Default stays white so the existing
-    // black-background callers (ShutdownOverlay, OtaBackgroundScreen) are
+    // black-background callers (ShutdownOverlay) are
     // unchanged; a theme-aware caller passes its own foreground.
     property color tintColor: "#FFFFFF"
 
