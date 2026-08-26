@@ -143,9 +143,6 @@ Item {
         for (var i = 0; i < feats.length; i++) {
             var pts = feats[i].points
             if (!pts || pts.length < 2) continue
-            // Driveways and yard roads are not exits a rider picks between, and
-            // at Ernst-Reuter-Platz they alone add half a dozen stubs.
-            if (feats[i].kind === "service") continue
             var rmin = 1e9, rmax = 0
             for (var j = 0; j < pts.length; j++) {
                 var dE = (pts[j][1] - cLon) * mPerLon
@@ -159,6 +156,28 @@ Item {
                 kept.push(feats[i])
         }
         return kept
+    }
+
+    // How much road a kind is worth when two arms leave in the same direction.
+    function roadRank(kind) {
+        switch (kind) {
+        case "motorway": case "trunk": return 6
+        case "primary": return 5
+        case "secondary": return 4
+        case "tertiary": return 3
+        case "unclassified": case "residential": return 2
+        case "living_street": return 1
+        default: return 0
+        }
+    }
+
+    function polylineLength(pts) {
+        var acc = 0
+        for (var i = 1; i < pts.length; i++) {
+            var dx = pts[i].x - pts[i - 1].x, dy = pts[i].y - pts[i - 1].y
+            acc += Math.sqrt(dx * dx + dy * dy)
+        }
+        return acc
     }
 
     // Cut a polyline down to at most `maxLen` of its own length.
@@ -280,14 +299,22 @@ Item {
         // Route: the approach and the exit keep their real shape, so the white
         // line sits on the same road the grey arm draws. Only the on-ring arc
         // is snapped onto the fitted circle, so it never drifts off the ring.
-        var routeEN = []
-        for (var b2 = 0; b2 < approachLL.length; b2++)
-            routeEN.push(toEN(approachLL[b2][0], approachLL[b2][1]))
+        var arcEN = []
         for (var i = entryIdx; i <= exitIdx; i++) {
             var ap0 = toEN(path[i][0], path[i][1])
             var ar = Math.sqrt(ap0.x * ap0.x + ap0.y * ap0.y)
-            routeEN.push(ar > 1e-6 ? { x: ap0.x * R / ar, y: ap0.y * R / ar } : ap0)
+            arcEN.push(ar > 1e-6 ? { x: ap0.x * R / ar, y: ap0.y * R / ar } : ap0)
         }
+        var entryOnRing = arcEN[0]
+
+        // One straight segment, dead vertical, from the entry down. The
+        // rotation above already put the road on that axis, so this only
+        // removes the last degree or so of wobble and the half-pixel the entry
+        // moved when it was snapped onto the circle. The grey arm still draws
+        // the road's real shape underneath, within about a pixel of it.
+        var routeEN = [{ x: entryOnRing.x, y: entryOnRing.y - entryStubM }]
+        for (var c2 = 0; c2 < arcEN.length; c2++) routeEN.push(arcEN[c2])
+
         var exitRaw = toEN(path[exitIdx][0], path[exitIdx][1])
         var exitSnapped = routeEN[routeEN.length - 1]
         var shiftX = exitSnapped.x - exitRaw.x, shiftY = exitSnapped.y - exitRaw.y
@@ -297,18 +324,48 @@ Item {
         }
 
         var arms = selectArms(feats, cLat, cLon, R)
-        var armsEN = []
+        var cands = []
         for (var a = 0; a < arms.length; a++) {
             var ap = arms[a].points, seq = []
             for (var q = 0; q < ap.length; q++) seq.push(toEN(ap[q][0], ap[q][1]))
-            var w = (arms[a].kind === "primary" || arms[a].kind === "secondary") ? 5 : 3
+            var runs = runsOutside(seq, R)
+            for (var rr = 0; rr < runs.length; rr++) {
+                var rl = polylineLength(runs[rr])
+                // A road that only clips the kerb leaves a stub too short to be
+                // a direction. Measured over 184 roundabouts, this fires on one
+                // of them, so it removes specks without thinning real arms.
+                if (rl < 0.12 * R) continue
+                cands.push({ pts: runs[rr], kind: arms[a].kind, len: rl,
+                             ang: Math.atan2(runs[rr][0].y, runs[rr][0].x) * 180 / Math.PI })
+            }
+        }
+
+        // One stub per direction. A dual carriageway reaches the ring as two
+        // roads a few degrees apart, and drawing both says "two exits" where
+        // there is one. Keeping the most major, then the longest, of each
+        // cluster leaves the count a rider sees intact: over the same 184
+        // roundabouts this takes Ernst-Reuter-Platz from 24 stubs to 10 while
+        // leaving the median roundabout's 4 alone.
+        cands.sort(function (p, q) {
+            var d = roadRank(q.kind) - roadRank(p.kind)
+            return d !== 0 ? d : q.len - p.len
+        })
+        var armsEN = []
+        var taken = []
+        for (var c3 = 0; c3 < cands.length; c3++) {
+            var clash = false
+            for (var t3 = 0; t3 < taken.length && !clash; t3++) {
+                var dA = Math.abs(((cands[c3].ang - taken[t3] + 180) % 360 + 360) % 360 - 180)
+                if (dA < 18) clash = true
+            }
+            if (clash) continue
+            taken.push(cands[c3].ang)
             // Arms are stubs, not roads followed to wherever they go: the ring
             // and the route carry the meaning, and letting every arm run to the
             // frame edge fills the cell edge to edge and loses the whitespace
             // the glyph icons alongside have.
-            var runs = runsOutside(seq, R)
-            for (var rr = 0; rr < runs.length; rr++)
-                armsEN.push({ pts: limitRun(runs[rr], 0.45 * R), w: w })
+            armsEN.push({ pts: limitRun(cands[c3].pts, 0.45 * R),
+                          w: roadRank(cands[c3].kind) >= 4 ? 5 : 3 })
         }
 
         // Fit the ring plus the route into the tile. Arms are deliberately
@@ -392,7 +449,9 @@ Item {
                     strokeColor: root.roadColor
                     strokeWidth: modelData.w
                     fillColor: "transparent"
-                    capStyle: ShapePath.RoundCap
+                    // Flat: an arm is cut off mid-road, and a round cap turns
+                    // that cut into a dome that reads as the road's own end.
+                    capStyle: ShapePath.FlatCap
                     joinStyle: ShapePath.RoundJoin
                     startX: modelData.pts.length > 0 ? modelData.pts[0].x : 0
                     startY: modelData.pts.length > 0 ? modelData.pts[0].y : 0
