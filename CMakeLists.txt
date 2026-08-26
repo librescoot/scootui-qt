@@ -387,6 +387,7 @@ qt_add_qml_module(scootui
         assets/routes/route4.json
         assets/routes/route5.json
         assets/routes/route6.json
+        assets/routes/route7.json
         assets/routes/route1_de.json
         assets/routes/route2_de.json
         assets/routes/route3_de.json

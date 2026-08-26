@@ -1,0 +1,89 @@
+{
+  "trip": {
+    "language": "en-US",
+    "status": 0,
+    "status_message": "Found route between points",
+    "units": "kilometers",
+    "summary": {
+      "has_time_restrictions": false,
+      "has_toll": false,
+      "has_highway": false,
+      "has_ferry": false,
+      "min_lat": 52.379229937643615,
+      "min_lon": 13.116801381111145,
+      "max_lat": 52.38158853223682,
+      "max_lon": 13.11919372067624,
+      "time": 90.0,
+      "length": 0.6,
+      "cost": 180.0
+    },
+    "legs": [
+      {
+        "shape": "{d~{bBawq_Xa[?a[?a[?c[?a[?aFqJ?_m@?_m@?_m@",
+        "summary": {
+          "time": 90.0,
+          "length": 0.6
+        },
+        "maneuvers": [
+          {
+            "type": 1,
+            "begin_shape_index": 0,
+            "end_shape_index": 5,
+            "length": 0.25,
+            "time": 30.0,
+            "instruction": "Drive north.",
+            "street_names": [
+              "Test Approach"
+            ],
+            "begin_heading": 0,
+            "end_heading": 0,
+            "verbal_pre_transition_instruction": "Drive north."
+          },
+          {
+            "type": 26,
+            "begin_shape_index": 5,
+            "end_shape_index": 6,
+            "length": 0.02,
+            "time": 5.0,
+            "roundabout_exit_count": 1,
+            "instruction": "Enter Wetzlarer Straße and take the 1st exit.",
+            "street_names": [
+              "Wetzlarer Straße"
+            ],
+            "begin_heading": 0,
+            "end_heading": 90,
+            "verbal_pre_transition_instruction": "Enter the roundabout and take the first exit."
+          },
+          {
+            "type": 27,
+            "begin_shape_index": 6,
+            "end_shape_index": 9,
+            "length": 0.15,
+            "time": 25.0,
+            "instruction": "Exit the roundabout onto Test Exit.",
+            "street_names": [
+              "Test Exit"
+            ],
+            "begin_heading": 90,
+            "end_heading": 90,
+            "verbal_pre_transition_instruction": "Exit the roundabout."
+          },
+          {
+            "type": 4,
+            "begin_shape_index": 9,
+            "end_shape_index": 9,
+            "length": 0.0,
+            "time": 0.0,
+            "instruction": "You have arrived.",
+            "street_names": [
+              "Test Exit"
+            ],
+            "begin_heading": 90,
+            "end_heading": 90,
+            "verbal_pre_transition_instruction": "You have arrived."
+          }
+        ]
+      }
+    ]
+  }
+}
