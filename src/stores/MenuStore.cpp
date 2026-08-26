@@ -947,6 +947,25 @@ void MenuStore::rebuildMenuTree()
             return !(m_settings && m_settings->serviceActive() == QLatin1String("true"));
         }));
 
+    // Clearing paired phones is the only way to reclaim a scooter's bond list:
+    // the firmware accepts a single-bond delete and does nothing with it, so
+    // this is all or nothing. Marked caution because it unpairs every phone
+    // including the one its owner is holding.
+    //
+    // Parked only. Re-pairing needs this dashboard to show the passkey, so
+    // offering it in a state where the rider cannot immediately pair again
+    // would strand them.
+    auto *clearBondsNode = systemNode->addChild(MenuNode::action(
+        QStringLiteral("clear_paired_phones"),
+        tr->menuClearPairedPhones(), [this, repo]() {
+            repo->push(QStringLiteral("scooter:bluetooth"), QStringLiteral("delete-all-bonds"));
+            close();
+        }, [this]() {
+            return m_vehicle &&
+                   m_vehicle->state() == static_cast<int>(ScootEnums::VehicleState::Parked);
+        }));
+    clearBondsNode->setCaution(true);
+
     // Updates — ordered by how often a rider has any business touching them:
     // how often to look, look now, and then the two that the defaults already
     // get right. All four write the MDB and DBC keys together (see

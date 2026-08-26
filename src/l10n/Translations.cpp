@@ -181,6 +181,8 @@ void Translations::initStrings()
 
     en[QStringLiteral("menuEnterUms")] = QStringLiteral("Update Mode…");
     de[QStringLiteral("menuEnterUms")] = QStringLiteral("Update-Modus…");
+    en[QStringLiteral("menuClearPairedPhones")] = QStringLiteral("Clear Paired Phones");
+    de[QStringLiteral("menuClearPairedPhones")] = QStringLiteral("Gekoppelte Handys löschen");
 
     en[QStringLiteral("updateModeTitle")] = QStringLiteral("Update Mode");
     de[QStringLiteral("updateModeTitle")] = QStringLiteral("Update-Modus");

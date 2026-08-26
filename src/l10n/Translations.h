@@ -61,6 +61,7 @@ class Translations : public QObject
     Q_PROPERTY(QString captureLogsToastDone READ captureLogsToastDone NOTIFY languageChanged)
     Q_PROPERTY(QString captureLogsToastFailed READ captureLogsToastFailed NOTIFY languageChanged)
     Q_PROPERTY(QString menuEnterUms READ menuEnterUms NOTIFY languageChanged)
+    Q_PROPERTY(QString menuClearPairedPhones READ menuClearPairedPhones NOTIFY languageChanged)
     Q_PROPERTY(QString menuFaults READ menuFaults NOTIFY languageChanged)
     Q_PROPERTY(QString menuSystemInfo READ menuSystemInfo NOTIFY languageChanged)
     Q_PROPERTY(QString menuAppearance READ menuAppearance NOTIFY languageChanged)
@@ -604,6 +605,7 @@ public:
     QString captureLogsToastDone() const { return lookup("captureLogsToastDone"); }
     QString captureLogsToastFailed() const { return lookup("captureLogsToastFailed"); }
     QString menuEnterUms() const { return lookup("menuEnterUms"); }
+    QString menuClearPairedPhones() const { return lookup("menuClearPairedPhones"); }
     QString menuFaults() const { return lookup("menuFaults"); }
     QString menuSystemInfo() const { return lookup("menuSystemInfo"); }
     QString menuAppearance() const { return lookup("menuAppearance"); }
