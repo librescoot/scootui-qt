@@ -157,7 +157,6 @@ assets/
 | `SCOOTUI_REDIS_HOST` | `192.168.7.1` | Redis host (use `none` for the in-memory repository). Supports `host:port` format |
 | `SCOOTUI_SIMULATOR` | follows the backend | `1`/`0` to force the simulator panel on or off. Unset it is on for the in-memory repository and off against Redis |
 | `SCOOTUI_RESOLUTION` | `480x480` | Display resolution (`WIDTHxHEIGHT`). UI scales automatically |
-| `SCOOTUI_SETTINGS_PATH` | _(none)_ | Path to persistent settings file |
 
 ### Runtime Settings (Redis)
 

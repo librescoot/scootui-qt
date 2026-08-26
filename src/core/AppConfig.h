@@ -3,8 +3,6 @@
 #include <QString>
 
 struct AppConfig {
-    static inline QString settingsFilePath;
-
     // Valhalla routing
     static constexpr const char* valhallaOnDeviceEndpoint = "http://127.0.0.1:8002/";
     static constexpr const char* valhallaOnlineEndpoint = "https://valhalla1.openstreetmap.de/";

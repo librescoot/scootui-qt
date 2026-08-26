@@ -1,5 +1,4 @@
 #include "EnvConfig.h"
-#include "AppConfig.h"
 
 #include <QProcessEnvironment>
 #include <QDebug>
@@ -8,13 +7,6 @@
 void EnvConfig::initialize()
 {
     const auto env = QProcessEnvironment::systemEnvironment();
-
-    // Settings file path
-    const QString configPath = env.value(QStringLiteral("SCOOTUI_SETTINGS_PATH"));
-    if (!configPath.isEmpty()) {
-        AppConfig::settingsFilePath = configPath;
-        qDebug() << "Using settings file from environment:" << configPath;
-    }
 
     // Simulator panel: SCOOTUI_SIMULATOR=1/true/on, or 0/false/off
     const QString simStr = env.value(QStringLiteral("SCOOTUI_SIMULATOR")).trimmed().toLower();
