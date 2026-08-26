@@ -1512,18 +1512,6 @@ void MenuStore::close()
     emitMenuChanged();
 }
 
-void MenuStore::navigateUp()
-{
-    if (m_openedAt.isValid() && m_openedAt.elapsed() < kOpenInputGraceMs) return;
-    auto *node = findCurrentNode();
-    if (!node) return;
-    int totalCount = node->visibleChildren().size();
-    if (totalCount <= 1) return;
-    m_selectedIndex = (m_selectedIndex - 1 + totalCount) % totalCount;
-    rememberSelection();
-    emitMenuChanged();
-}
-
 void MenuStore::navigateDown()
 {
     if (m_openedAt.isValid() && m_openedAt.elapsed() < kOpenInputGraceMs) return;

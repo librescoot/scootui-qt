@@ -80,7 +80,6 @@ public:
     // when the page is dismissed; any other close() drops the memory.
     void closeForScreen();
     Q_INVOKABLE void resume();
-    Q_INVOKABLE void navigateUp();
     Q_INVOKABLE void navigateDown();
     Q_INVOKABLE void selectItem();
     Q_INVOKABLE void goBack();
