@@ -364,9 +364,9 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
                     feature.properties.value(QStringLiteral("kind"));
                 if (!s_roadTypes.contains(kind))
                     continue;
-                const QVector<QPointF> points =
-                    VectorTile::decodeLineString(feature.geometry);
-                if (points.size() < 2)
+                const QVector<QVector<QPointF>> parts =
+                    VectorTile::decodeLineStringParts(feature.geometry);
+                if (parts.isEmpty())
                     continue;
 
                 Candidate candidate;
@@ -386,29 +386,31 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
                     feature.properties.value(QStringLiteral("tunnel"))
                     == QLatin1String("true");
 
-                for (int i = 0; i + 1 < points.size(); ++i) {
-                    const double lon1 = (tileX + points[i].x() / extent)
-                        / n * 360.0 - 180.0;
-                    const double mercY1 = 1.0 - (tileY + 1.0
-                        - points[i].y() / extent) / n;
-                    const double lat1 = std::atan(std::sinh(
-                        M_PI * (1.0 - 2.0 * mercY1))) * 180.0 / M_PI;
-                    const double lon2 = (tileX + points[i + 1].x() / extent)
-                        / n * 360.0 - 180.0;
-                    const double mercY2 = 1.0 - (tileY + 1.0
-                        - points[i + 1].y() / extent) / n;
-                    const double lat2 = std::atan(std::sinh(
-                        M_PI * (1.0 - 2.0 * mercY2))) * 180.0 / M_PI;
+                for (const QVector<QPointF> &points : parts) {
+                    for (int i = 0; i + 1 < points.size(); ++i) {
+                        const double lon1 = (tileX + points[i].x() / extent)
+                            / n * 360.0 - 180.0;
+                        const double mercY1 = 1.0 - (tileY + 1.0
+                            - points[i].y() / extent) / n;
+                        const double lat1 = std::atan(std::sinh(
+                            M_PI * (1.0 - 2.0 * mercY1))) * 180.0 / M_PI;
+                        const double lon2 = (tileX + points[i + 1].x() / extent)
+                            / n * 360.0 - 180.0;
+                        const double mercY2 = 1.0 - (tileY + 1.0
+                            - points[i + 1].y() / extent) / n;
+                        const double lat2 = std::atan(std::sinh(
+                            M_PI * (1.0 - 2.0 * mercY2))) * 180.0 / M_PI;
 
-                    double snappedLat, snappedLon, distance;
-                    projectOntoSegment(lat, lon, lat1, lon1, lat2, lon2,
-                                       snappedLat, snappedLon, distance);
-                    if (distance < candidate.actualDistanceMeters) {
-                        candidate.actualDistanceMeters = distance;
-                        candidate.lat1 = lat1; candidate.lon1 = lon1;
-                        candidate.lat2 = lat2; candidate.lon2 = lon2;
-                        candidate.snappedLat = snappedLat;
-                        candidate.snappedLon = snappedLon;
+                        double snappedLat, snappedLon, distance;
+                        projectOntoSegment(lat, lon, lat1, lon1, lat2, lon2,
+                                           snappedLat, snappedLon, distance);
+                        if (distance < candidate.actualDistanceMeters) {
+                            candidate.actualDistanceMeters = distance;
+                            candidate.lat1 = lat1; candidate.lon1 = lon1;
+                            candidate.lat2 = lat2; candidate.lon2 = lon2;
+                            candidate.snappedLat = snappedLat;
+                            candidate.snappedLon = snappedLon;
+                        }
                     }
                 }
                 if (!std::isfinite(candidate.actualDistanceMeters))
@@ -696,45 +698,50 @@ QVariantList RoadInfoService::streetsInBbox(double minLat, double minLon,
                 if (!s_roadTypes.contains(kind) && !isRoundabout)
                     continue;
 
-                QVector<QPointF> tilePoints = VectorTile::decodeLineString(feature.geometry);
-                if (tilePoints.isEmpty())
+                const QVector<QVector<QPointF>> parts =
+                    VectorTile::decodeLineStringParts(feature.geometry);
+                if (parts.isEmpty())
                     continue;
 
-                // Decode to lat/lon and compute feature bbox for quick filter.
-                QVariantList points;
-                points.reserve(tilePoints.size());
-                double fMinLat = std::numeric_limits<double>::max();
-                double fMaxLat = -std::numeric_limits<double>::max();
-                double fMinLon = std::numeric_limits<double>::max();
-                double fMaxLon = -std::numeric_limits<double>::max();
+                const QString name = feature.properties.value(QStringLiteral("name"));
 
-                for (const auto &tp : tilePoints) {
-                    double lon = (tx + tp.x() / extent) / n * 360.0 - 180.0;
-                    double yMerc = 1.0 - (ty + 1.0 - tp.y() / extent) / n;
-                    double lat = std::atan(std::sinh(M_PI * (1.0 - 2.0 * yMerc)))
-                                 * 180.0 / M_PI;
-                    QVariantList pt;
-                    pt << lat << lon;
-                    points.append(QVariant(pt));
-                    fMinLat = std::min(fMinLat, lat);
-                    fMaxLat = std::max(fMaxLat, lat);
-                    fMinLon = std::min(fMinLon, lon);
-                    fMaxLon = std::max(fMaxLon, lon);
+                // One entry per part: a multipart feature is several disjoint
+                // stretches of the same road, and joining them would draw a
+                // line across whatever sits between.
+                for (const QVector<QPointF> &tilePoints : parts) {
+                    QVariantList points;
+                    points.reserve(tilePoints.size());
+                    double fMinLat = std::numeric_limits<double>::max();
+                    double fMaxLat = -std::numeric_limits<double>::max();
+                    double fMinLon = std::numeric_limits<double>::max();
+                    double fMaxLon = -std::numeric_limits<double>::max();
+
+                    for (const auto &tp : tilePoints) {
+                        double lon = (tx + tp.x() / extent) / n * 360.0 - 180.0;
+                        double yMerc = 1.0 - (ty + 1.0 - tp.y() / extent) / n;
+                        double lat = std::atan(std::sinh(M_PI * (1.0 - 2.0 * yMerc)))
+                                     * 180.0 / M_PI;
+                        QVariantList pt;
+                        pt << lat << lon;
+                        points.append(QVariant(pt));
+                        fMinLat = std::min(fMinLat, lat);
+                        fMaxLat = std::max(fMaxLat, lat);
+                        fMinLon = std::min(fMinLon, lon);
+                        fMaxLon = std::max(fMaxLon, lon);
+                    }
+
+                    // Bbox intersection test.
+                    if (fMaxLat < minLat || fMinLat > maxLat ||
+                        fMaxLon < minLon || fMinLon > maxLon)
+                        continue;
+
+                    QVariantMap entry;
+                    entry[QStringLiteral("points")] = points;
+                    entry[QStringLiteral("kind")] = kind;
+                    entry[QStringLiteral("roundabout")] = isRoundabout;
+                    entry[QStringLiteral("name")] = name;
+                    result.append(entry);
                 }
-
-                // Bbox intersection test.
-                if (fMaxLat < minLat || fMinLat > maxLat ||
-                    fMaxLon < minLon || fMinLon > maxLon)
-                    continue;
-
-                QString name = feature.properties.value(QStringLiteral("name"));
-
-                QVariantMap entry;
-                entry[QStringLiteral("points")] = points;
-                entry[QStringLiteral("kind")] = kind;
-                entry[QStringLiteral("roundabout")] = isRoundabout;
-                entry[QStringLiteral("name")] = name;
-                result.append(entry);
             }
         }
     }

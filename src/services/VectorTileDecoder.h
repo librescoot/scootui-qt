@@ -33,7 +33,9 @@ Tile parse(const QByteArray &data);
 // Decode a POINT geometry command stream to tile-local coordinates
 QPointF decodePoint(const QVector<uint32_t> &geometry);
 
-// Decode a LINESTRING geometry command stream to tile-local coordinates
-QVector<QPointF> decodeLineString(const QVector<uint32_t> &geometry);
+// Decode a LINESTRING geometry command stream to tile-local coordinates. Each
+// MoveTo opens a new part, so a MULTILINESTRING feature comes back as several
+// polylines rather than one with a phantom segment joining them.
+QVector<QVector<QPointF>> decodeLineStringParts(const QVector<uint32_t> &geometry);
 
 } // namespace VectorTile

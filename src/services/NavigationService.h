@@ -61,7 +61,12 @@ class NavigationService : public QObject
 
     // Roundabout
     Q_PROPERTY(int roundaboutExitCount READ roundaboutExitCount NOTIFY instructionChanged)
-    Q_PROPERTY(QVariantMap currentRoundaboutRender READ currentRoundaboutRender NOTIFY instructionChanged)
+    // Deliberately not NOTIFY instructionChanged: that fires at the navigation
+    // cadence because RouteInstruction compares its distance, and this payload
+    // does not depend on where the rider is. It only changes when the
+    // Enter/Exit pair does.
+    Q_PROPERTY(QVariantMap currentRoundaboutRender READ currentRoundaboutRender
+               NOTIFY roundaboutRenderChanged)
 
 public:
     explicit NavigationService(GpsStore *gps, NavigationStore *nav,
@@ -156,6 +161,7 @@ signals:
     void destinationRequested(double latitude, double longitude, const QString &label);
     void instructionChanged();
     void positionChanged();
+    void roundaboutRenderChanged();
 
 private slots:
     void onGpsChanged();
@@ -171,6 +177,10 @@ private slots:
 
 private:
     void updateNavigationState();
+    // Rebuilds m_roundaboutRender when the Enter/Exit pair changes, and emits
+    // roundaboutRenderChanged only then.
+    void updateRoundaboutRender();
+    QVariantMap buildRoundaboutRender(int enterInstrIdx, int exitInstrIdx) const;
     void updateVerbalStage(const RouteInstruction &first);
     void updateNextPreviewState();
     void setStatus(NavigationStatus status);
@@ -282,6 +292,12 @@ private:
     bool m_hasLastPassedManeuver = false;
     QElapsedTimer m_lastPassedAt;
     int m_prevLeadingShapeIdx = -1;
+
+    // Roundabout icon payload, cached on the shape indices of the Enter/Exit
+    // pair it was built from.
+    QVariantMap m_roundaboutRender;
+    int m_roundaboutEnterShape = -1;
+    int m_roundaboutExitShape = -1;
 
     QTimer *m_navDataDebounce = nullptr;
 

@@ -16,6 +16,7 @@
 #include <QUrl>
 #include <QVariantList>
 #include <QVariantMap>
+#include <algorithm>
 #include <cmath>
 
 namespace {
@@ -342,46 +343,162 @@ int NavigationService::roundaboutExitCount() const
     return m_upcomingInstructions.first().roundaboutExitCount;
 }
 
+namespace {
+
+// Least-squares circle through a set of points, in a local east/north metric
+// frame anchored on the first one. Kasa fit: linear in (cx, cy, c), so it is a
+// 3x3 solve rather than an iteration.
+struct RingFit {
+    double lat = 0.0;
+    double lon = 0.0;
+    double radius = 0.0;
+    double maxResidual = 0.0;
+    double arcSpanDeg = 0.0;
+    bool ok = false;
+};
+
+RingFit fitRing(const QList<LatLng> &pts)
+{
+    RingFit fit;
+    if (pts.size() < 3)
+        return fit;
+
+    const double lat0 = pts.first().latitude;
+    const double lon0 = pts.first().longitude;
+    const double cosLat0 = std::cos(lat0 * M_PI / 180.0);
+    const auto toE = [&](const LatLng &p) { return (p.longitude - lon0) * 111320.0 * cosLat0; };
+    const auto toN = [&](const LatLng &p) { return (p.latitude - lat0) * 111320.0; };
+
+    double sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, sxz = 0, syz = 0, sz = 0;
+    for (const auto &p : pts) {
+        const double x = toE(p), y = toN(p), z = x * x + y * y;
+        sx += x; sy += y;
+        sxx += x * x; syy += y * y; sxy += x * y;
+        sxz += x * z; syz += y * z; sz += z;
+    }
+    const double n = static_cast<double>(pts.size());
+    const double m[3][3] = {{sxx, sxy, sx}, {sxy, syy, sy}, {sx, sy, n}};
+    const double v[3] = {sxz * 0.5, syz * 0.5, sz * 0.5};
+
+    const auto det3 = [](const double a[3][3]) {
+        return a[0][0] * (a[1][1] * a[2][2] - a[1][2] * a[2][1])
+             - a[0][1] * (a[1][0] * a[2][2] - a[1][2] * a[2][0])
+             + a[0][2] * (a[1][0] * a[2][1] - a[1][1] * a[2][0]);
+    };
+    const double det = det3(m);
+    if (std::abs(det) < 1e-9)
+        return fit;
+
+    double sol[3];
+    for (int col = 0; col < 3; ++col) {
+        double t[3][3];
+        for (int r = 0; r < 3; ++r)
+            for (int c = 0; c < 3; ++c)
+                t[r][c] = (c == col) ? v[r] : m[r][c];
+        sol[col] = det3(t) / det;
+    }
+    const double cx = sol[0], cy = sol[1];
+    const double rSq = sol[2] + cx * cx + cy * cy;
+    if (!std::isfinite(rSq) || rSq <= 0.0)
+        return fit;
+    fit.radius = std::sqrt(rSq);
+    fit.lat = lat0 + cy / 111320.0;
+    fit.lon = lon0 + cx / (111320.0 * cosLat0);
+
+    // How well the points sit on that circle, and how much of it they cover.
+    // A short arc can be fitted tightly by a circle of almost any size, so the
+    // residual alone does not say the fit is trustworthy — the span does.
+    double prevAng = 0.0;
+    bool havePrev = false;
+    for (const auto &p : pts) {
+        const double dx = toE(p) - cx, dy = toN(p) - cy;
+        fit.maxResidual = std::max(fit.maxResidual, std::abs(std::hypot(dx, dy) - fit.radius));
+        const double ang = std::atan2(dy, dx) * 180.0 / M_PI;
+        if (havePrev) {
+            double step = std::fmod(ang - prevAng + 540.0, 360.0) - 180.0;
+            fit.arcSpanDeg += std::abs(step);
+        }
+        prevAng = ang;
+        havePrev = true;
+    }
+
+    fit.ok = fit.radius >= 4.0 && fit.radius <= 90.0
+             && fit.maxResidual <= std::max(2.5, 0.18 * fit.radius)
+             && fit.arcSpanDeg >= 40.0;
+    return fit;
+}
+
+double metersBetween(const LatLng &a, const LatLng &b)
+{
+    const double cosLat = std::cos(a.latitude * M_PI / 180.0);
+    return std::hypot((b.longitude - a.longitude) * 111320.0 * cosLat,
+                      (b.latitude - a.latitude) * 111320.0);
+}
+
+} // namespace
+
 QVariantMap NavigationService::currentRoundaboutRender() const
 {
-    QVariantMap result;
-    if (m_upcomingInstructions.isEmpty())
-        return result;
+    return m_roundaboutRender;
+}
 
-    const RouteInstruction &current = m_upcomingInstructions.first();
-    if (current.type != ManeuverType::RoundaboutEnter &&
-        current.type != ManeuverType::RoundaboutExit)
-        return result;
-
-    // Find the Enter/Exit pair in m_route.instructions so the same icon works
-    // while approaching (current=Enter) and while inside the ring (current=Exit).
+void NavigationService::updateRoundaboutRender()
+{
     int enterInstrIdx = -1;
     int exitInstrIdx = -1;
-    for (int i = 0; i < m_route.instructions.size(); ++i) {
-        if (m_route.instructions[i].originalShapeIndex == current.originalShapeIndex &&
-            m_route.instructions[i].type == current.type) {
-            if (current.type == ManeuverType::RoundaboutEnter) {
-                enterInstrIdx = i;
-                for (int j = i + 1; j < m_route.instructions.size(); ++j) {
-                    if (m_route.instructions[j].type == ManeuverType::RoundaboutExit) {
-                        exitInstrIdx = j;
-                        break;
+
+    if (!m_upcomingInstructions.isEmpty()) {
+        const RouteInstruction &current = m_upcomingInstructions.first();
+        if (current.type == ManeuverType::RoundaboutEnter ||
+            current.type == ManeuverType::RoundaboutExit) {
+            // Find the Enter/Exit pair in m_route.instructions so the same icon
+            // works while approaching (current=Enter) and while inside the ring
+            // (current=Exit).
+            for (int i = 0; i < m_route.instructions.size(); ++i) {
+                if (m_route.instructions[i].originalShapeIndex != current.originalShapeIndex ||
+                    m_route.instructions[i].type != current.type)
+                    continue;
+                if (current.type == ManeuverType::RoundaboutEnter) {
+                    enterInstrIdx = i;
+                    for (int j = i + 1; j < m_route.instructions.size(); ++j) {
+                        if (m_route.instructions[j].type == ManeuverType::RoundaboutExit) {
+                            exitInstrIdx = j;
+                            break;
+                        }
+                    }
+                } else {
+                    exitInstrIdx = i;
+                    for (int j = i - 1; j >= 0; --j) {
+                        if (m_route.instructions[j].type == ManeuverType::RoundaboutEnter) {
+                            enterInstrIdx = j;
+                            break;
+                        }
                     }
                 }
-            } else {
-                exitInstrIdx = i;
-                for (int j = i - 1; j >= 0; --j) {
-                    if (m_route.instructions[j].type == ManeuverType::RoundaboutEnter) {
-                        enterInstrIdx = j;
-                        break;
-                    }
-                }
+                break;
             }
-            break;
         }
     }
-    if (enterInstrIdx < 0 || exitInstrIdx < 0)
-        return result;
+
+    const int enterShape = (enterInstrIdx >= 0)
+        ? m_route.instructions[enterInstrIdx].originalShapeIndex : -1;
+    const int exitShape = (exitInstrIdx >= 0)
+        ? m_route.instructions[exitInstrIdx].originalShapeIndex : -1;
+
+    if (enterShape == m_roundaboutEnterShape && exitShape == m_roundaboutExitShape)
+        return;
+
+    m_roundaboutEnterShape = enterShape;
+    m_roundaboutExitShape = exitShape;
+    m_roundaboutRender = (enterInstrIdx >= 0 && exitInstrIdx >= 0)
+        ? buildRoundaboutRender(enterInstrIdx, exitInstrIdx)
+        : QVariantMap();
+    emit roundaboutRenderChanged();
+}
+
+QVariantMap NavigationService::buildRoundaboutRender(int enterInstrIdx, int exitInstrIdx) const
+{
+    QVariantMap result;
 
     const int enterIdx = m_route.instructions[enterInstrIdx].originalShapeIndex;
     const int exitIdx = m_route.instructions[exitInstrIdx].originalShapeIndex;
@@ -392,65 +509,76 @@ QVariantMap NavigationService::currentRoundaboutRender() const
     if (exitIdx <= enterIdx || exitIdx >= m_route.waypoints.size())
         return result;
 
-    // Arc points on the ring itself — used for the circle fit.
+    // Arc points on the ring itself.
     QList<LatLng> arcPoints;
     arcPoints.reserve(exitIdx - enterIdx + 1);
     for (int i = enterIdx; i <= exitIdx; ++i)
         arcPoints.append(m_route.waypoints[i]);
-
     if (arcPoints.size() < 2)
         return result;
 
-    // Display path extends ~8 waypoints either side of the arc so the icon
-    // shows the approach stub coming in and the exit stub going out in white,
-    // not just the on-ring arc.
-    constexpr int kStubPoints = 8;
-    const int pathStart = std::max(0, enterIdx - kStubPoints);
-    const int pathEnd = std::min(static_cast<int>(m_route.waypoints.size()) - 1,
-                                   exitIdx + kStubPoints);
-    QList<LatLng> pathPoints;
-    pathPoints.reserve(pathEnd - pathStart + 1);
-    for (int i = pathStart; i <= pathEnd; ++i)
-        pathPoints.append(m_route.waypoints[i]);
+    const RingFit fit = fitRing(arcPoints);
 
-    // Fit a circle through three on-ring arc points (first, middle, last) in a
-    // local east/north metric frame — gives the ring centroid instead of the
-    // arc midpoint so the icon actually frames the roundabout. Mean fallback
-    // if the three points are collinear or if we have fewer than three points.
-    double centerLat, centerLon;
-    auto meanFallback = [&](double &lat, double &lon) {
+    double centerLat, centerLon, ringRadius;
+    if (fit.ok) {
+        centerLat = fit.lat;
+        centerLon = fit.lon;
+        ringRadius = fit.radius;
+    } else {
+        // The arc does not pin the circle down (a first exit gives barely any
+        // of it). The mean of on-ring points is still within a radius of the
+        // real centre, which is good enough to anchor a tile query; QML refits
+        // from the ring geometry it finds there.
         double latSum = 0, lonSum = 0;
         for (const auto &p : arcPoints) { latSum += p.latitude; lonSum += p.longitude; }
-        lat = latSum / arcPoints.size();
-        lon = lonSum / arcPoints.size();
-    };
-    if (arcPoints.size() >= 3) {
-        const LatLng &A = arcPoints.first();
-        const LatLng &B = arcPoints[arcPoints.size() / 2];
-        const LatLng &C = arcPoints.last();
-        const double cosLat0 = std::cos(A.latitude * M_PI / 180.0);
-        const auto toEN = [&](const LatLng &p) {
-            return QPointF((p.longitude - A.longitude) * 111320.0 * cosLat0,
-                           (p.latitude - A.latitude) * 111320.0);
-        };
-        const QPointF a = toEN(A), b = toEN(B), c = toEN(C);
-        const double d = 2.0 * (a.x() * (b.y() - c.y()) +
-                                b.x() * (c.y() - a.y()) +
-                                c.x() * (a.y() - b.y()));
-        if (std::abs(d) > 1e-6) {
-            const double aSq = a.x() * a.x() + a.y() * a.y();
-            const double bSq = b.x() * b.x() + b.y() * b.y();
-            const double cSq = c.x() * c.x() + c.y() * c.y();
-            const double ux = (aSq * (b.y() - c.y()) + bSq * (c.y() - a.y()) + cSq * (a.y() - b.y())) / d;
-            const double uy = (aSq * (c.x() - b.x()) + bSq * (a.x() - c.x()) + cSq * (b.x() - a.x())) / d;
-            centerLat = A.latitude + uy / 111320.0;
-            centerLon = A.longitude + ux / (111320.0 * cosLat0);
-        } else {
-            meanFallback(centerLat, centerLon);
-        }
-    } else {
-        meanFallback(centerLat, centerLon);
+        centerLat = latSum / arcPoints.size();
+        centerLon = lonSum / arcPoints.size();
+        ringRadius = 0.0;
+        for (const auto &p : arcPoints)
+            ringRadius = std::max(ringRadius, metersBetween({centerLat, centerLon}, p));
+        ringRadius = std::max(ringRadius, 12.0);
     }
+
+    // Approach and exit stubs measured in metres rather than in waypoints:
+    // Valhalla's shape density runs from a couple of metres in a tight curve to
+    // hundreds on a straight, so a fixed waypoint count is a random distance.
+    // Long enough that the exit stub still shows some road after the arrow head
+    // has taken its bite out of it.
+    // The far end is interpolated rather than rounded up to the next waypoint.
+    // On a straight approach the next one can be 100 m further out, and that
+    // overshoot eats the icon's whole framing budget.
+    const double stubMeters = std::clamp(0.70 * ringRadius, 15.0, 60.0);
+    const auto stubFrom = [&](int anchor, int step) {
+        QList<LatLng> out;
+        double acc = 0.0;
+        int i = anchor;
+        while (i + step >= 0 && i + step < m_route.waypoints.size()) {
+            const LatLng &a = m_route.waypoints[i];
+            const LatLng &b = m_route.waypoints[i + step];
+            const double seg = metersBetween(a, b);
+            if (acc + seg >= stubMeters) {
+                const double t = (seg > 1e-6) ? (stubMeters - acc) / seg : 0.0;
+                out.append({a.latitude + (b.latitude - a.latitude) * t,
+                            a.longitude + (b.longitude - a.longitude) * t});
+                break;
+            }
+            acc += seg;
+            i += step;
+            out.append(b);
+        }
+        return out;
+    };
+
+    const QList<LatLng> approach = stubFrom(enterIdx, -1);  // outward from the entry
+    const QList<LatLng> exitRun = stubFrom(exitIdx, +1);    // outward from the exit
+
+    QList<LatLng> pathPoints;
+    pathPoints.reserve(approach.size() + (exitIdx - enterIdx + 1) + exitRun.size());
+    for (int i = approach.size() - 1; i >= 0; --i)
+        pathPoints.append(approach[i]);
+    for (int i = enterIdx; i <= exitIdx; ++i)
+        pathPoints.append(m_route.waypoints[i]);
+    pathPoints.append(exitRun);
 
     QVariantList path;
     path.reserve(pathPoints.size());
@@ -460,51 +588,26 @@ QVariantMap NavigationService::currentRoundaboutRender() const
         path.append(QVariant(p));
     }
 
-    // On-ring arc points separately, so QML can filter the surrounding
-    // street geometry to only roads whose endpoints touch the ring.
     QVariantList arcPath;
     arcPath.reserve(arcPoints.size());
-    double ringRadius = 0.0;
-    const double cosLatC2 = std::cos(centerLat * M_PI / 180.0);
     for (const auto &pt : arcPoints) {
         QVariantList p;
         p << pt.latitude << pt.longitude;
         arcPath.append(QVariant(p));
-        const double dE = (pt.longitude - centerLon) * 111320.0 * cosLatC2;
-        const double dN = (pt.latitude - centerLat) * 111320.0;
-        const double r = std::hypot(dE, dN);
-        if (r > ringRadius) ringRadius = r;
     }
 
     result[QStringLiteral("centerLat")] = centerLat;
     result[QStringLiteral("centerLon")] = centerLon;
-    // Orient heading-up, like the main heading-up map: rotate so the forward
-    // direction along the approach road sits at screen-top, and the approach
-    // road itself runs vertically up the icon into the ring. Use the chord
-    // from pathStart to the entry node as "forward direction" — smoother than
-    // Valhalla's bearingBefore, which is the heading at the first on-ring
-    // segment and already curving into the ring.
-    double rotationDeg;
-    if (pathStart < enterIdx) {
-        const LatLng &back = m_route.waypoints[pathStart];
-        const LatLng &entryWp = m_route.waypoints[enterIdx];
-        const double cosLatC = std::cos(centerLat * M_PI / 180.0);
-        const double dE = (entryWp.longitude - back.longitude) * 111320.0 * cosLatC;
-        const double dN = (entryWp.latitude - back.latitude) * 111320.0;
-        if (std::hypot(dE, dN) > 1.0) {
-            rotationDeg = std::atan2(dE, dN) * 180.0 / M_PI;
-        } else {
-            rotationDeg = m_route.instructions[enterInstrIdx].bearingBefore;
-        }
-    } else {
-        rotationDeg = m_route.instructions[enterInstrIdx].bearingBefore;
-    }
-    while (rotationDeg < 0.0) rotationDeg += 360.0;
-    while (rotationDeg >= 360.0) rotationDeg -= 360.0;
-    result[QStringLiteral("bearingDeg")] = rotationDeg;
+    result[QStringLiteral("ringRadius")] = ringRadius;
+    // False means "anchor only, refit before you draw anything".
+    result[QStringLiteral("ringValid")] = fit.ok;
     result[QStringLiteral("path")] = path;
     result[QStringLiteral("arcPath")] = arcPath;
-    result[QStringLiteral("ringRadius")] = ringRadius;
+    // Indices into path, so QML knows which stretch is on the ring and can take
+    // the arrow direction off the exit road rather than off a canvas clip.
+    result[QStringLiteral("entryIndex")] = approach.size();
+    result[QStringLiteral("exitIndex")] = approach.size() + (exitIdx - enterIdx);
+    result[QStringLiteral("stubMeters")] = stubMeters;
     return result;
 }
 
@@ -611,6 +714,7 @@ void NavigationService::setDestination(double lat, double lng, const QString &ad
     emit routeChanged();
     emit instructionChanged();
     emit positionChanged();
+    updateRoundaboutRender();
 
     m_destination = {lat, lng};
     m_destAddress = address;
@@ -665,6 +769,7 @@ void NavigationService::clearNavigation()
     emit destinationChanged();
     emit instructionChanged();
     emit positionChanged();
+    updateRoundaboutRender();
 
     // Clear Redis. Set fields to "" rather than HDEL: HiredisWorker::doHdel
     // does not publish a notification, so subscribers (bluetooth-service's
@@ -1030,6 +1135,7 @@ void NavigationService::updateNavigationState()
         m_upcomingInstructions = upcoming;
         emit instructionChanged();
     }
+    updateRoundaboutRender();
 
     // Update verbal-stage and next-preview hysteresis state before any
     // property reader observes the instruction change.

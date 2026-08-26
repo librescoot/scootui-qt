@@ -158,7 +158,7 @@ Item {
                         renderData: typeof navigationService !== "undefined"
                                     ? navigationService.currentRoundaboutRender : null
                         isDark: tbtWidget.isDark
-                        size: 64
+                        size: 80
                     }
                 }
 

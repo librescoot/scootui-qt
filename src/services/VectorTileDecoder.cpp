@@ -315,9 +315,10 @@ QPointF decodePoint(const QVector<uint32_t> &geometry)
     return QPointF(zigzagDecode(rawX), zigzagDecode(rawY));
 }
 
-QVector<QPointF> decodeLineString(const QVector<uint32_t> &geometry)
+QVector<QVector<QPointF>> decodeLineStringParts(const QVector<uint32_t> &geometry)
 {
-    QVector<QPointF> points;
+    QVector<QVector<QPointF>> parts;
+    QVector<QPointF> current;
     int i = 0;
     int32_t cursorX = 0, cursorY = 0;
 
@@ -326,18 +327,33 @@ QVector<QPointF> decodeLineString(const QVector<uint32_t> &geometry)
         int cmdId = cmd & 0x7;
         int count = cmd >> 3;
 
-        if (cmdId == 1 || cmdId == 2) { // MoveTo or LineTo
+        // MoveTo starts a new part. A feature with several of them is a
+        // MULTILINESTRING: joining the parts would invent a segment that no
+        // road follows, which then shows up as a stray chord and as a bogus
+        // endpoint for anything matching against the geometry.
+        if (cmdId == 1) {
+            for (int j = 0; j < count && i + 1 < geometry.size(); ++j) {
+                if (current.size() >= 2)
+                    parts.append(current);
+                current.clear();
+                cursorX += zigzagDecode(geometry[i++]);
+                cursorY += zigzagDecode(geometry[i++]);
+                current.append(QPointF(cursorX, cursorY));
+            }
+        } else if (cmdId == 2) { // LineTo
             for (int j = 0; j < count && i + 1 < geometry.size(); ++j) {
                 cursorX += zigzagDecode(geometry[i++]);
                 cursorY += zigzagDecode(geometry[i++]);
-                points.append(QPointF(cursorX, cursorY));
+                current.append(QPointF(cursorX, cursorY));
             }
         } else if (cmdId == 7) { // ClosePath
             // Not relevant for linestrings
         }
     }
+    if (current.size() >= 2)
+        parts.append(current);
 
-    return points;
+    return parts;
 }
 
 } // namespace VectorTile
