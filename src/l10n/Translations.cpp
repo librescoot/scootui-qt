@@ -704,6 +704,11 @@ void Translations::initStrings()
     en[QStringLiteral("controlClose")] = QStringLiteral("Close");
     de[QStringLiteral("controlClose")] = QStringLiteral("Schlie\u00DFen");
 
+    // The debug screen's 3 s hold. Long, but it has the row to itself and it
+    // is the only way out of service mode from the handlebars.
+    en[QStringLiteral("controlExitServiceMode")] = QStringLiteral("Exit service mode");
+    de[QStringLiteral("controlExitServiceMode")] = QStringLiteral("Servicemodus beenden");
+
     // Shown instead of a value when the MDB and DBC halves of a paired setting
     // disagree. The menu never creates that state; lsc or a hand-edited
     // settings.toml can.

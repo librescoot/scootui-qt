@@ -136,14 +136,21 @@ Window {
         }
     }
 
-    // Double-tap left brake opens menu on main screens
+    // Double-tap left brake opens menu on main screens.
+    //
+    // Debug is deliberately not one of them. It scrolls on left tap and its
+    // content runs to about three viewports, so reaching the bottom takes a
+    // run of taps; any two inside vehicle-service's 800 ms double-tap window
+    // also emit double-tap, which opened the menu mid-scroll. It was also the
+    // only screen carrying its own hint bar under the menu, so the menu's bar
+    // landed on top of it. The screen's own 3 s hold covers the one thing the
+    // menu was needed for there.
     Connections {
         id: doubleTapMenuOpener
         target: typeof inputHandler !== "undefined" ? inputHandler : null
         enabled: typeof menuStore !== "undefined" && !menuStore.isOpen
                  && (root.currentScreen === Scooter.ScreenMode.Cluster
-                     || root.currentScreen === Scooter.ScreenMode.Map
-                     || root.currentScreen === Scooter.ScreenMode.Debug)
+                     || root.currentScreen === Scooter.ScreenMode.Map)
         function onLeftDoubleTap() {
             console.log("MENU: onLeftDoubleTap (currentScreen=" + root.currentScreen
                         + ", isOpen=" + menuStore.isOpen

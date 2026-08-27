@@ -61,6 +61,11 @@ public:
     // in the ota hash's preview-* fields, mirrored by OtaStore.
     Q_INVOKABLE void requestChannelPreview(const QString &channel);
 
+    // Clears the service overlay. Not a settings write: settings-service owns
+    // the overlaid keys and reasserts any direct edit to them, so the only way
+    // out is the command queue it consumes.
+    Q_INVOKABLE void disableServiceMode();
+
 private:
     void writeSetting(const QString &key, const QString &value);
     void writeOtaSetting(const QString &suffix, const QString &value);

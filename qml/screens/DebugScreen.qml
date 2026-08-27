@@ -33,6 +33,13 @@ Rectangle {
                                            && flickable.contentY + flickable.height < flickable.contentHeight - 2
     readonly property bool canScrollUp: flickable.contentY > 2
 
+    // Service mode forces dashboard.mode to debug and settings-service
+    // reasserts the key on any direct edit, so this screen is where a scooter
+    // in service mode stays. Leaving it is only meaningful once the overlay is
+    // gone, which is what the 3 s hold below is for.
+    readonly property bool serviceActive:
+        typeof settingsStore !== "undefined" && settingsStore.serviceActive === "true"
+
     // Debug mode is entered by writing the mode key, so leaving has to write
     // it back: switching the screen alone would be undone by the next sync.
     function leaveScreen() {
@@ -44,8 +51,10 @@ Rectangle {
 
     // The content is taller than the viewport and the DBC has no touchscreen,
     // so the Flickable needs brake-lever scrolling to be reachable at all.
-    // Left double-tap still opens the menu (handled in Main.qml); the menu
-    // takes over the levers while it is open.
+    //
+    // Both directions are taps. Scrolling up used to be an 800 ms hold, which
+    // made the way back through three viewports of content cost about as long
+    // as reading them. Nothing else on this screen wants a plain right tap.
     Connections {
         target: typeof inputHandler !== "undefined" ? inputHandler : null
         enabled: typeof menuStore === "undefined" || !menuStore.isOpen
@@ -54,10 +63,21 @@ Rectangle {
             scrollAnim.to = Math.min(flickable.contentY + 120, maxY)
             scrollAnim.restart()
         }
-        function onLeftHold() { debugScreen.leaveScreen() }
-        function onRightHold() {
+        function onRightTap() {
             scrollAnim.to = Math.max(flickable.contentY - 120, 0)
             scrollAnim.restart()
+        }
+        // Suppressed in service mode: the write it makes is reasserted, so all
+        // it buys is a frame on the cluster and a bounce straight back here.
+        function onLeftHold() {
+            if (!debugScreen.serviceActive)
+                debugScreen.leaveScreen()
+        }
+        // The 3 s hold, and the only way out of service mode from the
+        // handlebars now that the menu does not open on this screen.
+        function onLeftBrakeHold() {
+            if (debugScreen.serviceActive && typeof settingsService !== "undefined")
+                settingsService.disableServiceMode()
         }
     }
 
@@ -226,6 +246,31 @@ Rectangle {
                 Item { Layout.preferredHeight: 16 }
             }
         }
+
+        // Debug can stay up while riding, and InputHandler drops every brake
+        // gesture off the parked states, so the bar would advertise levers
+        // that do nothing and cost a dense screen 53 px doing it.
+        //
+        // Two rows either way: the tap row plus whichever of Back and the
+        // service-mode exit applies. Reserved so the bar keeps its height as
+        // the two scroll hints come and go with the position.
+        ControlHints {
+            Layout.fillWidth: true
+            visible: typeof vehicleStore !== "undefined" && vehicleStore.parked
+            reservedRows: 2
+            leftTap: debugScreen.canScrollDown
+                ? (typeof translations !== "undefined" ? translations.controlScroll : "Scroll down")
+                : ""
+            rightTap: debugScreen.canScrollUp
+                ? (typeof translations !== "undefined" ? translations.controlScrollUp : "Scroll up")
+                : ""
+            leftHold: debugScreen.serviceActive ? ""
+                    : (typeof translations !== "undefined" ? translations.controlBack : "Back")
+            leftHoldLong: debugScreen.serviceActive
+                ? (typeof translations !== "undefined"
+                   ? translations.controlExitServiceMode : "Exit service mode")
+                : ""
+        }
     }
 
     // Inline component for debug sections
@@ -287,23 +332,6 @@ Rectangle {
                     }
                 }
             }
-        }
-
-        // Debug can stay up while riding, and InputHandler drops every brake
-        // gesture off the parked states, so the bar would advertise levers
-        // that do nothing and cost a dense screen 53 px doing it.
-        ControlHints {
-            Layout.fillWidth: true
-            visible: typeof vehicleStore !== "undefined" && vehicleStore.parked
-            reservedRows: 2
-            leftTap: debugScreen.canScrollDown
-                ? (typeof translations !== "undefined" ? translations.controlScroll : "Scroll")
-                : ""
-            leftHold: typeof translations !== "undefined"
-                      ? translations.controlBack : "Back"
-            rightHold: debugScreen.canScrollUp
-                ? (typeof translations !== "undefined" ? translations.controlScrollUp : "Scroll up")
-                : ""
         }
     }
 }

@@ -241,6 +241,7 @@ class Translations : public QObject
     Q_PROPERTY(QString controlScroll READ controlScroll NOTIFY languageChanged)
     Q_PROPERTY(QString controlScrollUp READ controlScrollUp NOTIFY languageChanged)
     Q_PROPERTY(QString controlClose READ controlClose NOTIFY languageChanged)
+    Q_PROPERTY(QString controlExitServiceMode READ controlExitServiceMode NOTIFY languageChanged)
     Q_PROPERTY(QString menuDiverged READ menuDiverged NOTIFY languageChanged)
     Q_PROPERTY(QString controlBackTo READ controlBackTo NOTIFY languageChanged)
     Q_PROPERTY(QString menuMainMenu READ menuMainMenu NOTIFY languageChanged)
@@ -797,6 +798,7 @@ public:
     QString controlScroll() const { return lookup("controlScroll"); }
     QString controlScrollUp() const { return lookup("controlScrollUp"); }
     QString controlClose() const { return lookup("controlClose"); }
+    QString controlExitServiceMode() const { return lookup("controlExitServiceMode"); }
     QString menuDiverged() const { return lookup("menuDiverged"); }
     QString controlBackTo() const { return lookup("controlBackTo"); }
     QString menuMainMenu() const { return lookup("menuMainMenu"); }

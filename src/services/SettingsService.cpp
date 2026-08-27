@@ -43,6 +43,11 @@ void SettingsService::triggerUpdateCheck()
     m_repo->push(QStringLiteral("scooter:update:dbc"), QStringLiteral("check-now"));
 }
 
+void SettingsService::disableServiceMode()
+{
+    m_repo->push(QStringLiteral("settings:overlay"), QStringLiteral("clear:service"));
+}
+
 void SettingsService::requestChannelPreview(const QString &channel)
 {
     const QString command = QStringLiteral("preview-channel:") + channel;
