@@ -29,7 +29,18 @@ AddressDatabaseService::AddressDatabaseService(QObject *parent)
 {
 }
 
-AddressDatabaseService::~AddressDatabaseService() = default;
+AddressDatabaseService::~AddressDatabaseService()
+{
+    m_cancelRequested.store(true);
+    const auto jobs = m_backgroundJobs;
+    m_backgroundJobs.clear();
+    for (auto *watcher : jobs) {
+        disconnect(watcher, nullptr, this, nullptr);
+        watcher->cancel();
+        watcher->waitForFinished();
+        delete watcher;
+    }
+}
 
 
 // ---------------------------------------------------------------------------
@@ -315,7 +326,9 @@ void AddressDatabaseService::queryHouseNumbers(const QString &city, const QStrin
 
     // Run the tile query on a background thread to avoid blocking the UI
     auto *watcher = new QFutureWatcher<QVariantList>(this);
+    m_backgroundJobs.append(watcher);
     connect(watcher, &QFutureWatcher<QVariantList>::finished, this, [this, watcher]() {
+        m_backgroundJobs.removeOne(watcher);
         emit houseNumbersReady(watcher->result());
         watcher->deleteLater();
     });
@@ -1129,8 +1142,10 @@ void AddressDatabaseService::initialize()
     setStatus(Loading, QStringLiteral("Loading address database..."));
 
     auto *watcher = new QFutureWatcher<BuildResult>(this);
+    m_backgroundJobs.append(watcher);
 
     connect(watcher, &QFutureWatcher<BuildResult>::finished, this, [this, watcher]() {
+        m_backgroundJobs.removeOne(watcher);
         BuildResult result = watcher->result();
         watcher->deleteLater();
 

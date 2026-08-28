@@ -86,8 +86,8 @@ private:
     void applyHeadingSnapshot(const QString &payload);
     void applySensorsSnapshot(const QString &payload);
 
-    bool m_headingSubscribed = false;
-    bool m_sensorsSubscribed = false;
+    SubscriptionId m_headingSubscriptionId = 0;
+    SubscriptionId m_sensorsSubscriptionId = 0;
 
     // Heading payload state
     double m_headingDeg = 0.0;

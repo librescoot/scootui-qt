@@ -11,13 +11,13 @@ MotionStore::MotionStore(MdbRepository *repo, QObject *parent)
 
 MotionStore::~MotionStore()
 {
-    if (m_headingSubscribed) {
-        m_repo->unsubscribe(QStringLiteral("motion:heading"));
-        m_headingSubscribed = false;
+    if (m_headingSubscriptionId != 0) {
+        m_repo->unsubscribe(QStringLiteral("motion:heading"), m_headingSubscriptionId);
+        m_headingSubscriptionId = 0;
     }
-    if (m_sensorsSubscribed) {
-        m_repo->unsubscribe(QStringLiteral("motion:sensors"));
-        m_sensorsSubscribed = false;
+    if (m_sensorsSubscriptionId != 0) {
+        m_repo->unsubscribe(QStringLiteral("motion:sensors"), m_sensorsSubscriptionId);
+        m_sensorsSubscriptionId = 0;
     }
 }
 
@@ -25,28 +25,30 @@ void MotionStore::start()
 {
     SyncableStore::start();
 
-    m_repo->subscribe(QStringLiteral("motion:heading"),
-                      [this](const QString &, const QString &message) {
-                          applyHeadingSnapshot(message);
-                      });
-    m_headingSubscribed = true;
+    if (m_headingSubscriptionId == 0) {
+        m_headingSubscriptionId = m_repo->subscribe(
+            QStringLiteral("motion:heading"), [this](const QString &, const QString &message) {
+                applyHeadingSnapshot(message);
+            });
+    }
 
-    m_repo->subscribe(QStringLiteral("motion:sensors"),
-                      [this](const QString &, const QString &message) {
-                          applySensorsSnapshot(message);
-                      });
-    m_sensorsSubscribed = true;
+    if (m_sensorsSubscriptionId == 0) {
+        m_sensorsSubscriptionId = m_repo->subscribe(
+            QStringLiteral("motion:sensors"), [this](const QString &, const QString &message) {
+                applySensorsSnapshot(message);
+            });
+    }
 }
 
 void MotionStore::stop()
 {
-    if (m_headingSubscribed) {
-        m_repo->unsubscribe(QStringLiteral("motion:heading"));
-        m_headingSubscribed = false;
+    if (m_headingSubscriptionId != 0) {
+        m_repo->unsubscribe(QStringLiteral("motion:heading"), m_headingSubscriptionId);
+        m_headingSubscriptionId = 0;
     }
-    if (m_sensorsSubscribed) {
-        m_repo->unsubscribe(QStringLiteral("motion:sensors"));
-        m_sensorsSubscribed = false;
+    if (m_sensorsSubscriptionId != 0) {
+        m_repo->unsubscribe(QStringLiteral("motion:sensors"), m_sensorsSubscriptionId);
+        m_sensorsSubscriptionId = 0;
     }
     SyncableStore::stop();
 }

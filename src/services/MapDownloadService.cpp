@@ -75,6 +75,17 @@ MapDownloadService::MapDownloadService(MdbRepository *repo, QObject *parent)
     , m_repo(repo)
     , m_nam(new QNetworkAccessManager(this))
 {
+    // Generation-specific decompression outputs prevent a cancelled worker
+    // from touching its replacement. None can be live during construction,
+    // so remove leftovers from an interrupted previous process now.
+    QDir staleDownloadDir(downloadDir());
+    const QString decompressedPrefix = QFileInfo(routingPartPath()).fileName()
+        + QLatin1Char('.');
+    for (const QString &name : staleDownloadDir.entryList(
+             {decompressedPrefix + QLatin1Char('*')}, QDir::Files)) {
+        staleDownloadDir.remove(name);
+    }
+
     m_metadata = MapMetadata::load();
     if (!m_metadata.region.isEmpty()) {
         m_resolvedSlug = m_metadata.region;
@@ -253,7 +264,11 @@ void MapDownloadService::resolveRegion(double lat, double lng)
         m_status != ScootEnums::MapDownloadStatus::Error)
         return;
 
+    ++m_operationGeneration;
     m_cancelled = false;
+    m_pendingUpdateCheck = false;
+    m_needsDisplay = false;
+    m_needsRouting = false;
     setStatus(ScootEnums::MapDownloadStatus::Locating);
     doResolveSlug(lat, lng);
 }
@@ -264,7 +279,9 @@ void MapDownloadService::startDownload(double lat, double lng, bool needsDisplay
         m_status != ScootEnums::MapDownloadStatus::Error)
         return;
 
+    ++m_operationGeneration;
     m_cancelled = false;
+    m_pendingUpdateCheck = false;
     m_needsDisplay = needsDisplay;
     m_needsRouting = needsRouting;
     m_displayDone = !needsDisplay;
@@ -281,16 +298,16 @@ void MapDownloadService::startDownload(double lat, double lng, bool needsDisplay
 
 void MapDownloadService::cancel()
 {
+    ++m_operationGeneration;
     m_cancelled = true;
-    if (m_currentReply) {
+    m_pendingUpdateCheck = false;
+    if (m_currentReply)
         m_currentReply->abort();
-        m_currentReply = nullptr;
-    }
-    if (m_currentFile) {
+    // The reply's finished callback owns its matching file and reply. It may
+    // run after a replacement operation has started, so cancel must not clear
+    // shared pointers that may already refer to that replacement.
+    if (m_currentFile)
         m_currentFile->close();
-        m_currentFile->deleteLater();
-        m_currentFile = nullptr;
-    }
     // A routing archive may be decompressing on a worker thread. It polls this
     // between input blocks and clears its own partial output on the way out,
     // so there is nothing to tidy up here.
@@ -316,8 +333,11 @@ void MapDownloadService::checkForUpdatesAt(double lat, double lng)
         return;
 
     // Resolve first, then check. doResolveSlug picks the check back up.
+    ++m_operationGeneration;
     m_cancelled = false;
     m_pendingUpdateCheck = true;
+    m_needsDisplay = false;
+    m_needsRouting = false;
     setStatus(ScootEnums::MapDownloadStatus::Locating);
     doResolveSlug(lat, lng);
 }
@@ -338,10 +358,14 @@ void MapDownloadService::checkForUpdates()
         m_status != ScootEnums::MapDownloadStatus::Error)
         return;
 
+    ++m_operationGeneration;
     m_cancelled = false;
+    m_pendingUpdateCheck = false;
+    const quint64 generation = m_operationGeneration;
     setStatus(ScootEnums::MapDownloadStatus::CheckingUpdates);
 
-    fetchTilesManifest([this](const QJsonObject &manifest) {
+    fetchTilesManifest([this, generation](const QJsonObject &manifest) {
+        if (!isCurrentOperation(generation)) return;
         if (manifest.isEmpty()) {
             setStatus(ScootEnums::MapDownloadStatus::Idle);
             emit updateCheckCompleted(false);
@@ -443,6 +467,7 @@ void MapDownloadService::fetchTilesManifest(std::function<void(const QJsonObject
 
 void MapDownloadService::doResolveSlug(double lat, double lng)
 {
+    const quint64 generation = m_operationGeneration;
     QString url = QStringLiteral("https://nominatim.openstreetmap.org/reverse?lat=%1&lon=%2&format=json&zoom=5")
                       .arg(lat, 0, 'f', 6).arg(lng, 0, 'f', 6);
 
@@ -454,9 +479,9 @@ void MapDownloadService::doResolveSlug(double lat, double lng)
     req.setTransferTimeout(10000);
 
     auto *reply = m_nam->get(req);
-    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, generation]() {
         reply->deleteLater();
-        if (m_cancelled) return;
+        if (!isCurrentOperation(generation)) return;
 
         if (reply->error() != QNetworkReply::NoError) {
             if (m_pendingUpdateCheck) {
@@ -515,14 +540,16 @@ void MapDownloadService::doResolveSlug(double lat, double lng)
 
         // Continue to fetch releases
         setStatus(ScootEnums::MapDownloadStatus::CheckingUpdates);
+        if (!isCurrentOperation(generation)) return;
         doFetchReleases(m_needsDisplay, m_needsRouting);
     });
 }
 
 void MapDownloadService::fetchEstimates()
 {
-    fetchTilesManifest([this](const QJsonObject &manifest) {
-        if (m_cancelled) return;
+    const quint64 generation = m_operationGeneration;
+    fetchTilesManifest([this, generation](const QJsonObject &manifest) {
+        if (!isCurrentOperation(generation)) return;
 
         auto region = manifest[m_resolvedSlug].toObject();
         if (!region.isEmpty()) {
@@ -540,8 +567,9 @@ void MapDownloadService::fetchEstimates()
 
 void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
 {
-    fetchTilesManifest([this, needsDisplay, needsRouting](const QJsonObject &manifest) {
-        if (m_cancelled) return;
+    const quint64 generation = m_operationGeneration;
+    fetchTilesManifest([this, generation, needsDisplay, needsRouting](const QJsonObject &manifest) {
+        if (!isCurrentOperation(generation)) return;
 
         auto region = manifest[m_resolvedSlug].toObject();
         if (region.isEmpty()) {
@@ -665,6 +693,7 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
         }
 
         setStatus(ScootEnums::MapDownloadStatus::Downloading);
+        if (!isCurrentOperation(generation)) return;
         m_totalBytes = totalNeeded;
         m_downloadedBytes = 0;
         m_completedBytes = 0;
@@ -724,98 +753,96 @@ void MapDownloadService::doDownloadFile(const QString &url, const QString &destP
         }
     }
 
-    m_currentFile = new QFile(destPath, this);
+    const quint64 generation = m_operationGeneration;
+    auto *file = new QFile(destPath, this);
     QIODevice::OpenMode mode = existingSize > 0 ? QIODevice::Append : QIODevice::WriteOnly;
-    m_resumeAppend = existingSize > 0;
-    if (!m_currentFile->open(mode)) {
+    auto resumeAppend = std::make_shared<bool>(existingSize > 0);
+    if (!file->open(mode)) {
         setError(QStringLiteral("Could not open file for writing"));
-        m_currentFile->deleteLater();
-        m_currentFile = nullptr;
+        file->deleteLater();
         return;
     }
+    m_currentFile = file;
 
     req.setTransferTimeout(30000);
-    m_currentReply = m_nam->get(req);
+    auto *reply = m_nam->get(req);
+    m_currentReply = reply;
 
-    // m_currentFile->size() already includes any existingSize because the file
-    // is opened in Append mode for resumes; m_completedBytes carries the bytes
+    // file->size() already includes any existingSize because the file is
+    // opened in Append mode for resumes; m_completedBytes carries the bytes
     // from previously-finished files in this session (e.g. display done, now
     // downloading routing). Together they give the cumulative session bytes.
-    connect(m_currentReply, &QNetworkReply::readyRead, this, [this]() {
-        if (m_currentFile && m_currentReply) {
-            // We opened in Append mode expecting a 206 Partial Content, but some
-            // servers ignore the Range header and answer with the full body
-            // (200). Left alone that would land on top of the existing partial
-            // and corrupt it, so reset the file once, on the first chunk.
-            if (m_resumeAppend) {
-                int statusCode = m_currentReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-                if (statusCode == 200) {
-                    m_currentFile->seek(0);
-                    m_currentFile->resize(0);
-                }
-                m_resumeAppend = false;
-            }
+    connect(reply, &QNetworkReply::readyRead, this,
+            [this, generation, reply, file, resumeAppend]() {
+        if (!isCurrentOperation(generation)) return;
 
-            QByteArray data = m_currentReply->readAll();
-            qint64 written = m_currentFile->write(data);
-            if (written != data.size()) {
-                setError(QStringLiteral("Could not write map data (disk full?)"));
-                if (m_currentReply)
-                    m_currentReply->abort();
-                return;
+        // We opened in Append mode expecting a 206 Partial Content, but some
+        // servers ignore the Range header and answer with the full body (200).
+        if (*resumeAppend) {
+            const int statusCode =
+                reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+            if (statusCode == 200) {
+                file->seek(0);
+                file->resize(0);
             }
-            m_downloadedBytes = m_completedBytes + m_currentFile->size();
-            m_progress = m_totalBytes > 0 ? static_cast<double>(m_downloadedBytes) / m_totalBytes : 0.0;
-            emit progressChanged();
+            *resumeAppend = false;
         }
+
+        const QByteArray data = reply->readAll();
+        const qint64 written = file->write(data);
+        if (written != data.size()) {
+            setError(QStringLiteral("Could not write map data (disk full?)"));
+            reply->abort();
+            return;
+        }
+        m_downloadedBytes = m_completedBytes + file->size();
+        m_progress = m_totalBytes > 0
+            ? static_cast<double>(m_downloadedBytes) / m_totalBytes : 0.0;
+        emit progressChanged();
     });
 
-    connect(m_currentReply, &QNetworkReply::finished, this,
-            [this, destPath, digest, isDisplay]() {
-        auto *reply = m_currentReply;
-        m_currentReply = nullptr;
-
-        if (m_currentFile) {
-            m_currentFile->close();
-            m_currentFile->deleteLater();
+    connect(reply, &QNetworkReply::finished, this,
+            [this, generation, reply, file, destPath, digest, isDisplay]() {
+        if (m_currentReply == reply)
+            m_currentReply = nullptr;
+        if (m_currentFile == file)
             m_currentFile = nullptr;
+
+        file->close();
+        file->deleteLater();
+        reply->deleteLater();
+
+        if (!isCurrentOperation(generation)) return;
+        // Already reported (e.g. the write-error abort above) - don't let the
+        // aborted reply's stale HTTP status paper over that error.
+        if (m_status == ScootEnums::MapDownloadStatus::Error) return;
+
+        const int statusCode =
+            reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        // A transfer-timeout abort surfaces as OperationCanceledError and must
+        // remain a failure so the partial is retained for resume.
+        if (reply->error() != QNetworkReply::NoError) {
+            setError(QStringLiteral("Download failed: ") + reply->errorString());
+            return;
+        }
+        if (statusCode != 200 && statusCode != 206) {
+            setError(QStringLiteral("Download failed with HTTP %1").arg(statusCode));
+            return;
         }
 
-        if (reply) {
-            reply->deleteLater();
-            if (m_cancelled) return;
-            // Already reported (e.g. the write-error abort above) - don't let
-            // the aborted reply's stale HTTP status paper over that error.
-            if (m_status == ScootEnums::MapDownloadStatus::Error) return;
-
-            int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-            // Any error lands here except a user cancel (m_cancelled, returned
-            // above) and a write-error abort (Error status, returned above). A
-            // transfer-timeout abort surfaces as OperationCanceledError and must
-            // be treated as a failure so the .part is preserved for resume,
-            // rather than falling through to verify -> SHA mismatch -> delete.
-            if (reply->error() != QNetworkReply::NoError) {
-                setError(QStringLiteral("Download failed: ") + reply->errorString());
-                return;
-            }
-
-            // Accept 200 (full) or 206 (partial/resume)
-            if (statusCode != 200 && statusCode != 206) {
-                setError(QStringLiteral("Download failed with HTTP %1").arg(statusCode));
-                return;
-            }
-        }
-
-        doVerify(destPath, digest, isDisplay ? displayDestPath() : routingDestPath(), isDisplay);
+        doVerify(destPath, digest,
+                 isDisplay ? displayDestPath() : routingDestPath(), isDisplay);
     });
 }
 
 void MapDownloadService::doVerify(const QString &filePath, const QString &expectedDigest,
                                     const QString &destPath, bool isDisplay)
 {
-    if (m_cancelled) return;
+    const quint64 generation = m_operationGeneration;
+    if (!isCurrentOperation(generation)) return;
 
     setStatus(ScootEnums::MapDownloadStatus::Installing);
+    if (!isCurrentOperation(generation)) return;
 
     if (expectedDigest.isEmpty()) {
         doInstall(filePath, destPath, isDisplay);
@@ -839,11 +866,11 @@ void MapDownloadService::doVerify(const QString &filePath, const QString &expect
 
     auto *watcher = new QFutureWatcher<QString>(this);
     connect(watcher, &QFutureWatcher<QString>::finished, this,
-            [this, watcher, expectedDigest, filePath, destPath, isDisplay]() {
+            [this, watcher, generation, expectedDigest, filePath, destPath, isDisplay]() {
         QString computed = watcher->result();
         watcher->deleteLater();
 
-        if (m_cancelled) return;
+        if (!isCurrentOperation(generation)) return;
 
         if (computed != expectedDigest) {
             qWarning() << "SHA256 mismatch for" << filePath
@@ -884,9 +911,14 @@ void MapDownloadService::startDecompressInstall(const QString &compressedPath,
                                                 const QString &destPath,
                                                 const QString &digest)
 {
+    const quint64 generation = m_operationGeneration;
     // Decompress into a sibling .part first so the rename in finishInstall()
     // stays atomic.
-    const QString decompressedPath = routingPartPath();
+    // A cancelled decompressor may still be unwinding while a replacement
+    // operation starts. Give each generation its own output so the old worker
+    // cannot truncate or remove the replacement's file.
+    const QString decompressedPath = routingPartPath()
+        + QStringLiteral(".%1").arg(generation);
     const qint64 total = m_routingAsset.size;
 
     // The worker touches nothing but its QPromise. Progress goes out as a
@@ -911,13 +943,14 @@ void MapDownloadService::startDecompressInstall(const QString &compressedPath,
     m_decompressWatcher = watcher;
 
     connect(watcher, &QFutureWatcher<ZstdDecompressor::Outcome>::progressValueChanged, this,
-            [this](int value) {
+            [this, generation](int value) {
+        if (!isCurrentOperation(generation)) return;
         m_progress = static_cast<double>(value) / DecompressProgressSteps;
         emit progressChanged();
     });
 
     connect(watcher, &QFutureWatcher<ZstdDecompressor::Outcome>::finished, this,
-            [this, watcher, compressedPath, decompressedPath, destPath, digest]() {
+            [this, watcher, generation, compressedPath, decompressedPath, destPath, digest]() {
         watcher->deleteLater();
         if (m_decompressWatcher == watcher)
             m_decompressWatcher = nullptr;
@@ -926,7 +959,8 @@ void MapDownloadService::startDecompressInstall(const QString &compressedPath,
         // partial output, so a cancel is not an error and gets no toast. A
         // cancelled promise may also carry no result at all, hence the count
         // check before result() is touched.
-        if (m_cancelled || watcher->isCanceled() || watcher->future().resultCount() == 0)
+        if (!isCurrentOperation(generation) || watcher->isCanceled()
+            || watcher->future().resultCount() == 0)
             return;
 
         const ZstdDecompressor::Outcome outcome = watcher->result();

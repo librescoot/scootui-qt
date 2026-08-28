@@ -32,6 +32,7 @@ private:
     // Lockout after a flip: while active, further flips are suppressed so the
     // theme can't oscillate. Single-shot, started on every committed flip.
     QTimer *m_lockoutTimer;
+    quint64 m_dashboardSubscriptionId = 0;
     // How long the reading has been continuously on the far side of the
     // threshold. Invalid means it isn't, and the dwell starts over.
     QElapsedTimer m_pendingSince;

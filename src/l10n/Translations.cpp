@@ -975,6 +975,12 @@ void Translations::initStrings()
     en[QStringLiteral("locationDeleted")] = QStringLiteral("Location deleted");
     de[QStringLiteral("locationDeleted")] = QStringLiteral("Standort gel\u00F6scht");
 
+    en[QStringLiteral("locationGpsUnavailable")] = QStringLiteral("No GPS position available");
+    de[QStringLiteral("locationGpsUnavailable")] = QStringLiteral("Keine GPS-Position verf\u00FCgbar");
+
+    en[QStringLiteral("locationSaveFailed")] = QStringLiteral("Could not save location");
+    de[QStringLiteral("locationSaveFailed")] = QStringLiteral("Standort konnte nicht gespeichert werden");
+
     en[QStringLiteral("maxLocationsReached")] = QStringLiteral("Maximum saved locations reached");
     de[QStringLiteral("maxLocationsReached")] = QStringLiteral("Maximale Anzahl gespeicherter Standorte erreicht");
 
@@ -1550,6 +1556,9 @@ void Translations::initStrings()
 
     en[QStringLiteral("addressMapNotFound")] = QStringLiteral("Map file not found.");
     de[QStringLiteral("addressMapNotFound")] = QStringLiteral("Kartendatei nicht gefunden.");
+
+    en[QStringLiteral("addressUnavailable")] = QStringLiteral("Address database unavailable");
+    de[QStringLiteral("addressUnavailable")] = QStringLiteral("Adressdatenbank nicht verf\u00FCgbar");
 
     // -----------------------------------------------------------------------
     // Standby

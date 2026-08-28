@@ -117,6 +117,7 @@ private:
     bool m_simulatorMode = false;
     bool m_inMemoryBackend = false;
     QString m_backendDescription;
+    quint64 m_mapCommandSubscriptionId = 0;
     bool m_mapDownloadHoldActive = false;
     bool m_uiPresented = false;
     bool m_redisReady = false;

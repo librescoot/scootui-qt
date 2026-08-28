@@ -628,7 +628,8 @@ Rectangle {
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
-                    text: typeof addressDatabase !== "undefined" ? addressDatabase.statusMessage : ""
+                    text: typeof translations !== "undefined"
+                          ? translations.addressLoading : "Loading address database..."
                     color: textPrimary
                     font.pixelSize: themeStore.fontBody
                 }
@@ -673,7 +674,14 @@ Rectangle {
             Text {
                 anchors.centerIn: parent
                 visible: dbStatus === statusError
-                text: typeof addressDatabase !== "undefined" ? addressDatabase.statusMessage : "Address database unavailable"
+                text: {
+                    if (typeof translations === "undefined")
+                        return "Address database unavailable"
+                    if (typeof addressDatabase !== "undefined"
+                            && addressDatabase.statusMessage === "Map file not found")
+                        return translations.addressMapNotFound
+                    return translations.addressUnavailable
+                }
                 color: errorColor
                 font.pixelSize: themeStore.fontBody
             }

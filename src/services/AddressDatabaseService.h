@@ -9,6 +9,7 @@
 #include <QVariantList>
 #include <QVariantMap>
 #include <QVector>
+#include <QFutureWatcher>
 #include <atomic>
 #include <memory>
 
@@ -149,6 +150,10 @@ public:
 
 private:
     QHash<QString, QHash<QString, StreetRecord>> m_streetData;
+
+    // Background jobs currently allowed to read this service. Shutdown
+    // cancels and joins all of them before member storage is destroyed.
+    QList<QFutureWatcherBase *> m_backgroundJobs;
 
     // On-demand house number lookup from mbtiles
     QVariantList queryHouseNumbersFromTiles(const QString &city, const QString &street,

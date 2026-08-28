@@ -10,6 +10,7 @@ class SavedLocationsService;
 class NavigationService;
 class RoadInfoService;
 class ToastService;
+class Translations;
 
 class RecentDestinationsStore : public QObject
 {
@@ -23,7 +24,7 @@ public:
                                        SavedLocationsService *savedService,
                                        NavigationService *nav,
                                        RoadInfoService *roadInfo,
-                                       ToastService *toast,
+                                       ToastService *toast, Translations *translations,
                                        QObject *parent = nullptr);
 
     QVariantList destinations() const;
@@ -51,6 +52,7 @@ private:
     NavigationService *m_nav;
     RoadInfoService *m_roadInfo;
     ToastService *m_toast;
+    Translations *m_translations;
 
     QList<RecentDestination> m_destinations; // newest first
 };

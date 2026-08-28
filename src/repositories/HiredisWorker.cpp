@@ -242,7 +242,7 @@ void HiredisWorker::pollChannel(const QString &channel)
         return;
     }
 
-    if (reply->type == REDIS_REPLY_ARRAY && reply->elements >= 2) {
+    if (reply->type == REDIS_REPLY_ARRAY) {
         FieldMap fields;
         fields.reserve(static_cast<int>(reply->elements / 2));
         for (size_t i = 0; i + 1 < reply->elements; i += 2) {
@@ -250,6 +250,8 @@ void HiredisWorker::pollChannel(const QString &channel)
                 QString::fromUtf8(reply->element[i]->str, reply->element[i]->len),
                 QString::fromUtf8(reply->element[i + 1]->str, reply->element[i + 1]->len));
         }
+        // An empty hash is still a successful snapshot. Stores need it to
+        // clear fields that disappeared instead of retaining stale values.
         emit fieldsUpdated(channel, fields);
     }
 

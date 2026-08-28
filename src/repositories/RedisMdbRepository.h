@@ -26,8 +26,8 @@ public:
     void set(const QString &channel, const QString &variable,
              const QString &value, bool publish = true) override;
     void publish(const QString &channel, const QString &message) override;
-    void subscribe(const QString &channel, SubscriptionCallback callback) override;
-    void unsubscribe(const QString &channel) override;
+    SubscriptionId subscribe(const QString &channel, SubscriptionCallback callback) override;
+    void unsubscribe(const QString &channel, SubscriptionId id) override;
     void push(const QString &channel, const QString &command) override;
     void dashboardReady() override;
     void publishButtonEvent(const QString &event) override;
@@ -110,8 +110,14 @@ private:
     mutable QMutex m_cacheMutex;
     QHash<QString, FieldMap> m_cache;
 
+    struct SubscriptionEntry {
+        SubscriptionId id;
+        SubscriptionCallback callback;
+    };
+
     // Subscriptions
-    QHash<QString, QList<SubscriptionCallback>> m_subscribers;
+    QHash<QString, QList<SubscriptionEntry>> m_subscribers;
+    SubscriptionId m_nextSubscriptionId = 1;
 
     // Connection state
     QString m_host;

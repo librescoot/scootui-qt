@@ -49,9 +49,10 @@ void SyncableStore::start()
             this, &SyncableStore::onFieldFetched);
 
     // Subscribe to pubsub for this channel (triggers immediate HGET in worker)
-    m_repo->subscribe(settings.channel, [this](const QString &ch, const QString &msg) {
-        onPubsubMessage(ch, msg);
-    });
+    m_subscriptionId = m_repo->subscribe(
+        settings.channel, [this](const QString &ch, const QString &msg) {
+            onPubsubMessage(ch, msg);
+        });
 
     // Set up set field timers
     for (const auto &field : settings.setFields) {
@@ -73,8 +74,10 @@ void SyncableStore::stop()
     disconnect(m_repo, &MdbRepository::fieldFetched,
                this, &SyncableStore::onFieldFetched);
 
-    if (!m_channel.isEmpty())
-        m_repo->unsubscribe(m_channel);
+    if (!m_channel.isEmpty() && m_subscriptionId != 0) {
+        m_repo->unsubscribe(m_channel, m_subscriptionId);
+        m_subscriptionId = 0;
+    }
 
     for (auto *timer : m_setTimers) {
         timer->stop();

@@ -14,17 +14,18 @@ InputHandler::InputHandler(VehicleStore *vehicle, MdbRepository *repo, QObject *
     , m_repo(repo)
 {
     if (m_repo) {
-        m_repo->subscribe(QLatin1String(kInputEventsChannel),
-                          [this](const QString &, const QString &msg) {
-            onInputEvent(msg);
-        });
+        m_subscriptionId = m_repo->subscribe(
+            QLatin1String(kInputEventsChannel),
+            [this](const QString &, const QString &msg) {
+                onInputEvent(msg);
+            });
     }
 }
 
 InputHandler::~InputHandler()
 {
-    if (m_repo)
-        m_repo->unsubscribe(QLatin1String(kInputEventsChannel));
+    if (m_repo && m_subscriptionId != 0)
+        m_repo->unsubscribe(QLatin1String(kInputEventsChannel), m_subscriptionId);
 }
 
 void InputHandler::onInputEvent(const QString &message)

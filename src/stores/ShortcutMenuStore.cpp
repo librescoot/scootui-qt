@@ -34,17 +34,18 @@ ShortcutMenuStore::ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
     connect(m_cycleTimer, &QTimer::timeout, this, &ShortcutMenuStore::onCycleTimeout);
 
     if (m_repo) {
-        m_repo->subscribe(QLatin1String(kInputEventsChannel),
-                          [this](const QString &, const QString &message) {
-            onInputEvent(message);
-        });
+        m_inputSubscriptionId = m_repo->subscribe(
+            QLatin1String(kInputEventsChannel),
+            [this](const QString &, const QString &message) {
+                onInputEvent(message);
+            });
     }
 }
 
 ShortcutMenuStore::~ShortcutMenuStore()
 {
-    if (m_repo)
-        m_repo->unsubscribe(QLatin1String(kInputEventsChannel));
+    if (m_repo && m_inputSubscriptionId != 0)
+        m_repo->unsubscribe(QLatin1String(kInputEventsChannel), m_inputSubscriptionId);
 }
 
 void ShortcutMenuStore::show()

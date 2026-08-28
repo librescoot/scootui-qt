@@ -6,6 +6,7 @@
 #include "stores/GpsStore.h"
 #include "services/RoadInfoService.h"
 #include "models/Enums.h"
+#include "l10n/Translations.h"
 
 #include <QDebug>
 
@@ -13,13 +14,15 @@ SavedLocationsStore::SavedLocationsStore(MdbRepository *repo,
                                            SavedLocationsService *service,
                                            GpsStore *gps, RoadInfoService *roadInfo,
                                            NavigationService *nav,
-                                           ToastService *toast, QObject *parent)
+                                           ToastService *toast, Translations *translations,
+                                           QObject *parent)
     : QObject(parent)
     , m_service(service)
     , m_gps(gps)
     , m_roadInfo(roadInfo)
     , m_nav(nav)
     , m_toast(toast)
+    , m_translations(translations)
 {
     // Reload when settings data arrives from the Redis worker thread.
     // The initial load() in the constructor may run against an empty cache
@@ -64,14 +67,14 @@ void SavedLocationsStore::load()
 void SavedLocationsStore::saveCurrentLocation()
 {
     if (!m_gps->hasValidGps()) {
-        m_toast->showError(QStringLiteral("No GPS position available"));
+        m_toast->showError(m_translations->locationGpsUnavailable());
         return;
     }
     double lat = m_gps->latitude();
     double lng = m_gps->longitude();
 
     if (m_locations.size() >= SavedLocationsService::MaxLocations) {
-        m_toast->showError(QStringLiteral("Maximum saved locations reached"));
+        m_toast->showError(m_translations->maxLocationsReached());
         return;
     }
 
@@ -88,10 +91,10 @@ void SavedLocationsStore::saveCurrentLocation()
     }
 
     if (m_service->save(loc)) {
-        m_toast->showSuccess(QStringLiteral("Location saved"));
+        m_toast->showSuccess(m_translations->locationSaved());
         load();
     } else {
-        m_toast->showError(QStringLiteral("Failed to save location"));
+        m_toast->showError(m_translations->locationSaveFailed());
     }
 }
 
@@ -99,7 +102,7 @@ void SavedLocationsStore::deleteLocation(int id)
 {
     if (m_service->remove(id)) {
         load();
-        m_toast->showInfo(QStringLiteral("Location deleted"));
+        m_toast->showInfo(m_translations->locationDeleted());
     }
 }
 

@@ -23,9 +23,9 @@ GpsStore::GpsStore(MdbRepository *repo, QObject *parent,
 
 GpsStore::~GpsStore()
 {
-    if (m_tpvSubscribed) {
-        m_repo->unsubscribe(QStringLiteral("gps:tpv"));
-        m_tpvSubscribed = false;
+    if (m_tpvSubscriptionId != 0) {
+        m_repo->unsubscribe(QStringLiteral("gps:tpv"), m_tpvSubscriptionId);
+        m_tpvSubscriptionId = 0;
     }
 }
 
@@ -38,18 +38,19 @@ void GpsStore::start()
     // message is a complete view of the GPS state. The base-class poll is
     // kept as a low-rate safety net (see syncSettings) and to prime initial
     // state on startup before the first push arrives.
-    m_repo->subscribe(QStringLiteral("gps:tpv"),
-                      [this](const QString &, const QString &message) {
-                          applySnapshot(message);
-                      });
-    m_tpvSubscribed = true;
+    if (m_tpvSubscriptionId == 0) {
+        m_tpvSubscriptionId = m_repo->subscribe(
+            QStringLiteral("gps:tpv"), [this](const QString &, const QString &message) {
+                applySnapshot(message);
+            });
+    }
 }
 
 void GpsStore::stop()
 {
-    if (m_tpvSubscribed) {
-        m_repo->unsubscribe(QStringLiteral("gps:tpv"));
-        m_tpvSubscribed = false;
+    if (m_tpvSubscriptionId != 0) {
+        m_repo->unsubscribe(QStringLiteral("gps:tpv"), m_tpvSubscriptionId);
+        m_tpvSubscriptionId = 0;
     }
     SyncableStore::stop();
 }

@@ -114,6 +114,7 @@ private:
     // stays wall-clock derived, so this does not affect sync with the lamp.
     static constexpr int BLINK_TICK_MS = 33;
 
+    SubscriptionId m_buttonsSubscriptionId = 0;
     QTimer m_blinkTimer;
     qreal m_blinkOpacity = 0.0;
     // Wall-clock anchor (ms since epoch) for the cycle schedule. Vehicle-service

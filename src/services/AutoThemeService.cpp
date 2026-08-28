@@ -17,18 +17,21 @@ AutoThemeService::AutoThemeService(MdbRepository *repo, ThemeStore *themeStore,
     m_lockoutTimer->setSingleShot(true);
 
     // Also listen for pubsub brightness updates
-    m_repo->subscribe(QStringLiteral("dashboard"), [this](const QString &, const QString &msg) {
-        if (msg.contains(QLatin1String(AppConfig::brightnessKey)) && m_enabled) {
-            QMetaObject::invokeMethod(this, &AutoThemeService::checkBrightness,
-                                      Qt::QueuedConnection);
-        }
-    });
+    m_dashboardSubscriptionId = m_repo->subscribe(
+        QStringLiteral("dashboard"), [this](const QString &, const QString &msg) {
+            if (msg.contains(QLatin1String(AppConfig::brightnessKey)) && m_enabled) {
+                QMetaObject::invokeMethod(this, &AutoThemeService::checkBrightness,
+                                          Qt::QueuedConnection);
+            }
+        });
 }
 
 AutoThemeService::~AutoThemeService()
 {
     m_pollTimer->stop();
     m_lockoutTimer->stop();
+    if (m_dashboardSubscriptionId != 0)
+        m_repo->unsubscribe(QStringLiteral("dashboard"), m_dashboardSubscriptionId);
 }
 
 void AutoThemeService::setEnabled(bool enabled)

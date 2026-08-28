@@ -206,7 +206,7 @@ void RedisMdbRepository::prewarmCache(int deadlineMs)
             break;
         }
 
-        if (reply->type == REDIS_REPLY_ARRAY && reply->elements >= 2) {
+        if (reply->type == REDIS_REPLY_ARRAY) {
             FieldMap fields;
             fields.reserve(static_cast<int>(reply->elements / 2));
             for (size_t i = 0; i + 1 < reply->elements; i += 2) {
@@ -435,24 +435,41 @@ QVariantList RedisMdbRepository::xrevrange(const QString &key, int count)
 
 // Pub/sub (subscribe/unsubscribe)
 
-void RedisMdbRepository::subscribe(const QString &channel, SubscriptionCallback callback)
+SubscriptionId RedisMdbRepository::subscribe(const QString &channel,
+                                                SubscriptionCallback callback)
 {
-    m_subscribers[channel].append(callback);
+    const bool firstForChannel = !m_subscribers.contains(channel);
+    const SubscriptionId id = m_nextSubscriptionId++;
+    m_subscribers[channel].append({id, std::move(callback)});
 
     // The channel name goes to the pub/sub thread; the callback stays here.
     // Subscribing before startWorker() is normal, and the worker replays the
     // whole set once it has a connection, so there is nothing to do yet.
-    if (m_pubsub) {
+    if (firstForChannel && m_pubsub) {
         auto *p = m_pubsub;
         QMetaObject::invokeMethod(p, [p, channel]() { p->addChannel(channel); },
                                   Qt::QueuedConnection);
     }
+    return id;
 }
 
-void RedisMdbRepository::unsubscribe(const QString &channel)
+void RedisMdbRepository::unsubscribe(const QString &channel, SubscriptionId id)
 {
-    m_subscribers.remove(channel);
+    auto it = m_subscribers.find(channel);
+    if (it == m_subscribers.end())
+        return;
 
+    auto &entries = it.value();
+    for (int i = 0; i < entries.size(); ++i) {
+        if (entries.at(i).id == id) {
+            entries.removeAt(i);
+            break;
+        }
+    }
+    if (!entries.isEmpty())
+        return;
+
+    m_subscribers.erase(it);
     if (m_pubsub) {
         auto *p = m_pubsub;
         QMetaObject::invokeMethod(p, [p, channel]() { p->removeChannel(channel); },
@@ -471,10 +488,13 @@ void RedisMdbRepository::onFieldsUpdated(const QString &channel, const FieldMap 
     }
 
     // Dispatch to subscribers as a "something changed" notification
-    auto it = m_subscribers.find(channel);
-    if (it != m_subscribers.end()) {
-        for (const auto &cb : *it)
-            cb(channel, QStringLiteral("*"));
+    auto it = m_subscribers.constFind(channel);
+    if (it != m_subscribers.constEnd()) {
+        // A callback may unsubscribe itself. Dispatch a copy so that cannot
+        // invalidate the list being iterated.
+        const auto entries = *it;
+        for (const auto &entry : entries)
+            entry.callback(channel, QStringLiteral("*"));
     }
 
     // Also emit the generic fieldsUpdated for SyncableStore
@@ -526,10 +546,11 @@ void RedisMdbRepository::retargetPubsub()
 
 void RedisMdbRepository::dispatchPubsubMessage(const QString &channel, const QString &payload)
 {
-    auto it = m_subscribers.find(channel);
-    if (it == m_subscribers.end()) return;
-    for (const auto &cb : *it)
-        cb(channel, payload);
+    auto it = m_subscribers.constFind(channel);
+    if (it == m_subscribers.constEnd()) return;
+    const auto entries = *it;
+    for (const auto &entry : entries)
+        entry.callback(channel, payload);
 }
 
 // Re-read every subscribed hash. Called once a pub/sub connection is up:

@@ -38,4 +38,5 @@ private:
 
     VehicleStore *m_vehicle;
     MdbRepository *m_repo;
+    quint64 m_subscriptionId = 0;
 };

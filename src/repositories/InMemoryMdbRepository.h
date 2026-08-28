@@ -23,8 +23,8 @@ public:
     void set(const QString &channel, const QString &variable,
              const QString &value, bool publish = true) override;
     void publish(const QString &channel, const QString &message) override;
-    void subscribe(const QString &channel, SubscriptionCallback callback) override;
-    void unsubscribe(const QString &channel) override;
+    SubscriptionId subscribe(const QString &channel, SubscriptionCallback callback) override;
+    void unsubscribe(const QString &channel, SubscriptionId id) override;
     void push(const QString &channel, const QString &command) override;
     void dashboardReady() override;
     void publishButtonEvent(const QString &event) override;
@@ -40,8 +40,14 @@ private:
     void startBrightnessSimulation();
     void notifySubscribers(const QString &channel, const QString &variable);
 
+    struct SubscriptionEntry {
+        SubscriptionId id;
+        SubscriptionCallback callback;
+    };
+
     QHash<QString, QHash<QString, QString>> m_storage;
     QHash<QString, QSet<QString>> m_setStorage;
-    QHash<QString, QList<SubscriptionCallback>> m_subscribers;
+    QHash<QString, QList<SubscriptionEntry>> m_subscribers;
+    SubscriptionId m_nextSubscriptionId = 1;
     QTimer *m_brightnessTimer = nullptr;
 };

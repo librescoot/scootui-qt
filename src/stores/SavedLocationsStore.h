@@ -10,6 +10,7 @@ class GpsStore;
 class RoadInfoService;
 class NavigationService;
 class ToastService;
+class Translations;
 
 class SavedLocationsStore : public QObject
 {
@@ -23,7 +24,8 @@ public:
                                   SavedLocationsService *service,
                                   GpsStore *gps, RoadInfoService *roadInfo,
                                   NavigationService *nav,
-                                  ToastService *toast, QObject *parent = nullptr);
+                                  ToastService *toast, Translations *translations,
+                                  QObject *parent = nullptr);
 
     QVariantList locations() const;
     bool isLoading() const { return m_isLoading; }
@@ -44,6 +46,7 @@ private:
     RoadInfoService *m_roadInfo;
     NavigationService *m_nav;
     ToastService *m_toast;
+    Translations *m_translations;
 
     QList<SavedLocation> m_locations;
     bool m_isLoading = false;

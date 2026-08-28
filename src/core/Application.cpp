@@ -136,6 +136,11 @@ Application::Application(QObject *parent)
 
 Application::~Application()
 {
+    if (m_repository && m_mapCommandSubscriptionId != 0) {
+        m_repository->unsubscribe(QStringLiteral("scootui:command"),
+                                  m_mapCommandSubscriptionId);
+    }
+
     // Delete all QObject children before m_repository (unique_ptr) is destroyed.
     // Stores access m_repo in their destructors (unsubscribe, disconnect), so the
     // repo must still be alive when they're deleted.
@@ -438,13 +443,13 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_savedLocationsService = new SavedLocationsService(repo, this);
     auto *savedLocationsStore = new SavedLocationsStore(
         repo, m_savedLocationsService, gpsStore, m_roadInfoService,
-        m_navigationService, m_toastService, this);
+        m_navigationService, m_toastService, m_translations, this);
 
     // Recent destinations — auto-capture every nav request, keep last 10.
     m_recentDestinationsService = new RecentDestinationsService(repo, this);
     auto *recentDestinationsStore = new RecentDestinationsStore(
         repo, m_recentDestinationsService, m_savedLocationsService,
-        m_navigationService, m_roadInfoService, m_toastService, this);
+        m_navigationService, m_roadInfoService, m_toastService, m_translations, this);
     connect(m_navigationService, &NavigationService::destinationRequested,
             recentDestinationsStore, &RecentDestinationsStore::push);
 
@@ -893,8 +898,9 @@ void Application::setupMapCommandChannel()
     //   redis-cli publish scootui:command map-cancel
     //   redis-cli publish scootui:command map-reload
     //
-    m_repository->subscribe(QStringLiteral("scootui:command"),
-                            [this](const QString &, const QString &msg) {
+    m_mapCommandSubscriptionId = m_repository->subscribe(
+        QStringLiteral("scootui:command"),
+        [this](const QString &, const QString &msg) {
         const QString cmd = msg.trimmed();
         if (cmd == QLatin1String("map-check")) {
             qInfo() << "Map: check requested over scootui:command";

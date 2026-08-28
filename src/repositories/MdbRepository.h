@@ -9,6 +9,7 @@
 
 using FieldMap = QHash<QString, QString>;
 using SubscriptionCallback = std::function<void(const QString &channel, const QString &message)>;
+using SubscriptionId = quint64;
 
 class MdbRepository : public QObject
 {
@@ -23,8 +24,11 @@ public:
     virtual void set(const QString &channel, const QString &variable,
                      const QString &value, bool publish = true) = 0;
     virtual void publish(const QString &channel, const QString &message) = 0;
-    virtual void subscribe(const QString &channel, SubscriptionCallback callback) = 0;
-    virtual void unsubscribe(const QString &channel) = 0;
+    // Each registration has independent ownership. A channel can have several
+    // consumers, so removing one must not disconnect the others.
+    virtual SubscriptionId subscribe(const QString &channel,
+                                     SubscriptionCallback callback) = 0;
+    virtual void unsubscribe(const QString &channel, SubscriptionId id) = 0;
     virtual void push(const QString &channel, const QString &command) = 0;
     virtual void dashboardReady() = 0;
     virtual void publishButtonEvent(const QString &event) = 0;

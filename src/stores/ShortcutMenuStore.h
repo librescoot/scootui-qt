@@ -59,6 +59,7 @@ private:
     DashboardStore *m_dashboardStore;
     MdbRepository *m_repo;
     SettingsService *m_settingsService;
+    quint64 m_inputSubscriptionId = 0;
 
     QTimer *m_confirmTimer;
     QTimer *m_cycleTimer;

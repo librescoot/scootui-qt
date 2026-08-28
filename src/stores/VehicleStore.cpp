@@ -7,9 +7,10 @@ VehicleStore::VehicleStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
     if (m_repo) {
-        m_repo->subscribe(QStringLiteral("buttons"), [this](const QString &ch, const QString &msg) {
-            onButtonEvent(ch, msg);
-        });
+        m_buttonsSubscriptionId = m_repo->subscribe(
+            QStringLiteral("buttons"), [this](const QString &ch, const QString &msg) {
+                onButtonEvent(ch, msg);
+            });
     }
 
     m_blinkTimer.setInterval(BLINK_TICK_MS);
@@ -36,8 +37,8 @@ VehicleStore::VehicleStore(MdbRepository *repo, QObject *parent)
 
 VehicleStore::~VehicleStore()
 {
-    if (m_repo)
-        m_repo->unsubscribe(QStringLiteral("buttons"));
+    if (m_repo && m_buttonsSubscriptionId != 0)
+        m_repo->unsubscribe(QStringLiteral("buttons"), m_buttonsSubscriptionId);
 }
 
 SyncSettings VehicleStore::syncSettings() const

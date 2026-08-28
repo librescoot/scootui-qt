@@ -30,6 +30,17 @@ Rectangle {
     readonly property double dlProgress: hasDownloadService ? mapDownloadService.progress : 0
     readonly property string dlRegion: hasDownloadService ? mapDownloadService.regionName : ""
     readonly property string dlError: hasDownloadService ? mapDownloadService.errorMessage : ""
+    readonly property string dlErrorText: {
+        if (dlError === "" || typeof translations === "undefined") return ""
+        if (dlError.indexOf("Unsupported region:") === 0)
+            return translations.navSetupDownloadUnsupported
+        if (dlError === "Insufficient disk space")
+            return translations.navSetupInsufficientSpace
+        if (dlError.indexOf("network error") >= 0
+                || dlError.indexOf("Download failed:") === 0)
+            return translations.navSetupDownloadNoInternet
+        return ""
+    }
     readonly property bool dlUpdateAvailable: hasDownloadService ? mapDownloadService.updateAvailable : false
     readonly property real dlDownloaded: hasDownloadService ? mapDownloadService.downloadedBytes : 0
     readonly property real dlTotal: hasDownloadService ? mapDownloadService.totalBytes : 0
@@ -461,9 +472,9 @@ Rectangle {
                     font.weight: Font.Bold
                 }
                 Text {
-                    visible: navSetupScreen.dlError !== ""
+                    visible: navSetupScreen.dlErrorText !== ""
                     Layout.alignment: Qt.AlignHCenter
-                    text: navSetupScreen.dlError
+                    text: navSetupScreen.dlErrorText
                     color: navSetupScreen.textSecondary
                     font.pixelSize: themeStore.fontBody
                     horizontalAlignment: Text.AlignHCenter

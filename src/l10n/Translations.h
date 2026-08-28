@@ -332,6 +332,8 @@ class Translations : public QObject
     Q_PROPERTY(QString usbDisconnected READ usbDisconnected NOTIFY languageChanged)
     Q_PROPERTY(QString locationSaved READ locationSaved NOTIFY languageChanged)
     Q_PROPERTY(QString locationDeleted READ locationDeleted NOTIFY languageChanged)
+    Q_PROPERTY(QString locationGpsUnavailable READ locationGpsUnavailable NOTIFY languageChanged)
+    Q_PROPERTY(QString locationSaveFailed READ locationSaveFailed NOTIFY languageChanged)
     Q_PROPERTY(QString maxLocationsReached READ maxLocationsReached NOTIFY languageChanged)
     Q_PROPERTY(QString savedLocationsFailed READ savedLocationsFailed NOTIFY languageChanged)
     Q_PROPERTY(QString menuSavedLocations READ menuSavedLocations NOTIFY languageChanged)
@@ -528,6 +530,7 @@ class Translations : public QObject
     Q_PROPERTY(QString navNoMatches READ navNoMatches NOTIFY languageChanged)
     Q_PROPERTY(QString addressLoading READ addressLoading NOTIFY languageChanged)
     Q_PROPERTY(QString addressMapNotFound READ addressMapNotFound NOTIFY languageChanged)
+    Q_PROPERTY(QString addressUnavailable READ addressUnavailable NOTIFY languageChanged)
 
     // Standby
     Q_PROPERTY(QString standbyWarning READ standbyWarning NOTIFY languageChanged)
@@ -884,6 +887,8 @@ public:
     QString usbDisconnected() const { return lookup("usbDisconnected"); }
     QString locationSaved() const { return lookup("locationSaved"); }
     QString locationDeleted() const { return lookup("locationDeleted"); }
+    QString locationGpsUnavailable() const { return lookup("locationGpsUnavailable"); }
+    QString locationSaveFailed() const { return lookup("locationSaveFailed"); }
     QString maxLocationsReached() const { return lookup("maxLocationsReached"); }
     QString savedLocationsFailed() const { return lookup("savedLocationsFailed"); }
     QString menuSavedLocations() const { return lookup("menuSavedLocations"); }
@@ -1079,6 +1084,7 @@ public:
     QString navNoMatches() const { return lookup("navNoMatches"); }
     QString addressLoading() const { return lookup("addressLoading"); }
     QString addressMapNotFound() const { return lookup("addressMapNotFound"); }
+    QString addressUnavailable() const { return lookup("addressUnavailable"); }
 
     // Standby
     QString standbyWarning() const { return lookup("standbyWarning"); }

@@ -166,7 +166,7 @@ protected:
 private:
     void applySnapshot(const QString &payload);
     void finishBatch(bool forceSample = false);
-    bool m_tpvSubscribed = false;
+    SubscriptionId m_tpvSubscriptionId = 0;
     int m_batchDepth = 0;
     bool m_batchWasValid = false;
     bool m_batchWasRecent = false;

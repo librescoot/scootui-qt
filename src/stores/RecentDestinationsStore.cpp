@@ -6,6 +6,7 @@
 #include "services/RoadInfoService.h"
 #include "services/ToastService.h"
 #include "models/SavedLocation.h"
+#include "l10n/Translations.h"
 
 #include <QDebug>
 #include <QtMath>
@@ -16,13 +17,15 @@ RecentDestinationsStore::RecentDestinationsStore(MdbRepository *repo,
                                                    SavedLocationsService *savedService,
                                                    NavigationService *nav,
                                                    RoadInfoService *roadInfo,
-                                                   ToastService *toast, QObject *parent)
+                                                   ToastService *toast, Translations *translations,
+                                                   QObject *parent)
     : QObject(parent)
     , m_service(service)
     , m_savedService(savedService)
     , m_nav(nav)
     , m_roadInfo(roadInfo)
     , m_toast(toast)
+    , m_translations(translations)
 {
     // Mirror SavedLocationsStore: when the settings channel repopulates
     // from the Redis worker thread, reload so we pick up persisted entries.
@@ -166,10 +169,10 @@ void RecentDestinationsStore::promoteToSaved(int id)
     s.label = label;
     if (m_savedService->save(s)) {
         m_service->remove(id);
-        m_toast->showSuccess(QStringLiteral("Location saved"));
+        m_toast->showSuccess(m_translations->locationSaved());
         load();
     } else {
-        m_toast->showError(QStringLiteral("Could not save"));
+        m_toast->showError(m_translations->locationSaveFailed());
     }
 }
 

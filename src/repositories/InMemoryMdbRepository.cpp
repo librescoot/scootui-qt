@@ -62,14 +62,28 @@ void InMemoryMdbRepository::publish(const QString &channel, const QString &messa
     notifySubscribers(channel, message);
 }
 
-void InMemoryMdbRepository::subscribe(const QString &channel, SubscriptionCallback callback)
+SubscriptionId InMemoryMdbRepository::subscribe(const QString &channel,
+                                                   SubscriptionCallback callback)
 {
-    m_subscribers[channel].append(callback);
+    const SubscriptionId id = m_nextSubscriptionId++;
+    m_subscribers[channel].append({id, std::move(callback)});
+    return id;
 }
 
-void InMemoryMdbRepository::unsubscribe(const QString &channel)
+void InMemoryMdbRepository::unsubscribe(const QString &channel, SubscriptionId id)
 {
-    m_subscribers.remove(channel);
+    auto it = m_subscribers.find(channel);
+    if (it == m_subscribers.end())
+        return;
+    auto &entries = it.value();
+    for (int i = 0; i < entries.size(); ++i) {
+        if (entries.at(i).id == id) {
+            entries.removeAt(i);
+            break;
+        }
+    }
+    if (entries.isEmpty())
+        m_subscribers.erase(it);
 }
 
 void InMemoryMdbRepository::push(const QString &channel, const QString &command)
@@ -135,8 +149,8 @@ void InMemoryMdbRepository::notifySubscribers(const QString &channel, const QStr
 {
     const auto it = m_subscribers.constFind(channel);
     if (it != m_subscribers.constEnd()) {
-        for (const auto &callback : *it) {
-            callback(channel, variable);
-        }
+        const auto entries = *it;
+        for (const auto &entry : entries)
+            entry.callback(channel, variable);
     }
 }

@@ -158,19 +158,21 @@ private:
     QString displayDestPath() const;
     QString routingDestPath() const;
     bool hasEnoughDiskSpace(qint64 needed) const;
+    bool isCurrentOperation(quint64 generation) const {
+        return generation == m_operationGeneration && !m_cancelled;
+    }
 
     MdbRepository *m_repo = nullptr;
     QNetworkAccessManager *m_nam;
     QNetworkReply *m_currentReply = nullptr;
     QFile *m_currentFile = nullptr;
     bool m_cancelled = false;
+    // Incremented for every accepted operation and cancellation. Async
+    // callbacks capture their generation and cannot mutate a later operation.
+    quint64 m_operationGeneration = 0;
     // Set while an update check is waiting on region resolution to finish.
     bool m_pendingUpdateCheck = false;
     std::function<bool(double &, double &)> m_positionProvider;
-    // Set when the current file was opened in Append mode to resume a partial
-    // download. Cleared after the first readyRead chunk of the reply has been
-    // checked for a server that ignored our Range header (see doDownloadFile).
-    bool m_resumeAppend = false;
     // Non-null only while a routing archive is being decompressed on a worker
     // thread. cancel() uses it to ask that worker to stop.
     QFutureWatcher<ZstdDecompressor::Outcome> *m_decompressWatcher = nullptr;
