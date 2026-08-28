@@ -7,6 +7,7 @@ Item {
     property Item sourceItem
     property real blurAmount: 0.6
     property color tintColor: Qt.rgba(0, 0, 0, 0.65)
+    property real radius: 0
     // Explicit offset into the sourceItem's coordinate space.
     // For full-screen overlays this defaults to (0,0).
     // For positioned containers, set to the container's position
@@ -48,11 +49,21 @@ Item {
         onTriggered: effectSource.scheduleUpdate()
     }
 
+    Rectangle {
+        id: mask
+        anchors.fill: parent
+        radius: root.radius
+        visible: false
+        layer.enabled: root.radius > 0
+    }
+
     MultiEffect {
         anchors.fill: parent
         source: effectSource
         blurEnabled: true
         blur: root.blurAmount
+        maskEnabled: root.radius > 0
+        maskSource: mask
         // Each step of blurMax is another downscale/upscale pass. 64 is a
         // radius of ~38 px at the default blurAmount, which is 8% of a 480 px
         // panel: far more spread than the effect reads as, for twice the
@@ -63,6 +74,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
+        radius: root.radius
         color: root.tintColor
     }
 }

@@ -59,6 +59,7 @@ Item {
             sourceItem: shortcutOverlay.blurSource
             sourceOffset: Qt.point(containerWrapper.x, containerWrapper.y)
             blurAmount: 0.5
+            radius: themeStore.radiusModal
             tintColor: isDark
                 ? Qt.rgba(0, 0, 0, 0.5)
                 : Qt.rgba(1, 1, 1, 0.55)
