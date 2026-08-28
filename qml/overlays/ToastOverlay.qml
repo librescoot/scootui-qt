@@ -19,6 +19,7 @@ Item {
 
             delegate: Rectangle {
                 id: toastItem
+                anchors.horizontalCenter: parent.horizontalCenter
                 width: Math.min(contentRow.implicitWidth + 32, toastOverlay.width - 40)
                 height: contentRow.implicitHeight + 16
                 radius: themeStore.radiusCard

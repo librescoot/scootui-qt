@@ -955,16 +955,23 @@ void MenuStore::rebuildMenuTree()
     // Parked only. Re-pairing needs this dashboard to show the passkey, so
     // offering it in a state where the rider cannot immediately pair again
     // would strand them.
-    auto *clearBondsNode = systemNode->addChild(MenuNode::action(
-        QStringLiteral("clear_paired_phones"),
-        tr->menuClearPairedPhones(), [this, repo]() {
-            repo->push(QStringLiteral("scooter:bluetooth"), QStringLiteral("delete-all-bonds"));
-            close();
-        }, [this]() {
+    auto *clearBondsNode = systemNode->addChild(MenuNode::submenu(
+        QStringLiteral("clear_paired_phones"), tr->menuClearPairedPhones(),
+        tr->menuClearPairedPhonesConfirm(), [this]() {
             return m_vehicle &&
                    m_vehicle->state() == static_cast<int>(ScootEnums::VehicleState::Parked);
         }));
     clearBondsNode->setCaution(true);
+
+    auto *confirmClearBondsNode = clearBondsNode->addChild(MenuNode::action(
+        QStringLiteral("confirm_clear_paired_phones"),
+        tr->menuClearPairedPhonesAction(), [this, repo]() {
+            repo->push(QStringLiteral("scooter:bluetooth"), QStringLiteral("delete-all-bonds"));
+            if (m_toastService)
+                m_toastService->showSuccess(m_translations->clearPairedPhonesToast());
+            close();
+        }));
+    confirmClearBondsNode->setCaution(true);
 
     // Updates — ordered by how often a rider has any business touching them:
     // how often to look, look now, and then the two that the defaults already

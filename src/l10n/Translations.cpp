@@ -181,8 +181,14 @@ void Translations::initStrings()
 
     en[QStringLiteral("menuEnterUms")] = QStringLiteral("Update Mode…");
     de[QStringLiteral("menuEnterUms")] = QStringLiteral("Update-Modus…");
-    en[QStringLiteral("menuClearPairedPhones")] = QStringLiteral("Clear Paired Phones");
-    de[QStringLiteral("menuClearPairedPhones")] = QStringLiteral("Gekoppelte Handys löschen");
+    en[QStringLiteral("menuClearPairedPhones")] = QStringLiteral("Clear Bluetooth Connections…");
+    de[QStringLiteral("menuClearPairedPhones")] = QStringLiteral("Bluetooth-Verbindungen löschen…");
+    en[QStringLiteral("menuClearPairedPhonesConfirm")] = QStringLiteral("CLEAR ALL CONNECTIONS?");
+    de[QStringLiteral("menuClearPairedPhonesConfirm")] = QStringLiteral("WIRKLICH ALLE LÖSCHEN?");
+    en[QStringLiteral("menuClearPairedPhonesAction")] = QStringLiteral("Clear All Bluetooth Connections");
+    de[QStringLiteral("menuClearPairedPhonesAction")] = QStringLiteral("Alle Bluetooth-Verbindungen löschen");
+    en[QStringLiteral("clearPairedPhonesToast")] = QStringLiteral("Bluetooth connections cleared");
+    de[QStringLiteral("clearPairedPhonesToast")] = QStringLiteral("Bluetooth-Verbindungen gelöscht");
 
     en[QStringLiteral("updateModeTitle")] = QStringLiteral("Update Mode");
     de[QStringLiteral("updateModeTitle")] = QStringLiteral("Update-Modus");
