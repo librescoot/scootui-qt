@@ -152,6 +152,12 @@ void SyncableStore::refreshAllFields()
         doRefreshSet(field);
 }
 
+void SyncableStore::applyLocalWrite(const QString &variable, const QString &value)
+{
+    if (!m_started) return;
+    applyFieldUpdate(variable, value);
+}
+
 void SyncableStore::doRefreshSet(const SyncSetFieldDef &field)
 {
     if (!m_started) return;

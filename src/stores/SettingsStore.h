@@ -114,10 +114,6 @@ public:
     bool blinkerOverlayEnabled() const { return m_blinkerStyle == QLatin1String("overlay"); }
 
 signals:
-    // Fires after every refresh of the settings hash, whether or not any value
-    // changed. Consumers that hold state derived from a setting and can drift
-    // out of step with it need a level trigger, not just the per-field edges.
-    void settingsRefreshed();
     void themeChanged();
     void modeChanged();
     void backlightModeChanged();
@@ -161,7 +157,6 @@ signals:
 protected:
     SyncSettings syncSettings() const override;
     void applyFieldUpdate(const QString &variable, const QString &value) override;
-    void endBatchUpdate() override;
 
 private:
     // @schema dashboard.theme

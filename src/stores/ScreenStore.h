@@ -72,7 +72,6 @@ signals:
 
 private:
     void applyMode(const QString &mode);
-    void resyncMode(const QString &mode);
     void publishMenuOpen();
 
     MdbRepository *m_repo;
@@ -86,7 +85,6 @@ private:
     ScootEnums::ScreenMode m_screenBeforeUpdateChannel = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeHopOnInfo = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeHopOnLock = ScootEnums::ScreenMode::Cluster;
-    bool m_hopOnLockActive = false;
     int m_setupMode = 2; // Both by default
     int m_systemInfoPage = SystemInfoDevice;
 };

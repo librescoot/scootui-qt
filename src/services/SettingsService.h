@@ -4,13 +4,15 @@
 #include <QString>
 
 class MdbRepository;
+class SettingsStore;
 
 class SettingsService : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit SettingsService(MdbRepository *repo, QObject *parent = nullptr);
+    explicit SettingsService(MdbRepository *repo, SettingsStore *settings,
+                             QObject *parent = nullptr);
 
     Q_INVOKABLE void updateMode(const QString &mode);
     Q_INVOKABLE void updateTheme(const QString &theme);
@@ -70,4 +72,5 @@ private:
     void writeSetting(const QString &key, const QString &value);
     void writeOtaSetting(const QString &suffix, const QString &value);
     MdbRepository *m_repo;
+    SettingsStore *m_settings;
 };

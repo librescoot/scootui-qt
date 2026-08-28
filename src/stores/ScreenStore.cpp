@@ -10,17 +10,6 @@ ScreenStore::ScreenStore(SettingsStore *settings, MdbRepository *repo, QObject *
     connect(settings, &SettingsStore::modeChanged, this, [this, settings]() {
         applyMode(settings->mode());
     });
-    // modeChanged alone is not enough to keep the screen on the key. It is an
-    // edge on the value, and SyncableStore re-reads the whole hash after a
-    // pub/sub ping rather than taking the value from the payload, so a write
-    // that is reverted before that read lands is never seen here. An overlaid
-    // key does exactly that: settings-service re-asserts the overlay value in
-    // the same callback that saw the edit. Leaving the debug screen in service
-    // mode used to strand the dashboard on the cluster with dashboard.mode
-    // still reading debug and nothing left to correct it.
-    connect(settings, &SettingsStore::settingsRefreshed, this, [this, settings]() {
-        resyncMode(settings->mode());
-    });
 }
 
 bool ScreenStore::isBrakeNavigated(ScootEnums::ScreenMode mode)
@@ -63,21 +52,6 @@ void ScreenStore::applyMode(const QString &mode)
         publishMenuOpen();
         emit currentScreenChanged();
     }
-}
-
-// Level-triggered counterpart to applyMode: called on every refresh of the
-// settings hash, so a screen that drifted from the key finds its way back
-// within one poll interval.
-//
-// Only the four mode-backed screens are corrected. A brake-navigated screen is
-// a deliberate detour that remembers what it covered and restores it on close,
-// and the hop-on lock parks on the cluster on purpose; pulling either back to
-// the key would undo a screen the user is looking at.
-void ScreenStore::resyncMode(const QString &mode)
-{
-    if (m_hopOnLockActive || isBrakeNavigated(m_currentScreen))
-        return;
-    applyMode(mode);
 }
 
 void ScreenStore::setScreen(int screen)
@@ -197,12 +171,10 @@ void ScreenStore::closeHopOnInfo()
 void ScreenStore::enterHopOnLock()
 {
     m_screenBeforeHopOnLock = m_currentScreen;
-    m_hopOnLockActive = true;
     setScreen(static_cast<int>(ScootEnums::ScreenMode::Cluster));
 }
 
 void ScreenStore::exitHopOnLock()
 {
-    m_hopOnLockActive = false;
     setScreen(static_cast<int>(m_screenBeforeHopOnLock));
 }

@@ -1,13 +1,16 @@
 #include "SettingsService.h"
 #include "repositories/MdbRepository.h"
+#include "stores/SettingsStore.h"
 #include "core/AppConfig.h"
 
 #include <QDebug>
 #include <QProcess>
 
-SettingsService::SettingsService(MdbRepository *repo, QObject *parent)
+SettingsService::SettingsService(MdbRepository *repo, SettingsStore *settings,
+                                 QObject *parent)
     : QObject(parent)
     , m_repo(repo)
+    , m_settings(settings)
 {
 }
 
@@ -58,6 +61,20 @@ void SettingsService::requestChannelPreview(const QString &channel)
 void SettingsService::updateMode(const QString &mode)
 {
     writeSetting(QStringLiteral("dashboard.mode"), mode);
+    // dashboard.mode is the one setting the dashboard keeps a second copy of:
+    // ScreenStore switches the screen the moment this is called, without
+    // waiting for the read-back. The store has to move with it, or the two
+    // disagree and the disagreement is invisible.
+    //
+    // settings-service owns the key while the service overlay is up and
+    // re-asserts its value in the same callback that sees an edit to it. With
+    // the store left on the old value, that re-assert reads back as the value
+    // the store already holds, no signal is emitted, and the screen sits
+    // wherever it moved to with dashboard.mode saying something else. That is
+    // how leaving the debug screen in service mode stranded the dashboard on
+    // the cluster with no way back to the debug screen.
+    if (m_settings)
+        m_settings->applyLocalWrite(QStringLiteral("dashboard.mode"), mode);
 }
 
 void SettingsService::updateTheme(const QString &theme)

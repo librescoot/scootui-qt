@@ -228,7 +228,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     BOOT_MARK("stores constructed");
 
     // M5: Services
-    m_settingsService = new SettingsService(repo, this);
+    m_settingsService = new SettingsService(repo, settingsStore, this);
     m_translations = new Translations(this);
     m_autoThemeService = new AutoThemeService(repo, themeStore, this);
     m_toastService = new ToastService(this);

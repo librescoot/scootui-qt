@@ -43,6 +43,13 @@ public:
     virtual void stop();
     void refreshAllFields();
 
+    // Records a value this process just wrote to the hash, without waiting for
+    // the read-back. A store is the dashboard's picture of what Redis holds; if
+    // it keeps the old value after a local write, then a service that rejects
+    // or overrides that write puts back something the store already believes
+    // and the update lands as a no-op with nothing to react to.
+    void applyLocalWrite(const QString &variable, const QString &value);
+
 protected:
     virtual SyncSettings syncSettings() const = 0;
     virtual void applyFieldUpdate(const QString &variable, const QString &value) = 0;
