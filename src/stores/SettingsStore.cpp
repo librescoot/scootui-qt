@@ -57,6 +57,11 @@ SyncSettings SettingsStore::syncSettings() const
     };
 }
 
+void SettingsStore::endBatchUpdate()
+{
+    emit settingsRefreshed();
+}
+
 void SettingsStore::applyFieldUpdate(const QString &variable, const QString &value)
 {
     if (variable == QLatin1String("dashboard.theme")) {
