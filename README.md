@@ -166,17 +166,17 @@ Settings are stored in the `settings` Redis hash and can be modified at runtime.
 
 | Key | Values | Default | Description |
 |-----|--------|---------|-------------|
-| `dashboard.mode` | `speedometer`, `cluster`, `map` | `speedometer` | Active screen on boot |
+| `dashboard.mode` | `speedometer`, `navigation`, `debug` | `speedometer` | Active screen on boot |
 | `dashboard.show-raw-speed` | `true`, `false` | `false` | Show uncorrected ECU speed |
-| `dashboard.battery-display-mode` | `percentage`, `range` | `percentage` | Battery readout style |
+| `dashboard.battery-display-mode` | `percentage`, `range`, `icon` | `percentage` | Battery readout style |
 | `dashboard.power-display-mode` | `kw`, `amps` | `kw` | Power readout style |
 | `dashboard.show-gps` | `always`, `active-or-error`, `error`, `never` | `error` | GPS icon visibility |
 | `dashboard.show-bluetooth` | `always`, `active-or-error`, `error`, `never` | `active-or-error` | Bluetooth icon visibility |
-| `dashboard.show-cloud` | `always`, `active-or-error`, `error`, `never` | `error` | Cloud connection icon visibility |
-| `dashboard.show-internet` | `always`, `active-or-error`, `error`, `never` | `always` | Cellular icon visibility |
+| `dashboard.show-cloud` | `always`, `active-or-error`, `error`, `never` | `active-or-error` | Cloud connection icon visibility |
+| `dashboard.show-internet` | `always`, `active-or-error`, `error`, `never` | `active-or-error` | Cellular icon visibility |
 | `dashboard.show-clock` | `always`, `date-time`, `alternate`, `never` | `always` | Clock format. `always` is time only; `date-time` adds a calendar glyph carrying the day; `alternate` swaps between the time and the day plus month, set as text since it stands in for the clock. The date is suppressed while the clock reads an implausible year (before NTP or a GPS fix). |
 | `dashboard.theme` | `light`, `dark`, `auto` | `auto` | UI theme |
-| `dashboard.blinker-style` | `default`, `overlay` | `default` | Blinker indicator style |
+| `dashboard.blinker-style` | `icon`, `overlay` | `icon` | Blinker indicator style |
 | `dashboard.language` | `en`, `de`, ... | `en` | UI language |
 | `dashboard.hop-on-combo` | pipe-delimited token list (e.g. `LB|RB|HORN`) | _(unset)_ | Custom hop-on unlock combo; managed by the hop-on UI |
 
@@ -187,7 +187,7 @@ Settings are stored in the `settings` Redis hash and can be modified at runtime.
 | `dashboard.map.type` | `online`, `offline` | `offline` | Map tile source |
 | `dashboard.map.render-mode` | `vector`, `raster` | `vector` | Map renderer |
 | `dashboard.map.traffic-overlay` | `true`, `false` | `false` | Show live traffic overlay |
-| `dashboard.maps.check-for-updates` | `true`, `false` | `true` | Periodically check for offline map updates |
+| `dashboard.maps.check-for-updates` | `true`, `false` | `false` | Periodically check for offline map updates |
 | `dashboard.maps.auto-download` | `true`, `false` | `false` | Download map updates without user action |
 | `dashboard.valhalla-url` | URL | `http://localhost:8002/` | Valhalla routing endpoint |
 
