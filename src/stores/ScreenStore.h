@@ -4,7 +4,7 @@
 #include "models/Enums.h"
 
 class SettingsStore;
-class MdbRepository;
+class CommandBus;
 
 class ScreenStore : public QObject
 {
@@ -12,7 +12,7 @@ class ScreenStore : public QObject
     Q_PROPERTY(int currentScreen READ currentScreen NOTIFY currentScreenChanged)
 
 public:
-    explicit ScreenStore(SettingsStore *settings, MdbRepository *repo,
+    explicit ScreenStore(SettingsStore *settings, CommandBus *commands,
                          QObject *parent = nullptr);
 
     // Brake-navigated screens drive their own UI via brake-lever taps; while
@@ -74,7 +74,7 @@ private:
     void applyMode(const QString &mode);
     void publishMenuOpen();
 
-    MdbRepository *m_repo;
+    CommandBus *m_commands;
     ScootEnums::ScreenMode m_currentScreen = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeAddressSelection = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeAbout = ScootEnums::ScreenMode::Cluster;

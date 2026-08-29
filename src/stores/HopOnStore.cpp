@@ -5,17 +5,16 @@
 #include "DashboardStore.h"
 #include "ScreenStore.h"
 #include "services/SettingsService.h"
-#include "repositories/MdbRepository.h"
+#include "commands/CommandBus.h"
 #include "models/Enums.h"
 
 #include <QDebug>
-#include "repositories/RedisSchema.h"
 
 HopOnStore::HopOnStore(VehicleStore *vehicle,
                        SettingsStore *settings,
                        SettingsService *settingsService,
                        DashboardStore *dashboard,
-                       MdbRepository *repo,
+                       CommandBus *commands,
                        ScreenStore *screen,
                        QObject *parent)
     : QObject(parent)
@@ -23,7 +22,7 @@ HopOnStore::HopOnStore(VehicleStore *vehicle,
     , m_settings(settings)
     , m_settingsService(settingsService)
     , m_dashboard(dashboard)
-    , m_repo(repo)
+    , m_commands(commands)
     , m_screen(screen)
 {
     m_idleTimer.setSingleShot(true);
@@ -92,8 +91,8 @@ void HopOnStore::startLearning()
     // suppressed while the user records their combo. The learning state
     // skips the LED cue, opportunistic steering lock, and lock screen —
     // only the FSM-level input gating is shared with locked hop-on.
-    if (m_repo)
-        m_repo->push(RedisSchema::list::ScooterHopOn, QStringLiteral("engage-learning"));
+    if (m_commands)
+        m_commands->hopOnEngageLearning();
 
     m_buffer.clear();
     emit capturedTokensChanged();
@@ -122,8 +121,8 @@ void HopOnStore::activate()
         m_screen->enterHopOnLock();
 
     // Tell vehicle-service to engage the lockout (and steering lock if positioned).
-    if (m_repo)
-        m_repo->push(RedisSchema::list::ScooterHopOn, QStringLiteral("engage"));
+    if (m_commands)
+        m_commands->hopOnEngage();
 
     // Mirror the OTA screen pattern: keep the backlight ON briefly so the
     // user can see the lock screen, then disable it after kBacklightDelayMs.
@@ -150,8 +149,8 @@ void HopOnStore::disable()
 void HopOnStore::unlock()
 {
     qDebug() << "HopOn: unlock";
-    if (m_repo)
-        m_repo->push(RedisSchema::list::ScooterHopOn, QStringLiteral("release"));
+    if (m_commands)
+        m_commands->hopOnRelease();
     m_backlightTimer.stop();
     if (m_dashboard)
         m_dashboard->setBacklightEnabled(true);
@@ -301,8 +300,8 @@ void HopOnStore::onIdleTimeout()
             setLastResult(ResultAborted);
         }
         // Release the silent StateHopOn that startLearning() entered.
-        if (m_repo)
-            m_repo->push(RedisSchema::list::ScooterHopOn, QStringLiteral("release"));
+        if (m_commands)
+            m_commands->hopOnRelease();
         m_buffer.clear();
         emit capturedTokensChanged();
         setMode(Idle);
@@ -333,8 +332,8 @@ void HopOnStore::onVehicleStateChanged()
         // in StateHopOn — if it already left (e.g. via auto-standby
         // timeout), the release is a harmless no-op.
         qDebug() << "HopOn: vehicle left Parked, exiting mode" << m_mode;
-        if (m_repo)
-            m_repo->push(RedisSchema::list::ScooterHopOn, QStringLiteral("release"));
+        if (m_commands)
+            m_commands->hopOnRelease();
         if (m_mode == Locked) {
             m_backlightTimer.stop();
             if (m_dashboard)

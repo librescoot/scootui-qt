@@ -5,6 +5,7 @@
 #include <memory>
 
 class MdbRepository;
+class CommandBus;
 class GpsStore;
 class VehicleStore;
 class SettingsStore;
@@ -83,6 +84,7 @@ private:
     void maybeCheckForMapUpdates();
 
     std::unique_ptr<MdbRepository> m_repository;
+    CommandBus *m_commandBus = nullptr;
     AutoThemeService *m_autoThemeService = nullptr;
     SettingsService *m_settingsService = nullptr;
     NavigationService *m_navigationService = nullptr;

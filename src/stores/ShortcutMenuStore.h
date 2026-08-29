@@ -8,6 +8,7 @@ class VehicleStore;
 class ScreenStore;
 class DashboardStore;
 class MdbRepository;
+class CommandBus;
 class SettingsService;
 
 class ShortcutMenuStore : public QObject
@@ -21,7 +22,8 @@ class ShortcutMenuStore : public QObject
 public:
     explicit ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
                                ScreenStore *screen, DashboardStore *dashboard,
-                               MdbRepository *repo, SettingsService *settingsService,
+                               MdbRepository *repo, CommandBus *commands,
+                               SettingsService *settingsService,
                                QObject *parent = nullptr);
     ~ShortcutMenuStore() override;
 
@@ -58,6 +60,7 @@ private:
     ScreenStore *m_screenStore;
     DashboardStore *m_dashboardStore;
     MdbRepository *m_repo;
+    CommandBus *m_commands;
     SettingsService *m_settingsService;
 
     QTimer *m_confirmTimer;

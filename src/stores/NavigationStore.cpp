@@ -36,15 +36,3 @@ void NavigationStore::applyFieldUpdate(const QString &variable, const QString &v
     }
 }
 
-void NavigationStore::setDestination(const QString &dest)
-{
-    m_repo->set(RedisSchema::hash::Navigation, QStringLiteral("destination"), dest);
-}
-
-void NavigationStore::clearDestination()
-{
-    // Use set("") instead of HDEL — HiredisWorker::doHdel does not publish,
-    // so subscribers (bluetooth-service, our own SyncableStore) miss the
-    // change and would only catch it via the slow HGETALL poll.
-    m_repo->set(RedisSchema::hash::Navigation, QStringLiteral("destination"), QString());
-}

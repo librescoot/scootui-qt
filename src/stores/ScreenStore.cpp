@@ -1,11 +1,10 @@
 #include "ScreenStore.h"
 #include "SettingsStore.h"
-#include "../repositories/MdbRepository.h"
-#include "repositories/RedisSchema.h"
+#include "../commands/CommandBus.h"
 
-ScreenStore::ScreenStore(SettingsStore *settings, MdbRepository *repo, QObject *parent)
+ScreenStore::ScreenStore(SettingsStore *settings, CommandBus *commands, QObject *parent)
     : QObject(parent)
-    , m_repo(repo)
+    , m_commands(commands)
 {
     applyMode(settings->mode());
     connect(settings, &SettingsStore::modeChanged, this, [this, settings]() {
@@ -32,10 +31,8 @@ bool ScreenStore::isBrakeNavigated(ScootEnums::ScreenMode mode)
 
 void ScreenStore::publishMenuOpen()
 {
-    if (!m_repo) return;
-    m_repo->set(RedisSchema::hash::Dashboard, QStringLiteral("menu-open"),
-                isBrakeNavigated(m_currentScreen) ? QStringLiteral("true")
-                                                 : QStringLiteral("false"));
+    if (!m_commands) return;
+    m_commands->setMenuOpen(isBrakeNavigated(m_currentScreen));
 }
 
 void ScreenStore::applyMode(const QString &mode)

@@ -74,6 +74,7 @@ set(CPP_SOURCES
     src/repositories/RedisMdbRepository.cpp
     src/repositories/HiredisWorker.cpp
     src/repositories/PubsubWorker.cpp
+    src/commands/CommandBus.cpp
     src/stores/SyncableStore.cpp
     src/stores/EngineStore.cpp
     src/stores/VehicleStore.cpp

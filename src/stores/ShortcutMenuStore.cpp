@@ -5,16 +5,15 @@
 #include "DashboardStore.h"
 #include "../repositories/MdbRepository.h"
 #include "../services/SettingsService.h"
+#include "../commands/CommandBus.h"
 #include "../models/Enums.h"
 #include <QDebug>
 #include "repositories/RedisSchema.h"
 
-namespace {
-}
-
 ShortcutMenuStore::ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
                                      ScreenStore *screen, DashboardStore *dashboard,
-                                     MdbRepository *repo, SettingsService *settingsService,
+                                     MdbRepository *repo, CommandBus *commands,
+                                     SettingsService *settingsService,
                                      QObject *parent)
     : QObject(parent)
     , m_theme(theme)
@@ -22,6 +21,7 @@ ShortcutMenuStore::ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
     , m_screenStore(screen)
     , m_dashboardStore(dashboard)
     , m_repo(repo)
+    , m_commands(commands)
     , m_settingsService(settingsService)
     , m_confirmTimer(new QTimer(this))
     , m_cycleTimer(new QTimer(this))
@@ -148,21 +148,16 @@ void ShortcutMenuStore::executeAction(int index)
 
 void ShortcutMenuStore::toggleDebugOverlay()
 {
-    if (!m_repo || !m_dashboardStore) return;
+    if (!m_commands || !m_dashboardStore) return;
 
     bool isOverlay = (m_dashboardStore->debugMode() == QLatin1String("overlay"));
-    m_repo->set(RedisSchema::hash::Dashboard, QStringLiteral("debug"),
-                isOverlay ? QStringLiteral("off") : QStringLiteral("overlay"));
+    m_commands->setDebugMode(isOverlay ? QStringLiteral("off") : QStringLiteral("overlay"));
 }
 
 void ShortcutMenuStore::toggleHazards()
 {
-    if (!m_repo) return;
-
-    bool isBoth = (m_vehicle->blinkerState() == static_cast<int>(ScootEnums::BlinkerState::Both));
-
-    m_repo->push(RedisSchema::list::ScooterBlinker,
-                 isBoth ? QStringLiteral("off") : QStringLiteral("both"));
+    if (!m_commands) return;
+    m_commands->toggleHazards(m_vehicle->blinkerState());
 }
 
 void ShortcutMenuStore::toggleView()

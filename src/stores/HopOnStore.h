@@ -9,7 +9,7 @@ class VehicleStore;
 class SettingsStore;
 class SettingsService;
 class DashboardStore;
-class MdbRepository;
+class CommandBus;
 class ScreenStore;
 
 /**
@@ -66,7 +66,7 @@ public:
                         SettingsStore *settings,
                         SettingsService *settingsService,
                         DashboardStore *dashboard,
-                        MdbRepository *repo,
+                        CommandBus *commands,
                         ScreenStore *screen,
                         QObject *parent = nullptr);
 
@@ -127,7 +127,7 @@ private:
     SettingsStore *m_settings;
     SettingsService *m_settingsService;
     DashboardStore *m_dashboard;
-    MdbRepository *m_repo;
+    CommandBus *m_commands;
     ScreenStore *m_screen;
 
     Mode m_mode = Idle;

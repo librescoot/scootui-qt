@@ -20,8 +20,6 @@ public:
     QString timestamp() const { return m_timestamp; }
     QString destination() const { return m_destination; }
 
-    Q_INVOKABLE void setDestination(const QString &dest);
-    Q_INVOKABLE void clearDestination();
 
 signals:
     void latitudeChanged();

@@ -59,6 +59,7 @@
 #include "services/SystemInfoService.h"
 #include "l10n/Translations.h"
 #include "repositories/RedisSchema.h"
+#include "commands/CommandBus.h"
 #include "utils/FaultFormatter.h"
 #include "simulator/SimulatorService.h"
 
@@ -195,6 +196,8 @@ bool Application::initialize(QQmlApplicationEngine &engine)
 void Application::createStores(QQmlApplicationEngine &engine)
 {
     auto *repo = m_repository.get();
+    auto *commandBus = new CommandBus(repo, this);
+    m_commandBus = commandBus;
 
     // Core stores (M1)
     auto *engineStore = new EngineStore(repo, this);
@@ -222,7 +225,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     auto *cbBatteryStore = new CbBatteryStore(repo, this);
     auto *auxBatteryStore = new AuxBatteryStore(repo, this);
     auto *themeStore = new ThemeStore(settingsStore, this);
-    auto *screenStore = new ScreenStore(settingsStore, repo, this);
+    auto *screenStore = new ScreenStore(settingsStore, commandBus, this);
     auto *tripStore = new TripStore(engineStore, vehicleStore, this);
     m_shutdownStore = new ShutdownStore(this);
     auto *shutdownStore = m_shutdownStore;
@@ -359,9 +362,10 @@ void Application::createStores(QQmlApplicationEngine &engine)
         if (busy == m_mapDownloadHoldActive)
             return;
         m_mapDownloadHoldActive = busy;
-        m_repository->push(RedisSchema::list::ScooterDbcHold,
-                           busy ? QStringLiteral("map-download")
-                                : QStringLiteral("release"));
+        if (busy)
+            m_commandBus->holdDbc(QStringLiteral("map-download"));
+        else
+            m_commandBus->releaseDbcHold();
     });
 
     // Refresh map/road-info/address-db as soon as an install finishes.
@@ -540,7 +544,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // M5: MenuStore with full dependencies
     auto *menuStore = new MenuStore(settingsStore, vehicleStore, themeStore,
                                     tripStore, m_translations, m_settingsService,
-                                    repo, this);
+                                    commandBus, this);
 
     // Wire saved locations, screen store, navigation, and availability into menu
     menuStore->setSavedLocationsStore(savedLocationsStore);
@@ -553,7 +557,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // Hop-on / hop-off store: combo learning, matching, lock screen.
     auto *hopOnStore = new HopOnStore(vehicleStore, settingsStore,
                                       m_settingsService, dashboardStore,
-                                      repo, screenStore, this);
+                                      commandBus, screenStore, this);
     menuStore->setHopOnStore(hopOnStore);
     menuStore->setMapDownloadService(m_mapDownloadService);
 
@@ -593,7 +597,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     });
 
     // M5: ShortcutMenuStore
-    auto *shortcutMenuStore = new ShortcutMenuStore(themeStore, vehicleStore, screenStore, dashboardStore, repo, m_settingsService, this);
+    auto *shortcutMenuStore = new ShortcutMenuStore(themeStore, vehicleStore, screenStore, dashboardStore, repo, commandBus, m_settingsService, this);
 
     // Input handler: consumes vehicle-service's "input-events" gesture stream
     m_inputHandler = new InputHandler(vehicleStore, repo, this);

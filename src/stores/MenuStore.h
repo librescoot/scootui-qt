@@ -13,7 +13,7 @@ class ThemeStore;
 class TripStore;
 class Translations;
 class SettingsService;
-class MdbRepository;
+class CommandBus;
 class NavigationService;
 class SavedLocationsStore;
 class RecentDestinationsStore;
@@ -48,7 +48,7 @@ public:
     explicit MenuStore(SettingsStore *settings, VehicleStore *vehicle,
                        ThemeStore *theme, TripStore *trip,
                        Translations *translations, SettingsService *settingsService,
-                       MdbRepository *repo, QObject *parent = nullptr);
+                       CommandBus *commands, QObject *parent = nullptr);
 
     void setNavigationService(NavigationService *svc);
     void setSavedLocationsStore(SavedLocationsStore *store);
@@ -112,7 +112,7 @@ private:
     TripStore *m_trip;
     Translations *m_translations;
     SettingsService *m_settingsService;
-    MdbRepository *m_repo;
+    CommandBus *m_commands;
     NavigationService *m_navigationService = nullptr;
     SavedLocationsStore *m_savedLocations = nullptr;
     RecentDestinationsStore *m_recentDestinations = nullptr;
