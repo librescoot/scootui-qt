@@ -6,6 +6,12 @@ Rectangle {
     color: "black"
 
     property bool showConnectionInfo: false
+    readonly property bool hopOnActive: typeof vehicleStore !== "undefined"
+        && (vehicleStore.state === Scooter.VehicleState.HopOn
+            || vehicleStore.state === Scooter.VehicleState.HopOnLearning)
+    // The screen may briefly outlive a state change while Loader replaces it.
+    // Never let its independent timeout override HopOnStore's backlight owner.
+    readonly property bool canDisableBacklight: visible && !hopOnActive
 
     // Steps per second for the spinner below, and the rotation each step
     // applies. Every visual change costs one frame and a frame costs about the
@@ -20,9 +26,10 @@ Rectangle {
     Timer {
         id: backlightTimer
         interval: 15000
-        running: true
+        running: maintenanceScreen.canDisableBacklight
         onTriggered: {
-            if (typeof dashboardStore !== "undefined")
+            if (maintenanceScreen.canDisableBacklight
+                    && typeof dashboardStore !== "undefined")
                 dashboardStore.setBacklightEnabled(false)
         }
     }

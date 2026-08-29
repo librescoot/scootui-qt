@@ -46,6 +46,11 @@ Window {
         Scooter.VehicleState.Unknown,
         Scooter.VehicleState.ReadyToDrive,
         Scooter.VehicleState.Parked,
+        // Hop-on owns its backlight delay. Keeping MaintenanceScreen unloaded
+        // here prevents its independent timer from turning the display off
+        // after a quick hop-on resume.
+        Scooter.VehicleState.HopOn,
+        Scooter.VehicleState.HopOnLearning,
         Scooter.VehicleState.ShuttingDown,
         Scooter.VehicleState.WaitingHibernation,
         Scooter.VehicleState.WaitingHibernationAdvanced,
