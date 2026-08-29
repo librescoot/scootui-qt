@@ -397,8 +397,9 @@ void MapService::setRouteWaypoints(const QVariantList &waypoints)
         m_currentRouteSegment = (seeded.index >= 0 &&
                                   seeded.perpDist < MatchAcceptanceDistance)
                                 ? seeded.index : 0;
+        const double eph = m_gps ? m_gps->currentSample().ephMeters : 0.0;
         lockNewRoute = seeded.index >= 0
-            && seeded.perpDist <= RouteSnapState::BreakAwayMeters;
+            && seeded.perpDist <= RouteSnapState::breakAwayMeters(eph);
     } else {
         m_currentRouteSegment = 0;
     }
@@ -1370,7 +1371,25 @@ void MapService::evaluateSnapLock(int elapsedMs)
 {
     if (m_routeShape.size() < 2 || m_currentRouteSegment < 0)
         return;
-    m_drLocked = m_routeSnapState.update(m_distFromRoute, elapsedMs);
+
+    const GpsSample sample = m_gps->currentSample();
+    double headingDifference = 0.0;
+    bool headingReliable = m_gps->hasRecentFix()
+        && m_gps->timestampAgeMs() <= SnapCourseMaxAgeMs
+        && sample.speedKmh >= SnapCourseMinSpeedKmh
+        && std::isfinite(sample.course);
+    if (headingReliable) {
+        const double routeBearing = routeSegmentBearing();
+        if (routeBearing >= 0.0)
+            headingDifference = std::abs(signedAngleDiff(sample.course,
+                                                         routeBearing));
+        else
+            headingReliable = false;
+    }
+
+    m_drLocked = m_routeSnapState.update(
+        m_distFromRoute, elapsedMs, sample.ephMeters,
+        headingDifference, headingReliable);
 }
 
 // ---------------------------------------------------------------------------

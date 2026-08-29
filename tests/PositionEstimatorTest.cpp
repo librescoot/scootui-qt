@@ -55,22 +55,44 @@ void PositionEstimatorTest::routeLockUsesPhysicalDistanceAndDwell()
     RouteSnapState state;
     QVERIFY(state.locked());
 
-    for (int elapsed = 0; elapsed < 1400; elapsed += 100)
-        QVERIFY(state.update(20.0, 100));
-    QVERIFY(!state.update(20.0, 100));
+    // The open-sky receiver normally reports about 19 m EPH. An ordinary
+    // 20 m cross-track estimate must therefore remain visually snapped.
+    QCOMPARE(RouteSnapState::breakAwayMeters(20.0), 30.0);
+    QCOMPARE(RouteSnapState::relockMeters(20.0), 20.0);
+    for (int i = 0; i < 100; ++i)
+        QVERIFY(state.update(20.0, 100, 20.0));
 
-    // Presentation snapping cannot reset this decision: only the supplied
-    // physical distance is observed. A brief close pass is insufficient.
-    for (int elapsed = 0; elapsed < 1900; elapsed += 100)
-        QVERIFY(!state.update(3.0, 100));
-    QVERIFY(state.update(3.0, 100));
+    // A sustained position-only departure still releases after 1.5 seconds.
+    for (int i = 0; i < 14; ++i)
+        QVERIFY(state.update(31.0, 100, 20.0));
+    QVERIFY(!state.update(31.0, 100, 20.0));
 
-    // One good sample interrupts a pending break-away dwell.
-    for (int i = 0; i < 10; ++i)
-        QVERIFY(state.update(20.0, 100));
-    QVERIFY(state.update(2.0, 100));
-    for (int i = 0; i < 10; ++i)
-        QVERIFY(state.update(20.0, 100));
+    // While the rider is clearly travelling across the expected route
+    // direction, a smaller but real displacement releases after two seconds.
+    state.reset(true);
+    for (int i = 0; i < 19; ++i)
+        QVERIFY(state.update(16.0, 100, 20.0, 50.0, true));
+    QVERIFY(!state.update(16.0, 100, 20.0, 50.0, true));
+
+    // Direction alone is not enough at the turn vertex: GPS course can lag the
+    // route tangent there without the rider actually leaving the route.
+    state.reset(true);
+    for (int i = 0; i < 30; ++i)
+        QVERIFY(state.update(10.0, 100, 20.0, 90.0, true));
+
+    // Reacquisition requires both proximity and an aligned (or unavailable)
+    // course, so continuing straight beside the requested turn cannot relock.
+    state.reset(false);
+    for (int i = 0; i < 30; ++i)
+        QVERIFY(!state.update(15.0, 100, 20.0, 60.0, true));
+    for (int i = 0; i < 19; ++i)
+        QVERIFY(!state.update(15.0, 100, 20.0, 20.0, true));
+    QVERIFY(state.update(15.0, 100, 20.0, 20.0, true));
+
+    // Poor-but-accepted fixes get more room, but the cap still guarantees an
+    // actual departure eventually becomes visible.
+    QCOMPARE(RouteSnapState::breakAwayMeters(50.0), 45.0);
+    QCOMPARE(RouteSnapState::relockMeters(50.0), 30.0);
 }
 
 QTEST_APPLESS_MAIN(PositionEstimatorTest)

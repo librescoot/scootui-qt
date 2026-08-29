@@ -339,6 +339,11 @@ private:
     static constexpr double SwitchHysteresis = 2.0;            // new must beat current by this much
     static constexpr double SnappedPosEpsilon = 0.5;           // m — don't emit below this
 
+    // Raw GPS course is useful as evidence that the rider deliberately ignored
+    // a route turn, but only while it is fresh and well above stationary noise.
+    static constexpr qint64 SnapCourseMaxAgeMs = 3000;
+    static constexpr double SnapCourseMinSpeedKmh = 8.0;
+
     // Last-emitted projection state, for change detection on routeProjectionChanged
     mutable double m_lastEmittedSnapLat = 0;
     mutable double m_lastEmittedSnapLng = 0;
