@@ -39,6 +39,12 @@ public:
     // dashboard hash flags observed by vehicle-service
     void setMenuOpen(bool open);
     void setDebugMode(const QString &mode);
+    // dbc-backlight-service turns the panel off/on; hop-on lock and the
+    // maintenance screen use it.
+    Q_INVOKABLE void setBacklightEnabled(bool enabled);
+
+    // vehicle-service / ums-service: expose /data as USB mass storage
+    void enterUmsMode();
 
 private:
     MdbRepository *m_repo;

@@ -2,7 +2,6 @@
 
 #include "VehicleStore.h"
 #include "SettingsStore.h"
-#include "DashboardStore.h"
 #include "ScreenStore.h"
 #include "services/SettingsService.h"
 #include "commands/CommandBus.h"
@@ -13,7 +12,6 @@
 HopOnStore::HopOnStore(VehicleStore *vehicle,
                        SettingsStore *settings,
                        SettingsService *settingsService,
-                       DashboardStore *dashboard,
                        CommandBus *commands,
                        ScreenStore *screen,
                        QObject *parent)
@@ -21,7 +19,6 @@ HopOnStore::HopOnStore(VehicleStore *vehicle,
     , m_vehicle(vehicle)
     , m_settings(settings)
     , m_settingsService(settingsService)
-    , m_dashboard(dashboard)
     , m_commands(commands)
     , m_screen(screen)
 {
@@ -126,8 +123,8 @@ void HopOnStore::activate()
 
     // Mirror the OTA screen pattern: keep the backlight ON briefly so the
     // user can see the lock screen, then disable it after kBacklightDelayMs.
-    if (m_dashboard)
-        m_dashboard->setBacklightEnabled(true);
+    if (m_commands)
+        m_commands->setBacklightEnabled(true);
     m_backlightTimer.start();
 
     m_buffer.clear();
@@ -152,8 +149,8 @@ void HopOnStore::unlock()
     if (m_commands)
         m_commands->hopOnRelease();
     m_backlightTimer.stop();
-    if (m_dashboard)
-        m_dashboard->setBacklightEnabled(true);
+    if (m_commands)
+        m_commands->setBacklightEnabled(true);
     if (m_screen)
         m_screen->exitHopOnLock();
 
@@ -168,8 +165,8 @@ void HopOnStore::onBacklightDelayElapsed()
 {
     if (m_mode != Locked) return;
     qDebug() << "HopOn: backlight delay elapsed, turning backlight off";
-    if (m_dashboard)
-        m_dashboard->setBacklightEnabled(false);
+    if (m_commands)
+        m_commands->setBacklightEnabled(false);
 }
 
 void HopOnStore::onBrakeLeftChanged()
@@ -336,8 +333,8 @@ void HopOnStore::onVehicleStateChanged()
             m_commands->hopOnRelease();
         if (m_mode == Locked) {
             m_backlightTimer.stop();
-            if (m_dashboard)
-                m_dashboard->setBacklightEnabled(true);
+            if (m_commands)
+                m_commands->setBacklightEnabled(true);
             if (m_screen)
                 m_screen->exitHopOnLock();
         }
@@ -355,8 +352,8 @@ void HopOnStore::onHopOnActiveChanged()
     if (!m_vehicle->hopOnActive() && m_mode == Locked) {
         qDebug() << "HopOn: vehicle-service released hop-on externally";
         m_backlightTimer.stop();
-        if (m_dashboard)
-            m_dashboard->setBacklightEnabled(true);
+        if (m_commands)
+            m_commands->setBacklightEnabled(true);
         if (m_screen)
             m_screen->exitHopOnLock();
         cancelTimers();
@@ -388,8 +385,8 @@ void HopOnStore::tryRestoreLocked()
     if (combo().isEmpty()) return;
 
     qDebug() << "HopOn: vehicle-service has hop-on active on startup, restoring Locked mode";
-    if (m_dashboard)
-        m_dashboard->setBacklightEnabled(true);
+    if (m_commands)
+        m_commands->setBacklightEnabled(true);
     if (m_screen)
         m_screen->enterHopOnLock();
     m_backlightTimer.start();

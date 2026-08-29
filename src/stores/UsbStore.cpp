@@ -21,10 +21,6 @@ SyncSettings UsbStore::syncSettings() const
     };
 }
 
-void UsbStore::exitUmsMode()
-{
-    m_repo->set(RedisSchema::hash::Usb, QStringLiteral("mode"), QStringLiteral("normal"));
-}
 
 void UsbStore::applyFieldUpdate(const QString &variable, const QString &value)
 {

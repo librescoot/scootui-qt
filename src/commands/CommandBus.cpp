@@ -77,3 +77,15 @@ void CommandBus::setDebugMode(const QString &mode)
 {
     m_repo->set(RedisSchema::hash::Dashboard, QStringLiteral("debug"), mode);
 }
+
+void CommandBus::setBacklightEnabled(bool enabled)
+{
+    m_repo->set(RedisSchema::hash::Dashboard, QStringLiteral("backlight-enabled"),
+                enabled ? QStringLiteral("true") : QStringLiteral("false"));
+}
+
+void CommandBus::enterUmsMode()
+{
+    m_repo->set(RedisSchema::hash::Usb, QStringLiteral("mode"),
+                QStringLiteral("ums-by-dbc"));
+}

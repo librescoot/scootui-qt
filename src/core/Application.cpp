@@ -556,7 +556,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Hop-on / hop-off store: combo learning, matching, lock screen.
     auto *hopOnStore = new HopOnStore(vehicleStore, settingsStore,
-                                      m_settingsService, dashboardStore,
+                                      m_settingsService,
                                       commandBus, screenStore, this);
     menuStore->setHopOnStore(hopOnStore);
     menuStore->setMapDownloadService(m_mapDownloadService);
@@ -591,10 +591,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // UMS entry confirmation from the Update Mode info screen. The info
     // screen handles the Back/Start prompt in QML; on Start it emits this
     // signal, and we flip usb:mode so vehicle-service / ums-service kick in.
-    connect(screenStore, &ScreenStore::umsModeRequested, this, [repo]() {
-        repo->set(RedisSchema::hash::Usb, QStringLiteral("mode"),
-                  QStringLiteral("ums-by-dbc"));
-    });
+    connect(screenStore, &ScreenStore::umsModeRequested,
+            commandBus, &CommandBus::enterUmsMode);
 
     // M5: ShortcutMenuStore
     auto *shortcutMenuStore = new ShortcutMenuStore(themeStore, vehicleStore, screenStore, dashboardStore, repo, commandBus, m_settingsService, this);
@@ -639,6 +637,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // New context properties
     ctx->setContextProperty(QStringLiteral("connectionStore"), connectionStore);
     ctx->setContextProperty(QStringLiteral("dashboardStore"), dashboardStore);
+    ctx->setContextProperty(QStringLiteral("commandBus"), commandBus);
     ctx->setContextProperty(QStringLiteral("toastService"), m_toastService);
     ctx->setContextProperty(QStringLiteral("mapService"), m_mapService);
     ctx->setContextProperty(QStringLiteral("inputHandler"), m_inputHandler);

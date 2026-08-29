@@ -18,7 +18,6 @@ public:
     double brightness() const { return m_brightness; }
     int backlight() const { return m_backlight; }
 
-    Q_INVOKABLE void setBacklightEnabled(bool enabled);
 
 signals:
     void debugModeChanged();

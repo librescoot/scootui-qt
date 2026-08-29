@@ -8,7 +8,6 @@
 class VehicleStore;
 class SettingsStore;
 class SettingsService;
-class DashboardStore;
 class CommandBus;
 class ScreenStore;
 
@@ -65,7 +64,6 @@ public:
     explicit HopOnStore(VehicleStore *vehicle,
                         SettingsStore *settings,
                         SettingsService *settingsService,
-                        DashboardStore *dashboard,
                         CommandBus *commands,
                         ScreenStore *screen,
                         QObject *parent = nullptr);
@@ -126,7 +124,6 @@ private:
     VehicleStore *m_vehicle;
     SettingsStore *m_settings;
     SettingsService *m_settingsService;
-    DashboardStore *m_dashboard;
     CommandBus *m_commands;
     ScreenStore *m_screen;
 

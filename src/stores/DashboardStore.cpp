@@ -21,12 +21,6 @@ SyncSettings DashboardStore::syncSettings() const
     };
 }
 
-void DashboardStore::setBacklightEnabled(bool enabled)
-{
-    m_repo->set(RedisSchema::hash::Dashboard,
-                QStringLiteral("backlight-enabled"),
-                enabled ? QStringLiteral("true") : QStringLiteral("false"));
-}
 
 void DashboardStore::applyFieldUpdate(const QString &variable, const QString &value)
 {

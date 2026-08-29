@@ -20,7 +20,6 @@ public:
     int progress() const { return m_progress; }
     QString detail() const { return m_detail; }
 
-    Q_INVOKABLE void exitUmsMode();
 
 signals:
     void statusChanged();
