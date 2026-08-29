@@ -6,6 +6,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include "repositories/RedisSchema.h"
 
 namespace {
 constexpr auto kTpvChannel = "gps:tpv";
@@ -24,7 +25,7 @@ GpsStore::GpsStore(MdbRepository *repo, QObject *parent,
 GpsStore::~GpsStore()
 {
     if (m_tpvSubscribed) {
-        m_repo->unsubscribe(QStringLiteral("gps:tpv"));
+        m_repo->unsubscribe(RedisSchema::channel::GpsTpv);
         m_tpvSubscribed = false;
     }
 }
@@ -38,7 +39,7 @@ void GpsStore::start()
     // message is a complete view of the GPS state. The base-class poll is
     // kept as a low-rate safety net (see syncSettings) and to prime initial
     // state on startup before the first push arrives.
-    m_repo->subscribe(QStringLiteral("gps:tpv"),
+    m_repo->subscribe(RedisSchema::channel::GpsTpv,
                       [this](const QString &, const QString &message) {
                           applySnapshot(message);
                       });
@@ -48,7 +49,7 @@ void GpsStore::start()
 void GpsStore::stop()
 {
     if (m_tpvSubscribed) {
-        m_repo->unsubscribe(QStringLiteral("gps:tpv"));
+        m_repo->unsubscribe(RedisSchema::channel::GpsTpv);
         m_tpvSubscribed = false;
     }
     SyncableStore::stop();

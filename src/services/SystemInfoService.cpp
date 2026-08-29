@@ -1,6 +1,7 @@
 #include "SystemInfoService.h"
 
 #include <QVariantMap>
+#include "repositories/RedisSchema.h"
 
 SystemInfoService::SystemInfoService(MdbRepository *repo, QObject *parent)
     : QObject(parent), m_repo(repo)
@@ -21,10 +22,10 @@ void SystemInfoService::loadVersions()
     // Force an immediate refresh so the AboutScreen doesn't have to wait up to
     // 30s for the next scheduled poll. Results arrive asynchronously and trigger
     // recomputeVersions() via the fieldsUpdated subscription.
-    m_repo->requestAll(QStringLiteral("system"));
-    m_repo->requestAll(QStringLiteral("version:mdb"));
-    m_repo->requestAll(QStringLiteral("version:dbc"));
-    m_repo->requestAll(QStringLiteral("engine-ecu"));
+    m_repo->requestAll(RedisSchema::hash::System);
+    m_repo->requestAll(RedisSchema::hash::VersionMdb);
+    m_repo->requestAll(RedisSchema::hash::VersionDbc);
+    m_repo->requestAll(RedisSchema::hash::EngineEcu);
 
     recomputeVersions();
 }
@@ -39,10 +40,10 @@ static QString boardVersion(const FieldMap &ver)
 
 void SystemInfoService::recomputeVersions()
 {
-    FieldMap system = m_repo->getAll(QStringLiteral("system"));
-    FieldMap mdbVer = m_repo->getAll(QStringLiteral("version:mdb"));
-    FieldMap dbcVer = m_repo->getAll(QStringLiteral("version:dbc"));
-    FieldMap engineEcu = m_repo->getAll(QStringLiteral("engine-ecu"));
+    FieldMap system = m_repo->getAll(RedisSchema::hash::System);
+    FieldMap mdbVer = m_repo->getAll(RedisSchema::hash::VersionMdb);
+    FieldMap dbcVer = m_repo->getAll(RedisSchema::hash::VersionDbc);
+    FieldMap engineEcu = m_repo->getAll(RedisSchema::hash::EngineEcu);
 
     QVariantList rows;
 

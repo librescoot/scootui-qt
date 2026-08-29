@@ -3,6 +3,7 @@
 #include "repositories/MdbRepository.h"
 #include "stores/ThemeStore.h"
 #include <QDebug>
+#include "repositories/RedisSchema.h"
 
 AutoThemeService::AutoThemeService(MdbRepository *repo, ThemeStore *themeStore,
                                    QObject *parent)
@@ -17,7 +18,7 @@ AutoThemeService::AutoThemeService(MdbRepository *repo, ThemeStore *themeStore,
     m_lockoutTimer->setSingleShot(true);
 
     // Also listen for pubsub brightness updates
-    m_repo->subscribe(QStringLiteral("dashboard"), [this](const QString &, const QString &msg) {
+    m_repo->subscribe(RedisSchema::hash::Dashboard, [this](const QString &, const QString &msg) {
         if (msg.contains(QLatin1String(AppConfig::brightnessKey)) && m_enabled) {
             QMetaObject::invokeMethod(this, &AutoThemeService::checkBrightness,
                                       Qt::QueuedConnection);
@@ -51,7 +52,7 @@ void AutoThemeService::checkBrightness()
 {
     if (!m_enabled) return;
 
-    const QString val = m_repo->get(QStringLiteral("dashboard"),
+    const QString val = m_repo->get(RedisSchema::hash::Dashboard,
                                     QLatin1String(AppConfig::brightnessKey));
     if (val.isEmpty()) return;
 

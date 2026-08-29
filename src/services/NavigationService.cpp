@@ -18,6 +18,7 @@
 #include <QVariantMap>
 #include <algorithm>
 #include <cmath>
+#include "repositories/RedisSchema.h"
 
 namespace {
 // Stock Valhalla uses the posted OSM maxspeed verbatim as the routing
@@ -736,18 +737,18 @@ void NavigationService::setDestination(double lat, double lng, const QString &ad
 
     // Write to Redis for other services
     QString timestamp = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("latitude"),
+    m_repo->set(RedisSchema::hash::Navigation, QStringLiteral("latitude"),
                 QString::number(lat, 'f', 6));
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("longitude"),
+    m_repo->set(RedisSchema::hash::Navigation, QStringLiteral("longitude"),
                 QString::number(lng, 'f', 6));
     if (!address.isEmpty()) {
-        m_repo->set(QStringLiteral("navigation"), QStringLiteral("address"), address);
+        m_repo->set(RedisSchema::hash::Navigation, QStringLiteral("address"), address);
     }
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("timestamp"), timestamp);
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("destination"),
+    m_repo->set(RedisSchema::hash::Navigation, QStringLiteral("timestamp"), timestamp);
+    m_repo->set(RedisSchema::hash::Navigation, QStringLiteral("destination"),
                 QString::number(lat, 'f', 6) + QLatin1Char(',') +
                 QString::number(lng, 'f', 6));
-    m_repo->publish(QStringLiteral("navigation"), QStringLiteral("updated"));
+    m_repo->publish(RedisSchema::hash::Navigation, QStringLiteral("updated"));
 
     if (!selectRouteOrigin().isValid()) {
         qDebug() << "NavigationService: waiting for a trustworthy position before calculating route";
@@ -788,12 +789,12 @@ void NavigationService::clearNavigation()
     // does not publish a notification, so subscribers (bluetooth-service's
     // HashWatcher, our own SyncableStore pub/sub path) never wake up and
     // would only learn of the clear via the 5-second HGETALL poll.
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("latitude"), QString());
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("longitude"), QString());
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("address"), QString());
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("timestamp"), QString());
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("destination"), QString());
-    m_repo->publish(QStringLiteral("navigation"), QStringLiteral("cleared"));
+    m_repo->set(RedisSchema::hash::Navigation, QStringLiteral("latitude"), QString());
+    m_repo->set(RedisSchema::hash::Navigation, QStringLiteral("longitude"), QString());
+    m_repo->set(RedisSchema::hash::Navigation, QStringLiteral("address"), QString());
+    m_repo->set(RedisSchema::hash::Navigation, QStringLiteral("timestamp"), QString());
+    m_repo->set(RedisSchema::hash::Navigation, QStringLiteral("destination"), QString());
+    m_repo->publish(RedisSchema::hash::Navigation, QStringLiteral("cleared"));
 }
 
 void NavigationService::setRoute(const Route &route)

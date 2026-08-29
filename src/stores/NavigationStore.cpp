@@ -1,4 +1,5 @@
 #include "NavigationStore.h"
+#include "repositories/RedisSchema.h"
 
 NavigationStore::NavigationStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
@@ -8,7 +9,7 @@ NavigationStore::NavigationStore(MdbRepository *repo, QObject *parent)
 SyncSettings NavigationStore::syncSettings() const
 {
     return SyncSettings{
-        QStringLiteral("navigation"), 5000,
+        RedisSchema::hash::Navigation, 5000,
         {
             {QStringLiteral("latitude"), QStringLiteral("latitude"), true},
             {QStringLiteral("longitude"), QStringLiteral("longitude"), true},
@@ -37,7 +38,7 @@ void NavigationStore::applyFieldUpdate(const QString &variable, const QString &v
 
 void NavigationStore::setDestination(const QString &dest)
 {
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("destination"), dest);
+    m_repo->set(RedisSchema::hash::Navigation, QStringLiteral("destination"), dest);
 }
 
 void NavigationStore::clearDestination()
@@ -45,5 +46,5 @@ void NavigationStore::clearDestination()
     // Use set("") instead of HDEL — HiredisWorker::doHdel does not publish,
     // so subscribers (bluetooth-service, our own SyncableStore) miss the
     // change and would only catch it via the slow HGETALL poll.
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("destination"), QString());
+    m_repo->set(RedisSchema::hash::Navigation, QStringLiteral("destination"), QString());
 }

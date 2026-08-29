@@ -1,4 +1,5 @@
 #include "UsbStore.h"
+#include "repositories/RedisSchema.h"
 
 UsbStore::UsbStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
@@ -8,7 +9,7 @@ UsbStore::UsbStore(MdbRepository *repo, QObject *parent)
 SyncSettings UsbStore::syncSettings() const
 {
     return SyncSettings{
-        QStringLiteral("usb"), 5000,
+        RedisSchema::hash::Usb, 5000,
         {
             {QStringLiteral("status"), QStringLiteral("status")},
             {QStringLiteral("mode"), QStringLiteral("mode")},
@@ -22,7 +23,7 @@ SyncSettings UsbStore::syncSettings() const
 
 void UsbStore::exitUmsMode()
 {
-    m_repo->set(QStringLiteral("usb"), QStringLiteral("mode"), QStringLiteral("normal"));
+    m_repo->set(RedisSchema::hash::Usb, QStringLiteral("mode"), QStringLiteral("normal"));
 }
 
 void UsbStore::applyFieldUpdate(const QString &variable, const QString &value)

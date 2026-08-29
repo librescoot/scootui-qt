@@ -1,4 +1,5 @@
 #include "UmsLogStore.h"
+#include "repositories/RedisSchema.h"
 
 UmsLogStore::UmsLogStore(MdbRepository *repo, QObject *parent)
     : QObject(parent), m_repo(repo)
@@ -39,7 +40,7 @@ QString UmsLogStore::stripTimestamp(const QString &entry)
 
 void UmsLogStore::poll()
 {
-    QStringList raw = m_repo->lrange(QStringLiteral("usb:log"), 0, 19);
+    QStringList raw = m_repo->lrange(RedisSchema::list::UsbLog, 0, 19);
     QStringList entries;
     entries.reserve(raw.size());
     for (const QString &e : raw)

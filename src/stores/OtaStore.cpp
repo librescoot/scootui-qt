@@ -1,4 +1,5 @@
 #include "OtaStore.h"
+#include "repositories/RedisSchema.h"
 
 OtaStore::OtaStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
@@ -13,7 +14,7 @@ bool OtaStore::isActive() const
 SyncSettings OtaStore::syncSettings() const
 {
     return SyncSettings{
-        QStringLiteral("ota"), 5000,
+        RedisSchema::hash::Ota, 5000,
         {
             {QStringLiteral("dbcStatus"), QStringLiteral("status:dbc")},
             {QStringLiteral("dbcUpdateVersion"), QStringLiteral("update-version:dbc")},

@@ -1,6 +1,7 @@
 #include "AutoStandbyStore.h"
 
 #include <QDateTime>
+#include "repositories/RedisSchema.h"
 
 AutoStandbyStore::AutoStandbyStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
@@ -13,7 +14,7 @@ AutoStandbyStore::AutoStandbyStore(MdbRepository *repo, QObject *parent)
 SyncSettings AutoStandbyStore::syncSettings() const
 {
     return SyncSettings{
-        QStringLiteral("vehicle"), 500,
+        RedisSchema::hash::Vehicle, 500,
         {
             // Unix timestamp (seconds) when auto-lock will fire; cleared when no
             // timer active. Published by vehicle-service via PublishAutoStandbyDeadline.

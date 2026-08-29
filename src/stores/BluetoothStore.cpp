@@ -1,4 +1,5 @@
 #include "BluetoothStore.h"
+#include "repositories/RedisSchema.h"
 
 BluetoothStore::BluetoothStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
@@ -8,7 +9,7 @@ BluetoothStore::BluetoothStore(MdbRepository *repo, QObject *parent)
 SyncSettings BluetoothStore::syncSettings() const
 {
     return SyncSettings{
-        QStringLiteral("ble"), 5000,
+        RedisSchema::hash::Ble, 5000,
         {
             {QStringLiteral("status"), QStringLiteral("status")},
             {QStringLiteral("macAddress"), QStringLiteral("mac-address")},

@@ -3,6 +3,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonValue>
+#include "repositories/RedisSchema.h"
 
 MotionStore::MotionStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
@@ -12,11 +13,11 @@ MotionStore::MotionStore(MdbRepository *repo, QObject *parent)
 MotionStore::~MotionStore()
 {
     if (m_headingSubscribed) {
-        m_repo->unsubscribe(QStringLiteral("motion:heading"));
+        m_repo->unsubscribe(RedisSchema::channel::MotionHeading);
         m_headingSubscribed = false;
     }
     if (m_sensorsSubscribed) {
-        m_repo->unsubscribe(QStringLiteral("motion:sensors"));
+        m_repo->unsubscribe(RedisSchema::channel::MotionSensors);
         m_sensorsSubscribed = false;
     }
 }
@@ -25,13 +26,13 @@ void MotionStore::start()
 {
     SyncableStore::start();
 
-    m_repo->subscribe(QStringLiteral("motion:heading"),
+    m_repo->subscribe(RedisSchema::channel::MotionHeading,
                       [this](const QString &, const QString &message) {
                           applyHeadingSnapshot(message);
                       });
     m_headingSubscribed = true;
 
-    m_repo->subscribe(QStringLiteral("motion:sensors"),
+    m_repo->subscribe(RedisSchema::channel::MotionSensors,
                       [this](const QString &, const QString &message) {
                           applySensorsSnapshot(message);
                       });
@@ -41,11 +42,11 @@ void MotionStore::start()
 void MotionStore::stop()
 {
     if (m_headingSubscribed) {
-        m_repo->unsubscribe(QStringLiteral("motion:heading"));
+        m_repo->unsubscribe(RedisSchema::channel::MotionHeading);
         m_headingSubscribed = false;
     }
     if (m_sensorsSubscribed) {
-        m_repo->unsubscribe(QStringLiteral("motion:sensors"));
+        m_repo->unsubscribe(RedisSchema::channel::MotionSensors);
         m_sensorsSubscribed = false;
     }
     SyncableStore::stop();
@@ -57,7 +58,7 @@ SyncSettings MotionStore::syncSettings() const
     // even when no pub/sub message has arrived since startup. The actual
     // live data flows over kHeadingChannel / kSensorsChannel.
     return SyncSettings{
-        QStringLiteral("motion"), 5000,
+        RedisSchema::hash::Motion, 5000,
         {
             {QStringLiteral("heading-deg"), QStringLiteral("heading-deg")},
             {QStringLiteral("heading-accuracy"), QStringLiteral("heading-accuracy")},

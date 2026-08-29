@@ -1,5 +1,6 @@
 #include "BatteryStore.h"
 #include <QDebug>
+#include "repositories/RedisSchema.h"
 
 BatteryStore::BatteryStore(MdbRepository *repo, const QString &id, QObject *parent)
     : SyncableStore(repo, parent)
@@ -10,7 +11,7 @@ BatteryStore::BatteryStore(MdbRepository *repo, const QString &id, QObject *pare
 SyncSettings BatteryStore::syncSettings() const
 {
     return SyncSettings{
-        QStringLiteral("battery:") + m_id,
+        RedisSchema::hash::battery(m_id),
         30000,
         {
             {QStringLiteral("present"), QStringLiteral("present")},

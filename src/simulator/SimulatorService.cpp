@@ -16,6 +16,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QDebug>
+#include "repositories/RedisSchema.h"
 
 SimulatorService::SimulatorService(MdbRepository *repo, NavigationService *nav,
                                    bool seedDefaults, QObject *parent)
@@ -47,8 +48,8 @@ SimulatorService::SimulatorService(MdbRepository *repo, NavigationService *nav,
     connect(m_gpsTimestampTimer, &QTimer::timeout, this, [this]() {
         if (!m_autoDriveActive) {
             const QString now = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
-            m_repo->set(QStringLiteral("gps"), QStringLiteral("timestamp"), now);
-            m_repo->set(QStringLiteral("gps"), QStringLiteral("updated"), now);
+            m_repo->set(RedisSchema::hash::Gps, QStringLiteral("timestamp"), now);
+            m_repo->set(RedisSchema::hash::Gps, QStringLiteral("updated"), now);
         }
     });
     m_gpsTimestampTimer->start();
@@ -61,12 +62,12 @@ SimulatorService::SimulatorService(MdbRepository *repo, NavigationService *nav,
 
 void SimulatorService::setVehicleState(const QString &state)
 {
-    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("state"), state);
+    m_repo->set(RedisSchema::hash::Vehicle, QStringLiteral("state"), state);
 }
 
 void SimulatorService::setKickstand(const QString &state)
 {
-    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("kickstand"), state);
+    m_repo->set(RedisSchema::hash::Vehicle, QStringLiteral("kickstand"), state);
     // Real vehicle-service resets the auto-standby timer on every kickstand
     // change (system.go handleInputChange "kickstand" branch).
     resetAutoStandbyTimerIfActive();
@@ -74,12 +75,12 @@ void SimulatorService::setKickstand(const QString &state)
 
 void SimulatorService::setBlinkerState(const QString &state)
 {
-    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("blinker:state"), state);
+    m_repo->set(RedisSchema::hash::Vehicle, QStringLiteral("blinker:state"), state);
 }
 
 void SimulatorService::setBrakeLeft(bool pressed)
 {
-    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("brake:left"),
+    m_repo->set(RedisSchema::hash::Vehicle, QStringLiteral("brake:left"),
                 pressed ? QStringLiteral("on") : QStringLiteral("off"));
     m_repo->publishButtonEvent(QStringLiteral("brake:left:") + (pressed ? QStringLiteral("on") : QStringLiteral("off")));
     m_gestures->onChange(QStringLiteral("brake:left"), pressed);
@@ -91,7 +92,7 @@ void SimulatorService::setBrakeLeft(bool pressed)
 
 void SimulatorService::setBrakeRight(bool pressed)
 {
-    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("brake:right"),
+    m_repo->set(RedisSchema::hash::Vehicle, QStringLiteral("brake:right"),
                 pressed ? QStringLiteral("on") : QStringLiteral("off"));
     m_repo->publishButtonEvent(QStringLiteral("brake:right:") + (pressed ? QStringLiteral("on") : QStringLiteral("off")));
     m_gestures->onChange(QStringLiteral("brake:right"), pressed);
@@ -157,41 +158,41 @@ void SimulatorService::simulateSeatboxDoubleTap()
 
 void SimulatorService::setSeatboxLock(const QString &state)
 {
-    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("seatbox:lock"), state);
+    m_repo->set(RedisSchema::hash::Vehicle, QStringLiteral("seatbox:lock"), state);
 }
 
 void SimulatorService::setHandlebarLock(const QString &state)
 {
-    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("handlebar:lock-sensor"), state);
-    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("handlebar:lock-state"), state);
+    m_repo->set(RedisSchema::hash::Vehicle, QStringLiteral("handlebar:lock-sensor"), state);
+    m_repo->set(RedisSchema::hash::Vehicle, QStringLiteral("handlebar:lock-state"), state);
 }
 
 void SimulatorService::setHornButton(bool pressed)
 {
-    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("horn-button"),
+    m_repo->set(RedisSchema::hash::Vehicle, QStringLiteral("horn-button"),
                 pressed ? QStringLiteral("on") : QStringLiteral("off"));
 }
 
 void SimulatorService::setHandlebarPosition(const QString &state)
 {
-    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("handlebar:position"), state);
+    m_repo->set(RedisSchema::hash::Vehicle, QStringLiteral("handlebar:position"), state);
 }
 
 void SimulatorService::setUnableToDrive(bool unable)
 {
-    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("unable-to-drive"),
+    m_repo->set(RedisSchema::hash::Vehicle, QStringLiteral("unable-to-drive"),
                 unable ? QStringLiteral("on") : QStringLiteral("off"));
 }
 
 void SimulatorService::setHopOnActive(bool active)
 {
-    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("hop-on-active"),
+    m_repo->set(RedisSchema::hash::Vehicle, QStringLiteral("hop-on-active"),
                 active ? QStringLiteral("true") : QStringLiteral("false"));
 }
 
 void SimulatorService::setMainPower(bool on)
 {
-    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("main-power"),
+    m_repo->set(RedisSchema::hash::Vehicle, QStringLiteral("main-power"),
                 on ? QStringLiteral("on") : QStringLiteral("off"));
 }
 
@@ -199,7 +200,7 @@ void SimulatorService::setMainPower(bool on)
 
 void SimulatorService::setSpeed(double speed)
 {
-    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("speed"),
+    m_repo->set(RedisSchema::hash::EngineEcu, QStringLiteral("speed"),
                 QString::number(speed, 'f', 1));
 }
 
@@ -207,91 +208,91 @@ void SimulatorService::setOdometer(double km)
 {
     m_odometer = km;
     // Store in meters (matching real ECU which reports meters)
-    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("odometer"),
+    m_repo->set(RedisSchema::hash::EngineEcu, QStringLiteral("odometer"),
                 QString::number(km * 1000, 'f', 0));
 }
 
 void SimulatorService::setEngineTemperature(double temp)
 {
-    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("temperature"),
+    m_repo->set(RedisSchema::hash::EngineEcu, QStringLiteral("temperature"),
                 QString::number(temp, 'f', 1));
 }
 
 void SimulatorService::setAmbientTemperature(double temp)
 {
-    m_repo->set(QStringLiteral("scooter"), QStringLiteral("temperature"),
+    m_repo->set(RedisSchema::hash::Scooter, QStringLiteral("temperature"),
                 QString::number(temp, 'f', 1));
 }
 
 void SimulatorService::clearAmbientTemperature()
 {
-    m_repo->set(QStringLiteral("scooter"), QStringLiteral("temperature"), QString());
+    m_repo->set(RedisSchema::hash::Scooter, QStringLiteral("temperature"), QString());
 }
 
 void SimulatorService::setMotorPower(bool on)
 {
-    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("state"),
+    m_repo->set(RedisSchema::hash::EngineEcu, QStringLiteral("state"),
                 on ? QStringLiteral("on") : QStringLiteral("off"));
 }
 
 void SimulatorService::setMotorCurrent(double milliamps)
 {
-    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("motor:current"),
+    m_repo->set(RedisSchema::hash::EngineEcu, QStringLiteral("motor:current"),
                 QString::number(milliamps, 'f', 0));
 }
 
 void SimulatorService::setMotorVoltage(double millivolts)
 {
-    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("motor:voltage"),
+    m_repo->set(RedisSchema::hash::EngineEcu, QStringLiteral("motor:voltage"),
                 QString::number(millivolts, 'f', 0));
 }
 
 void SimulatorService::setThrottle(bool on)
 {
-    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("throttle"),
+    m_repo->set(RedisSchema::hash::EngineEcu, QStringLiteral("throttle"),
                 on ? QStringLiteral("on") : QStringLiteral("off"));
 }
 
 void SimulatorService::setKers(bool on)
 {
-    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("kers"),
+    m_repo->set(RedisSchema::hash::EngineEcu, QStringLiteral("kers"),
                 on ? QStringLiteral("on") : QStringLiteral("off"));
 }
 
 void SimulatorService::setKersReasonOff(const QString &reason)
 {
-    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("kers-reason-off"), reason);
+    m_repo->set(RedisSchema::hash::EngineEcu, QStringLiteral("kers-reason-off"), reason);
 }
 
 void SimulatorService::setRegenReason(const QString &reason)
 {
-    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("regen-reason"), reason);
-    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("regen-available"),
+    m_repo->set(RedisSchema::hash::EngineEcu, QStringLiteral("regen-reason"), reason);
+    m_repo->set(RedisSchema::hash::EngineEcu, QStringLiteral("regen-available"),
                 reason == QLatin1String("none") ? QStringLiteral("on") : QStringLiteral("off"));
 }
 
 void SimulatorService::setRpm(double rpm)
 {
-    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("rpm"),
+    m_repo->set(RedisSchema::hash::EngineEcu, QStringLiteral("rpm"),
                 QString::number(rpm, 'f', 1));
 }
 
 void SimulatorService::setRawSpeed(double speed)
 {
-    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("raw-speed"),
+    m_repo->set(RedisSchema::hash::EngineEcu, QStringLiteral("raw-speed"),
                 QString::number(speed, 'f', 1));
 }
 
 void SimulatorService::setEngineFwVersion(const QString &v)
 {
-    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("fw-version"), v);
+    m_repo->set(RedisSchema::hash::EngineEcu, QStringLiteral("fw-version"), v);
 }
 
 void SimulatorService::setEngineFault(int code, const QString &description)
 {
-    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("fault:code"),
+    m_repo->set(RedisSchema::hash::EngineEcu, QStringLiteral("fault:code"),
                 QString::number(code));
-    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("fault:description"),
+    m_repo->set(RedisSchema::hash::EngineEcu, QStringLiteral("fault:description"),
                 description);
 }
 
@@ -353,209 +354,209 @@ void SimulatorService::setGpsPosition(double lat, double lng)
     // Store the whole fix before publishing once. Separate notifications used
     // to expose the new latitude paired with the previous longitude in the
     // simulator even though production gps:tpv samples are atomic.
-    m_repo->set(QStringLiteral("gps"), QStringLiteral("latitude"),
+    m_repo->set(RedisSchema::hash::Gps, QStringLiteral("latitude"),
                 QString::number(lat, 'f', 8), false);
-    m_repo->set(QStringLiteral("gps"), QStringLiteral("longitude"),
+    m_repo->set(RedisSchema::hash::Gps, QStringLiteral("longitude"),
                 QString::number(lng, 'f', 8), false);
-    m_repo->set(QStringLiteral("gps"), QStringLiteral("updated"), now, false);
-    m_repo->set(QStringLiteral("gps"), QStringLiteral("timestamp"), now, false);
-    m_repo->publish(QStringLiteral("gps"), QStringLiteral("position"));
+    m_repo->set(RedisSchema::hash::Gps, QStringLiteral("updated"), now, false);
+    m_repo->set(RedisSchema::hash::Gps, QStringLiteral("timestamp"), now, false);
+    m_repo->publish(RedisSchema::hash::Gps, QStringLiteral("position"));
 }
 
 void SimulatorService::setGpsCourse(double course)
 {
     m_autoDriveBearing = course;
-    m_repo->set(QStringLiteral("gps"), QStringLiteral("course"),
+    m_repo->set(RedisSchema::hash::Gps, QStringLiteral("course"),
                 QString::number(course, 'f', 1));
 }
 
 void SimulatorService::setGpsSpeed(double speed)
 {
-    m_repo->set(QStringLiteral("gps"), QStringLiteral("speed"),
+    m_repo->set(RedisSchema::hash::Gps, QStringLiteral("speed"),
                 QString::number(speed, 'f', 1));
 }
 
 void SimulatorService::setGpsState(const QString &state)
 {
-    m_repo->set(QStringLiteral("gps"), QStringLiteral("state"), state);
+    m_repo->set(RedisSchema::hash::Gps, QStringLiteral("state"), state);
 }
 
 void SimulatorService::setGpsAltitude(double altitude)
 {
-    m_repo->set(QStringLiteral("gps"), QStringLiteral("altitude"),
+    m_repo->set(RedisSchema::hash::Gps, QStringLiteral("altitude"),
                 QString::number(altitude, 'f', 1));
 }
 
 void SimulatorService::setGpsSatellites(int used, int visible)
 {
-    m_repo->set(QStringLiteral("gps"), QStringLiteral("satellites-used"),
+    m_repo->set(RedisSchema::hash::Gps, QStringLiteral("satellites-used"),
                 QString::number(used));
-    m_repo->set(QStringLiteral("gps"), QStringLiteral("satellites-visible"),
+    m_repo->set(RedisSchema::hash::Gps, QStringLiteral("satellites-visible"),
                 QString::number(visible));
 }
 
 void SimulatorService::setGpsHdop(double hdop)
 {
-    m_repo->set(QStringLiteral("gps"), QStringLiteral("hdop"),
+    m_repo->set(RedisSchema::hash::Gps, QStringLiteral("hdop"),
                 QString::number(hdop, 'f', 2));
 }
 
 void SimulatorService::setGpsField(const QString &field, const QString &value)
 {
-    m_repo->set(QStringLiteral("gps"), field, value);
+    m_repo->set(RedisSchema::hash::Gps, field, value);
 }
 
 // --- Internet ---
 
 void SimulatorService::setModemState(const QString &state)
 {
-    m_repo->set(QStringLiteral("internet"), QStringLiteral("modem-state"), state);
+    m_repo->set(RedisSchema::hash::Internet, QStringLiteral("modem-state"), state);
 }
 
 void SimulatorService::setSignalQuality(int quality)
 {
-    m_repo->set(QStringLiteral("internet"), QStringLiteral("signal-quality"),
+    m_repo->set(RedisSchema::hash::Internet, QStringLiteral("signal-quality"),
                 QString::number(quality));
 }
 
 void SimulatorService::setAccessTech(const QString &tech)
 {
-    m_repo->set(QStringLiteral("internet"), QStringLiteral("access-tech"), tech);
+    m_repo->set(RedisSchema::hash::Internet, QStringLiteral("access-tech"), tech);
 }
 
 void SimulatorService::setCloudConnection(const QString &state)
 {
-    m_repo->set(QStringLiteral("internet"), QStringLiteral("unu-cloud"), state);
-    m_repo->set(QStringLiteral("internet"), QStringLiteral("status"), state);
+    m_repo->set(RedisSchema::hash::Internet, QStringLiteral("unu-cloud"), state);
+    m_repo->set(RedisSchema::hash::Internet, QStringLiteral("status"), state);
 }
 
 void SimulatorService::setIpAddress(const QString &ip)
 {
-    m_repo->set(QStringLiteral("internet"), QStringLiteral("ip-address"), ip);
+    m_repo->set(RedisSchema::hash::Internet, QStringLiteral("ip-address"), ip);
 }
 
 void SimulatorService::setSimImei(const QString &imei)
 {
-    m_repo->set(QStringLiteral("internet"), QStringLiteral("sim-imei"), imei);
+    m_repo->set(RedisSchema::hash::Internet, QStringLiteral("sim-imei"), imei);
 }
 
 void SimulatorService::setSimImsi(const QString &imsi)
 {
-    m_repo->set(QStringLiteral("internet"), QStringLiteral("sim-imsi"), imsi);
+    m_repo->set(RedisSchema::hash::Internet, QStringLiteral("sim-imsi"), imsi);
 }
 
 void SimulatorService::setSimIccid(const QString &iccid)
 {
-    m_repo->set(QStringLiteral("internet"), QStringLiteral("sim-iccid"), iccid);
+    m_repo->set(RedisSchema::hash::Internet, QStringLiteral("sim-iccid"), iccid);
 }
 
 void SimulatorService::setConnectivity(const QString &state)
 {
-    m_repo->set(QStringLiteral("internet"), QStringLiteral("connectivity"), state);
+    m_repo->set(RedisSchema::hash::Internet, QStringLiteral("connectivity"), state);
 }
 
 void SimulatorService::setModemField(const QString &field, const QString &value)
 {
-    m_repo->set(QStringLiteral("modem"), field, value);
+    m_repo->set(RedisSchema::hash::Modem, field, value);
 }
 
 // --- Bluetooth ---
 
 void SimulatorService::setBluetoothStatus(const QString &state)
 {
-    m_repo->set(QStringLiteral("ble"), QStringLiteral("status"), state);
-    m_repo->set(QStringLiteral("ble"), QStringLiteral("service-health"), QStringLiteral("ok"));
+    m_repo->set(RedisSchema::hash::Ble, QStringLiteral("status"), state);
+    m_repo->set(RedisSchema::hash::Ble, QStringLiteral("service-health"), QStringLiteral("ok"));
 }
 
 void SimulatorService::setBluetoothMac(const QString &mac)
 {
-    m_repo->set(QStringLiteral("ble"), QStringLiteral("mac-address"), mac);
+    m_repo->set(RedisSchema::hash::Ble, QStringLiteral("mac-address"), mac);
 }
 
 void SimulatorService::setBluetoothPin(const QString &pin)
 {
-    m_repo->set(QStringLiteral("ble"), QStringLiteral("pin-code"), pin);
+    m_repo->set(RedisSchema::hash::Ble, QStringLiteral("pin-code"), pin);
 }
 
 void SimulatorService::setBluetoothServiceHealth(const QString &health)
 {
-    m_repo->set(QStringLiteral("ble"), QStringLiteral("service-health"), health);
+    m_repo->set(RedisSchema::hash::Ble, QStringLiteral("service-health"), health);
 }
 
 void SimulatorService::setBluetoothServiceError(const QString &error)
 {
-    m_repo->set(QStringLiteral("ble"), QStringLiteral("service-error"), error);
+    m_repo->set(RedisSchema::hash::Ble, QStringLiteral("service-error"), error);
 }
 
 // --- USB / UMS ---
 
 void SimulatorService::setUsbStatus(const QString &status)
 {
-    m_repo->set(QStringLiteral("usb"), QStringLiteral("status"), status);
+    m_repo->set(RedisSchema::hash::Usb, QStringLiteral("status"), status);
 }
 
 void SimulatorService::setUsbMode(const QString &mode)
 {
-    m_repo->set(QStringLiteral("usb"), QStringLiteral("mode"), mode);
+    m_repo->set(RedisSchema::hash::Usb, QStringLiteral("mode"), mode);
 }
 
 void SimulatorService::setUsbStep(const QString &step)
 {
-    m_repo->set(QStringLiteral("usb"), QStringLiteral("step"), step);
+    m_repo->set(RedisSchema::hash::Usb, QStringLiteral("step"), step);
 }
 
 void SimulatorService::setUsbProgress(int progress)
 {
-    m_repo->set(QStringLiteral("usb"), QStringLiteral("progress"),
+    m_repo->set(RedisSchema::hash::Usb, QStringLiteral("progress"),
                 QString::number(progress));
 }
 
 void SimulatorService::setUsbDetail(const QString &detail)
 {
-    m_repo->set(QStringLiteral("usb"), QStringLiteral("detail"), detail);
+    m_repo->set(RedisSchema::hash::Usb, QStringLiteral("detail"), detail);
 }
 
 void SimulatorService::pushUmsLog(const QString &line)
 {
-    m_repo->push(QStringLiteral("usb:log"), line);
+    m_repo->push(RedisSchema::list::UsbLog, line);
 }
 
 // --- OTA ---
 
 void SimulatorService::setOtaStatus(const QString &target, const QString &status)
 {
-    m_repo->set(QStringLiteral("ota"), QStringLiteral("status:") + target, status);
+    m_repo->set(RedisSchema::hash::Ota, QStringLiteral("status:") + target, status);
 }
 
 void SimulatorService::setOtaUpdateVersion(const QString &target, const QString &version)
 {
-    m_repo->set(QStringLiteral("ota"), QStringLiteral("update-version:") + target, version);
+    m_repo->set(RedisSchema::hash::Ota, QStringLiteral("update-version:") + target, version);
 }
 
 void SimulatorService::setOtaUpdateMethod(const QString &target, const QString &method)
 {
-    m_repo->set(QStringLiteral("ota"), QStringLiteral("update-method:") + target, method);
+    m_repo->set(RedisSchema::hash::Ota, QStringLiteral("update-method:") + target, method);
 }
 
 void SimulatorService::setOtaError(const QString &target, const QString &error)
 {
-    m_repo->set(QStringLiteral("ota"), QStringLiteral("error:") + target, error);
+    m_repo->set(RedisSchema::hash::Ota, QStringLiteral("error:") + target, error);
 }
 
 void SimulatorService::setOtaErrorMessage(const QString &target, const QString &message)
 {
-    m_repo->set(QStringLiteral("ota"), QStringLiteral("error-message:") + target, message);
+    m_repo->set(RedisSchema::hash::Ota, QStringLiteral("error-message:") + target, message);
 }
 
 void SimulatorService::setOtaDownloadProgress(const QString &target, int percent)
 {
-    m_repo->set(QStringLiteral("ota"), QStringLiteral("download-progress:") + target,
+    m_repo->set(RedisSchema::hash::Ota, QStringLiteral("download-progress:") + target,
                 QString::number(percent));
 }
 
 void SimulatorService::setOtaInstallProgress(const QString &target, int percent)
 {
-    m_repo->set(QStringLiteral("ota"), QStringLiteral("install-progress:") + target,
+    m_repo->set(RedisSchema::hash::Ota, QStringLiteral("install-progress:") + target,
                 QString::number(percent));
 }
 
@@ -576,94 +577,94 @@ void SimulatorService::clearOta()
 
 void SimulatorService::setSpeedLimit(const QString &limit)
 {
-    m_repo->set(QStringLiteral("speed-limit"), QStringLiteral("speed-limit"), limit);
+    m_repo->set(RedisSchema::hash::SpeedLimit, QStringLiteral("speed-limit"), limit);
 }
 
 void SimulatorService::setRoadName(const QString &name)
 {
-    m_repo->set(QStringLiteral("speed-limit"), QStringLiteral("road-name"), name);
+    m_repo->set(RedisSchema::hash::SpeedLimit, QStringLiteral("road-name"), name);
 }
 
 void SimulatorService::setRoadType(const QString &type)
 {
-    m_repo->set(QStringLiteral("speed-limit"), QStringLiteral("road-type"), type);
+    m_repo->set(RedisSchema::hash::SpeedLimit, QStringLiteral("road-type"), type);
 }
 
 void SimulatorService::setRoadRefs(const QString &refs)
 {
-    m_repo->set(QStringLiteral("speed-limit"), QStringLiteral("road-refs"), refs);
+    m_repo->set(RedisSchema::hash::SpeedLimit, QStringLiteral("road-refs"), refs);
 }
 
 // --- Settings ---
 
 void SimulatorService::setTheme(const QString &theme)
 {
-    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.theme"), theme);
+    m_repo->set(RedisSchema::hash::Settings, QStringLiteral("dashboard.theme"), theme);
 }
 
 void SimulatorService::setLanguage(const QString &lang)
 {
     m_language = lang;
-    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.language"), lang);
+    m_repo->set(RedisSchema::hash::Settings, QStringLiteral("dashboard.language"), lang);
 }
 
 void SimulatorService::setDualBattery(bool enabled)
 {
-    m_repo->set(QStringLiteral("settings"), QStringLiteral("scooter.dual-battery"),
+    m_repo->set(RedisSchema::hash::Settings, QStringLiteral("scooter.dual-battery"),
                 enabled ? QStringLiteral("true") : QStringLiteral("false"));
 }
 
 void SimulatorService::setTrafficOverlay(bool enabled)
 {
-    m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.map.traffic-overlay"),
+    m_repo->set(RedisSchema::hash::Settings, QStringLiteral("dashboard.map.traffic-overlay"),
                 enabled ? QStringLiteral("true") : QStringLiteral("false"));
 }
 
 void SimulatorService::setSetting(const QString &key, const QString &value)
 {
-    m_repo->set(QStringLiteral("settings"), key, value);
+    m_repo->set(RedisSchema::hash::Settings, key, value);
 }
 
 void SimulatorService::setDebugOverlay(const QString &mode)
 {
-    m_repo->set(QStringLiteral("dashboard"), QStringLiteral("debug"), mode);
+    m_repo->set(RedisSchema::hash::Dashboard, QStringLiteral("debug"), mode);
 }
 
 void SimulatorService::setBrightness(double lux)
 {
-    m_repo->set(QStringLiteral("dashboard"), QStringLiteral("brightness"),
+    m_repo->set(RedisSchema::hash::Dashboard, QStringLiteral("brightness"),
                 QString::number(lux, 'f', 1));
-    m_repo->publish(QStringLiteral("dashboard"), QStringLiteral("brightness"));
+    m_repo->publish(RedisSchema::hash::Dashboard, QStringLiteral("brightness"));
 }
 
 void SimulatorService::setCbBatteryField(const QString &field, const QString &value)
 {
-    m_repo->set(QStringLiteral("cb-battery"), field, value);
+    m_repo->set(RedisSchema::hash::CbBattery, field, value);
 }
 
 void SimulatorService::setAuxBatteryField(const QString &field, const QString &value)
 {
-    m_repo->set(QStringLiteral("aux-battery"), field, value);
+    m_repo->set(RedisSchema::hash::AuxBattery, field, value);
 }
 
 void SimulatorService::setSystemField(const QString &field, const QString &value)
 {
-    m_repo->set(QStringLiteral("system"), field, value);
+    m_repo->set(RedisSchema::hash::System, field, value);
 }
 
 void SimulatorService::setMdbVersion(const QString &version)
 {
-    m_repo->set(QStringLiteral("version:mdb"), QStringLiteral("version"), version);
+    m_repo->set(RedisSchema::hash::VersionMdb, QStringLiteral("version"), version);
 }
 
 void SimulatorService::setDbcVersion(const QString &version)
 {
-    m_repo->set(QStringLiteral("version:dbc"), QStringLiteral("version"), version);
+    m_repo->set(RedisSchema::hash::VersionDbc, QStringLiteral("version"), version);
 }
 
 void SimulatorService::setEcuVersion(const QString &version)
 {
-    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("fw-version"), version);
+    m_repo->set(RedisSchema::hash::EngineEcu, QStringLiteral("fw-version"), version);
 }
 
 void SimulatorService::setRaw(const QString &channel, const QString &field, const QString &value)
@@ -693,7 +694,7 @@ void SimulatorService::setAutoStandbyDeadline(int secondsFromNow)
     // "just work" regardless of the previously selected state.
     setVehicleState(QStringLiteral("parked"));
     const qint64 deadline = QDateTime::currentSecsSinceEpoch() + secondsFromNow;
-    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("auto-standby-deadline"),
+    m_repo->set(RedisSchema::hash::Vehicle, QStringLiteral("auto-standby-deadline"),
                 QString::number(deadline));
     m_autoStandbyActive = true;
 }
@@ -703,7 +704,7 @@ void SimulatorService::clearAutoStandbyDeadline()
     // Empty value is treated as "no timer active" by AutoStandbyStore. We
     // don't HDEL because the InMemory simulator repo doesn't notify
     // SyncableStore on hdel — set("") goes through the fieldsUpdated path.
-    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("auto-standby-deadline"),
+    m_repo->set(RedisSchema::hash::Vehicle, QStringLiteral("auto-standby-deadline"),
                 QString());
     m_autoStandbyActive = false;
 }
@@ -711,7 +712,7 @@ void SimulatorService::clearAutoStandbyDeadline()
 void SimulatorService::setAutoStandbySetting(int seconds)
 {
     m_autoStandbySeconds = seconds;
-    m_repo->set(QStringLiteral("settings"), QStringLiteral("scooter.auto-standby-seconds"),
+    m_repo->set(RedisSchema::hash::Settings, QStringLiteral("scooter.auto-standby-seconds"),
                 QString::number(seconds));
 }
 
@@ -720,7 +721,7 @@ void SimulatorService::resetAutoStandbyTimerIfActive()
     if (!m_autoStandbyActive)
         return;
     const qint64 deadline = QDateTime::currentSecsSinceEpoch() + m_autoStandbySeconds;
-    m_repo->set(QStringLiteral("vehicle"), QStringLiteral("auto-standby-deadline"),
+    m_repo->set(RedisSchema::hash::Vehicle, QStringLiteral("auto-standby-deadline"),
                 QString::number(deadline));
 }
 
@@ -758,7 +759,7 @@ void SimulatorService::loadPreset(const QString &name)
         setSimImei(QStringLiteral("359800030914123"));
         setSimImsi(QStringLiteral("262010123456789"));
         setSimIccid(QStringLiteral("8949000000000000001"));
-        m_repo->set(QStringLiteral("internet"), QStringLiteral("modem-health"),
+        m_repo->set(RedisSchema::hash::Internet, QStringLiteral("modem-health"),
                     QStringLiteral("normal"));
         setModemField(QStringLiteral("operator-name"), QStringLiteral("Vodafone.de"));
         setModemField(QStringLiteral("operator-code"), QStringLiteral("26202"));
@@ -779,9 +780,9 @@ void SimulatorService::loadPreset(const QString &name)
         setBrakeLeft(false);
         setBrakeRight(false);
         stopAutoDrive();
-        m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("present"), QStringLiteral("true"));
-        m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("charge"), QStringLiteral("95"));
-        m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("temperature"), QStringLiteral("23"));
+        m_repo->set(RedisSchema::hash::CbBattery, QStringLiteral("present"), QStringLiteral("true"));
+        m_repo->set(RedisSchema::hash::CbBattery, QStringLiteral("charge"), QStringLiteral("95"));
+        m_repo->set(RedisSchema::hash::CbBattery, QStringLiteral("temperature"), QStringLiteral("23"));
         // Pack and board identity, so the System Info screens have something to
         // render. Values are shaped like the real ones, not copied from a unit.
         for (const QString &slot : {QStringLiteral("0"), QStringLiteral("1")}) {
@@ -794,25 +795,25 @@ void SimulatorService::loadPreset(const QString &name)
             m_repo->set(hash, QStringLiteral("manufacturing-date"), QStringLiteral("2020-09-17"));
             m_repo->set(hash, QStringLiteral("voltage"), QStringLiteral("48464"));
         }
-        m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("serial-number"),
+        m_repo->set(RedisSchema::hash::CbBattery, QStringLiteral("serial-number"),
                     QStringLiteral("T-CBB 2107245036"));
-        m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("unique-id"),
+        m_repo->set(RedisSchema::hash::CbBattery, QStringLiteral("unique-id"),
                     QStringLiteral("420000508ff2c826"));
-        m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("part-number"),
+        m_repo->set(RedisSchema::hash::CbBattery, QStringLiteral("part-number"),
                     QStringLiteral("MAX17301"));
-        m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("state-of-health"),
+        m_repo->set(RedisSchema::hash::CbBattery, QStringLiteral("state-of-health"),
                     QStringLiteral("94"));
-        m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("cycle-count"),
+        m_repo->set(RedisSchema::hash::CbBattery, QStringLiteral("cycle-count"),
                     QStringLiteral("5"));
-        m_repo->set(QStringLiteral("version:mdb"), QStringLiteral("serial_number_real"),
+        m_repo->set(RedisSchema::hash::VersionMdb, QStringLiteral("serial_number_real"),
                     QStringLiteral("3a1d59d4d1e145d2"));
-        m_repo->set(QStringLiteral("version:dbc"), QStringLiteral("serial_number_real"),
+        m_repo->set(RedisSchema::hash::VersionDbc, QStringLiteral("serial_number_real"),
                     QStringLiteral("0e0421d4ee6ba0ab"));
         setBluetoothMac(QStringLiteral("f6:7e:c2:32:b3:bf"));
-        m_repo->set(QStringLiteral("scooter"), QStringLiteral("temperature"), QStringLiteral("18.5"));
+        m_repo->set(RedisSchema::hash::Scooter, QStringLiteral("temperature"), QStringLiteral("18.5"));
         // Use online routing in simulator (no local valhalla). SettingsStore
         // syncs this out of the "settings" hash, not "dashboard".
-        m_repo->set(QStringLiteral("settings"), QStringLiteral("dashboard.valhalla-url"),
+        m_repo->set(RedisSchema::hash::Settings, QStringLiteral("dashboard.valhalla-url"),
                     QLatin1String(AppConfig::valhallaOnlineEndpoint));
     } else if (name == QLatin1String("ready")) {
         loadPreset(QStringLiteral("parked"));
@@ -925,9 +926,9 @@ void SimulatorService::loadTestRoute(int index)
 
         // Set destination in navigation store so the full nav UI activates
         const auto &dest = route.waypoints.last();
-        m_repo->set(QStringLiteral("navigation"), QStringLiteral("latitude"),
+        m_repo->set(RedisSchema::hash::Navigation, QStringLiteral("latitude"),
                     QString::number(dest.latitude, 'f', 8));
-        m_repo->set(QStringLiteral("navigation"), QStringLiteral("longitude"),
+        m_repo->set(RedisSchema::hash::Navigation, QStringLiteral("longitude"),
                     QString::number(dest.longitude, 'f', 8));
         QString address;
         if (index == 3)
@@ -938,7 +939,7 @@ void SimulatorService::loadTestRoute(int index)
             address = QStringLiteral("Karl-Marx-Allee, Friedrichshain");
         else
             address = QStringLiteral("Invalidenstraße, Moabit");
-        m_repo->set(QStringLiteral("navigation"), QStringLiteral("address"), address);
+        m_repo->set(RedisSchema::hash::Navigation, QStringLiteral("address"), address);
 
         // Delay setRoute so GPS store picks up the position we just wrote
         QTimer::singleShot(100, this, [this, route]() {
@@ -1184,7 +1185,7 @@ void seedNavigationPlaces(MdbRepository *repo)
     // Only the last field of a record publishes, so the stores reload once the
     // whole entry is in the hash rather than on a half-written one.
     auto write = [repo](const QString &key, const QString &value, bool publish = false) {
-        repo->set(QStringLiteral("settings"), key, value, publish);
+        repo->set(RedisSchema::hash::Settings, key, value, publish);
     };
 
     for (int i = 0; i < saved.size(); ++i) {
@@ -1281,8 +1282,8 @@ void SimulatorService::applyDefaults()
     seedNavigationPlaces(m_repo);
 
     // Engine firmware
-    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("fw-version"), QStringLiteral("2.1.0-sim"));
-    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("kers"), QStringLiteral("on"));
+    m_repo->set(RedisSchema::hash::EngineEcu, QStringLiteral("fw-version"), QStringLiteral("2.1.0-sim"));
+    m_repo->set(RedisSchema::hash::EngineEcu, QStringLiteral("kers"), QStringLiteral("on"));
 
     // Battery metadata
     for (int slot = 0; slot < 2; ++slot) {
@@ -1297,8 +1298,8 @@ void SimulatorService::applyDefaults()
     }
 
     // BLE
-    m_repo->set(QStringLiteral("ble"), QStringLiteral("mac-address"), QStringLiteral("AA:BB:CC:DD:EE:FF"));
-    m_repo->set(QStringLiteral("ble"), QStringLiteral("pin-code"), QString());
+    m_repo->set(RedisSchema::hash::Ble, QStringLiteral("mac-address"), QStringLiteral("AA:BB:CC:DD:EE:FF"));
+    m_repo->set(RedisSchema::hash::Ble, QStringLiteral("pin-code"), QString());
 
     // Load the default parked preset after a short delay so stores have time to start
     QTimer::singleShot(200, this, [this]() {

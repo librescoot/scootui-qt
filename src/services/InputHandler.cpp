@@ -3,9 +3,9 @@
 #include "repositories/MdbRepository.h"
 
 #include <QDebug>
+#include "../repositories/RedisSchema.h"
 
 namespace {
-constexpr char kInputEventsChannel[] = "input-events";
 }
 
 InputHandler::InputHandler(VehicleStore *vehicle, MdbRepository *repo, QObject *parent)
@@ -14,7 +14,7 @@ InputHandler::InputHandler(VehicleStore *vehicle, MdbRepository *repo, QObject *
     , m_repo(repo)
 {
     if (m_repo) {
-        m_repo->subscribe(QLatin1String(kInputEventsChannel),
+        m_repo->subscribe(RedisSchema::channel::InputEvents,
                           [this](const QString &, const QString &msg) {
             onInputEvent(msg);
         });
@@ -24,7 +24,7 @@ InputHandler::InputHandler(VehicleStore *vehicle, MdbRepository *repo, QObject *
 InputHandler::~InputHandler()
 {
     if (m_repo)
-        m_repo->unsubscribe(QLatin1String(kInputEventsChannel));
+        m_repo->unsubscribe(RedisSchema::channel::InputEvents);
 }
 
 void InputHandler::onInputEvent(const QString &message)

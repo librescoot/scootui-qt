@@ -8,6 +8,7 @@
 #include <QFile>
 #include <QNetworkReply>
 #include <QDebug>
+#include "repositories/RedisSchema.h"
 
 NavigationAvailabilityService::NavigationAvailabilityService(SettingsStore *settings,
                                                                InternetStore *internet,
@@ -145,7 +146,7 @@ void NavigationAvailabilityService::publishToRedis()
     if (!m_repo)
         return;
 
-    const auto cluster = QStringLiteral("dashboard");
+    const auto &cluster = RedisSchema::hash::Dashboard;
     m_repo->set(cluster, QStringLiteral("maps-available"),
                 m_mapsAvailable ? QStringLiteral("true") : QStringLiteral("false"));
     m_repo->set(cluster, QStringLiteral("navigation-available"),

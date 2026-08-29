@@ -9,6 +9,7 @@
 #include "models/Enums.h"
 
 #include <QDebug>
+#include "repositories/RedisSchema.h"
 
 HopOnStore::HopOnStore(VehicleStore *vehicle,
                        SettingsStore *settings,
@@ -92,7 +93,7 @@ void HopOnStore::startLearning()
     // skips the LED cue, opportunistic steering lock, and lock screen —
     // only the FSM-level input gating is shared with locked hop-on.
     if (m_repo)
-        m_repo->push(QStringLiteral("scooter:hop-on"), QStringLiteral("engage-learning"));
+        m_repo->push(RedisSchema::list::ScooterHopOn, QStringLiteral("engage-learning"));
 
     m_buffer.clear();
     emit capturedTokensChanged();
@@ -122,7 +123,7 @@ void HopOnStore::activate()
 
     // Tell vehicle-service to engage the lockout (and steering lock if positioned).
     if (m_repo)
-        m_repo->push(QStringLiteral("scooter:hop-on"), QStringLiteral("engage"));
+        m_repo->push(RedisSchema::list::ScooterHopOn, QStringLiteral("engage"));
 
     // Mirror the OTA screen pattern: keep the backlight ON briefly so the
     // user can see the lock screen, then disable it after kBacklightDelayMs.
@@ -150,7 +151,7 @@ void HopOnStore::unlock()
 {
     qDebug() << "HopOn: unlock";
     if (m_repo)
-        m_repo->push(QStringLiteral("scooter:hop-on"), QStringLiteral("release"));
+        m_repo->push(RedisSchema::list::ScooterHopOn, QStringLiteral("release"));
     m_backlightTimer.stop();
     if (m_dashboard)
         m_dashboard->setBacklightEnabled(true);
@@ -301,7 +302,7 @@ void HopOnStore::onIdleTimeout()
         }
         // Release the silent StateHopOn that startLearning() entered.
         if (m_repo)
-            m_repo->push(QStringLiteral("scooter:hop-on"), QStringLiteral("release"));
+            m_repo->push(RedisSchema::list::ScooterHopOn, QStringLiteral("release"));
         m_buffer.clear();
         emit capturedTokensChanged();
         setMode(Idle);
@@ -333,7 +334,7 @@ void HopOnStore::onVehicleStateChanged()
         // timeout), the release is a harmless no-op.
         qDebug() << "HopOn: vehicle left Parked, exiting mode" << m_mode;
         if (m_repo)
-            m_repo->push(QStringLiteral("scooter:hop-on"), QStringLiteral("release"));
+            m_repo->push(RedisSchema::list::ScooterHopOn, QStringLiteral("release"));
         if (m_mode == Locked) {
             m_backlightTimer.stop();
             if (m_dashboard)

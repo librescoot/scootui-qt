@@ -6,6 +6,7 @@
 #include <QElapsedTimer>
 #include <utility>
 #include <hiredis/hiredis.h>
+#include "RedisSchema.h"
 
 RedisMdbRepository::RedisMdbRepository(const QString &host, quint16 port,
                                          const QString &backupHost, QObject *parent)
@@ -364,12 +365,12 @@ void RedisMdbRepository::publish(const QString &channel, const QString &message)
 
 void RedisMdbRepository::dashboardReady()
 {
-    set(QStringLiteral("dashboard"), QStringLiteral("ready"), QStringLiteral("true"));
+    set(RedisSchema::hash::Dashboard, QStringLiteral("ready"), QStringLiteral("true"));
 }
 
 void RedisMdbRepository::publishButtonEvent(const QString &event)
 {
-    publish(QStringLiteral("dashboard"), event);
+    publish(RedisSchema::hash::Dashboard, event);
 }
 
 void RedisMdbRepository::hdel(const QString &key, const QString &field)

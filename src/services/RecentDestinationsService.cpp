@@ -3,6 +3,7 @@
 #include "core/AppConfig.h"
 
 #include <QDebug>
+#include "repositories/RedisSchema.h"
 
 RecentDestinationsService::RecentDestinationsService(MdbRepository *repo, QObject *parent)
     : QObject(parent)
@@ -14,8 +15,8 @@ QList<RecentDestination> RecentDestinationsService::loadAll() const
 {
     QList<RecentDestination> dests;
     for (int i = 0; i < MaxRecents; ++i) {
-        QString lat = m_repo->get(QStringLiteral("settings"), fieldKey(i, QStringLiteral("latitude")));
-        QString lng = m_repo->get(QStringLiteral("settings"), fieldKey(i, QStringLiteral("longitude")));
+        QString lat = m_repo->get(RedisSchema::hash::Settings, fieldKey(i, QStringLiteral("latitude")));
+        QString lng = m_repo->get(RedisSchema::hash::Settings, fieldKey(i, QStringLiteral("longitude")));
         if (lat.isEmpty() || lng.isEmpty())
             continue;
 
@@ -23,8 +24,8 @@ QList<RecentDestination> RecentDestinationsService::loadAll() const
         d.id = i;
         d.latitude = lat.toDouble();
         d.longitude = lng.toDouble();
-        d.label = m_repo->get(QStringLiteral("settings"), fieldKey(i, QStringLiteral("label")));
-        QString usedAt = m_repo->get(QStringLiteral("settings"), fieldKey(i, QStringLiteral("used-at")));
+        d.label = m_repo->get(RedisSchema::hash::Settings, fieldKey(i, QStringLiteral("label")));
+        QString usedAt = m_repo->get(RedisSchema::hash::Settings, fieldKey(i, QStringLiteral("used-at")));
         if (!usedAt.isEmpty())
             d.usedAt = QDateTime::fromString(usedAt, Qt::ISODate);
 
@@ -44,15 +45,15 @@ bool RecentDestinationsService::save(const RecentDestination &dest)
 
     QDateTime ts = dest.usedAt.isValid() ? dest.usedAt : QDateTime::currentDateTimeUtc();
 
-    m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("latitude")),
+    m_repo->set(RedisSchema::hash::Settings, fieldKey(slot, QStringLiteral("latitude")),
                 QString::number(dest.latitude, 'f', 7), false);
-    m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("longitude")),
+    m_repo->set(RedisSchema::hash::Settings, fieldKey(slot, QStringLiteral("longitude")),
                 QString::number(dest.longitude, 'f', 7), false);
-    m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("label")),
+    m_repo->set(RedisSchema::hash::Settings, fieldKey(slot, QStringLiteral("label")),
                 dest.label, false);
-    m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("used-at")),
+    m_repo->set(RedisSchema::hash::Settings, fieldKey(slot, QStringLiteral("used-at")),
                 ts.toString(Qt::ISODate), false);
-    m_repo->publish(QStringLiteral("settings"),
+    m_repo->publish(RedisSchema::hash::Settings,
                     QStringLiteral("%1.%2").arg(QLatin1String(AppConfig::recentDestinationsPrefix)).arg(slot));
     return true;
 }
@@ -67,9 +68,9 @@ bool RecentDestinationsService::remove(int id)
         QStringLiteral("label"), QStringLiteral("used-at")
     };
     for (const auto &f : fields) {
-        m_repo->hdel(QStringLiteral("settings"), fieldKey(id, f));
+        m_repo->hdel(RedisSchema::hash::Settings, fieldKey(id, f));
     }
-    m_repo->publish(QStringLiteral("settings"),
+    m_repo->publish(RedisSchema::hash::Settings,
                     QStringLiteral("%1.%2").arg(QLatin1String(AppConfig::recentDestinationsPrefix)).arg(id));
     return true;
 }

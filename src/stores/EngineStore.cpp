@@ -1,4 +1,5 @@
 #include "EngineStore.h"
+#include "repositories/RedisSchema.h"
 
 EngineStore::EngineStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
@@ -8,7 +9,7 @@ EngineStore::EngineStore(MdbRepository *repo, QObject *parent)
 SyncSettings EngineStore::syncSettings() const
 {
     return SyncSettings{
-        QStringLiteral("engine-ecu"),
+        RedisSchema::hash::EngineEcu,
         200,
         {
             {QStringLiteral("kers"), QStringLiteral("kers")},

@@ -1,4 +1,5 @@
 #include "SettingsStore.h"
+#include "repositories/RedisSchema.h"
 
 SettingsStore::SettingsStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
@@ -8,7 +9,7 @@ SettingsStore::SettingsStore(MdbRepository *repo, QObject *parent)
 SyncSettings SettingsStore::syncSettings() const
 {
     return SyncSettings{
-        QStringLiteral("settings"), 5000,
+        RedisSchema::hash::Settings, 5000,
         {
             {QStringLiteral("theme"), QStringLiteral("dashboard.theme")},
             {QStringLiteral("mode"), QStringLiteral("dashboard.mode")},

@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include <QtMath>
+#include "repositories/RedisSchema.h"
 
 ScooterStore::ScooterStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
@@ -12,7 +13,7 @@ ScooterStore::ScooterStore(MdbRepository *repo, QObject *parent)
 SyncSettings ScooterStore::syncSettings() const
 {
     return SyncSettings{
-        QStringLiteral("scooter"), 5000,
+        RedisSchema::hash::Scooter, 5000,
         {
             // Ambient temperature in °C, written by vehicle-service from the
             // dashboard temp sensor. Float (e.g. "8.7"). Empty = no reading yet.

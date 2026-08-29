@@ -1,4 +1,5 @@
 #include "AuxBatteryStore.h"
+#include "repositories/RedisSchema.h"
 
 AuxBatteryStore::AuxBatteryStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
@@ -8,7 +9,7 @@ AuxBatteryStore::AuxBatteryStore(MdbRepository *repo, QObject *parent)
 SyncSettings AuxBatteryStore::syncSettings() const
 {
     return SyncSettings{
-        QStringLiteral("aux-battery"), 30000,
+        RedisSchema::hash::AuxBattery, 30000,
         {
             {QStringLiteral("dateStreamEnable"), QStringLiteral("date-stream-enable")},
             {QStringLiteral("voltage"), QStringLiteral("voltage")},

@@ -58,6 +58,7 @@
 #include "services/OdometerMilestoneService.h"
 #include "services/SystemInfoService.h"
 #include "l10n/Translations.h"
+#include "repositories/RedisSchema.h"
 #include "utils/FaultFormatter.h"
 #include "simulator/SimulatorService.h"
 
@@ -156,7 +157,7 @@ bool Application::initialize(QQmlApplicationEngine &engine)
         qDebug() << "Using InMemoryMdbRepository";
         m_repository = std::make_unique<InMemoryMdbRepository>();
         // No local Valhalla behind an in-memory repo, so routing goes online.
-        m_repository->set(QStringLiteral("settings"),
+        m_repository->set(RedisSchema::hash::Settings,
                           QLatin1String(AppConfig::valhallaEndpointKey),
                           QLatin1String(AppConfig::valhallaOnlineEndpoint));
     } else {
@@ -358,7 +359,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
         if (busy == m_mapDownloadHoldActive)
             return;
         m_mapDownloadHoldActive = busy;
-        m_repository->push(QStringLiteral("scooter:dbc-hold"),
+        m_repository->push(RedisSchema::list::ScooterDbcHold,
                            busy ? QStringLiteral("map-download")
                                 : QStringLiteral("release"));
     });
@@ -587,7 +588,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // screen handles the Back/Start prompt in QML; on Start it emits this
     // signal, and we flip usb:mode so vehicle-service / ums-service kick in.
     connect(screenStore, &ScreenStore::umsModeRequested, this, [repo]() {
-        repo->set(QStringLiteral("usb"), QStringLiteral("mode"),
+        repo->set(RedisSchema::hash::Usb, QStringLiteral("mode"),
                   QStringLiteral("ums-by-dbc"));
     });
 
@@ -688,9 +689,9 @@ void Application::createStores(QQmlApplicationEngine &engine)
     BOOT_MARK("stores started");
 
     // Register infrequently-polled channels not covered by any store
-    repo->registerPollChannel(QStringLiteral("system"), 30000);
-    repo->registerPollChannel(QStringLiteral("version:mdb"), 30000);
-    repo->registerPollChannel(QStringLiteral("version:dbc"), 30000);
+    repo->registerPollChannel(RedisSchema::hash::System, 30000);
+    repo->registerPollChannel(RedisSchema::hash::VersionMdb, 30000);
+    repo->registerPollChannel(RedisSchema::hash::VersionDbc, 30000);
 
     // Synchronous prewarm so QML's first paint sees real values rather than
     // store defaults, eliminating the visible empty-then-populate flash.
@@ -718,7 +719,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // Notify other services that the dashboard is ready (on startup and every reconnect)
     auto publishReady = [repo, this]() {
         if (m_serialNumberService->available()) {
-            repo->set(QStringLiteral("dashboard"), QStringLiteral("serial-number"),
+            repo->set(RedisSchema::hash::Dashboard, QStringLiteral("serial-number"),
                       m_serialNumberService->serialNumber());
         }
         if (m_mapDownloadService)
@@ -898,7 +899,7 @@ void Application::setupMapCommandChannel()
     //   redis-cli publish scootui:command map-cancel
     //   redis-cli publish scootui:command map-reload
     //
-    m_repository->subscribe(QStringLiteral("scootui:command"),
+    m_repository->subscribe(RedisSchema::channel::ScootuiCommand,
                             [this](const QString &, const QString &msg) {
         const QString cmd = msg.trimmed();
         if (cmd == QLatin1String("map-check")) {

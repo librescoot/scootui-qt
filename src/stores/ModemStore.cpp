@@ -1,4 +1,5 @@
 #include "ModemStore.h"
+#include "repositories/RedisSchema.h"
 
 ModemStore::ModemStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
@@ -8,7 +9,7 @@ ModemStore::ModemStore(MdbRepository *repo, QObject *parent)
 SyncSettings ModemStore::syncSettings() const
 {
     return SyncSettings{
-        QStringLiteral("modem"), 5000,
+        RedisSchema::hash::Modem, 5000,
         {
             {QStringLiteral("powerState"), QStringLiteral("power-state")},
             {QStringLiteral("simState"), QStringLiteral("sim-state")},

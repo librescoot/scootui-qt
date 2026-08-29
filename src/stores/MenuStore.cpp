@@ -24,6 +24,7 @@
 #include <QDebug>
 #include <QProcess>
 #include <iterator>
+#include "repositories/RedisSchema.h"
 
 MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
                      ThemeStore *theme, TripStore *trip,
@@ -82,7 +83,7 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
 
     // Reset dashboard:menu-open at startup so a prior crash can't leave it stuck at "true"
     if (m_repo) {
-        m_repo->set(QStringLiteral("dashboard"),
+        m_repo->set(RedisSchema::hash::Dashboard,
                     QStringLiteral("menu-open"),
                     QStringLiteral("false"));
     }
@@ -249,7 +250,7 @@ void MenuStore::rebuildMenuTree()
     // === Disable Service Mode (top-level, only when service mode is active) ===
     m_rootNode->addChild(MenuNode::action(QStringLiteral("disable_service_mode"),
         tr->menuDisableServiceMode(), [this, repo]() {
-            repo->push(QStringLiteral("settings:overlay"), QStringLiteral("clear:service"));
+            repo->push(RedisSchema::list::SettingsOverlay, QStringLiteral("clear:service"));
             close();
         }, [this]() {
             return m_settings && m_settings->serviceActive() == QLatin1String("true");
@@ -453,7 +454,7 @@ void MenuStore::rebuildMenuTree()
     // === Lock Scooter (top-level, only when strictly parked) ===
     m_rootNode->addChild(MenuNode::action(QStringLiteral("lock_scooter"),
         tr->menuLockScooter(), [this, repo]() {
-            repo->push(QStringLiteral("scooter:state"), QStringLiteral("lock"));
+            repo->push(RedisSchema::list::ScooterState, QStringLiteral("lock"));
             close();
         }, [this]() {
             return m_vehicle &&
@@ -468,7 +469,7 @@ void MenuStore::rebuildMenuTree()
             bool isBoth = state == static_cast<int>(ScootEnums::BlinkerState::Both);
             QString cmd = isBoth ? QStringLiteral("off") : QStringLiteral("both");
             qDebug() << "Toggle hazards: blinkerState=" << state << "isBoth=" << isBoth << "pushing=" << cmd;
-            repo->push(QStringLiteral("scooter:blinker"), cmd);
+            repo->push(RedisSchema::list::ScooterBlinker, cmd);
             close();
         }));
 
@@ -941,7 +942,7 @@ void MenuStore::rebuildMenuTree()
 
     systemNode->addChild(MenuNode::action(QStringLiteral("enable_service_mode"),
         tr->menuServiceMode(), [this, repo]() {
-            repo->push(QStringLiteral("settings:overlay"), QStringLiteral("apply:service"));
+            repo->push(RedisSchema::list::SettingsOverlay, QStringLiteral("apply:service"));
             close();
         }, [this]() {
             return !(m_settings && m_settings->serviceActive() == QLatin1String("true"));
@@ -958,7 +959,7 @@ void MenuStore::rebuildMenuTree()
     auto *clearBondsNode = systemNode->addChild(MenuNode::action(
         QStringLiteral("clear_paired_phones"),
         tr->menuClearPairedPhones(), [this, repo]() {
-            repo->push(QStringLiteral("scooter:bluetooth"), QStringLiteral("delete-all-bonds"));
+            repo->push(RedisSchema::list::ScooterBluetooth, QStringLiteral("delete-all-bonds"));
             close();
         }, [this]() {
             return m_vehicle &&
@@ -1458,7 +1459,7 @@ void MenuStore::openAt(const QStringList &path, const QList<int> &indexStack, in
     m_openedAt.start();
     rebuildMenuTree();
     if (m_repo) {
-        m_repo->set(QStringLiteral("dashboard"),
+        m_repo->set(RedisSchema::hash::Dashboard,
                     QStringLiteral("menu-open"),
                     QStringLiteral("true"));
     }
@@ -1504,7 +1505,7 @@ void MenuStore::close()
     m_pathStack.clear();
     m_indexStack.clear();
     if (m_repo) {
-        m_repo->set(QStringLiteral("dashboard"),
+        m_repo->set(RedisSchema::hash::Dashboard,
                     QStringLiteral("menu-open"),
                     QStringLiteral("false"));
     }

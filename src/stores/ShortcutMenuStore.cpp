@@ -7,9 +7,9 @@
 #include "../services/SettingsService.h"
 #include "../models/Enums.h"
 #include <QDebug>
+#include "repositories/RedisSchema.h"
 
 namespace {
-constexpr char kInputEventsChannel[] = "input-events";
 }
 
 ShortcutMenuStore::ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
@@ -34,7 +34,7 @@ ShortcutMenuStore::ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
     connect(m_cycleTimer, &QTimer::timeout, this, &ShortcutMenuStore::onCycleTimeout);
 
     if (m_repo) {
-        m_repo->subscribe(QLatin1String(kInputEventsChannel),
+        m_repo->subscribe(RedisSchema::channel::InputEvents,
                           [this](const QString &, const QString &message) {
             onInputEvent(message);
         });
@@ -44,7 +44,7 @@ ShortcutMenuStore::ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
 ShortcutMenuStore::~ShortcutMenuStore()
 {
     if (m_repo)
-        m_repo->unsubscribe(QLatin1String(kInputEventsChannel));
+        m_repo->unsubscribe(RedisSchema::channel::InputEvents);
 }
 
 void ShortcutMenuStore::show()
@@ -151,7 +151,7 @@ void ShortcutMenuStore::toggleDebugOverlay()
     if (!m_repo || !m_dashboardStore) return;
 
     bool isOverlay = (m_dashboardStore->debugMode() == QLatin1String("overlay"));
-    m_repo->set(QStringLiteral("dashboard"), QStringLiteral("debug"),
+    m_repo->set(RedisSchema::hash::Dashboard, QStringLiteral("debug"),
                 isOverlay ? QStringLiteral("off") : QStringLiteral("overlay"));
 }
 
@@ -161,7 +161,7 @@ void ShortcutMenuStore::toggleHazards()
 
     bool isBoth = (m_vehicle->blinkerState() == static_cast<int>(ScootEnums::BlinkerState::Both));
 
-    m_repo->push(QStringLiteral("scooter:blinker"),
+    m_repo->push(RedisSchema::list::ScooterBlinker,
                  isBoth ? QStringLiteral("off") : QStringLiteral("both"));
 }
 

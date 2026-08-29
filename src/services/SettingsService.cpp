@@ -5,6 +5,7 @@
 
 #include <QDebug>
 #include <QProcess>
+#include "repositories/RedisSchema.h"
 
 SettingsService::SettingsService(MdbRepository *repo, SettingsStore *settings,
                                  QObject *parent)
@@ -16,7 +17,7 @@ SettingsService::SettingsService(MdbRepository *repo, SettingsStore *settings,
 
 void SettingsService::writeSetting(const QString &key, const QString &value)
 {
-    m_repo->set(QStringLiteral("settings"), key, value);
+    m_repo->set(RedisSchema::hash::Settings, key, value);
 }
 
 void SettingsService::writeOtaSetting(const QString &suffix, const QString &value)
@@ -42,20 +43,20 @@ void SettingsService::updateOtaCheckInterval(const QString &interval)
 
 void SettingsService::triggerUpdateCheck()
 {
-    m_repo->push(QStringLiteral("scooter:update:mdb"), QStringLiteral("check-now"));
-    m_repo->push(QStringLiteral("scooter:update:dbc"), QStringLiteral("check-now"));
+    m_repo->push(RedisSchema::list::ScooterUpdateMdb, QStringLiteral("check-now"));
+    m_repo->push(RedisSchema::list::ScooterUpdateDbc, QStringLiteral("check-now"));
 }
 
 void SettingsService::disableServiceMode()
 {
-    m_repo->push(QStringLiteral("settings:overlay"), QStringLiteral("clear:service"));
+    m_repo->push(RedisSchema::list::SettingsOverlay, QStringLiteral("clear:service"));
 }
 
 void SettingsService::requestChannelPreview(const QString &channel)
 {
     const QString command = QStringLiteral("preview-channel:") + channel;
-    m_repo->push(QStringLiteral("scooter:update:mdb"), command);
-    m_repo->push(QStringLiteral("scooter:update:dbc"), command);
+    m_repo->push(RedisSchema::list::ScooterUpdateMdb, command);
+    m_repo->push(RedisSchema::list::ScooterUpdateDbc, command);
 }
 
 void SettingsService::updateMode(const QString &mode)

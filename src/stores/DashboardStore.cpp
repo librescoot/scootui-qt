@@ -1,4 +1,5 @@
 #include "DashboardStore.h"
+#include "repositories/RedisSchema.h"
 
 DashboardStore::DashboardStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
@@ -8,7 +9,7 @@ DashboardStore::DashboardStore(MdbRepository *repo, QObject *parent)
 SyncSettings DashboardStore::syncSettings() const
 {
     return {
-        QStringLiteral("dashboard"),
+        RedisSchema::hash::Dashboard,
         500,
         {
             {QStringLiteral("debug"), QStringLiteral("debug")},
@@ -22,7 +23,7 @@ SyncSettings DashboardStore::syncSettings() const
 
 void DashboardStore::setBacklightEnabled(bool enabled)
 {
-    m_repo->set(QStringLiteral("dashboard"),
+    m_repo->set(RedisSchema::hash::Dashboard,
                 QStringLiteral("backlight-enabled"),
                 enabled ? QStringLiteral("true") : QStringLiteral("false"));
 }

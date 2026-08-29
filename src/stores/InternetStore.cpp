@@ -1,4 +1,5 @@
 #include "InternetStore.h"
+#include "repositories/RedisSchema.h"
 
 InternetStore::InternetStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
@@ -8,7 +9,7 @@ InternetStore::InternetStore(MdbRepository *repo, QObject *parent)
 SyncSettings InternetStore::syncSettings() const
 {
     return SyncSettings{
-        QStringLiteral("internet"), 5000,
+        RedisSchema::hash::Internet, 5000,
         {
             {QStringLiteral("modemState"), QStringLiteral("modem-state")},
             {QStringLiteral("connectivity"), QStringLiteral("connectivity")},

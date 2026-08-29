@@ -1,5 +1,6 @@
 #include "SpeedLimitStore.h"
 #include "SpeedLimitParser.h"
+#include "repositories/RedisSchema.h"
 
 SpeedLimitStore::SpeedLimitStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
@@ -9,7 +10,7 @@ SpeedLimitStore::SpeedLimitStore(MdbRepository *repo, QObject *parent)
 SyncSettings SpeedLimitStore::syncSettings() const
 {
     return SyncSettings{
-        QStringLiteral("speed-limit"), 5000,
+        RedisSchema::hash::SpeedLimit, 5000,
         {
             {QStringLiteral("speedLimit"), QStringLiteral("speed-limit")},
             {QStringLiteral("roadName"), QStringLiteral("road-name")},

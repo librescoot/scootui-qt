@@ -3,6 +3,7 @@
 #include "core/AppConfig.h"
 
 #include <QDebug>
+#include "repositories/RedisSchema.h"
 
 SavedLocationsService::SavedLocationsService(MdbRepository *repo, QObject *parent)
     : QObject(parent)
@@ -14,8 +15,8 @@ QList<SavedLocation> SavedLocationsService::loadAll() const
 {
     QList<SavedLocation> locations;
     for (int i = 0; i < MaxLocations; ++i) {
-        QString lat = m_repo->get(QStringLiteral("settings"), fieldKey(i, QStringLiteral("latitude")));
-        QString lng = m_repo->get(QStringLiteral("settings"), fieldKey(i, QStringLiteral("longitude")));
+        QString lat = m_repo->get(RedisSchema::hash::Settings, fieldKey(i, QStringLiteral("latitude")));
+        QString lng = m_repo->get(RedisSchema::hash::Settings, fieldKey(i, QStringLiteral("longitude")));
         if (lat.isEmpty() || lng.isEmpty())
             continue;
 
@@ -23,11 +24,11 @@ QList<SavedLocation> SavedLocationsService::loadAll() const
         loc.id = i;
         loc.latitude = lat.toDouble();
         loc.longitude = lng.toDouble();
-        loc.label = m_repo->get(QStringLiteral("settings"), fieldKey(i, QStringLiteral("label")));
-        QString createdAt = m_repo->get(QStringLiteral("settings"), fieldKey(i, QStringLiteral("created-at")));
+        loc.label = m_repo->get(RedisSchema::hash::Settings, fieldKey(i, QStringLiteral("label")));
+        QString createdAt = m_repo->get(RedisSchema::hash::Settings, fieldKey(i, QStringLiteral("created-at")));
         if (!createdAt.isEmpty())
             loc.createdAt = QDateTime::fromString(createdAt, Qt::ISODate);
-        QString lastUsed = m_repo->get(QStringLiteral("settings"), fieldKey(i, QStringLiteral("last-used-at")));
+        QString lastUsed = m_repo->get(RedisSchema::hash::Settings, fieldKey(i, QStringLiteral("last-used-at")));
         if (!lastUsed.isEmpty())
             loc.lastUsedAt = QDateTime::fromString(lastUsed, Qt::ISODate);
 
@@ -45,18 +46,18 @@ bool SavedLocationsService::save(const SavedLocation &location)
         return false;
     }
 
-    m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("latitude")),
+    m_repo->set(RedisSchema::hash::Settings, fieldKey(slot, QStringLiteral("latitude")),
                 QString::number(location.latitude, 'f', 7), false);
-    m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("longitude")),
+    m_repo->set(RedisSchema::hash::Settings, fieldKey(slot, QStringLiteral("longitude")),
                 QString::number(location.longitude, 'f', 7), false);
-    m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("label")),
+    m_repo->set(RedisSchema::hash::Settings, fieldKey(slot, QStringLiteral("label")),
                 location.label, false);
-    m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("created-at")),
+    m_repo->set(RedisSchema::hash::Settings, fieldKey(slot, QStringLiteral("created-at")),
                 QDateTime::currentDateTimeUtc().toString(Qt::ISODate), false);
-    m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("last-used-at")),
+    m_repo->set(RedisSchema::hash::Settings, fieldKey(slot, QStringLiteral("last-used-at")),
                 QDateTime::currentDateTimeUtc().toString(Qt::ISODate), false);
     // Notify settings-service so the new location is persisted to TOML
-    m_repo->publish(QStringLiteral("settings"),
+    m_repo->publish(RedisSchema::hash::Settings,
                     QStringLiteral("%1.%2").arg(QLatin1String(AppConfig::savedLocationsPrefix)).arg(slot));
     return true;
 }
@@ -71,10 +72,10 @@ bool SavedLocationsService::remove(int id)
         QStringLiteral("created-at"), QStringLiteral("last-used-at")
     };
     for (const auto &f : fields) {
-        m_repo->hdel(QStringLiteral("settings"), fieldKey(id, f));
+        m_repo->hdel(RedisSchema::hash::Settings, fieldKey(id, f));
     }
     // Notify settings-service so the deletion is persisted to TOML
-    m_repo->publish(QStringLiteral("settings"),
+    m_repo->publish(RedisSchema::hash::Settings,
                     QStringLiteral("%1.%2").arg(QLatin1String(AppConfig::savedLocationsPrefix)).arg(id));
     return true;
 }
@@ -84,7 +85,7 @@ bool SavedLocationsService::updateLastUsed(int id)
     if (id < 0 || id >= MaxLocations)
         return false;
 
-    m_repo->set(QStringLiteral("settings"), fieldKey(id, QStringLiteral("last-used-at")),
+    m_repo->set(RedisSchema::hash::Settings, fieldKey(id, QStringLiteral("last-used-at")),
                 QDateTime::currentDateTimeUtc().toString(Qt::ISODate), true);
     return true;
 }
@@ -100,7 +101,7 @@ QString SavedLocationsService::fieldKey(int id, const QString &field) const
 int SavedLocationsService::findFreeSlot() const
 {
     for (int i = 0; i < MaxLocations; ++i) {
-        QString lat = m_repo->get(QStringLiteral("settings"), fieldKey(i, QStringLiteral("latitude")));
+        QString lat = m_repo->get(RedisSchema::hash::Settings, fieldKey(i, QStringLiteral("latitude")));
         if (lat.isEmpty())
             return i;
     }

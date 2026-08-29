@@ -2,12 +2,13 @@
 #include "BlinkerCurve.h"
 #include <QDateTime>
 #include <QDebug>
+#include "repositories/RedisSchema.h"
 
 VehicleStore::VehicleStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
     if (m_repo) {
-        m_repo->subscribe(QStringLiteral("buttons"), [this](const QString &ch, const QString &msg) {
+        m_repo->subscribe(RedisSchema::channel::Buttons, [this](const QString &ch, const QString &msg) {
             onButtonEvent(ch, msg);
         });
     }
@@ -37,13 +38,13 @@ VehicleStore::VehicleStore(MdbRepository *repo, QObject *parent)
 VehicleStore::~VehicleStore()
 {
     if (m_repo)
-        m_repo->unsubscribe(QStringLiteral("buttons"));
+        m_repo->unsubscribe(RedisSchema::channel::Buttons);
 }
 
 SyncSettings VehicleStore::syncSettings() const
 {
     return SyncSettings{
-        QStringLiteral("vehicle"),
+        RedisSchema::hash::Vehicle,
         1000,
         {
             {QStringLiteral("blinkerState"), QStringLiteral("blinker:state")},
@@ -96,7 +97,7 @@ void VehicleStore::applyFieldUpdate(const QString &variable, const QString &valu
                 m_blinkStartMs = QDateTime::currentMSecsSinceEpoch();
                 m_blinkTimer.start();
                 if (m_repo)
-                    m_repo->requestField(QStringLiteral("vehicle"), QStringLiteral("blinker:start_nanos"));
+                    m_repo->requestField(RedisSchema::hash::Vehicle, QStringLiteral("blinker:start_nanos"));
             } else {
                 m_blinkTimer.stop();
                 if (m_blinkOpacity != 0.0) {
