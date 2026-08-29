@@ -249,10 +249,14 @@ void ValhallaClient::sendRouteRequest(const RouteOrigin &from, const LatLng &to)
     // tiles or an unpatched server it is simply ignored. Shortest mode returns
     // raw edge length before any cost factor applies, so the surface weight
     // would do nothing there and the menu hides the control instead.
+    //
+    // Off sends an explicit 0 rather than omitting the key. Omitting it is not
+    // the same as zero: the server's own kDefaultAvoidBadSurfaces is 0.5, which
+    // is the Medium weight, so a missing key routes Off exactly like Medium.
     QJsonObject costingOptions;
     if (m_shortest)
         costingOptions[QStringLiteral("shortest")] = true;
-    else if (m_avoidBadSurfaces > 0.0)
+    else
         costingOptions[QStringLiteral("avoid_bad_surfaces")] = m_avoidBadSurfaces;
     if (!costingOptions.isEmpty()) {
         request[QStringLiteral("costing_options")] =
