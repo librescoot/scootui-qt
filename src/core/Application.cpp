@@ -613,7 +613,6 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("bluetoothStore"), bluetoothStore);
     ctx->setContextProperty(QStringLiteral("internetStore"), internetStore);
     ctx->setContextProperty(QStringLiteral("modemStore"), modemStore);
-    ctx->setContextProperty(QStringLiteral("navigationStore"), navigationStore);
     ctx->setContextProperty(QStringLiteral("settingsStore"), settingsStore);
     ctx->setContextProperty(QStringLiteral("otaStore"), otaStore);
     ctx->setContextProperty(QStringLiteral("usbStore"), usbStore);
@@ -628,7 +627,6 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("hopOnStore"), hopOnStore);
     ctx->setContextProperty(QStringLiteral("tripStore"), tripStore);
     ctx->setContextProperty(QStringLiteral("shutdownStore"), shutdownStore);
-    ctx->setContextProperty(QStringLiteral("localeStore"), localeStore);
     ctx->setContextProperty(QStringLiteral("shortcutMenuStore"), shortcutMenuStore);
     ctx->setContextProperty(QStringLiteral("translations"), m_translations);
     ctx->setContextProperty(QStringLiteral("settingsService"), m_settingsService);
@@ -641,8 +639,6 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("mapService"), m_mapService);
     ctx->setContextProperty(QStringLiteral("inputHandler"), m_inputHandler);
     ctx->setContextProperty(QStringLiteral("navAvailabilityService"), m_navAvailability);
-    ctx->setContextProperty(QStringLiteral("savedLocationsStore"), savedLocationsStore);
-    ctx->setContextProperty(QStringLiteral("recentDestinationsStore"), recentDestinationsStore);
     ctx->setContextProperty(QStringLiteral("serialNumberService"), m_serialNumberService);
     ctx->setContextProperty(QStringLiteral("addressDatabase"), m_addressDatabaseService);
     ctx->setContextProperty(QStringLiteral("roadInfoService"), m_roadInfoService);
@@ -665,11 +661,9 @@ void Application::createStores(QQmlApplicationEngine &engine)
         // The panel writes into whatever backs it, so it says what that is.
         ctx->setContextProperty(QStringLiteral("simulatorBackend"), m_backendDescription);
         ctx->setContextProperty(QStringLiteral("simulatorSeeded"), m_inMemoryBackend);
-        ctx->setContextProperty(QStringLiteral("simulatorMode"), true);
         setupSimulatorAutoDrive();
     } else {
         ctx->setContextProperty(QStringLiteral("simulator"), nullptr);
-        ctx->setContextProperty(QStringLiteral("simulatorMode"), false);
     }
 
     // Store references for lifecycle management
@@ -799,7 +793,6 @@ void Application::registerContextProperties(QQmlApplicationEngine &engine)
     auto *ctx = engine.rootContext();
     ctx->setContextProperty(QStringLiteral("appWidth"), EnvConfig::resolution().width());
     ctx->setContextProperty(QStringLiteral("appHeight"), EnvConfig::resolution().height());
-    ctx->setContextProperty(QStringLiteral("scaleFactor"), EnvConfig::scaleFactor());
 }
 
 void Application::uiPresented()
