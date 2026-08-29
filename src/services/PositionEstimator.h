@@ -126,9 +126,8 @@ public:
             // adjusted threshold. Require some real displacement as well as a
             // sustained direction mismatch so stale course at the turn itself
             // cannot release the snap.
-            const bool directionalDeparture = headingReliable
-                && headingDifference >= DirectionDepartureDegrees
-                && physicalDistanceMeters > DirectionDepartureMinMeters;
+            const bool directionalDeparture = hasDirectionalDepartureEvidence(
+                physicalDistanceMeters, headingDifference, headingReliable);
             if (directionalDeparture)
                 m_directionDepartureMs += elapsedMs;
             else
@@ -179,6 +178,15 @@ public:
                           RelockMinMeters, RelockMaxMeters);
     }
 
+    static bool hasDirectionalDepartureEvidence(
+        double physicalDistanceMeters, double headingDifferenceDegrees,
+        bool headingReliable)
+    {
+        return headingReliable
+            && std::abs(headingDifferenceDegrees) >= DirectionDepartureDegrees
+            && physicalDistanceMeters > DirectionDepartureMinMeters;
+    }
+
     static constexpr int BreakAwayDwellMs = 1500;
     static constexpr int RelockDwellMs = 2000;
     static constexpr double DirectionDepartureDegrees = 45.0;
@@ -206,4 +214,16 @@ private:
     int m_distanceDepartureMs = 0;
     int m_directionDepartureMs = 0;
     int m_relockMs = 0;
+};
+
+class RoutePresentationPolicy
+{
+public:
+    static bool allowsPolylineWalk(double speedKmh)
+    {
+        return std::isfinite(speedKmh)
+            && speedKmh / 3.6 >= StationarySpeedMetersPerSecond;
+    }
+
+    static constexpr double StationarySpeedMetersPerSecond = 0.3;
 };

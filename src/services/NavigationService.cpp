@@ -1085,12 +1085,15 @@ void NavigationService::updateNavigationState()
         }
     }
 
-    // Off-route detection with hysteresis to prevent boundary oscillation
-    if (m_isOffRoute) {
-        m_isOffRoute = distFromRoute > OnRouteTolerance;
-    } else {
-        m_isOffRoute = distFromRoute > OffRouteTolerance;
-    }
+    // Off-route detection shares the presentation snap's sustained departure
+    // evidence. Once the marker has legitimately stopped following the route,
+    // rerouting must begin on this same 5 Hz update rather than waiting for the
+    // independent 60 m distance threshold while the rider sees no response.
+    const bool presentationDeparted = m_map && m_map->hasVehiclePosition()
+        && m_map->takeRoutePresentationDeparture();
+    m_isOffRoute = RouteDeparturePolicy::update(
+        m_isOffRoute, distFromRoute, presentationDeparted,
+        OffRouteTolerance, OnRouteTolerance);
 
     // Queue one reroute per deviation episode. The status only changes after
     // ValhallaClient confirms dispatch, so a debounced/rejected request cannot

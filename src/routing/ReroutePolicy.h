@@ -18,9 +18,34 @@ public:
 
     static RouteOrigin select(const Input &input)
     {
-        if (input.gps.hasValidCoordinate() && input.gps.hasFix()
-            && input.gpsAgeMs >= 0 && input.gpsAgeMs <= MaxGpsAgeMs
-            && input.gps.hasAcceptableAccuracy(MaxGpsEphMeters)) {
+        const bool gpsUsable = input.gps.hasValidCoordinate()
+            && input.gps.hasFix() && input.gpsAgeMs >= 0
+            && input.gpsAgeMs <= MaxGpsAgeMs
+            && input.gps.hasAcceptableAccuracy(MaxGpsEphMeters);
+        const bool estimateUsable = input.physicalEstimate.isValid()
+            && std::isfinite(input.physicalUncertaintyMeters)
+            && input.physicalUncertaintyMeters <= MaxEstimatorUncertaintyMeters;
+
+        if (estimateUsable) {
+            // Prefer continuity from the independent, GPS-corrected estimator.
+            // A single noisy fix can land closer to a parallel road even while
+            // its EPH still passes the router gate; the estimator has the wheel
+            // trajectory and previous fixes needed to resist that lane-sized
+            // jump. A fresh GPS course still constrains edge direction.
+            RouteOrigin result;
+            result.position = input.physicalEstimate;
+            if (gpsUsable) {
+                result.heading = normalizedHeading(input.gps.course);
+                result.headingToleranceDegrees = 40;
+            }
+            result.radiusMeters = static_cast<int>(std::lround(std::clamp(
+                input.physicalUncertaintyMeters + RouterMarginMeters,
+                static_cast<double>(MinRouterRadiusMeters),
+                static_cast<double>(MaxEstimatorRouterRadiusMeters))));
+            return result;
+        }
+
+        if (gpsUsable) {
             RouteOrigin result;
             result.position = {input.gps.latitude, input.gps.longitude};
             result.heading = normalizedHeading(input.gps.course);
@@ -42,18 +67,6 @@ public:
                 eph * 1.5 + RouterMarginMeters,
                 static_cast<double>(MinRouterRadiusMeters),
                 static_cast<double>(MaxRouterRadiusMeters))));
-            return result;
-        }
-
-        if (input.physicalEstimate.isValid()
-            && std::isfinite(input.physicalUncertaintyMeters)
-            && input.physicalUncertaintyMeters <= MaxEstimatorUncertaintyMeters) {
-            RouteOrigin result;
-            result.position = input.physicalEstimate;
-            result.radiusMeters = static_cast<int>(std::lround(std::clamp(
-                input.physicalUncertaintyMeters + RouterMarginMeters,
-                static_cast<double>(MinRouterRadiusMeters),
-                static_cast<double>(MaxEstimatorRouterRadiusMeters))));
             return result;
         }
 
@@ -101,6 +114,25 @@ private:
     static constexpr int MinRouterRadiusMeters = 15;
     static constexpr int MaxRouterRadiusMeters = 60;
     static constexpr int MaxEstimatorRouterRadiusMeters = 50;
+};
+
+class RouteDeparturePolicy
+{
+public:
+    static bool update(bool wasOffRoute, double distanceMeters,
+                       bool routePresentationDeparted,
+                       double offRouteToleranceMeters,
+                       double onRouteToleranceMeters)
+    {
+        // Once presentation has enough sustained physical evidence to stop
+        // drawing the marker on the route, navigation must agree on that same
+        // update. Otherwise the rider sees an off-route marker with no visible
+        // reroute response until a separate, much wider distance threshold.
+        if (!wasOffRoute && routePresentationDeparted)
+            return true;
+        return distanceMeters > (wasOffRoute ? onRouteToleranceMeters
+                                             : offRouteToleranceMeters);
+    }
 };
 
 class RerouteEpisodeGate

@@ -130,6 +130,13 @@ public:
     double segmentSnappedLatitude() const { return m_segmentSnappedLat; }
     double segmentSnappedLongitude() const { return m_segmentSnappedLng; }
     double distanceFromRoute() const { return m_distFromRoute; }
+    bool routePresentationLocked() const { return m_drLocked; }
+    bool takeRoutePresentationDeparture()
+    {
+        const bool pending = m_routePresentationDeparturePending;
+        m_routePresentationDeparturePending = false;
+        return pending;
+    }
 
     void setRouteWaypoints(const QVariantList &waypoints);
     void clearRoute();
@@ -242,6 +249,7 @@ private:
 
     // Bearing along the current route segment, or -1 if not on route
     double routeSegmentBearing() const;
+    double presentationRouteBearing() const;
 
     // --- Constants ---
 
@@ -262,7 +270,8 @@ private:
     static constexpr double DefaultGpsUncertaintyMeters = 15.0;
     static constexpr double MaxPositionUncertaintyMeters = 500.0;
 
-    static constexpr double StationarySpeedMs = 0.3;   // below this, assume no motion
+    static constexpr double StationarySpeedMs =
+        RoutePresentationPolicy::StationarySpeedMetersPerSecond;
     static constexpr double StationaryGpsBlendScale = 0.10;
     // A stationary GPS receiver still reports a few km/h of noise, so GPS speed
     // is only believed well clear of it.
@@ -426,6 +435,7 @@ private:
     double m_distFromRoute = 0;
     double m_segmentSnappedLat = 0;
     double m_segmentSnappedLng = 0;
+    int m_presentationRouteSegment = -1;
 
     OdometerReconciler m_odometerReconciler;
 
@@ -435,6 +445,7 @@ private:
 
     // Sticky route snap state
     bool m_drLocked = true;
+    bool m_routePresentationDeparturePending = false;
     RouteSnapState m_routeSnapState;
     FreeDriveSnapState m_freeDriveSnapState;
 

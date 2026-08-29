@@ -10,6 +10,7 @@ private slots:
     void quantizedOdometerDoesNotBrakeBetweenEdges();
     void odometerResidualIsBoundedAfterEdge();
     void routeLockUsesPhysicalDistanceAndDwell();
+    void routePresentationStopsAtZeroSpeed();
 };
 
 void PositionEstimatorTest::quantizedOdometerDoesNotBrakeBetweenEdges()
@@ -93,6 +94,19 @@ void PositionEstimatorTest::routeLockUsesPhysicalDistanceAndDwell()
     // actual departure eventually becomes visible.
     QCOMPARE(RouteSnapState::breakAwayMeters(50.0), 45.0);
     QCOMPARE(RouteSnapState::relockMeters(50.0), 30.0);
+}
+
+void PositionEstimatorTest::routePresentationStopsAtZeroSpeed()
+{
+    QVERIFY(!RoutePresentationPolicy::allowsPolylineWalk(0.0));
+    QVERIFY(!RoutePresentationPolicy::allowsPolylineWalk(1.0));
+    QVERIFY(RoutePresentationPolicy::allowsPolylineWalk(1.1));
+    QVERIFY(!RoutePresentationPolicy::allowsPolylineWalk(std::nan("")));
+
+    QVERIFY(RouteSnapState::hasDirectionalDepartureEvidence(
+        16.0, 50.0, true));
+    QVERIFY(!RouteSnapState::hasDirectionalDepartureEvidence(
+        10.0, 90.0, true));
 }
 
 QTEST_APPLESS_MAIN(PositionEstimatorTest)

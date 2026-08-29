@@ -7,27 +7,44 @@ class ReroutePolicyTest : public QObject
     Q_OBJECT
 
 private slots:
-    void freshGpsUsesBoundedProjectionAndRadius();
+    void certainEstimateResistsParallelRoadGpsJump();
+    void freshGpsUsesBoundedProjectionWhenEstimateUncertain();
     void staleGpsFallsBackOnlyToCertainEstimate();
+    void presentationDepartureStartsAndCanRecover();
     void oneRequestPerDeviationEpisode();
     void coordinatesRequireFiniteGeographicRange();
 };
 
-void ReroutePolicyTest::freshGpsUsesBoundedProjectionAndRadius()
+void ReroutePolicyTest::certainEstimateResistsParallelRoadGpsJump()
+{
+    RerouteOriginSelector::Input input;
+    input.gps = {52.5, 13.4, 90.0, 36.0, 20.0, 0.8,
+                 QStringLiteral("2026-08-24T10:00:00Z"),
+                 ScootEnums::GpsState::FixEstablished};
+    input.gpsAgeMs = 700;
+    input.physicalEstimate = {52.5001, 13.4};
+    input.physicalUncertaintyMeters = 20.0;
+
+    const RouteOrigin origin = RerouteOriginSelector::select(input);
+    QCOMPARE(origin.position, input.physicalEstimate);
+    QCOMPARE(origin.heading, 90.0);
+    QCOMPARE(origin.headingToleranceDegrees, 40);
+    QVERIFY(origin.radiusMeters >= 15);
+    QVERIFY(origin.radiusMeters <= 50);
+}
+
+void ReroutePolicyTest::freshGpsUsesBoundedProjectionWhenEstimateUncertain()
 {
     RerouteOriginSelector::Input input;
     input.gps = {52.5, 13.4, 90.0, 36.0, 6.0, 0.8,
                  QStringLiteral("2026-08-24T10:00:00Z"),
                  ScootEnums::GpsState::FixEstablished};
     input.gpsAgeMs = 700;
-    input.physicalEstimate = {52.6, 13.5}; // GPS wins
-    input.physicalUncertaintyMeters = 10.0;
+    input.physicalEstimate = {52.6, 13.5};
+    input.physicalUncertaintyMeters = 80.0;
 
     const RouteOrigin origin = RerouteOriginSelector::select(input);
     QVERIFY(origin.isValid());
-    QCOMPARE(origin.heading, 90.0);
-    QVERIFY(origin.radiusMeters >= 15);
-    QVERIFY(origin.radiusMeters <= 60);
     const double projected = LatLng{52.5, 13.4}.distanceTo(origin.position);
     QVERIFY(projected > 9.0 && projected < 11.0);
 }
@@ -48,6 +65,16 @@ void ReroutePolicyTest::staleGpsFallsBackOnlyToCertainEstimate()
 
     input.physicalUncertaintyMeters = 80.0;
     QVERIFY(!RerouteOriginSelector::select(input).isValid());
+}
+
+void ReroutePolicyTest::presentationDepartureStartsAndCanRecover()
+{
+    QVERIFY(RouteDeparturePolicy::update(false, 20.0, true, 60.0, 35.0));
+    // The departure notification is an edge, not a permanent latch: normal
+    // distance hysteresis can clear off-route after physical reacquisition.
+    QVERIFY(!RouteDeparturePolicy::update(true, 30.0, false, 60.0, 35.0));
+    QVERIFY(!RouteDeparturePolicy::update(false, 30.0, false, 60.0, 35.0));
+    QVERIFY(RouteDeparturePolicy::update(false, 61.0, false, 60.0, 35.0));
 }
 
 void ReroutePolicyTest::oneRequestPerDeviationEpisode()
