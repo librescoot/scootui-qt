@@ -1,4 +1,5 @@
 import QtQuick
+import ScootUI 1.0
 import "../widgets/components"
 
 // Read-only technical summary, split into pages reached from the System > Info
@@ -99,11 +100,10 @@ Rectangle {
         { label: t("infoIpAddress", "IP address"), value: hasNet ? internetStore.ipAddress : "" }
     ]))
 
-    // ConnectionStatus enum: 0 = Connected, 1 = Disconnected (models/Enums.h).
     readonly property var bluetoothRows: (void systemInfoScreen.lang, present([
         { label: t("infoMac", "MAC"), value: hasBle ? bluetoothStore.macAddress : "" },
         { label: t("infoStatus", "Status"), value: hasBle
-            ? (bluetoothStore.status === 0 ? t("infoConnected", "Connected")
+            ? (bluetoothStore.status === Scooter.ConnectionStatus.Connected ? t("infoConnected", "Connected")
                                            : t("infoDisconnected", "Disconnected"))
             : "" }
     ]))

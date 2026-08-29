@@ -1,26 +1,19 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI 1.0
 import "../components"
 
 Item {
     id: navStatusOverlay
     anchors.fill: parent
 
-    // Navigation status enum values (must match NavigationStatus in C++)
-    readonly property int statusIdle: 0
-    readonly property int statusCalculating: 1
-    readonly property int statusNavigating: 2
-    readonly property int statusRerouting: 3
-    readonly property int statusArrived: 4
-    readonly property int statusError: 5
-
     property int navStatus: typeof navigationService !== "undefined"
-                            ? navigationService.status : 0
+                            ? navigationService.status : Scooter.NavigationStatus.Idle
 
-    visible: navStatus === statusCalculating ||
-             navStatus === statusRerouting ||
-             navStatus === statusArrived ||
-             navStatus === statusError
+    visible: navStatus === Scooter.NavigationStatus.Calculating ||
+             navStatus === Scooter.NavigationStatus.Rerouting ||
+             navStatus === Scooter.NavigationStatus.Arrived ||
+             navStatus === Scooter.NavigationStatus.Error
 
     // Floating status pill at top-center
     Rectangle {
@@ -32,10 +25,10 @@ Item {
         radius: height / 2
         color: {
             switch (navStatusOverlay.navStatus) {
-                case statusCalculating:
-                case statusRerouting: return themeStore.statusNeutral
-                case statusArrived: return themeStore.statusSuccess
-                case statusError: return themeStore.statusError
+                case Scooter.NavigationStatus.Calculating:
+                case Scooter.NavigationStatus.Rerouting: return themeStore.statusNeutral
+                case Scooter.NavigationStatus.Arrived: return themeStore.statusSuccess
+                case Scooter.NavigationStatus.Error: return themeStore.statusError
                 default: return "transparent"
             }
         }
@@ -55,16 +48,16 @@ Item {
                 color: "transparent"
                 border.color: "white"
                 border.width: 2
-                visible: navStatusOverlay.navStatus === statusCalculating ||
-                         navStatusOverlay.navStatus === statusRerouting
+                visible: navStatusOverlay.navStatus === Scooter.NavigationStatus.Calculating ||
+                         navStatusOverlay.navStatus === Scooter.NavigationStatus.Rerouting
 
                 Rectangle {
                     width: 10
                     height: 10
                     color: {
                         switch (navStatusOverlay.navStatus) {
-                            case statusCalculating:
-                            case statusRerouting: return themeStore.statusNeutral
+                            case Scooter.NavigationStatus.Calculating:
+                            case Scooter.NavigationStatus.Rerouting: return themeStore.statusNeutral
                             default: return "transparent"
                         }
                     }
@@ -82,7 +75,7 @@ Item {
 
             // Arrived icon (Flutter: Icons.place, green, size 24)
             Text {
-                visible: navStatusOverlay.navStatus === statusArrived
+                visible: navStatusOverlay.navStatus === Scooter.NavigationStatus.Arrived
                 text: MaterialIcon.iconPlace
                 font.family: "Material Icons"
                 font.pixelSize: themeStore.fontTitle
@@ -91,7 +84,7 @@ Item {
 
             // Error icon (Flutter: warning_amber)
             Text {
-                visible: navStatusOverlay.navStatus === statusError
+                visible: navStatusOverlay.navStatus === Scooter.NavigationStatus.Error
                 text: MaterialIcon.iconWarningAmber
                 font.family: "Material Icons"
                 font.pixelSize: themeStore.fontBody
@@ -101,10 +94,10 @@ Item {
             Text {
                 text: {
                     switch (navStatusOverlay.navStatus) {
-                        case statusCalculating: return translations.navCalculating
-                        case statusRerouting: return translations.navRecalculating
-                        case statusArrived: return translations.navArrived
-                        case statusError:
+                        case Scooter.NavigationStatus.Calculating: return translations.navCalculating
+                        case Scooter.NavigationStatus.Rerouting: return translations.navRecalculating
+                        case Scooter.NavigationStatus.Arrived: return translations.navArrived
+                        case Scooter.NavigationStatus.Error:
                             return typeof navigationService !== "undefined"
                                    ? navigationService.errorMessage : translations.navRouteError
                         default: return ""
@@ -127,7 +120,7 @@ Item {
         radius: height / 2
         color: themeStore.statusWarning
         opacity: 0.85
-        visible: navStatusOverlay.navStatus === statusNavigating &&
+        visible: navStatusOverlay.navStatus === Scooter.NavigationStatus.Navigating &&
                  typeof navigationService !== "undefined" && navigationService.isOffRoute
 
         RowLayout {

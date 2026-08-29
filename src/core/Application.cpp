@@ -173,6 +173,11 @@ bool Application::initialize(QQmlApplicationEngine &engine)
              << "backend:" << (m_inMemoryBackend ? QStringLiteral("in-memory") : redisHost);
 
     qmlRegisterUncreatableMetaObject(ScootEnums::staticMetaObject, "ScootUI", 1, 0, "Scooter", "");
+    // Enum-only registrations: the instances stay context properties for now,
+    // but QML needs the types to spell HopOnStore.Learning etc. instead of
+    // hand-mirrored int constants.
+    qmlRegisterUncreatableType<HopOnStore>("ScootUI", 1, 0, "HopOnStore", "enum access only");
+    qmlRegisterUncreatableType<AddressDatabaseService>("ScootUI", 1, 0, "AddressDatabaseService", "enum access only");
 
     BOOT_MARK("createStores() start");
     createStores(engine);

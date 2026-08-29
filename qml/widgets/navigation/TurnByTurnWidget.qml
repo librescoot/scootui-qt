@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI 1.0
 import "../components"
 
 Item {
@@ -22,45 +23,21 @@ Item {
     property bool isDark: (typeof themeStore !== "undefined" && themeStore)
                           ? themeStore.isDark : true
 
-    // Maneuver type enum values (must match ManeuverType in C++)
-    readonly property int mtOther: 0
-    readonly property int mtKeepStraight: 1
-    readonly property int mtKeepLeft: 2
-    readonly property int mtKeepRight: 3
-    readonly property int mtTurnLeft: 4
-    readonly property int mtTurnRight: 5
-    readonly property int mtTurnSlightLeft: 6
-    readonly property int mtTurnSlightRight: 7
-    readonly property int mtTurnSharpLeft: 8
-    readonly property int mtTurnSharpRight: 9
-    readonly property int mtUTurn: 10
-    readonly property int mtUTurnRight: 11
-    readonly property int mtExitLeft: 12
-    readonly property int mtExitRight: 13
-    readonly property int mtMergeStraight: 14
-    readonly property int mtMergeLeft: 15
-    readonly property int mtMergeRight: 16
-    readonly property int mtRoundaboutEnter: 17
-    readonly property int mtRoundaboutExit: 18
-    readonly property int mtFerry: 19
-    readonly property int mtArrive: 20
-    readonly property int mtArriveRight: 21
-    readonly property int mtArriveLeft: 22
 
     function iconThreshold(maneuverType) {
         switch (maneuverType) {
-            case mtUTurn: case mtUTurnRight: return 600
-            case mtRoundaboutEnter: case mtRoundaboutExit:
-            case mtTurnSharpLeft: case mtTurnSharpRight: return 500
-            case mtArrive: case mtArriveRight: case mtArriveLeft: return 500
-            case mtTurnLeft: case mtTurnRight:
-            case mtExitLeft: case mtExitRight: return 400
-            case mtTurnSlightLeft: case mtTurnSlightRight:
-            case mtMergeStraight: case mtMergeLeft: case mtMergeRight: return 300
+            case Scooter.ManeuverType.UTurn: case Scooter.ManeuverType.UTurnRight: return 600
+            case Scooter.ManeuverType.RoundaboutEnter: case Scooter.ManeuverType.RoundaboutExit:
+            case Scooter.ManeuverType.TurnSharpLeft: case Scooter.ManeuverType.TurnSharpRight: return 500
+            case Scooter.ManeuverType.Arrive: case Scooter.ManeuverType.ArriveRight: case Scooter.ManeuverType.ArriveLeft: return 500
+            case Scooter.ManeuverType.TurnLeft: case Scooter.ManeuverType.TurnRight:
+            case Scooter.ManeuverType.ExitLeft: case Scooter.ManeuverType.ExitRight: return 400
+            case Scooter.ManeuverType.TurnSlightLeft: case Scooter.ManeuverType.TurnSlightRight:
+            case Scooter.ManeuverType.MergeStraight: case Scooter.ManeuverType.MergeLeft: case Scooter.ManeuverType.MergeRight: return 300
             // Fork-style lane pick — needs lane-shift time, more than a
             // gentle bend. ~18 s at 50 km/h to spot the fork and reposition.
-            case mtKeepLeft: case mtKeepRight: return 250
-            case mtKeepStraight: return 150
+            case Scooter.ManeuverType.KeepLeft: case Scooter.ManeuverType.KeepRight: return 250
+            case Scooter.ManeuverType.KeepStraight: return 150
             default: return 1000
         }
     }
@@ -88,27 +65,27 @@ Item {
 
     function maneuverIcon(maneuverType) {
         switch (maneuverType) {
-            case mtTurnLeft:                          return MaterialIcon.iconTurnLeft
-            case mtTurnSharpLeft:                     return MaterialIcon.iconTurnSharpLeft
-            case mtTurnRight:                         return MaterialIcon.iconTurnRight
-            case mtTurnSharpRight:                    return MaterialIcon.iconTurnSharpRight
-            case mtTurnSlightLeft:                    return MaterialIcon.iconTurnSlightLeft
-            case mtTurnSlightRight:                   return MaterialIcon.iconTurnSlightRight
+            case Scooter.ManeuverType.TurnLeft:                          return MaterialIcon.iconTurnLeft
+            case Scooter.ManeuverType.TurnSharpLeft:                     return MaterialIcon.iconTurnSharpLeft
+            case Scooter.ManeuverType.TurnRight:                         return MaterialIcon.iconTurnRight
+            case Scooter.ManeuverType.TurnSharpRight:                    return MaterialIcon.iconTurnSharpRight
+            case Scooter.ManeuverType.TurnSlightLeft:                    return MaterialIcon.iconTurnSlightLeft
+            case Scooter.ManeuverType.TurnSlightRight:                   return MaterialIcon.iconTurnSlightRight
             // Keep* main icon is rendered as a two-tone SVG (see Image block
             // below); this Material glyph is only used for the small inline
             // next-preview, where two-tone dimming wouldn't be readable
             // anyway. Slight-turn reads cleanly at preview size.
-            case mtKeepLeft:                          return MaterialIcon.iconTurnSlightLeft
-            case mtKeepRight:                         return MaterialIcon.iconTurnSlightRight
-            case mtUTurn:                             return MaterialIcon.iconUTurnLeft
-            case mtUTurnRight:                        return MaterialIcon.iconUTurnRight
-            case mtExitLeft:                          return MaterialIcon.iconTurnSlightLeft
-            case mtExitRight:                         return MaterialIcon.iconTurnSlightRight
-            case mtMergeStraight: case mtMergeLeft: case mtMergeRight:
+            case Scooter.ManeuverType.KeepLeft:                          return MaterialIcon.iconTurnSlightLeft
+            case Scooter.ManeuverType.KeepRight:                         return MaterialIcon.iconTurnSlightRight
+            case Scooter.ManeuverType.UTurn:                             return MaterialIcon.iconUTurnLeft
+            case Scooter.ManeuverType.UTurnRight:                        return MaterialIcon.iconUTurnRight
+            case Scooter.ManeuverType.ExitLeft:                          return MaterialIcon.iconTurnSlightLeft
+            case Scooter.ManeuverType.ExitRight:                         return MaterialIcon.iconTurnSlightRight
+            case Scooter.ManeuverType.MergeStraight: case Scooter.ManeuverType.MergeLeft: case Scooter.ManeuverType.MergeRight:
                                                       return MaterialIcon.iconMerge
-            case mtArrive: case mtArriveRight: case mtArriveLeft:
+            case Scooter.ManeuverType.Arrive: case Scooter.ManeuverType.ArriveRight: case Scooter.ManeuverType.ArriveLeft:
                                                       return MaterialIcon.iconFlag
-            case mtKeepStraight: case mtFerry:        return MaterialIcon.iconStraight
+            case Scooter.ManeuverType.KeepStraight: case Scooter.ManeuverType.Ferry:        return MaterialIcon.iconStraight
             default:                                  return MaterialIcon.iconStraight
         }
     }
@@ -142,13 +119,13 @@ Item {
                                     ? navigationService.currentManeuverType : 0
                 property double mDist: typeof navigationService !== "undefined"
                                        ? navigationService.currentManeuverDistance : 0
-                property bool isRoundabout: (mType === mtRoundaboutEnter || mType === mtRoundaboutExit)
+                property bool isRoundabout: (mType === Scooter.ManeuverType.RoundaboutEnter || mType === Scooter.ManeuverType.RoundaboutExit)
                                             && mDist <= iconThreshold(mType)
                 // Keep L/R uses two-tone SVGs (active arm bright, inactive arm
                 // dimmed) so the rider sees which fork to take, not just that
                 // there is one. Only kicks in within the announce threshold —
                 // outside it the Text fallback shows a plain straight arrow.
-                property bool isKeepFork: (mType === mtKeepLeft || mType === mtKeepRight)
+                property bool isKeepFork: (mType === Scooter.ManeuverType.KeepLeft || mType === Scooter.ManeuverType.KeepRight)
                                           && mDist <= iconThreshold(mType)
 
                 Loader {
@@ -171,10 +148,10 @@ Item {
                     sourceSize.height: 64
                     fillMode: Image.PreserveAspectFit
                     source: {
-                        if (parent.mType === mtKeepLeft)
+                        if (parent.mType === Scooter.ManeuverType.KeepLeft)
                             return isDark ? "qrc:/ScootUI/assets/icons/librescoot-keep-left.svg"
                                           : "qrc:/ScootUI/assets/icons/librescoot-keep-left-light.svg"
-                        if (parent.mType === mtKeepRight)
+                        if (parent.mType === Scooter.ManeuverType.KeepRight)
                             return isDark ? "qrc:/ScootUI/assets/icons/librescoot-keep-right.svg"
                                           : "qrc:/ScootUI/assets/icons/librescoot-keep-right-light.svg"
                         return ""
@@ -259,7 +236,7 @@ Item {
                             if (typeof navigationService === "undefined") return ""
                             var nt = navigationService.nextManeuverType
                             var name = navigationService.nextStreetName
-                            var isArrive = (nt === mtArrive || nt === mtArriveRight || nt === mtArriveLeft)
+                            var isArrive = (nt === Scooter.ManeuverType.Arrive || nt === Scooter.ManeuverType.ArriveRight || nt === Scooter.ManeuverType.ArriveLeft)
                             if (name && name.length > 0) return name
                             return isArrive ? "arrive" : ""
                         }

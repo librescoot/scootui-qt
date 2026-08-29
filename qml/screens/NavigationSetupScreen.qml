@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI 1.0
 import "../widgets/status_bars"
 import "../widgets/components"
 
@@ -21,12 +22,12 @@ Rectangle {
     readonly property bool routingOk: typeof navAvailabilityService !== "undefined"
                                        ? navAvailabilityService.routingAvailable : false
 
-    // Setup mode: 0=DisplayMaps, 1=Routing, 2=Both
-    readonly property int mode: typeof screenStore !== "undefined" ? screenStore.setupMode : 2
+    readonly property int mode: typeof screenStore !== "undefined"
+                                 ? screenStore.setupMode : Scooter.SetupMode.Both
 
     // Download service bindings
     readonly property bool hasDownloadService: typeof mapDownloadService !== "undefined" && mapDownloadService !== null
-    readonly property int dlStatus: hasDownloadService ? mapDownloadService.status : 0
+    readonly property int dlStatus: hasDownloadService ? mapDownloadService.status : Scooter.MapDownloadStatus.Idle
     readonly property double dlProgress: hasDownloadService ? mapDownloadService.progress : 0
     readonly property string dlRegion: hasDownloadService ? mapDownloadService.regionName : ""
     readonly property string dlError: hasDownloadService ? mapDownloadService.errorMessage : ""
@@ -34,18 +35,9 @@ Rectangle {
     readonly property real dlDownloaded: hasDownloadService ? mapDownloadService.downloadedBytes : 0
     readonly property real dlTotal: hasDownloadService ? mapDownloadService.totalBytes : 0
 
-    // Status enum values (matching MapDownloadStatus)
-    readonly property int statusIdle: 0
-    readonly property int statusCheckingUpdates: 1
-    readonly property int statusLocating: 2
-    readonly property int statusDownloading: 3
-    readonly property int statusInstalling: 4
-    readonly property int statusDone: 5
-    readonly property int statusError: 6
-
     // Connectivity
     readonly property bool isOnline: typeof internetStore !== "undefined"
-                                      ? internetStore.modemState === 2 : false // ModemState::Connected
+                                      ? internetStore.modemState === Scooter.ModemState.Connected : false
     // hasValidGps: any non-zero coordinate. The gps.state field flaps to
     // "searching" on transient TPV mode 0/1 while lat/lng stay valid in
     // Redis — gating the menu on FixEstablished surfaced "Waiting for GPS
@@ -56,13 +48,13 @@ Rectangle {
     readonly property double gpsLng: typeof gpsStore !== "undefined" ? gpsStore.longitude : 0
 
     // Download button logic
-    readonly property bool showDisplayRow: mode === 0 || mode === 2
-    readonly property bool showRoutingRow: mode === 1 || mode === 2
+    readonly property bool showDisplayRow: mode === Scooter.SetupMode.DisplayMaps || mode === Scooter.SetupMode.Both
+    readonly property bool showRoutingRow: mode === Scooter.SetupMode.Routing || mode === Scooter.SetupMode.Both
 
     readonly property bool hasRelevantPartial: {
         if (!hasDownloadService) return false
-        if (mode === 0) return mapDownloadService.hasPartialDisplayDownload
-        if (mode === 1) return mapDownloadService.hasPartialRoutingDownload
+        if (mode === Scooter.SetupMode.DisplayMaps) return mapDownloadService.hasPartialDisplayDownload
+        if (mode === Scooter.SetupMode.Routing) return mapDownloadService.hasPartialRoutingDownload
         return mapDownloadService.hasPartialDisplayDownload || mapDownloadService.hasPartialRoutingDownload
     }
 
@@ -83,7 +75,7 @@ Rectangle {
     }
     readonly property bool willDownloadAnything: willDownloadDisplay || willDownloadRouting
 
-    readonly property bool canDownload: dlStatus === statusIdle && isOnline && hasGps
+    readonly property bool canDownload: dlStatus === Scooter.MapDownloadStatus.Idle && isOnline && hasGps
                                          && willDownloadAnything
     readonly property string downloadButtonLabel: {
         if (dlUpdateAvailable)
@@ -96,8 +88,8 @@ Rectangle {
     // Title logic
     readonly property string titleText: {
         if (typeof translations === "undefined") return "Navigation Setup"
-        if (mode === 0) return translations.navSetupTitleMapsUnavailable
-        if (mode === 1) return translations.navSetupTitleRoutingUnavailable
+        if (mode === Scooter.SetupMode.DisplayMaps) return translations.navSetupTitleMapsUnavailable
+        if (mode === Scooter.SetupMode.Routing) return translations.navSetupTitleRoutingUnavailable
         if (!mapsOk && !routingOk) return translations.navSetupTitleBothUnavailable
         if (!mapsOk) return translations.navSetupTitleMapsUnavailable
         if (!routingOk) return translations.navSetupTitleRoutingUnavailable
@@ -324,7 +316,7 @@ Rectangle {
 
             // Idle state
             ColumnLayout {
-                visible: navSetupScreen.dlStatus === navSetupScreen.statusIdle
+                visible: navSetupScreen.dlStatus === Scooter.MapDownloadStatus.Idle
                 spacing: 4
                 Layout.alignment: Qt.AlignHCenter
 
@@ -369,7 +361,7 @@ Rectangle {
 
             // Checking updates
             Text {
-                visible: navSetupScreen.dlStatus === navSetupScreen.statusCheckingUpdates
+                visible: navSetupScreen.dlStatus === Scooter.MapDownloadStatus.CheckingUpdates
                 Layout.alignment: Qt.AlignHCenter
                 text: typeof translations !== "undefined" ? translations.navSetupCheckingUpdates : "Checking for updates..."
                 color: navSetupScreen.textSecondary
@@ -378,7 +370,7 @@ Rectangle {
 
             // Locating
             Text {
-                visible: navSetupScreen.dlStatus === navSetupScreen.statusLocating
+                visible: navSetupScreen.dlStatus === Scooter.MapDownloadStatus.Locating
                 Layout.alignment: Qt.AlignHCenter
                 text: typeof translations !== "undefined" ? translations.navSetupDownloadLocating : "Detecting your region..."
                 color: navSetupScreen.textSecondary
@@ -387,7 +379,7 @@ Rectangle {
 
             // Downloading - progress bar + bytes
             ColumnLayout {
-                visible: navSetupScreen.dlStatus === navSetupScreen.statusDownloading
+                visible: navSetupScreen.dlStatus === Scooter.MapDownloadStatus.Downloading
                 spacing: 4
                 Layout.alignment: Qt.AlignHCenter
                 Layout.fillWidth: true
@@ -430,7 +422,7 @@ Rectangle {
 
             // Installing
             Text {
-                visible: navSetupScreen.dlStatus === navSetupScreen.statusInstalling
+                visible: navSetupScreen.dlStatus === Scooter.MapDownloadStatus.Installing
                 Layout.alignment: Qt.AlignHCenter
                 text: typeof translations !== "undefined" ? translations.navSetupDownloadInstalling : "Installing maps..."
                 color: navSetupScreen.textSecondary
@@ -439,7 +431,7 @@ Rectangle {
 
             // Done
             Text {
-                visible: navSetupScreen.dlStatus === navSetupScreen.statusDone
+                visible: navSetupScreen.dlStatus === Scooter.MapDownloadStatus.Done
                 Layout.alignment: Qt.AlignHCenter
                 text: typeof translations !== "undefined" ? translations.navSetupDownloadDone : "Maps installed successfully"
                 color: navSetupScreen.doneColor
@@ -449,7 +441,7 @@ Rectangle {
 
             // Error
             ColumnLayout {
-                visible: navSetupScreen.dlStatus === navSetupScreen.statusError
+                visible: navSetupScreen.dlStatus === Scooter.MapDownloadStatus.Error
                 spacing: 2
                 Layout.alignment: Qt.AlignHCenter
 

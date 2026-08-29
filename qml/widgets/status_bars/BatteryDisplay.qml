@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import ScootUI 1.0
 import "../components"
 
 Row {
@@ -14,21 +15,6 @@ Row {
     readonly property color iconColor: typeof themeStore !== "undefined" && !themeStore.isDark
                                         ? "#000000" : "#FFFFFF"
     readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
-
-    // --- Enum int values ---
-    // BatteryState: Unknown=0, Asleep=1, Idle=2, Active=3
-    readonly property int bsAsleep: 1
-    readonly property int bsIdle: 2
-    readonly property int bsActive: 3
-
-    // SeatboxLock: Open=0, Closed=1
-    readonly property int slClosed: 1
-
-    // ChargeStatus: Charging=0, NotCharging=1, Unknown=2
-    readonly property int csCharging: 0
-
-    // AuxChargeStatus: NotCharging=0
-    readonly property int acsNotCharging: 0
 
     // --- Battery 0 ---
     readonly property int charge0: typeof battery0Store !== "undefined" ? battery0Store.charge : 0
@@ -95,7 +81,7 @@ Row {
     }
 
     function chargeLabelColor(charge, battState) {
-        if (battState === bsActive) {
+        if (battState === Scooter.BatteryState.Active) {
             if (charge <= 10) return "#FF0000"
             if (charge <= 20) return "#FF7900"
         }
@@ -250,7 +236,7 @@ Row {
 
     // --- Seatbox ---
     readonly property bool seatboxOpen: typeof vehicleStore !== "undefined"
-                                         ? vehicleStore.seatboxLock !== slClosed : false
+                                         ? vehicleStore.seatboxLock !== Scooter.SeatboxLock.Closed : false
 
     // --- Battery warning conditions ---
     // CB battery not present
@@ -261,25 +247,25 @@ Row {
         if (typeof cbBatteryStore === "undefined" || typeof vehicleStore === "undefined") return false
         if (!cbBatteryStore.present) return false
         return cbBatteryStore.charge < 50
-            && cbBatteryStore.chargeStatus !== csCharging
-            && present0 && charge0 > 0 && battState0 === bsActive
-            && vehicleStore.seatboxLock === slClosed
+            && cbBatteryStore.chargeStatus !== Scooter.ChargeStatus.Charging
+            && present0 && charge0 > 0 && battState0 === Scooter.BatteryState.Active
+            && vehicleStore.seatboxLock === Scooter.SeatboxLock.Closed
     }
     // AUX low voltage: not charging, main present, seatbox closed. Replaces the
     // old SoC <= 25% gate - voltage is the same signal without the bucketing.
     readonly property bool auxLowVoltageCondition: {
         if (typeof auxBatteryStore === "undefined" || typeof vehicleStore === "undefined") return false
         return auxVoltageValid && auxVoltageMv < auxWarnVoltageMv
-            && auxBatteryStore.chargeStatus === acsNotCharging
+            && auxBatteryStore.chargeStatus === Scooter.AuxChargeStatus.NotCharging
             && present0
-            && vehicleStore.seatboxLock === slClosed
+            && vehicleStore.seatboxLock === Scooter.SeatboxLock.Closed
     }
     // AUX critical voltage: main present, seatbox closed
     readonly property bool auxCriticalCondition: {
         if (typeof auxBatteryStore === "undefined" || typeof vehicleStore === "undefined") return false
         return auxVoltageValid && auxVoltageMv < auxCriticalVoltageMv
             && present0
-            && vehicleStore.seatboxLock === slClosed
+            && vehicleStore.seatboxLock === Scooter.SeatboxLock.Closed
     }
 
     // --- "Stranded" warnings: backup battery low while NO main battery is inserted ---

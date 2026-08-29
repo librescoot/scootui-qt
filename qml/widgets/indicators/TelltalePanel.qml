@@ -1,4 +1,5 @@
 import QtQuick
+import ScootUI 1.0
 import "../components"
 
 // Floating telltale card, shared by cluster and map views. Sizes to the set
@@ -7,14 +8,12 @@ Rectangle {
     id: panel
 
     readonly property bool hasVehicle: typeof vehicleStore !== "undefined"
-    readonly property int vehicleState: hasVehicle ? vehicleStore.state : 0
+    readonly property int vehicleState: hasVehicle ? vehicleStore.state : Scooter.VehicleState.Unknown
     readonly property bool usbDisconnected: typeof connectionStore !== "undefined"
                                             && connectionStore.usingBackupConnection
     readonly property bool engineFaultActive: typeof engineStore !== "undefined"
                                               && engineStore.faults.length > 0
 
-    // VehicleState: ReadyToDrive = 2, Parked = 4. Toggle: On = 0, Off = 1.
-    // BatteryState: Active = 3. SeatboxLock: Open = 0, Closed = 1.
     // Opening the seatbox cuts the 48V bus, so main-power off while parked is
     // expected then - suppress the power-lost branch unless the seatbox is
     // closed. Drive the ECU-fault branch from the active fault set, not the
@@ -22,23 +21,24 @@ Rectangle {
     readonly property bool engineFault: {
         if (!hasVehicle) return false
         var battery0Active = typeof battery0Store !== "undefined"
-                             && battery0Store.present && battery0Store.batteryState === 3
-        return vehicleStore.isUnableToDrive === 0
+                             && battery0Store.present && battery0Store.batteryState === Scooter.BatteryState.Active
+        return vehicleStore.isUnableToDrive === Scooter.Toggle.On
             || engineFaultActive
-            || (vehicleStore.mainPower === 1
-                && vehicleStore.seatboxLock === 1
-                && (vehicleState === 4 || vehicleState === 2 || battery0Active))
+            || (vehicleStore.mainPower === Scooter.Toggle.Off
+                && vehicleStore.seatboxLock === Scooter.SeatboxLock.Closed
+                && (vehicleState === Scooter.VehicleState.Parked
+                    || vehicleState === Scooter.VehicleState.ReadyToDrive || battery0Active))
     }
 
-    readonly property bool hazards: hasVehicle && vehicleStore.blinkerState === 3
-    readonly property bool parked: vehicleState === 4
+    readonly property bool hazards: hasVehicle && vehicleStore.blinkerState === Scooter.BlinkerState.Both
+    readonly property bool parked: vehicleState === Scooter.VehicleState.Parked
 
     // Turtle: a present, active pack at or below 20% caps motor power.
     readonly property bool turtle: {
         var b0 = typeof battery0Store !== "undefined" && battery0Store.present
-                 && battery0Store.batteryState === 3 && battery0Store.charge <= 20
+                 && battery0Store.batteryState === Scooter.BatteryState.Active && battery0Store.charge <= 20
         var b1 = typeof battery1Store !== "undefined" && battery1Store.present
-                 && battery1Store.batteryState === 3 && battery1Store.charge <= 20
+                 && battery1Store.batteryState === Scooter.BatteryState.Active && battery1Store.charge <= 20
         return b0 || b1
     }
 

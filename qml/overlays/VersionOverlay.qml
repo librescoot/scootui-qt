@@ -1,14 +1,15 @@
 import QtQuick
+import ScootUI 1.0
 
 Item {
     id: versionOverlay
     anchors.fill: parent
 
     property bool bothBrakes: typeof vehicleStore !== "undefined"
-                              ? (vehicleStore.brakeLeft === 0 && vehicleStore.brakeRight === 0)
+                              ? (vehicleStore.brakeLeft === Scooter.Toggle.On && vehicleStore.brakeRight === Scooter.Toggle.On)
                               : false
     property bool canShow: typeof vehicleStore !== "undefined" && typeof menuStore !== "undefined"
-                           ? (vehicleStore.state === 4 && !menuStore.isOpen)
+                           ? (vehicleStore.state === Scooter.VehicleState.Parked && !menuStore.isOpen)
                            : false
     property bool showOverlay: false
 

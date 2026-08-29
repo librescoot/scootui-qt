@@ -79,6 +79,43 @@ Q_ENUM_NS(SetupMode)
 enum class MapDownloadStatus { Idle, CheckingUpdates, Locating, Downloading, Installing, Done, Error };
 Q_ENUM_NS(MapDownloadStatus)
 
+enum class ManeuverType {
+    Other = 0,
+    KeepStraight,
+    KeepLeft,
+    KeepRight,
+    TurnLeft,
+    TurnRight,
+    TurnSlightLeft,
+    TurnSlightRight,
+    TurnSharpLeft,
+    TurnSharpRight,
+    UTurn,
+    UTurnRight,
+    ExitLeft,
+    ExitRight,
+    MergeStraight,
+    MergeLeft,
+    MergeRight,
+    RoundaboutEnter,
+    RoundaboutExit,
+    Ferry,
+    Arrive,
+    ArriveRight,
+    ArriveLeft
+};
+Q_ENUM_NS(ManeuverType)
+
+enum class NavigationStatus {
+    Idle = 0,
+    Calculating,
+    Navigating,
+    Rerouting,
+    Arrived,
+    Error
+};
+Q_ENUM_NS(NavigationStatus)
+
 // --- String-to-enum parsing helpers ---
 
 inline Toggle parseToggle(const QString &s) {

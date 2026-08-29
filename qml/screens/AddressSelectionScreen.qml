@@ -18,14 +18,7 @@ Rectangle {
     readonly property color errorColor: "#EF5350"
     readonly property color goColor: "#4CAF50"
 
-    // Address database status constants (match C++ enum)
-    readonly property int statusIdle: 0
-    readonly property int statusLoading: 1
-    readonly property int statusBuilding: 2
-    readonly property int statusReady: 3
-    readonly property int statusError: 4
-
-    readonly property int dbStatus: typeof addressDatabase !== "undefined" ? addressDatabase.status : statusError
+    readonly property int dbStatus: typeof addressDatabase !== "undefined" ? addressDatabase.status : AddressDatabaseService.Error
 
     // Phase constants
     readonly property int phaseLoading: 0
@@ -65,15 +58,15 @@ Rectangle {
 
     // When database becomes ready, start city letter input
     onDbStatusChanged: {
-        if (dbStatus === statusReady) {
+        if (dbStatus === AddressDatabaseService.Ready) {
             enterCityLetters("")
         }
     }
 
     Component.onCompleted: {
-        if (dbStatus === statusReady) {
+        if (dbStatus === AddressDatabaseService.Ready) {
             enterCityLetters("")
-        } else if (dbStatus === statusIdle || dbStatus === statusError) {
+        } else if (dbStatus === AddressDatabaseService.Idle || dbStatus === AddressDatabaseService.Error) {
             if (typeof addressDatabase !== "undefined")
                 addressDatabase.initialize()
         }
@@ -508,12 +501,12 @@ Rectangle {
 
         function onRightTap() {
             if (addressScreen.loadingHouseNumbers) return
-            if (addressScreen.dbStatus === addressScreen.statusBuilding) {
+            if (addressScreen.dbStatus === AddressDatabaseService.Building) {
                 if (typeof addressDatabase !== "undefined")
                     addressDatabase.cancelBuild()
                 return
             }
-            if (addressScreen.dbStatus !== addressScreen.statusReady) {
+            if (addressScreen.dbStatus !== AddressDatabaseService.Ready) {
                 addressScreen.cancelBack()
                 return
             }
@@ -624,7 +617,7 @@ Rectangle {
             ColumnLayout {
                 anchors.centerIn: parent
                 spacing: 16
-                visible: dbStatus === statusLoading || dbStatus === statusBuilding
+                visible: dbStatus === AddressDatabaseService.Loading || dbStatus === AddressDatabaseService.Building
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
@@ -635,7 +628,7 @@ Rectangle {
 
                 Rectangle {
                     Layout.alignment: Qt.AlignHCenter
-                    visible: dbStatus === statusBuilding
+                    visible: dbStatus === AddressDatabaseService.Building
                     width: 200
                     height: 6
                     radius: themeStore.radiusBar
@@ -651,7 +644,7 @@ Rectangle {
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
-                    visible: dbStatus === statusBuilding
+                    visible: dbStatus === AddressDatabaseService.Building
                     text: typeof addressDatabase !== "undefined"
                           ? Math.round(addressDatabase.buildProgress * 100) + "%"
                           : "0%"
@@ -672,7 +665,7 @@ Rectangle {
             // --- Error state ---
             Text {
                 anchors.centerIn: parent
-                visible: dbStatus === statusError
+                visible: dbStatus === AddressDatabaseService.Error
                 text: typeof addressDatabase !== "undefined" ? addressDatabase.statusMessage : "Address database unavailable"
                 color: errorColor
                 font.pixelSize: themeStore.fontBody
@@ -683,7 +676,7 @@ Rectangle {
                 anchors.centerIn: parent
                 spacing: 20
                 visible: (phase === phaseCityLetters || phase === phaseStreetLetters
-                          || phase === phaseHouseDigits) && dbStatus === statusReady
+                          || phase === phaseHouseDigits) && dbStatus === AddressDatabaseService.Ready
 
                 // Current prefix display
                 Text {
@@ -960,21 +953,21 @@ Rectangle {
                 // The tap cycles letters and list entries; it does nothing on
                 // the confirm step, where only the hold is bound.
                 leftTap: {
-                    if (dbStatus !== statusReady) return ""
+                    if (dbStatus !== AddressDatabaseService.Ready) return ""
                     if (addressScreen.phase === addressScreen.phaseConfirm) return ""
                     var tr = typeof translations !== "undefined" ? translations : null
                     return tr ? tr.controlScroll : "Scroll"
                 }
                 leftHold: {
-                    if (dbStatus !== statusReady) return ""
+                    if (dbStatus !== AddressDatabaseService.Ready) return ""
                     var tr = typeof translations !== "undefined" ? translations : null
                     return tr ? tr.controlBack : "Back"
                 }
                 rightTap: {
                     var tr = typeof translations !== "undefined" ? translations : null
-                    if (dbStatus === statusBuilding)
+                    if (dbStatus === AddressDatabaseService.Building)
                         return tr ? tr.controlCancel : "Cancel"
-                    if (dbStatus !== statusReady)
+                    if (dbStatus !== AddressDatabaseService.Ready)
                         return tr ? tr.controlBack : "Close"
                     if (addressScreen.phase === addressScreen.phaseConfirm)
                         return tr ? tr.navGo : "Go!"

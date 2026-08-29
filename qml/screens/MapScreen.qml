@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI 1.0
 import "../widgets/status_bars"
 import "../widgets/components"
 import "../widgets/navigation"
@@ -11,22 +12,12 @@ Rectangle {
     id: mapScreen
     color: typeof themeStore !== "undefined" ? themeStore.backgroundColor : "black"
 
-    // Navigation status enum values
-    readonly property int statusNavigating: 2
-    readonly property int statusArrived: 4
-
     property int navStatus: typeof navigationService !== "undefined"
-                            ? navigationService.status : 0
-    property bool hasNav: navStatus === statusNavigating || navStatus === statusArrived
+                            ? navigationService.status : Scooter.NavigationStatus.Idle
+    property bool hasNav: navStatus === Scooter.NavigationStatus.Navigating || navStatus === Scooter.NavigationStatus.Arrived
 
-    // GPS state enum values (must match GpsState in C++)
-    readonly property int gpsOff: 0
-    readonly property int gpsSearching: 1
-    readonly property int gpsFixEstablished: 2
-    readonly property int gpsError: 3
-
-    property int currentGpsState: typeof gpsStore !== "undefined" ? gpsStore.gpsState : 0
-    property bool hasGpsFix: currentGpsState === gpsFixEstablished
+    property int currentGpsState: typeof gpsStore !== "undefined" ? gpsStore.gpsState : Scooter.GpsState.Off
+    property bool hasGpsFix: currentGpsState === Scooter.GpsState.FixEstablished
     property bool hasRecentFix: typeof gpsStore !== "undefined" ? gpsStore.hasRecentFix : false
     property bool mapReady: typeof mapService !== "undefined" && mapService.isReady
     property bool hasRoute: typeof navigationService !== "undefined" && navigationService.hasRoute
@@ -377,7 +368,7 @@ Rectangle {
                 Connections {
                     target: typeof vehicleStore !== "undefined" ? vehicleStore : null
                     function onStateChanged() {
-                        if (vehicleStore.state === 2) { // ReadyToDrive
+                        if (vehicleStore.state === Scooter.VehicleState.ReadyToDrive) {
                             if (mapUpdateBadge.shouldShow)
                                 fadeBadgeTimer.start()
                         } else {

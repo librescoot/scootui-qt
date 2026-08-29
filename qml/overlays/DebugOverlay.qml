@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import ScootUI 1.0
 
 Item {
     id: debugOverlay
@@ -12,73 +13,25 @@ Item {
     readonly property color defaultBorder: isDark ? Qt.rgba(1, 1, 1, 0.3) : Qt.rgba(0, 0, 0, 0.26)
     readonly property color textColor: isDark ? "#FFFFFF" : "#000000"
 
-    // --- Enum int values (must match Enums.h order) ---
-    // VehicleState
-    readonly property int stUnknown: 0
-    readonly property int stStandBy: 1
-    readonly property int stReadyToDrive: 2
-    readonly property int stOff: 3
-    readonly property int stParked: 4
-    readonly property int stBooting: 5
-    readonly property int stShuttingDown: 6
-    readonly property int stHibernating: 7
-    readonly property int stHibernatingImminent: 8
-    readonly property int stSuspending: 9
-    readonly property int stSuspendingImminent: 10
-    readonly property int stUpdating: 11
-    readonly property int stWaitingSeatbox: 12
-    readonly property int stWaitingHibernation: 13
-    readonly property int stWaitingHibernationAdv: 14
-    readonly property int stWaitingHibernationSeatbox: 15
-    readonly property int stWaitingHibernationConfirm: 16
-
-    // GpsState
-    readonly property int gpsOff: 0
-    readonly property int gpsSearching: 1
-    readonly property int gpsFix: 2
-    readonly property int gpsError: 3
-
-    // Toggle
-    readonly property int toggleOn: 0
-    readonly property int toggleOff: 1
-
-    // ConnectionStatus
-    readonly property int csConnected: 0
-
-    // ModemState
-    readonly property int msConnected: 2
-
-    // BlinkerSwitch / BlinkerState
-    readonly property int blOff: 0
-    readonly property int blLeft: 1
-    readonly property int blRight: 2
-    readonly property int blBoth: 3
-
-    // BatteryState
-    readonly property int bsUnknown: 0
-    readonly property int bsAsleep: 1
-    readonly property int bsIdle: 2
-    readonly property int bsActive: 3
-
     // --- Color helpers ---
     function stateColor(st) {
         switch (st) {
-            case stReadyToDrive: return "#4CAF50"  // green
-            case stStandBy: return "#2196F3"        // blue
-            case stParked: return "#FF9800"          // orange
-            case stUnknown: case stOff: return "#9E9E9E" // grey
-            case stBooting: return "#9C27B0"         // purple
-            case stShuttingDown: return "#F44336"    // red
-            case stHibernating: return "#3F51B5"     // indigo
-            case stHibernatingImminent: return "#E91E63" // pink
-            case stSuspending: return "#F44336"      // red
-            case stSuspendingImminent: return "#E91E63"  // pink
-            case stUpdating: return "#FFEB3B"        // yellow
-            case stWaitingHibernation: case stWaitingHibernationAdv:
+            case Scooter.VehicleState.ReadyToDrive: return "#4CAF50"  // green
+            case Scooter.VehicleState.StandBy: return "#2196F3"        // blue
+            case Scooter.VehicleState.Parked: return "#FF9800"          // orange
+            case Scooter.VehicleState.Unknown: case Scooter.VehicleState.Off: return "#9E9E9E" // grey
+            case Scooter.VehicleState.Booting: return "#9C27B0"         // purple
+            case Scooter.VehicleState.ShuttingDown: return "#F44336"    // red
+            case Scooter.VehicleState.Hibernating: return "#3F51B5"     // indigo
+            case Scooter.VehicleState.HibernatingImminent: return "#E91E63" // pink
+            case Scooter.VehicleState.Suspending: return "#F44336"      // red
+            case Scooter.VehicleState.SuspendingImminent: return "#E91E63"  // pink
+            case Scooter.VehicleState.Updating: return "#FFEB3B"        // yellow
+            case Scooter.VehicleState.WaitingHibernation: case Scooter.VehicleState.WaitingHibernationAdvanced:
                 return "#673AB7"                     // deep purple
-            case stWaitingHibernationSeatbox: case stWaitingSeatbox:
+            case Scooter.VehicleState.WaitingHibernationSeatbox: case Scooter.VehicleState.WaitingSeatbox:
                 return "#9C27B0"                     // purple
-            case stWaitingHibernationConfirm:
+            case Scooter.VehicleState.WaitingHibernationConfirm:
                 return "#311B92"                     // deep purple 900
             default: return "#9E9E9E"
         }
@@ -86,10 +39,10 @@ Item {
 
     function gpsStateColor(st) {
         switch (st) {
-            case gpsOff: return "#9E9E9E"
-            case gpsSearching: return "#FFEB3B"
-            case gpsFix: return "#4CAF50"
-            case gpsError: return "#F44336"
+            case Scooter.GpsState.Off: return "#9E9E9E"
+            case Scooter.GpsState.Searching: return "#FFEB3B"
+            case Scooter.GpsState.FixEstablished: return "#4CAF50"
+            case Scooter.GpsState.Error: return "#F44336"
             default: return "#9E9E9E"
         }
     }
@@ -110,6 +63,7 @@ Item {
         return (enumVal >= 0 && enumVal < names.length) ? names[enumVal] : "?"
     }
 
+    // Display labels indexed by enum int value (ScootEnums order).
     readonly property var scooterStateNames: [
         "Unknown", "StandBy", "ReadyToDrive", "Off", "Parked",
         "Booting", "ShuttingDown", "Hibernating", "HibernatingImminent",
@@ -314,7 +268,7 @@ Item {
         height: inetCol.height + 10
         radius: 4; color: panelBg
         border.width: 1.5
-        border.color: is_("status") === csConnected ? "#2196F3" : defaultBorder
+        border.color: is_("status") === Scooter.ConnectionStatus.Connected ? "#2196F3" : defaultBorder
 
         Column {
             id: inetCol

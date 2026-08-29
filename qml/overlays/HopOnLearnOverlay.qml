@@ -1,4 +1,5 @@
 import QtQuick
+import ScootUI 1.0
 import "../widgets/components"
 
 // Full-screen overlay for the hop-on combo learning flow.
@@ -10,14 +11,11 @@ Item {
     id: learnOverlay
     anchors.fill: parent
 
-    // HopOnStore.Mode.Learning == 1
-    readonly property int modeLearning: 1
-
-    property int mode: typeof hopOnStore !== "undefined" ? hopOnStore.mode : 0
+    property int mode: typeof hopOnStore !== "undefined" ? hopOnStore.mode : HopOnStore.Idle
     property var tokens: typeof hopOnStore !== "undefined" ? hopOnStore.capturedTokens : []
     property int idleMs: typeof hopOnStore !== "undefined" ? hopOnStore.idleMillisRemaining : 0
 
-    visible: mode === modeLearning
+    visible: mode === HopOnStore.Learning
 
     readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
     readonly property color scrimColor:    isDark ? "#000000" : "#FFFFFF"

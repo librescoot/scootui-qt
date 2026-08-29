@@ -6,6 +6,8 @@
 #include <QVariantList>
 #include <cmath>
 
+#include "../models/Enums.h"
+
 struct LatLng {
     double latitude = 0;
     double longitude = 0;
@@ -60,40 +62,8 @@ struct RouteOrigin {
     bool isValid() const { return position.isValid(); }
 };
 
-enum class ManeuverType {
-    Other = 0,
-    KeepStraight,
-    KeepLeft,
-    KeepRight,
-    TurnLeft,
-    TurnRight,
-    TurnSlightLeft,
-    TurnSlightRight,
-    TurnSharpLeft,
-    TurnSharpRight,
-    UTurn,
-    UTurnRight,
-    ExitLeft,
-    ExitRight,
-    MergeStraight,
-    MergeLeft,
-    MergeRight,
-    RoundaboutEnter,
-    RoundaboutExit,
-    Ferry,
-    Arrive,
-    ArriveRight,
-    ArriveLeft
-};
-
-enum class NavigationStatus {
-    Idle = 0,
-    Calculating,
-    Navigating,
-    Rerouting,
-    Arrived,
-    Error
-};
+using ManeuverType = ScootEnums::ManeuverType;
+using NavigationStatus = ScootEnums::NavigationStatus;
 
 struct RouteInstruction {
     ManeuverType type = ManeuverType::Other;

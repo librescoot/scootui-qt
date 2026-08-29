@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import ScootUI 1.0
 import "../components"
 
 Row {
@@ -11,22 +12,22 @@ Row {
     readonly property color iconColor: typeof themeStore !== "undefined" && !themeStore.isDark
                                         ? "#000000" : "#FFFFFF"
 
-    readonly property int gpsState: typeof gpsStore !== "undefined" ? gpsStore.gpsState : 0
+    readonly property int gpsState: typeof gpsStore !== "undefined" ? gpsStore.gpsState : Scooter.GpsState.Off
     readonly property bool gpsRecentFix: typeof gpsStore !== "undefined" ? gpsStore.hasRecentFix : false
     readonly property bool gpsHasTimestamp: typeof gpsStore !== "undefined" ? gpsStore.hasTimestamp : false
-    readonly property int btStatus: typeof bluetoothStore !== "undefined" ? bluetoothStore.status : 1
+    readonly property int btStatus: typeof bluetoothStore !== "undefined" ? bluetoothStore.status : Scooter.ConnectionStatus.Disconnected
     readonly property string btServiceHealth: typeof bluetoothStore !== "undefined" ? bluetoothStore.serviceHealth : ""
-    readonly property int modemState: typeof internetStore !== "undefined" ? internetStore.modemState : 0
+    readonly property int modemState: typeof internetStore !== "undefined" ? internetStore.modemState : Scooter.ModemState.Off
     // Connectivity classification from modem-service: gates whether the internet
     // icon is worth showing at all. "" = unknown (treat as hidden).
     readonly property string connectivity: typeof internetStore !== "undefined" ? internetStore.connectivity : ""
-    readonly property int cloudStatus: typeof internetStore !== "undefined" ? internetStore.unuCloud : 1
+    readonly property int cloudStatus: typeof internetStore !== "undefined" ? internetStore.unuCloud : Scooter.ConnectionStatus.Disconnected
     // Cloud applies only if a cloud client (radio-gaga / uplink-service) has
     // published unu-cloud. Absent -> de-clouded scooter -> icon hidden.
     readonly property bool hasCloud: typeof internetStore !== "undefined" ? internetStore.hasUnuCloud : false
     readonly property int signalQuality: typeof internetStore !== "undefined" ? internetStore.signalQuality : 0
     readonly property string accessTech: typeof internetStore !== "undefined" ? internetStore.accessTech : ""
-    readonly property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : 0
+    readonly property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : Scooter.VehicleState.Unknown
     readonly property bool otaActive: typeof otaStore !== "undefined" ? otaStore.isActive : false
     readonly property string otaDbcStatus: typeof otaStore !== "undefined" ? otaStore.dbcStatus : "idle"
     readonly property int otaDbcDownloadProgress: typeof otaStore !== "undefined" ? otaStore.dbcDownloadProgress : 0
@@ -49,12 +50,12 @@ Row {
     // a map update and a firmware update can run at the same time, and until now
     // a map download was invisible outside the Map and Navigation screen even
     // though it pulls hundreds of MB and holds DBC power while it runs.
-    // Downloading(3) / Installing(4) from ScootEnums::MapDownloadStatus.
     readonly property int mapDlStatus: typeof mapDownloadService !== "undefined"
-                                       ? mapDownloadService.status : 0
+                                       ? mapDownloadService.status : Scooter.MapDownloadStatus.Idle
     readonly property double mapDlProgress: typeof mapDownloadService !== "undefined"
                                             ? mapDownloadService.progress : 0
-    readonly property bool mapDlActive: mapDlStatus === 3 || mapDlStatus === 4
+    readonly property bool mapDlActive: mapDlStatus === Scooter.MapDownloadStatus.Downloading
+                                       || mapDlStatus === Scooter.MapDownloadStatus.Installing
     readonly property string mapDlProgressText: mapDlActive
                                                 ? "" + Math.round(mapDlProgress * 100) : ""
 
@@ -79,16 +80,17 @@ Row {
     readonly property bool cloudWanted: shouldShowIndicator(showCloudSetting, cloudIsActive, cloudHasError)
     readonly property bool btWanted: shouldShowIndicator(showBtSetting, btIsActive, btHasError)
     readonly property bool gpsWanted: shouldShowIndicator(showGpsSetting, gpsIsActive, gpsHasError)
-    readonly property bool otaShown: otaActive && (vehicleState === 2 || vehicleState === 4)
-    // StandBy(1) as well as ReadyToDrive(2) and Parked(4), which is wider than
+    readonly property bool otaShown: otaActive && (vehicleState === Scooter.VehicleState.ReadyToDrive || vehicleState === Scooter.VehicleState.Parked)
+    // StandBy as well as ReadyToDrive and Parked, which is wider than
     // the OTA row above. EnterStandby defers dashboard power off while a map
     // download is running (scooter:dbc-hold, bounded by dbcMapDownloadHoldMax),
     // so the tail of a download does happen in StandBy. That tail is when the
     // tar is renamed into place and valhalla restarts, which is exactly when the
     // rider most needs to see why the dashboard is still awake.
     readonly property bool mapDlShown: mapDlActive
-                                       && (vehicleState === 1 || vehicleState === 2
-                                           || vehicleState === 4)
+                                       && (vehicleState === Scooter.VehicleState.StandBy
+                                           || vehicleState === Scooter.VehicleState.ReadyToDrive
+                                           || vehicleState === Scooter.VehicleState.Parked)
     readonly property bool otaProgressActive: otaStatus === "downloading"
                                               || otaStatus === "preparing"
                                               || otaStatus === "installing"
@@ -172,12 +174,12 @@ Row {
     ]
 
     // Active/error state for each indicator (matches Flutter shouldShowIndicator logic)
-    readonly property bool gpsIsActive: (gpsState === 0 && gpsRecentFix) || (gpsState === 2 && gpsRecentFix)
-    readonly property bool gpsHasError: gpsState === 3
-    readonly property bool btIsActive: btStatus === 0
+    readonly property bool gpsIsActive: (gpsState === Scooter.GpsState.Off && gpsRecentFix) || (gpsState === Scooter.GpsState.FixEstablished && gpsRecentFix)
+    readonly property bool gpsHasError: gpsState === Scooter.GpsState.Error
+    readonly property bool btIsActive: btStatus === Scooter.ConnectionStatus.Connected
     readonly property bool btHasError: btServiceHealth === "error"
-    readonly property bool cloudIsActive: hasCloud && cloudStatus === 0
-    readonly property bool cloudHasError: hasCloud && cloudStatus === 1
+    readonly property bool cloudIsActive: hasCloud && cloudStatus === Scooter.ConnectionStatus.Connected
+    readonly property bool cloudHasError: hasCloud && cloudStatus === Scooter.ConnectionStatus.Disconnected
     // Internet icon gating off the connectivity classification (not raw modem-state):
     //   connected            -> active (show)
     //   disconnected, failed  -> error (show: provisioned-but-down / broken modem)
@@ -230,8 +232,8 @@ Row {
             anchors.fill: parent
             sourceSize: Qt.size(24, 24)
             source: {
-                if (modemState === 0) return "qrc:/ScootUI/assets/icons/librescoot-internet-modem-off.svg"
-                if (modemState === 1) return "qrc:/ScootUI/assets/icons/librescoot-internet-modem-disconnected.svg"
+                if (modemState === Scooter.ModemState.Off) return "qrc:/ScootUI/assets/icons/librescoot-internet-modem-off.svg"
+                if (modemState === Scooter.ModemState.Disconnected) return "qrc:/ScootUI/assets/icons/librescoot-internet-modem-disconnected.svg"
                 // Connected - show signal bars
                 var bars = Math.min(Math.floor(signalQuality / 20), 4)
                 return "qrc:/ScootUI/assets/icons/librescoot-internet-modem-connected-" + bars + ".svg"
@@ -311,20 +313,20 @@ Row {
         visible: gpsWanted && !gpsChipped
 
         readonly property bool isSearching: {
-            if (gpsState === 0) return !gpsRecentFix && gpsHasTimestamp
-            return gpsState === 1 || (gpsState === 2 && !gpsRecentFix)
+            if (gpsState === Scooter.GpsState.Off) return !gpsRecentFix && gpsHasTimestamp
+            return gpsState === Scooter.GpsState.Searching || (gpsState === Scooter.GpsState.FixEstablished && !gpsRecentFix)
         }
 
         readonly property string gpsIconSource: {
-            if (gpsState === 0) {
+            if (gpsState === Scooter.GpsState.Off) {
                 if (gpsRecentFix) return "qrc:/ScootUI/assets/icons/librescoot-gps-fix-established.svg"
                 if (gpsHasTimestamp) return "qrc:/ScootUI/assets/icons/librescoot-gps-searching.svg"
                 return "qrc:/ScootUI/assets/icons/librescoot-gps-off.svg"
             }
             switch (gpsState) {
-                case 1: return "qrc:/ScootUI/assets/icons/librescoot-gps-searching.svg"
-                case 2: return "qrc:/ScootUI/assets/icons/librescoot-gps-fix-established.svg"
-                case 3: return "qrc:/ScootUI/assets/icons/librescoot-gps-error.svg"
+                case Scooter.GpsState.Searching: return "qrc:/ScootUI/assets/icons/librescoot-gps-searching.svg"
+                case Scooter.GpsState.FixEstablished: return "qrc:/ScootUI/assets/icons/librescoot-gps-fix-established.svg"
+                case Scooter.GpsState.Error: return "qrc:/ScootUI/assets/icons/librescoot-gps-error.svg"
                 default: return "qrc:/ScootUI/assets/icons/librescoot-gps-off.svg"
             }
         }
@@ -389,7 +391,7 @@ Row {
     // OTA status indicator (leftmost in RTL = last item)
     Row {
         spacing: 2
-        visible: otaActive && (vehicleState === 2 || vehicleState === 4)
+        visible: otaActive && (vehicleState === Scooter.VehicleState.ReadyToDrive || vehicleState === Scooter.VehicleState.Parked)
         layoutDirection: Qt.LeftToRight
 
         Item {

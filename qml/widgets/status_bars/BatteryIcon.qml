@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import ScootUI 1.0
 
 Item {
     id: batteryIcon
@@ -12,11 +13,6 @@ Item {
     required property color iconColor
     required property bool isDark
 
-    // BatteryState enum values
-    readonly property int bsAsleep: 1
-    readonly property int bsIdle: 2
-    readonly property int bsActive: 3
-
     // Charge bar dimensions (scaled from 144x144 to 24x24)
     readonly property real chargeX: 23.0 * (24.0 / 144.0)
     readonly property real chargeY: 41.0 * (24.0 / 144.0)
@@ -24,7 +20,7 @@ Item {
     readonly property real chargeMaxW: 98.0 * (24.0 / 144.0)
 
     function fillColor(charge, battState) {
-        if (battState === bsActive) {
+        if (battState === Scooter.BatteryState.Active) {
             if (charge <= 10) return "#FF0000"
             if (charge <= 20) return "#FF7900"
         }
@@ -39,7 +35,7 @@ Item {
         anchors.fill: parent
         source: {
             if (!batteryIcon.present) return "qrc:/ScootUI/assets/icons/librescoot-main-battery-absent.svg"
-            if (batteryIcon.batteryState !== bsAsleep && batteryIcon.batteryState !== bsIdle && batteryIcon.charge <= 10)
+            if (batteryIcon.batteryState !== Scooter.BatteryState.Asleep && batteryIcon.batteryState !== Scooter.BatteryState.Idle && batteryIcon.charge <= 10)
                 return "qrc:/ScootUI/assets/icons/librescoot-main-battery-empty.svg"
             return "qrc:/ScootUI/assets/icons/librescoot-main-battery-blank.svg"
         }
@@ -58,7 +54,7 @@ Item {
     // Charge bar (shown for blank icon states)
     Rectangle {
         visible: batteryIcon.present && batteryIcon.charge > 10
-                 && (batteryIcon.batteryState === bsActive || batteryIcon.batteryState === bsAsleep || batteryIcon.batteryState === bsIdle || batteryIcon.charge > 10)
+                 && (batteryIcon.batteryState === Scooter.BatteryState.Active || batteryIcon.batteryState === Scooter.BatteryState.Asleep || batteryIcon.batteryState === Scooter.BatteryState.Idle || batteryIcon.charge > 10)
         x: chargeX; y: chargeY
         height: chargeH
         width: chargeMaxW * (batteryIcon.charge / 100.0)
@@ -78,7 +74,7 @@ Item {
     MultiEffect {
         anchors.fill: parent
         source: asleepMask
-        visible: batteryIcon.present && batteryIcon.batteryState === bsAsleep
+        visible: batteryIcon.present && batteryIcon.batteryState === Scooter.BatteryState.Asleep
         colorization: 1.0
         colorizationColor: batteryIcon.isDark ? "#000000" : "#FFFFFF"
     }
@@ -96,7 +92,7 @@ Item {
     MultiEffect {
         anchors.fill: parent
         source: asleepOverlay
-        visible: batteryIcon.present && batteryIcon.batteryState === bsAsleep
+        visible: batteryIcon.present && batteryIcon.batteryState === Scooter.BatteryState.Asleep
         colorization: 1.0
         colorizationColor: batteryIcon.iconColor
     }
@@ -104,7 +100,7 @@ Item {
     // Idle overlay (uses original colors in dark mode, inverted in light)
     Image {
         anchors.fill: parent
-        visible: batteryIcon.present && batteryIcon.batteryState === bsIdle
+        visible: batteryIcon.present && batteryIcon.batteryState === Scooter.BatteryState.Idle
         source: batteryIcon.isDark ? "qrc:/ScootUI/assets/icons/librescoot-overlay-idle.svg"
                        : "qrc:/ScootUI/assets/icons/librescoot-overlay-idle-light.svg"
         sourceSize: Qt.size(24, 24)

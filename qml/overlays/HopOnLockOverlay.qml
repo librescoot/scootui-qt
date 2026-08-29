@@ -1,4 +1,5 @@
 import QtQuick
+import ScootUI 1.0
 import "../widgets/components"
 
 // Full-screen lock overlay shown while hop-on / hop-off mode is engaged.
@@ -14,12 +15,9 @@ Item {
     id: lockOverlay
     anchors.fill: parent
 
-    // HopOnStore.Mode.Locked == 2
-    readonly property int modeLocked: 2
+    property int mode: typeof hopOnStore !== "undefined" ? hopOnStore.mode : HopOnStore.Idle
 
-    property int mode: typeof hopOnStore !== "undefined" ? hopOnStore.mode : 0
-
-    visible: mode === modeLocked
+    visible: mode === HopOnStore.Locked
 
     readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
     readonly property color scrimColor:    isDark ? "#000000" : "#FFFFFF"

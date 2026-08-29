@@ -1,14 +1,15 @@
 import QtQuick
+import ScootUI 1.0
 
 Item {
     id: blinkerOverlay
     anchors.fill: parent
 
-    readonly property int blinkerState: typeof vehicleStore !== "undefined" ? vehicleStore.blinkerState : 0
+    readonly property int blinkerState: typeof vehicleStore !== "undefined" ? vehicleStore.blinkerState : Scooter.BlinkerState.Off
     readonly property bool overlayEnabled: typeof settingsStore !== "undefined"
                                            ? settingsStore.blinkerStyle === "overlay" : false
-    readonly property bool showLeft: overlayEnabled && blinkerState === 1
-    readonly property bool showRight: overlayEnabled && blinkerState === 2
+    readonly property bool showLeft: overlayEnabled && blinkerState === Scooter.BlinkerState.Left
+    readonly property bool showRight: overlayEnabled && blinkerState === Scooter.BlinkerState.Right
 
     // Insets to center the arrow on the content area between status bars
     property real topInset: 0
