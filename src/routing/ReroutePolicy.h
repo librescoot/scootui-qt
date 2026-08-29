@@ -116,25 +116,6 @@ private:
     static constexpr int MaxEstimatorRouterRadiusMeters = 50;
 };
 
-class RouteDeparturePolicy
-{
-public:
-    static bool update(bool wasOffRoute, double distanceMeters,
-                       bool routePresentationDeparted,
-                       double offRouteToleranceMeters,
-                       double onRouteToleranceMeters)
-    {
-        // Once presentation has enough sustained physical evidence to stop
-        // drawing the marker on the route, navigation must agree on that same
-        // update. Otherwise the rider sees an off-route marker with no visible
-        // reroute response until a separate, much wider distance threshold.
-        if (!wasOffRoute && routePresentationDeparted)
-            return true;
-        return distanceMeters > (wasOffRoute ? onRouteToleranceMeters
-                                             : offRouteToleranceMeters);
-    }
-};
-
 class RerouteEpisodeGate
 {
 public:

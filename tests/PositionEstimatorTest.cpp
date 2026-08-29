@@ -58,22 +58,23 @@ void PositionEstimatorTest::routeLockUsesPhysicalDistanceAndDwell()
 
     // The open-sky receiver normally reports about 19 m EPH. An ordinary
     // 20 m cross-track estimate must therefore remain visually snapped.
-    QCOMPARE(RouteSnapState::breakAwayMeters(20.0), 30.0);
+    QCOMPARE(RouteSnapState::breakAwayMeters(20.0), 60.0);
     QCOMPARE(RouteSnapState::relockMeters(20.0), 20.0);
     for (int i = 0; i < 100; ++i)
         QVERIFY(state.update(20.0, 100, 20.0));
 
-    // A sustained position-only departure still releases after 1.5 seconds.
+    // Presentation does not release before navigation's authoritative 60 m
+    // off-route threshold. If physical distance passes it, the navigation
+    // update normally wins; the dwell remains a defensive fallback.
     for (int i = 0; i < 14; ++i)
-        QVERIFY(state.update(31.0, 100, 20.0));
-    QVERIFY(!state.update(31.0, 100, 20.0));
+        QVERIFY(state.update(61.0, 100, 20.0));
+    QVERIFY(!state.update(61.0, 100, 20.0));
 
-    // While the rider is clearly travelling across the expected route
-    // direction, a smaller but real displacement releases after two seconds.
+    // Direction disagreement steers the physical estimator but does not pull
+    // presentation away from the route or initiate an earlier reroute.
     state.reset(true);
-    for (int i = 0; i < 19; ++i)
+    for (int i = 0; i < 30; ++i)
         QVERIFY(state.update(16.0, 100, 20.0, 50.0, true));
-    QVERIFY(!state.update(16.0, 100, 20.0, 50.0, true));
 
     // Direction alone is not enough at the turn vertex: GPS course can lag the
     // route tangent there without the rider actually leaving the route.
@@ -92,7 +93,7 @@ void PositionEstimatorTest::routeLockUsesPhysicalDistanceAndDwell()
 
     // Poor-but-accepted fixes get more room, but the cap still guarantees an
     // actual departure eventually becomes visible.
-    QCOMPARE(RouteSnapState::breakAwayMeters(50.0), 45.0);
+    QCOMPARE(RouteSnapState::breakAwayMeters(50.0), 60.0);
     QCOMPARE(RouteSnapState::relockMeters(50.0), 30.0);
 }
 

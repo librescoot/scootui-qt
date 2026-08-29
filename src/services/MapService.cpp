@@ -414,10 +414,6 @@ void MapService::setRouteWaypoints(const QVariantList &waypoints)
     // from the physical estimate. A close route starts locked; a questionable
     // one remains visible but the vehicle follows the unconstrained estimate.
     m_drLocked = lockNewRoute;
-    // A returned route too far from the independent estimate starts a fresh
-    // deviation episode immediately; do not show an unsnapped marker beside a
-    // new route and then wait for the wider legacy distance threshold.
-    m_routePresentationDeparturePending = !lockNewRoute;
     m_routeSnapState.reset(lockNewRoute);
     m_lastWasOffRoute = false;
     m_projectionCadence.reset();
@@ -450,7 +446,6 @@ void MapService::clearRoute()
     m_maxReachedSegment = -1;
     m_lastRouteBearing = -1;
     m_drLocked = true;
-    m_routePresentationDeparturePending = false;
     m_routeSnapState.reset(true);
     m_lastWasOffRoute = false;
     m_projectionCadence.reset();
@@ -1195,7 +1190,8 @@ void MapService::onDeadReckoningTick()
     // arrivals. Rejoining during a GPS gap must still release the segment
     // high-water mark so an overshoot-and-reverse can match an earlier leg.
     const bool nowOffRoute = m_navigation && m_navigation->isOffRoute();
-    if (m_lastWasOffRoute && !nowOffRoute)
+    const bool justRejoinedRoute = m_lastWasOffRoute && !nowOffRoute;
+    if (justRejoinedRoute)
         m_maxReachedSegment = -1;
     m_lastWasOffRoute = nowOffRoute;
     bool routeUsable = haveRouteShape && !m_navigation->isOffRoute()
@@ -1253,7 +1249,15 @@ void MapService::onDeadReckoningTick()
     routeUsable = haveRouteShape && !m_navigation->isOffRoute()
         && !m_navigation->isRerouting();
     if (routeUsable) {
-        evaluateSnapLock(static_cast<int>(std::lround(dt * 1000.0)));
+        if (justRejoinedRoute) {
+            // Navigation's authoritative 35 m recovery has already accepted
+            // the route. Rejoin presentation on the same tick rather than
+            // showing another unexplained two-second unsnapped interval.
+            m_drLocked = true;
+            m_routeSnapState.reset(true);
+        } else {
+            evaluateSnapLock(static_cast<int>(std::lround(dt * 1000.0)));
+        }
     } else if (haveRouteShape) {
         m_drLocked = false;
         m_routeSnapState.reset(false);
@@ -1418,12 +1422,9 @@ void MapService::evaluateSnapLock(int elapsedMs)
             headingReliable = false;
     }
 
-    const bool wasLocked = m_drLocked;
     m_drLocked = m_routeSnapState.update(
         m_distFromRoute, elapsedMs, sample.ephMeters,
         headingDifference, headingReliable);
-    if (wasLocked && !m_drLocked)
-        m_routePresentationDeparturePending = true;
 }
 
 // ---------------------------------------------------------------------------
@@ -1564,12 +1565,12 @@ void MapService::updateBearing(double dt)
 {
     double speedKmh = effectiveSpeedKmh();
 
-    // m_drLocked couples rotation to the sticky-snap lock state — once the
-    // marker starts following the physical estimate, the map rotation switches
-    // to physical direction too, and NavigationService consumes the same
-    // departure edge for rerouting. While still snapped, use the segment the
-    // presented point has actually walked onto rather than the matcher's lagging
-    // identity segment; otherwise the marker rounds a corner sideways.
+    // m_drLocked couples rotation to the sticky-snap lock state. Presentation
+    // remains locked until NavigationService's authoritative off-route policy
+    // fires; then marker position and rotation switch to the physical estimate
+    // together. While snapped, use the segment the presented point has actually
+    // walked onto rather than the matcher's lagging identity segment; otherwise
+    // the marker rounds a corner sideways.
     bool onRoute = !m_routeShape.isEmpty() && m_currentRouteSegment >= 0
                    && m_navigation->isNavigating()
                    && !m_navigation->isOffRoute()

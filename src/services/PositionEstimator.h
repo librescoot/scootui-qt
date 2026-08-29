@@ -98,10 +98,10 @@ private:
 };
 
 // Sticky route-presentation decision driven by cross-track distance from the
-// unconstrained physical estimate and, while moving, its direction relative to
-// the matched route leg. GPS horizontal error on the vehicle is commonly
-// 15-30 m even under open sky, so fixed single-digit thresholds make normal
-// receiver uncertainty look like a deliberate departure.
+// unconstrained physical estimate. Presentation releases no earlier than the
+// navigation off-route threshold; direction evidence instead steers the
+// physical estimator so that authoritative rerouting can react without first
+// pulling the marker away from the route.
 class RouteSnapState
 {
 public:
@@ -121,20 +121,12 @@ public:
             else
                 m_distanceDepartureMs = 0;
 
-            // A rider continuing straight past a requested turn should become
-            // visible before pure cross-track distance reaches the accuracy-
-            // adjusted threshold. Require some real displacement as well as a
-            // sustained direction mismatch so stale course at the turn itself
-            // cannot release the snap.
-            const bool directionalDeparture = hasDirectionalDepartureEvidence(
-                physicalDistanceMeters, headingDifference, headingReliable);
-            if (directionalDeparture)
-                m_directionDepartureMs += elapsedMs;
-            else
-                m_directionDepartureMs = 0;
-
-            if (m_distanceDepartureMs >= BreakAwayDwellMs
-                || m_directionDepartureMs >= DirectionDepartureDwellMs) {
+            // Presentation must not release ahead of NavigationService's 60 m
+            // off-route policy: an off-route marker without rerouting is more
+            // confusing than temporarily hiding a plausible GPS departure.
+            // Direction evidence still steers the independent physical estimate
+            // immediately, but it does not change presentation by itself.
+            if (m_distanceDepartureMs >= BreakAwayDwellMs) {
                 m_locked = false;
                 clearTimers();
             }
@@ -164,10 +156,8 @@ public:
 
     static double breakAwayMeters(double ephMeters)
     {
-        const double eph = std::isfinite(ephMeters) && ephMeters > 0.0
-            ? ephMeters : DefaultEphMeters;
-        return std::clamp(eph * BreakAwayEphFactor,
-                          BreakAwayMinMeters, BreakAwayMaxMeters);
+        (void)ephMeters;
+        return BreakAwayMeters;
     }
 
     static double relockMeters(double ephMeters)
@@ -191,28 +181,23 @@ public:
     static constexpr int RelockDwellMs = 2000;
     static constexpr double DirectionDepartureDegrees = 45.0;
     static constexpr double DirectionDepartureMinMeters = 15.0;
-    static constexpr int DirectionDepartureDwellMs = 2000;
     static constexpr double RelockDirectionDegrees = 30.0;
 
 private:
     void clearTimers()
     {
         m_distanceDepartureMs = 0;
-        m_directionDepartureMs = 0;
         m_relockMs = 0;
     }
 
     static constexpr double DefaultEphMeters = 20.0;
-    static constexpr double BreakAwayEphFactor = 1.25;
-    static constexpr double BreakAwayMinMeters = 30.0;
-    static constexpr double BreakAwayMaxMeters = 45.0;
+    static constexpr double BreakAwayMeters = 60.0;
     static constexpr double RelockEphFactor = 1.0;
     static constexpr double RelockMinMeters = 18.0;
     static constexpr double RelockMaxMeters = 30.0;
 
     bool m_locked = true;
     int m_distanceDepartureMs = 0;
-    int m_directionDepartureMs = 0;
     int m_relockMs = 0;
 };
 

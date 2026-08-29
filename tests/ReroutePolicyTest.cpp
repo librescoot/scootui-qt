@@ -10,7 +10,6 @@ private slots:
     void certainEstimateResistsParallelRoadGpsJump();
     void freshGpsUsesBoundedProjectionWhenEstimateUncertain();
     void staleGpsFallsBackOnlyToCertainEstimate();
-    void presentationDepartureStartsAndCanRecover();
     void oneRequestPerDeviationEpisode();
     void coordinatesRequireFiniteGeographicRange();
 };
@@ -65,16 +64,6 @@ void ReroutePolicyTest::staleGpsFallsBackOnlyToCertainEstimate()
 
     input.physicalUncertaintyMeters = 80.0;
     QVERIFY(!RerouteOriginSelector::select(input).isValid());
-}
-
-void ReroutePolicyTest::presentationDepartureStartsAndCanRecover()
-{
-    QVERIFY(RouteDeparturePolicy::update(false, 20.0, true, 60.0, 35.0));
-    // The departure notification is an edge, not a permanent latch: normal
-    // distance hysteresis can clear off-route after physical reacquisition.
-    QVERIFY(!RouteDeparturePolicy::update(true, 30.0, false, 60.0, 35.0));
-    QVERIFY(!RouteDeparturePolicy::update(false, 30.0, false, 60.0, 35.0));
-    QVERIFY(RouteDeparturePolicy::update(false, 61.0, false, 60.0, 35.0));
 }
 
 void ReroutePolicyTest::oneRequestPerDeviationEpisode()

@@ -130,13 +130,6 @@ public:
     double segmentSnappedLatitude() const { return m_segmentSnappedLat; }
     double segmentSnappedLongitude() const { return m_segmentSnappedLng; }
     double distanceFromRoute() const { return m_distFromRoute; }
-    bool routePresentationLocked() const { return m_drLocked; }
-    bool takeRoutePresentationDeparture()
-    {
-        const bool pending = m_routePresentationDeparturePending;
-        m_routePresentationDeparturePending = false;
-        return pending;
-    }
 
     void setRouteWaypoints(const QVariantList &waypoints);
     void clearRoute();
@@ -445,7 +438,6 @@ private:
 
     // Sticky route snap state
     bool m_drLocked = true;
-    bool m_routePresentationDeparturePending = false;
     RouteSnapState m_routeSnapState;
     FreeDriveSnapState m_freeDriveSnapState;
 
