@@ -189,6 +189,8 @@ Settings are stored in the `settings` Redis hash and can be modified at runtime.
 | `dashboard.map.traffic-overlay` | `true`, `false` | `false` | Show live traffic overlay |
 | `dashboard.maps.check-for-updates` | `true`, `false` | `false` | Periodically check for offline map updates |
 | `dashboard.maps.auto-download` | `true`, `false` | `false` | Download map updates without user action |
+| `dashboard.route-preference` | `fastest`, `shortest` | `fastest` | Route costing. Shortest goes by raw distance and ignores the surface weighting |
+| `dashboard.avoid-cobblestone` | `off`, `low`, `medium`, `high` | `medium` | Detour budget for keeping off sett and cobbles: `low` spends up to the travel time the rough stretch would itself have cost, `medium` four times that, `high` eight times, and `off` switches it off. Needs routing tiles that classify the surface |
 | `dashboard.valhalla-url` | URL | `http://localhost:8002/` | Valhalla routing endpoint |
 
 **Examples:**
