@@ -9,6 +9,7 @@
 #include <QDateTime>
 
 #include "services/PositionEstimator.h"
+#include "services/RoadMatchPolicy.h"
 
 class GpsStore;
 class EngineStore;
@@ -260,7 +261,6 @@ private:
     static constexpr double MaxEstimatorEphMeters = 50.0;
     static constexpr double DefaultGpsUncertaintyMeters = 15.0;
     static constexpr double MaxPositionUncertaintyMeters = 500.0;
-    static constexpr double FreeDriveSnapReleaseMeters = 25.0;
 
     static constexpr double StationarySpeedMs = 0.3;   // below this, assume no motion
     static constexpr double StationaryGpsBlendScale = 0.10;
@@ -436,6 +436,7 @@ private:
     // Sticky route snap state
     bool m_drLocked = true;
     RouteSnapState m_routeSnapState;
+    FreeDriveSnapState m_freeDriveSnapState;
 
     // --- Route shape for dead reckoning ---
     QList<QPair<double, double>> m_routeShape; // (lat, lng) pairs

@@ -1266,24 +1266,31 @@ void MapService::onDeadReckoningTick()
     double presentationLat = m_drLatitude;
     double presentationLng = m_drLongitude;
     if (routeUsable && m_drLocked && m_currentRouteSegment >= 0) {
+        m_freeDriveSnapState.reset();
         presentationLat = m_segmentSnappedLat;
         presentationLng = m_segmentSnappedLng;
-    } else if (m_routeShape.isEmpty() && m_roadInfo
-               && m_roadInfo->hasConfidentRoadMatch()) {
+    } else if (m_routeShape.isEmpty() && m_roadInfo) {
         // In free-drive mode, use the same heading-aware road segment that
         // supplies street/speed metadata. Project the continuously advancing
         // physical estimate on every render tick, so the marker moves smoothly
         // along the road while the heavier tile match runs only once per second.
-        double roadLat, roadLng, roadDistance;
-        projectOntoSegment(
-            m_drLatitude, m_drLongitude,
-            m_roadInfo->matchedSegmentLat1(), m_roadInfo->matchedSegmentLon1(),
-            m_roadInfo->matchedSegmentLat2(), m_roadInfo->matchedSegmentLon2(),
-            roadLat, roadLng, roadDistance);
-        if (roadDistance <= FreeDriveSnapReleaseMeters) {
+        const bool confident = m_roadInfo->hasConfidentRoadMatch();
+        double roadLat = m_drLatitude;
+        double roadLng = m_drLongitude;
+        double roadDistance = std::numeric_limits<double>::infinity();
+        if (confident) {
+            projectOntoSegment(
+                m_drLatitude, m_drLongitude,
+                m_roadInfo->matchedSegmentLat1(), m_roadInfo->matchedSegmentLon1(),
+                m_roadInfo->matchedSegmentLat2(), m_roadInfo->matchedSegmentLon2(),
+                roadLat, roadLng, roadDistance);
+        }
+        if (m_freeDriveSnapState.update(confident, roadDistance)) {
             presentationLat = roadLat;
             presentationLng = roadLng;
         }
+    } else {
+        m_freeDriveSnapState.reset();
     }
 
     double compensatedLat = presentationLat;

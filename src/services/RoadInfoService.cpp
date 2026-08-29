@@ -182,8 +182,13 @@ void RoadInfoService::reloadMbtiles()
 
 void RoadInfoService::countMissAndMaybeClear()
 {
-    clearRoadMatch();
-    if (++m_consecutiveMisses >= ClearAfterMisses) {
+    // The tile matcher runs at 1 Hz. Keep the previous confident segment over
+    // two isolated misses so a tile boundary, momentary ambiguity at a crossing,
+    // or one noisy fix cannot pop the marker off the road. MapService still
+    // releases immediately if the physical estimate moves materially away from
+    // that retained segment.
+    if (!m_matchRetention.retainAfterMiss()) {
+        clearRoadMatch();
         m_speedLimit->setRoadNameDirect(QString());
         m_speedLimit->setRoadRefsDirect(QString());
         m_speedLimit->setRoadTypeDirect(QString());
@@ -207,7 +212,7 @@ void RoadInfoService::onGpsChanged()
     if (m_map && m_map->hasVehiclePosition())
         return;
     if (!m_gps || !m_gps->hasValidGps()) {
-        m_consecutiveMisses = ClearAfterMisses;
+        m_matchRetention.reset();
         clearRoadMatch();
         m_speedLimit->setRoadNameDirect(QString());
         m_speedLimit->setRoadRefsDirect(QString());
@@ -280,7 +285,7 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
         && m_navigation->currentEdgeSpeedLimitKph() > 0) {
         publishRouteAttrs();
         clearRoadMatch();
-        m_consecutiveMisses = 0;
+        m_matchRetention.reset();
         return;
     }
 
@@ -464,7 +469,7 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
         if (hasRouteAttrs) {
             publishRouteAttrs();
             clearRoadMatch();
-            m_consecutiveMisses = 0;
+            m_matchRetention.reset();
         } else {
             countMissAndMaybeClear();
         }
@@ -472,7 +477,16 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
     }
 
     const Candidate &chosen = candidates[selection.index];
-    m_consecutiveMisses = 0;
+    const bool freeDrive = !m_navigation || !m_navigation->hasRoute();
+    if (freeDrive && !selection.confident) {
+        // A ranked winner is not necessarily a trustworthy road at a crossing
+        // or between close parallel carriageways. Retain the previous confident
+        // match briefly instead of switching the marker to an ambiguous result.
+        countMissAndMaybeClear();
+        return;
+    }
+
+    m_matchRetention.matched();
     QString name = chosen.name;
     QString refs = chosen.refs;
     QString kind = chosen.kind;
@@ -493,7 +507,6 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
     m_speedLimit->setRoadTypeDirect(kind);
     m_speedLimit->setRoadBearingDirect(chosen.policy.bearingDegrees);
 
-    const bool freeDrive = !m_navigation || !m_navigation->hasRoute();
     const bool confident = freeDrive && selection.confident;
     const bool changed = confident != m_hasConfidentRoadMatch
         || chosen.lat1 != m_matchLat1 || chosen.lon1 != m_matchLon1
