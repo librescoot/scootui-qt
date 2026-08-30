@@ -49,6 +49,7 @@
 #include "services/BackupBatteryMonitor.h"
 #include "services/BatteryAlertModel.h"
 #include "services/SystemHealthMonitor.h"
+#include "services/FaultNotifier.h"
 #include "services/NavigationAvailabilityService.h"
 #include "services/SavedLocationsService.h"
 #include "services/RecentDestinationsService.h"
@@ -65,7 +66,6 @@
 #include "l10n/Translations.h"
 #include "repositories/RedisSchema.h"
 #include "commands/CommandBus.h"
-#include "utils/FaultFormatter.h"
 #include "simulator/SimulatorService.h"
 
 #include <QQmlContext>
@@ -345,52 +345,9 @@ void Application::createStores(QQmlApplicationEngine &engine)
     auto *batteryAlerts = new BatteryAlertModel(battery0Store, battery1Store, cbBatteryStore,
                                                 auxBatteryStore, vehicleStore, this);
 
-    // Battery fault monitoring
-    auto connectFaultMonitor = [this, settingsStore](BatteryStore *batteryStore) {
-        connect(batteryStore, &BatteryStore::faultsChanged, this,
-                [this, batteryStore, settingsStore]() {
-            auto faults = batteryStore->faults();
-            if (faults.isEmpty())
-                return;
-            // Suppress battery 1 fault toasts unless dual battery mode is enabled
-            if (batteryStore->batteryId() != QLatin1String("0") && !settingsStore->dualBattery())
-                return;
-            QString slotName = batteryStore->batteryId() == QLatin1String("0")
-                ? m_translations->batterySlot0()
-                : m_translations->batterySlot1();
-            if (faults.size() == 1) {
-                QString msg = slotName + QStringLiteral(": ")
-                    + FaultFormatter::formatSingleFault(faults.first(), m_translations);
-                if (FaultFormatter::hasAnyCritical(faults))
-                    m_toastService->showError(msg);
-                else
-                    m_toastService->showWarning(msg);
-            } else {
-                QString title = slotName + QStringLiteral(": ")
-                    + FaultFormatter::getMultipleFaultsTitle(faults, m_translations);
-                QString detail = FaultFormatter::formatMultipleFaults(faults, m_translations);
-                if (FaultFormatter::hasAnyCritical(faults))
-                    m_toastService->showError(title + QStringLiteral("\n") + detail);
-                else
-                    m_toastService->showWarning(title + QStringLiteral("\n") + detail);
-            }
-        });
-    };
-    connectFaultMonitor(battery0Store);
-    connectFaultMonitor(battery1Store);
-
-    // ECU fault monitoring — mirrors the battery pattern but with "E" prefix and
-    // different code→description mapping. Single-code, no fault set.
-    connect(engineStore, &EngineStore::faultCodeChanged, this, [this, engineStore]() {
-        int code = engineStore->faultCode();
-        if (code == 0)
-            return;
-        QString msg = FaultFormatter::formatEcuFault(code, m_translations);
-        if (FaultFormatter::getEcuSeverity(code) == FaultSeverity::Critical)
-            m_toastService->showError(msg);
-        else
-            m_toastService->showWarning(msg);
-    });
+    // Battery + ECU fault toasts.
+    new FaultNotifier(battery0Store, battery1Store, engineStore,
+                      settingsStore, m_toastService, m_translations, this);
 
     // Wire UMS log polling to USB status
     connect(usbStore, &UsbStore::statusChanged, this, [usbStore, umsLogStore]() {
