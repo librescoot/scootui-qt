@@ -96,12 +96,12 @@ set(CPP_SOURCES
     src/stores/AuxBatteryStore.cpp
     src/stores/ThemeStore.cpp
     src/core/Navigator.cpp
-    src/stores/MenuStore.cpp
+    src/menu/MenuController.cpp
     src/services/HopOnService.cpp
     src/services/TripService.cpp
     src/stores/ShutdownStore.cpp
     src/stores/LocaleStore.cpp
-    src/stores/ShortcutMenuStore.cpp
+    src/menu/ShortcutMenuController.cpp
     src/stores/ConnectionStore.cpp
     src/stores/DashboardStore.cpp
     src/stores/SavedLocationsStore.cpp
@@ -143,7 +143,7 @@ set(CPP_HEADERS
     src/core/EnvConfig.h
     src/core/Application.h
     src/models/Enums.h
-    src/models/MenuNode.h
+    src/menu/MenuNode.h
     src/models/SavedLocation.h
     src/repositories/MdbRepository.h
     src/repositories/InMemoryMdbRepository.h
@@ -172,11 +172,11 @@ set(CPP_HEADERS
     src/stores/AuxBatteryStore.h
     src/stores/ThemeStore.h
     src/core/Navigator.h
-    src/stores/MenuStore.h
+    src/menu/MenuController.h
     src/services/TripService.h
     src/stores/ShutdownStore.h
     src/stores/LocaleStore.h
-    src/stores/ShortcutMenuStore.h
+    src/menu/ShortcutMenuController.h
     src/stores/ConnectionStore.h
     src/stores/DashboardStore.h
     src/stores/SavedLocationsStore.h

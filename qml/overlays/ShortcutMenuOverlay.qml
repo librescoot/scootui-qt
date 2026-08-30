@@ -6,7 +6,7 @@ import "../widgets/components"
 Item {
     id: shortcutOverlay
     anchors.fill: parent
-    visible: shortcutMenuStore.visible
+    visible: shortcutMenuController.visible
 
     property Item blurSource
     property bool isDark: themeStore.isDark
@@ -31,7 +31,7 @@ Item {
         }
     }
 
-    readonly property string selectedLabel: itemLabel(shortcutMenuStore.selectedIndex)
+    readonly property string selectedLabel: itemLabel(shortcutMenuController.selectedIndex)
 
     // Main bottom container. Fixed width, inset 40 on each side: sizing it to
     // the content instead meant the bar grew and shrank by 20 px as the
@@ -93,7 +93,7 @@ Item {
                     Rectangle {
                         id: menuItemRect
                         anchors.centerIn: parent
-                        property bool isSelected: index === shortcutMenuStore.selectedIndex
+                        property bool isSelected: index === shortcutMenuController.selectedIndex
                         property color itemColor: isSelected ? "#FF9800" : (isDark ? "#FFFFFF" : "#212121")
 
                         width: isSelected ? 80 : 60
@@ -163,7 +163,7 @@ Item {
         color: isDark ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.95)
         border.width: 2
         border.color: "#FF9800"
-        visible: shortcutMenuStore.confirming
+        visible: shortcutMenuController.confirming
 
         Column {
             id: confirmContent
@@ -222,7 +222,7 @@ Item {
                         id: confirmAnim
                         from: 0
                         to: 1
-                        duration: shortcutMenuStore.confirmTimeoutMs
+                        duration: shortcutMenuController.confirmTimeoutMs
                     }
                 }
             }

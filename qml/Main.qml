@@ -148,14 +148,14 @@ Window {
     Connections {
         id: doubleTapMenuOpener
         target: typeof inputHandler !== "undefined" ? inputHandler : null
-        enabled: typeof menuStore !== "undefined" && !menuStore.isOpen
+        enabled: typeof menuController !== "undefined" && !menuController.isOpen
                  && (root.currentScreen === Scooter.ScreenMode.Cluster
                      || root.currentScreen === Scooter.ScreenMode.Map)
         function onLeftDoubleTap() {
             console.log("MENU: onLeftDoubleTap (currentScreen=" + root.currentScreen
-                        + ", isOpen=" + menuStore.isOpen
+                        + ", isOpen=" + menuController.isOpen
                         + ", showMaintenance=" + root.showMaintenance + ")")
-            menuStore.open()
+            menuController.open()
         }
     }
 
@@ -166,7 +166,7 @@ Window {
         enabled: !doubleTapMenuOpener.enabled
         function onLeftDoubleTap() {
             console.log("MENU: leftDoubleTap dropped by QML gate (currentScreen=" + root.currentScreen
-                        + ", isOpen=" + (typeof menuStore !== "undefined" ? menuStore.isOpen : "?")
+                        + ", isOpen=" + (typeof menuController !== "undefined" ? menuController.isOpen : "?")
                         + ", showMaintenance=" + root.showMaintenance + ")")
         }
     }

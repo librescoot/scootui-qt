@@ -8,8 +8,8 @@ Item {
     property bool bothBrakes: typeof vehicleStore !== "undefined"
                               ? (vehicleStore.brakeLeft === Scooter.Toggle.On && vehicleStore.brakeRight === Scooter.Toggle.On)
                               : false
-    property bool canShow: typeof vehicleStore !== "undefined" && typeof menuStore !== "undefined"
-                           ? (vehicleStore.state === Scooter.VehicleState.Parked && !menuStore.isOpen)
+    property bool canShow: typeof vehicleStore !== "undefined" && typeof menuController !== "undefined"
+                           ? (vehicleStore.state === Scooter.VehicleState.Parked && !menuController.isOpen)
                            : false
     property bool showOverlay: false
 

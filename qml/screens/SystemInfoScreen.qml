@@ -246,8 +246,8 @@ Rectangle {
     function closeScreen() {
         if (typeof navigator !== "undefined")
             navigator.closeSystemInfo()
-        if (typeof menuStore !== "undefined")
-            menuStore.resume()
+        if (typeof menuController !== "undefined")
+            menuController.resume()
     }
 
     // Reset the scroll position when switching pages, otherwise a short page

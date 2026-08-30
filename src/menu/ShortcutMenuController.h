@@ -11,7 +11,7 @@ class InputHandler;
 class CommandBus;
 class SettingsService;
 
-class ShortcutMenuStore : public QObject
+class ShortcutMenuController : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(bool visible READ visible NOTIFY visibleChanged)
@@ -20,7 +20,7 @@ class ShortcutMenuStore : public QObject
     Q_PROPERTY(int confirmTimeoutMs READ confirmTimeoutMs CONSTANT)
 
 public:
-    explicit ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
+    explicit ShortcutMenuController(ThemeStore *theme, VehicleStore *vehicle,
                                Navigator *screen, DashboardStore *dashboard,
                                InputHandler *input, CommandBus *commands,
                                SettingsService *settingsService,

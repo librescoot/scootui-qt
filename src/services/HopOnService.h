@@ -32,7 +32,7 @@ class Navigator;
  *   BL   blinker switch -> left
  *   BR   blinker switch -> right
  *
- * Activation is from the menu only (see MenuStore). Unlock is by pressing
+ * Activation is from the menu only (see MenuController). Unlock is by pressing
  * the stored combo while Locked.
  */
 class HopOnService : public QObject

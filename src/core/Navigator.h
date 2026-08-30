@@ -16,7 +16,7 @@ public:
                          QObject *parent = nullptr);
 
     // Brake-navigated screens drive their own UI via brake-lever taps; while
-    // any of them is up we mirror MenuStore's dashboard:menu-open=true so
+    // any of them is up we mirror MenuController's dashboard:menu-open=true so
     // vehicle-service suppresses brake-light LED cues for the navigation taps.
     static bool isBrakeNavigated(ScootEnums::ScreenMode mode);
 

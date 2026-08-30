@@ -52,8 +52,8 @@ Rectangle {
     function closeScreen() {
         if (typeof navigator !== "undefined")
             navigator.closeFaults()
-        if (typeof menuStore !== "undefined")
-            menuStore.resume()
+        if (typeof menuController !== "undefined")
+            menuController.resume()
     }
 
     readonly property var entries: typeof faultsService !== "undefined" ? faultsService.entries : []

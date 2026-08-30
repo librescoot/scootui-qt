@@ -1,12 +1,12 @@
-#include "MenuStore.h"
-#include "models/MenuNode.h"
-#include "SettingsStore.h"
-#include "VehicleStore.h"
-#include "ThemeStore.h"
+#include "MenuController.h"
+#include "MenuNode.h"
+#include "stores/SettingsStore.h"
+#include "stores/VehicleStore.h"
+#include "stores/ThemeStore.h"
 #include "core/Navigator.h"
-#include "SavedLocationsStore.h"
-#include "RecentDestinationsStore.h"
-#include "InternetStore.h"
+#include "stores/SavedLocationsStore.h"
+#include "stores/RecentDestinationsStore.h"
+#include "stores/InternetStore.h"
 #include "services/HopOnService.h"
 #include "services/FaultsService.h"
 #include "l10n/Translations.h"
@@ -24,7 +24,7 @@
 #include <QProcess>
 #include <iterator>
 
-MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
+MenuController::MenuController(SettingsStore *settings, VehicleStore *vehicle,
                      ThemeStore *theme,
                      Translations *translations, SettingsService *settingsService,
                      CommandBus *commands, QObject *parent)
@@ -37,37 +37,37 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
     , m_commands(commands)
 {
     // Rebuild menu when settings or language change
-    connect(m_settings, &SettingsStore::themeChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::languageChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::blinkerStyleChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::dualBatteryChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::hornWhenSeatboxOpenChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::batteryDisplayModeChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::routePreferenceChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::avoidCobblestoneChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::valhallaUrlChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::powerDisplayModeChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::alarmEnabledChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::alarmHonkChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::alarmDurationChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::showGpsChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::showBluetoothChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::showCloudChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::showInternetChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::showClockChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::showTemperatureChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::showCbBatteryChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::showAuxBatteryChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::mapCheckForUpdatesChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::mapAutoDownloadChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::mapViewModeChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::mapNorthOrientedChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::milestoneCelebrationsChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::serviceActiveChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::otaChannelChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::otaMethodChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::otaCheckIntervalChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_translations, &Translations::languageChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::themeChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::languageChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::blinkerStyleChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::dualBatteryChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::hornWhenSeatboxOpenChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::batteryDisplayModeChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::routePreferenceChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::avoidCobblestoneChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::valhallaUrlChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::powerDisplayModeChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::alarmEnabledChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::alarmHonkChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::alarmDurationChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::showGpsChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::showBluetoothChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::showCloudChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::showInternetChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::showClockChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::showTemperatureChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::showCbBatteryChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::showAuxBatteryChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::mapCheckForUpdatesChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::mapAutoDownloadChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::mapViewModeChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::mapNorthOrientedChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::milestoneCelebrationsChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::serviceActiveChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::otaChannelChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::otaMethodChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::otaCheckIntervalChanged, this, &MenuController::rebuildMenuTree);
+    connect(m_translations, &Translations::languageChanged, this, &MenuController::rebuildMenuTree);
 
     // Close menu when vehicle starts moving
     connect(m_vehicle, &VehicleStore::stateChanged, this, [this]() {
@@ -83,9 +83,9 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
         m_commands->setMenuOpen(false);
 }
 
-MenuStore::~MenuStore() = default;
+MenuController::~MenuController() = default;
 
-void MenuStore::setNavigationService(NavigationService *svc)
+void MenuController::setNavigationService(NavigationService *svc)
 {
     m_navigationService = svc;
     if (m_navigationService) {
@@ -94,94 +94,94 @@ void MenuStore::setNavigationService(NavigationService *svc)
         // status. Every path that clears the route happens to change status
         // too today, so statusChanged alone would work by coincidence.
         connect(m_navigationService, &NavigationService::statusChanged,
-                this, &MenuStore::rebuildMenuTree);
+                this, &MenuController::rebuildMenuTree);
         connect(m_navigationService, &NavigationService::routeChanged,
-                this, &MenuStore::rebuildMenuTree);
+                this, &MenuController::rebuildMenuTree);
     }
     rebuildMenuTree();
 }
 
-void MenuStore::setSavedLocationsStore(SavedLocationsStore *store)
+void MenuController::setSavedLocationsStore(SavedLocationsStore *store)
 {
     m_savedLocations = store;
     if (m_savedLocations) {
         connect(m_savedLocations, &SavedLocationsStore::locationsChanged,
-                this, &MenuStore::rebuildMenuTree);
+                this, &MenuController::rebuildMenuTree);
     }
     rebuildMenuTree();
 }
 
-void MenuStore::setRecentDestinationsStore(RecentDestinationsStore *store)
+void MenuController::setRecentDestinationsStore(RecentDestinationsStore *store)
 {
     m_recentDestinations = store;
     if (m_recentDestinations) {
         connect(m_recentDestinations, &RecentDestinationsStore::destinationsChanged,
-                this, &MenuStore::rebuildMenuTree);
+                this, &MenuController::rebuildMenuTree);
     }
     rebuildMenuTree();
 }
 
-void MenuStore::setNavigator(Navigator *store)
+void MenuController::setNavigator(Navigator *store)
 {
     m_navigator = store;
 }
 
-void MenuStore::setNavigationAvailabilityService(NavigationAvailabilityService *svc)
+void MenuController::setNavigationAvailabilityService(NavigationAvailabilityService *svc)
 {
     m_navAvailability = svc;
     if (m_navAvailability) {
         connect(m_navAvailability, &NavigationAvailabilityService::availabilityChanged,
-                this, &MenuStore::rebuildMenuTree);
+                this, &MenuController::rebuildMenuTree);
     }
 }
 
-void MenuStore::setInternetStore(InternetStore *store)
+void MenuController::setInternetStore(InternetStore *store)
 {
     m_internet = store;
 }
 
-void MenuStore::setHopOnService(HopOnService *store)
+void MenuController::setHopOnService(HopOnService *store)
 {
     m_hopOn = store;
     if (m_hopOn) {
         // Re-render the menu when the combo state changes (no combo <->
         // has combo flips this entry between an action and a submenu).
         connect(m_hopOn, &HopOnService::comboChanged,
-                this, &MenuStore::rebuildMenuTree);
+                this, &MenuController::rebuildMenuTree);
     }
 }
 
-void MenuStore::setMapDownloadService(MapDownloadService *svc)
+void MenuController::setMapDownloadService(MapDownloadService *svc)
 {
     m_mapDownload = svc;
     if (m_mapDownload) {
         connect(m_mapDownload, &MapDownloadService::updateAvailableChanged,
-                this, &MenuStore::rebuildMenuTree);
+                this, &MenuController::rebuildMenuTree);
         connect(m_mapDownload, &MapDownloadService::updateCheckCompleted,
-                this, &MenuStore::rebuildMenuTree);
+                this, &MenuController::rebuildMenuTree);
     }
 }
 
-void MenuStore::setFaultsService(FaultsService *svc)
+void MenuController::setFaultsService(FaultsService *svc)
 {
     m_faults = svc;
     if (m_faults) {
         connect(m_faults, &FaultsService::entriesChanged,
-                this, &MenuStore::rebuildMenuTree);
+                this, &MenuController::rebuildMenuTree);
     }
 }
 
-void MenuStore::setToastService(ToastService *svc)
+void MenuController::setToastService(ToastService *svc)
 {
     m_toastService = svc;
 }
 
-void MenuStore::setUpdateChannelService(UpdateChannelService *svc)
+void MenuController::setUpdateChannelService(UpdateChannelService *svc)
 {
     m_updateChannel = svc;
 }
 
-QString MenuStore::lastMapCheckLabel() const
+QString MenuController::lastMapCheckLabel() const
 {
     if (!m_mapDownload)
         return {};
@@ -189,7 +189,7 @@ QString MenuStore::lastMapCheckLabel() const
 }
 
 // Trailing "2h ago" style label for a check that last ran at iso (ISO-8601).
-QString MenuStore::lastCheckLabel(const QString &iso) const
+QString MenuController::lastCheckLabel(const QString &iso) const
 {
     if (iso.isEmpty())
         return m_translations->mapCheckNever();
@@ -214,7 +214,7 @@ QString MenuStore::lastCheckLabel(const QString &iso) const
     return m_translations->mapCheckAgo().arg(age);
 }
 
-void MenuStore::rebuildMenuTree()
+void MenuController::rebuildMenuTree()
 {
     // Skip rebuilds if the menu is closed. We'll rebuild when it opens.
     if (!m_isOpen) return;
@@ -1140,7 +1140,7 @@ void MenuStore::rebuildMenuTree()
 
         connect(proc, &QProcess::errorOccurred, this,
                 [this, proc](QProcess::ProcessError err) {
-            qWarning() << "[MenuStore] Capture Logs ssh errorOccurred:" << err;
+            qWarning() << "[MenuController] Capture Logs ssh errorOccurred:" << err;
             if (m_toastService)
                 m_toastService->showError(m_translations->captureLogsToastFailed());
             proc->deleteLater();
@@ -1148,7 +1148,7 @@ void MenuStore::rebuildMenuTree()
 
         connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
                 this, [this, proc](int exitCode, QProcess::ExitStatus status) {
-            qInfo() << "[MenuStore] Capture Logs ssh finished, exitCode:" << exitCode
+            qInfo() << "[MenuController] Capture Logs ssh finished, exitCode:" << exitCode
                     << "status:" << status;
             if (m_toastService) {
                 if (status == QProcess::NormalExit && exitCode == 0)
@@ -1160,7 +1160,7 @@ void MenuStore::rebuildMenuTree()
         });
 
         proc->start();
-        qInfo() << "[MenuStore] Capture Logs triggered";
+        qInfo() << "[MenuController] Capture Logs triggered";
         if (m_toastService)
             m_toastService->showInfo(m_translations->captureLogsToastStarted());
         close();
@@ -1260,7 +1260,7 @@ void MenuStore::rebuildMenuTree()
     emitMenuChanged();
 }
 
-void MenuStore::rememberSelection()
+void MenuController::rememberSelection()
 {
     m_selectedId.clear();
     if (MenuNode *node = findCurrentNode()) {
@@ -1270,7 +1270,7 @@ void MenuStore::rememberSelection()
     }
 }
 
-MenuNode *MenuStore::findCurrentNode() const
+MenuNode *MenuController::findCurrentNode() const
 {
     if (!m_rootNode) return nullptr;
 
@@ -1291,7 +1291,7 @@ MenuNode *MenuStore::findCurrentNode() const
 
 // The level a Back lands on, for the hold hint. Empty at the root, where the
 // hold leaves the menu instead of going up.
-QString MenuStore::parentTitle() const
+QString MenuController::parentTitle() const
 {
     if (m_pathStack.isEmpty() || !m_rootNode)
         return {};
@@ -1318,7 +1318,7 @@ QString MenuStore::parentTitle() const
 // child, looked up among the children it would show if entered. Returns
 // nothing when the row declares none, or when the child it names is hidden by
 // its own predicate.
-MenuNode *MenuStore::selectedPrimaryNode() const
+MenuNode *MenuController::selectedPrimaryNode() const
 {
     MenuNode *node = findCurrentNode();
     if (!node)
@@ -1339,13 +1339,13 @@ MenuNode *MenuStore::selectedPrimaryNode() const
     return nullptr;
 }
 
-QString MenuStore::selectedPrimaryLabel() const
+QString MenuController::selectedPrimaryLabel() const
 {
     MenuNode *primary = selectedPrimaryNode();
     return primary ? primary->title() : QString();
 }
 
-void MenuStore::activatePrimary()
+void MenuController::activatePrimary()
 {
     MenuNode *primary = selectedPrimaryNode();
     if (!primary)
@@ -1361,13 +1361,13 @@ void MenuStore::activatePrimary()
     rebuildMenuTree();
 }
 
-QString MenuStore::currentTitle() const
+QString MenuController::currentTitle() const
 {
     auto *node = findCurrentNode();
     return node ? node->headerTitle() : m_translations->menuTitle();
 }
 
-QVariantList MenuStore::currentItems() const
+QVariantList MenuController::currentItems() const
 {
     auto *node = findCurrentNode();
     if (!node) return {};
@@ -1398,45 +1398,45 @@ QVariantList MenuStore::currentItems() const
     return list;
 }
 
-bool MenuStore::canScroll() const
+bool MenuController::canScroll() const
 {
     auto *node = findCurrentNode();
     if (!node) return false;
     return node->visibleChildren().size() > 1;
 }
 
-void MenuStore::toggle()
+void MenuController::toggle()
 {
     if (m_isOpen)
         close();
     else
         open();
 }
-void MenuStore::open()
+void MenuController::open()
 {
     openAt({}, {}, 0);
 }
 
-void MenuStore::openAt(const QStringList &path, const QList<int> &indexStack, int index)
+void MenuController::openAt(const QStringList &path, const QList<int> &indexStack, int index)
 {
-    qDebug() << "MenuStore: open requested, vehicleState" << m_vehicle->state()
+    qDebug() << "MenuController: open requested, vehicleState" << m_vehicle->state()
              << "isOpen" << m_isOpen << "hopOnMode" << (m_hopOn ? m_hopOn->mode() : -1)
              << "path" << path;
 
     if (!m_vehicle->isParked()) {
-        qDebug() << "MenuStore: open dropped - not parked, vehicleState" << m_vehicle->state();
+        qDebug() << "MenuController: open dropped - not parked, vehicleState" << m_vehicle->state();
         return;
     }
     if (m_isOpen) {
-        qDebug() << "MenuStore: open dropped - already open";
+        qDebug() << "MenuController: open dropped - already open";
         return;
     }
     if (m_hopOn && m_hopOn->mode() != HopOnService::Idle) {
-        qDebug() << "MenuStore: open dropped - hop-on not idle, mode" << m_hopOn->mode();
+        qDebug() << "MenuController: open dropped - hop-on not idle, mode" << m_hopOn->mode();
         return;
     }
 
-    qDebug() << "MenuStore: opening menu";
+    qDebug() << "MenuController: opening menu";
     clearResume();
     m_isOpen = true;
     // rebuildMenuTree() replays the path against the tree it just built and
@@ -1452,7 +1452,7 @@ void MenuStore::openAt(const QStringList &path, const QList<int> &indexStack, in
     emit isOpenChanged();
 }
 
-void MenuStore::closeForScreen()
+void MenuController::closeForScreen()
 {
     const QStringList path = m_pathStack;
     const QList<int> indexStack = m_indexStack;
@@ -1464,7 +1464,7 @@ void MenuStore::closeForScreen()
     m_resumeArmed = true;
 }
 
-void MenuStore::resume()
+void MenuController::resume()
 {
     if (!m_resumeArmed) return;
     const QStringList path = m_resumePath;
@@ -1474,7 +1474,7 @@ void MenuStore::resume()
     openAt(path, indexStack, index);
 }
 
-void MenuStore::clearResume()
+void MenuController::clearResume()
 {
     m_resumeArmed = false;
     m_resumePath.clear();
@@ -1482,7 +1482,7 @@ void MenuStore::clearResume()
     m_resumeIndex = 0;
 }
 
-void MenuStore::close()
+void MenuController::close()
 {
     clearResume();
     if (!m_isOpen) return;
@@ -1496,7 +1496,7 @@ void MenuStore::close()
     emitMenuChanged();
 }
 
-void MenuStore::navigateDown()
+void MenuController::navigateDown()
 {
     if (m_openedAt.isValid() && m_openedAt.elapsed() < kOpenInputGraceMs) return;
     auto *node = findCurrentNode();
@@ -1508,7 +1508,7 @@ void MenuStore::navigateDown()
     emitMenuChanged();
 }
 
-void MenuStore::selectItem()
+void MenuController::selectItem()
 {
     auto *node = findCurrentNode();
     if (!node) return;
@@ -1545,7 +1545,7 @@ void MenuStore::selectItem()
     }
 }
 
-void MenuStore::goBack()
+void MenuController::goBack()
 {
     if (m_pathStack.isEmpty()) {
         close();
@@ -1570,12 +1570,12 @@ void MenuStore::goBack()
     }
 }
 
-void MenuStore::emitMenuChanged()
+void MenuController::emitMenuChanged()
 {
     emit menuChanged();
 }
 
-bool MenuStore::isRoutingReady() const
+bool MenuController::isRoutingReady() const
 {
     // Routing is ready if local valhalla responds OR scooter is online with online routing configured
     if (m_navAvailability && m_navAvailability->routingAvailable())

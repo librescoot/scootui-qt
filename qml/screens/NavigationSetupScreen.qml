@@ -129,8 +129,8 @@ Rectangle {
     function closeSelf() {
         if (typeof navigator !== "undefined")
             navigator.closeNavigationSetup()
-        if (typeof menuStore !== "undefined")
-            menuStore.resume()
+        if (typeof menuController !== "undefined")
+            menuController.resume()
     }
 
     // Left scrolls and goes back; right is the primary action (Download) and

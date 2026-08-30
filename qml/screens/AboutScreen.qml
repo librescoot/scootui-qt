@@ -121,8 +121,8 @@ Rectangle {
         if (typeof navigator !== "undefined") {
             navigator.closeAbout()
         }
-        if (typeof menuStore !== "undefined")
-            menuStore.resume()
+        if (typeof menuController !== "undefined")
+            menuController.resume()
     }
 
     // Centralized brake gesture handling via InputHandler

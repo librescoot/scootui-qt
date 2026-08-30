@@ -1,15 +1,15 @@
-#include "ShortcutMenuStore.h"
-#include "ThemeStore.h"
-#include "VehicleStore.h"
+#include "ShortcutMenuController.h"
+#include "stores/ThemeStore.h"
+#include "stores/VehicleStore.h"
 #include "core/Navigator.h"
-#include "DashboardStore.h"
-#include "../services/InputHandler.h"
-#include "../services/SettingsService.h"
-#include "../commands/CommandBus.h"
-#include "../models/Enums.h"
+#include "stores/DashboardStore.h"
+#include "services/InputHandler.h"
+#include "services/SettingsService.h"
+#include "commands/CommandBus.h"
+#include "models/Enums.h"
 #include <QDebug>
 
-ShortcutMenuStore::ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
+ShortcutMenuController::ShortcutMenuController(ThemeStore *theme, VehicleStore *vehicle,
                                      Navigator *screen, DashboardStore *dashboard,
                                      InputHandler *input, CommandBus *commands,
                                      SettingsService *settingsService,
@@ -26,20 +26,20 @@ ShortcutMenuStore::ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
 {
     m_confirmTimer->setSingleShot(true);
     m_confirmTimer->setInterval(CONFIRM_TIMEOUT_MS);
-    connect(m_confirmTimer, &QTimer::timeout, this, &ShortcutMenuStore::resetState);
+    connect(m_confirmTimer, &QTimer::timeout, this, &ShortcutMenuController::resetState);
 
     m_cycleTimer->setInterval(ITEM_CYCLE_MS);
-    connect(m_cycleTimer, &QTimer::timeout, this, &ShortcutMenuStore::onCycleTimeout);
+    connect(m_cycleTimer, &QTimer::timeout, this, &ShortcutMenuController::onCycleTimeout);
 
     if (input) {
-        connect(input, &InputHandler::seatboxLongTap, this, &ShortcutMenuStore::onSeatboxLongTap);
-        connect(input, &InputHandler::seatboxRelease, this, &ShortcutMenuStore::onSeatboxRelease);
-        connect(input, &InputHandler::seatboxPress, this, &ShortcutMenuStore::onSeatboxPress);
-        connect(input, &InputHandler::seatboxDoubleTap, this, &ShortcutMenuStore::onSeatboxDoubleTap);
+        connect(input, &InputHandler::seatboxLongTap, this, &ShortcutMenuController::onSeatboxLongTap);
+        connect(input, &InputHandler::seatboxRelease, this, &ShortcutMenuController::onSeatboxRelease);
+        connect(input, &InputHandler::seatboxPress, this, &ShortcutMenuController::onSeatboxPress);
+        connect(input, &InputHandler::seatboxDoubleTap, this, &ShortcutMenuController::onSeatboxDoubleTap);
     }
 }
 
-void ShortcutMenuStore::show()
+void ShortcutMenuController::show()
 {
     if (!m_visible) {
         m_visible = true;
@@ -51,7 +51,7 @@ void ShortcutMenuStore::show()
     }
 }
 
-void ShortcutMenuStore::hide()
+void ShortcutMenuController::hide()
 {
     if (m_visible) {
         m_visible = false;
@@ -63,13 +63,13 @@ void ShortcutMenuStore::hide()
     }
 }
 
-void ShortcutMenuStore::cycle()
+void ShortcutMenuController::cycle()
 {
     m_selectedIndex = (m_selectedIndex + 1) % ITEM_COUNT;
     emit selectionChanged();
 }
 
-void ShortcutMenuStore::confirm()
+void ShortcutMenuController::confirm()
 {
     if (!m_visible) return;
 
@@ -78,12 +78,12 @@ void ShortcutMenuStore::confirm()
     m_confirmTimer->start();
 }
 
-bool ShortcutMenuStore::isReadyToDrive() const
+bool ShortcutMenuController::isReadyToDrive() const
 {
     return m_vehicle->state() == static_cast<int>(ScootEnums::VehicleState::ReadyToDrive);
 }
 
-void ShortcutMenuStore::onSeatboxLongTap()
+void ShortcutMenuController::onSeatboxLongTap()
 {
     if (!isReadyToDrive())
         return;
@@ -94,7 +94,7 @@ void ShortcutMenuStore::onSeatboxLongTap()
     }
 }
 
-void ShortcutMenuStore::onSeatboxRelease()
+void ShortcutMenuController::onSeatboxRelease()
 {
     if (!isReadyToDrive())
         return;
@@ -107,7 +107,7 @@ void ShortcutMenuStore::onSeatboxRelease()
     }
 }
 
-void ShortcutMenuStore::onSeatboxPress()
+void ShortcutMenuController::onSeatboxPress()
 {
     if (!isReadyToDrive())
         return;
@@ -118,7 +118,7 @@ void ShortcutMenuStore::onSeatboxPress()
     }
 }
 
-void ShortcutMenuStore::onSeatboxDoubleTap()
+void ShortcutMenuController::onSeatboxDoubleTap()
 {
     if (!isReadyToDrive())
         return;
@@ -127,12 +127,12 @@ void ShortcutMenuStore::onSeatboxDoubleTap()
         toggleHazards();
 }
 
-void ShortcutMenuStore::onCycleTimeout()
+void ShortcutMenuController::onCycleTimeout()
 {
     cycle();
 }
 
-void ShortcutMenuStore::executeAction(int index)
+void ShortcutMenuController::executeAction(int index)
 {
     switch (index) {
     case 0: cycleTheme(); break;
@@ -142,7 +142,7 @@ void ShortcutMenuStore::executeAction(int index)
     }
 }
 
-void ShortcutMenuStore::toggleDebugOverlay()
+void ShortcutMenuController::toggleDebugOverlay()
 {
     if (!m_commands || !m_dashboardStore) return;
 
@@ -150,13 +150,13 @@ void ShortcutMenuStore::toggleDebugOverlay()
     m_commands->setDebugMode(isOverlay ? QStringLiteral("off") : QStringLiteral("overlay"));
 }
 
-void ShortcutMenuStore::toggleHazards()
+void ShortcutMenuController::toggleHazards()
 {
     if (!m_commands) return;
     m_commands->toggleHazards(m_vehicle->blinkerState());
 }
 
-void ShortcutMenuStore::toggleView()
+void ShortcutMenuController::toggleView()
 {
     if (!m_navigator) return;
 
@@ -170,7 +170,7 @@ void ShortcutMenuStore::toggleView()
     }
 }
 
-void ShortcutMenuStore::cycleTheme()
+void ShortcutMenuController::cycleTheme()
 {
     if (m_theme->isAutoMode()) {
         m_settingsService->updateTheme(QStringLiteral("dark"));
@@ -181,7 +181,7 @@ void ShortcutMenuStore::cycleTheme()
     }
 }
 
-void ShortcutMenuStore::resetState()
+void ShortcutMenuController::resetState()
 {
     m_cycleTimer->stop();
     m_confirmTimer->stop();

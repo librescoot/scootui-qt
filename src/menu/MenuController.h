@@ -25,7 +25,7 @@ class FaultsService;
 class ToastService;
 class UpdateChannelService;
 
-class MenuStore : public QObject
+class MenuController : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(bool isOpen READ isOpen NOTIFY isOpenChanged)
@@ -44,7 +44,7 @@ class MenuStore : public QObject
     Q_PROPERTY(QString selectedPrimaryLabel READ selectedPrimaryLabel NOTIFY menuChanged)
 
 public:
-    explicit MenuStore(SettingsStore *settings, VehicleStore *vehicle,
+    explicit MenuController(SettingsStore *settings, VehicleStore *vehicle,
                        ThemeStore *theme,
                        Translations *translations, SettingsService *settingsService,
                        CommandBus *commands, QObject *parent = nullptr);
@@ -60,7 +60,7 @@ public:
     void setFaultsService(FaultsService *svc);
     void setToastService(ToastService *svc);
     void setUpdateChannelService(UpdateChannelService *svc);
-    ~MenuStore() override;
+    ~MenuController() override;
 
     bool isOpen() const { return m_isOpen; }
     QString currentTitle() const;

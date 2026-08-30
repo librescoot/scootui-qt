@@ -24,8 +24,8 @@ Rectangle {
     function cancelBack() {
         if (typeof navigator !== "undefined")
             navigator.closeUpdateModeInfo()
-        if (typeof menuStore !== "undefined")
-            menuStore.resume()
+        if (typeof menuController !== "undefined")
+            menuController.resume()
     }
 
     readonly property bool canScrollDown: flickable.contentHeight > flickable.height

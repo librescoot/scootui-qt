@@ -299,8 +299,8 @@ Rectangle {
     function cancelBack() {
         if (typeof navigator !== "undefined")
             navigator.closeAddressSelection()
-        if (typeof menuStore !== "undefined")
-            menuStore.resume()
+        if (typeof menuController !== "undefined")
+            menuController.resume()
     }
 
     function _backFromCityLetters() {
@@ -451,8 +451,8 @@ Rectangle {
         // A chosen destination hands over to the map rather than backing out,
         // so drop the menu level cancelBack() would have returned to. close()
         // clears it even though the menu is already shut.
-        if (typeof menuStore !== "undefined")
-            menuStore.close()
+        if (typeof menuController !== "undefined")
+            menuController.close()
         if (typeof navigator !== "undefined") {
             navigator.setScreen(Scooter.ScreenMode.Map)
         }

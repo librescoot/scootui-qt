@@ -25,14 +25,14 @@
 #include "stores/AuxBatteryStore.h"
 #include "stores/ThemeStore.h"
 #include "core/Navigator.h"
-#include "stores/MenuStore.h"
+#include "menu/MenuController.h"
 #include "services/HopOnService.h"
 #include "stores/FaultEventStore.h"
 #include "services/FaultsService.h"
 #include "services/TripService.h"
 #include "stores/ShutdownStore.h"
 #include "stores/LocaleStore.h"
-#include "stores/ShortcutMenuStore.h"
+#include "menu/ShortcutMenuController.h"
 #include "stores/ConnectionStore.h"
 #include "stores/DashboardStore.h"
 #include "stores/SavedLocationsStore.h"
@@ -541,40 +541,40 @@ void Application::createStores(QQmlApplicationEngine &engine)
         m_autoThemeService->setEnabled(true);
     }
 
-    // M5: MenuStore with full dependencies
-    auto *menuStore = new MenuStore(settingsStore, vehicleStore, themeStore,
+    // M5: MenuController with full dependencies
+    auto *menuController = new MenuController(settingsStore, vehicleStore, themeStore,
                                     m_translations, m_settingsService,
                                     commandBus, this);
 
     // Wire saved locations, screen store, navigation, and availability into menu
-    menuStore->setSavedLocationsStore(savedLocationsStore);
-    menuStore->setRecentDestinationsStore(recentDestinationsStore);
-    menuStore->setNavigator(navigator);
-    menuStore->setNavigationService(m_navigationService);
-    menuStore->setNavigationAvailabilityService(m_navAvailability);
-    menuStore->setInternetStore(internetStore);
+    menuController->setSavedLocationsStore(savedLocationsStore);
+    menuController->setRecentDestinationsStore(recentDestinationsStore);
+    menuController->setNavigator(navigator);
+    menuController->setNavigationService(m_navigationService);
+    menuController->setNavigationAvailabilityService(m_navAvailability);
+    menuController->setInternetStore(internetStore);
 
     // Hop-on / hop-off store: combo learning, matching, lock screen.
     auto *hopOnService = new HopOnService(vehicleStore, settingsStore,
                                       m_settingsService,
                                       commandBus, navigator, this);
-    menuStore->setHopOnService(hopOnService);
-    menuStore->setMapDownloadService(m_mapDownloadService);
+    menuController->setHopOnService(hopOnService);
+    menuController->setMapDownloadService(m_mapDownloadService);
 
     // Fault aggregation: stream tail + union of per-service active-fault sets.
     auto *faultEventStore = new FaultEventStore(repo, this);
     auto *faultsService = new FaultsService(battery0Store, battery1Store, engineStore,
                                          vehicleStore, bluetoothStore, internetStore,
                                          faultEventStore, m_translations, this);
-    menuStore->setFaultsService(faultsService);
-    menuStore->setToastService(m_toastService);
+    menuController->setFaultsService(faultsService);
+    menuController->setToastService(m_toastService);
 
     // Release-channel switching: asks both update-service instances what a
     // switch would download, then applies it on confirmation.
     m_updateChannelService = new UpdateChannelService(m_settingsService, settingsStore,
                                                       otaStore, internetStore,
                                                       m_systemInfoService, this);
-    menuStore->setUpdateChannelService(m_updateChannelService);
+    menuController->setUpdateChannelService(m_updateChannelService);
 
     // Speed up polling while the faults screen is open, slow it back down
     // when it closes so the active-count badge still refreshes without
@@ -597,8 +597,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // Input handler: sole consumer of vehicle-service's "input-events" stream
     m_inputHandler = new InputHandler(vehicleStore, repo, this);
 
-    // M5: ShortcutMenuStore
-    auto *shortcutMenuStore = new ShortcutMenuStore(themeStore, vehicleStore, navigator, dashboardStore, m_inputHandler, commandBus, m_settingsService, this);
+    // M5: ShortcutMenuController
+    auto *shortcutMenuController = new ShortcutMenuController(themeStore, vehicleStore, navigator, dashboardStore, m_inputHandler, commandBus, m_settingsService, this);
 
     // M6: Wire shutdown to vehicle state monitoring
     m_shutdownStore->connectToVehicle(vehicleStore);
@@ -625,11 +625,11 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("auxBatteryStore"), auxBatteryStore);
     ctx->setContextProperty(QStringLiteral("themeStore"), themeStore);
     ctx->setContextProperty(QStringLiteral("navigator"), navigator);
-    ctx->setContextProperty(QStringLiteral("menuStore"), menuStore);
+    ctx->setContextProperty(QStringLiteral("menuController"), menuController);
     ctx->setContextProperty(QStringLiteral("hopOnService"), hopOnService);
     ctx->setContextProperty(QStringLiteral("tripService"), tripService);
     ctx->setContextProperty(QStringLiteral("shutdownStore"), shutdownStore);
-    ctx->setContextProperty(QStringLiteral("shortcutMenuStore"), shortcutMenuStore);
+    ctx->setContextProperty(QStringLiteral("shortcutMenuController"), shortcutMenuController);
     ctx->setContextProperty(QStringLiteral("translations"), m_translations);
     ctx->setContextProperty(QStringLiteral("settingsService"), m_settingsService);
     ctx->setContextProperty(QStringLiteral("navigationService"), m_navigationService);

@@ -57,7 +57,7 @@ Rectangle {
     // as reading them. Nothing else on this screen wants a plain right tap.
     Connections {
         target: typeof inputHandler !== "undefined" ? inputHandler : null
-        enabled: typeof menuStore === "undefined" || !menuStore.isOpen
+        enabled: typeof menuController === "undefined" || !menuController.isOpen
         function onLeftTap() {
             var maxY = Math.max(0, flickable.contentHeight - flickable.height)
             scrollAnim.to = Math.min(flickable.contentY + 120, maxY)

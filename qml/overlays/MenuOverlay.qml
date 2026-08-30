@@ -6,7 +6,7 @@ Item {
     id: menuOverlay
     anchors.fill: parent
     visible: opacity > 0
-    opacity: menuStore.isOpen ? 1.0 : 0.0
+    opacity: menuController.isOpen ? 1.0 : 0.0
 
     property Item blurSource
 
@@ -26,20 +26,20 @@ Item {
 
     Connections {
         target: typeof inputHandler !== "undefined" ? inputHandler : null
-        enabled: menuStore.isOpen
-        function onLeftTap()  { menuStore.navigateDown() }
-        function onLeftHold() { menuStore.goBack()        }
-        function onRightTap() { menuStore.selectItem()   }
+        enabled: menuController.isOpen
+        function onLeftTap()  { menuController.navigateDown() }
+        function onLeftHold() { menuController.goBack()        }
+        function onRightTap() { menuController.selectItem()   }
         // Right long-tap runs the selected row's primary action without
         // entering it. Only ever bound to something cheap to undo: at 800 ms
         // a deliberate but slow select crosses the same threshold.
-        function onRightHold() { menuStore.activatePrimary() }
+        function onRightHold() { menuController.activatePrimary() }
         // The 3 s hold leaves the menu from any depth, deliberately without a
         // row in the bar: an escape from four levels down is worth having and
         // is not worth 19 px of every screen to advertise. It arrives after
         // the 800 ms long-tap has already popped one level, so from the root
         // the menu has closed before this can fire.
-        function onLeftBrakeHold() { menuStore.close() }
+        function onLeftBrakeHold() { menuController.close() }
     }
 
     ColumnLayout {
@@ -56,7 +56,7 @@ Item {
             Layout.leftMargin: 24
             Layout.rightMargin: 24
             horizontalAlignment: Text.AlignHCenter
-            text: menuStore.currentTitle
+            text: menuController.currentTitle
             font.pixelSize: themeStore.fontHeading
             font.weight: Font.Bold
             wrapMode: Text.WordWrap
@@ -81,15 +81,15 @@ Item {
                 bottomMargin: 8
                 spacing: 2
                 clip: true
-                model: menuStore.currentItems
-                currentIndex: menuStore.selectedIndex
+                model: menuController.currentItems
+                currentIndex: menuController.selectedIndex
                 highlightMoveDuration: 150
 
                 delegate: MenuItem {
                     width: menuList.width
                     title: modelData.title
                     itemType: modelData.type
-                    isSelected: index === menuStore.selectedIndex
+                    isSelected: index === menuController.selectedIndex
                     currentValue: modelData.currentValue
                     hasChildren: modelData.hasChildren
                     leadingIcon: modelData.leadingIcon !== undefined ? modelData.leadingIcon : ""
@@ -189,22 +189,22 @@ Item {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 // A level with one entry has nothing to scroll through.
-                leftTap: !menuStore.canScroll ? ""
+                leftTap: !menuController.canScroll ? ""
                        : (typeof translations !== "undefined"
                           ? translations.controlScroll : "Scroll")
                 // At the root the hold leaves the menu rather than going up a
                 // level, so it says so.
                 leftHold: {
                     if (typeof translations === "undefined")
-                        return menuStore.isRoot ? "Close" : "Back"
-                    if (menuStore.isRoot)
+                        return menuController.isRoot ? "Close" : "Back"
+                    if (menuController.isRoot)
                         return translations.controlClose
                     // Name the level it lands on. The hold row has the bar to
                     // itself (nothing binds a right hold), so even the longest
                     // German level name fits.
-                    return menuStore.parentTitle === ""
+                    return menuController.parentTitle === ""
                          ? translations.controlBack
-                         : translations.controlBackTo.arg(menuStore.parentTitle)
+                         : translations.controlBackTo.arg(menuController.parentTitle)
                 }
                 // Plain "Back" for when naming the level would collide with
                 // the shortcut on the same row.
@@ -215,7 +215,7 @@ Item {
                 // Named by the row it would run, so the shortcut says what it
                 // does rather than that it exists. Empty on rows that declare
                 // no primary action, which is most of them.
-                rightHold: menuStore.selectedPrimaryLabel
+                rightHold: menuController.selectedPrimaryLabel
             }
         }
     }
