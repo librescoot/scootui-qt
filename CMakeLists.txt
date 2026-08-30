@@ -99,6 +99,7 @@ set(CPP_SOURCES
     src/controllers/AddressEntryController.cpp
     src/controllers/MapSetupController.cpp
     src/coordinators/MapUpdateCoordinator.cpp
+    src/coordinators/ReadinessCoordinator.cpp
     src/menu/MenuController.cpp
     src/menu/MenuActions.cpp
     src/menu/MenuDefinition.cpp
@@ -154,6 +155,7 @@ set(CPP_HEADERS
     src/controllers/AddressEntryController.h
     src/controllers/MapSetupController.h
     src/coordinators/MapUpdateCoordinator.h
+    src/coordinators/ReadinessCoordinator.h
     src/controllers/MapSetupPolicy.h
     src/menu/MenuNode.h
     src/menu/MenuAction.h

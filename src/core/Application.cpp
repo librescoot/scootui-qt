@@ -58,6 +58,7 @@
 #include "controllers/AddressEntryController.h"
 #include "controllers/MapSetupController.h"
 #include "coordinators/MapUpdateCoordinator.h"
+#include "coordinators/ReadinessCoordinator.h"
 #include "services/MapDownloadService.h"
 #include "services/UpdateChannelService.h"
 #include "services/RoadInfoService.h"
@@ -75,7 +76,6 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFileSystemWatcher>
-#include <QProcess>
 #include <QFile>
 #include <QTimer>
 #include <QDateTime>
@@ -102,11 +102,8 @@ public:
 #ifdef Q_OS_LINUX
 #include <QSocketNotifier>
 #include <sys/socket.h>
-#include <sys/un.h>
 #include <signal.h>
 #include <unistd.h>
-#include <string.h>
-#include <stddef.h>
 
 static int s_sigTermFd[2];
 
@@ -114,25 +111,6 @@ static void sigTermHandler(int)
 {
     char a = 1;
     ::write(s_sigTermFd[0], &a, sizeof(a));
-}
-
-static void sdNotifyReady()
-{
-    const char *sockPath = ::getenv("NOTIFY_SOCKET");
-    if (!sockPath) return;
-
-    int fd = ::socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
-    if (fd < 0) return;
-
-    struct sockaddr_un addr = {};
-    addr.sun_family = AF_UNIX;
-    ::strncpy(addr.sun_path, sockPath, sizeof(addr.sun_path) - 1);
-    if (addr.sun_path[0] == '@')
-        addr.sun_path[0] = '\0';
-
-    ::sendto(fd, "READY=1", 7, 0, (struct sockaddr *)&addr,
-             offsetof(struct sockaddr_un, sun_path) + ::strlen(sockPath));
-    ::close(fd);
 }
 #endif
 
@@ -569,34 +547,15 @@ void Application::createStores(QQmlApplicationEngine &engine)
              << "state=" << battery1Store->batteryState()
              << "charge=" << battery1Store->charge();
 
-    // Notify other services that the dashboard is ready (on startup and every reconnect)
-    auto publishReady = [repo, this]() {
-        if (m_serialNumberService->available()) {
-            repo->set(RedisSchema::hash::Dashboard, QStringLiteral("serial-number"),
-                      m_serialNumberService->serialNumber());
-        }
-        if (m_mapDownloadService)
-            m_mapDownloadService->publishToRedis();
-        repo->dashboardReady();
-        // The first call runs before the worker has connected (the prewarm uses
-        // its own throwaway context), so isConnected() is what decides whether
-        // the ready publish actually reached Redis.
-        m_redisReady = repo->isConnected();
-        maybeSignalReady();
-    };
-    connect(repo, &MdbRepository::connectionStateChanged, this, [publishReady](bool connected) {
-        if (connected)
-            publishReady();
-    });
+    // Ready handshake: dashboard hash publish on every connect, boot-animation
+    // handover, systemd READY=1 gating.
     BOOT_MARK("publishReady() calling");
-    publishReady();
+    m_readiness = new ReadinessCoordinator(repo, m_serialNumberService,
+                                           m_mapDownloadService, this);
     BOOT_MARK("publishReady() returned");
 
     qDebug() << "All stores created and started (M5: menu, settings, translations, auto-theme, toast, map, nav-availability, saved-locations, serial-number)";
 }
-
-
-
 
 void Application::registerContextProperties(QQmlApplicationEngine &engine)
 {
@@ -607,55 +566,8 @@ void Application::registerContextProperties(QQmlApplicationEngine &engine)
 
 void Application::uiPresented()
 {
-    if (m_uiPresented)
-        return;
-    m_uiPresented = true;
-    fadeInOverlay();
-    maybeSignalReady();
-}
-
-void Application::maybeSignalReady()
-{
-#ifdef Q_OS_LINUX
-    if (m_readySignalled || !m_uiPresented || !m_redisReady)
-        return;
-    m_readySignalled = true;
-    BOOT_MARK("sd_notify READY=1");
-    sdNotifyReady();
-#endif
-}
-
-void Application::fadeInOverlay()
-{
-#ifdef Q_OS_LINUX
-    auto stopBootAnimation = []() {
-        QProcess::startDetached(QStringLiteral("systemctl"),
-                                 {QStringLiteral("stop"), QStringLiteral("boot-animation.service")});
-        qDebug() << "Boot animation stopped";
-    };
-
-    if (!QFile::exists(QStringLiteral("/sys/class/graphics/fb1/overlay_alpha"))) {
-        // No overlay alpha (kernel 6.6 imx-drm) — stop boot-animation directly
-        stopBootAnimation();
-        return;
-    }
-
-    qDebug() << "Starting boot animation fade-in...";
-    auto *proc = new QProcess(this);
-    proc->setProgram(QStringLiteral("/usr/bin/imx-overlay-alpha"));
-    proc->setArguments({QStringLiteral("fade"), QStringLiteral("0"),
-                        QStringLiteral("255"), QStringLiteral("1000")});
-
-    connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-            this, [proc, stopBootAnimation](int exitCode, QProcess::ExitStatus) {
-        proc->deleteLater();
-        if (exitCode == 0) {
-            stopBootAnimation();
-        }
-    });
-
-    proc->start();
-#endif
+    if (m_readiness)
+        m_readiness->uiPresented();
 }
 
 void Application::setupSimulatorAutoDrive()

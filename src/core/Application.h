@@ -31,6 +31,7 @@ class UpdateChannelService;
 class RoadInfoService;
 class OdometerMilestoneService;
 class MapUpdateCoordinator;
+class ReadinessCoordinator;
 
 class Application : public QObject
 {
@@ -41,19 +42,13 @@ public:
     ~Application();
 
     bool initialize(QQmlApplicationEngine &engine);
-    // Call once the first frame is actually on screen. Hands the display over
-    // from boot-animation and, together with the Redis connect, gates the
-    // systemd READY=1. Idempotent.
+    // Call once the first frame is actually on screen. Forwards to
+    // ReadinessCoordinator, which hands over the display and gates READY=1.
     void uiPresented();
     bool isSimulatorMode() const { return m_simulatorMode; }
     bool isInMemoryBackend() const { return m_inMemoryBackend; }
 
 private:
-    void fadeInOverlay();
-    // READY=1 fires once both halves are true: the UI has painted and the
-    // Redis worker is connected (so the dashboard hash has really been
-    // published). Called from both edges, whichever lands last wins.
-    void maybeSignalReady();
     void createStores(QQmlApplicationEngine &engine);
     void registerContextProperties(QQmlApplicationEngine &engine);
     void setupSignalHandlers();
@@ -91,11 +86,9 @@ private:
     RoadInfoService *m_roadInfoService = nullptr;
     OdometerMilestoneService *m_odometerMilestoneService = nullptr;
     MapUpdateCoordinator *m_mapUpdateCoordinator = nullptr;
+    ReadinessCoordinator *m_readiness = nullptr;
     bool m_simulatorMode = false;
     bool m_inMemoryBackend = false;
     QString m_backendDescription;
-    bool m_uiPresented = false;
-    bool m_redisReady = false;
-    bool m_readySignalled = false;
     QList<QObject*> m_stores;
 };
