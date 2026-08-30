@@ -97,6 +97,8 @@ set(CPP_SOURCES
     src/stores/ThemeStore.cpp
     src/core/Navigator.cpp
     src/menu/MenuController.cpp
+    src/menu/MenuActions.cpp
+    src/menu/MenuDefinition.cpp
     src/services/HopOnService.cpp
     src/services/TripService.cpp
     src/stores/ShutdownStore.cpp
@@ -144,6 +146,8 @@ set(CPP_HEADERS
     src/core/Application.h
     src/models/Enums.h
     src/menu/MenuNode.h
+    src/menu/MenuAction.h
+    src/menu/MenuDefinition.h
     src/models/SavedLocation.h
     src/repositories/MdbRepository.h
     src/repositories/InMemoryMdbRepository.h

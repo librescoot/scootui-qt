@@ -6,6 +6,8 @@
 #include <QStringList>
 #include <memory>
 
+struct MenuAction;
+struct MenuContext;
 class MenuNode;
 class SettingsStore;
 class VehicleStore;
@@ -25,6 +27,8 @@ class FaultsService;
 class ToastService;
 class UpdateChannelService;
 
+// The menu engine: holds the tree MenuDefinition builds, walks it, and runs
+// row actions through runAction() (MenuActions.cpp), the single interpreter.
 class MenuController : public QObject
 {
     Q_OBJECT
@@ -45,17 +49,17 @@ class MenuController : public QObject
 
 public:
     explicit MenuController(SettingsStore *settings, VehicleStore *vehicle,
-                       ThemeStore *theme,
-                       Translations *translations, SettingsService *settingsService,
-                       CommandBus *commands, QObject *parent = nullptr);
+                            ThemeStore *theme,
+                            Translations *translations, SettingsService *settingsService,
+                            CommandBus *commands, QObject *parent = nullptr);
 
     void setNavigationService(NavigationService *svc);
     void setSavedLocationsStore(SavedLocationsStore *store);
     void setRecentDestinationsStore(RecentDestinationsStore *store);
-    void setNavigator(Navigator *store);
+    void setNavigator(Navigator *navigator);
     void setNavigationAvailabilityService(NavigationAvailabilityService *svc);
     void setInternetStore(InternetStore *store);
-    void setHopOnService(HopOnService *store);
+    void setHopOnService(HopOnService *svc);
     void setMapDownloadService(MapDownloadService *svc);
     void setFaultsService(FaultsService *svc);
     void setToastService(ToastService *svc);
@@ -98,12 +102,19 @@ private:
     void rememberSelection();
     void clearResume();
     void rebuildMenuTree();
-    QString lastMapCheckLabel() const;
-    QString lastCheckLabel(const QString &iso) const;
+    MenuContext makeContext() const;
+    // The single interpreter for MenuAction verbs (MenuActions.cpp). Only
+    // place in the menu that mutates services or issues commands.
+    void runAction(const MenuAction &action);
+    void applySetting(const QString &key, const QVariant &value);
+    void toggleSetting(const QString &key);
+    // Wraps runAction in the reentrancy guard: actions signal rebuilds that
+    // would destroy the tree mid-walk, so rebuilds are deferred until after
+    // the action returns.
+    void runGuarded(const MenuAction &action);
     MenuNode *findCurrentNode() const;
     MenuNode *selectedPrimaryNode() const;
     void emitMenuChanged();
-    bool isRoutingReady() const;
 
     SettingsStore *m_settings;
     VehicleStore *m_vehicle;

@@ -4,11 +4,13 @@
 #include <QList>
 #include <functional>
 
+#include "MenuAction.h"
+
 enum class MenuNodeType { Action, Submenu, Setting, CycleSetting };
 
 struct CycleOption {
     QString label;
-    std::function<void()> action;
+    MenuAction action;
 };
 
 class MenuNode
@@ -40,6 +42,7 @@ public:
     // drift apart, and so the shortcut goes away with the child when the
     // child's own visibility predicate hides it.
     QString primaryChildId() const { return m_primaryChildId; }
+    QString leadingIcon() const { return m_leadingIcon; }
     QString currentValueLabel() const {
         if (!m_valueLabel.isEmpty()) return m_valueLabel;
         if (m_cycleOptions.isEmpty()) return {};
@@ -53,16 +56,16 @@ public:
     void setValueLabel(const QString &t) { m_valueLabel = t; }
     void setCaution(bool c) { m_caution = c; }
     void setPrimaryChildId(const QString &id) { m_primaryChildId = id; }
+    void setLeadingIcon(const QString &glyph) { m_leadingIcon = glyph; }
     void setCurrentValue(int v) { m_currentValue = v; }
-    void setOnAction(std::function<void()> fn) { m_onAction = std::move(fn); }
+    void setAction(const MenuAction &a) { m_action = a; }
     void setIsVisible(std::function<bool()> fn) { m_isVisible = std::move(fn); }
 
-    // Cycle operations
-    void cycleNext() {
-        if (m_cycleOptions.isEmpty()) return;
+    // The action activating the option after the current one would run.
+    MenuAction nextCycleAction() const {
+        if (m_cycleOptions.isEmpty()) return {};
         int next = (m_cycleIndex + 1) % m_cycleOptions.size();
-        if (m_cycleOptions[next].action)
-            m_cycleOptions[next].action();
+        return m_cycleOptions[next].action;
     }
 
     // Tree operations
@@ -81,20 +84,16 @@ public:
         return result;
     }
 
-    void executeAction() {
-        if (m_onAction) m_onAction();
-    }
-
-    std::function<void()> action() const { return m_onAction; }
+    const MenuAction &action() const { return m_action; }
 
     bool hasChildren() const { return !m_children.isEmpty(); }
 
     // Factory helpers
     static MenuNode *action(const QString &id, const QString &title,
-                            std::function<void()> onAction = nullptr,
+                            const MenuAction &onAction = {},
                             std::function<bool()> isVisible = nullptr) {
         auto *n = new MenuNode(id, title, MenuNodeType::Action);
-        n->m_onAction = std::move(onAction);
+        n->m_action = onAction;
         n->m_isVisible = std::move(isVisible);
         return n;
     }
@@ -109,10 +108,10 @@ public:
     }
 
     static MenuNode *setting(const QString &id, const QString &title,
-                             int currentValue, std::function<void()> onAction = nullptr) {
+                             int currentValue, const MenuAction &onAction = {}) {
         auto *n = new MenuNode(id, title, MenuNodeType::Setting);
         n->m_currentValue = currentValue;
-        n->m_onAction = std::move(onAction);
+        n->m_action = onAction;
         return n;
     }
 
@@ -132,12 +131,13 @@ private:
     QString m_primaryChildId;
     QString m_headerTitle;
     QString m_valueLabel;
+    QString m_leadingIcon;
     MenuNodeType m_type;
     MenuNode *m_parent = nullptr;
     bool m_caution = false;
     int m_currentValue = 0;
     QList<MenuNode*> m_children;
-    std::function<void()> m_onAction;
+    MenuAction m_action;
     std::function<bool()> m_isVisible;
     QList<CycleOption> m_cycleOptions;
     int m_cycleIndex = 0;
