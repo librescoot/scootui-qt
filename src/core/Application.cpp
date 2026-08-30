@@ -28,8 +28,8 @@
 #include "stores/MenuStore.h"
 #include "stores/HopOnStore.h"
 #include "stores/FaultEventStore.h"
-#include "stores/FaultsStore.h"
-#include "stores/TripStore.h"
+#include "services/FaultsService.h"
+#include "services/TripService.h"
 #include "stores/ShutdownStore.h"
 #include "stores/LocaleStore.h"
 #include "stores/ShortcutMenuStore.h"
@@ -226,7 +226,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     auto *auxBatteryStore = new AuxBatteryStore(repo, this);
     auto *themeStore = new ThemeStore(settingsStore, this);
     auto *screenStore = new ScreenStore(settingsStore, commandBus, this);
-    auto *tripStore = new TripStore(engineStore, vehicleStore, this);
+    auto *tripService = new TripService(engineStore, vehicleStore, this);
     m_shutdownStore = new ShutdownStore(this);
     auto *shutdownStore = m_shutdownStore;
     auto *localeStore = new LocaleStore(settingsStore, this);
@@ -543,7 +543,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // M5: MenuStore with full dependencies
     auto *menuStore = new MenuStore(settingsStore, vehicleStore, themeStore,
-                                    tripStore, m_translations, m_settingsService,
+                                    m_translations, m_settingsService,
                                     commandBus, this);
 
     // Wire saved locations, screen store, navigation, and availability into menu
@@ -563,10 +563,10 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Fault aggregation: stream tail + union of per-service active-fault sets.
     auto *faultEventStore = new FaultEventStore(repo, this);
-    auto *faultsStore = new FaultsStore(battery0Store, battery1Store, engineStore,
+    auto *faultsService = new FaultsService(battery0Store, battery1Store, engineStore,
                                          vehicleStore, bluetoothStore, internetStore,
                                          faultEventStore, m_translations, this);
-    menuStore->setFaultsStore(faultsStore);
+    menuStore->setFaultsService(faultsService);
     menuStore->setToastService(m_toastService);
 
     // Release-channel switching: asks both update-service instances what a
@@ -627,7 +627,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("screenStore"), screenStore);
     ctx->setContextProperty(QStringLiteral("menuStore"), menuStore);
     ctx->setContextProperty(QStringLiteral("hopOnStore"), hopOnStore);
-    ctx->setContextProperty(QStringLiteral("tripStore"), tripStore);
+    ctx->setContextProperty(QStringLiteral("tripService"), tripService);
     ctx->setContextProperty(QStringLiteral("shutdownStore"), shutdownStore);
     ctx->setContextProperty(QStringLiteral("shortcutMenuStore"), shortcutMenuStore);
     ctx->setContextProperty(QStringLiteral("translations"), m_translations);
@@ -649,7 +649,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("umsLogStore"), umsLogStore);
     ctx->setContextProperty(QStringLiteral("systemInfoService"), m_systemInfoService);
     ctx->setContextProperty(QStringLiteral("odometerMilestoneService"), m_odometerMilestoneService);
-    ctx->setContextProperty(QStringLiteral("faultsStore"), faultsStore);
+    ctx->setContextProperty(QStringLiteral("faultsService"), faultsService);
     ctx->setContextProperty(QStringLiteral("updateChannelService"), m_updateChannelService);
 
     // Simulator service (created in sim mode, null otherwise)

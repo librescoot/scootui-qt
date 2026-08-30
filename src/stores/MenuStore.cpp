@@ -3,13 +3,12 @@
 #include "SettingsStore.h"
 #include "VehicleStore.h"
 #include "ThemeStore.h"
-#include "TripStore.h"
 #include "ScreenStore.h"
 #include "SavedLocationsStore.h"
 #include "RecentDestinationsStore.h"
 #include "InternetStore.h"
 #include "HopOnStore.h"
-#include "FaultsStore.h"
+#include "services/FaultsService.h"
 #include "l10n/Translations.h"
 #include "services/ToastService.h"
 #include "services/SettingsService.h"
@@ -26,14 +25,13 @@
 #include <iterator>
 
 MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
-                     ThemeStore *theme, TripStore *trip,
+                     ThemeStore *theme,
                      Translations *translations, SettingsService *settingsService,
                      CommandBus *commands, QObject *parent)
     : QObject(parent)
     , m_settings(settings)
     , m_vehicle(vehicle)
     , m_theme(theme)
-    , m_trip(trip)
     , m_translations(translations)
     , m_settingsService(settingsService)
     , m_commands(commands)
@@ -164,11 +162,11 @@ void MenuStore::setMapDownloadService(MapDownloadService *svc)
     }
 }
 
-void MenuStore::setFaultsStore(FaultsStore *store)
+void MenuStore::setFaultsService(FaultsService *svc)
 {
-    m_faults = store;
+    m_faults = svc;
     if (m_faults) {
-        connect(m_faults, &FaultsStore::entriesChanged,
+        connect(m_faults, &FaultsService::entriesChanged,
                 this, &MenuStore::rebuildMenuTree);
     }
 }

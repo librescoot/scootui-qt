@@ -7,7 +7,7 @@
 class EngineStore;
 class VehicleStore;
 
-class TripStore : public QObject
+class TripService : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(double distance READ distance NOTIFY distanceChanged)
@@ -15,7 +15,7 @@ class TripStore : public QObject
     Q_PROPERTY(double averageSpeed READ averageSpeed NOTIFY averageSpeedChanged)
 
 public:
-    explicit TripStore(EngineStore *engine, VehicleStore *vehicle, QObject *parent = nullptr);
+    explicit TripService(EngineStore *engine, VehicleStore *vehicle, QObject *parent = nullptr);
 
     double distance() const { return m_distance; }
     int duration() const { return m_duration; }

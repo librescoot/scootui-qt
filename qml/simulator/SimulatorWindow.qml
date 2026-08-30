@@ -1305,8 +1305,8 @@ ApplicationWindow {
                             avg = dist / (dur / 3600.0)
                             tripAvgField.text = avg.toFixed(1)
                         }
-                        if (typeof tripStore !== "undefined")
-                            tripStore.setOverride(dist, Math.round(dur), avg)
+                        if (typeof tripService !== "undefined")
+                            tripService.setOverride(dist, Math.round(dur), avg)
                     }
 
                     SimSubLabel { text: "clock" }
@@ -1370,13 +1370,13 @@ ApplicationWindow {
                         ToolTip.text: "Freeze trip timer"
                         ToolTip.visible: hovered
                         onToggled: {
-                            if (typeof tripStore === "undefined") return
+                            if (typeof tripService === "undefined") return
                             if (checked) {
-                                tripStore.setOverride(tripStore.distance,
-                                                      tripStore.duration,
-                                                      tripStore.averageSpeed)
+                                tripService.setOverride(tripService.distance,
+                                                      tripService.duration,
+                                                      tripService.averageSpeed)
                             } else {
-                                tripStore.clearOverride()
+                                tripService.clearOverride()
                             }
                         }
                     }
@@ -1387,8 +1387,8 @@ ApplicationWindow {
                             simulator.clockOverride = ""
                             dateOverrideField.text = ""
                             simulator.dateOverride = ""
-                            if (typeof tripStore !== "undefined")
-                                tripStore.clearOverride()
+                            if (typeof tripService !== "undefined")
+                                tripService.clearOverride()
                             freezeTripSwitch.checked = false
                         }
                     }

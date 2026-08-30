@@ -19,14 +19,14 @@ class Translations;
 // first (ordered by lastSeen desc), cleared entries follow. The screen uses
 // `entries`; the menu uses `activeCount` to show the "(N)" badge and decide
 // whether the root-menu item is visible.
-class FaultsStore : public QObject
+class FaultsService : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QVariantList entries READ entries NOTIFY entriesChanged)
     Q_PROPERTY(int activeCount READ activeCount NOTIFY entriesChanged)
 
 public:
-    explicit FaultsStore(BatteryStore *battery0,
+    explicit FaultsService(BatteryStore *battery0,
                          BatteryStore *battery1,
                          EngineStore *engine,
                          VehicleStore *vehicle,

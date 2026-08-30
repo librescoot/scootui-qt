@@ -98,7 +98,7 @@ set(CPP_SOURCES
     src/stores/ScreenStore.cpp
     src/stores/MenuStore.cpp
     src/stores/HopOnStore.cpp
-    src/stores/TripStore.cpp
+    src/services/TripService.cpp
     src/stores/ShutdownStore.cpp
     src/stores/LocaleStore.cpp
     src/stores/ShortcutMenuStore.cpp
@@ -135,7 +135,7 @@ set(CPP_SOURCES
     src/utils/FaultFormatter.cpp
     src/utils/ZstdDecompressor.cpp
     src/stores/FaultEventStore.cpp
-    src/stores/FaultsStore.cpp
+    src/services/FaultsService.cpp
 )
 
 set(CPP_HEADERS
@@ -173,7 +173,7 @@ set(CPP_HEADERS
     src/stores/ThemeStore.h
     src/stores/ScreenStore.h
     src/stores/MenuStore.h
-    src/stores/TripStore.h
+    src/services/TripService.h
     src/stores/ShutdownStore.h
     src/stores/LocaleStore.h
     src/stores/ShortcutMenuStore.h
@@ -214,7 +214,7 @@ set(CPP_HEADERS
     src/utils/FaultFormatter.h
     src/utils/ZstdDecompressor.h
     src/stores/FaultEventStore.h
-    src/stores/FaultsStore.h
+    src/services/FaultsService.h
 )
 
 # Simulator sources (always compiled, only activated at runtime in sim mode)

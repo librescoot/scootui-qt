@@ -1,11 +1,11 @@
-#include "FaultsStore.h"
+#include "FaultsService.h"
 
-#include "BatteryStore.h"
-#include "EngineStore.h"
-#include "VehicleStore.h"
-#include "BluetoothStore.h"
-#include "InternetStore.h"
-#include "FaultEventStore.h"
+#include "stores/BatteryStore.h"
+#include "stores/EngineStore.h"
+#include "stores/VehicleStore.h"
+#include "stores/BluetoothStore.h"
+#include "stores/InternetStore.h"
+#include "stores/FaultEventStore.h"
 #include "l10n/Translations.h"
 #include "utils/FaultFormatter.h"
 
@@ -40,7 +40,7 @@ void mergeActive(QSet<QPair<QString, int>> &active, const QString &source,
 
 }
 
-FaultsStore::FaultsStore(BatteryStore *battery0, BatteryStore *battery1,
+FaultsService::FaultsService(BatteryStore *battery0, BatteryStore *battery1,
                          EngineStore *engine, VehicleStore *vehicle,
                          BluetoothStore *bluetooth, InternetStore *internet,
                          FaultEventStore *events, Translations *translations,
@@ -56,24 +56,24 @@ FaultsStore::FaultsStore(BatteryStore *battery0, BatteryStore *battery1,
     , m_translations(translations)
 {
     if (m_battery0)
-        connect(m_battery0, &BatteryStore::faultsChanged, this, &FaultsStore::rebuild);
+        connect(m_battery0, &BatteryStore::faultsChanged, this, &FaultsService::rebuild);
     if (m_battery1)
-        connect(m_battery1, &BatteryStore::faultsChanged, this, &FaultsStore::rebuild);
+        connect(m_battery1, &BatteryStore::faultsChanged, this, &FaultsService::rebuild);
     if (m_engine)
-        connect(m_engine, &EngineStore::faultsChanged, this, &FaultsStore::rebuild);
+        connect(m_engine, &EngineStore::faultsChanged, this, &FaultsService::rebuild);
     if (m_vehicle)
-        connect(m_vehicle, &VehicleStore::faultsChanged, this, &FaultsStore::rebuild);
+        connect(m_vehicle, &VehicleStore::faultsChanged, this, &FaultsService::rebuild);
     if (m_bluetooth)
-        connect(m_bluetooth, &BluetoothStore::faultsChanged, this, &FaultsStore::rebuild);
+        connect(m_bluetooth, &BluetoothStore::faultsChanged, this, &FaultsService::rebuild);
     if (m_internet)
-        connect(m_internet, &InternetStore::faultsChanged, this, &FaultsStore::rebuild);
+        connect(m_internet, &InternetStore::faultsChanged, this, &FaultsService::rebuild);
     if (m_events)
-        connect(m_events, &FaultEventStore::eventsChanged, this, &FaultsStore::rebuild);
+        connect(m_events, &FaultEventStore::eventsChanged, this, &FaultsService::rebuild);
 
     rebuild();
 }
 
-void FaultsStore::rebuild()
+void FaultsService::rebuild()
 {
     // 1. Collect current active set from every fault-bearing store.
     QSet<QPair<QString, int>> active;

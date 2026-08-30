@@ -10,7 +10,6 @@ class MenuNode;
 class SettingsStore;
 class VehicleStore;
 class ThemeStore;
-class TripStore;
 class Translations;
 class SettingsService;
 class CommandBus;
@@ -22,7 +21,7 @@ class NavigationAvailabilityService;
 class InternetStore;
 class HopOnStore;
 class MapDownloadService;
-class FaultsStore;
+class FaultsService;
 class ToastService;
 class UpdateChannelService;
 
@@ -46,7 +45,7 @@ class MenuStore : public QObject
 
 public:
     explicit MenuStore(SettingsStore *settings, VehicleStore *vehicle,
-                       ThemeStore *theme, TripStore *trip,
+                       ThemeStore *theme,
                        Translations *translations, SettingsService *settingsService,
                        CommandBus *commands, QObject *parent = nullptr);
 
@@ -58,7 +57,7 @@ public:
     void setInternetStore(InternetStore *store);
     void setHopOnStore(HopOnStore *store);
     void setMapDownloadService(MapDownloadService *svc);
-    void setFaultsStore(FaultsStore *store);
+    void setFaultsService(FaultsService *svc);
     void setToastService(ToastService *svc);
     void setUpdateChannelService(UpdateChannelService *svc);
     ~MenuStore() override;
@@ -109,7 +108,6 @@ private:
     SettingsStore *m_settings;
     VehicleStore *m_vehicle;
     ThemeStore *m_theme;
-    TripStore *m_trip;
     Translations *m_translations;
     SettingsService *m_settingsService;
     CommandBus *m_commands;
@@ -121,7 +119,7 @@ private:
     InternetStore *m_internet = nullptr;
     HopOnStore *m_hopOn = nullptr;
     MapDownloadService *m_mapDownload = nullptr;
-    FaultsStore *m_faults = nullptr;
+    FaultsService *m_faults = nullptr;
     ToastService *m_toastService = nullptr;
     UpdateChannelService *m_updateChannel = nullptr;
 

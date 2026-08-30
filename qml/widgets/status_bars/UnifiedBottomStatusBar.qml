@@ -11,9 +11,9 @@ Rectangle {
 
     default property alias centerContent: centerItem.data
 
-    readonly property real tripDistance: typeof tripStore !== "undefined" ? tripStore.distance : 0
-    readonly property int tripDuration: typeof tripStore !== "undefined" ? tripStore.duration : 0
-    readonly property real avgSpeed: typeof tripStore !== "undefined" ? tripStore.averageSpeed : 0
+    readonly property real tripDistance: typeof tripService !== "undefined" ? tripService.distance : 0
+    readonly property int tripDuration: typeof tripService !== "undefined" ? tripService.duration : 0
+    readonly property real avgSpeed: typeof tripService !== "undefined" ? tripService.averageSpeed : 0
     readonly property real odometer: typeof engineStore !== "undefined" ? engineStore.odometer : 0
 
     // Top border

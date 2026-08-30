@@ -22,7 +22,7 @@ public:
     static FaultSeverity getEcuSeverity(int code);
     static QString getEcuDescription(int code, Translations *tr);
 
-    // Source-aware helpers used by FaultsStore to render cross-service entries.
+    // Source-aware helpers used by FaultsService to render cross-service entries.
     // `source` is the `group` value from events:faults ("battery:0", "engine-ecu",
     // "ble", "internet", "vehicle", "keycard", "pm", "ota").
     static QString sourceLabel(const QString &source);

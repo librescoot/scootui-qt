@@ -56,7 +56,7 @@ Rectangle {
             menuStore.resume()
     }
 
-    readonly property var entries: typeof faultsStore !== "undefined" ? faultsStore.entries : []
+    readonly property var entries: typeof faultsService !== "undefined" ? faultsService.entries : []
 
     readonly property bool canScrollDown: flickable.contentHeight > flickable.height
                                            && flickable.contentY + flickable.height < flickable.contentHeight - 2
@@ -100,7 +100,7 @@ Rectangle {
                 anchors.rightMargin: 20
                 anchors.verticalCenter: parent.verticalCenter
                 text: {
-                    var active = typeof faultsStore !== "undefined" ? faultsStore.activeCount : 0
+                    var active = typeof faultsService !== "undefined" ? faultsService.activeCount : 0
                     var total = faultsScreen.entries.length
                     if (active > 0)
                         return active + " active / " + total + " total"

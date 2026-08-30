@@ -1,22 +1,22 @@
-#include "TripStore.h"
-#include "EngineStore.h"
-#include "VehicleStore.h"
+#include "TripService.h"
+#include "stores/EngineStore.h"
+#include "stores/VehicleStore.h"
 #include "models/Enums.h"
 
-TripStore::TripStore(EngineStore *engine, VehicleStore *vehicle, QObject *parent)
+TripService::TripService(EngineStore *engine, VehicleStore *vehicle, QObject *parent)
     : QObject(parent)
     , m_engine(engine)
     , m_vehicle(vehicle)
 {
     connect(m_vehicle, &VehicleStore::stateChanged,
-            this, &TripStore::onVehicleStateChanged);
+            this, &TripService::onVehicleStateChanged);
 
     m_tickTimer = new QTimer(this);
     m_tickTimer->setInterval(1000);
-    connect(m_tickTimer, &QTimer::timeout, this, &TripStore::onTick);
+    connect(m_tickTimer, &QTimer::timeout, this, &TripService::onTick);
 }
 
-void TripStore::onVehicleStateChanged()
+void TripService::onVehicleStateChanged()
 {
     using S = ScootEnums::VehicleState;
     auto state = static_cast<S>(m_vehicle->state());
@@ -33,7 +33,7 @@ void TripStore::onVehicleStateChanged()
     }
 }
 
-void TripStore::startTracking()
+void TripService::startTracking()
 {
     if (m_resetPending) {
         m_distance = 0;
@@ -50,7 +50,7 @@ void TripStore::startTracking()
     m_tickTimer->start();
 }
 
-void TripStore::pauseTracking()
+void TripService::pauseTracking()
 {
     if (!m_tracking) return;
     m_tracking = false;
@@ -58,7 +58,7 @@ void TripStore::pauseTracking()
     m_tickTimer->stop();
 }
 
-void TripStore::reset()
+void TripService::reset()
 {
     m_distance = 0;
     m_accumulatedMs = 0;
@@ -71,7 +71,7 @@ void TripStore::reset()
     emit averageSpeedChanged();
 }
 
-void TripStore::onTick()
+void TripService::onTick()
 {
     if (m_overrideActive) return;
     if (!m_tracking) return;
@@ -91,7 +91,7 @@ void TripStore::onTick()
     }
 }
 
-void TripStore::setOverride(double distance_km, int duration_s, double avg_speed_kmh)
+void TripService::setOverride(double distance_km, int duration_s, double avg_speed_kmh)
 {
     m_overrideActive = true;
     m_distance = distance_km;
@@ -102,7 +102,7 @@ void TripStore::setOverride(double distance_km, int duration_s, double avg_speed
     emit averageSpeedChanged();
 }
 
-void TripStore::clearOverride()
+void TripService::clearOverride()
 {
     if (!m_overrideActive) return;
     m_overrideActive = false;
