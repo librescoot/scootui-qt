@@ -4,6 +4,8 @@ import ScootUI 1.0
 import "../widgets/status_bars"
 import "../widgets/components"
 
+// View for AddressEntryController: renders the controller's state and maps
+// brake gestures onto its three inputs. All entry logic lives in C++.
 Rectangle {
     id: addressScreen
     color: typeof themeStore !== "undefined" && themeStore.isDark ? "black" : "white"
@@ -20,520 +22,56 @@ Rectangle {
 
     readonly property int dbStatus: typeof addressDatabase !== "undefined" ? addressDatabase.status : AddressDatabaseService.Error
 
-    // Phase constants
-    readonly property int phaseLoading: 0
-    readonly property int phaseCityLetters: 1
-    readonly property int phaseCityList: 2
-    readonly property int phaseStreetLetters: 3
-    readonly property int phaseStreetList: 4
-    readonly property int phaseHouseNumbers: 5
-    readonly property int phaseConfirm: 6
-    readonly property int phaseHouseDigits: 7
+    readonly property int phase: typeof addressEntry !== "undefined" ? addressEntry.phase : AddressEntryController.Loading
+    readonly property bool loadingHouseNumbers: typeof addressEntry !== "undefined" && addressEntry.loadingHouseNumbers
 
-    // Auto-transition thresholds
-    readonly property int maxListItems: 8
-    // When a digit-narrowed house set drops to this many, switch from digit
-    // entry to a scrollable list. Slightly larger than maxListItems because
-    // the rider is already mid-narrowing and a small extra scroll beats
-    // forcing another digit.
-    readonly property int houseListThreshold: 10
+    readonly property bool inLetterPhase: phase === AddressEntryController.CityLetters
+                                          || phase === AddressEntryController.StreetLetters
+                                          || phase === AddressEntryController.HouseDigits
+    readonly property bool inListPhase: phase === AddressEntryController.CityList
+                                        || phase === AddressEntryController.StreetList
+                                        || phase === AddressEntryController.HouseNumbers
 
-    // State
-    property int phase: phaseLoading
-    property string cityPrefix: ""
-    property string streetPrefix: ""
-    property string housePrefix: ""
-    property var validChars: []
-    property int charIndex: 0
-    property var itemList: []
-    property int listIndex: 0
-    property var allHouses: []
-    property string selectedCity: ""
-    property string selectedStreet: ""
-    property string selectedPostcode: ""
-    property string selectedHouse: ""
-    property double destLat: 0
-    property double destLng: 0
-    property bool loadingHouseNumbers: false
-
-    // When database becomes ready, start city letter input
-    onDbStatusChanged: {
-        if (dbStatus === AddressDatabaseService.Ready) {
-            enterCityLetters("")
-        }
+    readonly property string activePrefix: {
+        if (typeof addressEntry === "undefined") return ""
+        if (phase === AddressEntryController.CityLetters) return addressEntry.cityPrefix
+        if (phase === AddressEntryController.StreetLetters) return addressEntry.streetPrefix
+        return addressEntry.housePrefix
     }
 
     Component.onCompleted: {
-        if (dbStatus === AddressDatabaseService.Ready) {
-            enterCityLetters("")
-        } else if (dbStatus === AddressDatabaseService.Idle || dbStatus === AddressDatabaseService.Error) {
-            if (typeof addressDatabase !== "undefined")
-                addressDatabase.initialize()
-        }
-    }
-
-    // --- Phase transition functions ---
-
-    function enterCityLetters(prefix) {
-        phase = phaseCityLetters
-        cityPrefix = prefix
-        charIndex = 0
-        refreshValidChars()
-        _autoPickIfSingle()
-    }
-
-    function enterCityList(autoSelect) {
-        phase = phaseCityList
-        listIndex = 0
-        itemList = addressDatabase.getMatchingCities(cityPrefix)
-        if (autoSelect !== false && itemList.length === 1) {
-            selectCity(0)
-        }
-    }
-
-    function enterStreetLetters(prefix) {
-        phase = phaseStreetLetters
-        streetPrefix = prefix
-        charIndex = 0
-        refreshValidChars()
-        _autoPickIfSingle()
-    }
-
-    function enterStreetList(autoSelect) {
-        phase = phaseStreetList
-        listIndex = 0
-        itemList = addressDatabase.getMatchingStreets(selectedCity, streetPrefix)
-        if (autoSelect !== false && itemList.length === 1) {
-            selectStreet(0)
-        }
-    }
-
-    // When a letter-input state has only one valid next character, pick it
-    // automatically so the rider doesn't have to confirm a one-option
-    // carousel. This recurses via selectCurrentChar, so a stretch of
-    // deterministic characters (e.g. "Berli…n") is typed out in one go.
-    function _autoPickIfSingle() {
-        if ((phase === phaseCityLetters || phase === phaseStreetLetters
-             || phase === phaseHouseDigits)
-            && validChars.length === 1) {
-            selectCurrentChar()
-        }
-    }
-
-    function enterHouseNumbers() {
-        loadingHouseNumbers = true
-        addressDatabase.queryHouseNumbers(selectedCity, selectedStreet, selectedPostcode)
-    }
-
-    function enterHouseDigits(prefix) {
-        phase = phaseHouseDigits
-        housePrefix = prefix
-        charIndex = 0
-        refreshValidChars()
-        _autoPickIfSingle()
-    }
-
-    // Houses whose number begins with the current prefix.
-    function _filteredHouses(prefix) {
-        var out = []
-        for (var i = 0; i < allHouses.length; i++) {
-            var hn = allHouses[i].housenumber || ""
-            if (hn.indexOf(prefix) === 0) out.push(allHouses[i])
-        }
-        return out
-    }
-
-    // Digits that would lead to at least one matching house if appended to
-    // the current prefix. Alpha suffixes (e.g. "12a") are ignored here — once
-    // the filtered list is short enough we hand off to the scrollable list.
-    function _validHouseDigits(prefix) {
-        var seen = {}
-        var out = []
-        for (var i = 0; i < allHouses.length; i++) {
-            var hn = allHouses[i].housenumber || ""
-            if (hn.length <= prefix.length) continue
-            if (hn.indexOf(prefix) !== 0) continue
-            var next = hn.charAt(prefix.length)
-            if (next < "0" || next > "9") continue
-            if (!seen[next]) { seen[next] = true; out.push(next) }
-        }
-        out.sort()
-        return out
-    }
-
-    Connections {
-        target: typeof addressDatabase !== "undefined" ? addressDatabase : null
-
-        function onHouseNumbersReady(houses) {
-            addressScreen.loadingHouseNumbers = false
-            addressScreen.housePrefix = ""
-            addressScreen.allHouses = houses
-            if (houses.length <= 1) {
-                if (houses.length === 1) {
-                    addressScreen.selectedHouse = houses[0].housenumber
-                    addressScreen.destLat = houses[0].latitude
-                    addressScreen.destLng = houses[0].longitude
-                } else {
-                    addressScreen.selectedHouse = ""
-                    var coords = addressDatabase.getStreetCoordinates(
-                        addressScreen.selectedCity, addressScreen.selectedStreet)
-                    addressScreen.destLat = coords.latitude || 0
-                    addressScreen.destLng = coords.longitude || 0
-                }
-                addressScreen.phase = addressScreen.phaseConfirm
-                return
-            }
-            if (houses.length <= addressScreen.houseListThreshold) {
-                addressScreen.phase = addressScreen.phaseHouseNumbers
-                addressScreen.listIndex = 0
-                addressScreen.itemList = houses
-                return
-            }
-            addressScreen.enterHouseDigits("")
-        }
-    }
-
-    function enterConfirm() {
-        phase = phaseConfirm
-    }
-
-    // --- Char carousel logic ---
-
-    function refreshValidChars() {
-        if (phase === phaseCityLetters) {
-            validChars = addressDatabase.getValidCityChars(cityPrefix)
-        } else if (phase === phaseStreetLetters) {
-            validChars = addressDatabase.getValidStreetChars(selectedCity, streetPrefix)
-        } else if (phase === phaseHouseDigits) {
-            validChars = _validHouseDigits(housePrefix)
-        }
-        charIndex = 0
-    }
-
-    function cycleChar() {
-        if (validChars.length === 0) return
-        charIndex = (charIndex + 1) % validChars.length
-    }
-
-    function selectCurrentChar() {
-        if (validChars.length === 0) return
-
-        var ch = validChars[charIndex]
-        if (phase === phaseCityLetters) {
-            cityPrefix += ch
-            var cityCount = addressDatabase.getCityCount(cityPrefix)
-            if (cityCount <= maxListItems && cityCount > 0) {
-                enterCityList()
-            } else if (cityCount === 0) {
-                cityPrefix = cityPrefix.slice(0, -1)
-            } else {
-                refreshValidChars()
-                _autoPickIfSingle()
-            }
-        } else if (phase === phaseStreetLetters) {
-            streetPrefix += ch
-            var streetCount = addressDatabase.getStreetCount(selectedCity, streetPrefix)
-            if (streetCount <= maxListItems && streetCount > 0) {
-                enterStreetList()
-            } else if (streetCount === 0) {
-                streetPrefix = streetPrefix.slice(0, -1)
-            } else {
-                refreshValidChars()
-                _autoPickIfSingle()
-            }
-        } else if (phase === phaseHouseDigits) {
-            var newPrefix = housePrefix + ch
-            var filtered = _filteredHouses(newPrefix)
-            if (filtered.length === 0) return
-            housePrefix = newPrefix
-            if (filtered.length === 1) {
-                selectedHouse = filtered[0].housenumber
-                destLat = filtered[0].latitude
-                destLng = filtered[0].longitude
-                enterConfirm()
-            } else if (filtered.length <= houseListThreshold) {
-                phase = phaseHouseNumbers
-                listIndex = 0
-                itemList = filtered
-            } else {
-                refreshValidChars()
-                if (validChars.length === 0) {
-                    // Can't narrow further by digit (e.g. only alpha suffixes
-                    // remain). Drop into the list even though it's longer than
-                    // the usual threshold.
-                    phase = phaseHouseNumbers
-                    listIndex = 0
-                    itemList = filtered
-                } else {
-                    _autoPickIfSingle()
-                }
-            }
-        }
-    }
-
-    // Go back one logical step from the current phase. When the state we
-    // would land in is itself a single-option state (a list with one item
-    // or a carousel with one valid char — i.e. one the forward path would
-    // auto-advance past), skip through it so the back path mirrors the
-    // forward path.
-    function stepBack() {
-        if (phase === phaseCityLetters) {
-            _backFromCityLetters()
-        } else if (phase === phaseCityList) {
-            _backFromCityList()
-        } else if (phase === phaseStreetLetters) {
-            _backFromStreetLetters()
-        } else if (phase === phaseStreetList) {
-            _backFromStreetList()
-        } else if (phase === phaseHouseDigits) {
-            _backFromHouseDigits()
-        } else if (phase === phaseHouseNumbers || phase === phaseConfirm) {
-            _backFromHouseOrConfirm()
-        }
-    }
-
-    // Backing out past the first character leaves the screen. Restores the
-    // screen this was opened from and reopens the menu on the level it was
-    // opened from, like every other full-screen page; confirming a
-    // destination still hands over to the map instead.
-    function cancelBack() {
-        if (typeof navigator !== "undefined")
-            navigator.closeAddressSelection()
-        if (typeof menuController !== "undefined")
-            menuController.resume()
-    }
-
-    function _backFromCityLetters() {
-        if (cityPrefix.length === 0) {
-            addressScreen.cancelBack()
-            return
-        }
-        cityPrefix = cityPrefix.slice(0, -1)
-        refreshValidChars()
-        if (cityPrefix.length > 0 && validChars.length === 1) {
-            _backFromCityLetters()
-        }
-    }
-
-    function _backFromCityList() {
-        if (itemList.length === 1 && cityPrefix.length > 0) {
-            cityPrefix = cityPrefix.slice(0, -1)
-        }
-        phase = phaseCityLetters
-        refreshValidChars()
-        if (cityPrefix.length > 0 && validChars.length === 1) {
-            _backFromCityLetters()
-        }
-    }
-
-    function _backFromStreetLetters() {
-        if (streetPrefix.length > 0) {
-            streetPrefix = streetPrefix.slice(0, -1)
-            refreshValidChars()
-            if (streetPrefix.length > 0 && validChars.length === 1) {
-                _backFromStreetLetters()
-            }
-            return
-        }
-        var cities = addressDatabase.getMatchingCities(cityPrefix)
-        if (cities.length === 1 && cityPrefix.length > 0) {
-            cityPrefix = cityPrefix.slice(0, -1)
-            phase = phaseCityLetters
-            refreshValidChars()
-            if (cityPrefix.length > 0 && validChars.length === 1) {
-                _backFromCityLetters()
-            }
-        } else {
-            itemList = cities
-            phase = phaseCityList
-            listIndex = 0
-        }
-    }
-
-    function _backFromStreetList() {
-        if (itemList.length === 1 && streetPrefix.length > 0) {
-            streetPrefix = streetPrefix.slice(0, -1)
-        }
-        phase = phaseStreetLetters
-        refreshValidChars()
-        if (streetPrefix.length > 0 && validChars.length === 1) {
-            _backFromStreetLetters()
-        }
-    }
-
-    function _backFromHouseOrConfirm() {
-        // If we got here via digit narrowing, pop one digit and return to the
-        // digit carousel rather than jumping all the way back to street.
-        if (housePrefix.length > 0) {
-            housePrefix = housePrefix.slice(0, -1)
-            phase = phaseHouseDigits
-            refreshValidChars()
-            return
-        }
-        var streets = addressDatabase.getMatchingStreets(selectedCity, streetPrefix)
-        if (streets.length === 1 && streetPrefix.length > 0) {
-            streetPrefix = streetPrefix.slice(0, -1)
-            phase = phaseStreetLetters
-            refreshValidChars()
-            if (streetPrefix.length > 0 && validChars.length === 1) {
-                _backFromStreetLetters()
-            }
-        } else {
-            itemList = streets
-            phase = phaseStreetList
-            listIndex = 0
-        }
-    }
-
-    function _backFromHouseDigits() {
-        if (housePrefix.length > 0) {
-            housePrefix = housePrefix.slice(0, -1)
-            refreshValidChars()
-            return
-        }
-        var streets = addressDatabase.getMatchingStreets(selectedCity, streetPrefix)
-        if (streets.length === 1 && streetPrefix.length > 0) {
-            streetPrefix = streetPrefix.slice(0, -1)
-            phase = phaseStreetLetters
-            refreshValidChars()
-            if (streetPrefix.length > 0 && validChars.length === 1) {
-                _backFromStreetLetters()
-            }
-        } else {
-            itemList = streets
-            phase = phaseStreetList
-            listIndex = 0
-        }
-    }
-
-    // --- List selection logic ---
-
-    function cycleListItem() {
-        if (itemList.length === 0) return
-        listIndex = (listIndex + 1) % itemList.length
-    }
-
-    function selectCity(index) {
-        if (index === undefined) index = listIndex
-        if (index < 0 || index >= itemList.length) return
-        selectedCity = itemList[index]
-        streetPrefix = ""
-        enterStreetLetters("")
-    }
-
-    function selectStreet(index) {
-        if (index === undefined) index = listIndex
-        if (index < 0 || index >= itemList.length) return
-        var entry = itemList[index]
-        selectedStreet = entry.street
-        selectedPostcode = entry.postcode || ""
-        enterHouseNumbers()
-    }
-
-    function selectHouseNumber() {
-        if (listIndex < 0 || listIndex >= itemList.length) return
-        var entry = itemList[listIndex]
-        selectedHouse = entry.housenumber
-        destLat = entry.latitude
-        destLng = entry.longitude
-        enterConfirm()
-    }
-
-    function confirmAndNavigate() {
-        var addressLabel = selectedStreet
-        if (selectedHouse !== "")
-            addressLabel += " " + selectedHouse
-        addressLabel += ", " + selectedCity
-
-        if (typeof navigationService !== "undefined") {
-            navigationService.setDestination(destLat, destLng, addressLabel)
-        }
-        // A chosen destination hands over to the map rather than backing out,
-        // so drop the menu level cancelBack() would have returned to. close()
-        // clears it even though the menu is already shut.
-        if (typeof menuController !== "undefined")
-            menuController.close()
-        if (typeof navigator !== "undefined") {
-            navigator.setScreen(Scooter.ScreenMode.Map)
-        }
+        if (typeof addressEntry !== "undefined")
+            addressEntry.activate()
     }
 
     function matchCountText() {
         var tr = typeof translations !== "undefined" ? translations : null
-        if (phase === phaseCityLetters) {
-            var count = addressDatabase.getCityCount(cityPrefix)
-            var label = tr ? tr.navCities : "cities"
-            return count + " " + label
-        } else if (phase === phaseStreetLetters) {
-            var scount = addressDatabase.getStreetCount(selectedCity, streetPrefix)
-            var slabel = tr ? tr.navStreets : "streets"
-            return scount + " " + slabel
-        } else if (phase === phaseHouseDigits) {
-            var hcount = _filteredHouses(housePrefix).length
-            var hlabel = tr ? tr.navHouses : "houses"
-            return hcount + " " + hlabel
-        }
+        var count = addressEntry.matchCount
+        if (phase === AddressEntryController.CityLetters)
+            return count + " " + (tr ? tr.navCities : "cities")
+        if (phase === AddressEntryController.StreetLetters)
+            return count + " " + (tr ? tr.navStreets : "streets")
+        if (phase === AddressEntryController.HouseDigits)
+            return count + " " + (tr ? tr.navHouses : "houses")
         return ""
     }
-
-    // --- Input handling ---
 
     Connections {
         target: typeof inputHandler !== "undefined" ? inputHandler : null
 
         function onLeftTap() {
-            if (addressScreen.loadingHouseNumbers) return
-            if (addressScreen.phase === addressScreen.phaseCityLetters ||
-                addressScreen.phase === addressScreen.phaseStreetLetters ||
-                addressScreen.phase === addressScreen.phaseHouseDigits) {
-                addressScreen.cycleChar()
-            } else if (addressScreen.phase === addressScreen.phaseCityList ||
-                       addressScreen.phase === addressScreen.phaseStreetList ||
-                       addressScreen.phase === addressScreen.phaseHouseNumbers) {
-                addressScreen.cycleListItem()
-            }
+            if (typeof addressEntry !== "undefined")
+                addressEntry.scroll()
         }
 
         function onLeftHold() {
-            if (addressScreen.loadingHouseNumbers) return
-            addressScreen.stepBack()
+            if (typeof addressEntry !== "undefined")
+                addressEntry.back()
         }
 
         function onRightTap() {
-            if (addressScreen.loadingHouseNumbers) return
-            if (addressScreen.dbStatus === AddressDatabaseService.Building) {
-                if (typeof addressDatabase !== "undefined")
-                    addressDatabase.cancelBuild()
-                return
-            }
-            if (addressScreen.dbStatus !== AddressDatabaseService.Ready) {
-                addressScreen.cancelBack()
-                return
-            }
-
-            switch (addressScreen.phase) {
-            case addressScreen.phaseCityLetters:
-                addressScreen.selectCurrentChar()
-                break
-            case addressScreen.phaseCityList:
-                addressScreen.selectCity()
-                break
-            case addressScreen.phaseStreetLetters:
-                addressScreen.selectCurrentChar()
-                break
-            case addressScreen.phaseStreetList:
-                addressScreen.selectStreet()
-                break
-            case addressScreen.phaseHouseDigits:
-                addressScreen.selectCurrentChar()
-                break
-            case addressScreen.phaseHouseNumbers:
-                addressScreen.selectHouseNumber()
-                break
-            case addressScreen.phaseConfirm:
-                addressScreen.confirmAndNavigate()
-                break
-            }
+            if (typeof addressEntry !== "undefined")
+                addressEntry.select()
         }
     }
 
@@ -558,13 +96,13 @@ Rectangle {
             text: {
                 var tr = typeof translations !== "undefined" ? translations : null
                 switch (addressScreen.phase) {
-                case addressScreen.phaseCityLetters: return tr ? tr.navEnterCity : "Enter City"
-                case addressScreen.phaseCityList: return tr ? tr.navSelectCity : "Select City"
-                case addressScreen.phaseStreetLetters: return tr ? tr.navEnterStreet : "Enter Street"
-                case addressScreen.phaseStreetList: return tr ? tr.navSelectStreet : "Select Street"
-                case addressScreen.phaseHouseDigits: return tr ? tr.navEnterNumber : "Enter Number"
-                case addressScreen.phaseHouseNumbers: return tr ? tr.navSelectNumber : "Select Number"
-                case addressScreen.phaseConfirm: return tr ? tr.navConfirmDestination : "Confirm Destination"
+                case AddressEntryController.CityLetters: return tr ? tr.navEnterCity : "Enter City"
+                case AddressEntryController.CityList: return tr ? tr.navSelectCity : "Select City"
+                case AddressEntryController.StreetLetters: return tr ? tr.navEnterStreet : "Enter Street"
+                case AddressEntryController.StreetList: return tr ? tr.navSelectStreet : "Select Street"
+                case AddressEntryController.HouseDigits: return tr ? tr.navEnterNumber : "Enter Number"
+                case AddressEntryController.HouseNumbers: return tr ? tr.navSelectNumber : "Select Number"
+                case AddressEntryController.Confirm: return tr ? tr.navConfirmDestination : "Confirm Destination"
                 default: return "Destination"
                 }
             }
@@ -577,30 +115,30 @@ Rectangle {
         Text {
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: 2
-            visible: phase > phaseLoading
+            visible: addressScreen.phase > AddressEntryController.Loading
             text: {
+                if (typeof addressEntry === "undefined") return ""
                 var parts = []
-                if (addressScreen.selectedCity !== "")
-                    parts.push(addressScreen.selectedCity)
-                else if (addressScreen.cityPrefix !== "")
-                    parts.push(addressScreen.cityPrefix + "_")
+                if (addressEntry.selectedCity !== "")
+                    parts.push(addressEntry.selectedCity)
+                else if (addressEntry.cityPrefix !== "")
+                    parts.push(addressEntry.cityPrefix + "_")
 
-                if (addressScreen.phase >= addressScreen.phaseStreetLetters) {
-                    if (addressScreen.selectedStreet !== "")
-                        parts.push(addressScreen.selectedStreet)
-                    else if (addressScreen.streetPrefix !== "")
-                        parts.push(addressScreen.streetPrefix + "_")
+                if (addressScreen.phase >= AddressEntryController.StreetLetters
+                    && addressScreen.phase !== AddressEntryController.HouseDigits) {
+                    if (addressEntry.selectedStreet !== "")
+                        parts.push(addressEntry.selectedStreet)
+                    else if (addressEntry.streetPrefix !== "")
+                        parts.push(addressEntry.streetPrefix + "_")
+                }
+                if (addressScreen.phase === AddressEntryController.HouseDigits) {
+                    if (addressEntry.selectedStreet !== "")
+                        parts.push(addressEntry.selectedStreet)
+                    parts.push(addressEntry.housePrefix + "_")
                 }
 
-                if (addressScreen.phase === addressScreen.phaseHouseDigits) {
-                    parts.push(addressScreen.housePrefix + "_")
-                }
-
-                if (addressScreen.phase === addressScreen.phaseCityLetters ||
-                    addressScreen.phase === addressScreen.phaseStreetLetters ||
-                    addressScreen.phase === addressScreen.phaseHouseDigits) {
+                if (addressScreen.inLetterPhase)
                     parts.push(addressScreen.matchCountText())
-                }
 
                 return parts.join(" › ")
             }
@@ -671,26 +209,16 @@ Rectangle {
                 font.pixelSize: themeStore.fontBody
             }
 
-            // --- Letter carousel (Phase 1 and 3) ---
+            // --- Letter carousel ---
             ColumnLayout {
                 anchors.centerIn: parent
                 spacing: 20
-                visible: (phase === phaseCityLetters || phase === phaseStreetLetters
-                          || phase === phaseHouseDigits) && dbStatus === AddressDatabaseService.Ready
+                visible: addressScreen.inLetterPhase && dbStatus === AddressDatabaseService.Ready
 
                 // Current prefix display
                 Text {
                     Layout.alignment: Qt.AlignHCenter
-                    text: {
-                        var prefix
-                        if (addressScreen.phase === addressScreen.phaseCityLetters)
-                            prefix = addressScreen.cityPrefix
-                        else if (addressScreen.phase === addressScreen.phaseStreetLetters)
-                            prefix = addressScreen.streetPrefix
-                        else
-                            prefix = addressScreen.housePrefix
-                        return prefix + "_"
-                    }
+                    text: addressScreen.activePrefix + "_"
                     font.pixelSize: themeStore.fontHeading
                     font.weight: Font.Bold
                     color: textPrimary
@@ -701,13 +229,14 @@ Rectangle {
                 Row {
                     Layout.alignment: Qt.AlignHCenter
                     spacing: 2
-                    visible: addressScreen.validChars.length > 0
+                    visible: typeof addressEntry !== "undefined" && addressEntry.validChars.length > 0
 
                     Repeater {
                         model: {
-                            if (addressScreen.validChars.length === 0) return []
-                            var chars = addressScreen.validChars
-                            var idx = addressScreen.charIndex
+                            if (typeof addressEntry === "undefined") return []
+                            var chars = addressEntry.validChars
+                            if (chars.length === 0) return []
+                            var idx = addressEntry.charIndex
                             var result = []
                             var window = 3
                             for (var i = -window; i <= window; i++) {
@@ -756,8 +285,10 @@ Rectangle {
                 // Position indicator
                 Text {
                     Layout.alignment: Qt.AlignHCenter
-                    visible: addressScreen.validChars.length > 1
-                    text: (addressScreen.charIndex + 1) + " / " + addressScreen.validChars.length
+                    visible: typeof addressEntry !== "undefined" && addressEntry.validChars.length > 1
+                    text: typeof addressEntry !== "undefined"
+                          ? (addressEntry.charIndex + 1) + " / " + addressEntry.validChars.length
+                          : ""
                     color: textTertiary
                     font.pixelSize: themeStore.fontBody
                 }
@@ -765,26 +296,23 @@ Rectangle {
                 // No valid chars message
                 Text {
                     Layout.alignment: Qt.AlignHCenter
-                    visible: addressScreen.validChars.length === 0 && (
-                        addressScreen.phase === addressScreen.phaseCityLetters
-                            ? addressScreen.cityPrefix.length > 0
-                            : addressScreen.phase === addressScreen.phaseStreetLetters
-                                ? addressScreen.streetPrefix.length > 0
-                                : addressScreen.housePrefix.length > 0)
+                    visible: typeof addressEntry !== "undefined"
+                             && addressEntry.validChars.length === 0
+                             && addressScreen.activePrefix.length > 0
                     text: typeof translations !== "undefined" ? translations.navNoMatches : "No matches"
                     color: errorColor
                     font.pixelSize: themeStore.fontBody
                 }
             }
 
-            // --- List view (Phase 2, 4, 5) ---
+            // --- List view ---
             Item {
                 anchors.fill: parent
                 anchors.leftMargin: 40
                 anchors.rightMargin: 40
                 anchors.topMargin: 4
                 anchors.bottomMargin: 4
-                visible: phase === phaseCityList || phase === phaseStreetList || phase === phaseHouseNumbers
+                visible: addressScreen.inListPhase
 
                 ColumnLayout {
                     anchors.centerIn: parent
@@ -793,8 +321,9 @@ Rectangle {
 
                     Repeater {
                         model: {
-                            var items = addressScreen.itemList
-                            var idx = addressScreen.listIndex
+                            if (typeof addressEntry === "undefined") return []
+                            var items = addressEntry.itemList
+                            var idx = addressEntry.listIndex
                             var maxVisible = 8
                             var result = []
                             var start = Math.max(0, idx - Math.floor(maxVisible / 2))
@@ -821,14 +350,15 @@ Rectangle {
                                 text: {
                                     var item = modelData.item
                                     if (item === undefined || item === null) return ""
-                                    if (addressScreen.phase === addressScreen.phaseHouseNumbers) {
+                                    if (addressScreen.phase === AddressEntryController.HouseNumbers) {
                                         return item.housenumber || ""
-                                    } else if (addressScreen.phase === addressScreen.phaseStreetList) {
+                                    } else if (addressScreen.phase === AddressEntryController.StreetList) {
                                         var street = item.street || ""
                                         var postcode = item.postcode || ""
+                                        var list = addressEntry.itemList
                                         var dupes = 0
-                                        for (var j = 0; j < addressScreen.itemList.length; j++) {
-                                            if (addressScreen.itemList[j].street === street) dupes++
+                                        for (var j = 0; j < list.length; j++) {
+                                            if (list[j].street === street) dupes++
                                         }
                                         if (dupes > 1 && postcode !== "")
                                             return street + " · " + postcode
@@ -851,7 +381,7 @@ Rectangle {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     height: 30
-                    visible: addressScreen.listIndex > 0
+                    visible: typeof addressEntry !== "undefined" && addressEntry.listIndex > 0
                     gradient: Gradient {
                         GradientStop { position: 0.0; color: isDark ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.9) }
                         GradientStop { position: 1.0; color: isDark ? Qt.rgba(0, 0, 0, 0.0) : Qt.rgba(1, 1, 1, 0.0) }
@@ -871,7 +401,8 @@ Rectangle {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     height: 30
-                    visible: addressScreen.listIndex < addressScreen.itemList.length - 1
+                    visible: typeof addressEntry !== "undefined"
+                             && addressEntry.listIndex < addressEntry.itemList.length - 1
                     gradient: Gradient {
                         GradientStop { position: 0.0; color: isDark ? Qt.rgba(0, 0, 0, 0.0) : Qt.rgba(1, 1, 1, 0.0) }
                         GradientStop { position: 1.0; color: isDark ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.9) }
@@ -886,12 +417,12 @@ Rectangle {
                 }
             }
 
-            // --- Confirm view (Phase 6) ---
+            // --- Confirm view ---
             ColumnLayout {
                 anchors.centerIn: parent
                 width: parent.width - 40
                 spacing: 8
-                visible: phase === phaseConfirm
+                visible: addressScreen.phase === AddressEntryController.Confirm
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
@@ -906,9 +437,10 @@ Rectangle {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: 4
                     text: {
-                        var label = addressScreen.selectedStreet
-                        if (addressScreen.selectedHouse !== "")
-                            label += " " + addressScreen.selectedHouse
+                        if (typeof addressEntry === "undefined") return ""
+                        var label = addressEntry.selectedStreet
+                        if (addressEntry.selectedHouse !== "")
+                            label += " " + addressEntry.selectedHouse
                         return label
                     }
                     font.pixelSize: themeStore.fontHeading
@@ -919,10 +451,11 @@ Rectangle {
                 Text {
                     Layout.alignment: Qt.AlignHCenter
                     text: {
+                        if (typeof addressEntry === "undefined") return ""
                         var label = ""
-                        if (addressScreen.selectedPostcode !== "")
-                            label += addressScreen.selectedPostcode + " "
-                        label += addressScreen.selectedCity
+                        if (addressEntry.selectedPostcode !== "")
+                            label += addressEntry.selectedPostcode + " "
+                        label += addressEntry.selectedCity
                         return label
                     }
                     font.pixelSize: themeStore.fontTitle
@@ -954,7 +487,7 @@ Rectangle {
                 // the confirm step, where only the hold is bound.
                 leftTap: {
                     if (dbStatus !== AddressDatabaseService.Ready) return ""
-                    if (addressScreen.phase === addressScreen.phaseConfirm) return ""
+                    if (addressScreen.phase === AddressEntryController.Confirm) return ""
                     var tr = typeof translations !== "undefined" ? translations : null
                     return tr ? tr.controlScroll : "Scroll"
                 }
@@ -969,7 +502,7 @@ Rectangle {
                         return tr ? tr.controlCancel : "Cancel"
                     if (dbStatus !== AddressDatabaseService.Ready)
                         return tr ? tr.controlBack : "Close"
-                    if (addressScreen.phase === addressScreen.phaseConfirm)
+                    if (addressScreen.phase === AddressEntryController.Confirm)
                         return tr ? tr.navGo : "Go!"
                     return tr ? tr.controlSelect : "Select"
                 }

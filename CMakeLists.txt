@@ -96,6 +96,7 @@ set(CPP_SOURCES
     src/stores/AuxBatteryStore.cpp
     src/stores/ThemeStore.cpp
     src/core/Navigator.cpp
+    src/controllers/AddressEntryController.cpp
     src/menu/MenuController.cpp
     src/menu/MenuActions.cpp
     src/menu/MenuDefinition.cpp
@@ -145,6 +146,7 @@ set(CPP_HEADERS
     src/core/EnvConfig.h
     src/core/Application.h
     src/models/Enums.h
+    src/controllers/AddressEntryController.h
     src/menu/MenuNode.h
     src/menu/MenuAction.h
     src/menu/MenuDefinition.h

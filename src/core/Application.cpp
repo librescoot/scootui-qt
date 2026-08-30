@@ -52,6 +52,7 @@
 #include "services/RecentDestinationsService.h"
 #include "services/SerialNumberService.h"
 #include "services/AddressDatabaseService.h"
+#include "controllers/AddressEntryController.h"
 #include "services/MapDownloadService.h"
 #include "services/UpdateChannelService.h"
 #include "services/RoadInfoService.h"
@@ -180,6 +181,7 @@ bool Application::initialize(QQmlApplicationEngine &engine)
     // hand-mirrored int constants.
     qmlRegisterUncreatableType<HopOnService>("ScootUI", 1, 0, "HopOnService", "enum access only");
     qmlRegisterUncreatableType<AddressDatabaseService>("ScootUI", 1, 0, "AddressDatabaseService", "enum access only");
+    qmlRegisterUncreatableType<AddressEntryController>("ScootUI", 1, 0, "AddressEntryController", "enum access only");
 
     BOOT_MARK("createStores() start");
     createStores(engine);
@@ -600,6 +602,24 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // M5: ShortcutMenuController
     auto *shortcutMenuController = new ShortcutMenuController(themeStore, vehicleStore, navigator, dashboardStore, m_inputHandler, commandBus, m_settingsService, this);
 
+    // Address entry: the state machine behind AddressSelectionScreen. Its
+    // outcomes route through the same close/resume flow as every other
+    // full-screen page.
+    auto *addressEntry = new AddressEntryController(m_addressDatabaseService, this);
+    connect(addressEntry, &AddressEntryController::dismissed, this,
+            [navigator, menuController]() {
+        navigator->closeAddressSelection();
+        menuController->resume();
+    });
+    // A chosen destination hands over to the map rather than backing out, so
+    // drop the menu level a dismissal would have returned to.
+    connect(addressEntry, &AddressEntryController::destinationConfirmed, this,
+            [this, navigator, menuController](double lat, double lng, const QString &label) {
+        m_navigationService->setDestination(lat, lng, label);
+        menuController->close();
+        navigator->setScreen(static_cast<int>(ScootEnums::ScreenMode::Map));
+    });
+
     // M6: Wire shutdown to vehicle state monitoring
     m_shutdownStore->connectToVehicle(vehicleStore);
 
@@ -644,6 +664,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("navAvailabilityService"), m_navAvailability);
     ctx->setContextProperty(QStringLiteral("serialNumberService"), m_serialNumberService);
     ctx->setContextProperty(QStringLiteral("addressDatabase"), m_addressDatabaseService);
+    ctx->setContextProperty(QStringLiteral("addressEntry"), addressEntry);
     ctx->setContextProperty(QStringLiteral("roadInfoService"), m_roadInfoService);
     ctx->setContextProperty(QStringLiteral("mapDownloadService"), m_mapDownloadService);
     ctx->setContextProperty(QStringLiteral("umsLogStore"), umsLogStore);
