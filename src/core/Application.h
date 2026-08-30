@@ -6,10 +6,6 @@
 
 class MdbRepository;
 class CommandBus;
-class GpsStore;
-class VehicleStore;
-class SettingsStore;
-class InternetStore;
 class AutoThemeService;
 class SettingsService;
 class NavigationService;
@@ -34,6 +30,7 @@ class MapDownloadService;
 class UpdateChannelService;
 class RoadInfoService;
 class OdometerMilestoneService;
+class MapUpdateCoordinator;
 
 class Application : public QObject
 {
@@ -66,22 +63,6 @@ private:
     // framebuffer rather than the panel and cannot be used to capture the UI.
     void setupScreenshotWatcher();
     void setupSimulatorAutoDrive();
-    void setupMapCommandChannel();
-    // Re-point the mbtiles-backed services at /data/maps/map.mbtiles. Safe to
-    // call repeatedly (each service's reload is idempotent); driven by the
-    // file watcher and by NavigationAvailabilityService::localMapsBecameAvailable
-    // so a late /data mount recovers the map + road-info, not just the flag.
-    void reloadMapServices();
-    // Starts the map download only while parked/stand-by, so a mid-ride
-    // update never triggers a large cellular download or a valhalla restart
-    // during navigation. Self-gates on the auto-download setting, update
-    // availability, download-service idle status, and vehicle state, so it's
-    // safe to call opportunistically from multiple signals.
-    void maybeAutoDownloadMaps();
-    // Runs the periodic map update check when the setting, connectivity,
-    // installed maps and cadence all allow it. Cheap and idempotent, so it is
-    // safe to call from every signal that could make those conditions true.
-    void maybeCheckForMapUpdates();
 
     std::unique_ptr<MdbRepository> m_repository;
     CommandBus *m_commandBus = nullptr;
@@ -109,17 +90,10 @@ private:
     UpdateChannelService *m_updateChannelService = nullptr;
     RoadInfoService *m_roadInfoService = nullptr;
     OdometerMilestoneService *m_odometerMilestoneService = nullptr;
-    // Stashed for maybeAutoDownloadMaps(), which needs to be reachable from
-    // several connects (updateAvailableChanged, vehicleStore::stateChanged,
-    // and the startup check) without duplicating its gating logic in each.
-    GpsStore *m_gpsStore = nullptr;
-    VehicleStore *m_vehicleStore = nullptr;
-    SettingsStore *m_settingsStore = nullptr;
-    InternetStore *m_internetStore = nullptr;
+    MapUpdateCoordinator *m_mapUpdateCoordinator = nullptr;
     bool m_simulatorMode = false;
     bool m_inMemoryBackend = false;
     QString m_backendDescription;
-    bool m_mapDownloadHoldActive = false;
     bool m_uiPresented = false;
     bool m_redisReady = false;
     bool m_readySignalled = false;

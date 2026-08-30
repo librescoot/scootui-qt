@@ -56,6 +56,7 @@
 #include "services/AddressDatabaseService.h"
 #include "controllers/AddressEntryController.h"
 #include "controllers/MapSetupController.h"
+#include "coordinators/MapUpdateCoordinator.h"
 #include "services/MapDownloadService.h"
 #include "services/UpdateChannelService.h"
 #include "services/RoadInfoService.h"
@@ -194,7 +195,6 @@ bool Application::initialize(QQmlApplicationEngine &engine)
     BOOT_MARK("registerContextProperties() done");
     setupSignalHandlers();
     setupScreenshotWatcher();
-    setupMapCommandChannel();
 
     return true;
 }
@@ -300,155 +300,23 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // Map download service. Takes the repository so it can mirror what is
     // installed into the `maps` hash on the MDB.
     m_mapDownloadService = new MapDownloadService(repo, this);
-    m_gpsStore = gpsStore;
-    m_vehicleStore = vehicleStore;
-    m_settingsStore = settingsStore;
-    m_internetStore = internetStore;
-
-    // Auto-check for map updates when connectivity is established
-    // Vehicles whose maps came from the flasher have no region on record. The
-    // check identifies them by tile digest where it can; where it can't, a GPS
-    // fix gives it something to resolve from.
-    m_mapDownloadService->setPositionProvider([gpsStore](double &lat, double &lng) {
-        if (!gpsStore->hasRecentFix())
-            return false;
-        lat = gpsStore->latitude();
-        lng = gpsStore->longitude();
-        return true;
-    });
-
-    // The check needs both the modem connected and the setting loaded, and the
-    // two stores sync independently. Listening to only one of them loses the
-    // race whenever the other lands second: m_stores starts internetStore
-    // before settingsStore, so the initial modemStateChanged used to arrive
-    // while mapCheckForUpdates was still its default "false", and modem-state
-    // never changes again on a vehicle that stays online. Hooking both signals
-    // means whichever settles last runs the check, in either order.
-    connect(internetStore, &InternetStore::modemStateChanged, this,
-            &Application::maybeCheckForMapUpdates);
-    connect(settingsStore, &SettingsStore::mapCheckForUpdatesChanged, this,
-            &Application::maybeCheckForMapUpdates);
-
-    // Notify user when a map update is found, or auto-download if enabled.
-    // The actual download is state-gated (see maybeAutoDownloadMaps).
-    connect(m_mapDownloadService, &MapDownloadService::updateAvailableChanged, this,
-            [this]() {
-        if (!m_mapDownloadService->updateAvailable())
-            return;
-        if (m_settingsStore->mapAutoDownload()) {
-            maybeAutoDownloadMaps();
-        } else {
-            m_toastService->showInfo(m_translations->mapUpdateAvailableToast());
-        }
-    });
-
-    // Retry the auto-download on every state the download is allowed in, so an
-    // update discovered at an awkward moment (or already pending from a
-    // previous session) starts as soon as the vehicle reaches one of them.
-    connect(vehicleStore, &VehicleStore::stateChanged, this, [this]() {
-        auto state = static_cast<ScootEnums::VehicleState>(m_vehicleStore->state());
-        if (state == ScootEnums::VehicleState::Parked
-            || state == ScootEnums::VehicleState::StandBy
-            || state == ScootEnums::VehicleState::ReadyToDrive) {
-            maybeAutoDownloadMaps();
-        }
-    });
-
-    // Ask vehicle-service to keep DBC power up while a download is running, the
-    // way a DBC OTA does. Without it, locking the scooter cuts power mid
-    // transfer: the .part file resumes next time, but on a scooter that parks
-    // often a large tar may never finish. vehicle-service caps the hold, so a
-    // dashboard that dies mid download cannot pin power on.
-    connect(m_mapDownloadService, &MapDownloadService::statusChanged, this, [this]() {
-        const int st = m_mapDownloadService->status();
-        // Installing is short but it renames the tar into place and restarts
-        // valhalla, so it is the worst moment to lose power.
-        const bool busy = st == static_cast<int>(ScootEnums::MapDownloadStatus::Downloading)
-                          || st == static_cast<int>(ScootEnums::MapDownloadStatus::Installing);
-        if (busy == m_mapDownloadHoldActive)
-            return;
-        m_mapDownloadHoldActive = busy;
-        if (busy)
-            m_commandBus->holdDbc(QStringLiteral("map-download"));
-        else
-            m_commandBus->releaseDbcHold();
-    });
-
-    // Refresh map/road-info/address-db as soon as an install finishes.
-    // Belt-and-suspenders with the mbtiles file watcher below, which reacts
-    // to the same rename but only once inotify delivers the event.
-    connect(m_mapDownloadService, &MapDownloadService::downloadComplete,
-            this, &Application::reloadMapServices);
-
-    // Show persisted update notification on startup while parked/stand-by
-    if (m_mapDownloadService->updateAvailable()) {
-        auto *startupConn = new QMetaObject::Connection;
-        *startupConn = connect(vehicleStore, &VehicleStore::stateChanged, this,
-                [this, vehicleStore, startupConn]() {
-            auto state = static_cast<ScootEnums::VehicleState>(vehicleStore->state());
-            if (state == ScootEnums::VehicleState::Parked
-                || state == ScootEnums::VehicleState::StandBy) {
-                if (m_mapDownloadService->updateAvailable())
-                    m_toastService->showInfo(m_translations->mapUpdateAvailableToast());
-            }
-            disconnect(*startupConn);
-            delete startupConn;
-        });
-
-        // A persisted flag from a previous session never re-fires
-        // updateAvailableChanged, so kick the parked-gated auto-download once
-        // here too; it self-gates on the current vehicle state and setting.
-        maybeAutoDownloadMaps();
-    }
-
-    // Watch /data/maps/ for mbtiles appearing late (e.g. /data not yet
-    // mounted at startup) or being replaced (e.g. OTA map update).
-    // inotify on the mountpoint directory fires when the filesystem is mounted.
-    auto *mbtilesWatcher = new QFileSystemWatcher(this);
-    static const QString mapsDir = QStringLiteral("/data/maps");
-    if (QDir(mapsDir).exists())
-        mbtilesWatcher->addPath(mapsDir);
-    else
-        mbtilesWatcher->addPath(QStringLiteral("/data"));
-
-    connect(mbtilesWatcher, &QFileSystemWatcher::directoryChanged, this,
-            [this, mbtilesWatcher](const QString &path) {
-        static const QString mapsDir = QStringLiteral("/data/maps");
-        // /data was just mounted — start watching /data/maps/ instead
-        if (path == QLatin1String("/data") && QDir(mapsDir).exists()) {
-            mbtilesWatcher->removePath(QStringLiteral("/data"));
-            mbtilesWatcher->addPath(mapsDir);
-        }
-
-        // Everything below the mbtiles check needs /data to exist, and both of
-        // these were previously stranded when it mounted late. The metadata read
-        // in MapDownloadService's constructor happens ~8s before the mount, and
-        // the update check only ran off the modem and settings edges, which can
-        // both settle while hasMapsInstalled() is still false.
-        if (m_mapDownloadService)
-            m_mapDownloadService->reloadMetadata();
-        maybeCheckForMapUpdates();
-
-        if (!QFile::exists(mapsDir + QStringLiteral("/map.mbtiles")))
-            return;
-        qDebug() << "Mbtiles change detected, reloading services";
-        reloadMapServices();
-        // Re-run availability detection immediately. The service also polls
-        // while maps are unavailable (covers mounts, which inotify can't see),
-        // but reacting to the watcher here flips the flag without waiting for
-        // the next poll tick.
-        if (m_navAvailability)
-            m_navAvailability->recheck();
-    });
-
-    // The QFileSystemWatcher above cannot see /data being *mounted* over the
-    // watched mountpoint (inotify delivers no event for a mount), so on a cold
-    // boot where scootui starts before /data is mounted it never fires. The
-    // availability poller does detect the late mount — reload the mbtiles-backed
-    // services off its edge so the map + road-info recover, not just the flag.
-    if (m_navAvailability)
-        connect(m_navAvailability, &NavigationAvailabilityService::localMapsBecameAvailable,
-                this, &Application::reloadMapServices);
+    // Map update lifecycle: auto check/download, DBC power hold, mbtiles
+    // reload on install or a late /data mount, scootui:command channel.
+    MapUpdateCoordinator::Deps mapDeps;
+    mapDeps.repo = repo;
+    mapDeps.commandBus = commandBus;
+    mapDeps.download = m_mapDownloadService;
+    mapDeps.availability = m_navAvailability;
+    mapDeps.map = m_mapService;
+    mapDeps.roadInfo = m_roadInfoService;
+    mapDeps.addressDb = m_addressDatabaseService;
+    mapDeps.toasts = m_toastService;
+    mapDeps.translations = m_translations;
+    mapDeps.gps = gpsStore;
+    mapDeps.vehicle = vehicleStore;
+    mapDeps.settings = settingsStore;
+    mapDeps.internet = internetStore;
+    m_mapUpdateCoordinator = new MapUpdateCoordinator(mapDeps, this);
 
     // Saved locations (B7)
     m_savedLocationsService = new SavedLocationsService(repo, this);
@@ -781,57 +649,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
     qDebug() << "All stores created and started (M5: menu, settings, translations, auto-theme, toast, map, nav-availability, saved-locations, serial-number)";
 }
 
-void Application::reloadMapServices()
-{
-    // Each reload is idempotent: MapService/RoadInfoService early-return when the
-    // path is unchanged, and AddressDatabaseService skips a rebuild already in
-    // flight — so this is safe to call from both the file watcher and the
-    // availability edge, including the re-entrant watcher->recheck() case.
-    if (m_mapService)
-        m_mapService->reloadMbtiles();
-    if (m_roadInfoService)
-        m_roadInfoService->reloadMbtiles();
-    if (m_addressDatabaseService)
-        m_addressDatabaseService->initialize();
-}
 
-void Application::maybeCheckForMapUpdates()
-{
-    if (!m_settingsStore || !m_internetStore || !m_mapDownloadService)
-        return;
-    if (!m_settingsStore->mapCheckForUpdates())
-        return;
-    if (m_internetStore->modemState() != static_cast<int>(ScootEnums::ModemState::Connected))
-        return;
-    if (!m_mapDownloadService->hasMapsInstalled())
-        return;
-    if (!m_mapDownloadService->shouldCheckForUpdates())
-        return;
 
-    qDebug() << "Auto-checking for map updates (weekly)";
-    m_mapDownloadService->checkForUpdatesNow();
-}
-
-void Application::maybeAutoDownloadMaps()
-{
-    if (!m_settingsStore || !m_gpsStore || !m_vehicleStore || !m_mapDownloadService)
-        return;
-    if (!m_settingsStore->mapAutoDownload())
-        return;
-    if (!m_mapDownloadService->updateAvailable())
-        return;
-    if (m_mapDownloadService->status() != static_cast<int>(ScootEnums::MapDownloadStatus::Idle))
-        return;
-
-    auto state = static_cast<ScootEnums::VehicleState>(m_vehicleStore->state());
-    if (state != ScootEnums::VehicleState::Parked
-        && state != ScootEnums::VehicleState::StandBy
-        && state != ScootEnums::VehicleState::ReadyToDrive)
-        return;
-
-    qDebug() << "Auto-downloading map update, vehicle state" << m_vehicleStore->state();
-    m_mapDownloadService->startDownload(m_gpsStore->latitude(), m_gpsStore->longitude(), true, true);
-}
 
 void Application::registerContextProperties(QQmlApplicationEngine &engine)
 {
@@ -922,84 +741,6 @@ void Application::setupSimulatorAutoDrive()
     });
 }
 
-void Application::setupMapCommandChannel()
-{
-    if (!m_mapDownloadService || !m_repository)
-        return;
-
-    // Map updates could only be started by a human in the settings menu, which
-    // made the whole path untestable without standing at the vehicle and
-    // impossible to drive from a fleet tool. Commands arrive on the
-    // scootui:command channel:
-    //
-    //   redis-cli publish scootui:command map-check
-    //   redis-cli publish scootui:command map-download
-    //   redis-cli publish scootui:command map-cancel
-    //   redis-cli publish scootui:command map-reload
-    //
-    m_repository->subscribe(RedisSchema::channel::ScootuiCommand,
-                            [this](const QString &, const QString &msg) {
-        const QString cmd = msg.trimmed();
-        if (cmd == QLatin1String("map-check")) {
-            qInfo() << "Map: check requested over scootui:command";
-            QMetaObject::invokeMethod(m_mapDownloadService,
-                                      &MapDownloadService::checkForUpdatesNow,
-                                      Qt::QueuedConnection);
-        } else if (cmd == QLatin1String("map-download")) {
-            qInfo() << "Map: download requested over scootui:command";
-            QMetaObject::invokeMethod(this, [this] {
-                double lat = 0.0, lng = 0.0;
-                if (m_gpsStore && m_gpsStore->latitude() != 0.0) {
-                    lat = m_gpsStore->latitude();
-                    lng = m_gpsStore->longitude();
-                }
-                m_mapDownloadService->startDownload(lat, lng, true, true);
-            }, Qt::QueuedConnection);
-        } else if (cmd == QLatin1String("map-cancel")) {
-            qInfo() << "Map: cancel requested over scootui:command";
-            QMetaObject::invokeMethod(m_mapDownloadService,
-                                      &MapDownloadService::cancel,
-                                      Qt::QueuedConnection);
-        } else if (cmd == QLatin1String("map-reload")) {
-            // Swapping map.mbtiles by hand otherwise needs a service restart.
-            qInfo() << "Map: reloading mbtiles over scootui:command";
-            if (m_mapService) {
-                QMetaObject::invokeMethod(m_mapService,
-                                          &MapService::reloadMbtiles,
-                                          Qt::QueuedConnection);
-            }
-        } else if (!cmd.isEmpty()) {
-            qWarning() << "Map: unknown scootui:command" << cmd;
-        }
-    });
-
-    // The service only reported progress to the screen, so a check that ran
-    // while nobody was looking left no trace. Mirror the interesting
-    // transitions to the journal.
-    static const char *kStatusNames[] = {
-        "idle", "checking-updates", "locating", "downloading",
-        "installing", "done", "error"
-    };
-    connect(m_mapDownloadService, &MapDownloadService::statusChanged, this, [this] {
-        const int s = m_mapDownloadService->status();
-        const char *name = (s >= 0 && s < int(std::size(kStatusNames)))
-            ? kStatusNames[s] : "unknown";
-        qInfo().nospace() << "Map: status " << name
-                          << " region=" << m_mapDownloadService->regionName();
-    });
-    connect(m_mapDownloadService, &MapDownloadService::updateCheckCompleted, this,
-            [](bool updateFound) {
-        qInfo() << "Map: update check finished, update available:" << updateFound;
-    });
-    connect(m_mapDownloadService, &MapDownloadService::downloadComplete, this, [this] {
-        qInfo() << "Map: download complete, region" << m_mapDownloadService->regionName();
-    });
-    connect(m_mapDownloadService, &MapDownloadService::errorMessageChanged, this, [this] {
-        const QString err = m_mapDownloadService->errorMessage();
-        if (!err.isEmpty())
-            qWarning() << "Map: error:" << err;
-    });
-}
 
 void Application::setupScreenshotWatcher()
 {
