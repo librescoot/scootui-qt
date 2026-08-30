@@ -13,6 +13,24 @@ SettingsService::SettingsService(MdbRepository *repo, SettingsStore *settings,
     , m_repo(repo)
     , m_settings(settings)
 {
+#ifdef Q_OS_LINUX
+    // Prefetch the boot_animation theme so toggleBootAnimation never has to
+    // read the U-Boot env synchronously.
+    auto *readProc = new QProcess(this);
+    connect(readProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, [this, readProc](int, QProcess::ExitStatus) {
+        // A toggle that raced the prefetch already knows the newer value.
+        if (m_bootAnimationTheme.isEmpty()) {
+            const QString current
+                = QString::fromUtf8(readProc->readAllStandardOutput()).trimmed();
+            m_bootAnimationTheme
+                = current.isEmpty() ? QStringLiteral("librescoot") : current;
+        }
+        readProc->deleteLater();
+    });
+    readProc->start(QStringLiteral("fw_printenv"),
+                    {QStringLiteral("-n"), QStringLiteral("boot_animation")});
+#endif
 }
 
 void SettingsService::writeSetting(const QString &key, const QString &value)
@@ -246,23 +264,24 @@ void SettingsService::updateMilestoneCelebrations(bool enabled)
 QString SettingsService::toggleBootAnimation()
 {
 #ifdef Q_OS_LINUX
-    QProcess readProc;
-    readProc.start(QStringLiteral("fw_printenv"), {QStringLiteral("-n"), QStringLiteral("boot_animation")});
-    readProc.waitForFinished(2000);
-    QString current = QString::fromUtf8(readProc.readAllStandardOutput()).trimmed();
-    if (current.isEmpty())
-        current = QStringLiteral("librescoot");
-
-    QString next = (current == QLatin1String("windowsxp"))
+    const QString current = m_bootAnimationTheme.isEmpty()
+        ? QStringLiteral("librescoot") : m_bootAnimationTheme;
+    const QString next = (current == QLatin1String("windowsxp"))
         ? QStringLiteral("librescoot") : QStringLiteral("windowsxp");
+    m_bootAnimationTheme = next;
 
-    QProcess writeProc;
-    writeProc.start(QStringLiteral("fw_setenv"), {QStringLiteral("boot_animation"), next});
-    writeProc.waitForFinished(2000);
-    if (writeProc.exitCode() != 0)
-        qWarning() << "fw_setenv boot_animation failed:" << writeProc.readAllStandardError();
-    else
-        qDebug() << "boot_animation toggled to:" << next;
+    auto *writeProc = new QProcess(this);
+    connect(writeProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, [writeProc, next](int exitCode, QProcess::ExitStatus) {
+        if (exitCode != 0)
+            qWarning() << "fw_setenv boot_animation failed:"
+                       << writeProc->readAllStandardError();
+        else
+            qDebug() << "boot_animation toggled to:" << next;
+        writeProc->deleteLater();
+    });
+    writeProc->start(QStringLiteral("fw_setenv"),
+                     {QStringLiteral("boot_animation"), next});
 
     return next;
 #else

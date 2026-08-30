@@ -47,6 +47,10 @@ public:
     Q_INVOKABLE void updateMapCheckForUpdates(bool enabled);
     Q_INVOKABLE void updateMapAutoDownload(bool enabled);
     Q_INVOKABLE void updateMilestoneCelebrations(bool enabled);
+    // Non-blocking: flips the cached theme, fires fw_setenv without waiting,
+    // and returns the new theme immediately. The cache is prefetched
+    // asynchronously at construction, so the U-Boot env read never runs on
+    // the UI thread either (fw_printenv/fw_setenv can stall for seconds).
     Q_INVOKABLE QString toggleBootAnimation();
 
     // OTA settings apply to the whole scooter, so each of these writes the
@@ -73,4 +77,6 @@ private:
     void writeOtaSetting(const QString &suffix, const QString &value);
     MdbRepository *m_repo;
     SettingsStore *m_settings;
+    // Cached U-Boot boot_animation value; empty until the prefetch lands.
+    QString m_bootAnimationTheme;
 };
