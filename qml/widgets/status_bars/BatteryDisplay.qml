@@ -41,13 +41,12 @@ Row {
     readonly property bool showText: typeof settingsStore === "undefined"
                                      || settingsStore.batteryDisplayMode !== "icon"
 
+    // Range/value formatting lives in C++ (BatteryAlertPolicy) so the number
+    // here can never drift from the model.
     function valueString(charge, soh, withDecimals) {
-        if (!showAsRange)
+        if (typeof batteryAlerts === "undefined")
             return charge.toString()
-        var rangeKm = 45.0 * (soh / 100.0) * (charge / 100.0)
-        if (rangeKm >= 10 || !withDecimals)
-            return Math.floor(rangeKm).toString()
-        return rangeKm.toFixed(1)
+        return batteryAlerts.valueText(charge, soh, showAsRange, withDecimals)
     }
 
     // Value sits a little smaller than the body font; the unit (km / %) is
@@ -100,28 +99,13 @@ Row {
     readonly property bool cbPresent: typeof cbBatteryStore !== "undefined" && cbBatteryStore.present
     readonly property int cbCharge: typeof cbBatteryStore !== "undefined" ? cbBatteryStore.charge : 0
     readonly property bool cbChargeValid: typeof cbBatteryStore !== "undefined" && cbBatteryStore.chargeValid
-    readonly property bool cbLow: cbChargeValid && cbCharge < 50
 
     readonly property int auxCharge: typeof auxBatteryStore !== "undefined" ? auxBatteryStore.charge : 0
     readonly property bool auxChargeValid: typeof auxBatteryStore !== "undefined" && auxBatteryStore.chargeValid
-    readonly property int auxVoltageMv: typeof auxBatteryStore !== "undefined" ? auxBatteryStore.voltage : 0
-    readonly property bool auxVoltageValid: typeof auxBatteryStore !== "undefined" && auxBatteryStore.voltageValid
 
-    // AUX 12V thresholds, in mV. The AUX pack has no fuel gauge: mdb-nrf52
-    // quantizes this same voltage into 5 SoC buckets (0/25/50/75/100), so SoC
-    // carries strictly less information than the voltage it is derived from.
-    // Drive every aux low/warning/critical decision from voltage; SoC is kept
-    // only for the charge-level glyph. These three values are the one place to
-    // shift for a future "aux chemistry = LiFePO4" setting (the firmware SoC
-    // table is lead-acid-specific and can't be reused for LiFePO4's flat curve).
-    // Tiers: 11700 (soft "low": icon visibility + stranded mirror),
-    //        11495 ~ firmware empty line (charging-system warning),
-    //        11000 critical.
-    readonly property int auxLowVoltageMv: 11700
-    readonly property int auxWarnVoltageMv: 11495
-    readonly property int auxCriticalVoltageMv: 11000
-
-    readonly property bool auxLow: auxVoltageValid && auxVoltageMv < auxLowVoltageMv
+    // Low reads and thresholds live in BatteryAlertPolicy.h.
+    readonly property bool cbLow: typeof batteryAlerts !== "undefined" && batteryAlerts.cbLow
+    readonly property bool auxLow: typeof batteryAlerts !== "undefined" && batteryAlerts.auxLow
 
     function visibleByMode(mode, low) {
         if (mode === "always") return true
@@ -242,154 +226,12 @@ Row {
     // CB battery not present
     readonly property bool cbNotPresent: typeof cbBatteryStore !== "undefined" && !cbBatteryStore.present
 
-    // CB warning: charge < 50%, not charging, main present & active, seatbox closed
-    readonly property bool cbWarningCondition: {
-        if (typeof cbBatteryStore === "undefined" || typeof vehicleStore === "undefined") return false
-        if (!cbBatteryStore.present) return false
-        return cbBatteryStore.charge < 50
-            && cbBatteryStore.chargeStatus !== Scooter.ChargeStatus.Charging
-            && present0 && charge0 > 0 && battState0 === Scooter.BatteryState.Active
-            && vehicleStore.seatboxLock === Scooter.SeatboxLock.Closed
-    }
-    // AUX low voltage: not charging, main present, seatbox closed. Replaces the
-    // old SoC <= 25% gate - voltage is the same signal without the bucketing.
-    readonly property bool auxLowVoltageCondition: {
-        if (typeof auxBatteryStore === "undefined" || typeof vehicleStore === "undefined") return false
-        return auxVoltageValid && auxVoltageMv < auxWarnVoltageMv
-            && auxBatteryStore.chargeStatus === Scooter.AuxChargeStatus.NotCharging
-            && present0
-            && vehicleStore.seatboxLock === Scooter.SeatboxLock.Closed
-    }
-    // AUX critical voltage: main present, seatbox closed
-    readonly property bool auxCriticalCondition: {
-        if (typeof auxBatteryStore === "undefined" || typeof vehicleStore === "undefined") return false
-        return auxVoltageValid && auxVoltageMv < auxCriticalVoltageMv
-            && present0
-            && vehicleStore.seatboxLock === Scooter.SeatboxLock.Closed
-    }
-
-    // --- "Stranded" warnings: backup battery low while NO main battery is inserted ---
-    // Distinct from the charging-system warnings above (which require a main
-    // battery present and active). These fire regardless of seatbox state.
-    // Toasts for these are driven separately by the C++ BackupBatteryMonitor;
-    // here we only mirror the conditions to drive the status-bar icons.
-    readonly property bool noMainBattery: !present0 && !present1
-
-    // CBB low and stranded: reuse the 50% SoC gate. Only act on a reported SoC -
-    // "never received" is not a low reading.
-    readonly property bool cbStrandedCondition: {
-        if (typeof cbBatteryStore === "undefined") return false
-        return noMainBattery && cbBatteryStore.present
-            && cbBatteryStore.chargeValid && cbBatteryStore.charge < 50
-    }
-    // AUX low and stranded: low aux voltage while no main battery is inserted.
-    // Mirrors the C++ BackupBatteryMonitor, which drives the actual toast.
-    readonly property bool auxStrandedCondition: {
-        if (typeof auxBatteryStore === "undefined") return false
-        if (!noMainBattery) return false
-        return auxVoltageValid && auxVoltageMv < auxLowVoltageMv
-    }
-
-    // --- 3-second debounce for warning indicators (matching Flutter) ---
-    property bool showCbWarning: false
-    property bool showAuxWarning: false
-    property bool showCbStranded: false
-    property bool showAuxStranded: false
-
-    property bool _cbDebounceActive: false
-    property bool _auxDebounceActive: false
-    property bool _cbStrandedDebounceActive: false
-    property bool _auxStrandedDebounceActive: false
-
-    readonly property bool _anyAuxCondition: auxLowVoltageCondition || auxCriticalCondition
-
-    onCbWarningConditionChanged: {
-        if (cbWarningCondition) {
-            if (!_cbDebounceActive) {
-                _cbDebounceActive = true
-                cbDebounceTimer.restart()
-            }
-        } else {
-            _cbDebounceActive = false
-            cbDebounceTimer.stop()
-            showCbWarning = false
-        }
-    }
-
-    on_AnyAuxConditionChanged: {
-        if (_anyAuxCondition) {
-            if (!_auxDebounceActive) {
-                _auxDebounceActive = true
-                auxDebounceTimer.restart()
-            }
-        } else {
-            _auxDebounceActive = false
-            auxDebounceTimer.stop()
-            showAuxWarning = false
-        }
-    }
-
-    Timer {
-        id: cbDebounceTimer
-        interval: 3000
-        onTriggered: {
-            if (batteryDisplay.cbWarningCondition)
-                batteryDisplay.showCbWarning = true
-        }
-    }
-
-    Timer {
-        id: auxDebounceTimer
-        interval: 3000
-        onTriggered: {
-            if (batteryDisplay._anyAuxCondition)
-                batteryDisplay.showAuxWarning = true
-        }
-    }
-
-    onCbStrandedConditionChanged: {
-        if (cbStrandedCondition) {
-            if (!_cbStrandedDebounceActive) {
-                _cbStrandedDebounceActive = true
-                cbStrandedDebounceTimer.restart()
-            }
-        } else {
-            _cbStrandedDebounceActive = false
-            cbStrandedDebounceTimer.stop()
-            showCbStranded = false
-        }
-    }
-
-    onAuxStrandedConditionChanged: {
-        if (auxStrandedCondition) {
-            if (!_auxStrandedDebounceActive) {
-                _auxStrandedDebounceActive = true
-                auxStrandedDebounceTimer.restart()
-            }
-        } else {
-            _auxStrandedDebounceActive = false
-            auxStrandedDebounceTimer.stop()
-            showAuxStranded = false
-        }
-    }
-
-    Timer {
-        id: cbStrandedDebounceTimer
-        interval: 3000
-        onTriggered: {
-            if (batteryDisplay.cbStrandedCondition)
-                batteryDisplay.showCbStranded = true
-        }
-    }
-
-    Timer {
-        id: auxStrandedDebounceTimer
-        interval: 3000
-        onTriggered: {
-            if (batteryDisplay.auxStrandedCondition)
-                batteryDisplay.showAuxStranded = true
-        }
-    }
+    // Warning icon states come debounced from the C++ BatteryAlertModel; the
+    // conditions and thresholds live in BatteryAlertPolicy.h.
+    readonly property bool showCbWarning: typeof batteryAlerts !== "undefined" && batteryAlerts.showCbWarning
+    readonly property bool showAuxWarning: typeof batteryAlerts !== "undefined" && batteryAlerts.showAuxWarning
+    readonly property bool showCbStranded: typeof batteryAlerts !== "undefined" && batteryAlerts.showCbStranded
+    readonly property bool showAuxStranded: typeof batteryAlerts !== "undefined" && batteryAlerts.showAuxStranded
 
     // =====================================================================
     // Battery 0 icon

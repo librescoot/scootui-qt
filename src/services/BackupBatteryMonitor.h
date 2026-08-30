@@ -4,6 +4,8 @@
 #include <QString>
 #include <QTimer>
 
+#include "BatteryAlertPolicy.h"
+
 class BatteryStore;
 class CbBatteryStore;
 class AuxBatteryStore;
@@ -43,13 +45,10 @@ private:
     // Raise the armed warning(s) once the debounce has elapsed.
     void raise();
 
-    // CBB reuses the same SoC gate as the charging-system warning.
-    static constexpr int CbChargeThreshold = 50;
-    // AUX has no fuel gauge (its SoC is just a bucketed copy of this voltage),
-    // so gate on voltage. 11700 mV is the soft "low" line on the lead-acid curve;
-    // a healthy 12V pack rests around 12.5V. A LiFePO4 aux would shift this.
-    // Matches the status-bar mirror (auxLowVoltageMv in BatteryDisplay.qml).
-    static constexpr int AuxVoltageThreshold = 11700; // mV
+    // Thresholds shared with the status-bar mirror via BatteryAlertPolicy.h,
+    // so the toast and the icon can never disagree about what "low" means.
+    static constexpr int CbChargeThreshold = BatteryAlertPolicy::kCbLowChargePercent;
+    static constexpr int AuxVoltageThreshold = BatteryAlertPolicy::kAuxLowVoltageMv;
     static constexpr int DebounceMs = 1500;
 
     static const QString CbToastId;

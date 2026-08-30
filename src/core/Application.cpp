@@ -47,6 +47,7 @@
 #include "services/BluetoothHealthMonitor.h"
 #include "services/HandlebarLockMonitor.h"
 #include "services/BackupBatteryMonitor.h"
+#include "services/BatteryAlertModel.h"
 #include "services/NavigationAvailabilityService.h"
 #include "services/SavedLocationsService.h"
 #include "services/RecentDestinationsService.h"
@@ -469,6 +470,10 @@ void Application::createStores(QQmlApplicationEngine &engine)
                                                        auxBatteryStore, vehicleStore, m_toastService,
                                                        m_translations, this);
 
+    // Debounced status-bar battery warnings (BatteryAlertPolicy conditions).
+    auto *batteryAlerts = new BatteryAlertModel(battery0Store, battery1Store, cbBatteryStore,
+                                                auxBatteryStore, vehicleStore, this);
+
     // Battery fault monitoring
     auto connectFaultMonitor = [this, settingsStore](BatteryStore *batteryStore) {
         connect(batteryStore, &BatteryStore::faultsChanged, this,
@@ -643,6 +648,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("scooterStore"), scooterStore);
     ctx->setContextProperty(QStringLiteral("cbBatteryStore"), cbBatteryStore);
     ctx->setContextProperty(QStringLiteral("auxBatteryStore"), auxBatteryStore);
+    ctx->setContextProperty(QStringLiteral("batteryAlerts"), batteryAlerts);
     ctx->setContextProperty(QStringLiteral("themeStore"), themeStore);
     ctx->setContextProperty(QStringLiteral("navigator"), navigator);
     ctx->setContextProperty(QStringLiteral("menuController"), menuController);

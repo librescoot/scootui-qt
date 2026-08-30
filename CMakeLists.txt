@@ -120,6 +120,7 @@ set(CPP_SOURCES
     src/services/BluetoothHealthMonitor.cpp
     src/services/HandlebarLockMonitor.cpp
     src/services/BackupBatteryMonitor.cpp
+    src/services/BatteryAlertModel.cpp
     src/services/NavigationAvailabilityService.cpp
     src/services/SavedLocationsService.cpp
     src/services/RecentDestinationsService.cpp
@@ -199,6 +200,8 @@ set(CPP_HEADERS
     src/services/BluetoothHealthMonitor.h
     src/services/HandlebarLockMonitor.h
     src/services/BackupBatteryMonitor.h
+    src/services/BatteryAlertModel.h
+    src/services/BatteryAlertPolicy.h
     src/services/NavigationAvailabilityService.h
     src/services/SavedLocationsService.h
     src/services/ReverseGeocodingService.h
@@ -494,6 +497,15 @@ if(BUILD_TESTING)
     target_include_directories(road_match_policy_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(road_match_policy_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME road_match_policy_test COMMAND road_match_policy_test)
+
+    qt_add_executable(battery_alert_policy_test
+        tests/BatteryAlertPolicyTest.cpp
+        src/services/BatteryAlertPolicy.h
+        src/models/Enums.h
+    )
+    target_include_directories(battery_alert_policy_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(battery_alert_policy_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME battery_alert_policy_test COMMAND battery_alert_policy_test)
 
     qt_add_executable(map_timing_test
         tests/MapTimingTest.cpp
