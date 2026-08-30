@@ -22,9 +22,6 @@ Rectangle {
     readonly property bool routingOk: typeof navAvailabilityService !== "undefined"
                                        ? navAvailabilityService.routingAvailable : false
 
-    readonly property int mode: typeof navigator !== "undefined"
-                                 ? navigator.setupMode : Scooter.SetupMode.Both
-
     // Download service bindings
     readonly property bool hasDownloadService: typeof mapDownloadService !== "undefined" && mapDownloadService !== null
     readonly property int dlStatus: hasDownloadService ? mapDownloadService.status : Scooter.MapDownloadStatus.Idle
@@ -44,74 +41,32 @@ Rectangle {
     // fix" mid-navigation when we plainly knew where we were.
     readonly property bool hasGps: typeof gpsStore !== "undefined"
                                     ? gpsStore.hasValidGps : false
-    readonly property double gpsLat: typeof gpsStore !== "undefined" ? gpsStore.latitude : 0
-    readonly property double gpsLng: typeof gpsStore !== "undefined" ? gpsStore.longitude : 0
 
-    // Download button logic
-    readonly property bool showDisplayRow: mode === Scooter.SetupMode.DisplayMaps || mode === Scooter.SetupMode.Both
-    readonly property bool showRoutingRow: mode === Scooter.SetupMode.Routing || mode === Scooter.SetupMode.Both
+    // Download policy comes from MapSetupController (MapSetupPolicy.h); this
+    // screen only maps its enums to translated strings.
+    readonly property bool hasSetup: typeof mapSetup !== "undefined" && mapSetup !== null
+    readonly property bool showDisplayRow: hasSetup && mapSetup.showDisplayRow
+    readonly property bool showRoutingRow: hasSetup && mapSetup.showRoutingRow
+    readonly property bool willDownloadAnything: hasSetup && mapSetup.willDownloadAnything
+    readonly property bool canDownload: hasSetup && mapSetup.canDownload
 
-    readonly property bool hasRelevantPartial: {
-        if (!hasDownloadService) return false
-        if (mode === Scooter.SetupMode.DisplayMaps) return mapDownloadService.hasPartialDisplayDownload
-        if (mode === Scooter.SetupMode.Routing) return mapDownloadService.hasPartialRoutingDownload
-        return mapDownloadService.hasPartialDisplayDownload || mapDownloadService.hasPartialRoutingDownload
-    }
-
-    // What the download button will actually fetch given the current mode and
-    // component health. Mode 0/1 force a single component; mode 2 fetches
-    // whatever is missing. If both are fine but an update is available, we
-    // refresh whichever the mode asks for. Used by both the size label and
-    // the download trigger so they can't drift.
-    readonly property bool willDownloadDisplay: {
-        if (showDisplayRow && !mapsOk) return true
-        if (dlUpdateAvailable && showDisplayRow) return true
-        return false
-    }
-    readonly property bool willDownloadRouting: {
-        if (showRoutingRow && !routingOk) return true
-        if (dlUpdateAvailable && showRoutingRow) return true
-        return false
-    }
-    readonly property bool willDownloadAnything: willDownloadDisplay || willDownloadRouting
-
-    readonly property bool canDownload: dlStatus === Scooter.MapDownloadStatus.Idle && isOnline && hasGps
-                                         && willDownloadAnything
     readonly property string downloadButtonLabel: {
-        if (dlUpdateAvailable)
-            return typeof translations !== "undefined" ? translations.navSetupUpdateButton : "Update"
-        if (hasRelevantPartial)
-            return typeof translations !== "undefined" ? translations.navSetupResumeButton : "Resume"
-        return typeof translations !== "undefined" ? translations.navSetupDownloadButton : "Download"
+        var tr = typeof translations !== "undefined" ? translations : null
+        if (!hasSetup) return tr ? tr.navSetupDownloadButton : "Download"
+        switch (mapSetup.buttonAction) {
+        case MapSetupController.Update: return tr ? tr.navSetupUpdateButton : "Update"
+        case MapSetupController.Resume: return tr ? tr.navSetupResumeButton : "Resume"
+        default: return tr ? tr.navSetupDownloadButton : "Download"
+        }
     }
 
-    // Title logic
     readonly property string titleText: {
-        if (typeof translations === "undefined") return "Navigation Setup"
-        if (mode === Scooter.SetupMode.DisplayMaps) return translations.navSetupTitleMapsUnavailable
-        if (mode === Scooter.SetupMode.Routing) return translations.navSetupTitleRoutingUnavailable
-        if (!mapsOk && !routingOk) return translations.navSetupTitleBothUnavailable
-        if (!mapsOk) return translations.navSetupTitleMapsUnavailable
-        if (!routingOk) return translations.navSetupTitleRoutingUnavailable
-        return translations.navSetupTitle
-    }
-
-    // Auto-resolve region when GPS becomes available
-    onHasGpsChanged: {
-        if (hasGps && isOnline && dlRegion === "" && hasDownloadService) {
-            mapDownloadService.resolveRegion(gpsLat, gpsLng)
-        }
-    }
-
-    onIsOnlineChanged: {
-        if (hasGps && isOnline && dlRegion === "" && hasDownloadService) {
-            mapDownloadService.resolveRegion(gpsLat, gpsLng)
-        }
-    }
-
-    Component.onCompleted: {
-        if (hasGps && isOnline && dlRegion === "" && hasDownloadService) {
-            mapDownloadService.resolveRegion(gpsLat, gpsLng)
+        if (typeof translations === "undefined" || !hasSetup) return "Navigation Setup"
+        switch (mapSetup.title) {
+        case MapSetupController.MapsUnavailable: return translations.navSetupTitleMapsUnavailable
+        case MapSetupController.RoutingUnavailable: return translations.navSetupTitleRoutingUnavailable
+        case MapSetupController.BothUnavailable: return translations.navSetupTitleBothUnavailable
+        default: return translations.navSetupTitle
         }
     }
 
@@ -119,12 +74,6 @@ Rectangle {
     readonly property bool canScrollDown: flickable.contentHeight > flickable.height
                                            && flickable.contentY + flickable.height < flickable.contentHeight - 2
     readonly property bool canScrollUp: flickable.contentY > 2
-
-    function triggerDownload() {
-        if (!canDownload || !hasDownloadService)
-            return
-        mapDownloadService.startDownload(gpsLat, gpsLng, willDownloadDisplay, willDownloadRouting)
-    }
 
     function closeSelf() {
         if (typeof navigator !== "undefined")
@@ -146,23 +95,13 @@ Rectangle {
         }
         function onLeftHold() { navSetupScreen.closeSelf() }
         function onRightTap() {
-            if (navSetupScreen.canDownload)
-                navSetupScreen.triggerDownload()
+            if (navSetupScreen.hasSetup)
+                mapSetup.triggerDownload()
         }
         function onRightHold() {
             if (!navSetupScreen.canScrollUp) return
             scrollAnim.to = Math.max(flickable.contentY - 100, 0)
             scrollAnim.restart()
-        }
-    }
-
-    // Recheck availability when download completes
-    Connections {
-        target: hasDownloadService ? mapDownloadService : null
-        function onDownloadComplete() {
-            if (typeof navAvailabilityService !== "undefined") {
-                navAvailabilityService.recheck()
-            }
         }
     }
 
@@ -345,11 +284,7 @@ Rectangle {
                     visible: navSetupScreen.dlRegion !== "" && navSetupScreen.willDownloadAnything
                     Layout.alignment: Qt.AlignHCenter
                     text: {
-                        var total = 0
-                        if (navSetupScreen.hasDownloadService) {
-                            if (navSetupScreen.willDownloadDisplay) total += mapDownloadService.estimatedDisplayBytes
-                            if (navSetupScreen.willDownloadRouting) total += mapDownloadService.estimatedRoutingBytes
-                        }
+                        var total = navSetupScreen.hasSetup ? mapSetup.estimatedDownloadBytes : 0
                         var sizeMB = Math.round(total / 1048576)
                         return navSetupScreen.dlRegion + " (" + sizeMB + " MB)"
                     }
@@ -477,14 +412,13 @@ Rectangle {
             Layout.rightMargin: 40
             Layout.maximumWidth: parent.width - 80
             text: {
-                if (typeof translations === "undefined") return ""
-                if (!navSetupScreen.willDownloadAnything)
-                    return translations.navSetupAllSet
-                if (navSetupScreen.willDownloadDisplay && navSetupScreen.willDownloadRouting)
-                    return translations.navSetupNoRoutingBody
-                if (navSetupScreen.willDownloadDisplay)
-                    return translations.navSetupDisplayMapsBody
-                return translations.navSetupRoutingBody
+                if (typeof translations === "undefined" || !navSetupScreen.hasSetup) return ""
+                switch (mapSetup.body) {
+                case MapSetupController.AllSet: return translations.navSetupAllSet
+                case MapSetupController.Both: return translations.navSetupNoRoutingBody
+                case MapSetupController.DisplayOnly: return translations.navSetupDisplayMapsBody
+                default: return translations.navSetupRoutingBody
+                }
             }
             color: navSetupScreen.textSecondary
             font.pixelSize: themeStore.fontBody

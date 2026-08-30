@@ -97,6 +97,7 @@ set(CPP_SOURCES
     src/stores/ThemeStore.cpp
     src/core/Navigator.cpp
     src/controllers/AddressEntryController.cpp
+    src/controllers/MapSetupController.cpp
     src/menu/MenuController.cpp
     src/menu/MenuActions.cpp
     src/menu/MenuDefinition.cpp
@@ -149,6 +150,8 @@ set(CPP_HEADERS
     src/core/Application.h
     src/models/Enums.h
     src/controllers/AddressEntryController.h
+    src/controllers/MapSetupController.h
+    src/controllers/MapSetupPolicy.h
     src/menu/MenuNode.h
     src/menu/MenuAction.h
     src/menu/MenuDefinition.h
@@ -499,6 +502,15 @@ if(BUILD_TESTING)
     target_include_directories(road_match_policy_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(road_match_policy_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME road_match_policy_test COMMAND road_match_policy_test)
+
+    qt_add_executable(map_setup_policy_test
+        tests/MapSetupPolicyTest.cpp
+        src/controllers/MapSetupPolicy.h
+        src/models/Enums.h
+    )
+    target_include_directories(map_setup_policy_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(map_setup_policy_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME map_setup_policy_test COMMAND map_setup_policy_test)
 
     qt_add_executable(battery_alert_policy_test
         tests/BatteryAlertPolicyTest.cpp

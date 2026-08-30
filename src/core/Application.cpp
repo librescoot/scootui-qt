@@ -55,6 +55,7 @@
 #include "services/SerialNumberService.h"
 #include "services/AddressDatabaseService.h"
 #include "controllers/AddressEntryController.h"
+#include "controllers/MapSetupController.h"
 #include "services/MapDownloadService.h"
 #include "services/UpdateChannelService.h"
 #include "services/RoadInfoService.h"
@@ -184,6 +185,7 @@ bool Application::initialize(QQmlApplicationEngine &engine)
     qmlRegisterUncreatableType<HopOnService>("ScootUI", 1, 0, "HopOnService", "enum access only");
     qmlRegisterUncreatableType<AddressDatabaseService>("ScootUI", 1, 0, "AddressDatabaseService", "enum access only");
     qmlRegisterUncreatableType<AddressEntryController>("ScootUI", 1, 0, "AddressEntryController", "enum access only");
+    qmlRegisterUncreatableType<MapSetupController>("ScootUI", 1, 0, "MapSetupController", "enum access only");
 
     BOOT_MARK("createStores() start");
     createStores(engine);
@@ -611,6 +613,10 @@ void Application::createStores(QQmlApplicationEngine &engine)
     auto *systemHealth = new SystemHealthMonitor(vehicleStore, connectionStore,
                                                  m_toastService, m_translations, this);
 
+    // Navigation Setup screen policy (MapSetupPolicy over the live stores).
+    auto *mapSetup = new MapSetupController(navigator, m_navAvailability, internetStore,
+                                            gpsStore, m_mapDownloadService, this);
+
     // M5: ShortcutMenuController
     auto *shortcutMenuController = new ShortcutMenuController(themeStore, vehicleStore, navigator, dashboardStore, m_inputHandler, commandBus, m_settingsService, this);
 
@@ -670,6 +676,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // New context properties
     ctx->setContextProperty(QStringLiteral("connectionStore"), connectionStore);
     ctx->setContextProperty(QStringLiteral("systemHealth"), systemHealth);
+    ctx->setContextProperty(QStringLiteral("mapSetup"), mapSetup);
     ctx->setContextProperty(QStringLiteral("dashboardStore"), dashboardStore);
     ctx->setContextProperty(QStringLiteral("commandBus"), commandBus);
     ctx->setContextProperty(QStringLiteral("toastService"), m_toastService);
