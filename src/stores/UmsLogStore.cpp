@@ -1,11 +1,27 @@
 #include "UmsLogStore.h"
 #include "repositories/RedisSchema.h"
+#include "stores/UsbStore.h"
 
 UmsLogStore::UmsLogStore(MdbRepository *repo, QObject *parent)
     : QObject(parent), m_repo(repo)
 {
     m_timer.setInterval(500);
     connect(&m_timer, &QTimer::timeout, this, &UmsLogStore::poll);
+}
+
+void UmsLogStore::attachUsb(UsbStore *usb)
+{
+    connect(usb, &UsbStore::statusChanged, this, [this, usb]() {
+        const QString &status = usb->status();
+        if (status == QLatin1String("processing")) {
+            startPolling();
+        } else if (status == QLatin1String("idle")) {
+            stopPolling();
+            clear();
+        } else {
+            stopPolling();
+        }
+    });
 }
 
 void UmsLogStore::startPolling()

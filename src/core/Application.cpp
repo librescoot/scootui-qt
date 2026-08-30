@@ -349,18 +349,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     new FaultNotifier(battery0Store, battery1Store, engineStore,
                       settingsStore, m_toastService, m_translations, this);
 
-    // Wire UMS log polling to USB status
-    connect(usbStore, &UsbStore::statusChanged, this, [usbStore, umsLogStore]() {
-        const QString &status = usbStore->status();
-        if (status == QLatin1String("processing")) {
-            umsLogStore->startPolling();
-        } else if (status == QLatin1String("idle")) {
-            umsLogStore->stopPolling();
-            umsLogStore->clear();
-        } else {
-            umsLogStore->stopPolling();
-        }
-    });
+    umsLogStore->attachUsb(usbStore);
 
     // M5: Wire translations to locale
     connect(localeStore, &LocaleStore::languageChanged, m_translations, [this, localeStore]() {
