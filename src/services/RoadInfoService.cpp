@@ -390,6 +390,12 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
                 candidate.policy.tunnel =
                     feature.properties.value(QStringLiteral("tunnel"))
                     == QLatin1String("true");
+                candidate.policy.oneWay =
+                    feature.properties.value(QStringLiteral("oneway"))
+                    == QLatin1String("true");
+                candidate.policy.oneWayReverse =
+                    feature.properties.value(QStringLiteral("oneway_reverse"))
+                    == QLatin1String("true");
 
                 for (const QVector<QPointF> &points : parts) {
                     for (int i = 0; i + 1 < points.size(); ++i) {

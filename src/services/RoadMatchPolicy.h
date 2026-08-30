@@ -12,6 +12,8 @@ struct RoadMatchCandidateScore {
     double distanceMeters = std::numeric_limits<double>::max();
     double bearingDegrees = -1.0;
     bool tunnel = false;
+    bool oneWay = false;
+    bool oneWayReverse = false;
 };
 
 struct RoadMatchSelection {
@@ -94,8 +96,7 @@ public:
                 continue;
 
             const double angle = headingReliable
-                ? undirectedAngleDifference(headingDegrees,
-                                            candidate.bearingDegrees)
+                ? travelAngleDifference(headingDegrees, candidate)
                 : 0.0;
             double score = candidate.distanceMeters;
             if (headingReliable && candidate.bearingDegrees >= 0.0) {
@@ -118,22 +119,75 @@ public:
         });
 
         const Ranked &best = ranked.first();
-        const auto &candidate = candidates[best.index];
-        const double margin = ranked.size() > 1
-            ? ranked[1].score - best.score
-            : std::numeric_limits<double>::infinity();
-        const bool priorStable = !previousKey.isEmpty()
-            && candidate.key == previousKey;
-        const bool directionFits = headingReliable && best.angle <= 35.0;
-
         RoadMatchSelection result;
-        result.index = best.index;
-        result.confident = candidate.distanceMeters <= 6.0
-            || margin >= 3.0 || priorStable || directionFits;
+        result.index = best.index; // useful for metadata even when not snap-safe
+
+        // Keep an established road while it remains close and directionally
+        // plausible. At a stop, course is intentionally unavailable: retaining
+        // is safe, while acquiring or switching from position alone is not.
+        if (!previousKey.isEmpty()) {
+            for (const Ranked &rankedCandidate : ranked) {
+                const auto &candidate = candidates[rankedCandidate.index];
+                if (candidate.key == previousKey
+                    && candidate.distanceMeters <= FreeDriveSnapState::ReleaseMeters
+                    && (!headingReliable
+                        || rankedCandidate.angle <= AlignmentDegrees)) {
+                    result.index = rankedCandidate.index;
+                    result.confident = true;
+                    return result;
+                }
+            }
+        }
+
+        // New acquisitions and switches require actual direction of travel.
+        // A close point alone is exactly what pulls the marker into courtyards
+        // when GPS drifts near a driveway.
+        const auto &candidate = candidates[best.index];
+        if (!headingReliable || best.angle > AlignmentDegrees
+            || candidate.distanceMeters > FreeDriveSnapState::AcquireMeters)
+            return result;
+
+        // With no directed/one-way information, two close parallel candidates
+        // are indistinguishable (notably divided carriageways). Do not guess.
+        for (int i = 1; i < ranked.size(); ++i) {
+            const Ranked &other = ranked[i];
+            const auto &otherCandidate = candidates[other.index];
+            if (otherCandidate.distanceMeters <= FreeDriveSnapState::AcquireMeters
+                && other.angle <= AlignmentDegrees
+                && undirectedAngleDifference(candidate.bearingDegrees,
+                                             otherCandidate.bearingDegrees)
+                    <= ParallelDegrees) {
+                return result;
+            }
+        }
+
+        result.confident = true;
         return result;
     }
 
 private:
+    static constexpr double AlignmentDegrees = 35.0;
+    static constexpr double ParallelDegrees = 15.0;
+
+    static double travelAngleDifference(double headingDegrees,
+                                        const RoadMatchCandidateScore &candidate)
+    {
+        double bearing = candidate.bearingDegrees;
+        if (candidate.oneWayReverse && bearing >= 0.0)
+            bearing = std::fmod(bearing + 180.0, 360.0);
+        if (candidate.oneWay || candidate.oneWayReverse)
+            return directedAngleDifference(headingDegrees, bearing);
+        return undirectedAngleDifference(headingDegrees, bearing);
+    }
+
+    static double directedAngleDifference(double a, double b)
+    {
+        if (!std::isfinite(a) || !std::isfinite(b) || b < 0.0)
+            return 180.0;
+        double d = std::abs(std::fmod(a - b, 360.0));
+        return d > 180.0 ? 360.0 - d : d;
+    }
+
     static double undirectedAngleDifference(double a, double b)
     {
         if (!std::isfinite(a) || !std::isfinite(b) || b < 0.0)

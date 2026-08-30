@@ -10,6 +10,7 @@ private slots:
     void certainEstimateResistsParallelRoadGpsJump();
     void freshGpsUsesBoundedProjectionWhenEstimateUncertain();
     void staleGpsFallsBackOnlyToCertainEstimate();
+    void routeDistanceUsesAuthoritativeThresholds();
     void oneRequestPerDeviationEpisode();
     void coordinatesRequireFiniteGeographicRange();
 };
@@ -64,6 +65,14 @@ void ReroutePolicyTest::staleGpsFallsBackOnlyToCertainEstimate()
 
     input.physicalUncertaintyMeters = 80.0;
     QVERIFY(!RerouteOriginSelector::select(input).isValid());
+}
+
+void ReroutePolicyTest::routeDistanceUsesAuthoritativeThresholds()
+{
+    QVERIFY(!RouteDistancePolicy::update(false, 59.9, 60.0, 35.0));
+    QVERIFY(RouteDistancePolicy::update(false, 60.1, 60.0, 35.0));
+    QVERIFY(RouteDistancePolicy::update(true, 35.1, 60.0, 35.0));
+    QVERIFY(!RouteDistancePolicy::update(true, 34.9, 60.0, 35.0));
 }
 
 void ReroutePolicyTest::oneRequestPerDeviationEpisode()

@@ -13,7 +13,10 @@ private slots:
     void headingDisambiguatesCrossingRoads();
     void rejectsDistantRoads();
     void previousMatchAddsHysteresis();
-    void parallelRoadNeedsClearWin();
+    void parallelRoadDoesNotForceAGuess();
+    void oneWayDirectionDisambiguatesCarriageways();
+    void perpendicularCourtyardIsRejected();
+    void stationaryMatchCannotAcquireOrSwitch();
     void transientMissesRetainRoadMatch();
     void freeDriveSnapUsesAcquireReleaseHysteresis();
     void convertsMphToKph();
@@ -52,22 +55,67 @@ void RoadMatchPolicyTest::previousMatchAddsHysteresis()
     QVERIFY(selected.confident);
 }
 
-void RoadMatchPolicyTest::parallelRoadNeedsClearWin()
+void RoadMatchPolicyTest::parallelRoadDoesNotForceAGuess()
 {
     QList<RoadMatchCandidateScore> candidates{
-        {QStringLiteral("current"), 8.0, 0.0, false},
-        {QStringLiteral("parallel"), 5.0, 2.0, false},
+        {QStringLiteral("carriageway-a"), 8.0, 0.0, false},
+        {QStringLiteral("carriageway-b"), 5.0, 2.0, false},
     };
-    auto selected = RoadMatchPolicy::select(
-        candidates, 0.0, true, QStringLiteral("current"), 30.0);
-    QCOMPARE(selected.index, 0);
+    auto selected = RoadMatchPolicy::select(candidates, 0.0, true, {}, 30.0);
+    QVERIFY(!selected.confident);
 
-    // Once the alternative is more than the 4 m previous-match bonus better,
-    // retaining the old carriageway would be the less plausible choice.
-    candidates[1].distanceMeters = 3.0;
+    // Once established, continuity beats a lane-sized GPS jump to the other
+    // carriageway while the old segment remains aligned and close.
     selected = RoadMatchPolicy::select(
-        candidates, 0.0, true, QStringLiteral("current"), 30.0);
-    QCOMPARE(selected.index, 1);
+        candidates, 0.0, true, QStringLiteral("carriageway-a"), 30.0);
+    QCOMPARE(selected.index, 0);
+    QVERIFY(selected.confident);
+}
+
+void RoadMatchPolicyTest::oneWayDirectionDisambiguatesCarriageways()
+{
+    QList<RoadMatchCandidateScore> candidates{
+        {QStringLiteral("with-travel"), 8.0, 0.0, false, true, false},
+        {QStringLiteral("against-travel"), 5.0, 180.0, false, true, false},
+    };
+    auto selected = RoadMatchPolicy::select(candidates, 2.0, true, {}, 30.0);
+    QCOMPARE(selected.index, 0);
+    QVERIFY(selected.confident);
+
+    // oneway=-1 means travel runs opposite the encoded way geometry.
+    candidates = {
+        {QStringLiteral("reverse-way"), 4.0, 180.0, false, false, true},
+    };
+    selected = RoadMatchPolicy::select(candidates, 2.0, true, {}, 30.0);
+    QCOMPARE(selected.index, 0);
+    QVERIFY(selected.confident);
+}
+
+void RoadMatchPolicyTest::perpendicularCourtyardIsRejected()
+{
+    QList<RoadMatchCandidateScore> candidates{
+        {QStringLiteral("street"), 8.0, 0.0, false},
+        {QStringLiteral("courtyard"), 1.0, 90.0, false},
+    };
+    const auto selected = RoadMatchPolicy::select(
+        candidates, 2.0, true, {}, 30.0);
+    QCOMPARE(selected.index, 0);
+    QVERIFY(selected.confident);
+}
+
+void RoadMatchPolicyTest::stationaryMatchCannotAcquireOrSwitch()
+{
+    QList<RoadMatchCandidateScore> candidates{
+        {QStringLiteral("street"), 8.0, 0.0, false},
+        {QStringLiteral("courtyard"), 1.0, 90.0, false},
+    };
+    auto selected = RoadMatchPolicy::select(candidates, 0.0, false, {}, 30.0);
+    QVERIFY(!selected.confident);
+
+    selected = RoadMatchPolicy::select(
+        candidates, 0.0, false, QStringLiteral("street"), 30.0);
+    QCOMPARE(selected.index, 0);
+    QVERIFY(selected.confident);
 }
 
 void RoadMatchPolicyTest::transientMissesRetainRoadMatch()

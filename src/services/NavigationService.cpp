@@ -1089,11 +1089,8 @@ void NavigationService::updateNavigationState()
     // Presentation deliberately stays route-snapped until this authoritative
     // physical-distance policy fires, so visual release never makes rerouting
     // start sooner or creates an unexplained off-route gap.
-    if (m_isOffRoute) {
-        m_isOffRoute = distFromRoute > OnRouteTolerance;
-    } else {
-        m_isOffRoute = distFromRoute > OffRouteTolerance;
-    }
+    m_isOffRoute = RouteDistancePolicy::update(
+        m_isOffRoute, distFromRoute, OffRouteTolerance, OnRouteTolerance);
 
     // Queue one reroute per deviation episode. The status only changes after
     // ValhallaClient confirms dispatch, so a debounced/rejected request cannot

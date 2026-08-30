@@ -116,6 +116,18 @@ private:
     static constexpr int MaxEstimatorRouterRadiusMeters = 50;
 };
 
+class RouteDistancePolicy
+{
+public:
+    static bool update(bool wasOffRoute, double distanceMeters,
+                       double offRouteToleranceMeters,
+                       double onRouteToleranceMeters)
+    {
+        return distanceMeters > (wasOffRoute ? onRouteToleranceMeters
+                                             : offRouteToleranceMeters);
+    }
+};
+
 class RerouteEpisodeGate
 {
 public:

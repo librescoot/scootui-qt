@@ -172,7 +172,6 @@ private:
     // Dead reckoning
     void projectPositionStraight(double distMeters, double headingDeg);
     void blendGpsCorrection(double dt, double rateScale = 1.0);
-    void evaluateSnapLock(int elapsedMs);
     void updateRouteMatch(double lat, double lng, double trajectoryBearing,
                           bool haveTrajectory);
 
@@ -436,9 +435,6 @@ private:
     double m_gpsErrorLatitude = 0;
     double m_gpsErrorLongitude = 0;
 
-    // Sticky route snap state
-    bool m_drLocked = true;
-    RouteSnapState m_routeSnapState;
     FreeDriveSnapState m_freeDriveSnapState;
 
     // --- Route shape for dead reckoning ---
