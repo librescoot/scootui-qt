@@ -50,8 +50,8 @@ Rectangle {
     }
 
     function closeScreen() {
-        if (typeof screenStore !== "undefined")
-            screenStore.closeFaults()
+        if (typeof navigator !== "undefined")
+            navigator.closeFaults()
         if (typeof menuStore !== "undefined")
             menuStore.resume()
     }

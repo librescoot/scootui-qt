@@ -2,7 +2,7 @@
 
 #include "VehicleStore.h"
 #include "SettingsStore.h"
-#include "ScreenStore.h"
+#include "core/Navigator.h"
 #include "services/SettingsService.h"
 #include "commands/CommandBus.h"
 #include "models/Enums.h"
@@ -13,7 +13,7 @@ HopOnStore::HopOnStore(VehicleStore *vehicle,
                        SettingsStore *settings,
                        SettingsService *settingsService,
                        CommandBus *commands,
-                       ScreenStore *screen,
+                       Navigator *screen,
                        QObject *parent)
     : QObject(parent)
     , m_vehicle(vehicle)

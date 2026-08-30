@@ -63,7 +63,7 @@ void SettingsService::updateMode(const QString &mode)
 {
     writeSetting(QStringLiteral("dashboard.mode"), mode);
     // dashboard.mode is the one setting the dashboard keeps a second copy of:
-    // ScreenStore switches the screen the moment this is called, without
+    // Navigator switches the screen the moment this is called, without
     // waiting for the read-back. The store has to move with it, or the two
     // disagree and the disagreement is invisible.
     //

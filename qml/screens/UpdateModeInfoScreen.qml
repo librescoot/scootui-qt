@@ -12,18 +12,18 @@ Rectangle {
     readonly property color textSecondary: isDark ? "#99FFFFFF" : "#8A000000"
     readonly property color dividerColor: isDark ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(0, 0, 0, 0.12)
 
-    // Confirm emits ScreenStore::umsModeRequested, which Application.cpp
+    // Confirm emits Navigator::umsModeRequested, which Application.cpp
     // catches and writes to usb:mode — ums-service and the UmsOverlay
     // handle the rest. confirmUpdateMode also closes the info screen so
     // the overlay renders over whatever we came from.
     function confirmEnter() {
-        if (typeof screenStore !== "undefined")
-            screenStore.confirmUpdateMode()
+        if (typeof navigator !== "undefined")
+            navigator.confirmUpdateMode()
     }
 
     function cancelBack() {
-        if (typeof screenStore !== "undefined")
-            screenStore.closeUpdateModeInfo()
+        if (typeof navigator !== "undefined")
+            navigator.closeUpdateModeInfo()
         if (typeof menuStore !== "undefined")
             menuStore.resume()
     }

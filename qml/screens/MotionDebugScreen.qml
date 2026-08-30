@@ -38,8 +38,8 @@ Rectangle {
         function onLeftHold() {
             if (typeof settingsService !== "undefined")
                 settingsService.updateMode("speedometer")
-            if (typeof screenStore !== "undefined")
-                screenStore.setScreen(Scooter.ScreenMode.Cluster)
+            if (typeof navigator !== "undefined")
+                navigator.setScreen(Scooter.ScreenMode.Cluster)
         }
     }
 

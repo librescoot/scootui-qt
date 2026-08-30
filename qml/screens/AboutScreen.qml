@@ -118,8 +118,8 @@ Rectangle {
                 }
             }
         }
-        if (typeof screenStore !== "undefined") {
-            screenStore.closeAbout()
+        if (typeof navigator !== "undefined") {
+            navigator.closeAbout()
         }
         if (typeof menuStore !== "undefined")
             menuStore.resume()

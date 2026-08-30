@@ -50,19 +50,19 @@ ApplicationWindow {
                 text: "Cluster"; small: true; fixedWidth: 54
                 ButtonGroup.group: screenGroup
                 checkable: true; checked: true
-                onClicked: screenStore.setScreen(Scooter.ScreenMode.Cluster)
+                onClicked: navigator.setScreen(Scooter.ScreenMode.Cluster)
             }
             SimButton {
                 text: "Map"; small: true; fixedWidth: 54
                 ButtonGroup.group: screenGroup
                 checkable: true
-                onClicked: screenStore.setScreen(Scooter.ScreenMode.Map)
+                onClicked: navigator.setScreen(Scooter.ScreenMode.Map)
             }
             SimButton {
                 text: "About"; small: true; fixedWidth: 54
                 ButtonGroup.group: screenGroup
                 checkable: true
-                onClicked: screenStore.setScreen(Scooter.ScreenMode.About)
+                onClicked: navigator.setScreen(Scooter.ScreenMode.About)
             }
             SimButton {
                 text: "SysInfo"; small: true; fixedWidth: 54
@@ -70,15 +70,15 @@ ApplicationWindow {
                 checkable: true
                 // Re-tapping cycles System / Connectivity / Batteries, which on
                 // the vehicle are three separate System > Info menu entries.
-                onClicked: screenStore.showSystemInfo(
-                    screenStore.currentScreen === Scooter.ScreenMode.SystemInfo
-                        ? (screenStore.systemInfoPage + 1) % 3 : 0)
+                onClicked: navigator.showSystemInfo(
+                    navigator.currentScreen === Scooter.ScreenMode.SystemInfo
+                        ? (navigator.systemInfoPage + 1) % 3 : 0)
             }
             SimButton {
                 text: "Debug"; small: true; fixedWidth: 54
                 ButtonGroup.group: screenGroup
                 checkable: true
-                onClicked: screenStore.setScreen(Scooter.ScreenMode.Debug)
+                onClicked: navigator.setScreen(Scooter.ScreenMode.Debug)
             }
 
             Item { Layout.fillWidth: true }

@@ -24,7 +24,7 @@
 #include "stores/CbBatteryStore.h"
 #include "stores/AuxBatteryStore.h"
 #include "stores/ThemeStore.h"
-#include "stores/ScreenStore.h"
+#include "core/Navigator.h"
 #include "stores/MenuStore.h"
 #include "stores/HopOnStore.h"
 #include "stores/FaultEventStore.h"
@@ -225,7 +225,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     auto *cbBatteryStore = new CbBatteryStore(repo, this);
     auto *auxBatteryStore = new AuxBatteryStore(repo, this);
     auto *themeStore = new ThemeStore(settingsStore, this);
-    auto *screenStore = new ScreenStore(settingsStore, commandBus, this);
+    auto *navigator = new Navigator(settingsStore, commandBus, this);
     auto *tripService = new TripService(engineStore, vehicleStore, this);
     m_shutdownStore = new ShutdownStore(this);
     auto *shutdownStore = m_shutdownStore;
@@ -549,7 +549,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // Wire saved locations, screen store, navigation, and availability into menu
     menuStore->setSavedLocationsStore(savedLocationsStore);
     menuStore->setRecentDestinationsStore(recentDestinationsStore);
-    menuStore->setScreenStore(screenStore);
+    menuStore->setNavigator(navigator);
     menuStore->setNavigationService(m_navigationService);
     menuStore->setNavigationAvailabilityService(m_navAvailability);
     menuStore->setInternetStore(internetStore);
@@ -557,7 +557,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // Hop-on / hop-off store: combo learning, matching, lock screen.
     auto *hopOnStore = new HopOnStore(vehicleStore, settingsStore,
                                       m_settingsService,
-                                      commandBus, screenStore, this);
+                                      commandBus, navigator, this);
     menuStore->setHopOnStore(hopOnStore);
     menuStore->setMapDownloadService(m_mapDownloadService);
 
@@ -579,9 +579,9 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // Speed up polling while the faults screen is open, slow it back down
     // when it closes so the active-count badge still refreshes without
     // hammering Redis.
-    connect(screenStore, &ScreenStore::currentScreenChanged, this,
-            [screenStore, faultEventStore]() {
-        if (screenStore->currentScreen() == static_cast<int>(ScootEnums::ScreenMode::Faults))
+    connect(navigator, &Navigator::currentScreenChanged, this,
+            [navigator, faultEventStore]() {
+        if (navigator->currentScreen() == static_cast<int>(ScootEnums::ScreenMode::Faults))
             faultEventStore->setPollIntervalMs(5000);
         else
             faultEventStore->setPollIntervalMs(30000);
@@ -591,14 +591,14 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // UMS entry confirmation from the Update Mode info screen. The info
     // screen handles the Back/Start prompt in QML; on Start it emits this
     // signal, and we flip usb:mode so vehicle-service / ums-service kick in.
-    connect(screenStore, &ScreenStore::umsModeRequested,
+    connect(navigator, &Navigator::umsModeRequested,
             commandBus, &CommandBus::enterUmsMode);
 
     // Input handler: sole consumer of vehicle-service's "input-events" stream
     m_inputHandler = new InputHandler(vehicleStore, repo, this);
 
     // M5: ShortcutMenuStore
-    auto *shortcutMenuStore = new ShortcutMenuStore(themeStore, vehicleStore, screenStore, dashboardStore, m_inputHandler, commandBus, m_settingsService, this);
+    auto *shortcutMenuStore = new ShortcutMenuStore(themeStore, vehicleStore, navigator, dashboardStore, m_inputHandler, commandBus, m_settingsService, this);
 
     // M6: Wire shutdown to vehicle state monitoring
     m_shutdownStore->connectToVehicle(vehicleStore);
@@ -624,7 +624,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("cbBatteryStore"), cbBatteryStore);
     ctx->setContextProperty(QStringLiteral("auxBatteryStore"), auxBatteryStore);
     ctx->setContextProperty(QStringLiteral("themeStore"), themeStore);
-    ctx->setContextProperty(QStringLiteral("screenStore"), screenStore);
+    ctx->setContextProperty(QStringLiteral("navigator"), navigator);
     ctx->setContextProperty(QStringLiteral("menuStore"), menuStore);
     ctx->setContextProperty(QStringLiteral("hopOnStore"), hopOnStore);
     ctx->setContextProperty(QStringLiteral("tripService"), tripService);

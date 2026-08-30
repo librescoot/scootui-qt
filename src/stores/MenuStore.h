@@ -16,7 +16,7 @@ class CommandBus;
 class NavigationService;
 class SavedLocationsStore;
 class RecentDestinationsStore;
-class ScreenStore;
+class Navigator;
 class NavigationAvailabilityService;
 class InternetStore;
 class HopOnStore;
@@ -52,7 +52,7 @@ public:
     void setNavigationService(NavigationService *svc);
     void setSavedLocationsStore(SavedLocationsStore *store);
     void setRecentDestinationsStore(RecentDestinationsStore *store);
-    void setScreenStore(ScreenStore *store);
+    void setNavigator(Navigator *store);
     void setNavigationAvailabilityService(NavigationAvailabilityService *svc);
     void setInternetStore(InternetStore *store);
     void setHopOnStore(HopOnStore *store);
@@ -114,7 +114,7 @@ private:
     NavigationService *m_navigationService = nullptr;
     SavedLocationsStore *m_savedLocations = nullptr;
     RecentDestinationsStore *m_recentDestinations = nullptr;
-    ScreenStore *m_screenStore = nullptr;
+    Navigator *m_navigator = nullptr;
     NavigationAvailabilityService *m_navAvailability = nullptr;
     InternetStore *m_internet = nullptr;
     HopOnStore *m_hopOn = nullptr;

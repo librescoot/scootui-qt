@@ -1,8 +1,8 @@
-#include "ScreenStore.h"
-#include "SettingsStore.h"
-#include "../commands/CommandBus.h"
+#include "Navigator.h"
+#include "stores/SettingsStore.h"
+#include "commands/CommandBus.h"
 
-ScreenStore::ScreenStore(SettingsStore *settings, CommandBus *commands, QObject *parent)
+Navigator::Navigator(SettingsStore *settings, CommandBus *commands, QObject *parent)
     : QObject(parent)
     , m_commands(commands)
 {
@@ -12,7 +12,7 @@ ScreenStore::ScreenStore(SettingsStore *settings, CommandBus *commands, QObject 
     });
 }
 
-bool ScreenStore::isBrakeNavigated(ScootEnums::ScreenMode mode)
+bool Navigator::isBrakeNavigated(ScootEnums::ScreenMode mode)
 {
     switch (mode) {
     case ScootEnums::ScreenMode::About:
@@ -29,13 +29,13 @@ bool ScreenStore::isBrakeNavigated(ScootEnums::ScreenMode mode)
     }
 }
 
-void ScreenStore::publishMenuOpen()
+void Navigator::publishMenuOpen()
 {
     if (!m_commands) return;
     m_commands->setMenuOpen(isBrakeNavigated(m_currentScreen));
 }
 
-void ScreenStore::applyMode(const QString &mode)
+void Navigator::applyMode(const QString &mode)
 {
     ScootEnums::ScreenMode target = ScootEnums::ScreenMode::Cluster;
     if (mode == QLatin1String("navigation"))
@@ -52,7 +52,7 @@ void ScreenStore::applyMode(const QString &mode)
     }
 }
 
-void ScreenStore::setScreen(int screen)
+void Navigator::setScreen(int screen)
 {
     auto mode = static_cast<ScootEnums::ScreenMode>(screen);
     if (mode != m_currentScreen) {
@@ -62,7 +62,7 @@ void ScreenStore::setScreen(int screen)
     }
 }
 
-void ScreenStore::showAddressSelection()
+void Navigator::showAddressSelection()
 {
     m_screenBeforeAddressSelection = m_currentScreen;
     setScreen(static_cast<int>(ScootEnums::ScreenMode::AddressSelection));
@@ -70,23 +70,23 @@ void ScreenStore::showAddressSelection()
 
 // Cancelling out. Confirming a destination hands over to the map instead and
 // does not come through here.
-void ScreenStore::closeAddressSelection()
+void Navigator::closeAddressSelection()
 {
     setScreen(static_cast<int>(m_screenBeforeAddressSelection));
 }
 
-void ScreenStore::showAbout()
+void Navigator::showAbout()
 {
     m_screenBeforeAbout = m_currentScreen;
     setScreen(static_cast<int>(ScootEnums::ScreenMode::About));
 }
 
-void ScreenStore::closeAbout()
+void Navigator::closeAbout()
 {
     setScreen(static_cast<int>(m_screenBeforeAbout));
 }
 
-void ScreenStore::showNavigationSetup(int setupMode)
+void Navigator::showNavigationSetup(int setupMode)
 {
     m_screenBeforeNavSetup = m_currentScreen;
     if (setupMode != m_setupMode) {
@@ -96,23 +96,23 @@ void ScreenStore::showNavigationSetup(int setupMode)
     setScreen(static_cast<int>(ScootEnums::ScreenMode::NavigationSetup));
 }
 
-void ScreenStore::closeNavigationSetup()
+void Navigator::closeNavigationSetup()
 {
     setScreen(static_cast<int>(m_screenBeforeNavSetup));
 }
 
-void ScreenStore::showFaults()
+void Navigator::showFaults()
 {
     m_screenBeforeFaults = m_currentScreen;
     setScreen(static_cast<int>(ScootEnums::ScreenMode::Faults));
 }
 
-void ScreenStore::closeFaults()
+void Navigator::closeFaults()
 {
     setScreen(static_cast<int>(m_screenBeforeFaults));
 }
 
-void ScreenStore::showSystemInfo(int page)
+void Navigator::showSystemInfo(int page)
 {
     if (page != m_systemInfoPage) {
         m_systemInfoPage = page;
@@ -122,57 +122,57 @@ void ScreenStore::showSystemInfo(int page)
     setScreen(static_cast<int>(ScootEnums::ScreenMode::SystemInfo));
 }
 
-void ScreenStore::closeSystemInfo()
+void Navigator::closeSystemInfo()
 {
     setScreen(static_cast<int>(m_screenBeforeSystemInfo));
 }
 
-void ScreenStore::showUpdateModeInfo()
+void Navigator::showUpdateModeInfo()
 {
     m_screenBeforeUpdateModeInfo = m_currentScreen;
     setScreen(static_cast<int>(ScootEnums::ScreenMode::UpdateModeInfo));
 }
 
-void ScreenStore::closeUpdateModeInfo()
+void Navigator::closeUpdateModeInfo()
 {
     setScreen(static_cast<int>(m_screenBeforeUpdateModeInfo));
 }
 
-void ScreenStore::confirmUpdateMode()
+void Navigator::confirmUpdateMode()
 {
     emit umsModeRequested();
     setScreen(static_cast<int>(m_screenBeforeUpdateModeInfo));
 }
 
-void ScreenStore::showUpdateChannel()
+void Navigator::showUpdateChannel()
 {
     m_screenBeforeUpdateChannel = m_currentScreen;
     setScreen(static_cast<int>(ScootEnums::ScreenMode::UpdateChannel));
 }
 
-void ScreenStore::closeUpdateChannel()
+void Navigator::closeUpdateChannel()
 {
     setScreen(static_cast<int>(m_screenBeforeUpdateChannel));
 }
 
-void ScreenStore::showHopOnInfo()
+void Navigator::showHopOnInfo()
 {
     m_screenBeforeHopOnInfo = m_currentScreen;
     setScreen(static_cast<int>(ScootEnums::ScreenMode::HopOnInfo));
 }
 
-void ScreenStore::closeHopOnInfo()
+void Navigator::closeHopOnInfo()
 {
     setScreen(static_cast<int>(m_screenBeforeHopOnInfo));
 }
 
-void ScreenStore::enterHopOnLock()
+void Navigator::enterHopOnLock()
 {
     m_screenBeforeHopOnLock = m_currentScreen;
     setScreen(static_cast<int>(ScootEnums::ScreenMode::Cluster));
 }
 
-void ScreenStore::exitHopOnLock()
+void Navigator::exitHopOnLock()
 {
     setScreen(static_cast<int>(m_screenBeforeHopOnLock));
 }

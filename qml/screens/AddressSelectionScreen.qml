@@ -297,8 +297,8 @@ Rectangle {
     // opened from, like every other full-screen page; confirming a
     // destination still hands over to the map instead.
     function cancelBack() {
-        if (typeof screenStore !== "undefined")
-            screenStore.closeAddressSelection()
+        if (typeof navigator !== "undefined")
+            navigator.closeAddressSelection()
         if (typeof menuStore !== "undefined")
             menuStore.resume()
     }
@@ -453,8 +453,8 @@ Rectangle {
         // clears it even though the menu is already shut.
         if (typeof menuStore !== "undefined")
             menuStore.close()
-        if (typeof screenStore !== "undefined") {
-            screenStore.setScreen(Scooter.ScreenMode.Map)
+        if (typeof navigator !== "undefined") {
+            navigator.setScreen(Scooter.ScreenMode.Map)
         }
     }
 

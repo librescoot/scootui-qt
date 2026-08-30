@@ -3,7 +3,7 @@
 #include "SettingsStore.h"
 #include "VehicleStore.h"
 #include "ThemeStore.h"
-#include "ScreenStore.h"
+#include "core/Navigator.h"
 #include "SavedLocationsStore.h"
 #include "RecentDestinationsStore.h"
 #include "InternetStore.h"
@@ -121,9 +121,9 @@ void MenuStore::setRecentDestinationsStore(RecentDestinationsStore *store)
     rebuildMenuTree();
 }
 
-void MenuStore::setScreenStore(ScreenStore *store)
+void MenuStore::setNavigator(Navigator *store)
 {
-    m_screenStore = store;
+    m_navigator = store;
 }
 
 void MenuStore::setNavigationAvailabilityService(NavigationAvailabilityService *svc)
@@ -278,7 +278,7 @@ void MenuStore::rebuildMenuTree()
     navNode->addChild(MenuNode::action(QStringLiteral("nav_enter_code"),
         tr->menuEnterDestinationCode(), [this]() {
             closeForScreen();
-            if (m_screenStore) m_screenStore->showAddressSelection();
+            if (m_navigator) m_navigator->showAddressSelection();
         }));
 
     // Recent destinations submenu (nested under Navigation) — last 10
@@ -386,14 +386,14 @@ void MenuStore::rebuildMenuTree()
     // Navigation setup info (always available for proactive offline downloads)
     navNode->addChild(MenuNode::action(QStringLiteral("nav_setup"), tr->menuNavSetup(), [this]() {
         closeForScreen();
-        if (m_screenStore) m_screenStore->showNavigationSetup(2); // Both
+        if (m_navigator) m_navigator->showNavigationSetup(2); // Both
     }));
 
     // === Set up Navigation (visible when routing is not ready) ===
     m_rootNode->addChild(MenuNode::action(QStringLiteral("setup_navigation"),
         tr->menuSetupNavigation(), [this]() {
             closeForScreen();
-            if (m_screenStore) m_screenStore->showNavigationSetup(1); // Routing
+            if (m_navigator) m_navigator->showNavigationSetup(1); // Routing
         }, [this]() {
             return !isRoutingReady();
         }));
@@ -405,10 +405,10 @@ void MenuStore::rebuildMenuTree()
     m_rootNode->addChild(MenuNode::action(QStringLiteral("setup_map_mode"),
         tr->menuSetupMapMode(), [this]() {
             closeForScreen();
-            if (m_screenStore) m_screenStore->showNavigationSetup(0); // DisplayMaps
+            if (m_navigator) m_navigator->showNavigationSetup(0); // DisplayMaps
         }, [this]() {
-            if (!m_screenStore
-                || m_screenStore->currentScreenMode() != ScootEnums::ScreenMode::Cluster) return false;
+            if (!m_navigator
+                || m_navigator->currentScreenMode() != ScootEnums::ScreenMode::Cluster) return false;
             bool hasLocalMaps = m_navAvailability && m_navAvailability->localDisplayMapsAvailable();
             bool isOnlineMap = m_settings->mapType() == static_cast<int>(ScootEnums::MapType::Online);
             return !hasLocalMaps && !isOnlineMap;
@@ -421,25 +421,25 @@ void MenuStore::rebuildMenuTree()
     // way back to a dashboard at all.
     m_rootNode->addChild(MenuNode::action(QStringLiteral("switch_cluster"),
         tr->menuSwitchToCluster(), [this]() {
-            if (m_screenStore)
-                m_screenStore->setScreen(static_cast<int>(ScootEnums::ScreenMode::Cluster));
+            if (m_navigator)
+                m_navigator->setScreen(static_cast<int>(ScootEnums::ScreenMode::Cluster));
             m_settingsService->updateMode(QStringLiteral("speedometer"));
             close();
         }, [this]() {
-            return m_screenStore
-                && m_screenStore->currentScreenMode() != ScootEnums::ScreenMode::Cluster;
+            return m_navigator
+                && m_navigator->currentScreenMode() != ScootEnums::ScreenMode::Cluster;
         }));
 
     // === Switch to Map View (anywhere but the map, requires local maps or online map type) ===
     m_rootNode->addChild(MenuNode::action(QStringLiteral("switch_map"),
         tr->menuSwitchToMap(), [this]() {
-            if (m_screenStore)
-                m_screenStore->setScreen(static_cast<int>(ScootEnums::ScreenMode::Map));
+            if (m_navigator)
+                m_navigator->setScreen(static_cast<int>(ScootEnums::ScreenMode::Map));
             m_settingsService->updateMode(QStringLiteral("navigation"));
             close();
         }, [this]() {
-            if (!m_screenStore
-                || m_screenStore->currentScreenMode() == ScootEnums::ScreenMode::Map) return false;
+            if (!m_navigator
+                || m_navigator->currentScreenMode() == ScootEnums::ScreenMode::Map) return false;
             bool hasLocalMaps = m_navAvailability && m_navAvailability->localDisplayMapsAvailable();
             bool isOnlineMap = m_settings->mapType() == static_cast<int>(ScootEnums::MapType::Online);
             return hasLocalMaps || isOnlineMap;
@@ -469,8 +469,8 @@ void MenuStore::rebuildMenuTree()
                                 .arg(m_faults->activeCount());
         m_rootNode->addChild(MenuNode::action(QStringLiteral("faults_root"), label, [this]() {
             closeForScreen();
-            if (m_screenStore)
-                m_screenStore->showFaults();
+            if (m_navigator)
+                m_navigator->showFaults();
         }));
     }
 
@@ -544,8 +544,8 @@ void MenuStore::rebuildMenuTree()
             vehicleNode->addChild(MenuNode::action(QStringLiteral("settings_hop_on"),
                 tr->menuHopOn(), [this]() {
                     closeForScreen();
-                    if (m_screenStore)
-                        m_screenStore->showHopOnInfo();
+                    if (m_navigator)
+                        m_navigator->showHopOnInfo();
                 }));
         } else {
             auto *hopNode = MenuNode::submenu(QStringLiteral("settings_hop_on"),
@@ -925,8 +925,8 @@ void MenuStore::rebuildMenuTree()
 
     systemNode->addChild(MenuNode::action(QStringLiteral("enter_ums"), tr->menuEnterUms(), [this]() {
         closeForScreen();
-        if (m_screenStore)
-            m_screenStore->showUpdateModeInfo();
+        if (m_navigator)
+            m_navigator->showUpdateModeInfo();
     }));
 
     systemNode->addChild(MenuNode::action(QStringLiteral("enable_service_mode"),
@@ -1119,8 +1119,8 @@ void MenuStore::rebuildMenuTree()
                         }
                         m_updateChannel->beginSwitch(value);
                         closeForScreen();
-                        if (m_screenStore)
-                            m_screenStore->showUpdateChannel();
+                        if (m_navigator)
+                            m_navigator->showUpdateChannel();
                     }));
             }
         }
@@ -1186,31 +1186,31 @@ void MenuStore::rebuildMenuTree()
 
         struct Page { const char *id; QString title; int page; };
         const Page pages[] = {
-            {"info_components", tr->menuInfoComponents(), ScreenStore::SystemInfoDevice},
-            {"info_connectivity", tr->menuInfoConnectivity(), ScreenStore::SystemInfoConnectivity},
-            {"info_batteries", tr->menuInfoBatteries(), ScreenStore::SystemInfoBatteries},
-            {"info_maps", tr->menuInfoMaps(), ScreenStore::SystemInfoMaps},
+            {"info_components", tr->menuInfoComponents(), Navigator::SystemInfoDevice},
+            {"info_connectivity", tr->menuInfoConnectivity(), Navigator::SystemInfoConnectivity},
+            {"info_batteries", tr->menuInfoBatteries(), Navigator::SystemInfoBatteries},
+            {"info_maps", tr->menuInfoMaps(), Navigator::SystemInfoMaps},
         };
         for (const auto &p : pages) {
             const int page = p.page;
             infoNode->addChild(MenuNode::action(QLatin1String(p.id), p.title, [this, page]() {
                 closeForScreen();
-                if (m_screenStore)
-                    m_screenStore->showSystemInfo(page);
+                if (m_navigator)
+                    m_navigator->showSystemInfo(page);
             }));
         }
 
         infoNode->addChild(MenuNode::action(QStringLiteral("faults"),
                                             withCount(tr->menuFaults()), [this]() {
             closeForScreen();
-            if (m_screenStore)
-                m_screenStore->showFaults();
+            if (m_navigator)
+                m_navigator->showFaults();
         }));
 
         infoNode->addChild(MenuNode::action(QStringLiteral("about"), tr->menuAbout(), [this]() {
             closeForScreen();
-            if (m_screenStore)
-                m_screenStore->showAbout();
+            if (m_navigator)
+                m_navigator->showAbout();
         }));
     }
 

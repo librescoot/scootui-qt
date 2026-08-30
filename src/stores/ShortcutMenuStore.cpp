@@ -1,7 +1,7 @@
 #include "ShortcutMenuStore.h"
 #include "ThemeStore.h"
 #include "VehicleStore.h"
-#include "ScreenStore.h"
+#include "core/Navigator.h"
 #include "DashboardStore.h"
 #include "../services/InputHandler.h"
 #include "../services/SettingsService.h"
@@ -10,14 +10,14 @@
 #include <QDebug>
 
 ShortcutMenuStore::ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
-                                     ScreenStore *screen, DashboardStore *dashboard,
+                                     Navigator *screen, DashboardStore *dashboard,
                                      InputHandler *input, CommandBus *commands,
                                      SettingsService *settingsService,
                                      QObject *parent)
     : QObject(parent)
     , m_theme(theme)
     , m_vehicle(vehicle)
-    , m_screenStore(screen)
+    , m_navigator(screen)
     , m_dashboardStore(dashboard)
     , m_commands(commands)
     , m_settingsService(settingsService)
@@ -158,14 +158,14 @@ void ShortcutMenuStore::toggleHazards()
 
 void ShortcutMenuStore::toggleView()
 {
-    if (!m_screenStore) return;
+    if (!m_navigator) return;
 
-    const ScootEnums::ScreenMode current = m_screenStore->currentScreenMode();
+    const ScootEnums::ScreenMode current = m_navigator->currentScreenMode();
     if (current == ScootEnums::ScreenMode::Cluster) {
-        m_screenStore->setScreen(static_cast<int>(ScootEnums::ScreenMode::Map));
+        m_navigator->setScreen(static_cast<int>(ScootEnums::ScreenMode::Map));
         m_settingsService->updateMode(QStringLiteral("navigation"));
     } else if (current == ScootEnums::ScreenMode::Map) {
-        m_screenStore->setScreen(static_cast<int>(ScootEnums::ScreenMode::Cluster));
+        m_navigator->setScreen(static_cast<int>(ScootEnums::ScreenMode::Cluster));
         m_settingsService->updateMode(QStringLiteral("speedometer"));
     }
 }

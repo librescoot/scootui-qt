@@ -45,8 +45,8 @@ Rectangle {
     function leaveScreen() {
         if (typeof settingsService !== "undefined")
             settingsService.updateMode("speedometer")
-        if (typeof screenStore !== "undefined")
-            screenStore.setScreen(Scooter.ScreenMode.Cluster)
+        if (typeof navigator !== "undefined")
+            navigator.setScreen(Scooter.ScreenMode.Cluster)
     }
 
     // The content is taller than the viewport and the DBC has no touchscreen,

@@ -5,7 +5,7 @@
 
 class ThemeStore;
 class VehicleStore;
-class ScreenStore;
+class Navigator;
 class DashboardStore;
 class InputHandler;
 class CommandBus;
@@ -21,7 +21,7 @@ class ShortcutMenuStore : public QObject
 
 public:
     explicit ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
-                               ScreenStore *screen, DashboardStore *dashboard,
+                               Navigator *screen, DashboardStore *dashboard,
                                InputHandler *input, CommandBus *commands,
                                SettingsService *settingsService,
                                QObject *parent = nullptr);
@@ -59,7 +59,7 @@ private:
 
     ThemeStore *m_theme;
     VehicleStore *m_vehicle;
-    ScreenStore *m_screenStore;
+    Navigator *m_navigator;
     DashboardStore *m_dashboardStore;
     CommandBus *m_commands;
     SettingsService *m_settingsService;

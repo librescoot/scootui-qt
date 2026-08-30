@@ -95,7 +95,7 @@ set(CPP_SOURCES
     src/stores/CbBatteryStore.cpp
     src/stores/AuxBatteryStore.cpp
     src/stores/ThemeStore.cpp
-    src/stores/ScreenStore.cpp
+    src/core/Navigator.cpp
     src/stores/MenuStore.cpp
     src/stores/HopOnStore.cpp
     src/services/TripService.cpp
@@ -171,7 +171,7 @@ set(CPP_HEADERS
     src/stores/CbBatteryStore.h
     src/stores/AuxBatteryStore.h
     src/stores/ThemeStore.h
-    src/stores/ScreenStore.h
+    src/core/Navigator.h
     src/stores/MenuStore.h
     src/services/TripService.h
     src/stores/ShutdownStore.h

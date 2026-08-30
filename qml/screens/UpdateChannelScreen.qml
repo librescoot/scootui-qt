@@ -82,8 +82,8 @@ Rectangle {
     function cancelBack() {
         if (typeof updateChannelService !== "undefined")
             updateChannelService.cancel()
-        if (typeof screenStore !== "undefined")
-            screenStore.closeUpdateChannel()
+        if (typeof navigator !== "undefined")
+            navigator.closeUpdateChannel()
         if (typeof menuStore !== "undefined")
             menuStore.resume()
     }
@@ -92,8 +92,8 @@ Rectangle {
     Connections {
         target: typeof updateChannelService !== "undefined" ? updateChannelService : null
         function onSwitchConfirmed() {
-            if (typeof screenStore !== "undefined")
-                screenStore.closeUpdateChannel()
+            if (typeof navigator !== "undefined")
+                navigator.closeUpdateChannel()
         }
     }
 

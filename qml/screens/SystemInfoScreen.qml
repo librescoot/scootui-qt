@@ -21,12 +21,12 @@ Rectangle {
     readonly property bool hasCbb: typeof cbBatteryStore !== "undefined"
     readonly property bool hasAux: typeof auxBatteryStore !== "undefined"
 
-    // Page indices mirror ScreenStore::SystemInfoPage.
+    // Page indices mirror Navigator::SystemInfoPage.
     readonly property int pageDevice: 0
     readonly property int pageConnectivity: 1
     readonly property int pageBatteries: 2
     readonly property int pageMaps: 3
-    readonly property int page: typeof screenStore !== "undefined" ? screenStore.systemInfoPage : 0
+    readonly property int page: typeof navigator !== "undefined" ? navigator.systemInfoPage : 0
 
     readonly property string placeholder: "-"
 
@@ -244,8 +244,8 @@ Rectangle {
     }
 
     function closeScreen() {
-        if (typeof screenStore !== "undefined")
-            screenStore.closeSystemInfo()
+        if (typeof navigator !== "undefined")
+            navigator.closeSystemInfo()
         if (typeof menuStore !== "undefined")
             menuStore.resume()
     }

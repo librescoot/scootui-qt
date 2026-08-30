@@ -14,15 +14,15 @@ Rectangle {
     readonly property color accentColor: isDark ? "#FF9800" : "#E65100"
 
     function startLearn() {
-        if (typeof screenStore !== "undefined")
-            screenStore.closeHopOnInfo()
+        if (typeof navigator !== "undefined")
+            navigator.closeHopOnInfo()
         if (typeof hopOnStore !== "undefined")
             hopOnStore.startLearning()
     }
 
     function cancelBack() {
-        if (typeof screenStore !== "undefined")
-            screenStore.closeHopOnInfo()
+        if (typeof navigator !== "undefined")
+            navigator.closeHopOnInfo()
         if (typeof menuStore !== "undefined")
             menuStore.resume()
     }

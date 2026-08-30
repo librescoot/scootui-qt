@@ -9,7 +9,7 @@ class VehicleStore;
 class SettingsStore;
 class SettingsService;
 class CommandBus;
-class ScreenStore;
+class Navigator;
 
 /**
  * HopOnStore — handles "hop-on / hop-off" mode for short stops.
@@ -65,7 +65,7 @@ public:
                         SettingsStore *settings,
                         SettingsService *settingsService,
                         CommandBus *commands,
-                        ScreenStore *screen,
+                        Navigator *screen,
                         QObject *parent = nullptr);
 
     int mode() const { return static_cast<int>(m_mode); }
@@ -125,7 +125,7 @@ private:
     SettingsStore *m_settings;
     SettingsService *m_settingsService;
     CommandBus *m_commands;
-    ScreenStore *m_screen;
+    Navigator *m_screen;
 
     Mode m_mode = Idle;
     QStringList m_buffer;

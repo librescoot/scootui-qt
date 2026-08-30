@@ -6,13 +6,13 @@
 class SettingsStore;
 class CommandBus;
 
-class ScreenStore : public QObject
+class Navigator : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(int currentScreen READ currentScreen NOTIFY currentScreenChanged)
 
 public:
-    explicit ScreenStore(SettingsStore *settings, CommandBus *commands,
+    explicit Navigator(SettingsStore *settings, CommandBus *commands,
                          QObject *parent = nullptr);
 
     // Brake-navigated screens drive their own UI via brake-lever taps; while

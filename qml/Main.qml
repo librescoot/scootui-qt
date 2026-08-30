@@ -53,7 +53,7 @@ Window {
         Scooter.VehicleState.WaitingHibernationConfirm
     ]
     readonly property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : Scooter.VehicleState.Unknown
-    readonly property int currentScreen: typeof screenStore !== "undefined" ? screenStore.currentScreen : 0
+    readonly property int currentScreen: typeof navigator !== "undefined" ? navigator.currentScreen : 0
 
     readonly property bool showMaintenance: {
         // Prolonged Redis disconnect before ever connecting
@@ -92,13 +92,13 @@ Window {
                 startupTimer.stop()
             }
             if (vehicleStore.state === Scooter.VehicleState.ReadyToDrive
-                    && typeof screenStore !== "undefined") {
-                if (screenStore.currentScreen === Scooter.ScreenMode.About)
-                    screenStore.closeAbout()
-                else if (screenStore.currentScreen === Scooter.ScreenMode.Faults)
-                    screenStore.closeFaults()
-                else if (screenStore.currentScreen === Scooter.ScreenMode.SystemInfo)
-                    screenStore.closeSystemInfo()
+                    && typeof navigator !== "undefined") {
+                if (navigator.currentScreen === Scooter.ScreenMode.About)
+                    navigator.closeAbout()
+                else if (navigator.currentScreen === Scooter.ScreenMode.Faults)
+                    navigator.closeFaults()
+                else if (navigator.currentScreen === Scooter.ScreenMode.SystemInfo)
+                    navigator.closeSystemInfo()
             }
         }
     }

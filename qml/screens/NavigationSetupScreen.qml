@@ -22,8 +22,8 @@ Rectangle {
     readonly property bool routingOk: typeof navAvailabilityService !== "undefined"
                                        ? navAvailabilityService.routingAvailable : false
 
-    readonly property int mode: typeof screenStore !== "undefined"
-                                 ? screenStore.setupMode : Scooter.SetupMode.Both
+    readonly property int mode: typeof navigator !== "undefined"
+                                 ? navigator.setupMode : Scooter.SetupMode.Both
 
     // Download service bindings
     readonly property bool hasDownloadService: typeof mapDownloadService !== "undefined" && mapDownloadService !== null
@@ -127,8 +127,8 @@ Rectangle {
     }
 
     function closeSelf() {
-        if (typeof screenStore !== "undefined")
-            screenStore.closeNavigationSetup()
+        if (typeof navigator !== "undefined")
+            navigator.closeNavigationSetup()
         if (typeof menuStore !== "undefined")
             menuStore.resume()
     }
