@@ -14,7 +14,6 @@ Item {
         NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
     }
 
-    // Frosted glass background
     FrostedGlass {
         anchors.fill: parent
         sourceItem: menuOverlay.blurSource
@@ -44,13 +43,9 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.topMargin: 24   // Leave space for top status bar
+        anchors.topMargin: 24
         spacing: 0
 
-        // Title. A saved location's submenu takes the location's own label as
-        // its header, and that label is a geocoded address, so the header has
-        // to be bounded: unconstrained it ran off both edges of the panel. The
-        // full address is readable on the row that opens it, which wraps.
         Text {
             Layout.fillWidth: true
             Layout.leftMargin: 24
@@ -67,7 +62,6 @@ Item {
 
         Item { Layout.preferredHeight: 8 }
 
-        // Menu items list with scroll indicators (Flutter: Stack with ListView + gradient overlays)
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -75,8 +69,8 @@ Item {
             ListView {
                 id: menuList
                 anchors.fill: parent
-                anchors.leftMargin: 40   // Flutter: ListView padding left: 40
-                anchors.rightMargin: 40  // Flutter: ListView padding right: 40
+                anchors.leftMargin: 40
+                anchors.rightMargin: 40
                 topMargin: 4
                 bottomMargin: 8
                 spacing: 2
@@ -126,7 +120,6 @@ Item {
                 }
             }
 
-            // Top scroll indicator (Flutter: gradient fade + keyboard_arrow_up)
             Rectangle {
                 anchors.top: parent.top
                 anchors.left: parent.left
@@ -147,7 +140,6 @@ Item {
                 }
             }
 
-            // Bottom scroll indicator (Flutter: gradient fade + keyboard_arrow_down)
             Rectangle {
                 anchors.bottom: parent.bottom
                 anchors.left: parent.left
@@ -169,13 +161,11 @@ Item {
             }
         }
 
-        // Bottom control hints
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: controlHints.height
             color: themeStore.isDark ? Qt.rgba(0, 0, 0, 0.3) : Qt.rgba(1, 1, 1, 0.3)
 
-            // Top border
             Rectangle {
                 anchors.top: parent.top
                 width: parent.width
@@ -188,33 +178,25 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                // A level with one entry has nothing to scroll through.
+                // Do not advertise scrolling for a single-entry level.
                 leftTap: !menuStore.canScroll ? ""
                        : (typeof translations !== "undefined"
                           ? translations.controlScroll : "Scroll")
-                // At the root the hold leaves the menu rather than going up a
-                // level, so it says so.
+                // A hold exits at root; otherwise name the parent when it fits.
                 leftHold: {
                     if (typeof translations === "undefined")
                         return menuStore.isRoot ? "Close" : "Back"
                     if (menuStore.isRoot)
                         return translations.controlClose
-                    // Name the level it lands on. The hold row has the bar to
-                    // itself (nothing binds a right hold), so even the longest
-                    // German level name fits.
                     return menuStore.parentTitle === ""
                          ? translations.controlBack
                          : translations.controlBackTo.arg(menuStore.parentTitle)
                 }
-                // Plain "Back" for when naming the level would collide with
-                // the shortcut on the same row.
                 leftHoldShort: typeof translations !== "undefined"
                                ? translations.controlBack : "Back"
                 rightTap: typeof translations !== "undefined"
                           ? translations.controlSelect : "Select"
-                // Named by the row it would run, so the shortcut says what it
-                // does rather than that it exists. Empty on rows that declare
-                // no primary action, which is most of them.
+                // The label names the selected primary action, rather than a generic shortcut.
                 rightHold: menuStore.selectedPrimaryLabel
             }
         }

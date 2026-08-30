@@ -10,9 +10,6 @@ ApplicationWindow {
     // pressing anything.
     title: "ScootUI Simulator (" + (typeof simulatorBackend !== "undefined"
                                     ? simulatorBackend : "?") + ")"
-    // Kept in step with Main.qml, which positions the 480 px UI window to the
-    // left of this one by the same gap. Wide enough that the pinned header row
-    // fits without horizontal scrolling.
     readonly property int uiWidth: 480
     readonly property int uiGap: 64
 
@@ -29,9 +26,6 @@ ApplicationWindow {
         anchors.margins: 6
         spacing: 4
 
-        // Pinned header: screenshot, screen picker and the display settings
-        // that get flipped constantly. One fixed button width per group, so a
-        // group reads as a block instead of a ragged run.
         RowLayout {
             Layout.fillWidth: true
             spacing: 4
@@ -68,8 +62,6 @@ ApplicationWindow {
                 text: "SysInfo"; small: true; fixedWidth: 54
                 ButtonGroup.group: screenGroup
                 checkable: true
-                // Re-tapping cycles System / Connectivity / Batteries, which on
-                // the vehicle are three separate System > Info menu entries.
                 onClicked: screenStore.showSystemInfo(
                     screenStore.currentScreen === Scooter.ScreenMode.SystemInfo
                         ? (screenStore.systemInfoPage + 1) % 3 : 0)
@@ -1274,10 +1266,7 @@ ApplicationWindow {
 
                 SectionHeader { text: "Overrides" }
 
-                // Trip block - edit any two of {Duration, Avg, Trip distance};
-                // the third recomputes. Most-recently-edited two are kept; the
-                // stale one is overwritten. The fields have to stay direct
-                // children of this row, they reach noteEdit() through parent.
+                // The two most recently edited trip fields determine the third.
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 4
@@ -1399,8 +1388,6 @@ ApplicationWindow {
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 4
-                        // Two visibility rows per line; a row is only ~430 px wide,
-                        // so the full width fits a pair without crowding.
                         GridLayout {
                             Layout.fillWidth: true
                             columns: 2
@@ -1565,10 +1552,6 @@ ApplicationWindow {
         }
     }
 
-    // Two independent running columns. Each pane is a continuous flow of
-    // sections anchored to the top, so a section that grows pushes only the
-    // rest of its own column down and never leaves a hole beside it. Equal
-    // preferred widths keep the split even whatever the panes contain.
     component SimSplit: RowLayout {
         Layout.fillWidth: true
         spacing: 12
@@ -1650,8 +1633,6 @@ ApplicationWindow {
         }
     }
 
-    // Leading label of a row. The width is pinned (min == preferred == max) so
-    // every row in a block starts its controls at the same x.
     component SimLabel: Text {
         property int labelWidth: 60
         color: "#999"
@@ -1663,8 +1644,6 @@ ApplicationWindow {
         Layout.maximumWidth: labelWidth
     }
 
-    // Label for a second group further along the same row. Right-aligned so it
-    // sticks to the controls it belongs to.
     component SimSubLabel: Text {
         property int labelWidth: 34
         color: "#999"
@@ -1677,7 +1656,6 @@ ApplicationWindow {
         Layout.maximumWidth: labelWidth
     }
 
-    // Trailing numeric readout of a slider row.
     component SimValue: Text {
         color: "#ccc"
         font.pixelSize: 11
@@ -1692,8 +1670,6 @@ ApplicationWindow {
         id: btn
         property bool small: false
         property color color: "#555"
-        // Pins the width so a run of buttons reads as one block; -1 falls back
-        // to the implicit text width.
         property int fixedWidth: -1
         Layout.fillWidth: !small && fixedWidth < 0
         Layout.preferredWidth: fixedWidth
@@ -1735,8 +1711,6 @@ ApplicationWindow {
         palette.highlight: "#2196F3"
     }
 
-    // Scaled from the left edge: a full-size Switch is ~68 px wide, which is
-    // more than a dense debug row can spare.
     component SimSwitch: Switch {
         scale: 0.7
         transformOrigin: Item.Left
