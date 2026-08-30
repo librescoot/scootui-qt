@@ -8,6 +8,7 @@
 #include <QVariantList>
 #include "VectorTileDecoder.h"
 #include "NavigationCadence.h"
+#include "RoadMatchPolicy.h"
 
 class GpsStore;
 class SpeedLimitStore;
@@ -79,9 +80,8 @@ private:
         NavigationCadence::RenderTickMs * NavigationCadence::RoadInfoEveryTicks;
     static constexpr int QueryZoom = 14;
     static constexpr int MaxCachedTiles = 50;
-    static constexpr int ClearAfterMisses = 3; // clear road name after N consecutive no-match results
 
-    int m_consecutiveMisses = 0;
+    RoadMatchRetentionState m_matchRetention;
     NavigationCadence::TickDivider m_updateCadence{
         NavigationCadence::RoadInfoEveryTicks};
     QString m_previousMatchKey;

@@ -9,6 +9,7 @@
 #include <QDateTime>
 
 #include "services/PositionEstimator.h"
+#include "services/RoadMatchPolicy.h"
 
 class GpsStore;
 class EngineStore;
@@ -171,7 +172,6 @@ private:
     // Dead reckoning
     void projectPositionStraight(double distMeters, double headingDeg);
     void blendGpsCorrection(double dt, double rateScale = 1.0);
-    void evaluateSnapLock(int elapsedMs);
     void updateRouteMatch(double lat, double lng, double trajectoryBearing,
                           bool haveTrajectory);
 
@@ -241,6 +241,7 @@ private:
 
     // Bearing along the current route segment, or -1 if not on route
     double routeSegmentBearing() const;
+    double presentationRouteBearing() const;
 
     // --- Constants ---
 
@@ -260,9 +261,9 @@ private:
     static constexpr double MaxEstimatorEphMeters = 50.0;
     static constexpr double DefaultGpsUncertaintyMeters = 15.0;
     static constexpr double MaxPositionUncertaintyMeters = 500.0;
-    static constexpr double FreeDriveSnapReleaseMeters = 25.0;
 
-    static constexpr double StationarySpeedMs = 0.3;   // below this, assume no motion
+    static constexpr double StationarySpeedMs =
+        RoutePresentationPolicy::StationarySpeedMetersPerSecond;
     static constexpr double StationaryGpsBlendScale = 0.10;
     // A stationary GPS receiver still reports a few km/h of noise, so GPS speed
     // is only believed well clear of it.
@@ -338,6 +339,11 @@ private:
     static constexpr double ForwardStepPenalty = 0.5;          // m/step for skipping ahead
     static constexpr double SwitchHysteresis = 2.0;            // new must beat current by this much
     static constexpr double SnappedPosEpsilon = 0.5;           // m — don't emit below this
+
+    // Raw GPS course is useful as evidence that the rider deliberately ignored
+    // a route turn, but only while it is fresh and well above stationary noise.
+    static constexpr qint64 SnapCourseMaxAgeMs = 3000;
+    static constexpr double SnapCourseMinSpeedKmh = 8.0;
 
     // Last-emitted projection state, for change detection on routeProjectionChanged
     mutable double m_lastEmittedSnapLat = 0;
@@ -421,6 +427,7 @@ private:
     double m_distFromRoute = 0;
     double m_segmentSnappedLat = 0;
     double m_segmentSnappedLng = 0;
+    int m_presentationRouteSegment = -1;
 
     OdometerReconciler m_odometerReconciler;
 
@@ -428,9 +435,7 @@ private:
     double m_gpsErrorLatitude = 0;
     double m_gpsErrorLongitude = 0;
 
-    // Sticky route snap state
-    bool m_drLocked = true;
-    RouteSnapState m_routeSnapState;
+    FreeDriveSnapState m_freeDriveSnapState;
 
     // --- Route shape for dead reckoning ---
     QList<QPair<double, double>> m_routeShape; // (lat, lng) pairs

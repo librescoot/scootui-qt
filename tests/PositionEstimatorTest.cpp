@@ -9,7 +9,8 @@ class PositionEstimatorTest : public QObject
 private slots:
     void quantizedOdometerDoesNotBrakeBetweenEdges();
     void odometerResidualIsBoundedAfterEdge();
-    void routeLockUsesPhysicalDistanceAndDwell();
+    void routePresentationFollowsNavigationState();
+    void routePresentationStopsAtZeroSpeed();
 };
 
 void PositionEstimatorTest::quantizedOdometerDoesNotBrakeBetweenEdges()
@@ -50,27 +51,28 @@ void PositionEstimatorTest::odometerResidualIsBoundedAfterEdge()
     QCOMPARE(reconciler.advance(1200.0, 0.0, 1.0), 0.0);
 }
 
-void PositionEstimatorTest::routeLockUsesPhysicalDistanceAndDwell()
+void PositionEstimatorTest::routePresentationFollowsNavigationState()
 {
-    RouteSnapState state;
-    QVERIFY(state.locked());
+    QVERIFY(RoutePresentationPolicy::shouldSnapToRoute(true, false, false));
+    QVERIFY(!RoutePresentationPolicy::shouldSnapToRoute(true, true, false));
+    QVERIFY(!RoutePresentationPolicy::shouldSnapToRoute(true, false, true));
+    QVERIFY(!RoutePresentationPolicy::shouldSnapToRoute(false, false, false));
 
-    for (int elapsed = 0; elapsed < 1400; elapsed += 100)
-        QVERIFY(state.update(20.0, 100));
-    QVERIFY(!state.update(20.0, 100));
+    // Direction disagreement may steer the independent estimate, but cannot
+    // itself release presentation or start a reroute.
+    QVERIFY(RoutePresentationPolicy::hasDirectionalDepartureEvidence(
+        16.0, 50.0, true));
+    QVERIFY(!RoutePresentationPolicy::hasDirectionalDepartureEvidence(
+        10.0, 90.0, true));
+}
 
-    // Presentation snapping cannot reset this decision: only the supplied
-    // physical distance is observed. A brief close pass is insufficient.
-    for (int elapsed = 0; elapsed < 1900; elapsed += 100)
-        QVERIFY(!state.update(3.0, 100));
-    QVERIFY(state.update(3.0, 100));
+void PositionEstimatorTest::routePresentationStopsAtZeroSpeed()
+{
+    QVERIFY(!RoutePresentationPolicy::allowsPolylineWalk(0.0));
+    QVERIFY(!RoutePresentationPolicy::allowsPolylineWalk(1.0));
+    QVERIFY(RoutePresentationPolicy::allowsPolylineWalk(1.1));
+    QVERIFY(!RoutePresentationPolicy::allowsPolylineWalk(std::nan("")));
 
-    // One good sample interrupts a pending break-away dwell.
-    for (int i = 0; i < 10; ++i)
-        QVERIFY(state.update(20.0, 100));
-    QVERIFY(state.update(2.0, 100));
-    for (int i = 0; i < 10; ++i)
-        QVERIFY(state.update(20.0, 100));
 }
 
 QTEST_APPLESS_MAIN(PositionEstimatorTest)

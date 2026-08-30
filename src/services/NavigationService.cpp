@@ -1085,12 +1085,12 @@ void NavigationService::updateNavigationState()
         }
     }
 
-    // Off-route detection with hysteresis to prevent boundary oscillation
-    if (m_isOffRoute) {
-        m_isOffRoute = distFromRoute > OnRouteTolerance;
-    } else {
-        m_isOffRoute = distFromRoute > OffRouteTolerance;
-    }
+    // Off-route detection with hysteresis to prevent boundary oscillation.
+    // Presentation deliberately stays route-snapped until this authoritative
+    // physical-distance policy fires, so visual release never makes rerouting
+    // start sooner or creates an unexplained off-route gap.
+    m_isOffRoute = RouteDistancePolicy::update(
+        m_isOffRoute, distFromRoute, OffRouteTolerance, OnRouteTolerance);
 
     // Queue one reroute per deviation episode. The status only changes after
     // ValhallaClient confirms dispatch, so a debounced/rejected request cannot

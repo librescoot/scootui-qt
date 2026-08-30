@@ -13,6 +13,12 @@ private slots:
     void headingDisambiguatesCrossingRoads();
     void rejectsDistantRoads();
     void previousMatchAddsHysteresis();
+    void parallelRoadDoesNotForceAGuess();
+    void oneWayDirectionDisambiguatesCarriageways();
+    void perpendicularCourtyardIsRejected();
+    void stationaryMatchCannotAcquireOrSwitch();
+    void transientMissesRetainRoadMatch();
+    void freeDriveSnapUsesAcquireReleaseHysteresis();
     void convertsMphToKph();
     void freshLocalMatchBeatsRedisPoll();
 };
@@ -47,6 +53,100 @@ void RoadMatchPolicyTest::previousMatchAddsHysteresis()
         candidates, 0.0, false, QStringLiteral("old"), 30.0);
     QCOMPARE(selected.index, 0);
     QVERIFY(selected.confident);
+}
+
+void RoadMatchPolicyTest::parallelRoadDoesNotForceAGuess()
+{
+    QList<RoadMatchCandidateScore> candidates{
+        {QStringLiteral("carriageway-a"), 8.0, 0.0, false},
+        {QStringLiteral("carriageway-b"), 5.0, 2.0, false},
+    };
+    auto selected = RoadMatchPolicy::select(candidates, 0.0, true, {}, 30.0);
+    QVERIFY(!selected.confident);
+
+    // Once established, continuity beats a lane-sized GPS jump to the other
+    // carriageway while the old segment remains aligned and close.
+    selected = RoadMatchPolicy::select(
+        candidates, 0.0, true, QStringLiteral("carriageway-a"), 30.0);
+    QCOMPARE(selected.index, 0);
+    QVERIFY(selected.confident);
+}
+
+void RoadMatchPolicyTest::oneWayDirectionDisambiguatesCarriageways()
+{
+    QList<RoadMatchCandidateScore> candidates{
+        {QStringLiteral("with-travel"), 8.0, 0.0, false, true, false},
+        {QStringLiteral("against-travel"), 5.0, 180.0, false, true, false},
+    };
+    auto selected = RoadMatchPolicy::select(candidates, 2.0, true, {}, 30.0);
+    QCOMPARE(selected.index, 0);
+    QVERIFY(selected.confident);
+
+    // oneway=-1 means travel runs opposite the encoded way geometry.
+    candidates = {
+        {QStringLiteral("reverse-way"), 4.0, 180.0, false, false, true},
+    };
+    selected = RoadMatchPolicy::select(candidates, 2.0, true, {}, 30.0);
+    QCOMPARE(selected.index, 0);
+    QVERIFY(selected.confident);
+}
+
+void RoadMatchPolicyTest::perpendicularCourtyardIsRejected()
+{
+    QList<RoadMatchCandidateScore> candidates{
+        {QStringLiteral("street"), 8.0, 0.0, false},
+        {QStringLiteral("courtyard"), 1.0, 90.0, false},
+    };
+    const auto selected = RoadMatchPolicy::select(
+        candidates, 2.0, true, {}, 30.0);
+    QCOMPARE(selected.index, 0);
+    QVERIFY(selected.confident);
+}
+
+void RoadMatchPolicyTest::stationaryMatchCannotAcquireOrSwitch()
+{
+    QList<RoadMatchCandidateScore> candidates{
+        {QStringLiteral("street"), 8.0, 0.0, false},
+        {QStringLiteral("courtyard"), 1.0, 90.0, false},
+    };
+    auto selected = RoadMatchPolicy::select(candidates, 0.0, false, {}, 30.0);
+    QVERIFY(!selected.confident);
+
+    selected = RoadMatchPolicy::select(
+        candidates, 0.0, false, QStringLiteral("street"), 30.0);
+    QCOMPARE(selected.index, 0);
+    QVERIFY(selected.confident);
+}
+
+void RoadMatchPolicyTest::transientMissesRetainRoadMatch()
+{
+    RoadMatchRetentionState retention;
+    QVERIFY(retention.retainAfterMiss());
+    QVERIFY(retention.retainAfterMiss());
+    QVERIFY(!retention.retainAfterMiss());
+
+    retention.matched();
+    QCOMPARE(retention.consecutiveMisses(), 0);
+    QVERIFY(retention.retainAfterMiss());
+}
+
+void RoadMatchPolicyTest::freeDriveSnapUsesAcquireReleaseHysteresis()
+{
+    FreeDriveSnapState state;
+    QVERIFY(!state.update(true, 21.0));
+    QVERIFY(state.update(true, 19.0));
+
+    // Ordinary GPS drift does not pop an acquired marker off the road.
+    QVERIFY(state.update(true, 29.0));
+    QVERIFY(!state.update(true, 31.0));
+
+    // Moving back inside the release band is insufficient; acquisition stays
+    // conservative so a nearby courtyard is not presented as the street.
+    QVERIFY(!state.update(true, 21.0));
+    QVERIFY(state.update(true, 20.0));
+
+    // A materially off-road or no-longer-confident match releases immediately.
+    QVERIFY(!state.update(false, 5.0));
 }
 
 void RoadMatchPolicyTest::convertsMphToKph()

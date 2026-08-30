@@ -97,52 +97,35 @@ private:
     double m_pendingResidual = 0.0;
 };
 
-// Sticky route-presentation decision driven exclusively by cross-track
-// distance from the unconstrained physical estimate.
-class RouteSnapState
+// Presentation follows the route for exactly as long as navigation considers
+// the physical estimate on-route. There is deliberately no second set of
+// break-away/relock thresholds: two decisions create either an unexplained
+// off-route marker or a reroute that presentation has not acknowledged.
+class RoutePresentationPolicy
 {
 public:
-    bool update(double physicalDistanceMeters, int elapsedMs)
+    static bool shouldSnapToRoute(bool hasRouteShape, bool isOffRoute,
+                                  bool isRerouting)
     {
-        elapsedMs = std::max(0, elapsedMs);
-        if (m_locked) {
-            if (physicalDistanceMeters > BreakAwayMeters) {
-                m_transitionMs += elapsedMs;
-                if (m_transitionMs >= BreakAwayDwellMs) {
-                    m_locked = false;
-                    m_transitionMs = 0;
-                }
-            } else {
-                m_transitionMs = 0;
-            }
-        } else {
-            if (physicalDistanceMeters < RelockMeters) {
-                m_transitionMs += elapsedMs;
-                if (m_transitionMs >= RelockDwellMs) {
-                    m_locked = true;
-                    m_transitionMs = 0;
-                }
-            } else {
-                m_transitionMs = 0;
-            }
-        }
-        return m_locked;
+        return hasRouteShape && !isOffRoute && !isRerouting;
     }
 
-    void reset(bool locked = true)
+    static bool hasDirectionalDepartureEvidence(
+        double physicalDistanceMeters, double headingDifferenceDegrees,
+        bool headingReliable)
     {
-        m_locked = locked;
-        m_transitionMs = 0;
+        return headingReliable
+            && std::abs(headingDifferenceDegrees) >= DirectionDepartureDegrees
+            && physicalDistanceMeters > DirectionDepartureMinMeters;
     }
 
-    bool locked() const { return m_locked; }
+    static bool allowsPolylineWalk(double speedKmh)
+    {
+        return std::isfinite(speedKmh)
+            && speedKmh / 3.6 >= StationarySpeedMetersPerSecond;
+    }
 
-    static constexpr double BreakAwayMeters = 12.0;
-    static constexpr int BreakAwayDwellMs = 1500;
-    static constexpr double RelockMeters = 6.0;
-    static constexpr int RelockDwellMs = 2000;
-
-private:
-    bool m_locked = true;
-    int m_transitionMs = 0;
+    static constexpr double DirectionDepartureDegrees = 45.0;
+    static constexpr double DirectionDepartureMinMeters = 15.0;
+    static constexpr double StationarySpeedMetersPerSecond = 0.3;
 };
