@@ -7,7 +7,7 @@ class ThemeStore;
 class VehicleStore;
 class ScreenStore;
 class DashboardStore;
-class MdbRepository;
+class InputHandler;
 class CommandBus;
 class SettingsService;
 
@@ -22,10 +22,9 @@ class ShortcutMenuStore : public QObject
 public:
     explicit ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
                                ScreenStore *screen, DashboardStore *dashboard,
-                               MdbRepository *repo, CommandBus *commands,
+                               InputHandler *input, CommandBus *commands,
                                SettingsService *settingsService,
                                QObject *parent = nullptr);
-    ~ShortcutMenuStore() override;
 
     bool visible() const { return m_visible; }
     int selectedIndex() const { return m_selectedIndex; }
@@ -44,9 +43,12 @@ signals:
 
 private slots:
     void onCycleTimeout();
+    void onSeatboxLongTap();
+    void onSeatboxRelease();
+    void onSeatboxPress();
+    void onSeatboxDoubleTap();
 
 private:
-    void onInputEvent(const QString &message);
     void executeAction(int index);
     void toggleHazards();
     void toggleView();
@@ -59,7 +61,6 @@ private:
     VehicleStore *m_vehicle;
     ScreenStore *m_screenStore;
     DashboardStore *m_dashboardStore;
-    MdbRepository *m_repo;
     CommandBus *m_commands;
     SettingsService *m_settingsService;
 

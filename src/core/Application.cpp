@@ -594,11 +594,11 @@ void Application::createStores(QQmlApplicationEngine &engine)
     connect(screenStore, &ScreenStore::umsModeRequested,
             commandBus, &CommandBus::enterUmsMode);
 
-    // M5: ShortcutMenuStore
-    auto *shortcutMenuStore = new ShortcutMenuStore(themeStore, vehicleStore, screenStore, dashboardStore, repo, commandBus, m_settingsService, this);
-
-    // Input handler: consumes vehicle-service's "input-events" gesture stream
+    // Input handler: sole consumer of vehicle-service's "input-events" stream
     m_inputHandler = new InputHandler(vehicleStore, repo, this);
+
+    // M5: ShortcutMenuStore
+    auto *shortcutMenuStore = new ShortcutMenuStore(themeStore, vehicleStore, screenStore, dashboardStore, m_inputHandler, commandBus, m_settingsService, this);
 
     // M6: Wire shutdown to vehicle state monitoring
     m_shutdownStore->connectToVehicle(vehicleStore);

@@ -3,16 +3,15 @@
 #include "VehicleStore.h"
 #include "ScreenStore.h"
 #include "DashboardStore.h"
-#include "../repositories/MdbRepository.h"
+#include "../services/InputHandler.h"
 #include "../services/SettingsService.h"
 #include "../commands/CommandBus.h"
 #include "../models/Enums.h"
 #include <QDebug>
-#include "repositories/RedisSchema.h"
 
 ShortcutMenuStore::ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
                                      ScreenStore *screen, DashboardStore *dashboard,
-                                     MdbRepository *repo, CommandBus *commands,
+                                     InputHandler *input, CommandBus *commands,
                                      SettingsService *settingsService,
                                      QObject *parent)
     : QObject(parent)
@@ -20,7 +19,6 @@ ShortcutMenuStore::ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
     , m_vehicle(vehicle)
     , m_screenStore(screen)
     , m_dashboardStore(dashboard)
-    , m_repo(repo)
     , m_commands(commands)
     , m_settingsService(settingsService)
     , m_confirmTimer(new QTimer(this))
@@ -33,18 +31,12 @@ ShortcutMenuStore::ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
     m_cycleTimer->setInterval(ITEM_CYCLE_MS);
     connect(m_cycleTimer, &QTimer::timeout, this, &ShortcutMenuStore::onCycleTimeout);
 
-    if (m_repo) {
-        m_repo->subscribe(RedisSchema::channel::InputEvents,
-                          [this](const QString &, const QString &message) {
-            onInputEvent(message);
-        });
+    if (input) {
+        connect(input, &InputHandler::seatboxLongTap, this, &ShortcutMenuStore::onSeatboxLongTap);
+        connect(input, &InputHandler::seatboxRelease, this, &ShortcutMenuStore::onSeatboxRelease);
+        connect(input, &InputHandler::seatboxPress, this, &ShortcutMenuStore::onSeatboxPress);
+        connect(input, &InputHandler::seatboxDoubleTap, this, &ShortcutMenuStore::onSeatboxDoubleTap);
     }
-}
-
-ShortcutMenuStore::~ShortcutMenuStore()
-{
-    if (m_repo)
-        m_repo->unsubscribe(RedisSchema::channel::InputEvents);
 }
 
 void ShortcutMenuStore::show()
@@ -91,44 +83,48 @@ bool ShortcutMenuStore::isReadyToDrive() const
     return m_vehicle->state() == static_cast<int>(ScootEnums::VehicleState::ReadyToDrive);
 }
 
-void ShortcutMenuStore::onInputEvent(const QString &message)
+void ShortcutMenuStore::onSeatboxLongTap()
 {
-    // Format: "<source>:<gesture>" — only seatbox is of interest here.
-    QStringList parts = message.split(':');
-    if (parts.size() != 2 || parts[0] != QLatin1String("seatbox"))
-        return;
-
     if (!isReadyToDrive())
         return;
-
-    const QString &gesture = parts[1];
-
-    if (gesture == QLatin1String("long-tap")) {
-        // Open the menu and begin cycling items while the user keeps holding.
-        if (!m_visible) {
-            show();
-            m_cycleTimer->start();
-        }
-    } else if (gesture == QLatin1String("release")) {
-        // Release after the menu is shown enters the confirmation window.
-        if (m_visible && !m_confirming) {
-            m_cycleTimer->stop();
-            m_confirming = true;
-            emit confirmingChanged();
-            m_confirmTimer->start();
-        }
-    } else if (gesture == QLatin1String("press")) {
-        // A press while confirming executes the selected action.
-        if (m_confirming) {
-            executeAction(m_selectedIndex);
-            resetState();
-        }
-    } else if (gesture == QLatin1String("double-tap")) {
-        // Double-tap with the menu closed is a hazards toggle shortcut.
-        if (!m_visible && !m_confirming) {
-            toggleHazards();
-        }
+    // Open the menu and begin cycling items while the user keeps holding.
+    if (!m_visible) {
+        show();
+        m_cycleTimer->start();
     }
+}
+
+void ShortcutMenuStore::onSeatboxRelease()
+{
+    if (!isReadyToDrive())
+        return;
+    // Release after the menu is shown enters the confirmation window.
+    if (m_visible && !m_confirming) {
+        m_cycleTimer->stop();
+        m_confirming = true;
+        emit confirmingChanged();
+        m_confirmTimer->start();
+    }
+}
+
+void ShortcutMenuStore::onSeatboxPress()
+{
+    if (!isReadyToDrive())
+        return;
+    // A press while confirming executes the selected action.
+    if (m_confirming) {
+        executeAction(m_selectedIndex);
+        resetState();
+    }
+}
+
+void ShortcutMenuStore::onSeatboxDoubleTap()
+{
+    if (!isReadyToDrive())
+        return;
+    // Double-tap with the menu closed is a hazards toggle shortcut.
+    if (!m_visible && !m_confirming)
+        toggleHazards();
 }
 
 void ShortcutMenuStore::onCycleTimeout()
