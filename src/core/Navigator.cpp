@@ -1,5 +1,6 @@
 #include "Navigator.h"
 #include "stores/SettingsStore.h"
+#include "stores/VehicleStore.h"
 #include "commands/CommandBus.h"
 
 Navigator::Navigator(SettingsStore *settings, CommandBus *commands, QObject *parent)
@@ -175,4 +176,18 @@ void Navigator::enterHopOnLock()
 void Navigator::exitHopOnLock()
 {
     setScreen(static_cast<int>(m_screenBeforeHopOnLock));
+}
+
+void Navigator::attachVehicle(VehicleStore *vehicle)
+{
+    connect(vehicle, &VehicleStore::stateChanged, this, [this, vehicle]() {
+        if (vehicle->state() != static_cast<int>(ScootEnums::VehicleState::ReadyToDrive))
+            return;
+        switch (m_currentScreen) {
+        case ScootEnums::ScreenMode::About:      closeAbout(); break;
+        case ScootEnums::ScreenMode::Faults:     closeFaults(); break;
+        case ScootEnums::ScreenMode::SystemInfo: closeSystemInfo(); break;
+        default: break;
+        }
+    });
 }

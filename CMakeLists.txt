@@ -121,6 +121,7 @@ set(CPP_SOURCES
     src/services/HandlebarLockMonitor.cpp
     src/services/BackupBatteryMonitor.cpp
     src/services/BatteryAlertModel.cpp
+    src/services/SystemHealthMonitor.cpp
     src/services/NavigationAvailabilityService.cpp
     src/services/SavedLocationsService.cpp
     src/services/RecentDestinationsService.cpp
@@ -201,6 +202,7 @@ set(CPP_HEADERS
     src/services/HandlebarLockMonitor.h
     src/services/BackupBatteryMonitor.h
     src/services/BatteryAlertModel.h
+    src/services/SystemHealthMonitor.h
     src/services/BatteryAlertPolicy.h
     src/services/NavigationAvailabilityService.h
     src/services/SavedLocationsService.h

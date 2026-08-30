@@ -42,134 +42,14 @@ Window {
         onActivated: simulator.autoDriveSkip(20)
     }
 
-    readonly property var allowedStates: [
-        Scooter.VehicleState.Unknown,
-        Scooter.VehicleState.ReadyToDrive,
-        Scooter.VehicleState.Parked,
-        Scooter.VehicleState.ShuttingDown,
-        Scooter.VehicleState.WaitingHibernation,
-        Scooter.VehicleState.WaitingHibernationAdvanced,
-        Scooter.VehicleState.WaitingHibernationSeatbox,
-        Scooter.VehicleState.WaitingHibernationConfirm
-    ]
     readonly property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : Scooter.VehicleState.Unknown
     readonly property int currentScreen: typeof navigator !== "undefined" ? navigator.currentScreen : 0
 
-    readonly property bool showMaintenance: {
-        // Prolonged Redis disconnect before ever connecting
-        if (typeof connectionStore !== "undefined"
-            && connectionStore.prolongedDisconnect
-            && !connectionStore.hasEverConnected) return true
-        if (allowedStates.indexOf(vehicleState) === -1) return true
-        if (vehicleState === Scooter.VehicleState.Unknown && startupGraceElapsed) return true
-        return false
-    }
-
-    // Show connection info only for genuine connection failures, not for locked/transitional states
-    readonly property bool maintenanceShowConnectionInfo: {
-        if (typeof connectionStore !== "undefined"
-            && connectionStore.prolongedDisconnect
-            && !connectionStore.hasEverConnected) return true
-        if (vehicleState === Scooter.VehicleState.Unknown && startupGraceElapsed) return true
-        return false
-    }
-
-    property bool startupGraceElapsed: false
-
-    Timer {
-        id: startupTimer
-        interval: 5000
-        running: true
-        onTriggered: root.startupGraceElapsed = true
-    }
-
-    // Cancel startup timer when vehicle state becomes known;
-    // auto-close parked-only screens when riding starts
-    Connections {
-        target: typeof vehicleStore !== "undefined" ? vehicleStore : null
-        function onStateChanged() {
-            if (vehicleStore.state !== Scooter.VehicleState.Unknown) {
-                startupTimer.stop()
-            }
-            if (vehicleStore.state === Scooter.VehicleState.ReadyToDrive
-                    && typeof navigator !== "undefined") {
-                if (navigator.currentScreen === Scooter.ScreenMode.About)
-                    navigator.closeAbout()
-                else if (navigator.currentScreen === Scooter.ScreenMode.Faults)
-                    navigator.closeFaults()
-                else if (navigator.currentScreen === Scooter.ScreenMode.SystemInfo)
-                    navigator.closeSystemInfo()
-            }
-        }
-    }
-
-    // Show permanent toast on mid-session Redis disconnect
-    Connections {
-        target: typeof connectionStore !== "undefined" ? connectionStore : null
-        function onProlongedDisconnectChanged() {
-            if (typeof connectionStore !== "undefined" && typeof toastService !== "undefined") {
-                if (connectionStore.prolongedDisconnect && connectionStore.hasEverConnected) {
-                    toastService.showPermanentError(
-                        typeof translations !== "undefined"
-                            ? translations.redisDisconnected
-                            : "System connection lost",
-                        "redis-disconnect"
-                    )
-                } else {
-                    toastService.dismiss("redis-disconnect")
-                }
-            }
-        }
-        function onUsingBackupConnectionChanged() {
-            if (typeof connectionStore !== "undefined" && typeof toastService !== "undefined") {
-                if (connectionStore.usingBackupConnection) {
-                    toastService.showPermanentError(
-                        typeof translations !== "undefined"
-                            ? translations.usbDisconnected
-                            : "USB connection interrupted",
-                        "usb-disconnect"
-                    )
-                } else {
-                    toastService.dismiss("usb-disconnect")
-                }
-            }
-        }
-    }
-
-    // Double-tap left brake opens menu on main screens.
-    //
-    // Debug is deliberately not one of them. It scrolls on left tap and its
-    // content runs to about three viewports, so reaching the bottom takes a
-    // run of taps; any two inside vehicle-service's 800 ms double-tap window
-    // also emit double-tap, which opened the menu mid-scroll. It was also the
-    // only screen carrying its own hint bar under the menu, so the menu's bar
-    // landed on top of it. The screen's own 3 s hold covers the one thing the
-    // menu was needed for there.
-    Connections {
-        id: doubleTapMenuOpener
-        target: typeof inputHandler !== "undefined" ? inputHandler : null
-        enabled: typeof menuController !== "undefined" && !menuController.isOpen
-                 && (root.currentScreen === Scooter.ScreenMode.Cluster
-                     || root.currentScreen === Scooter.ScreenMode.Map)
-        function onLeftDoubleTap() {
-            console.log("MENU: onLeftDoubleTap (currentScreen=" + root.currentScreen
-                        + ", isOpen=" + menuController.isOpen
-                        + ", showMaintenance=" + root.showMaintenance + ")")
-            menuController.open()
-        }
-    }
-
-    // Trace double-taps that miss the opener (Connections disabled because of
-    // screen or isOpen). This fires whenever the opener's gate is false.
-    Connections {
-        target: typeof inputHandler !== "undefined" ? inputHandler : null
-        enabled: !doubleTapMenuOpener.enabled
-        function onLeftDoubleTap() {
-            console.log("MENU: leftDoubleTap dropped by QML gate (currentScreen=" + root.currentScreen
-                        + ", isOpen=" + (typeof menuController !== "undefined" ? menuController.isOpen : "?")
-                        + ", showMaintenance=" + root.showMaintenance + ")")
-        }
-    }
+    // Health policy (maintenance gate, connection toasts, startup grace)
+    // lives in SystemHealthMonitor; the double-tap menu opener and the
+    // parked-only screen auto-close live in MenuController and Navigator.
+    readonly property bool showMaintenance: typeof systemHealth !== "undefined" && systemHealth.showMaintenance
+    readonly property bool maintenanceShowConnectionInfo: typeof systemHealth !== "undefined" && systemHealth.showConnectionInfo
 
     // Wire maintenanceShowConnectionInfo into loaded MaintenanceScreen
     Connections {

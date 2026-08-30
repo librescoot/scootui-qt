@@ -19,6 +19,7 @@ class NavigationService;
 class SavedLocationsStore;
 class RecentDestinationsStore;
 class Navigator;
+class InputHandler;
 class NavigationAvailabilityService;
 class InternetStore;
 class HopOnService;
@@ -52,6 +53,13 @@ public:
                             ThemeStore *theme,
                             Translations *translations, SettingsService *settingsService,
                             CommandBus *commands, QObject *parent = nullptr);
+
+    // Double-tap left brake opens the menu on the main screens (cluster and
+    // map). Debug is deliberately not one of them: it scrolls on left tap and
+    // runs to about three viewports, so any two taps inside vehicle-service's
+    // 800 ms double-tap window also emit double-tap, which opened the menu
+    // mid-scroll. openAt() adds the parked and hop-on guards.
+    void attachInput(InputHandler *input);
 
     void setNavigationService(NavigationService *svc);
     void setSavedLocationsStore(SavedLocationsStore *store);

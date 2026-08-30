@@ -9,6 +9,7 @@
 #include "stores/RecentDestinationsStore.h"
 #include "stores/InternetStore.h"
 #include "services/HopOnService.h"
+#include "services/InputHandler.h"
 #include "services/FaultsService.h"
 #include "l10n/Translations.h"
 #include "services/ToastService.h"
@@ -81,6 +82,21 @@ MenuController::MenuController(SettingsStore *settings, VehicleStore *vehicle,
 }
 
 MenuController::~MenuController() = default;
+
+void MenuController::attachInput(InputHandler *input)
+{
+    connect(input, &InputHandler::leftDoubleTap, this, [this]() {
+        const bool screenOk = m_navigator
+            && (m_navigator->currentScreenMode() == ScootEnums::ScreenMode::Cluster
+                || m_navigator->currentScreenMode() == ScootEnums::ScreenMode::Map);
+        if (m_isOpen || !screenOk) {
+            qDebug() << "MenuController: leftDoubleTap dropped, isOpen" << m_isOpen
+                     << "screen" << (m_navigator ? m_navigator->currentScreen() : -1);
+            return;
+        }
+        open();
+    });
+}
 
 void MenuController::setNavigationService(NavigationService *svc)
 {

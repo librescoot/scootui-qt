@@ -4,6 +4,7 @@
 #include "models/Enums.h"
 
 class SettingsStore;
+class VehicleStore;
 class CommandBus;
 
 class Navigator : public QObject
@@ -19,6 +20,9 @@ public:
     // any of them is up we mirror MenuController's dashboard:menu-open=true so
     // vehicle-service suppresses brake-light LED cues for the navigation taps.
     static bool isBrakeNavigated(ScootEnums::ScreenMode mode);
+
+    // Parked-only info screens close themselves when riding starts.
+    void attachVehicle(VehicleStore *vehicle);
 
     int currentScreen() const { return static_cast<int>(m_currentScreen); }
     ScootEnums::ScreenMode currentScreenMode() const { return m_currentScreen; }

@@ -48,6 +48,7 @@
 #include "services/HandlebarLockMonitor.h"
 #include "services/BackupBatteryMonitor.h"
 #include "services/BatteryAlertModel.h"
+#include "services/SystemHealthMonitor.h"
 #include "services/NavigationAvailabilityService.h"
 #include "services/SavedLocationsService.h"
 #include "services/RecentDestinationsService.h"
@@ -603,6 +604,12 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Input handler: sole consumer of vehicle-service's "input-events" stream
     m_inputHandler = new InputHandler(vehicleStore, repo, this);
+    menuController->attachInput(m_inputHandler);
+    navigator->attachVehicle(vehicleStore);
+
+    // Maintenance-screen gating and connection-loss toasts.
+    auto *systemHealth = new SystemHealthMonitor(vehicleStore, connectionStore,
+                                                 m_toastService, m_translations, this);
 
     // M5: ShortcutMenuController
     auto *shortcutMenuController = new ShortcutMenuController(themeStore, vehicleStore, navigator, dashboardStore, m_inputHandler, commandBus, m_settingsService, this);
@@ -662,6 +669,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // New context properties
     ctx->setContextProperty(QStringLiteral("connectionStore"), connectionStore);
+    ctx->setContextProperty(QStringLiteral("systemHealth"), systemHealth);
     ctx->setContextProperty(QStringLiteral("dashboardStore"), dashboardStore);
     ctx->setContextProperty(QStringLiteral("commandBus"), commandBus);
     ctx->setContextProperty(QStringLiteral("toastService"), m_toastService);
