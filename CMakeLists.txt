@@ -138,6 +138,7 @@ set(CPP_SOURCES
     src/services/MapDownloadService.cpp
     src/services/UpdateChannelService.cpp
     src/services/RoadInfoService.cpp
+    src/services/RoadInfoWorker.cpp
     src/services/OdometerMilestoneService.cpp
     src/routing/ValhallaClient.cpp
     src/l10n/Translations.cpp
@@ -224,6 +225,7 @@ set(CPP_HEADERS
     src/services/VectorTileDecoder.h
     src/services/MapDownloadService.h
     src/services/RoadInfoService.h
+    src/services/RoadInfoWorker.h
     src/services/RoadMatchPolicy.h
     src/services/OdometerMilestoneService.h
     src/models/MapMetadata.h
