@@ -7,7 +7,7 @@
 #include "SavedLocationsStore.h"
 #include "RecentDestinationsStore.h"
 #include "InternetStore.h"
-#include "HopOnStore.h"
+#include "services/HopOnService.h"
 #include "services/FaultsService.h"
 #include "l10n/Translations.h"
 #include "services/ToastService.h"
@@ -140,13 +140,13 @@ void MenuStore::setInternetStore(InternetStore *store)
     m_internet = store;
 }
 
-void MenuStore::setHopOnStore(HopOnStore *store)
+void MenuStore::setHopOnService(HopOnService *store)
 {
     m_hopOn = store;
     if (m_hopOn) {
         // Re-render the menu when the combo state changes (no combo <->
         // has combo flips this entry between an action and a submenu).
-        connect(m_hopOn, &HopOnStore::comboChanged,
+        connect(m_hopOn, &HopOnService::comboChanged,
                 this, &MenuStore::rebuildMenuTree);
     }
 }
@@ -1431,7 +1431,7 @@ void MenuStore::openAt(const QStringList &path, const QList<int> &indexStack, in
         qDebug() << "MenuStore: open dropped - already open";
         return;
     }
-    if (m_hopOn && m_hopOn->mode() != HopOnStore::Idle) {
+    if (m_hopOn && m_hopOn->mode() != HopOnService::Idle) {
         qDebug() << "MenuStore: open dropped - hop-on not idle, mode" << m_hopOn->mode();
         return;
     }

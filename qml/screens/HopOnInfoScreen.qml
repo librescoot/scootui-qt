@@ -16,8 +16,8 @@ Rectangle {
     function startLearn() {
         if (typeof navigator !== "undefined")
             navigator.closeHopOnInfo()
-        if (typeof hopOnStore !== "undefined")
-            hopOnStore.startLearning()
+        if (typeof hopOnService !== "undefined")
+            hopOnService.startLearning()
     }
 
     function cancelBack() {

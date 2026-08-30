@@ -1,15 +1,15 @@
-#include "HopOnStore.h"
+#include "HopOnService.h"
 
-#include "VehicleStore.h"
-#include "SettingsStore.h"
+#include "stores/VehicleStore.h"
+#include "stores/SettingsStore.h"
 #include "core/Navigator.h"
-#include "services/SettingsService.h"
+#include "SettingsService.h"
 #include "commands/CommandBus.h"
 #include "models/Enums.h"
 
 #include <QDebug>
 
-HopOnStore::HopOnStore(VehicleStore *vehicle,
+HopOnService::HopOnService(VehicleStore *vehicle,
                        SettingsStore *settings,
                        SettingsService *settingsService,
                        CommandBus *commands,
@@ -24,42 +24,42 @@ HopOnStore::HopOnStore(VehicleStore *vehicle,
 {
     m_idleTimer.setSingleShot(true);
     m_idleTimer.setInterval(kIdleTimeoutMs);
-    connect(&m_idleTimer, &QTimer::timeout, this, &HopOnStore::onIdleTimeout);
+    connect(&m_idleTimer, &QTimer::timeout, this, &HopOnService::onIdleTimeout);
 
     m_countdownTimer.setSingleShot(false);
     m_countdownTimer.setInterval(kCountdownTickMs);
-    connect(&m_countdownTimer, &QTimer::timeout, this, &HopOnStore::onCountdownTick);
+    connect(&m_countdownTimer, &QTimer::timeout, this, &HopOnService::onCountdownTick);
 
     m_backlightTimer.setSingleShot(true);
     m_backlightTimer.setInterval(kBacklightDelayMs);
     connect(&m_backlightTimer, &QTimer::timeout,
-            this, &HopOnStore::onBacklightDelayElapsed);
+            this, &HopOnService::onBacklightDelayElapsed);
 
     // Watch every input we care about for combo capture / matching.
     connect(m_vehicle, &VehicleStore::brakeLeftChanged,
-            this, &HopOnStore::onBrakeLeftChanged);
+            this, &HopOnService::onBrakeLeftChanged);
     connect(m_vehicle, &VehicleStore::brakeRightChanged,
-            this, &HopOnStore::onBrakeRightChanged);
+            this, &HopOnService::onBrakeRightChanged);
     connect(m_vehicle, &VehicleStore::hornButtonChanged,
-            this, &HopOnStore::onHornButtonChanged);
+            this, &HopOnService::onHornButtonChanged);
     connect(m_vehicle, &VehicleStore::blinkerSwitchChanged,
-            this, &HopOnStore::onBlinkerSwitchChanged);
+            this, &HopOnService::onBlinkerSwitchChanged);
     connect(m_vehicle, &VehicleStore::seatboxButtonChanged,
-            this, &HopOnStore::onSeatboxButtonChanged);
+            this, &HopOnService::onSeatboxButtonChanged);
 
     // Auto-cleanup if the FSM leaves Parked while we're locked
     // (e.g. auto-standby timer fired in the background).
     connect(m_vehicle, &VehicleStore::stateChanged,
-            this, &HopOnStore::onVehicleStateChanged);
+            this, &HopOnService::onVehicleStateChanged);
     connect(m_vehicle, &VehicleStore::hopOnActiveChanged,
-            this, &HopOnStore::onHopOnActiveChanged);
+            this, &HopOnService::onHopOnActiveChanged);
 
     // Settings update: relay comboChanged for UI, AND retry the post-restart
     // restore — vehicle:hop-on-active and settings:hop-on-combo arrive from
     // different Redis hashes with no ordering guarantee, so the combo can
     // land after onHopOnActiveChanged already ran with an empty combo.
     connect(m_settings, &SettingsStore::hopOnComboChanged,
-            this, &HopOnStore::onSettingsComboChanged);
+            this, &HopOnService::onSettingsComboChanged);
 
     // Initialise edge-detection state from current values so the very
     // first signal isn't treated as a press.
@@ -70,12 +70,12 @@ HopOnStore::HopOnStore(VehicleStore *vehicle,
     m_lastSeatboxButton = m_vehicle->seatboxButton();
 }
 
-QString HopOnStore::combo() const
+QString HopOnService::combo() const
 {
     return m_settings ? m_settings->hopOnCombo() : QString();
 }
 
-void HopOnStore::startLearning()
+void HopOnService::startLearning()
 {
     if (!m_vehicle->isParked()) {
         qDebug() << "HopOn: refuse startLearning, not parked";
@@ -98,7 +98,7 @@ void HopOnStore::startLearning()
     resetIdleCountdown();
 }
 
-void HopOnStore::activate()
+void HopOnService::activate()
 {
     if (!m_vehicle->isParked()) {
         qDebug() << "HopOn: refuse activate, not parked";
@@ -133,7 +133,7 @@ void HopOnStore::activate()
     resetIdleCountdown();
 }
 
-void HopOnStore::disable()
+void HopOnService::disable()
 {
     qDebug() << "HopOn: disable (clearing combo)";
     if (m_settingsService)
@@ -143,7 +143,7 @@ void HopOnStore::disable()
     emit comboChanged();
 }
 
-void HopOnStore::unlock()
+void HopOnService::unlock()
 {
     qDebug() << "HopOn: unlock";
     if (m_commands)
@@ -161,7 +161,7 @@ void HopOnStore::unlock()
     setMode(Idle);
 }
 
-void HopOnStore::onBacklightDelayElapsed()
+void HopOnService::onBacklightDelayElapsed()
 {
     if (m_mode != Locked) return;
     qDebug() << "HopOn: backlight delay elapsed, turning backlight off";
@@ -169,7 +169,7 @@ void HopOnStore::onBacklightDelayElapsed()
         m_commands->setBacklightEnabled(false);
 }
 
-void HopOnStore::onBrakeLeftChanged()
+void HopOnService::onBrakeLeftChanged()
 {
     int v = m_vehicle->brakeLeft();
     int prev = m_lastBrakeLeft;
@@ -182,7 +182,7 @@ void HopOnStore::onBrakeLeftChanged()
     }
 }
 
-void HopOnStore::onBrakeRightChanged()
+void HopOnService::onBrakeRightChanged()
 {
     int v = m_vehicle->brakeRight();
     int prev = m_lastBrakeRight;
@@ -194,7 +194,7 @@ void HopOnStore::onBrakeRightChanged()
     }
 }
 
-void HopOnStore::onHornButtonChanged()
+void HopOnService::onHornButtonChanged()
 {
     int v = m_vehicle->hornButton();
     int prev = m_lastHornButton;
@@ -206,7 +206,7 @@ void HopOnStore::onHornButtonChanged()
     }
 }
 
-void HopOnStore::onBlinkerSwitchChanged()
+void HopOnService::onBlinkerSwitchChanged()
 {
     int v = m_vehicle->blinkerSwitch();
     int prev = m_lastBlinkerSwitch;
@@ -222,7 +222,7 @@ void HopOnStore::onBlinkerSwitchChanged()
     }
 }
 
-void HopOnStore::onSeatboxButtonChanged()
+void HopOnService::onSeatboxButtonChanged()
 {
     int v = m_vehicle->seatboxButton();
     int prev = m_lastSeatboxButton;
@@ -234,7 +234,7 @@ void HopOnStore::onSeatboxButtonChanged()
     }
 }
 
-void HopOnStore::pushToken(const QString &token)
+void HopOnService::pushToken(const QString &token)
 {
     qDebug() << "HopOn: pushToken" << token << "mode=" << m_mode;
     m_buffer.append(token);
@@ -260,7 +260,7 @@ void HopOnStore::pushToken(const QString &token)
     }
 }
 
-void HopOnStore::resetIdleCountdown()
+void HopOnService::resetIdleCountdown()
 {
     m_idleMillisRemaining = kIdleTimeoutMs;
     emit idleMillisRemainingChanged();
@@ -269,7 +269,7 @@ void HopOnStore::resetIdleCountdown()
         m_countdownTimer.start();
 }
 
-void HopOnStore::cancelTimers()
+void HopOnService::cancelTimers()
 {
     m_idleTimer.stop();
     m_countdownTimer.stop();
@@ -279,7 +279,7 @@ void HopOnStore::cancelTimers()
     }
 }
 
-void HopOnStore::onIdleTimeout()
+void HopOnService::onIdleTimeout()
 {
     m_countdownTimer.stop();
     m_idleMillisRemaining = 0;
@@ -313,14 +313,14 @@ void HopOnStore::onIdleTimeout()
     }
 }
 
-void HopOnStore::onCountdownTick()
+void HopOnService::onCountdownTick()
 {
     m_idleMillisRemaining -= kCountdownTickMs;
     if (m_idleMillisRemaining < 0) m_idleMillisRemaining = 0;
     emit idleMillisRemainingChanged();
 }
 
-void HopOnStore::onVehicleStateChanged()
+void HopOnService::onVehicleStateChanged()
 {
     if (m_mode == Idle) return;
     if (!m_vehicle->isParked()) {
@@ -345,7 +345,7 @@ void HopOnStore::onVehicleStateChanged()
     }
 }
 
-void HopOnStore::onHopOnActiveChanged()
+void HopOnService::onHopOnActiveChanged()
 {
     // If vehicle-service spontaneously cleared hop-on (e.g. it restarted),
     // make the dashboard mirror it instead of staying stuck on the lock screen.
@@ -368,7 +368,7 @@ void HopOnStore::onHopOnActiveChanged()
     tryRestoreLocked();
 }
 
-void HopOnStore::onSettingsComboChanged()
+void HopOnService::onSettingsComboChanged()
 {
     // Always relay so the menu UI updates.
     emit comboChanged();
@@ -378,7 +378,7 @@ void HopOnStore::onSettingsComboChanged()
     tryRestoreLocked();
 }
 
-void HopOnStore::tryRestoreLocked()
+void HopOnService::tryRestoreLocked()
 {
     if (m_mode != Idle) return;
     if (!m_vehicle->hopOnActive()) return;
@@ -396,14 +396,14 @@ void HopOnStore::tryRestoreLocked()
     resetIdleCountdown();
 }
 
-void HopOnStore::setMode(Mode m)
+void HopOnService::setMode(Mode m)
 {
     if (m == m_mode) return;
     m_mode = m;
     emit modeChanged();
 }
 
-void HopOnStore::setLastResult(Result r)
+void HopOnService::setLastResult(Result r)
 {
     if (r == m_lastResult) return;
     m_lastResult = r;

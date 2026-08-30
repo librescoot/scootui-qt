@@ -1255,7 +1255,7 @@ void SimulatorService::applyDefaults()
     // 10/20/30 are the only durations the menu offers; anything else renders
     // under the wrong label.
     setSetting(QStringLiteral("alarm.duration"), QStringLiteral("30"));
-    // Pipe-delimited token list (HopOnStore: LB, RB, HORN, BL, BR). Seeded so
+    // Pipe-delimited token list (HopOnService: LB, RB, HORN, BL, BR). Seeded so
     // the hop-on entry is armed and can be unlocked from the brake buttons.
     setSetting(QStringLiteral("dashboard.hop-on-combo"), QStringLiteral("LB|RB|LB"));
 

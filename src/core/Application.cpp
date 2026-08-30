@@ -26,7 +26,7 @@
 #include "stores/ThemeStore.h"
 #include "core/Navigator.h"
 #include "stores/MenuStore.h"
-#include "stores/HopOnStore.h"
+#include "services/HopOnService.h"
 #include "stores/FaultEventStore.h"
 #include "services/FaultsService.h"
 #include "services/TripService.h"
@@ -176,9 +176,9 @@ bool Application::initialize(QQmlApplicationEngine &engine)
 
     qmlRegisterUncreatableMetaObject(ScootEnums::staticMetaObject, "ScootUI", 1, 0, "Scooter", "");
     // Enum-only registrations: the instances stay context properties for now,
-    // but QML needs the types to spell HopOnStore.Learning etc. instead of
+    // but QML needs the types to spell HopOnService.Learning etc. instead of
     // hand-mirrored int constants.
-    qmlRegisterUncreatableType<HopOnStore>("ScootUI", 1, 0, "HopOnStore", "enum access only");
+    qmlRegisterUncreatableType<HopOnService>("ScootUI", 1, 0, "HopOnService", "enum access only");
     qmlRegisterUncreatableType<AddressDatabaseService>("ScootUI", 1, 0, "AddressDatabaseService", "enum access only");
 
     BOOT_MARK("createStores() start");
@@ -555,10 +555,10 @@ void Application::createStores(QQmlApplicationEngine &engine)
     menuStore->setInternetStore(internetStore);
 
     // Hop-on / hop-off store: combo learning, matching, lock screen.
-    auto *hopOnStore = new HopOnStore(vehicleStore, settingsStore,
+    auto *hopOnService = new HopOnService(vehicleStore, settingsStore,
                                       m_settingsService,
                                       commandBus, navigator, this);
-    menuStore->setHopOnStore(hopOnStore);
+    menuStore->setHopOnService(hopOnService);
     menuStore->setMapDownloadService(m_mapDownloadService);
 
     // Fault aggregation: stream tail + union of per-service active-fault sets.
@@ -626,7 +626,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("themeStore"), themeStore);
     ctx->setContextProperty(QStringLiteral("navigator"), navigator);
     ctx->setContextProperty(QStringLiteral("menuStore"), menuStore);
-    ctx->setContextProperty(QStringLiteral("hopOnStore"), hopOnStore);
+    ctx->setContextProperty(QStringLiteral("hopOnService"), hopOnService);
     ctx->setContextProperty(QStringLiteral("tripService"), tripService);
     ctx->setContextProperty(QStringLiteral("shutdownStore"), shutdownStore);
     ctx->setContextProperty(QStringLiteral("shortcutMenuStore"), shortcutMenuStore);

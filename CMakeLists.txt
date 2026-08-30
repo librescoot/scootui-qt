@@ -97,7 +97,7 @@ set(CPP_SOURCES
     src/stores/ThemeStore.cpp
     src/core/Navigator.cpp
     src/stores/MenuStore.cpp
-    src/stores/HopOnStore.cpp
+    src/services/HopOnService.cpp
     src/services/TripService.cpp
     src/stores/ShutdownStore.cpp
     src/stores/LocaleStore.cpp

@@ -11,11 +11,11 @@ Item {
     id: learnOverlay
     anchors.fill: parent
 
-    property int mode: typeof hopOnStore !== "undefined" ? hopOnStore.mode : HopOnStore.Idle
-    property var tokens: typeof hopOnStore !== "undefined" ? hopOnStore.capturedTokens : []
-    property int idleMs: typeof hopOnStore !== "undefined" ? hopOnStore.idleMillisRemaining : 0
+    property int mode: typeof hopOnService !== "undefined" ? hopOnService.mode : HopOnService.Idle
+    property var tokens: typeof hopOnService !== "undefined" ? hopOnService.capturedTokens : []
+    property int idleMs: typeof hopOnService !== "undefined" ? hopOnService.idleMillisRemaining : 0
 
-    visible: mode === HopOnStore.Learning
+    visible: mode === HopOnService.Learning
 
     readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
     readonly property color scrimColor:    isDark ? "#000000" : "#FFFFFF"

@@ -12,7 +12,7 @@ class CommandBus;
 class Navigator;
 
 /**
- * HopOnStore — handles "hop-on / hop-off" mode for short stops.
+ * HopOnService — handles "hop-on / hop-off" mode for short stops.
  *
  * Modes:
  *   Idle     — nothing happening; nothing visible.
@@ -35,7 +35,7 @@ class Navigator;
  * Activation is from the menu only (see MenuStore). Unlock is by pressing
  * the stored combo while Locked.
  */
-class HopOnStore : public QObject
+class HopOnService : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(int mode READ mode NOTIFY modeChanged)
@@ -61,7 +61,7 @@ public:
     };
     Q_ENUM(Result)
 
-    explicit HopOnStore(VehicleStore *vehicle,
+    explicit HopOnService(VehicleStore *vehicle,
                         SettingsStore *settings,
                         SettingsService *settingsService,
                         CommandBus *commands,

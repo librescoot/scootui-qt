@@ -3,7 +3,7 @@ import ScootUI 1.0
 import "../widgets/components"
 
 // Full-screen lock overlay shown while hop-on / hop-off mode is engaged.
-// The display backlight is OFF underneath this overlay (set by HopOnStore
+// The display backlight is OFF underneath this overlay (set by HopOnService
 // via CommandBus::setBacklightEnabled(false)), but the QML scene is still
 // alive and watches for the user-defined unlock combo. As soon as the
 // matcher accepts the sequence the overlay disappears and the backlight
@@ -15,9 +15,9 @@ Item {
     id: lockOverlay
     anchors.fill: parent
 
-    property int mode: typeof hopOnStore !== "undefined" ? hopOnStore.mode : HopOnStore.Idle
+    property int mode: typeof hopOnService !== "undefined" ? hopOnService.mode : HopOnService.Idle
 
-    visible: mode === HopOnStore.Locked
+    visible: mode === HopOnService.Locked
 
     readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
     readonly property color scrimColor:    isDark ? "#000000" : "#FFFFFF"

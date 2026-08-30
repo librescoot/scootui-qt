@@ -19,7 +19,7 @@ class RecentDestinationsStore;
 class Navigator;
 class NavigationAvailabilityService;
 class InternetStore;
-class HopOnStore;
+class HopOnService;
 class MapDownloadService;
 class FaultsService;
 class ToastService;
@@ -55,7 +55,7 @@ public:
     void setNavigator(Navigator *store);
     void setNavigationAvailabilityService(NavigationAvailabilityService *svc);
     void setInternetStore(InternetStore *store);
-    void setHopOnStore(HopOnStore *store);
+    void setHopOnService(HopOnService *store);
     void setMapDownloadService(MapDownloadService *svc);
     void setFaultsService(FaultsService *svc);
     void setToastService(ToastService *svc);
@@ -117,7 +117,7 @@ private:
     Navigator *m_navigator = nullptr;
     NavigationAvailabilityService *m_navAvailability = nullptr;
     InternetStore *m_internet = nullptr;
-    HopOnStore *m_hopOn = nullptr;
+    HopOnService *m_hopOn = nullptr;
     MapDownloadService *m_mapDownload = nullptr;
     FaultsService *m_faults = nullptr;
     ToastService *m_toastService = nullptr;
