@@ -74,9 +74,29 @@ void InMemoryMdbRepository::unsubscribe(const QString &channel)
 
 void InMemoryMdbRepository::push(const QString &channel, const QString &command)
 {
-    // Simulate MDB command handling
+    // Emulate just enough of vehicle-service for the dashboard's own flows
+    // to be exercisable in sim mode: blinker echo, lock/unlock, and the
+    // hop-on engage/learning/release transitions (hopOnActive derives from
+    // the published vehicle state, so setting the state is all it takes).
     if (channel == QLatin1String("scooter:blinker")) {
         set(QStringLiteral("vehicle"), QStringLiteral("blinker:state"), command);
+    } else if (channel == QLatin1String("scooter:state")) {
+        if (command == QLatin1String("lock"))
+            set(QStringLiteral("vehicle"), QStringLiteral("state"),
+                QStringLiteral("stand-by"));
+        else if (command == QLatin1String("unlock"))
+            set(QStringLiteral("vehicle"), QStringLiteral("state"),
+                QStringLiteral("parked"));
+    } else if (channel == QLatin1String("scooter:hop-on")) {
+        if (command == QLatin1String("engage"))
+            set(QStringLiteral("vehicle"), QStringLiteral("state"),
+                QStringLiteral("hop-on"));
+        else if (command == QLatin1String("engage-learning"))
+            set(QStringLiteral("vehicle"), QStringLiteral("state"),
+                QStringLiteral("hop-on-learning"));
+        else if (command == QLatin1String("release"))
+            set(QStringLiteral("vehicle"), QStringLiteral("state"),
+                QStringLiteral("parked"));
     }
 }
 
