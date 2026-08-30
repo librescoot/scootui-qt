@@ -239,9 +239,13 @@ set(CPP_HEADERS
     src/services/FaultsService.h
 )
 
-# Simulator sources (always compiled, only activated at runtime in sim mode)
-list(APPEND CPP_SOURCES src/simulator/SimulatorService.cpp)
-list(APPEND CPP_HEADERS src/simulator/SimulatorService.h)
+# Simulator sources: desktop builds only. The panel is a second window, which
+# the DBC's single EGLFS display can't host, and gating it here keeps the
+# 1700-line panel QML and its service out of the production binary.
+if(DESKTOP_MODE)
+    list(APPEND CPP_SOURCES src/simulator/SimulatorService.cpp)
+    list(APPEND CPP_HEADERS src/simulator/SimulatorService.h)
+endif()
 
 qt_add_executable(scootui ${CPP_SOURCES} ${CPP_HEADERS})
 
@@ -316,8 +320,11 @@ set(QML_FILES
     qml/overlays/MilestoneCelebrationOverlay.qml
     qml/overlays/DebugOverlay.qml
     qml/overlays/ServiceModeOverlay.qml
-    qml/simulator/SimulatorWindow.qml
 )
+
+if(DESKTOP_MODE)
+    list(APPEND QML_FILES qml/simulator/SimulatorWindow.qml)
+endif()
 
 set_source_files_properties(qml/widgets/components/MaterialIcon.qml
     PROPERTIES QT_QML_SINGLETON_TYPE TRUE)

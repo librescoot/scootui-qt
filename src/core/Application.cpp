@@ -67,7 +67,9 @@
 #include "l10n/Translations.h"
 #include "repositories/RedisSchema.h"
 #include "commands/CommandBus.h"
+#ifdef DESKTOP_MODE
 #include "simulator/SimulatorService.h"
+#endif
 
 #include <QQmlContext>
 #include <QtQml/qqml.h>
@@ -153,7 +155,14 @@ bool Application::initialize(QQmlApplicationEngine &engine)
     m_backendDescription = m_inMemoryBackend
                          ? QStringLiteral("in-memory")
                          : QStringLiteral("%1:%2").arg(redisHost).arg(EnvConfig::redisPort());
+#ifdef DESKTOP_MODE
     m_simulatorMode = EnvConfig::simulatorEnabled(m_inMemoryBackend);
+#else
+    // The panel is a second window; the DBC build does not ship it.
+    if (EnvConfig::simulatorEnabled(m_inMemoryBackend))
+        qWarning() << "Simulator panel requested but not built in; ignoring";
+    m_simulatorMode = false;
+#endif
     qDebug() << "Simulator panel:" << (m_simulatorMode ? "on" : "off")
              << "backend:" << (m_inMemoryBackend ? QStringLiteral("in-memory") : redisHost);
 
@@ -487,6 +496,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("updateChannelService"), m_updateChannelService);
 
     // Simulator service (created in sim mode, null otherwise)
+#ifdef DESKTOP_MODE
     if (m_simulatorMode) {
         // Seed only into the in-memory repository. Against a real Redis the
         // same call would overwrite whatever the vehicle or the services on
@@ -502,6 +512,9 @@ void Application::createStores(QQmlApplicationEngine &engine)
     } else {
         ctx->setContextProperty(QStringLiteral("simulator"), nullptr);
     }
+#else
+    ctx->setContextProperty(QStringLiteral("simulator"), nullptr);
+#endif
 
     // Store references for lifecycle management
     m_stores = {engineStore, vehicleStore, battery0Store, battery1Store,
@@ -572,6 +585,7 @@ void Application::uiPresented()
 
 void Application::setupSimulatorAutoDrive()
 {
+#ifdef DESKTOP_MODE
     const int route = qEnvironmentVariable("SCOOTUI_SIM_ROUTE").toInt();
     if (route <= 0)
         return;
@@ -597,6 +611,7 @@ void Application::setupSimulatorAutoDrive()
             });
         }
     });
+#endif
 }
 
 
