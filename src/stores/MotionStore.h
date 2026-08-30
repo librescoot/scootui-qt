@@ -19,6 +19,10 @@ class MotionStore : public SyncableStore
     Q_PROPERTY(double headingFastDeg READ headingFastDeg NOTIFY headingChanged)
     Q_PROPERTY(double headingSlowDeg READ headingSlowDeg NOTIFY headingChanged)
     Q_PROPERTY(double accuracyDeg READ accuracyDeg NOTIFY headingChanged)
+    Q_PROPERTY(bool headingValid READ headingValid NOTIFY headingChanged)
+    Q_PROPERTY(QString headingInvalidReason READ headingInvalidReason NOTIFY headingChanged)
+    Q_PROPERTY(QString calibrationState READ calibrationState NOTIFY headingChanged)
+    Q_PROPERTY(double fieldResidual READ fieldResidual NOTIFY headingChanged)
     Q_PROPERTY(bool tiltCompensated READ tiltCompensated NOTIFY headingChanged)
     Q_PROPERTY(double tiltDeg READ tiltDeg NOTIFY headingChanged)
     Q_PROPERTY(double magStrengthUT READ magStrengthUT NOTIFY headingChanged)
@@ -53,6 +57,10 @@ public:
     double headingFastDeg() const { return m_headingFastDeg; }
     double headingSlowDeg() const { return m_headingSlowDeg; }
     double accuracyDeg() const { return m_accuracyDeg; }
+    bool headingValid() const { return m_headingValid; }
+    QString headingInvalidReason() const { return m_headingInvalidReason; }
+    QString calibrationState() const { return m_calibrationState; }
+    double fieldResidual() const { return m_fieldResidual; }
     bool tiltCompensated() const { return m_tiltCompensated; }
     double tiltDeg() const { return m_tiltDeg; }
     double magStrengthUT() const { return m_magStrengthUT; }
@@ -95,6 +103,10 @@ private:
     double m_headingFastDeg = 0.0;
     double m_headingSlowDeg = 0.0;
     double m_accuracyDeg = 0.0;
+    bool m_headingValid = false;
+    QString m_headingInvalidReason;
+    QString m_calibrationState;
+    double m_fieldResidual = 0.0;
     bool m_tiltCompensated = false;
     double m_tiltDeg = 0.0;
     double m_magStrengthUT = 0.0;

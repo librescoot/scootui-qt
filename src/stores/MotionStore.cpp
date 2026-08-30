@@ -63,6 +63,8 @@ SyncSettings MotionStore::syncSettings() const
         {
             {QStringLiteral("heading-deg"), QStringLiteral("heading-deg")},
             {QStringLiteral("heading-accuracy"), QStringLiteral("heading-accuracy")},
+            {QStringLiteral("heading-valid"), QStringLiteral("heading-valid")},
+            {QStringLiteral("calibration-state"), QStringLiteral("calibration-state")},
             {QStringLiteral("heading-tilt"), QStringLiteral("heading-tilt")},
             {QStringLiteral("heading-tilt-comp"), QStringLiteral("heading-tilt-comp")},
         },
@@ -75,14 +77,30 @@ void MotionStore::applyFieldUpdate(const QString &variable, const QString &value
     // Hash-derived fields. Only consume the ones that aren't continuously
     // updated by the pub/sub channels — the snapshot path is authoritative
     // for the rest.
-    if (variable == QLatin1String("heading-deg") && m_headingTimestamp == 0) {
+    if (m_headingTimestamp != 0)
+        return;
+
+    bool changed = false;
+    if (variable == QLatin1String("heading-deg")) {
         bool ok;
         const double v = value.toDouble(&ok);
         if (ok && v != m_headingDeg) {
             m_headingDeg = v;
-            emit headingChanged();
+            changed = true;
         }
+    } else if (variable == QLatin1String("heading-valid")) {
+        const bool valid = value == QLatin1String("true");
+        if (valid != m_headingValid) {
+            m_headingValid = valid;
+            changed = true;
+        }
+    } else if (variable == QLatin1String("calibration-state")
+               && value != m_calibrationState) {
+        m_calibrationState = value;
+        changed = true;
     }
+    if (changed)
+        emit headingChanged();
 }
 
 static double readDouble(const QJsonObject &obj, const QString &key, double fallback = 0.0)
@@ -115,6 +133,10 @@ void MotionStore::applyHeadingSnapshot(const QString &payload)
     m_headingFastDeg = readDouble(obj, QStringLiteral("heading_fast_deg"), m_headingDeg);
     m_headingSlowDeg = readDouble(obj, QStringLiteral("heading_slow_deg"), m_headingDeg);
     m_accuracyDeg = readDouble(obj, QStringLiteral("accuracy_deg"));
+    m_headingValid = obj.value(QStringLiteral("heading_valid")).toBool();
+    m_headingInvalidReason = obj.value(QStringLiteral("invalid_reason")).toString();
+    m_calibrationState = obj.value(QStringLiteral("calibration_state")).toString();
+    m_fieldResidual = readDouble(obj, QStringLiteral("field_residual"));
     m_tiltCompensated = obj.value(QStringLiteral("tilt_compensated")).toBool();
     m_tiltDeg = readDouble(obj, QStringLiteral("tilt_deg"));
     m_magStrengthUT = readDouble(obj, QStringLiteral("mag_strength_ut"));

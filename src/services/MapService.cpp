@@ -1523,11 +1523,13 @@ void MapService::updateBearing(double dt)
     bool hasFix = m_gps->hasRecentFix();
     double gpsCourse = m_gps->course();
 
-    // Fresh, reasonably-accurate magnetic heading available? motion-service
-    // floors accuracy at 2.5deg and inflates it with tilt/accel/yaw, so a
-    // small value means a trustworthy reading. accuracyDeg is 0 only before
-    // the first push, which the freshness gate also rejects.
+    // motion-service validates calibration, warm-up, field strength and
+    // consistency as well as tilt/dynamics. Require the explicit calibrated
+    // state here too so malformed or older producer payloads fail closed.
+    // Accuracy remains a compatibility guard.
     const bool magOk = m_motion
+        && m_motion->headingValid()
+        && m_motion->calibrationState() == QStringLiteral("calibrated")
         && m_headingAge.isValid()
         && m_headingAge.elapsed() <= MagHeadingMaxAgeMs
         && m_motion->accuracyDeg() > 0.0
