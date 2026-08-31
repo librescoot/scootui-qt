@@ -13,6 +13,7 @@
 #include "core/EnvConfig.h"
 #include "core/Application.h"
 #include "routing/RouteModels.h"
+#include "services/AddressDatabaseService.h"
 
 // Global boot timer — logged via BOOT_MARK() from main() and createStores()
 // to pinpoint where startup time goes. Grep journal for '\[boot \+'.
@@ -55,6 +56,23 @@ int main(int argc, char *argv[])
     app.setFont(defaultFont);
 
     EnvConfig::initialize();
+
+    // On-device isolation mode for startup heap-corruption diagnosis. This
+    // intentionally creates no QML scene graph or application services: only
+    // the same asynchronous address sidecar loader used by production.
+    if (qEnvironmentVariableIsSet("SCOOTUI_ADDRESS_DB_DIAGNOSTIC")) {
+        AddressDatabaseService addressDatabase;
+        QObject::connect(&addressDatabase, &AddressDatabaseService::statusChanged,
+                         &app, [&addressDatabase]() {
+            qInfo() << "AddressDatabase diagnostic status" << addressDatabase.status();
+            if (addressDatabase.status() == AddressDatabaseService::Ready)
+                QCoreApplication::exit(0);
+            else if (addressDatabase.status() == AddressDatabaseService::Error)
+                QCoreApplication::exit(2);
+        });
+        QTimer::singleShot(0, &addressDatabase, &AddressDatabaseService::initialize);
+        return app.exec();
+    }
 
     QQmlApplicationEngine engine;
     BOOT_MARK("QQmlApplicationEngine ready");

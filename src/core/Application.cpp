@@ -272,8 +272,15 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Queue AddressDb init now that MapService has queued its own startup
     // reload: we want the map style ready before the trie builder wakes up
-    // and starts competing for CPU.
-    QTimer::singleShot(0, m_addressDatabaseService, &AddressDatabaseService::initialize);
+    // and starts competing for CPU. Diagnostic environment controls allow the
+    // DBC startup crash to be isolated without changing production defaults.
+    if (!qEnvironmentVariableIsSet("SCOOTUI_SKIP_ADDRESS_DB")) {
+        bool delayOk = false;
+        const int delayMs = qEnvironmentVariableIntValue("SCOOTUI_ADDRESS_DB_DELAY_MS", &delayOk);
+        QTimer::singleShot(delayOk ? std::max(0, delayMs) : 0,
+                           m_addressDatabaseService,
+                           &AddressDatabaseService::initialize);
+    }
 
     // Wire MapService's dead-reckoned position into NavigationService so
     // TBT and off-route detection update smoothly between GPS samples.
