@@ -235,10 +235,9 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_serialNumberService = new SerialNumberService(this);
     m_systemInfoService = new SystemInfoService(repo, this);
 
-    // Address database (for destination code lookup). initialize() kicks off
-    // a QtConcurrent build job that takes several seconds and competes for
-    // CPU with the rest of createStores. Its singleShot is queued after
-    // MapService's below, so the map style reload gets the event loop first.
+    // Address database (for destination code lookup). Its asynchronous build
+    // starts after the first rendered frame; starting it during scene-graph
+    // setup can corrupt the DBC's heap under EGLFS.
     m_addressDatabaseService = new AddressDatabaseService(this);
 
     // M7: Navigation service
@@ -264,11 +263,6 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_mapService = new MapService(gpsStore, engineStore, m_navigationService,
                                    settingsStore, themeStore, speedLimitStore,
                                    motionStore, this);
-
-    // Queue AddressDb init now that MapService has queued its own startup
-    // reload: we want the map style ready before the trie builder wakes up
-    // and starts competing for CPU.
-    QTimer::singleShot(0, m_addressDatabaseService, &AddressDatabaseService::initialize);
 
     // Wire MapService's dead-reckoned position into NavigationService so
     // TBT and off-route detection update smoothly between GPS samples.
@@ -746,7 +740,10 @@ void Application::reloadMapServices()
         m_mapService->reloadMbtiles();
     if (m_roadInfoService)
         m_roadInfoService->reloadMbtiles();
-    if (m_addressDatabaseService)
+    // The initial scene graph must own startup until its first frame. Before
+    // that point, reload the lightweight map readers but leave the allocation-
+    // heavy address sidecar build deferred to uiPresented().
+    if (m_uiPresented && m_addressDatabaseService)
         m_addressDatabaseService->initialize();
 }
 
@@ -801,6 +798,14 @@ void Application::uiPresented()
     if (m_uiPresented)
         return;
     m_uiPresented = true;
+
+    // Keep the sidecar loader off the initial EGLFS scene-graph setup. On the
+    // DBC, overlapping these two allocation-heavy phases intermittently
+    // corrupts glibc's heap; queuing here preserves asynchronous loading while
+    // guaranteeing that one complete frame has already been rendered.
+    QTimer::singleShot(0, m_addressDatabaseService,
+                       &AddressDatabaseService::initialize);
+
     fadeInOverlay();
     maybeSignalReady();
 }
