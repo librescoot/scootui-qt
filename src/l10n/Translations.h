@@ -278,6 +278,22 @@ class Translations : public QObject
     Q_PROPERTY(QString umsActive READ umsActive NOTIFY languageChanged)
     Q_PROPERTY(QString umsConnect READ umsConnect NOTIFY languageChanged)
     Q_PROPERTY(QString umsProcessing READ umsProcessing NOTIFY languageChanged)
+    Q_PROPERTY(QString umsInstallingUpdate READ umsInstallingUpdate NOTIFY languageChanged)
+    Q_PROPERTY(QString umsApplyingUpdate READ umsApplyingUpdate NOTIFY languageChanged)
+    Q_PROPERTY(QString umsStartingInstallation READ umsStartingInstallation NOTIFY languageChanged)
+    Q_PROPERTY(QString umsWaitingForRestart READ umsWaitingForRestart NOTIFY languageChanged)
+    Q_PROPERTY(QString umsUpdateReady READ umsUpdateReady NOTIFY languageChanged)
+    Q_PROPERTY(QString umsRestartingAfterUpdate READ umsRestartingAfterUpdate NOTIFY languageChanged)
+    Q_PROPERTY(QString umsUpdateFailed READ umsUpdateFailed NOTIFY languageChanged)
+    Q_PROPERTY(QString umsStepSettings READ umsStepSettings NOTIFY languageChanged)
+    Q_PROPERTY(QString umsStepVpn READ umsStepVpn NOTIFY languageChanged)
+    Q_PROPERTY(QString umsStepRadio READ umsStepRadio NOTIFY languageChanged)
+    Q_PROPERTY(QString umsStepConnectivity READ umsStepConnectivity NOTIFY languageChanged)
+    Q_PROPERTY(QString umsStepStartup READ umsStepStartup NOTIFY languageChanged)
+    Q_PROPERTY(QString umsStepUpdates READ umsStepUpdates NOTIFY languageChanged)
+    Q_PROPERTY(QString umsStepMaps READ umsStepMaps NOTIFY languageChanged)
+    Q_PROPERTY(QString umsStepPackages READ umsStepPackages NOTIFY languageChanged)
+    Q_PROPERTY(QString umsStepScripts READ umsStepScripts NOTIFY languageChanged)
     Q_PROPERTY(QString umsTitle READ umsTitle NOTIFY languageChanged)
     Q_PROPERTY(QString umsConnectToComputer READ umsConnectToComputer NOTIFY languageChanged)
     Q_PROPERTY(QString umsHoldExit READ umsHoldExit NOTIFY languageChanged)
@@ -839,6 +855,22 @@ public:
     QString umsActive() const { return lookup("umsActive"); }
     QString umsConnect() const { return lookup("umsConnect"); }
     QString umsProcessing() const { return lookup("umsProcessing"); }
+    QString umsInstallingUpdate() const { return lookup("umsInstallingUpdate"); }
+    QString umsApplyingUpdate() const { return lookup("umsApplyingUpdate"); }
+    QString umsStartingInstallation() const { return lookup("umsStartingInstallation"); }
+    QString umsWaitingForRestart() const { return lookup("umsWaitingForRestart"); }
+    QString umsUpdateReady() const { return lookup("umsUpdateReady"); }
+    QString umsRestartingAfterUpdate() const { return lookup("umsRestartingAfterUpdate"); }
+    QString umsUpdateFailed() const { return lookup("umsUpdateFailed"); }
+    QString umsStepSettings() const { return lookup("umsStepSettings"); }
+    QString umsStepVpn() const { return lookup("umsStepVpn"); }
+    QString umsStepRadio() const { return lookup("umsStepRadio"); }
+    QString umsStepConnectivity() const { return lookup("umsStepConnectivity"); }
+    QString umsStepStartup() const { return lookup("umsStepStartup"); }
+    QString umsStepUpdates() const { return lookup("umsStepUpdates"); }
+    QString umsStepMaps() const { return lookup("umsStepMaps"); }
+    QString umsStepPackages() const { return lookup("umsStepPackages"); }
+    QString umsStepScripts() const { return lookup("umsStepScripts"); }
     QString umsTitle() const { return lookup("umsTitle"); }
     QString umsConnectToComputer() const { return lookup("umsConnectToComputer"); }
     QString umsHoldExit() const { return lookup("umsHoldExit"); }

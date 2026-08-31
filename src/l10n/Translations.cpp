@@ -823,6 +823,54 @@ void Translations::initStrings()
     en[QStringLiteral("umsProcessing")] = QStringLiteral("Processing Files");
     de[QStringLiteral("umsProcessing")] = QStringLiteral("Dateien werden verarbeitet");
 
+    en[QStringLiteral("umsInstallingUpdate")] = QStringLiteral("Installing update");
+    de[QStringLiteral("umsInstallingUpdate")] = QStringLiteral("Update wird installiert");
+
+    en[QStringLiteral("umsApplyingUpdate")] = QStringLiteral("Applying update");
+    de[QStringLiteral("umsApplyingUpdate")] = QStringLiteral("Update wird angewendet");
+
+    en[QStringLiteral("umsStartingInstallation")] = QStringLiteral("Starting installation...");
+    de[QStringLiteral("umsStartingInstallation")] = QStringLiteral("Installation wird gestartet...");
+
+    en[QStringLiteral("umsWaitingForRestart")] = QStringLiteral("Installation complete. Waiting for a safe restart...");
+    de[QStringLiteral("umsWaitingForRestart")] = QStringLiteral("Installation abgeschlossen. Warte auf sicheren Neustart...");
+
+    en[QStringLiteral("umsUpdateReady")] = QStringLiteral("Update ready");
+    de[QStringLiteral("umsUpdateReady")] = QStringLiteral("Update bereit");
+
+    en[QStringLiteral("umsRestartingAfterUpdate")] = QStringLiteral("Restarting to apply update...");
+    de[QStringLiteral("umsRestartingAfterUpdate")] = QStringLiteral("Neustart zum Anwenden des Updates...");
+
+    en[QStringLiteral("umsUpdateFailed")] = QStringLiteral("Update installation failed");
+    de[QStringLiteral("umsUpdateFailed")] = QStringLiteral("Update-Installation fehlgeschlagen");
+
+    en[QStringLiteral("umsStepSettings")] = QStringLiteral("Applying settings");
+    de[QStringLiteral("umsStepSettings")] = QStringLiteral("Einstellungen werden angewendet");
+
+    en[QStringLiteral("umsStepVpn")] = QStringLiteral("Applying VPN configuration");
+    de[QStringLiteral("umsStepVpn")] = QStringLiteral("VPN-Konfiguration wird angewendet");
+
+    en[QStringLiteral("umsStepRadio")] = QStringLiteral("Applying radio configuration");
+    de[QStringLiteral("umsStepRadio")] = QStringLiteral("Funkkonfiguration wird angewendet");
+
+    en[QStringLiteral("umsStepConnectivity")] = QStringLiteral("Applying connectivity configuration");
+    de[QStringLiteral("umsStepConnectivity")] = QStringLiteral("Verbindungskonfiguration wird angewendet");
+
+    en[QStringLiteral("umsStepStartup")] = QStringLiteral("Applying startup configuration");
+    de[QStringLiteral("umsStepStartup")] = QStringLiteral("Startkonfiguration wird angewendet");
+
+    en[QStringLiteral("umsStepUpdates")] = QStringLiteral("Checking system updates");
+    de[QStringLiteral("umsStepUpdates")] = QStringLiteral("Systemupdates werden gepr\u00FCft");
+
+    en[QStringLiteral("umsStepMaps")] = QStringLiteral("Checking maps");
+    de[QStringLiteral("umsStepMaps")] = QStringLiteral("Karten werden gepr\u00FCft");
+
+    en[QStringLiteral("umsStepPackages")] = QStringLiteral("Installing packages");
+    de[QStringLiteral("umsStepPackages")] = QStringLiteral("Pakete werden installiert");
+
+    en[QStringLiteral("umsStepScripts")] = QStringLiteral("Running maintenance scripts");
+    de[QStringLiteral("umsStepScripts")] = QStringLiteral("Wartungsskripte werden ausgef\u00FChrt");
+
     en[QStringLiteral("umsTitle")] = QStringLiteral("Update Mode");
     de[QStringLiteral("umsTitle")] = QStringLiteral("Update-Modus");
 

@@ -1067,8 +1067,34 @@ ApplicationWindow {
                                 onClicked: { simulator.setUsbStatus("active"); simulator.setUsbMode("ums") }
                             }
                             SimButton {
+                                text: {
+                                    if (typeof usbStore === "undefined") return "Install"
+                                    if (usbStore.status === "active") return "Process"
+                                    if (usbStore.status === "awaiting-reboot") return "Reboot"
+                                    return "Install"
+                                }
+                                small: true
+                                fixedWidth: 56
+                                onClicked: {
+                                    if (typeof usbStore !== "undefined" && usbStore.status === "active") {
+                                        simulator.setUsbStatus("processing")
+                                    } else if (typeof usbStore !== "undefined" && usbStore.status === "awaiting-reboot") {
+                                        simulator.setOtaStatus("dbc", "pending-reboot")
+                                        simulator.setUsbStatus("rebooting")
+                                    } else {
+                                        simulator.setUsbStatus("awaiting-reboot")
+                                        simulator.setUsbMode("normal")
+                                        simulator.setOtaStatus("dbc", "installing")
+                                    }
+                                }
+                            }
+                            SimButton {
                                 text: "Exit"; small: true; fixedWidth: 56; color: "#f44336"
-                                onClicked: { simulator.setUsbStatus("idle"); simulator.setUsbMode("normal") }
+                                onClicked: {
+                                    simulator.setUsbStatus("idle")
+                                    simulator.setUsbMode("normal")
+                                    simulator.setOtaStatus("dbc", "idle")
+                                }
                             }
                             Item { Layout.fillWidth: true }
                         }
