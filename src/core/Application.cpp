@@ -270,16 +270,15 @@ void Application::createStores(QQmlApplicationEngine &engine)
                                    settingsStore, themeStore, speedLimitStore,
                                    motionStore, this);
 
-    // Queue AddressDb init now that MapService has queued its own startup
-    // reload: we want the map style ready before the trie builder wakes up
-    // and starts competing for CPU. Diagnostic environment controls allow the
-    // DBC startup crash to be isolated without changing production defaults.
+    // AddressDb initialization is deferred until the first frame. Diagnostic
+    // environment controls can still force a fixed delay or skip it entirely.
     if (!qEnvironmentVariableIsSet("SCOOTUI_SKIP_ADDRESS_DB")) {
         bool delayOk = false;
         const int delayMs = qEnvironmentVariableIntValue("SCOOTUI_ADDRESS_DB_DELAY_MS", &delayOk);
-        QTimer::singleShot(delayOk ? std::max(0, delayMs) : 0,
-                           m_addressDatabaseService,
-                           &AddressDatabaseService::initialize);
+        if (delayOk) {
+            QTimer::singleShot(std::max(0, delayMs), m_addressDatabaseService,
+                               &AddressDatabaseService::initialize);
+        }
     }
 
     // Wire MapService's dead-reckoned position into NavigationService so
@@ -758,7 +757,7 @@ void Application::reloadMapServices()
         m_mapService->reloadMbtiles();
     if (m_roadInfoService)
         m_roadInfoService->reloadMbtiles();
-    if (m_addressDatabaseService)
+    if (m_uiPresented && m_addressDatabaseService)
         m_addressDatabaseService->initialize();
 }
 
@@ -813,6 +812,16 @@ void Application::uiPresented()
     if (m_uiPresented)
         return;
     m_uiPresented = true;
+
+    if (!qEnvironmentVariableIsSet("SCOOTUI_SKIP_ADDRESS_DB")) {
+        bool delayOk = false;
+        qEnvironmentVariableIntValue("SCOOTUI_ADDRESS_DB_DELAY_MS", &delayOk);
+        if (!delayOk) {
+            QTimer::singleShot(0, m_addressDatabaseService,
+                               &AddressDatabaseService::initialize);
+        }
+    }
+
     fadeInOverlay();
     maybeSignalReady();
 }
