@@ -238,7 +238,8 @@ Item {
                     spacing: 4
 
                     Text {
-                        text: "Then"
+                        // Same string as the spoken-instruction prefix.
+                        text: typeof translations !== "undefined" ? translations.navThen : "Then"
                         font.pixelSize: themeStore.fontBody
                         color: isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
                     }
