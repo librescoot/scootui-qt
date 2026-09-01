@@ -564,6 +564,8 @@ Rectangle {
             Layout.topMargin: 8
             text: {
                 var tr = typeof translations !== "undefined" ? translations : null
+                if (addressScreen.loadingHouseNumbers)
+                    return tr ? tr.navLoadingHouseNumbers : "Loading house numbers..."
                 switch (addressScreen.phase) {
                 case addressScreen.phaseCityLetters: return tr ? tr.navEnterCity : "Enter City"
                 case addressScreen.phaseCityList: return tr ? tr.navSelectCity : "Select City"
@@ -662,12 +664,50 @@ Rectangle {
             }
 
             // --- Loading house numbers ---
-            Text {
+            Column {
                 anchors.centerIn: parent
+                spacing: 16
                 visible: loadingHouseNumbers
-                text: typeof translations !== "undefined" ? translations.navLoadingHouseNumbers : "Loading..."
-                color: textSecondary
-                font.pixelSize: themeStore.fontBody
+                z: 2
+
+                Item {
+                    width: 32
+                    height: 32
+                    anchors.horizontalCenter: parent.horizontalCenter
+
+                    Rectangle {
+                        id: houseNumberSpinner
+                        anchors.fill: parent
+                        color: "transparent"
+                        border.color: textPrimary
+                        border.width: 3
+                        radius: themeStore.radiusModal
+
+                        Rectangle {
+                            width: 18
+                            height: 18
+                            color: addressScreen.color
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                        }
+
+                        Timer {
+                            interval: 83
+                            repeat: true
+                            running: addressScreen.loadingHouseNumbers
+                            onTriggered: houseNumberSpinner.rotation =
+                                (houseNumberSpinner.rotation + 30) % 360
+                        }
+                    }
+                }
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: typeof translations !== "undefined"
+                          ? translations.navLoadingHouseNumbers : "Loading..."
+                    color: textSecondary
+                    font.pixelSize: themeStore.fontBody
+                }
             }
 
             // --- Error state ---
@@ -690,8 +730,10 @@ Rectangle {
             ColumnLayout {
                 anchors.centerIn: parent
                 spacing: 20
-                visible: (phase === phaseCityLetters || phase === phaseStreetLetters
-                          || phase === phaseHouseDigits) && dbStatus === statusReady
+                visible: !loadingHouseNumbers
+                         && (phase === phaseCityLetters || phase === phaseStreetLetters
+                             || phase === phaseHouseDigits)
+                         && dbStatus === statusReady
 
                 // Current prefix display
                 Text {
@@ -799,7 +841,9 @@ Rectangle {
                 anchors.rightMargin: 40
                 anchors.topMargin: 4
                 anchors.bottomMargin: 4
-                visible: phase === phaseCityList || phase === phaseStreetList || phase === phaseHouseNumbers
+                visible: !loadingHouseNumbers
+                         && (phase === phaseCityList || phase === phaseStreetList
+                             || phase === phaseHouseNumbers)
 
                 ColumnLayout {
                     anchors.centerIn: parent
@@ -906,7 +950,7 @@ Rectangle {
                 anchors.centerIn: parent
                 width: parent.width - 40
                 spacing: 8
-                visible: phase === phaseConfirm
+                visible: !loadingHouseNumbers && phase === phaseConfirm
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
@@ -968,18 +1012,19 @@ Rectangle {
                 // The tap cycles letters and list entries; it does nothing on
                 // the confirm step, where only the hold is bound.
                 leftTap: {
-                    if (dbStatus !== statusReady) return ""
+                    if (dbStatus !== statusReady || addressScreen.loadingHouseNumbers) return ""
                     if (addressScreen.phase === addressScreen.phaseConfirm) return ""
                     var tr = typeof translations !== "undefined" ? translations : null
                     return tr ? tr.controlScroll : "Scroll"
                 }
                 leftHold: {
-                    if (dbStatus !== statusReady) return ""
+                    if (dbStatus !== statusReady || addressScreen.loadingHouseNumbers) return ""
                     var tr = typeof translations !== "undefined" ? translations : null
                     return tr ? tr.controlBack : "Back"
                 }
                 rightTap: {
                     var tr = typeof translations !== "undefined" ? translations : null
+                    if (addressScreen.loadingHouseNumbers) return ""
                     if (dbStatus === statusBuilding)
                         return tr ? tr.controlCancel : "Cancel"
                     if (dbStatus !== statusReady)

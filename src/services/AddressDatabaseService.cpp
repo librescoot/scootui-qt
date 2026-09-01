@@ -14,6 +14,7 @@
 #include <QCryptographicHash>
 #include <QtConcurrent>
 #include <QFutureWatcher>
+#include <QElapsedTimer>
 #include <QtMath>
 #include <algorithm>
 
@@ -332,8 +333,9 @@ void AddressDatabaseService::queryHouseNumbers(const QString &city, const QStrin
         emit houseNumbersReady(watcher->result());
         watcher->deleteLater();
     });
-    watcher->setFuture(QtConcurrent::run([this, city, street, postcode, lat, lng]() {
-        return queryHouseNumbersFromTiles(city, street, postcode, lat, lng);
+    const qint64 placeId = rec.placeId;
+    watcher->setFuture(QtConcurrent::run([this, city, street, postcode, lat, lng, placeId]() {
+        return queryHouseNumbersFromTiles(city, street, postcode, lat, lng, placeId);
     }));
 }
 
@@ -377,8 +379,10 @@ static int latToTileYTMS_query(double lat, int zoom)
 
 QVariantList AddressDatabaseService::queryHouseNumbersFromTiles(
     const QString &city, const QString &street, const QString &postcode,
-    double nearLat, double nearLng) const
+    double nearLat, double nearLng, qint64 placeId) const
 {
+    QElapsedTimer queryTimer;
+    queryTimer.start();
     qDebug() << "queryHouseNumbers: city=" << city << "street=" << street
              << "postcode=" << postcode << "near=" << nearLat << nearLng;
 
@@ -404,99 +408,146 @@ QVariantList AddressDatabaseService::queryHouseNumbersFromTiles(
         constexpr int zoom = 14;
         constexpr double n = 16384.0; // 2^14
 
-        // Scan tiles in a radius around the street centroid (~2km at zoom 14)
-        int centerX = lonToTileX_query(nearLng, zoom);
-        int centerY = latToTileYTMS_query(nearLat, zoom);
-        constexpr int radius = 3; // tiles in each direction
-
-        QString normStreet = normalize(street);
+        const QString normStreet = normalize(street);
+        const QString normTargetCity = normalize(city);
         QSet<QString> seenNumbers;
         int tilesFound = 0, totalAddresses = 0, streetMatches = 0, cityMatches = 0;
 
+        // Newer maps contain the exact zoom-14 tiles occupied by each
+        // (place, street, postcode). A typical street touches one or two tiles,
+        // avoiding the old fixed 7x7 decode window. Empty/missing index results
+        // fall back to that window for compatibility with existing maps.
+        QVector<QPair<int, int>> tileCoords;
+        if (placeId != 0) {
+            QSqlQuery present(db);
+            present.prepare(QStringLiteral(
+                "SELECT 1 FROM sqlite_master WHERE type='table' "
+                "AND name='place_street_tiles'"));
+            if (present.exec() && present.next()) {
+                QSqlQuery indexed(db);
+                if (postcode.isEmpty()) {
+                    indexed.prepare(QStringLiteral(
+                        "SELECT DISTINCT tile_column, tile_row FROM place_street_tiles "
+                        "WHERE place_id=? AND street_norm=?"));
+                    indexed.bindValue(0, placeId);
+                    indexed.bindValue(1, normStreet);
+                } else {
+                    indexed.prepare(QStringLiteral(
+                        "SELECT tile_column, tile_row FROM place_street_tiles "
+                        "WHERE place_id=? AND street_norm=? AND postcode=?"));
+                    indexed.bindValue(0, placeId);
+                    indexed.bindValue(1, normStreet);
+                    indexed.bindValue(2, postcode);
+                }
+                if (indexed.exec()) {
+                    while (indexed.next())
+                        tileCoords.append({indexed.value(0).toInt(), indexed.value(1).toInt()});
+                }
+            }
+        }
+
+        const bool indexedLookup = !tileCoords.isEmpty();
+        if (!indexedLookup) {
+            const int centerX = lonToTileX_query(nearLng, zoom);
+            const int centerY = latToTileYTMS_query(nearLat, zoom);
+            constexpr int radius = 3;
+            tileCoords.reserve((radius * 2 + 1) * (radius * 2 + 1));
+            for (int x = centerX - radius; x <= centerX + radius; ++x) {
+                for (int y = centerY - radius; y <= centerY + radius; ++y)
+                    tileCoords.append({x, y});
+            }
+        }
+
         qDebug() << "queryHouseNumbers: normStreet=" << normStreet
-                 << "tileCenter=" << centerX << centerY;
+                 << "candidateTiles=" << tileCoords.size()
+                 << "indexed=" << indexedLookup;
 
         QSqlQuery tileQuery(db);
         tileQuery.prepare(QStringLiteral(
             "SELECT tile_data FROM tiles WHERE zoom_level=14 AND tile_column=? AND tile_row=?"));
 
-        for (int x = centerX - radius; x <= centerX + radius; ++x) {
-            for (int y = centerY - radius; y <= centerY + radius; ++y) {
-                tileQuery.bindValue(0, x);
-                tileQuery.bindValue(1, y);
-                if (!tileQuery.exec() || !tileQuery.next())
+        for (const auto &coord : tileCoords) {
+            const int x = coord.first;
+            const int y = coord.second;
+            tileQuery.bindValue(0, x);
+            tileQuery.bindValue(1, y);
+            if (!tileQuery.exec() || !tileQuery.next())
+                continue;
+
+            tilesFound++;
+            QByteArray tileData = tileQuery.value(0).toByteArray();
+            QByteArray decompressed = VectorTile::gunzip(tileData);
+            if (decompressed.isEmpty())
+                continue;
+
+            VectorTile::Tile tile = VectorTile::parse(decompressed);
+
+            for (const auto &layer : tile.layers) {
+                if (layer.name != QLatin1String("addresses"))
                     continue;
 
-                tilesFound++;
-                QByteArray tileData = tileQuery.value(0).toByteArray();
-                QByteArray decompressed = VectorTile::gunzip(tileData);
-                if (decompressed.isEmpty())
-                    continue;
-
-                VectorTile::Tile tile = VectorTile::parse(decompressed);
-
-                for (const auto &layer : tile.layers) {
-                    if (layer.name != QLatin1String("addresses"))
+                for (const auto &feature : layer.features) {
+                    if (feature.type != 1)
                         continue;
 
-                    for (const auto &feature : layer.features) {
-                        if (feature.type != 1)
-                            continue;
-
-                        totalAddresses++;
-                        QString fStreet = feature.properties.value(QStringLiteral("street"));
-                        if (fStreet.isEmpty())
-                            fStreet = feature.properties.value(QStringLiteral("name"));
-                        QString normFS = normalize(fStreet);
-                        if (normFS != normStreet) {
-                            if (totalAddresses <= 3)
-                                qDebug() << "  sample street:" << fStreet << "→" << normFS;
-                            continue;
-                        }
-                        streetMatches++;
-
-                        // City match: the tile may have "Berlin-Hellersdorf" but user
-                        // selected merged city "Berlin", so check if normalized tile city
-                        // starts with the target (handles district suffixes)
-                        QString fCity = cleanCityName(feature.properties.value(QStringLiteral("city")));
-                        QString normFCity = normalize(fCity);
-                        QString normTargetCity = normalize(city);
-                        if (normFCity != normTargetCity && !normFCity.startsWith(normTargetCity + QLatin1Char('-')))
-                            continue;
-
-                        QString fPostcode = feature.properties.value(QStringLiteral("postcode"));
-                        if (!postcode.isEmpty() && fPostcode != postcode)
-                            continue;
-
-                        QString hn = feature.properties.value(QStringLiteral("housenumber"));
-                        if (hn.isEmpty())
-                            continue;
-
-                        // Deduplicate
-                        if (seenNumbers.contains(hn))
-                            continue;
-                        seenNumbers.insert(hn);
-
-                        QPointF pt = VectorTile::decodePoint(feature.geometry);
-                        double lon = (x + pt.x() / layer.extent) / n * 360.0 - 180.0;
-                        // TMS: Y flipped within tile (same as RoadInfoService)
-                        double yMerc = 1.0 - (y + 1.0 - pt.y() / layer.extent) / n;
-                        double z = M_PI * (1.0 - 2.0 * yMerc);
-                        double lat = std::atan(std::sinh(z)) * 180.0 / M_PI;
-
-                        QVariantMap map;
-                        map[QStringLiteral("housenumber")] = hn;
-                        map[QStringLiteral("latitude")] = lat;
-                        map[QStringLiteral("longitude")] = lon;
-                        result.append(map);
+                    totalAddresses++;
+                    QString fStreet = feature.properties.value(QStringLiteral("street"));
+                    if (fStreet.isEmpty())
+                        fStreet = feature.properties.value(QStringLiteral("name"));
+                    QString normFS = normalize(fStreet);
+                    if (normFS != normStreet) {
+                        if (totalAddresses <= 3)
+                            qDebug() << "  sample street:" << fStreet << "→" << normFS;
+                        continue;
                     }
+                    streetMatches++;
+
+                    // The new tile index was built by point-in-polygon for the
+                    // selected place. Legacy maps still need their text city check.
+                    if (!indexedLookup) {
+                        QString fCity = cleanCityName(
+                            feature.properties.value(QStringLiteral("city")));
+                        QString normFCity = normalize(fCity);
+                        if (normFCity != normTargetCity
+                            && !normFCity.startsWith(normTargetCity + QLatin1Char('-')))
+                            continue;
+                    }
+                    cityMatches++;
+
+                    QString fPostcode = feature.properties.value(QStringLiteral("postcode"));
+                    if (!postcode.isEmpty() && fPostcode != postcode)
+                        continue;
+
+                    QString hn = feature.properties.value(QStringLiteral("housenumber"));
+                    if (hn.isEmpty())
+                        continue;
+
+                    // Deduplicate
+                    if (seenNumbers.contains(hn))
+                        continue;
+                    seenNumbers.insert(hn);
+
+                    QPointF pt = VectorTile::decodePoint(feature.geometry);
+                    double lon = (x + pt.x() / layer.extent) / n * 360.0 - 180.0;
+                    // TMS: Y flipped within tile (same as RoadInfoService)
+                    double yMerc = 1.0 - (y + 1.0 - pt.y() / layer.extent) / n;
+                    double z = M_PI * (1.0 - 2.0 * yMerc);
+                    double lat = std::atan(std::sinh(z)) * 180.0 / M_PI;
+
+                    QVariantMap map;
+                    map[QStringLiteral("housenumber")] = hn;
+                    map[QStringLiteral("latitude")] = lat;
+                    map[QStringLiteral("longitude")] = lon;
+                    result.append(map);
                 }
             }
         }
 
-        qDebug() << "queryHouseNumbers: tiles=" << tilesFound << "addresses=" << totalAddresses
-                 << "streetMatch=" << streetMatches << "cityMatch=" << cityMatches
-                 << "results=" << result.size();
+        qDebug() << "queryHouseNumbers: tiles=" << tilesFound
+                 << "addresses=" << totalAddresses
+                 << "streetMatch=" << streetMatches
+                 << "cityMatch=" << cityMatches << "results=" << result.size()
+                 << "elapsedMs=" << queryTimer.elapsed();
 
         db.close();
     }
@@ -816,6 +867,7 @@ static BuildResult buildFromSidecar(AddressDatabaseService *service, const QStri
                 auto &rec = data.streetData[normCity][streetNorm];
                 if (rec.displayStreet.isEmpty())
                     rec.displayStreet = streetDisp;
+                rec.placeId = pid;
                 rec.centroid.lat = lat;
                 rec.centroid.lng = lng;
                 rec.centroid.count = addrCount > 0 ? addrCount : 1;

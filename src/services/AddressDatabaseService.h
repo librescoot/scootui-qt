@@ -112,6 +112,7 @@ public:
     // rare multi-postcode streets.
     struct StreetRecord {
         QString displayStreet;
+        qint64 placeId = 0;                    // sidecar place id; 0 for legacy indexes
         CentroidData centroid;                // overall centroid across all postcodes
         QString firstPostcode;                // empty = no postcode data at all
         CentroidData firstPcCentroid;         // valid iff firstPostcode non-empty
@@ -157,7 +158,8 @@ private:
 
     // On-demand house number lookup from mbtiles
     QVariantList queryHouseNumbersFromTiles(const QString &city, const QString &street,
-                                            const QString &postcode, double nearLat, double nearLng) const;
+                                            const QString &postcode, double nearLat, double nearLng,
+                                            qint64 placeId) const;
 
 public:
     static const QString MbtilesPath;
