@@ -46,9 +46,7 @@ elseif(TARGET QMapLibre::QMapLibre)
 endif()
 
 if(QMapLibre_FOUND AND QMAPLIBRE_TARGET)
-    find_package(Qt6 COMPONENTS OpenGL REQUIRED)
     set(HAS_QMAPLIBRE TRUE)
-    add_definitions(-DHAS_QMAPLIBRE)
     message(STATUS "QMapLibre found - map rendering enabled (target: ${QMAPLIBRE_TARGET})")
 else()
     set(HAS_QMAPLIBRE FALSE)
@@ -421,9 +419,10 @@ target_link_libraries(scootui PRIVATE
     ${ZSTD_LIBRARIES}
 )
 
-if(HAS_QMAPLIBRE)
-    target_link_libraries(scootui PRIVATE Qt6::OpenGL ${QMAPLIBRE_TARGET})
-endif()
+# The map is rendered by the MapLibre QML plugin, which loads libQMapLibre
+# itself. Nothing in the C++ tree uses it, so it is not linked here: as a
+# NEEDED library it would be mapped and relocated on every exec, including
+# boots that never show the map.
 
 if(DESKTOP_MODE)
     target_link_libraries(scootui PRIVATE Qt6::QuickControls2)
