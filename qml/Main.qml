@@ -243,9 +243,34 @@ Window {
                 default:                                 name = "cluster";       break
             }
             console.log("SCREEN: " + name + " (screen=" + screen + ")")
+            if (name === "cluster")
+                return ""
             return Qt.resolvedUrl(root.screenUrls[name])
         }
     }
+
+    // The cluster lives in its own loader for the life of the process: built
+    // hidden after the first frame so the switch at unlock costs one frame,
+    // visible whenever the screen switcher selects it.
+    readonly property bool clusterIsActive:
+        !root.showMaintenance && screenLoader.source.toString() === ""
+    Loader {
+        id: clusterLoader
+        anchors.fill: parent
+        visible: root.clusterIsActive
+        z: root.clusterIsActive ? 0 : -1
+        asynchronous: !root.clusterIsActive
+        active: root.clusterIsActive
+                || (typeof bootGate !== "undefined" && bootGate.warmCluster)
+        source: Qt.resolvedUrl(root.screenUrls.cluster)
+        onStatusChanged: {
+            if (status === Loader.Ready && typeof bootGate !== "undefined")
+                bootGate.clusterWarmed()
+            if (status === Loader.Error)
+                console.warn("cluster failed to load: " + sourceComponent.errorString())
+        }
+    }
+    readonly property Item activeScreen: root.clusterIsActive ? clusterLoader.item : screenLoader.item
 
     // Compile the screens that are not on screen yet, in the background, so a
     // later switch pays only for creation. Runs once, after the first frame has
@@ -258,7 +283,7 @@ Window {
         if (root.screensPreloaded)
             return
         root.screensPreloaded = true
-        var order = ["cluster", "map", "maintenance", "about", "faults", "systemInfo",
+        var order = ["map", "maintenance", "about", "faults", "systemInfo",
                      "navSetup", "address", "debug", "motionDebug", "umsInfo",
                      "updateChannel", "hopOnInfo"]
         var current = screenLoader.source.toString()
@@ -271,7 +296,13 @@ Window {
         }
         root.preloadedScreens = list
     }
-    onFrameSwapped: preloadScreens()
+    // The cluster warm-up and twelve asynchronous compilations would otherwise
+    // share the main thread in exactly the window the READY gate measures.
+    onFrameSwapped: if (typeof bootGate === "undefined") preloadScreens()
+    Connections {
+        target: typeof bootGate !== "undefined" ? bootGate : null
+        function onClusterWarmChanged() { preloadScreens() }
+    }
 
     // Overlays (bottom to top stacking order).
     //
@@ -287,8 +318,8 @@ Window {
         anchors.fill: parent
         z: 100
         topInset: 40
-        bottomInset: screenLoader.item && typeof screenLoader.item.bottomBarHeight === "number"
-                     ? screenLoader.item.bottomBarHeight : 48
+        bottomInset: root.activeScreen && typeof root.activeScreen.bottomBarHeight === "number"
+                     ? root.activeScreen.bottomBarHeight : 48
         screenAllowed: root.currentScreen === Scooter.ScreenMode.Cluster
                        || root.currentScreen === Scooter.ScreenMode.Map
     }
@@ -326,7 +357,7 @@ Window {
         sourceComponent: Component {
             MenuOverlay {
                 anchors.fill: parent
-                blurSource: screenLoader
+                blurSource: root.clusterIsActive ? clusterLoader : screenLoader
             }
         }
     }
@@ -338,7 +369,7 @@ Window {
         sourceComponent: Component {
             ShortcutMenuOverlay {
                 anchors.fill: parent
-                blurSource: screenLoader
+                blurSource: root.clusterIsActive ? clusterLoader : screenLoader
             }
         }
     }

@@ -36,6 +36,8 @@ class OdometerMilestoneService;
 class DataPartition;
 
 class BootPrefetch;
+class BootGate;
+class QTimer;
 
 class Application : public QObject
 {
@@ -60,10 +62,13 @@ public:
 
 private:
     void fadeInOverlay();
-    // READY=1 fires once both halves are true: the UI has painted and the
-    // Redis worker is connected (so the dashboard hash has really been
-    // published). Called from both edges, whichever lands last wins.
-    void maybeSignalReady();
+    // dashboard[ready] is published when the link is up, every boot hash has
+    // been fetched over it, a frame has been swapped, and the cluster exists
+    // so a switch to it costs one frame. Re-evaluated on every edge and
+    // published again after a reconnect once the data is re-seeded.
+    void evaluateReadyGate(const char *edge);
+    void publishDashboardReady();
+    void startAddressDatabase();
     void createStores(QQmlApplicationEngine &engine);
     void registerContextProperties(QQmlApplicationEngine &engine);
     void setupSignalHandlers();
@@ -130,8 +135,11 @@ private:
     QString m_backendDescription;
     quint64 m_mapCommandSubscriptionId = 0;
     bool m_mapDownloadHoldActive = false;
+    BootGate *m_bootGate = nullptr;
+    QTimer *m_clusterWarmFallback = nullptr;
     bool m_uiPresented = false;
-    bool m_redisReady = false;
-    bool m_readySignalled = false;
+    bool m_readyPublished = false;
+    bool m_sdNotified = false;
+    bool m_addressDatabaseStarted = false;
     QList<QObject*> m_stores;
 };

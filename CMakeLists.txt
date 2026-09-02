@@ -69,6 +69,7 @@ set(CPP_SOURCES
     src/core/EnvConfig.cpp
     src/core/DataPartition.cpp
     src/core/Application.cpp
+    src/core/BootGate.cpp
     src/repositories/InMemoryMdbRepository.cpp
     src/repositories/RedisMdbRepository.cpp
     src/repositories/HiredisWorker.cpp
@@ -142,6 +143,7 @@ set(CPP_HEADERS
     src/core/EnvConfig.h
     src/core/DataPartition.h
     src/core/Application.h
+    src/core/BootGate.h
     src/models/Enums.h
     src/models/MenuNode.h
     src/models/SavedLocation.h

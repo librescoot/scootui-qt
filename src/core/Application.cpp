@@ -1,6 +1,7 @@
 #include "Application.h"
 #include "AppConfig.h"
 #include "EnvConfig.h"
+#include "core/BootGate.h"
 #include "repositories/BootChannels.h"
 #include "repositories/BootPrefetch.h"
 #include "repositories/MdbRepository.h"
@@ -100,6 +101,7 @@ public:
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <signal.h>
+#include <time.h>
 #include <unistd.h>
 #include <string.h>
 #include <stddef.h>
@@ -715,28 +717,23 @@ void Application::createStores(QQmlApplicationEngine &engine)
              << "state=" << battery1Store->batteryState()
              << "charge=" << battery1Store->charge();
 
-    // Notify other services that the dashboard is ready (on startup and every reconnect)
-    auto publishReady = [repo, this]() {
+    auto publishIdentity = [repo, this]() {
         if (m_serialNumberService->available()) {
             repo->set(QStringLiteral("dashboard"), QStringLiteral("serial-number"),
                       m_serialNumberService->serialNumber());
         }
         if (m_mapDownloadService)
             m_mapDownloadService->publishToRedis();
-        repo->dashboardReady();
-        // The first call runs before the worker has connected (the prewarm uses
-        // its own throwaway context), so isConnected() is what decides whether
-        // the ready publish actually reached Redis.
-        m_redisReady = repo->isConnected();
-        maybeSignalReady();
     };
-    connect(repo, &MdbRepository::connectionStateChanged, this, [publishReady](bool connected) {
+    connect(repo, &MdbRepository::connectionStateChanged, this, [publishIdentity, this](bool connected) {
         if (connected)
-            publishReady();
+            publishIdentity();
+        else
+            m_readyPublished = false;
+        evaluateReadyGate(connected ? "connected" : "disconnected");
     });
-    BOOT_MARK("publishReady() calling");
-    publishReady();
-    BOOT_MARK("publishReady() returned");
+    connect(repo, &MdbRepository::dataSeeded, this, [this]() { evaluateReadyGate("data seeded"); });
+    publishIdentity();
 
     qDebug() << "All stores created and started (M5: menu, settings, translations, auto-theme, toast, map, nav-availability, saved-locations, serial-number)";
 }
@@ -753,8 +750,8 @@ void Application::reloadMapServices()
         m_roadInfoService->reloadMbtiles();
     // The initial scene graph must own startup until its first frame. Before
     // that point, reload the lightweight map readers but leave the allocation-
-    // heavy address sidecar build deferred to uiPresented().
-    if (m_uiPresented && m_addressDatabaseService)
+    // heavy address sidecar build deferred to startAddressDatabase().
+    if (m_addressDatabaseStarted && m_addressDatabaseService)
         m_addressDatabaseService->initialize();
 }
 
@@ -802,6 +799,16 @@ void Application::registerContextProperties(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("appWidth"), EnvConfig::resolution().width());
     ctx->setContextProperty(QStringLiteral("appHeight"), EnvConfig::resolution().height());
     ctx->setContextProperty(QStringLiteral("scaleFactor"), EnvConfig::scaleFactor());
+
+    m_bootGate = new BootGate(this);
+    connect(m_bootGate, &BootGate::clusterWarmChanged, this, [this]() {
+        BOOT_MARK("cluster warm");
+        if (m_clusterWarmFallback)
+            m_clusterWarmFallback->stop();
+        startAddressDatabase();
+        evaluateReadyGate("cluster warm");
+    });
+    ctx->setContextProperty(QStringLiteral("bootGate"), m_bootGate);
 }
 
 void Application::seedFromPrefetch(const char *where)
@@ -828,25 +835,69 @@ void Application::uiPresented()
         return;
     m_uiPresented = true;
 
-    // Keep the sidecar loader off the initial EGLFS scene-graph setup. On the
-    // DBC, overlapping these two allocation-heavy phases intermittently
-    // corrupts glibc's heap; queuing here preserves asynchronous loading while
-    // guaranteeing that one complete frame has already been rendered.
-    QTimer::singleShot(0, m_addressDatabaseService,
-                       &AddressDatabaseService::initialize);
-
     fadeInOverlay();
-    maybeSignalReady();
+
+    // The address sidecar waits for the cluster (see startAddressDatabase) so
+    // the two allocation-heavy phases do not overlap; the fallback covers a
+    // cluster that never reports, which must not hold the sidecar.
+    m_bootGate->requestWarmCluster();
+    if (!m_bootGate->clusterWarm()) {
+        m_clusterWarmFallback = new QTimer(this);
+        m_clusterWarmFallback->setSingleShot(true);
+        connect(m_clusterWarmFallback, &QTimer::timeout, this, [this]() {
+            qWarning() << "cluster warm-up did not report within 5s";
+            startAddressDatabase();
+        });
+        m_clusterWarmFallback->start(5000);
+    }
+
+    evaluateReadyGate("first frame");
 }
 
-void Application::maybeSignalReady()
+void Application::startAddressDatabase()
 {
-#ifdef Q_OS_LINUX
-    if (m_readySignalled || !m_uiPresented || !m_redisReady)
+    if (m_addressDatabaseStarted)
         return;
-    m_readySignalled = true;
-    BOOT_MARK("sd_notify READY=1");
-    sdNotifyReady();
+    m_addressDatabaseStarted = true;
+    // Keep the sidecar loader off the EGLFS scene-graph setup. On the DBC,
+    // overlapping the two allocation-heavy phases intermittently corrupts
+    // glibc's heap; queuing guarantees a complete frame has been rendered.
+    QTimer::singleShot(0, m_addressDatabaseService,
+                       &AddressDatabaseService::initialize);
+}
+
+void Application::evaluateReadyGate(const char *edge)
+{
+    auto *repo = m_repository.get();
+    const bool link = repo->isConnected();
+    const bool data = repo->isDataSeeded();
+    const bool cluster = m_bootGate && m_bootGate->clusterWarm();
+    qDebug().noquote() << QStringLiteral("ready gate (%1): link=%2 data=%3 frame=%4 cluster=%5")
+        .arg(QLatin1String(edge)).arg(link).arg(data).arg(m_uiPresented).arg(cluster);
+    if (!(link && data && m_uiPresented && cluster) || m_readyPublished)
+        return;
+    m_readyPublished = true;
+    publishDashboardReady();
+}
+
+void Application::publishDashboardReady()
+{
+    auto *repo = m_repository.get();
+#ifdef Q_OS_LINUX
+    struct timespec ts = {};
+    ::clock_gettime(CLOCK_MONOTONIC, &ts);
+    const qint64 monotonicMs = qint64(ts.tv_sec) * 1000 + ts.tv_nsec / 1000000;
+    repo->set(QStringLiteral("dashboard"), QStringLiteral("ready-at-ms"),
+              QString::number(monotonicMs), false);
+#endif
+    BOOT_MARK("dashboard ready published");
+    repo->dashboardReady();
+#ifdef Q_OS_LINUX
+    if (!m_sdNotified) {
+        m_sdNotified = true;
+        BOOT_MARK("sd_notify READY=1");
+        sdNotifyReady();
+    }
 #endif
 }
 
