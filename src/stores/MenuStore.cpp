@@ -1462,6 +1462,7 @@ void MenuStore::openAt(const QStringList &path, const QList<int> &indexStack, in
     m_pathStack = path;
     m_indexStack = indexStack;
     m_selectedIndex = index;
+    m_selectedId.clear();
     m_openedAt.start();
     rebuildMenuTree();
     if (m_repo) {
@@ -1508,6 +1509,9 @@ void MenuStore::close()
     if (!m_isOpen) return;
     m_isOpen = false;
     m_selectedIndex = 0;
+    // rebuildMenuTree() restores the selection by id ahead of the index, so
+    // the id has to go too or the next open() lands back on this row.
+    m_selectedId.clear();
     m_pathStack.clear();
     m_indexStack.clear();
     if (m_repo) {
