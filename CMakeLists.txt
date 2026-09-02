@@ -556,4 +556,18 @@ if(BUILD_TESTING)
     target_include_directories(boot_channels_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(boot_channels_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME boot_channels_test COMMAND boot_channels_test)
+
+    qt_add_executable(syncable_store_seed_test
+        tests/SyncableStoreSeedTest.cpp
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+        src/stores/SyncableStore.cpp
+        src/stores/SyncableStore.h
+        src/stores/VehicleStore.cpp
+        src/stores/VehicleStore.h
+    )
+    target_include_directories(syncable_store_seed_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(syncable_store_seed_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME syncable_store_seed_test COMMAND syncable_store_seed_test)
 endif()

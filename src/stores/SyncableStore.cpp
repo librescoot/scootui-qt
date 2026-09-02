@@ -54,6 +54,11 @@ void SyncableStore::start()
             onPubsubMessage(ch, msg);
         });
 
+    // Whatever the cache holds was emitted before this store was connected.
+    const FieldMap seeded = m_repo->getAll(settings.channel);
+    if (!seeded.isEmpty())
+        onFieldsReceived(settings.channel, seeded);
+
     // Set up set field timers
     for (const auto &field : settings.setFields) {
         doRefreshSet(field);
