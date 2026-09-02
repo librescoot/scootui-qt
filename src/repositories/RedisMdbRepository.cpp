@@ -95,6 +95,9 @@ void RedisMdbRepository::startWorker()
     connect(m_worker, &HiredisWorker::connectionChanged,
             this, &RedisMdbRepository::onWorkerConnectionChanged, Qt::QueuedConnection);
 
+    connect(m_worker, &HiredisWorker::firstPassComplete,
+            this, &RedisMdbRepository::markDataSeeded, Qt::QueuedConnection);
+
     // Set/lrange results
     connect(m_worker, &HiredisWorker::setMembersResult,
             this, [this](const QString &key, const QStringList &members) {
@@ -225,6 +228,8 @@ void RedisMdbRepository::prewarmCache(int deadlineMs)
     }
 
     redisFree(ctx);
+    if (filled == channels.size() && skipped == 0)
+        markDataSeeded();
     qDebug().nospace() << "prewarmCache: filled " << filled << "/"
                        << channels.size() << " channels in "
                        << elapsed.elapsed() << "ms"
@@ -365,6 +370,31 @@ void RedisMdbRepository::publish(const QString &channel, const QString &message)
 void RedisMdbRepository::dashboardReady()
 {
     set(QStringLiteral("dashboard"), QStringLiteral("ready"), QStringLiteral("true"));
+}
+
+int RedisMdbRepository::seedCache(const QHash<QString, FieldMap> &hashes, bool markSeeded)
+{
+    int inserted = 0;
+    for (auto it = hashes.constBegin(); it != hashes.constEnd(); ++it) {
+        {
+            QMutexLocker lock(&m_cacheMutex);
+            if (m_cache.contains(it.key()))
+                continue;
+        }
+        onFieldsUpdated(it.key(), it.value());
+        ++inserted;
+    }
+    if (markSeeded)
+        markDataSeeded();
+    return inserted;
+}
+
+void RedisMdbRepository::markDataSeeded()
+{
+    if (m_dataSeeded)
+        return;
+    m_dataSeeded = true;
+    emit dataSeeded();
 }
 
 void RedisMdbRepository::publishButtonEvent(const QString &event)

@@ -190,6 +190,8 @@ void HiredisWorker::disconnectRedis()
         redisFree(m_ctx);
         m_ctx = nullptr;
     }
+    m_polledSinceConnect.clear();
+    m_firstPassReported = false;
 }
 
 void HiredisWorker::tryReconnect()
@@ -253,6 +255,14 @@ void HiredisWorker::pollChannel(const QString &channel)
         // An empty hash is still a successful snapshot. Stores need it to
         // clear fields that disappeared instead of retaining stale values.
         emit fieldsUpdated(channel, fields);
+
+        if (!m_firstPassReported) {
+            m_polledSinceConnect.insert(channel);
+            if (m_polledSinceConnect.size() >= m_channels.size()) {
+                m_firstPassReported = true;
+                emit firstPassComplete();
+            }
+        }
     }
 
     freeReplyObject(reply);

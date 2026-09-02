@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QSet>
 #include <QThread>
 #include <QTimer>
 #include <QMutex>
@@ -73,6 +74,8 @@ signals:
     void fieldsUpdated(const QString &channel, const FieldMap &fields);
     void fieldFetched(const QString &channel, const QString &field, const QString &value);
     void connectionChanged(bool connected, bool usingBackup);
+    // Every registered channel polled once since the current connection came up.
+    void firstPassComplete();
     void setMembersResult(const QString &setKey, const QStringList &members);
     void lrangeResult(const QString &key, const QStringList &values);
     // Each entry is a QVariantMap with keys "id" (QString) and "fields" (QVariantMap).
@@ -110,6 +113,8 @@ private:
     bool m_running = false;
     bool m_everConnected = false;
     int m_consecutiveFailures = 0;
+    QSet<QString> m_polledSinceConnect;
+    bool m_firstPassReported = false;
 
     // Polling schedule: GCD-based single timer
     QTimer *m_pollTimer = nullptr;

@@ -10,6 +10,7 @@ class SyncableStoreSeedTest : public QObject
 private slots:
     void startSeedsFromExistingCache();
     void startWithEmptyCacheKeepsDefaults();
+    void inMemoryReportsSeeded();
 };
 
 void SyncableStoreSeedTest::startSeedsFromExistingCache()
@@ -30,6 +31,12 @@ void SyncableStoreSeedTest::startWithEmptyCacheKeepsDefaults()
     VehicleStore store(&repo);
     store.start();
     QCOMPARE(store.stateRaw(), QString());
+}
+
+void SyncableStoreSeedTest::inMemoryReportsSeeded()
+{
+    InMemoryMdbRepository repo;
+    QVERIFY(repo.isDataSeeded());
 }
 
 QTEST_GUILESS_MAIN(SyncableStoreSeedTest)

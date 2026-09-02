@@ -41,6 +41,11 @@ public:
 
     bool isConnected() const override { return m_connected; }
     bool isUsingBackupConnection() const override { return m_usingBackup; }
+    bool isDataSeeded() const override { return m_dataSeeded; }
+
+    // Insert-if-absent per channel, so a prefetch result never overwrites a
+    // later fetch. Returns how many channels were inserted.
+    int seedCache(const QHash<QString, FieldMap> &hashes, bool markSeeded);
 
     // Register a channel for periodic polling by the worker.
     // Call before start(). SyncableStore calls this during construction.
@@ -123,8 +128,11 @@ private:
     QString m_host;
     quint16 m_port;
     QString m_backupHost;
+    void markDataSeeded();
+
     bool m_connected = false;
     bool m_usingBackup = false;
+    bool m_dataSeeded = false;
 
     // Prolonged disconnect tracking
     QTimer *m_prolongedTimer = nullptr;

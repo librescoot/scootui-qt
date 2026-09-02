@@ -16,6 +16,7 @@ public:
     ~InMemoryMdbRepository() override;
 
     bool isConnected() const override { return true; }
+    bool isDataSeeded() const override { return true; }
 
     QString get(const QString &channel, const QString &variable) override;
     FieldMap getAll(const QString &channel) override;

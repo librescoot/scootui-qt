@@ -49,6 +49,8 @@ public:
     // Connection state queries (for stores that need initial state)
     virtual bool isConnected() const { return false; }
     virtual bool isUsingBackupConnection() const { return false; }
+    // Every boot hash fetched over a live link at least once.
+    virtual bool isDataSeeded() const = 0;
 
     // Register a channel for periodic polling (only used by RedisMdbRepository)
     virtual void registerPollChannel(const QString &, int) {}
@@ -65,6 +67,7 @@ public:
 
 signals:
     void connectionStateChanged(bool connected);
+    void dataSeeded();
     void prolongedDisconnect(bool disconnected);
     void usingBackupConnection(bool usingBackup);
 
