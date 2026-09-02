@@ -1,6 +1,7 @@
 #include "Application.h"
 #include "AppConfig.h"
 #include "EnvConfig.h"
+#include "repositories/BootChannels.h"
 #include "repositories/MdbRepository.h"
 #include "repositories/InMemoryMdbRepository.h"
 #include "repositories/RedisMdbRepository.h"
@@ -685,10 +686,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
     }
     BOOT_MARK("stores started");
 
-    // Register infrequently-polled channels not covered by any store
-    repo->registerPollChannel(QStringLiteral("system"), 30000);
-    repo->registerPollChannel(QStringLiteral("version:mdb"), 30000);
-    repo->registerPollChannel(QStringLiteral("version:dbc"), 30000);
+    for (const QString &channel : BootChannels::extraPollChannels())
+        repo->registerPollChannel(channel, 30000);
 
     // Synchronous prewarm so QML's first paint sees real values rather than
     // store defaults, eliminating the visible empty-then-populate flash.

@@ -507,4 +507,53 @@ if(BUILD_TESTING)
     target_include_directories(data_partition_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(data_partition_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME data_partition_test COMMAND data_partition_test)
+
+    qt_add_executable(boot_channels_test
+        tests/BootChannelsTest.cpp
+        src/repositories/BootChannels.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+        src/stores/SyncableStore.cpp
+        src/stores/SyncableStore.h
+        src/stores/AutoStandbyStore.cpp
+        src/stores/AutoStandbyStore.h
+        src/stores/AuxBatteryStore.cpp
+        src/stores/AuxBatteryStore.h
+        src/stores/BatteryStore.cpp
+        src/stores/BatteryStore.h
+        src/stores/BluetoothStore.cpp
+        src/stores/BluetoothStore.h
+        src/stores/CbBatteryStore.cpp
+        src/stores/CbBatteryStore.h
+        src/stores/DashboardStore.cpp
+        src/stores/DashboardStore.h
+        src/stores/EngineStore.cpp
+        src/stores/EngineStore.h
+        src/stores/GpsStore.cpp
+        src/stores/GpsStore.h
+        src/stores/InternetStore.cpp
+        src/stores/InternetStore.h
+        src/stores/ModemStore.cpp
+        src/stores/ModemStore.h
+        src/stores/MotionStore.cpp
+        src/stores/MotionStore.h
+        src/stores/NavigationStore.cpp
+        src/stores/NavigationStore.h
+        src/stores/OtaStore.cpp
+        src/stores/OtaStore.h
+        src/stores/ScooterStore.cpp
+        src/stores/ScooterStore.h
+        src/stores/SettingsStore.cpp
+        src/stores/SettingsStore.h
+        src/stores/SpeedLimitStore.cpp
+        src/stores/SpeedLimitStore.h
+        src/stores/UsbStore.cpp
+        src/stores/UsbStore.h
+        src/stores/VehicleStore.cpp
+        src/stores/VehicleStore.h
+    )
+    target_include_directories(boot_channels_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(boot_channels_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME boot_channels_test COMMAND boot_channels_test)
 endif()
