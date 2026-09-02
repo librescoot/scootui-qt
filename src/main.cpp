@@ -43,6 +43,26 @@ static void keepCachesOffUnmountedData()
     qDebug() << "Cache dir moved to /var/volatile/cache:" << DataPartition::Root << "not mounted";
 }
 
+// Hand the display over only once a frame is actually on screen. The root
+// object exists ~2s before the first swap on the DBC, and on kernels without
+// /sys/class/graphics/fb1/overlay_alpha the handoff is an immediate stop of
+// boot-animation rather than a fade, so presenting earlier leaves a visible
+// gap between the splash going away and the cluster appearing.
+static void presentWhenPainted(Application &application, QObject *root)
+{
+    auto *window = qobject_cast<QQuickWindow *>(root);
+    if (!window) {
+        application.uiPresented();
+        return;
+    }
+    QObject::connect(window, &QQuickWindow::frameSwapped,
+        &application, [&application]() {
+            BOOT_MARK("first frameSwapped");
+            application.uiPresented();
+        },
+        Qt::SingleShotConnection);
+}
+
 int main(int argc, char *argv[])
 {
     g_bootTimer.start();
@@ -114,29 +134,12 @@ int main(int argc, char *argv[])
         &app, []() { QCoreApplication::exit(1); },
         Qt::QueuedConnection);
 
-    // Hand the display over to us only once a frame is actually on screen.
-    // objectCreated fires ~2s before the first swap on the DBC, and on kernels
-    // without /sys/class/graphics/fb1/overlay_alpha the handoff is an immediate
-    // stop of boot-animation rather than a 1s fade — so triggering it there
-    // leaves a visible gap between the splash going away and the cluster
-    // appearing.
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreated,
         &application, [&application](QObject *obj, const QUrl &) {
             BOOT_MARK("QML objectCreated");
-            if (!obj)
-                return;
-            auto *window = qobject_cast<QQuickWindow*>(obj);
-            if (!window) {
-                application.uiPresented();
-                return;
-            }
-            QObject::connect(window, &QQuickWindow::frameSwapped,
-                &application, [&application]() {
-                    BOOT_MARK("first frameSwapped");
-                    application.uiPresented();
-                },
-                Qt::SingleShotConnection);
+            if (obj)
+                presentWhenPainted(application, obj);
         },
         Qt::QueuedConnection);
 
@@ -158,8 +161,12 @@ int main(int argc, char *argv[])
         }
         QObject *root = component.create(engine.rootContext());
         BOOT_MARK("  QML object graph created");
-        if (root)
-            root->setParent(&engine);
+        if (!root) {
+            qCritical() << "QML errors:" << component.errors();
+            return 1;
+        }
+        root->setParent(&engine);
+        presentWhenPainted(application, root);
     } else {
         engine.load(url);
     }
