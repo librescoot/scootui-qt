@@ -26,8 +26,17 @@ Rectangle {
         return String(value);
     }
 
+    readonly property bool hasVehicle: typeof vehicleStore !== "undefined"
+    readonly property bool hasBat0: typeof battery0Store !== "undefined"
+    readonly property bool hasBat1: typeof battery1Store !== "undefined"
     readonly property bool hasNet: typeof internetStore !== "undefined"
     readonly property bool hasModem: typeof modemStore !== "undefined"
+
+    // Enum-typed store properties arrive as ints; show the Redis value the
+    // store parsed instead.
+    function wire(kind, value) {
+        return typeof enumStrings !== "undefined" ? enumStrings[kind](value) : String(value)
+    }
 
     readonly property bool canScrollDown: flickable.contentHeight > flickable.height
                                            && flickable.contentY + flickable.height < flickable.contentHeight - 2
@@ -147,11 +156,11 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "SWITCHES"
                     entries: [
-                        { label: "Kickstand", value: debugScreen.safeVal(typeof vehicleStore !== "undefined", typeof vehicleStore !== "undefined" ? vehicleStore.kickstand : "") },
-                        { label: "Seatbox Lock", value: debugScreen.safeVal(typeof vehicleStore !== "undefined", typeof vehicleStore !== "undefined" ? vehicleStore.seatboxLock : "") },
-                        { label: "Brake L", value: debugScreen.safeVal(typeof vehicleStore !== "undefined", typeof vehicleStore !== "undefined" ? vehicleStore.brakeLeft : "") },
-                        { label: "Brake R", value: debugScreen.safeVal(typeof vehicleStore !== "undefined", typeof vehicleStore !== "undefined" ? vehicleStore.brakeRight : "") },
-                        { label: "Blinker", value: debugScreen.safeVal(typeof vehicleStore !== "undefined", typeof vehicleStore !== "undefined" ? vehicleStore.blinkerState : "") }
+                        { label: "Kickstand", value: debugScreen.safeVal(debugScreen.hasVehicle, debugScreen.hasVehicle ? debugScreen.wire("kickstand", vehicleStore.kickstand) : "") },
+                        { label: "Seatbox Lock", value: debugScreen.safeVal(debugScreen.hasVehicle, debugScreen.hasVehicle ? debugScreen.wire("seatboxLock", vehicleStore.seatboxLock) : "") },
+                        { label: "Brake L", value: debugScreen.safeVal(debugScreen.hasVehicle, debugScreen.hasVehicle ? debugScreen.wire("toggle", vehicleStore.brakeLeft) : "") },
+                        { label: "Brake R", value: debugScreen.safeVal(debugScreen.hasVehicle, debugScreen.hasVehicle ? debugScreen.wire("toggle", vehicleStore.brakeRight) : "") },
+                        { label: "Blinker", value: debugScreen.safeVal(debugScreen.hasVehicle, debugScreen.hasVehicle ? debugScreen.wire("blinkerState", vehicleStore.blinkerState) : "") }
                     ]
                 }
 
@@ -170,7 +179,7 @@ Rectangle {
                     sectionTitle: "BATTERY 0"
                     entries: [
                         { label: "Present", value: debugScreen.safeVal(typeof battery0Store !== "undefined", typeof battery0Store !== "undefined" ? battery0Store.present : "") },
-                        { label: "State", value: debugScreen.safeVal(typeof battery0Store !== "undefined", typeof battery0Store !== "undefined" ? battery0Store.batteryState : "") },
+                        { label: "State", value: debugScreen.safeVal(debugScreen.hasBat0, debugScreen.hasBat0 ? debugScreen.wire("batteryState", battery0Store.batteryState) : "") },
                         { label: "Charge", value: debugScreen.safeVal(typeof battery0Store !== "undefined", typeof battery0Store !== "undefined" ? battery0Store.charge + "%" : "") },
                         { label: "Voltage", value: debugScreen.safeVal(typeof battery0Store !== "undefined", typeof battery0Store !== "undefined" ? battery0Store.voltage + " mV" : "") }
                     ]
@@ -181,7 +190,7 @@ Rectangle {
                     sectionTitle: "BATTERY 1"
                     entries: [
                         { label: "Present", value: debugScreen.safeVal(typeof battery1Store !== "undefined", typeof battery1Store !== "undefined" ? battery1Store.present : "") },
-                        { label: "State", value: debugScreen.safeVal(typeof battery1Store !== "undefined", typeof battery1Store !== "undefined" ? battery1Store.batteryState : "") },
+                        { label: "State", value: debugScreen.safeVal(debugScreen.hasBat1, debugScreen.hasBat1 ? debugScreen.wire("batteryState", battery1Store.batteryState) : "") },
                         { label: "Charge", value: debugScreen.safeVal(typeof battery1Store !== "undefined", typeof battery1Store !== "undefined" ? battery1Store.charge + "%" : "") },
                         { label: "Voltage", value: debugScreen.safeVal(typeof battery1Store !== "undefined", typeof battery1Store !== "undefined" ? battery1Store.voltage + " mV" : "") }
                     ]
@@ -191,10 +200,10 @@ Rectangle {
                 DebugSection {
                     sectionTitle: "INTERNET"
                     entries: [
-                        { label: "Modem", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.modemState : "") },
+                        { label: "Modem", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? debugScreen.wire("modemState", internetStore.modemState) : "") },
                         { label: "Connectivity", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.connectivity : "") },
-                        { label: "Status", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.status : "") },
-                        { label: "Cloud", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.unuCloud : "") },
+                        { label: "Status", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? debugScreen.wire("connectionStatus", internetStore.status) : "") },
+                        { label: "Cloud", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? debugScreen.wire("connectionStatus", internetStore.unuCloud) : "") },
                         { label: "IP", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.ipAddress : "") },
                         { label: "Access Tech", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.accessTech : "") },
                         { label: "Signal", value: debugScreen.safeVal(debugScreen.hasNet, debugScreen.hasNet ? internetStore.signalQuality + "%" : "") },

@@ -78,6 +78,7 @@ set(CPP_SOURCES
     src/stores/SyncableStore.cpp
     src/stores/EngineStore.cpp
     src/stores/VehicleStore.cpp
+    src/models/EnumStrings.cpp
     src/stores/BatteryStore.cpp
     src/stores/GpsStore.cpp
     src/stores/MotionStore.cpp
@@ -146,6 +147,7 @@ set(CPP_HEADERS
     src/core/Application.h
     src/core/BootGate.h
     src/models/Enums.h
+    src/models/EnumStrings.h
     src/models/MenuNode.h
     src/models/SavedLocation.h
     src/repositories/MdbRepository.h
@@ -599,4 +601,14 @@ if(BUILD_TESTING)
     target_link_directories(boot_prefetch_test PRIVATE ${HIREDIS_LIBRARY_DIRS})
     target_link_libraries(boot_prefetch_test PRIVATE Qt6::Core Qt6::Network Qt6::Test ${HIREDIS_LIBRARIES})
     add_test(NAME boot_prefetch_test COMMAND boot_prefetch_test)
+
+    qt_add_executable(enum_strings_test
+        tests/EnumStringsTest.cpp
+        src/models/EnumStrings.cpp
+        src/models/EnumStrings.h
+        src/models/Enums.h
+    )
+    target_include_directories(enum_strings_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(enum_strings_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME enum_strings_test COMMAND enum_strings_test)
 endif()

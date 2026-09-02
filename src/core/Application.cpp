@@ -7,6 +7,7 @@
 #include "repositories/MdbRepository.h"
 #include "repositories/InMemoryMdbRepository.h"
 #include "repositories/RedisMdbRepository.h"
+#include "models/EnumStrings.h"
 #include "stores/SyncableStore.h"
 #include "stores/EngineStore.h"
 #include "stores/VehicleStore.h"
@@ -611,6 +612,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // Register context properties
     auto *ctx = engine.rootContext();
     ctx->setContextProperty(QStringLiteral("bootTimer"), new BootTimer(this));
+    ctx->setContextProperty(QStringLiteral("enumStrings"), new EnumStrings(this));
     ctx->setContextProperty(QStringLiteral("engineStore"), engineStore);
     ctx->setContextProperty(QStringLiteral("vehicleStore"), vehicleStore);
     ctx->setContextProperty(QStringLiteral("battery0Store"), battery0Store);

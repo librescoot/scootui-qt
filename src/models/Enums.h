@@ -187,4 +187,144 @@ inline PowerDisplayMode parsePowerDisplayMode(const QString &s) {
     return (s == QLatin1String("amps")) ? PowerDisplayMode::Amps : PowerDisplayMode::Kw;
 }
 
+// --- Enum-to-string helpers ---
+//
+// The inverse of the parsers above: the wire string a value is read from.
+// Values with no wire form (parser fallbacks that never round-trip, such as
+// an enumerator added without a string here) yield an empty QString so the
+// round-trip test catches them.
+
+inline QString toggleString(Toggle v) {
+    switch (v) {
+    case Toggle::On: return QStringLiteral("on");
+    case Toggle::Off: return QStringLiteral("off");
+    }
+    return QString();
+}
+
+inline QString blinkerStateString(BlinkerState v) {
+    switch (v) {
+    case BlinkerState::Off: return QStringLiteral("off");
+    case BlinkerState::Left: return QStringLiteral("left");
+    case BlinkerState::Right: return QStringLiteral("right");
+    case BlinkerState::Both: return QStringLiteral("both");
+    }
+    return QString();
+}
+
+inline QString blinkerSwitchString(BlinkerSwitch v) {
+    switch (v) {
+    case BlinkerSwitch::Off: return QStringLiteral("off");
+    case BlinkerSwitch::Left: return QStringLiteral("left");
+    case BlinkerSwitch::Right: return QStringLiteral("right");
+    }
+    return QString();
+}
+
+inline QString vehicleStateString(VehicleState v) {
+    switch (v) {
+    case VehicleState::Unknown: return QStringLiteral("unknown");
+    case VehicleState::StandBy: return QStringLiteral("stand-by");
+    case VehicleState::ReadyToDrive: return QStringLiteral("ready-to-drive");
+    case VehicleState::Off: return QStringLiteral("off");
+    case VehicleState::Parked: return QStringLiteral("parked");
+    case VehicleState::Booting: return QStringLiteral("booting");
+    case VehicleState::ShuttingDown: return QStringLiteral("shutting-down");
+    case VehicleState::Hibernating: return QStringLiteral("hibernating");
+    case VehicleState::HibernatingImminent: return QStringLiteral("hibernating-imminent");
+    case VehicleState::Suspending: return QStringLiteral("suspending");
+    case VehicleState::SuspendingImminent: return QStringLiteral("suspending-imminent");
+    case VehicleState::Updating: return QStringLiteral("updating");
+    case VehicleState::WaitingSeatbox: return QStringLiteral("waiting-seatbox");
+    case VehicleState::WaitingHibernation: return QStringLiteral("waiting-hibernation");
+    case VehicleState::WaitingHibernationAdvanced: return QStringLiteral("waiting-hibernation-advanced");
+    case VehicleState::WaitingHibernationSeatbox: return QStringLiteral("waiting-hibernation-seatbox");
+    case VehicleState::WaitingHibernationConfirm: return QStringLiteral("waiting-hibernation-confirm");
+    case VehicleState::HopOn: return QStringLiteral("hop-on");
+    case VehicleState::HopOnLearning: return QStringLiteral("hop-on-learning");
+    }
+    return QString();
+}
+
+inline QString kickstandString(Kickstand v) {
+    switch (v) {
+    case Kickstand::Up: return QStringLiteral("up");
+    case Kickstand::Down: return QStringLiteral("down");
+    }
+    return QString();
+}
+
+inline QString handleBarLockSensorString(HandleBarLockSensor v) {
+    switch (v) {
+    case HandleBarLockSensor::Locked: return QStringLiteral("locked");
+    case HandleBarLockSensor::Unlocked: return QStringLiteral("unlocked");
+    case HandleBarLockSensor::Unknown: return QStringLiteral("unknown");
+    }
+    return QString();
+}
+
+inline QString seatboxLockString(SeatboxLock v) {
+    switch (v) {
+    case SeatboxLock::Open: return QStringLiteral("open");
+    case SeatboxLock::Closed: return QStringLiteral("closed");
+    }
+    return QString();
+}
+
+inline QString batteryStateString(BatteryState v) {
+    switch (v) {
+    case BatteryState::Unknown: return QStringLiteral("unknown");
+    case BatteryState::Asleep: return QStringLiteral("asleep");
+    case BatteryState::Idle: return QStringLiteral("idle");
+    case BatteryState::Active: return QStringLiteral("active");
+    }
+    return QString();
+}
+
+inline QString gpsStateString(GpsState v) {
+    switch (v) {
+    case GpsState::Off: return QStringLiteral("off");
+    case GpsState::Searching: return QStringLiteral("searching");
+    case GpsState::FixEstablished: return QStringLiteral("fix-established");
+    case GpsState::Error: return QStringLiteral("error");
+    }
+    return QString();
+}
+
+inline QString modemStateString(ModemState v) {
+    switch (v) {
+    case ModemState::Off: return QStringLiteral("off");
+    case ModemState::Disconnected: return QStringLiteral("disconnected");
+    case ModemState::Connected: return QStringLiteral("connected");
+    }
+    return QString();
+}
+
+inline QString connectionStatusString(ConnectionStatus v) {
+    switch (v) {
+    case ConnectionStatus::Connected: return QStringLiteral("connected");
+    case ConnectionStatus::Disconnected: return QStringLiteral("disconnected");
+    }
+    return QString();
+}
+
+inline QString chargeStatusString(ChargeStatus v) {
+    switch (v) {
+    case ChargeStatus::Charging: return QStringLiteral("charging");
+    case ChargeStatus::NotCharging: return QStringLiteral("not-charging");
+    case ChargeStatus::Unknown: return QStringLiteral("unknown");
+    }
+    return QString();
+}
+
+inline QString auxChargeStatusString(AuxChargeStatus v) {
+    switch (v) {
+    case AuxChargeStatus::NotCharging: return QStringLiteral("not-charging");
+    case AuxChargeStatus::FloatCharge: return QStringLiteral("float-charge");
+    case AuxChargeStatus::AbsorptionCharge: return QStringLiteral("absorption-charge");
+    case AuxChargeStatus::BulkCharge: return QStringLiteral("bulk-charge");
+    }
+    return QString();
+}
+
 } // namespace ScootEnums
