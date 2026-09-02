@@ -5,6 +5,8 @@
 #include <QCoreApplication>
 #include <QElapsedTimer>
 #include <utility>
+#include "BootChannels.h"
+
 #include <hiredis/hiredis.h>
 
 RedisMdbRepository::RedisMdbRepository(const QString &host, quint16 port,
@@ -71,6 +73,13 @@ void RedisMdbRepository::requestAll(const QString &channel)
 void RedisMdbRepository::startWorker()
 {
     if (!m_worker) return;
+
+    QStringList registered = m_worker->registeredChannels();
+    QStringList expected = BootChannels::all();
+    registered.sort();
+    expected.sort();
+    if (registered != expected)
+        qWarning() << "BootChannels drift: registered" << registered << "expected" << expected;
 
     m_workerThread = new QThread(this);
     m_worker->moveToThread(m_workerThread);
