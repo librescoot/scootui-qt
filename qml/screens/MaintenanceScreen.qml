@@ -43,8 +43,10 @@ Rectangle {
         }
     }
 
+    // On process shutdown the context properties are already gone, so the
+    // store reads as null rather than undefined here.
     Component.onDestruction: {
-        if (typeof dashboardStore !== "undefined")
+        if (typeof dashboardStore !== "undefined" && dashboardStore)
             dashboardStore.setBacklightEnabled(true)
     }
 
