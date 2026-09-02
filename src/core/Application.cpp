@@ -2,6 +2,7 @@
 #include "AppConfig.h"
 #include "EnvConfig.h"
 #include "repositories/BootChannels.h"
+#include "repositories/BootPrefetch.h"
 #include "repositories/MdbRepository.h"
 #include "repositories/InMemoryMdbRepository.h"
 #include "repositories/RedisMdbRepository.h"
@@ -678,6 +679,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     BOOT_MARK("services wired");
 
+    seedFromPrefetch("before stores start");
+
     // Start all syncable stores (registers their channels with the repo)
     for (auto *store : m_stores) {
         if (auto *syncable = qobject_cast<SyncableStore*>(store)) {
@@ -689,12 +692,12 @@ void Application::createStores(QQmlApplicationEngine &engine)
     for (const QString &channel : BootChannels::extraPollChannels())
         repo->registerPollChannel(channel, 30000);
 
-    // Synchronous prewarm so QML's first paint sees real values rather than
-    // store defaults, eliminating the visible empty-then-populate flash.
-    // Capped at 300ms — anything not fetched falls through to the worker
-    // thread's normal poll loop. No-op for the in-memory repo (sim mode).
+    // Fallback for a link that came up too late for the prefetch: a
+    // synchronous fill capped at 300ms, anything missed falls through to the
+    // worker's poll loop. No-op for the in-memory repo (sim mode).
     if (auto *redisRepo = qobject_cast<RedisMdbRepository*>(repo)) {
-        redisRepo->prewarmCache(300);
+        if (!redisRepo->isDataSeeded())
+            redisRepo->prewarmCache(300);
     }
     BOOT_MARK("redis prewarm done");
 
@@ -799,6 +802,24 @@ void Application::registerContextProperties(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("appWidth"), EnvConfig::resolution().width());
     ctx->setContextProperty(QStringLiteral("appHeight"), EnvConfig::resolution().height());
     ctx->setContextProperty(QStringLiteral("scaleFactor"), EnvConfig::scaleFactor());
+}
+
+void Application::seedFromPrefetch(const char *where)
+{
+    if (!m_prefetch || m_prefetchConsumed)
+        return;
+    if (!m_prefetch->waitFinished(0))
+        return;
+    m_prefetchConsumed = true;
+    auto *redisRepo = qobject_cast<RedisMdbRepository *>(m_repository.get());
+    if (!redisRepo || !m_prefetch->succeeded()) {
+        qDebug().noquote() << "prefetch: no result at" << where;
+        return;
+    }
+    const int inserted = redisRepo->seedCache(m_prefetch->take(), true);
+    qDebug().noquote() << QStringLiteral("prefetch: seeded %1 channels at %2 (fetched at +%3ms%4)")
+        .arg(inserted).arg(QLatin1String(where)).arg(m_prefetch->finishedAtMs())
+        .arg(m_prefetch->usedBackup() ? QStringLiteral(", backup") : QString());
 }
 
 void Application::uiPresented()

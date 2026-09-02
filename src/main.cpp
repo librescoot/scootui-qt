@@ -10,9 +10,13 @@
 #include <QTimer>
 #include <exception>
 
+#include <memory>
+
 #include "core/EnvConfig.h"
 #include "core/Application.h"
 #include "core/DataPartition.h"
+#include "repositories/BootChannels.h"
+#include "repositories/BootPrefetch.h"
 #include "routing/RouteModels.h"
 
 #include <QDir>
@@ -43,6 +47,21 @@ int main(int argc, char *argv[])
 {
     g_bootTimer.start();
     BOOT_MARK("main() entered");
+    EnvConfig::initialize();
+
+    // Redis is reachable well before Qt is up, so the fetch overlaps platform
+    // init instead of following it.
+    std::unique_ptr<BootPrefetch> prefetch;
+    {
+        const QString host = EnvConfig::redisHost();
+        if (!host.isEmpty() && host != QLatin1String("none")) {
+            prefetch = std::make_unique<BootPrefetch>(
+                host, static_cast<quint16>(EnvConfig::redisPort()),
+                QStringLiteral("192.168.8.1"), BootChannels::all());
+            prefetch->start();
+            BOOT_MARK("prefetch thread started");
+        }
+    }
 
     qRegisterMetaType<Route>("Route");
     keepCachesOffUnmountedData();
@@ -74,8 +93,6 @@ int main(int argc, char *argv[])
     defaultFont.setPixelSize(16);
     app.setFont(defaultFont);
 
-    EnvConfig::initialize();
-
     QQmlApplicationEngine engine;
     BOOT_MARK("QQmlApplicationEngine ready");
 
@@ -84,6 +101,7 @@ int main(int argc, char *argv[])
     engine.addImportPath(QStringLiteral("/usr/qml"));
 
     Application application;
+    application.setBootPrefetch(prefetch.get());
     BOOT_MARK("Application::initialize starting");
     if (!application.initialize(engine)) {
         qCritical() << "Failed to initialize application";
@@ -133,6 +151,7 @@ int main(int argc, char *argv[])
         QQmlComponent component(&engine);
         component.loadUrl(url);
         BOOT_MARK("  QML compiled + types resolved");
+        application.seedFromPrefetch("split seed point");
         if (component.isError()) {
             qCritical() << "QML errors:" << component.errors();
             return 1;

@@ -35,6 +35,8 @@ class RoadInfoService;
 class OdometerMilestoneService;
 class DataPartition;
 
+class BootPrefetch;
+
 class Application : public QObject
 {
     Q_OBJECT
@@ -50,6 +52,11 @@ public:
     void uiPresented();
     bool isSimulatorMode() const { return m_simulatorMode; }
     bool isInMemoryBackend() const { return m_inMemoryBackend; }
+
+    void setBootPrefetch(BootPrefetch *prefetch) { m_prefetch = prefetch; }
+    // Insert-only, so calling it at several points is safe; the first call
+    // that finds a result consumes it.
+    void seedFromPrefetch(const char *where);
 
 private:
     void fadeInOverlay();
@@ -118,6 +125,8 @@ private:
     InternetStore *m_internetStore = nullptr;
     bool m_simulatorMode = false;
     bool m_inMemoryBackend = false;
+    BootPrefetch *m_prefetch = nullptr;
+    bool m_prefetchConsumed = false;
     QString m_backendDescription;
     quint64 m_mapCommandSubscriptionId = 0;
     bool m_mapDownloadHoldActive = false;
