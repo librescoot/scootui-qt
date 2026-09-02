@@ -14,6 +14,9 @@ SyncSettings SettingsStore::syncSettings() const
             {QStringLiteral("mode"), QStringLiteral("dashboard.mode")},
             {QStringLiteral("backlightMode"), QStringLiteral("dashboard.backlight-mode")},
             {QStringLiteral("showRawSpeed"), QStringLiteral("dashboard.show-raw-speed")},
+            {QStringLiteral("speedometerMaxSpeed"), QStringLiteral("dashboard.speedometer.max-speed")},
+            {QStringLiteral("speedometerWarnSpeed"), QStringLiteral("dashboard.speedometer.warn-speed")},
+            {QStringLiteral("speedometerOverspeed"), QStringLiteral("dashboard.speedometer.overspeed")},
             {QStringLiteral("batteryDisplayMode"), QStringLiteral("dashboard.battery-display-mode")},
             {QStringLiteral("mapType"), QStringLiteral("dashboard.map.type")},
             {QStringLiteral("mapViewMode"), QStringLiteral("dashboard.map.view-mode")},
@@ -67,6 +70,12 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
         if (value != m_backlightMode) { m_backlightMode = value; emit backlightModeChanged(); }
     } else if (variable == QLatin1String("dashboard.show-raw-speed")) {
         if (value != m_showRawSpeed) { m_showRawSpeed = value; emit showRawSpeedChanged(); }
+    } else if (variable == QLatin1String("dashboard.speedometer.max-speed")) {
+        if (value != m_speedometerMaxSpeed) { m_speedometerMaxSpeed = value; emit speedometerMaxSpeedChanged(); }
+    } else if (variable == QLatin1String("dashboard.speedometer.warn-speed")) {
+        if (value != m_speedometerWarnSpeed) { m_speedometerWarnSpeed = value; emit speedometerWarnSpeedChanged(); }
+    } else if (variable == QLatin1String("dashboard.speedometer.overspeed")) {
+        if (value != m_speedometerOverspeed) { m_speedometerOverspeed = value; emit speedometerOverspeedChanged(); }
     } else if (variable == QLatin1String("dashboard.battery-display-mode")) {
         if (value != m_batteryDisplayMode) { m_batteryDisplayMode = value; emit batteryDisplayModeChanged(); }
     } else if (variable == QLatin1String("dashboard.map.type")) {

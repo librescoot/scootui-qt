@@ -10,6 +10,9 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(QString mode READ mode NOTIFY modeChanged)
     Q_PROPERTY(QString backlightMode READ backlightMode NOTIFY backlightModeChanged)
     Q_PROPERTY(bool showRawSpeed READ showRawSpeed NOTIFY showRawSpeedChanged)
+    Q_PROPERTY(int speedometerMaxSpeed READ speedometerMaxSpeed NOTIFY speedometerMaxSpeedChanged)
+    Q_PROPERTY(int speedometerWarnSpeed READ speedometerWarnSpeed NOTIFY speedometerWarnSpeedChanged)
+    Q_PROPERTY(int speedometerOverspeed READ speedometerOverspeed NOTIFY speedometerOverspeedChanged)
     Q_PROPERTY(QString batteryDisplayMode READ batteryDisplayMode NOTIFY batteryDisplayModeChanged)
     Q_PROPERTY(int mapType READ mapType NOTIFY mapTypeChanged)
     Q_PROPERTY(int mapViewMode READ mapViewMode NOTIFY mapViewModeChanged)
@@ -67,6 +70,11 @@ public:
     QString mode() const { return m_mode; }
     QString backlightMode() const { return m_backlightMode; }
     bool showRawSpeed() const { return m_showRawSpeed == QLatin1String("true"); }
+    // Speedometer scale and thresholds, km/h. Unparseable or out-of-range
+    // values fall back to the shipped arc (0-60, purple from 55, pulse past 60).
+    int speedometerMaxSpeed() const { return intSetting(m_speedometerMaxSpeed, 60, 20, 200); }
+    int speedometerWarnSpeed() const { return intSetting(m_speedometerWarnSpeed, 55, 1, 200); }
+    int speedometerOverspeed() const { return intSetting(m_speedometerOverspeed, 60, 1, 200); }
     QString batteryDisplayMode() const { return m_batteryDisplayMode; }
     int mapType() const { return static_cast<int>(m_mapType); }
     int mapViewMode() const { return static_cast<int>(m_mapViewMode); }
@@ -118,6 +126,9 @@ signals:
     void modeChanged();
     void backlightModeChanged();
     void showRawSpeedChanged();
+    void speedometerMaxSpeedChanged();
+    void speedometerWarnSpeedChanged();
+    void speedometerOverspeedChanged();
     void batteryDisplayModeChanged();
     void mapTypeChanged();
     void mapViewModeChanged();
@@ -166,6 +177,16 @@ private:
     // @schema dashboard.backlight-mode
     QString m_backlightMode = QStringLiteral("auto");
     QString m_showRawSpeed = QStringLiteral("false");
+    QString m_speedometerMaxSpeed;
+    QString m_speedometerWarnSpeed;
+    QString m_speedometerOverspeed;
+
+    static int intSetting(const QString &raw, int fallback, int lo, int hi)
+    {
+        bool ok = false;
+        const int v = raw.toInt(&ok);
+        return (ok && v >= lo && v <= hi) ? v : fallback;
+    }
     // @schema dashboard.battery-display-mode
     QString m_batteryDisplayMode = QStringLiteral("percentage");
     // @schema dashboard.map.type

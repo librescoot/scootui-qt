@@ -22,7 +22,14 @@ Item {
 
     // Internal animated speed
     property real animatedSpeed: 0
-    property real maxArcSpeed: 60
+    // Scale and thresholds come from the advanced dashboard.speedometer.*
+    // settings. The arc geometry never changes; only the range it covers,
+    // the labels and where the colours turn.
+    readonly property bool hasSettings: typeof settingsStore !== "undefined"
+    readonly property real maxArcSpeed: hasSettings ? settingsStore.speedometerMaxSpeed : 60
+    // Pulse from here. Kept at or below the arc max only for the colour ramp
+    // below; the pulse itself triggers on the raw threshold.
+    readonly property real overspeedSpeed: hasSettings ? settingsStore.speedometerOverspeed : 60
 
     // Animation state
     property bool isRegenerating: motorCurrent < 0
@@ -49,8 +56,18 @@ Item {
     readonly property real arcMidRadius: arcRadius - arcStrokeWidth / 2
 
     // Speed labels to show (every 10 km/h for regulatory compliance)
-    readonly property var speedLabels: [0, 10, 20, 30, 40, 50, 60]
-    readonly property var majorSpeedLabels: [0, 30, 50, 60]
+    // Labels every 10 km/h up to the arc max. Majors stay where the 0-60 arc
+    // had them (0, 30, 50) plus the top label, which is the largest multiple
+    // of 10 that fits; anything past the max is dropped.
+    readonly property int topLabel: Math.floor(maxArcSpeed / 10) * 10
+    readonly property var speedLabels: {
+        var out = []
+        for (var v = 0; v <= topLabel; v += 10) out.push(v)
+        return out
+    }
+    readonly property var majorSpeedLabels: [0, 30, 50, topLabel].filter(function (v, i, a) {
+        return v <= topLabel && a.indexOf(v) === i
+    })
 
     // Tick geometry
     readonly property real tickInward: 26
@@ -74,18 +91,21 @@ Item {
 
     // Speed at which the blue reaches full intensity, and where the ramp
     // towards purple starts.
-    readonly property real fullIntensitySpeed: 55
+    readonly property real fullIntensitySpeed: hasSettings
+        ? Math.min(settingsStore.speedometerWarnSpeed, overspeedSpeed) : 55
 
     readonly property color trackColor: regenTransition > 0
         ? lerpColor(trackBaseColor, regenTintColor, regenTransition)
         : trackBaseColor
 
     readonly property color speedFillColor: {
-        if (animatedSpeed > maxArcSpeed)
+        if (animatedSpeed > overspeedSpeed)
             return lerpColor(overspeedLowColor, overspeedHighColor, overspeedPulse)
         if (animatedSpeed > fullIntensitySpeed)
             return lerpColor(normalSpeedColor, overspeedLowColor,
-                             (animatedSpeed - fullIntensitySpeed) / (maxArcSpeed - fullIntensitySpeed))
+                             overspeedSpeed > fullIntensitySpeed
+                             ? (animatedSpeed - fullIntensitySpeed) / (overspeedSpeed - fullIntensitySpeed)
+                             : 1)
         return lerpColor(lowSpeedColor, normalSpeedColor, animatedSpeed / fullIntensitySpeed)
     }
 
@@ -119,7 +139,7 @@ Item {
 
     // Overspeed: purple <-> pink, 800 ms cycle
     SequentialAnimation {
-        running: speedometer.animatedSpeed > speedometer.maxArcSpeed
+        running: speedometer.animatedSpeed > speedometer.overspeedSpeed
         loops: Animation.Infinite
         onRunningChanged: if (!running) speedometer.overspeedPulse = 0
         NumberAnimation {
@@ -134,7 +154,7 @@ Item {
 
     // Acceleration: fill arc breathes, 1000 ms cycle
     SequentialAnimation {
-        running: speedometer.isAccelerating && speedometer.animatedSpeed <= speedometer.maxArcSpeed
+        running: speedometer.isAccelerating && speedometer.animatedSpeed <= speedometer.overspeedSpeed
         loops: Animation.Infinite
         onRunningChanged: if (!running) speedometer.accelPulse = 0
         NumberAnimation {
@@ -246,7 +266,7 @@ Item {
         Shape {
             anchors.fill: parent
             visible: speedometer.animatedSpeed > 0 && !speedometer.ecuStale
-            opacity: speedometer.isAccelerating && speedometer.animatedSpeed <= speedometer.maxArcSpeed
+            opacity: speedometer.isAccelerating && speedometer.animatedSpeed <= speedometer.overspeedSpeed
                      ? 0.7 + 0.3 * speedometer.accelPulse : 1.0
             preferredRendererType: Shape.CurveRenderer
             ShapePath {
