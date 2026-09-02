@@ -116,33 +116,40 @@ void MapDownloadService::reloadMetadata()
         return;
 
     const MapMetadata fresh = MapMetadata::load();
-    if (fresh.region.isEmpty() && fresh.lastUpdateCheck.isEmpty())
-        return;
-    if (fresh.region == m_metadata.region
-        && fresh.lastUpdateCheck == m_metadata.lastUpdateCheck
-        && fresh.updateAvailable == m_metadata.updateAvailable)
-        return;
+    const bool haveMetadata = !(fresh.region.isEmpty() && fresh.lastUpdateCheck.isEmpty());
+    const bool changed = fresh.region != m_metadata.region
+        || fresh.lastUpdateCheck != m_metadata.lastUpdateCheck
+        || fresh.updateAvailable != m_metadata.updateAvailable;
 
-    m_metadata = fresh;
+    if (haveMetadata && changed) {
+        m_metadata = fresh;
 
-    if (!m_metadata.region.isEmpty() && m_resolvedSlug.isEmpty()) {
-        m_resolvedSlug = m_metadata.region;
-        m_regionName = displayNameForSlug(m_resolvedSlug);
-        emit regionNameChanged();
+        if (!m_metadata.region.isEmpty() && m_resolvedSlug.isEmpty()) {
+            m_resolvedSlug = m_metadata.region;
+            m_regionName = displayNameForSlug(m_resolvedSlug);
+            emit regionNameChanged();
+        }
+        if (m_updateAvailable != m_metadata.updateAvailable) {
+            m_updateAvailable = m_metadata.updateAvailable;
+            emit updateAvailableChanged();
+        }
+
+        adoptInstalledMaps();
+        computeMissingDigests();
+        emit partialStateChanged();
+
+        qDebug() << "Map metadata reloaded after /data became available: region"
+                 << (m_resolvedSlug.isEmpty() ? QStringLiteral("(none)") : m_resolvedSlug)
+                 << "lastCheck" << (m_metadata.lastUpdateCheck.isEmpty()
+                                    ? QStringLiteral("(never)") : m_metadata.lastUpdateCheck);
     }
-    if (m_updateAvailable != m_metadata.updateAvailable) {
-        m_updateAvailable = m_metadata.updateAvailable;
-        emit updateAvailableChanged();
-    }
 
-    adoptInstalledMaps();
-    computeMissingDigests();
-    emit partialStateChanged();
-
-    qDebug() << "Map metadata reloaded after /data became available: region"
-             << (m_resolvedSlug.isEmpty() ? QStringLiteral("(none)") : m_resolvedSlug)
-             << "lastCheck" << (m_metadata.lastUpdateCheck.isEmpty()
-                                ? QStringLiteral("(never)") : m_metadata.lastUpdateCheck);
+    // The constructor already published the maps hash, and before the mount it
+    // said "no tiles" regardless of what is on disk. Size and mtime come from the
+    // filesystem, so republish even when metadata.json is missing or unchanged:
+    // tiles copied in by hand have no metadata and were invisible in Redis
+    // until the next download.
+    publishToRedis();
 }
 
 // The Redis hash holding installed map state. Lives on the MDB, so anything on
