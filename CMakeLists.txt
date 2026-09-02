@@ -73,6 +73,7 @@ set(CPP_SOURCES
     src/repositories/RedisMdbRepository.cpp
     src/repositories/HiredisWorker.cpp
     src/repositories/PubsubWorker.cpp
+    src/repositories/BootPrefetch.cpp
     src/stores/SyncableStore.cpp
     src/stores/EngineStore.cpp
     src/stores/VehicleStore.cpp
@@ -150,6 +151,8 @@ set(CPP_HEADERS
     src/repositories/HiredisAdapter.h
     src/repositories/HiredisWorker.h
     src/repositories/PubsubWorker.h
+    src/repositories/BootChannels.h
+    src/repositories/BootPrefetch.h
     src/stores/SyncableStore.h
     src/stores/EngineStore.h
     src/stores/VehicleStore.h
@@ -570,4 +573,15 @@ if(BUILD_TESTING)
     target_include_directories(syncable_store_seed_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(syncable_store_seed_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME syncable_store_seed_test COMMAND syncable_store_seed_test)
+
+    qt_add_executable(boot_prefetch_test
+        tests/BootPrefetchTest.cpp
+        src/repositories/BootPrefetch.cpp
+        src/repositories/BootPrefetch.h
+        src/repositories/MdbRepository.h
+    )
+    target_include_directories(boot_prefetch_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${HIREDIS_INCLUDE_DIRS})
+    target_link_directories(boot_prefetch_test PRIVATE ${HIREDIS_LIBRARY_DIRS})
+    target_link_libraries(boot_prefetch_test PRIVATE Qt6::Core Qt6::Network Qt6::Test ${HIREDIS_LIBRARIES})
+    add_test(NAME boot_prefetch_test COMMAND boot_prefetch_test)
 endif()
