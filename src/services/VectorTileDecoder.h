@@ -5,6 +5,7 @@
 #include <QPointF>
 #include <QString>
 #include <QVector>
+#include <QMetaType>
 
 namespace VectorTile {
 
@@ -39,3 +40,5 @@ QPointF decodePoint(const QVector<uint32_t> &geometry);
 QVector<QVector<QPointF>> decodeLineStringParts(const QVector<uint32_t> &geometry);
 
 } // namespace VectorTile
+
+Q_DECLARE_METATYPE(VectorTile::Tile)

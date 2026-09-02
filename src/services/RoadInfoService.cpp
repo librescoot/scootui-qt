@@ -3,6 +3,7 @@
 #include "MapService.h"
 #include "NavigationService.h"
 #include "RoadMatchPolicy.h"
+#include "TileLoader.h"
 #include "stores/GpsStore.h"
 #include "stores/SpeedLimitStore.h"
 
@@ -79,24 +80,26 @@ RoadInfoService::RoadInfoService(GpsStore *gps, SpeedLimitStore *speedLimit,
 {
     m_lastUpdate.start();
 
+    m_loader = new TileLoader;
+    m_loader->moveToThread(&m_loaderThread);
+    connect(&m_loaderThread, &QThread::finished, m_loader, &QObject::deleteLater);
+    connect(m_loader, &TileLoader::loaded, this, &RoadInfoService::onTileLoaded);
+    connect(m_loader, &TileLoader::missing, this, &RoadInfoService::onTileMissing);
+    m_loaderThread.setObjectName(QStringLiteral("roadinfo-tiles"));
+    m_loaderThread.start();
+
+    m_rematchTimer.setSingleShot(true);
+    connect(&m_rematchTimer, &QTimer::timeout, this, [this]() {
+        if (m_hasLastPosition)
+            updateRoadInfo(m_lastLat, m_lastLon);
+    });
+
     // Prefer local map.mbtiles (desktop/simulator), fall back to device path
     QString path = QFile::exists(QStringLiteral("map.mbtiles"))
         ? QStringLiteral("map.mbtiles")
         : AddressDatabaseService::MbtilesPath;
-    if (QFile::exists(path)) {
-        QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
-                                                      m_dbConnectionName);
-        db.setDatabaseName(path);
-        db.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
-        if (db.open()) {
-            m_dbOpen = true;
-            m_dbPath = path;
-            m_dbMtime = QFileInfo(path).lastModified();
-            qDebug() << "RoadInfoService: mbtiles database opened";
-        } else {
-            qWarning() << "RoadInfoService: failed to open mbtiles";
-        }
-    }
+    if (QFile::exists(path))
+        openDb(path);
 
     // Connect the GPS signals unconditionally, even if the mbtiles isn't open
     // yet. On a cold boot scootui can start before /data is mounted, so the
@@ -109,13 +112,47 @@ RoadInfoService::RoadInfoService(GpsStore *gps, SpeedLimitStore *speedLimit,
 
 RoadInfoService::~RoadInfoService()
 {
-    if (m_dbOpen) {
-        {
-            QSqlDatabase db = QSqlDatabase::database(m_dbConnectionName);
-            db.close();
-        }
-        QSqlDatabase::removeDatabase(m_dbConnectionName);
+    m_loaderThread.quit();
+    m_loaderThread.wait();
+    closeDb();
+}
+
+bool RoadInfoService::openDb(const QString &path)
+{
+    QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
+                                                  m_dbConnectionName);
+    db.setDatabaseName(path);
+    db.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
+    if (!db.open()) {
+        qWarning() << "RoadInfoService: failed to open mbtiles";
+        return false;
     }
+    m_dbOpen = true;
+    m_dbPath = path;
+    m_dbMtime = QFileInfo(path).lastModified();
+    ++m_generation;
+    QMetaObject::invokeMethod(m_loader, "setPath", Qt::QueuedConnection,
+                              Q_ARG(QString, path), Q_ARG(int, m_generation));
+    qDebug() << "RoadInfoService: mbtiles database opened";
+    return true;
+}
+
+void RoadInfoService::closeDb()
+{
+    if (!m_dbOpen)
+        return;
+    {
+        QSqlDatabase db = QSqlDatabase::database(m_dbConnectionName);
+        db.close();
+    }
+    QSqlDatabase::removeDatabase(m_dbConnectionName);
+    m_dbOpen = false;
+    m_dbPath.clear();
+    m_dbMtime = {};
+    m_tileCache.clear();
+    m_cacheOrder.clear();
+    m_pending.clear();
+    m_absent.clear();
 }
 
 void RoadInfoService::setMapService(MapService *map)
@@ -152,32 +189,83 @@ void RoadInfoService::reloadMbtiles()
     if (m_dbOpen && path == m_dbPath && mtime == m_dbMtime)
         return;
 
-    // Close existing connection if open
-    if (m_dbOpen) {
-        {
-            QSqlDatabase db = QSqlDatabase::database(m_dbConnectionName);
-            db.close();
-        }
-        QSqlDatabase::removeDatabase(m_dbConnectionName);
-        m_dbOpen = false;
-        m_dbPath.clear();
-        m_dbMtime = {};
-        m_tileCache.clear();
-        m_cacheOrder.clear();
-    }
+    closeDb();
+    openDb(path);
+}
 
-    QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
-                                                  m_dbConnectionName);
-    db.setDatabaseName(path);
-    db.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
-    if (db.open()) {
-        m_dbOpen = true;
-        m_dbPath = path;
-        m_dbMtime = mtime;
-        qDebug() << "RoadInfoService: mbtiles database opened";
-    } else {
-        qWarning() << "RoadInfoService: failed to open mbtiles";
+void RoadInfoService::requestTile(quint64 key)
+{
+    if (m_pending.contains(key) || m_absent.contains(key))
+        return;
+    m_pending.insert(key);
+    QMetaObject::invokeMethod(m_loader, "load", Qt::QueuedConnection,
+                              Q_ARG(quint64, key), Q_ARG(int, QueryZoom),
+                              Q_ARG(int, m_generation));
+}
+
+void RoadInfoService::onTileLoaded(quint64 key, const VectorTile::Tile &tile, int generation)
+{
+    if (generation != m_generation)
+        return;
+    m_pending.remove(key);
+    insertTile(key, tile);
+    if (!m_rematchTimer.isActive())
+        m_rematchTimer.start(0);
+}
+
+void RoadInfoService::onTileMissing(quint64 key, int generation)
+{
+    if (generation != m_generation)
+        return;
+    m_pending.remove(key);
+    m_absent.insert(key);
+}
+
+void RoadInfoService::insertTile(quint64 key, const VectorTile::Tile &tile)
+{
+    while (m_cacheOrder.size() >= MaxCachedTiles) {
+        const quint64 evict = m_cacheOrder.takeFirst();
+        m_tileCache.remove(evict);
     }
+    m_tileCache.insert(key, tile);
+    m_cacheOrder.removeOne(key);
+    m_cacheOrder.append(key);
+}
+
+void RoadInfoService::touchTile(quint64 key)
+{
+    m_cacheOrder.removeOne(key);
+    m_cacheOrder.append(key);
+}
+
+bool RoadInfoService::loadTileBlocking(quint64 key)
+{
+    if (m_tileCache.contains(key)) {
+        touchTile(key);
+        return true;
+    }
+    if (m_absent.contains(key))
+        return false;
+    const int tileX = static_cast<int>(key >> 32);
+    const int tileY = static_cast<int>(static_cast<uint32_t>(key & 0xffffffffu));
+    QSqlDatabase db = QSqlDatabase::database(m_dbConnectionName);
+    QSqlQuery query(db);
+    query.prepare(QStringLiteral(
+        "SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?"));
+    query.addBindValue(QueryZoom);
+    query.addBindValue(tileX);
+    query.addBindValue(tileY);
+    if (!query.exec() || !query.next()) {
+        m_absent.insert(key);
+        return false;
+    }
+    const QByteArray decompressed = VectorTile::gunzip(query.value(0).toByteArray());
+    if (decompressed.isEmpty()) {
+        m_absent.insert(key);
+        return false;
+    }
+    insertTile(key, VectorTile::parse(decompressed));
+    return true;
 }
 
 void RoadInfoService::countMissAndMaybeClear()
@@ -264,6 +352,9 @@ int RoadInfoService::latToTileY(double lat, int zoom)
 
 void RoadInfoService::updateRoadInfo(double lat, double lon)
 {
+    m_hasLastPosition = true;
+    m_lastLat = lat;
+    m_lastLon = lon;
     const bool hasRouteAttrs = m_navigation
         && m_navigation->hasCurrentEdgeAttrs();
     auto publishRouteAttrs = [this]() {
@@ -308,6 +399,7 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
         double actualDistanceMeters = std::numeric_limits<double>::max();
     };
     QList<Candidate> candidates;
+    bool waitingForTiles = false;
 
     const int centerX = lonToTileX(lon, QueryZoom);
     const int centerY = latToTileY(lat, QueryZoom);
@@ -328,27 +420,13 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
             const quint64 cacheKey = (static_cast<quint64>(tileX) << 32)
                 | static_cast<quint64>(static_cast<uint32_t>(tileY));
             if (!m_tileCache.contains(cacheKey)) {
-                QSqlDatabase db = QSqlDatabase::database(m_dbConnectionName);
-                QSqlQuery query(db);
-                query.prepare(QStringLiteral(
-                    "SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?"));
-                query.addBindValue(QueryZoom);
-                query.addBindValue(tileX);
-                query.addBindValue(tileY);
-                if (!query.exec() || !query.next())
-                    continue;
-                const QByteArray decompressed =
-                    VectorTile::gunzip(query.value(0).toByteArray());
-                if (decompressed.isEmpty())
-                    continue;
-                while (m_cacheOrder.size() >= MaxCachedTiles) {
-                    const quint64 evict = m_cacheOrder.takeFirst();
-                    m_tileCache.remove(evict);
+                if (!m_absent.contains(cacheKey)) {
+                    requestTile(cacheKey);
+                    waitingForTiles = true;
                 }
-                m_tileCache.insert(cacheKey, VectorTile::parse(decompressed));
+                continue;
             }
-            m_cacheOrder.removeOne(cacheKey);
-            m_cacheOrder.append(cacheKey);
+            touchTile(cacheKey);
 
             const VectorTile::Tile &tile = m_tileCache[cacheKey];
             const VectorTile::Layer *streetsLayer = nullptr;
@@ -445,6 +523,9 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
         }
     }
 
+    if (candidates.isEmpty() && waitingForTiles)
+        return;
+
     const GpsSample gps = m_gps ? m_gps->currentSample() : GpsSample{};
     const bool headingReliable = m_gps && gps.hasValidCoordinate()
         && gps.hasFix() && m_gps->timestampAgeMs() <= 2500
@@ -536,38 +617,9 @@ QString RoadInfoService::lookupNearestAddress(double lat, double lon)
     quint64 cacheKey = (static_cast<quint64>(tileX) << 32)
                        | static_cast<quint64>(static_cast<uint32_t>(tileY));
 
-    // Get or load tile
-    VectorTile::Tile *tile = nullptr;
-    if (m_tileCache.contains(cacheKey)) {
-        tile = &m_tileCache[cacheKey];
-        m_cacheOrder.removeOne(cacheKey);
-        m_cacheOrder.append(cacheKey);
-    } else {
-        QSqlDatabase db = QSqlDatabase::database(m_dbConnectionName);
-        QSqlQuery query(db);
-        query.prepare(QStringLiteral(
-            "SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?"));
-        query.addBindValue(QueryZoom);
-        query.addBindValue(tileX);
-        query.addBindValue(tileY);
-
-        if (!query.exec() || !query.next())
-            return {};
-
-        QByteArray tileData = query.value(0).toByteArray();
-        QByteArray decompressed = VectorTile::gunzip(tileData);
-        if (decompressed.isEmpty())
-            return {};
-
-        while (m_cacheOrder.size() >= MaxCachedTiles) {
-            quint64 evict = m_cacheOrder.takeFirst();
-            m_tileCache.remove(evict);
-        }
-
-        m_tileCache.insert(cacheKey, VectorTile::parse(decompressed));
-        m_cacheOrder.append(cacheKey);
-        tile = &m_tileCache[cacheKey];
-    }
+    if (!loadTileBlocking(cacheKey))
+        return {};
+    const VectorTile::Tile *tile = &m_tileCache[cacheKey];
 
     // Find addresses layer
     const VectorTile::Layer *addrLayer = nullptr;
@@ -658,37 +710,9 @@ QVariantList RoadInfoService::streetsInBbox(double minLat, double minLon,
             quint64 cacheKey = (static_cast<quint64>(tx) << 32)
                                | static_cast<quint64>(static_cast<uint32_t>(ty));
 
-            VectorTile::Tile *tile = nullptr;
-            if (m_tileCache.contains(cacheKey)) {
-                tile = &m_tileCache[cacheKey];
-                m_cacheOrder.removeOne(cacheKey);
-                m_cacheOrder.append(cacheKey);
-            } else {
-                QSqlDatabase db = QSqlDatabase::database(m_dbConnectionName);
-                QSqlQuery query(db);
-                query.prepare(QStringLiteral(
-                    "SELECT tile_data FROM tiles WHERE zoom_level=? AND tile_column=? AND tile_row=?"));
-                query.addBindValue(QueryZoom);
-                query.addBindValue(tx);
-                query.addBindValue(ty);
-
-                if (!query.exec() || !query.next())
-                    continue;
-
-                QByteArray tileData = query.value(0).toByteArray();
-                QByteArray decompressed = VectorTile::gunzip(tileData);
-                if (decompressed.isEmpty())
-                    continue;
-
-                while (m_cacheOrder.size() >= MaxCachedTiles) {
-                    quint64 evict = m_cacheOrder.takeFirst();
-                    m_tileCache.remove(evict);
-                }
-
-                m_tileCache.insert(cacheKey, VectorTile::parse(decompressed));
-                m_cacheOrder.append(cacheKey);
-                tile = &m_tileCache[cacheKey];
-            }
+            if (!loadTileBlocking(cacheKey))
+                continue;
+            const VectorTile::Tile *tile = &m_tileCache[cacheKey];
 
             // Find streets layer
             const VectorTile::Layer *streetsLayer = nullptr;

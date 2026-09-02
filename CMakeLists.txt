@@ -129,6 +129,7 @@ set(CPP_SOURCES
     src/services/MapDownloadService.cpp
     src/services/UpdateChannelService.cpp
     src/services/RoadInfoService.cpp
+    src/services/TileLoader.cpp
     src/services/OdometerMilestoneService.cpp
     src/routing/ValhallaClient.cpp
     src/l10n/Translations.cpp
@@ -208,6 +209,7 @@ set(CPP_HEADERS
     src/services/VectorTileDecoder.h
     src/services/MapDownloadService.h
     src/services/RoadInfoService.h
+    src/services/TileLoader.h
     src/services/RoadMatchPolicy.h
     src/services/OdometerMilestoneService.h
     src/models/MapMetadata.h
@@ -512,6 +514,17 @@ if(BUILD_TESTING)
     target_include_directories(data_partition_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(data_partition_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME data_partition_test COMMAND data_partition_test)
+
+    qt_add_executable(tile_loader_test
+        tests/TileLoaderTest.cpp
+        src/services/TileLoader.cpp
+        src/services/TileLoader.h
+        src/services/VectorTileDecoder.cpp
+        src/services/VectorTileDecoder.h
+    )
+    target_include_directories(tile_loader_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(tile_loader_test PRIVATE Qt6::Core Qt6::Sql Qt6::Test ZLIB::ZLIB)
+    add_test(NAME tile_loader_test COMMAND tile_loader_test)
 
     qt_add_executable(boot_channels_test
         tests/BootChannelsTest.cpp

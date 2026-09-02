@@ -6,6 +6,9 @@
 #include <QHash>
 #include <QList>
 #include <QVariantList>
+#include <QSet>
+#include <QThread>
+#include <QTimer>
 #include "VectorTileDecoder.h"
 #include "NavigationCadence.h"
 #include "RoadMatchPolicy.h"
@@ -14,6 +17,7 @@ class GpsStore;
 class SpeedLimitStore;
 class NavigationService;
 class MapService;
+class TileLoader;
 
 class RoadInfoService : public QObject
 {
@@ -53,9 +57,17 @@ signals:
 private slots:
     void onGpsChanged();
     void onVehiclePositionChanged();
+    void onTileLoaded(quint64 key, const VectorTile::Tile &tile, int generation);
+    void onTileMissing(quint64 key, int generation);
 
 private:
     void updateRoadInfo(double lat, double lon);
+    bool openDb(const QString &path);
+    void closeDb();
+    void requestTile(quint64 key);
+    bool loadTileBlocking(quint64 key);
+    void insertTile(quint64 key, const VectorTile::Tile &tile);
+    void touchTile(quint64 key);
     void countMissAndMaybeClear();
     void clearRoadMatch();
     static int lonToTileX(double lon, int zoom);
@@ -72,9 +84,19 @@ private:
     QString m_dbPath; // path of the currently-open mbtiles (for idempotent reload)
     QDateTime m_dbMtime; // mtime at open — detects a same-path replacement (OTA install)
 
-    // Tile cache (LRU)
+    // Tile cache (LRU), filled by the loader thread for the periodic match and
+    // synchronously by the on-demand lookups.
     QHash<quint64, VectorTile::Tile> m_tileCache;
     QList<quint64> m_cacheOrder; // oldest first
+    QThread m_loaderThread;
+    TileLoader *m_loader = nullptr;
+    int m_generation = 0;
+    QSet<quint64> m_pending;
+    QSet<quint64> m_absent;
+    QTimer m_rematchTimer;
+    bool m_hasLastPosition = false;
+    double m_lastLat = 0;
+    double m_lastLon = 0;
 
     static constexpr int FallbackUpdateIntervalMs =
         NavigationCadence::RenderTickMs * NavigationCadence::RoadInfoEveryTicks;
