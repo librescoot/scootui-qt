@@ -100,31 +100,13 @@ Item {
         return "#F44336"
     }
 
-    function enumName(enumVal, names) {
-        // engineStore.throttle is exposed as a bool while every other toggle
-        // here is an enum int. names[true] means names["true"], which is
-        // undefined rather than names[1], so booleans need their own mapping.
-        // The toggle enums put On first, so true is names[0].
-        if (typeof enumVal === "boolean")
-            return enumVal ? names[0] : names[1]
-        return (enumVal >= 0 && enumVal < names.length) ? names[enumVal] : "?"
+    // Enum-typed store properties arrive as ints; show the Redis value the
+    // store parsed. engineStore.throttle is a bool, so it maps to on/off here.
+    function wire(kind, value) {
+        if (typeof value === "boolean")
+            return value ? "on" : "off"
+        return typeof enumStrings !== "undefined" ? enumStrings[kind](value) : String(value)
     }
-
-    readonly property var scooterStateNames: [
-        "Unknown", "StandBy", "ReadyToDrive", "Off", "Parked",
-        "Booting", "ShuttingDown", "Hibernating", "HibernatingImminent",
-        "Suspending", "SuspendingImminent", "Updating",
-        "WaitingSeatbox", "WaitingHibernation", "WaitingHibernationAdvanced",
-        "WaitingHibernationSeatbox", "WaitingHibernationConfirm"
-    ]
-    readonly property var gpsStateNames: ["Off", "Searching", "FixEstablished", "Error"]
-    readonly property var toggleNames: ["On", "Off"]
-    readonly property var blinkerSwitchNames: ["Off", "Left", "Right"]
-    readonly property var blinkerStateNames: ["Off", "Left", "Right", "Both"]
-    readonly property var connectionStatusNames: ["Connected", "Disconnected"]
-    readonly property var modemStateNames: ["Off", "Disconnected", "Connected"]
-    readonly property var batteryStateNames: ["Unknown", "Asleep", "Idle", "Active"]
-    readonly property var auxChargeStatusNames: ["NotCharging", "FloatCharge", "AbsorptionCharge", "BulkCharge"]
 
     // Safe accessors
     function vs(prop) { return typeof vehicleStore !== "undefined" ? vehicleStore[prop] : 0 }
@@ -177,8 +159,8 @@ Item {
                 spacing: 0
                 Text { text: "BLINK: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: enumName(vs("blinkerSwitch"), blinkerSwitchNames) + "/" +
-                          enumName(vs("blinkerState"), blinkerStateNames)
+                    text: wire("blinkerSwitch", vs("blinkerSwitch")) + "/" +
+                          wire("blinkerState", vs("blinkerState"))
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -186,7 +168,7 @@ Item {
                 spacing: 0
                 Text { text: "BRAKE: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: enumName(vs("brakeLeft"), toggleNames)
+                    text: wire("toggle", vs("brakeLeft"))
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -213,8 +195,8 @@ Item {
                 spacing: 0
                 Text { text: "BLINK: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: enumName(vs("blinkerSwitch"), blinkerSwitchNames) + "/" +
-                          enumName(vs("blinkerState"), blinkerStateNames)
+                    text: wire("blinkerSwitch", vs("blinkerSwitch")) + "/" +
+                          wire("blinkerState", vs("blinkerState"))
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -222,7 +204,7 @@ Item {
                 spacing: 0
                 Text { text: "BRAKE: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: enumName(vs("brakeRight"), toggleNames)
+                    text: wire("toggle", vs("brakeRight"))
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -246,7 +228,7 @@ Item {
             spacing: 1
 
             Text {
-                text: "GPS: " + enumName(gs("gpsState"), gpsStateNames) +
+                text: "GPS: " + wire("gpsState", gs("gpsState")) +
                       "  FIX: " + (gs("fix") || "—") +
                       "  MODE: " + (gs("mode") || "—")
                 font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
@@ -324,7 +306,7 @@ Item {
                 spacing: 0
                 Text { text: "MODEM: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: enumName(is_("modemState"), modemStateNames)
+                    text: wire("modemState", is_("modemState"))
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -332,7 +314,7 @@ Item {
                 spacing: 0
                 Text { text: "CLOUD: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: enumName(is_("unuCloud"), connectionStatusNames)
+                    text: wire("connectionStatus", is_("unuCloud"))
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -417,7 +399,7 @@ Item {
                 spacing: 0
                 Text { text: "THR: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
-                    text: enumName(es("throttle"), toggleNames)
+                    text: wire("toggle", es("throttle"))
                     font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                 }
             }
@@ -444,7 +426,7 @@ Item {
                 Text { text: "EBS: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
                     text: {
-                        var s = enumName(es("kers"), toggleNames)
+                        var s = wire("toggle", es("kers"))
                         if (typeof engineStore !== "undefined")
                             s += "  " + (engineStore.acceptedRegenVoltage / 1000).toFixed(1) + " V / "
                                + (engineStore.acceptedRegenCurrent / 1000).toFixed(1) + " A"
@@ -555,7 +537,7 @@ Item {
                         visible: parent.parent.present
                         spacing: 0
                         Text {
-                            text: enumName(b0("batteryState"), batteryStateNames)
+                            text: wire("batteryState", b0("batteryState"))
                             font.pixelSize: 9; font.bold: true; color: debugOverlay.textColor
                         }
                         Text {
@@ -604,7 +586,7 @@ Item {
                         visible: parent.parent.present
                         spacing: 0
                         Text {
-                            text: enumName(b1("batteryState"), batteryStateNames)
+                            text: wire("batteryState", b1("batteryState"))
                             font.pixelSize: 9; font.bold: true; color: debugOverlay.textColor
                         }
                         Text {
@@ -651,7 +633,7 @@ Item {
                         font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                     }
                     Text {
-                        text: enumName(cb("chargeStatus"), ["Charging", "NotCharging", "Unknown"]) +
+                        text: wire("chargeStatus", cb("chargeStatus")) +
                               " / SoH " + cb("stateOfHealth") + "% / " + cb("temperature") + "°C"
                         font.pixelSize: 9; color: "#9E9E9E"
                     }
@@ -675,7 +657,7 @@ Item {
                         font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
                     }
                     Text {
-                        text: enumName(aux("chargeStatus"), auxChargeStatusNames)
+                        text: wire("auxChargeStatus", aux("chargeStatus"))
                         font.pixelSize: 9; color: "#9E9E9E"
                     }
                 }
