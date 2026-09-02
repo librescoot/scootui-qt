@@ -33,6 +33,7 @@ class MapDownloadService;
 class UpdateChannelService;
 class RoadInfoService;
 class OdometerMilestoneService;
+class DataPartition;
 
 class Application : public QObject
 {
@@ -107,6 +108,7 @@ private:
     UpdateChannelService *m_updateChannelService = nullptr;
     RoadInfoService *m_roadInfoService = nullptr;
     OdometerMilestoneService *m_odometerMilestoneService = nullptr;
+    DataPartition *m_dataPartition = nullptr;
     // Stashed for maybeAutoDownloadMaps(), which needs to be reachable from
     // several connects (updateAvailableChanged, vehicleStore::stateChanged,
     // and the startup check) without duplicating its gating logic in each.

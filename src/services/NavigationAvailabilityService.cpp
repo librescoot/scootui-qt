@@ -3,6 +3,7 @@
 #include "stores/InternetStore.h"
 #include "repositories/MdbRepository.h"
 #include "core/AppConfig.h"
+#include "core/DataPartition.h"
 
 #include <QDir>
 #include <QFile>
@@ -12,11 +13,13 @@
 NavigationAvailabilityService::NavigationAvailabilityService(SettingsStore *settings,
                                                                InternetStore *internet,
                                                                MdbRepository *repo,
+                                                               DataPartition *dataPartition,
                                                                QObject *parent)
     : QObject(parent)
     , m_settings(settings)
     , m_internet(internet)
     , m_repo(repo)
+    , m_dataPartition(dataPartition)
     , m_nam(new QNetworkAccessManager(this))
 {
     m_retryTimer.setSingleShot(true);
@@ -74,6 +77,8 @@ void NavigationAvailabilityService::clearOverride()
 void NavigationAvailabilityService::checkMaps()
 {
     if (m_overrideActive) return;
+    if (m_dataPartition)
+        m_dataPartition->refresh();
     // Check local directory first (desktop/simulator), then device path
     bool available = QFile::exists(QStringLiteral("map.mbtiles"))
                   || QFile::exists(QStringLiteral("/data/maps/map.mbtiles"));

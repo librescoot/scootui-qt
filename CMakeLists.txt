@@ -67,6 +67,7 @@ qt_standard_project_setup(REQUIRES 6.4)
 set(CPP_SOURCES
     src/main.cpp
     src/core/EnvConfig.cpp
+    src/core/DataPartition.cpp
     src/core/Application.cpp
     src/repositories/InMemoryMdbRepository.cpp
     src/repositories/RedisMdbRepository.cpp
@@ -138,6 +139,7 @@ set(CPP_SOURCES
 set(CPP_HEADERS
     src/core/AppConfig.h
     src/core/EnvConfig.h
+    src/core/DataPartition.h
     src/core/Application.h
     src/models/Enums.h
     src/models/MenuNode.h
@@ -496,4 +498,13 @@ if(BUILD_TESTING)
     target_include_directories(map_timing_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(map_timing_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME map_timing_test COMMAND map_timing_test)
+
+    qt_add_executable(data_partition_test
+        tests/DataPartitionTest.cpp
+        src/core/DataPartition.cpp
+        src/core/DataPartition.h
+    )
+    target_include_directories(data_partition_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(data_partition_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME data_partition_test COMMAND data_partition_test)
 endif()

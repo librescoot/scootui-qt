@@ -56,6 +56,7 @@
 #include "services/UpdateChannelService.h"
 #include "services/RoadInfoService.h"
 #include "services/OdometerMilestoneService.h"
+#include "core/DataPartition.h"
 #include "services/SystemInfoService.h"
 #include "l10n/Translations.h"
 #include "utils/FaultFormatter.h"
@@ -260,9 +261,11 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_roadInfoService = new RoadInfoService(gpsStore, speedLimitStore,
                                              m_navigationService, this);
 
+    m_dataPartition = new DataPartition(this);
+
     // Odometer milestone celebration (500 km, then every 1000 km)
     m_odometerMilestoneService = new OdometerMilestoneService(
-        engineStore, vehicleStore, connectionStore, settingsStore, this);
+        engineStore, vehicleStore, connectionStore, settingsStore, m_dataPartition, this);
 
     // Map service (A2)
     m_mapService = new MapService(gpsStore, engineStore, m_navigationService,
@@ -279,7 +282,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_mapService->setRoadInfoService(m_roadInfoService);
 
     // Navigation availability (B6)
-    m_navAvailability = new NavigationAvailabilityService(settingsStore, internetStore, repo, this);
+    m_navAvailability = new NavigationAvailabilityService(settingsStore, internetStore, repo,
+                                                          m_dataPartition, this);
 
     // Map download service. Takes the repository so it can mirror what is
     // installed into the `maps` hash on the MDB.

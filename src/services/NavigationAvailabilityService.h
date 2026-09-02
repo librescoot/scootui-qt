@@ -7,6 +7,7 @@
 class SettingsStore;
 class InternetStore;
 class MdbRepository;
+class DataPartition;
 
 class NavigationAvailabilityService : public QObject
 {
@@ -16,7 +17,8 @@ class NavigationAvailabilityService : public QObject
 
 public:
     explicit NavigationAvailabilityService(SettingsStore *settings, InternetStore *internet,
-                                            MdbRepository *repo, QObject *parent = nullptr);
+                                            MdbRepository *repo, DataPartition *dataPartition = nullptr,
+                                            QObject *parent = nullptr);
 
     bool localDisplayMapsAvailable() const { return m_mapsAvailable; }
     bool routingAvailable() const { return m_routingAvailable; }
@@ -43,6 +45,7 @@ private:
     SettingsStore *m_settings;
     InternetStore *m_internet;
     MdbRepository *m_repo;
+    DataPartition *m_dataPartition;
     QNetworkAccessManager *m_nam;
     QTimer m_retryTimer;
     int m_retryDelayMs = 1000;

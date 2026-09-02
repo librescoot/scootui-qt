@@ -12,7 +12,10 @@
 
 #include "core/EnvConfig.h"
 #include "core/Application.h"
+#include "core/DataPartition.h"
 #include "routing/RouteModels.h"
+
+#include <QDir>
 
 // Global boot timer — logged via BOOT_MARK() from main() and createStores()
 // to pinpoint where startup time goes. Grep journal for '\[boot \+'.
@@ -20,12 +23,29 @@ QElapsedTimer g_bootTimer;
 #define BOOT_MARK(what) \
     qDebug().nospace().noquote() << QStringLiteral("[boot +%1ms] %2").arg(g_bootTimer.elapsed(), 5).arg(QStringLiteral(what))
 
+// Qt's qmlcache, pipeline and shader caches go under $HOME/.cache unless
+// XDG_CACHE_HOME is set, and the unit points HOME at the not-yet-mounted /data.
+static void keepCachesOffUnmountedData()
+{
+    if (qEnvironmentVariableIsSet("XDG_CACHE_HOME"))
+        return;
+    const QString home = QDir::homePath();
+    if (home != DataPartition::Root
+        && !home.startsWith(DataPartition::Root + QLatin1Char('/')))
+        return;
+    if (DataPartition::probe())
+        return;
+    qputenv("XDG_CACHE_HOME", "/var/volatile/cache");
+    qDebug() << "Cache dir moved to /var/volatile/cache:" << DataPartition::Root << "not mounted";
+}
+
 int main(int argc, char *argv[])
 {
     g_bootTimer.start();
     BOOT_MARK("main() entered");
 
     qRegisterMetaType<Route>("Route");
+    keepCachesOffUnmountedData();
 
     QGuiApplication app(argc, argv);
     BOOT_MARK("QGuiApplication ready");

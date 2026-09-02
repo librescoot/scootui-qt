@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QByteArray>
+#include <QHash>
 #include <QList>
 #include <QObject>
 #include <QSet>
@@ -10,6 +12,7 @@ class EngineStore;
 class VehicleStore;
 class ConnectionStore;
 class SettingsStore;
+class DataPartition;
 
 class OdometerMilestoneService : public QObject
 {
@@ -21,6 +24,7 @@ public:
                              VehicleStore *vehicleStore,
                              ConnectionStore *connectionStore,
                              SettingsStore *settingsStore,
+                             DataPartition *dataPartition = nullptr,
                              QObject *parent = nullptr);
 
     bool easterEggsEnabled() const { return m_easterEggsEnabled; }
@@ -69,8 +73,16 @@ private:
     bool celebrationsEnabled() const;
 
     // Decides whether enough is known to start celebrating. Runs on a repeating
-    // timer until a real odometer reading has arrived; see the definition.
+    // timer until a real odometer reading has arrived and the persisted state
+    // is reachable; see the definition.
     void trySettle();
+
+    // Before /data is mounted the files at the persist paths are rootfs shadow
+    // copies, so reads wait for the mount and writes queue in m_pendingWrites.
+    bool dataReady() const;
+    void loadPersistedState();
+    void onDataMounted();
+    void persist(const QString &path, const QByteArray &contents);
 
     QString persistPath() const;
     int loadLastMilestone() const;
@@ -80,7 +92,7 @@ private:
     // already fired has to outlive the process.
     QString firedEggsPath() const;
     QSet<QString> loadFiredEasterEggs() const;
-    void saveFiredEasterEggs() const;
+    void saveFiredEasterEggs();
     // Marks tag fired and persists the set. Returns false if it had already
     // fired, so callers can skip the rest of the work.
     bool markEasterEggFired(const QString &tag);
@@ -89,6 +101,8 @@ private:
     VehicleStore *m_vehicleStore = nullptr;
     ConnectionStore *m_connectionStore = nullptr;
     SettingsStore *m_settingsStore = nullptr;
+    DataPartition *m_dataPartition = nullptr;
+    QHash<QString, QByteArray> m_pendingWrites;
 
     int m_lastCelebrated = -1;
     bool m_settled = false;

@@ -5,6 +5,7 @@
 #include "stores/ConnectionStore.h"
 #include "stores/SettingsStore.h"
 #include "models/Enums.h"
+#include "core/DataPartition.h"
 
 #include <QDebug>
 #include <QDir>
@@ -100,14 +101,20 @@ OdometerMilestoneService::OdometerMilestoneService(EngineStore *engineStore,
                                                    VehicleStore *vehicleStore,
                                                    ConnectionStore *connectionStore,
                                                    SettingsStore *settingsStore,
+                                                   DataPartition *dataPartition,
                                                    QObject *parent)
     : QObject(parent)
     , m_engineStore(engineStore)
     , m_vehicleStore(vehicleStore)
     , m_connectionStore(connectionStore)
     , m_settingsStore(settingsStore)
+    , m_dataPartition(dataPartition)
 {
-    m_lastCelebrated = loadLastMilestone();
+    if (dataReady())
+        loadPersistedState();
+    else
+        connect(m_dataPartition, &DataPartition::becameMounted,
+                this, &OdometerMilestoneService::onDataMounted);
     // If the rider turns celebrations off mid-ride, drop anything queued for
     // the next park so it doesn't fire later.
     if (m_settingsStore) {
@@ -116,10 +123,6 @@ OdometerMilestoneService::OdometerMilestoneService(EngineStore *engineStore,
                     if (!m_settingsStore->milestoneCelebrations()) m_queue.clear();
                 });
     }
-    // Easter eggs are unlocked by a gesture on the About screen and
-    // persisted so they stay on across restarts until the gesture toggles
-    // them off again.
-    m_easterEggsEnabled = loadEasterEggsEnabled();
     connect(m_engineStore, &EngineStore::odometerChanged,
             this, &OdometerMilestoneService::onOdometerChanged);
     if (m_vehicleStore) {
@@ -127,8 +130,6 @@ OdometerMilestoneService::OdometerMilestoneService(EngineStore *engineStore,
                 this, &OdometerMilestoneService::onVehicleStateChanged);
         m_lastVehicleState = m_vehicleStore->state();
     }
-
-    m_firedEasterEggs = loadFiredEasterEggs();
 
     // Repeating, not single-shot: trySettle() declines to settle until a real
     // odometer reading has arrived, so this keeps asking until one does.
@@ -149,28 +150,10 @@ OdometerMilestoneService::OdometerMilestoneService(EngineStore *engineStore,
 void OdometerMilestoneService::trySettle()
 {
     const double km = m_maxSeenDuringSettle;
-    if (km <= 0.0)
-        return; // no reading yet; the timer asks again
+    if (km <= 0.0 || !dataReady())
+        return; // the timer asks again
 
     m_settleTimer->stop();
-
-    // The constructor's read can land before /data is mounted — the DBC mounts
-    // it several seconds into boot, which is why MapDownloadService has
-    // reloadMetadata(). Having just waited for real data, try once more before
-    // concluding this vehicle has no history.
-    if (m_lastCelebrated < 0) {
-        const int persisted = loadLastMilestone();
-        if (persisted >= 0) {
-            m_lastCelebrated = persisted;
-            qDebug() << "OdometerMilestone: late /data, recovered baseline"
-                     << m_lastCelebrated << "km";
-        }
-    }
-    if (m_firedEasterEggs.isEmpty()) {
-        const QSet<QString> persisted = loadFiredEasterEggs();
-        if (!persisted.isEmpty()) m_firedEasterEggs = persisted;
-    }
-
     m_settled = true;
     const int milestone = milestoneForKm(km);
     if (milestone > m_lastCelebrated) {
@@ -185,6 +168,44 @@ void OdometerMilestoneService::trySettle()
         if (km >= egg.km) markEasterEggFired(QString::fromLatin1(egg.tag));
     }
     m_lastOdoKm = km;
+}
+
+bool OdometerMilestoneService::dataReady() const
+{
+    return !m_dataPartition || m_dataPartition->mounted();
+}
+
+void OdometerMilestoneService::loadPersistedState()
+{
+    if (!m_pendingWrites.contains(persistPath()))
+        m_lastCelebrated = loadLastMilestone();
+    if (!m_pendingWrites.contains(firedEggsPath()))
+        m_firedEasterEggs = loadFiredEasterEggs();
+    if (!m_pendingWrites.contains(easterEggsPath())) {
+        const bool enabled = loadEasterEggsEnabled();
+        if (enabled != m_easterEggsEnabled) {
+            m_easterEggsEnabled = enabled;
+            emit easterEggsEnabledChanged();
+        }
+    }
+}
+
+void OdometerMilestoneService::onDataMounted()
+{
+    loadPersistedState();
+    for (auto it = m_pendingWrites.cbegin(); it != m_pendingWrites.cend(); ++it)
+        writeFileAtomic(it.key(), it.value());
+    m_pendingWrites.clear();
+    qDebug() << "OdometerMilestone: /data mounted, baseline" << m_lastCelebrated << "km";
+    trySettle();
+}
+
+void OdometerMilestoneService::persist(const QString &path, const QByteArray &contents)
+{
+    if (dataReady())
+        writeFileAtomic(path, contents);
+    else
+        m_pendingWrites.insert(path, contents);
 }
 
 int OdometerMilestoneService::milestoneForKm(double km)
@@ -350,7 +371,7 @@ bool OdometerMilestoneService::loadEasterEggsEnabled() const
 
 void OdometerMilestoneService::saveEasterEggsEnabled(bool enabled)
 {
-    writeFileAtomic(easterEggsPath(), enabled ? QByteArrayLiteral("1\n") : QByteArrayLiteral("0\n"));
+    persist(easterEggsPath(), enabled ? QByteArrayLiteral("1\n") : QByteArrayLiteral("0\n"));
 }
 
 QString OdometerMilestoneService::firedEggsPath() const
@@ -380,7 +401,7 @@ QSet<QString> OdometerMilestoneService::loadFiredEasterEggs() const
     return tags;
 }
 
-void OdometerMilestoneService::saveFiredEasterEggs() const
+void OdometerMilestoneService::saveFiredEasterEggs()
 {
     // Sorted so the file is stable between writes and readable by a human
     // debugging why a given egg did or did not fire.
@@ -389,7 +410,7 @@ void OdometerMilestoneService::saveFiredEasterEggs() const
     QByteArray out;
     for (const QString &tag : tags)
         out += tag.toLatin1() + '\n';
-    writeFileAtomic(firedEggsPath(), out);
+    persist(firedEggsPath(), out);
 }
 
 bool OdometerMilestoneService::markEasterEggFired(const QString &tag)
@@ -427,5 +448,5 @@ int OdometerMilestoneService::loadLastMilestone() const
 
 void OdometerMilestoneService::saveLastMilestone(int km)
 {
-    writeFileAtomic(persistPath(), QByteArray::number(km) + '\n');
+    persist(persistPath(), QByteArray::number(km) + '\n');
 }
