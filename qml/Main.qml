@@ -1,6 +1,5 @@
 import QtQuick
 import ScootUI 1.0
-import "screens"
 import "widgets/blinker"
 import "widgets/shutdown"
 import "overlays"
@@ -188,11 +187,35 @@ Window {
         }
     }
 
-    // Screen switcher
+    // Screen switcher.
+    //
+    // Screens are loaded by URL, not through inline Component blocks. An inline
+    // `Component { ClusterScreen {} }` makes engine.load() resolve that screen's
+    // whole type tree (and the plugins it imports) before the first frame, for
+    // all thirteen screens, although only one is ever shown at boot. By URL,
+    // only the screen actually selected is resolved up front; the others are
+    // compiled in the background once the first frame is on screen, see
+    // preloadScreens() below.
+    readonly property var screenUrls: ({
+        cluster:       "screens/ClusterScreen.qml",
+        map:           "screens/MapScreen.qml",
+        maintenance:   "screens/MaintenanceScreen.qml",
+        about:         "screens/AboutScreen.qml",
+        debug:         "screens/DebugScreen.qml",
+        motionDebug:   "screens/MotionDebugScreen.qml",
+        address:       "screens/AddressSelectionScreen.qml",
+        navSetup:      "screens/NavigationSetupScreen.qml",
+        faults:        "screens/FaultsScreen.qml",
+        systemInfo:    "screens/SystemInfoScreen.qml",
+        umsInfo:       "screens/UpdateModeInfoScreen.qml",
+        updateChannel: "screens/UpdateChannelScreen.qml",
+        hopOnInfo:     "screens/HopOnInfoScreen.qml"
+    })
+
     Loader {
         id: screenLoader
         anchors.fill: parent
-        sourceComponent: {
+        source: {
             var maint = root.showMaintenance
             var screen = root.currentScreen
             // MotionDebug bypasses the maintenance gate so it can be triggered
@@ -200,44 +223,55 @@ Window {
             // a running vehicle state).
             if (maint && screen !== Scooter.ScreenMode.MotionDebug) {
                 console.log("SCREEN: maintenance (showMaintenance=true, vehicleState=" + root.vehicleState + ")")
-                return maintenanceComponent
+                return Qt.resolvedUrl(root.screenUrls.maintenance)
             }
             var name = "unknown"
-            var comp = clusterComponent
             switch (screen) {
-                case Scooter.ScreenMode.Cluster:         comp = clusterComponent;     name = "cluster";     break
-                case Scooter.ScreenMode.Map:             comp = mapComponent;         name = "map";         break
-                case Scooter.ScreenMode.Debug:           comp = debugComponent;       name = "debug";       break
-                case Scooter.ScreenMode.MotionDebug:        comp = motionDebugComponent;    name = "motion-debug";   break
-                case Scooter.ScreenMode.About:           comp = aboutComponent;       name = "about";       break
-                case Scooter.ScreenMode.Maintenance:     comp = maintenanceComponent; name = "maintenance"; break
-                case Scooter.ScreenMode.AddressSelection:comp = addressComponent;     name = "address";     break
-                case Scooter.ScreenMode.NavigationSetup: comp = navSetupComponent;    name = "navSetup";    break
-                case Scooter.ScreenMode.Faults:          comp = faultsComponent;      name = "faults";      break
-                case Scooter.ScreenMode.SystemInfo:      comp = systemInfoComponent;  name = "systemInfo";  break
-                case Scooter.ScreenMode.UpdateModeInfo:  comp = umsInfoComponent;     name = "umsInfo";     break
-                case Scooter.ScreenMode.UpdateChannel:   comp = updateChannelComponent; name = "updateChannel"; break
-                case Scooter.ScreenMode.HopOnInfo:       comp = hopOnInfoComponent;   name = "hopOnInfo";   break
-                default:                                    comp = clusterComponent;     name = "cluster(default)"; break
+                case Scooter.ScreenMode.Cluster:         name = "cluster";       break
+                case Scooter.ScreenMode.Map:             name = "map";           break
+                case Scooter.ScreenMode.Debug:           name = "debug";         break
+                case Scooter.ScreenMode.MotionDebug:     name = "motionDebug";   break
+                case Scooter.ScreenMode.About:           name = "about";         break
+                case Scooter.ScreenMode.Maintenance:     name = "maintenance";   break
+                case Scooter.ScreenMode.AddressSelection:name = "address";       break
+                case Scooter.ScreenMode.NavigationSetup: name = "navSetup";      break
+                case Scooter.ScreenMode.Faults:          name = "faults";        break
+                case Scooter.ScreenMode.SystemInfo:      name = "systemInfo";    break
+                case Scooter.ScreenMode.UpdateModeInfo:  name = "umsInfo";       break
+                case Scooter.ScreenMode.UpdateChannel:   name = "updateChannel"; break
+                case Scooter.ScreenMode.HopOnInfo:       name = "hopOnInfo";     break
+                default:                                 name = "cluster";       break
             }
             console.log("SCREEN: " + name + " (screen=" + screen + ")")
-            return comp
+            return Qt.resolvedUrl(root.screenUrls[name])
         }
     }
 
-    Component { id: clusterComponent; ClusterScreen {} }
-    Component { id: mapComponent; MapScreen {} }
-    Component { id: maintenanceComponent; MaintenanceScreen {} }
-    Component { id: aboutComponent; AboutScreen {} }
-    Component { id: debugComponent; DebugScreen {} }
-    Component { id: motionDebugComponent; MotionDebugScreen {} }
-    Component { id: addressComponent; AddressSelectionScreen {} }
-    Component { id: navSetupComponent; NavigationSetupScreen {} }
-    Component { id: faultsComponent; FaultsScreen {} }
-    Component { id: systemInfoComponent; SystemInfoScreen {} }
-    Component { id: umsInfoComponent; UpdateModeInfoScreen {} }
-    Component { id: updateChannelComponent; UpdateChannelScreen {} }
-    Component { id: hopOnInfoComponent; HopOnInfoScreen {} }
+    // Compile the screens that are not on screen yet, in the background, so a
+    // later switch pays only for creation. Runs once, after the first frame has
+    // been presented; the cluster goes first because that is where a stand-by
+    // or maintenance boot ends up. The components are kept so the engine does
+    // not drop the compiled types from its cache.
+    property var preloadedScreens: []
+    property bool screensPreloaded: false
+    function preloadScreens() {
+        if (root.screensPreloaded)
+            return
+        root.screensPreloaded = true
+        var order = ["cluster", "map", "maintenance", "about", "faults", "systemInfo",
+                     "navSetup", "address", "debug", "motionDebug", "umsInfo",
+                     "updateChannel", "hopOnInfo"]
+        var current = screenLoader.source.toString()
+        var list = []
+        for (var i = 0; i < order.length; i++) {
+            var url = Qt.resolvedUrl(root.screenUrls[order[i]])
+            if (url.toString() === current)
+                continue
+            list.push(Qt.createComponent(url, Component.Asynchronous))
+        }
+        root.preloadedScreens = list
+    }
+    onFrameSwapped: preloadScreens()
 
     // Overlays (bottom to top stacking order).
     //
