@@ -296,12 +296,25 @@ Window {
         }
         root.preloadedScreens = list
     }
-    // The cluster warm-up and twelve asynchronous compilations would otherwise
-    // share the main thread in exactly the window the READY gate measures.
-    onFrameSwapped: if (typeof bootGate === "undefined") preloadScreens()
+    // Not before the first frame and not before the cluster exists: on a
+    // cluster boot the warm-up completes inside engine.load(), and twelve
+    // asynchronous compilations started there compete with object creation
+    // for the two cores.
+    property bool firstFramePresented: false
+    function maybePreloadScreens() {
+        var clusterReady = typeof bootGate === "undefined" || bootGate.clusterWarm
+        if (root.firstFramePresented && clusterReady)
+            preloadScreens()
+    }
+    onFrameSwapped: {
+        if (root.firstFramePresented)
+            return
+        root.firstFramePresented = true
+        maybePreloadScreens()
+    }
     Connections {
         target: typeof bootGate !== "undefined" ? bootGate : null
-        function onClusterWarmChanged() { preloadScreens() }
+        function onClusterWarmChanged() { maybePreloadScreens() }
     }
 
     // Overlays (bottom to top stacking order).
