@@ -338,6 +338,58 @@ Item {
     }
 
     // =====================================================================
+    // 5b. Switches — right column, between internet and motor
+    // =====================================================================
+    Rectangle {
+        anchors.right: parent.right
+        anchors.rightMargin: 10
+        y: 200
+        width: switchCol.width + 20
+        height: switchCol.height + 10
+        radius: 4; color: panelBg
+        border.width: 1.5; border.color: defaultBorder
+
+        Column {
+            id: switchCol
+            anchors.centerIn: parent
+            spacing: 1
+            Row {
+                spacing: 0
+                Text { text: "KICK: "; font.pixelSize: 10; color: "#9E9E9E" }
+                Text {
+                    text: wire("kickstand", vs("kickstand"))
+                    font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
+                }
+            }
+            Row {
+                spacing: 0
+                Text { text: "SEAT: "; font.pixelSize: 10; color: "#9E9E9E" }
+                Text {
+                    text: wire("seatboxLock", vs("seatboxLock"))
+                    font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
+                }
+            }
+            Row {
+                spacing: 0
+                Text { text: "HBAR: "; font.pixelSize: 10; color: "#9E9E9E" }
+                Text {
+                    text: wire("handleBarLockSensor", vs("handleBarLockSensor")) + "/" +
+                          wire("handleBarLockSensor", vs("handleBarLockState"))
+                    font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
+                }
+            }
+            Row {
+                spacing: 0
+                Text { text: "POS: "; font.pixelSize: 10; color: "#9E9E9E" }
+                Text {
+                    text: vs("handlebarInLockPosition") ? "on-place" : "off-place"
+                    font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
+                }
+            }
+        }
+    }
+
+    // =====================================================================
     // 6. Dashboard Info — left column, below GPS
     // =====================================================================
     Rectangle {
