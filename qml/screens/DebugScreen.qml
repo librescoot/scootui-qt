@@ -257,6 +257,8 @@ Rectangle {
         ControlHints {
             Layout.fillWidth: true
             visible: typeof vehicleStore !== "undefined" && vehicleStore.parked
+            // The screen is black in both themes.
+            isDark: true
             reservedRows: 2
             leftTap: debugScreen.canScrollDown
                 ? (typeof translations !== "undefined" ? translations.controlScroll : "Scroll down")

@@ -28,7 +28,10 @@ Item {
     property string leftHoldLong: ""
     property string rightHoldLong: ""
 
-    readonly property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
+    // Follows the theme unless the screen pins it: a screen whose background
+    // is black in both themes has to say so, or the light palette paints the
+    // capsules and labels black on black.
+    property bool isDark: typeof themeStore !== "undefined" ? themeStore.isDark : true
     readonly property color labelColor: isDark ? "#FFFFFF" : "#000000"
     readonly property color wordColor: isDark ? "#8AFFFFFF" : "#8A000000"
     readonly property color wordInkColor: isDark ? "#000000" : "#FFFFFF"
