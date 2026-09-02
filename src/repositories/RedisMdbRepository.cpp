@@ -376,12 +376,23 @@ int RedisMdbRepository::seedCache(const QHash<QString, FieldMap> &hashes, bool m
 {
     int inserted = 0;
     for (auto it = hashes.constBegin(); it != hashes.constEnd(); ++it) {
+        FieldMap merged;
         {
             QMutexLocker lock(&m_cacheMutex);
-            if (m_cache.contains(it.key()))
-                continue;
+            merged = m_cache.value(it.key());
         }
-        onFieldsUpdated(it.key(), it.value());
+        // Fields already in the cache were written or fetched after the
+        // prefetch started and stay; only the missing ones come from it.
+        bool changed = false;
+        for (auto f = it.value().constBegin(); f != it.value().constEnd(); ++f) {
+            if (merged.contains(f.key()))
+                continue;
+            merged.insert(f.key(), f.value());
+            changed = true;
+        }
+        if (!changed)
+            continue;
+        onFieldsUpdated(it.key(), merged);
         ++inserted;
     }
     if (markSeeded)

@@ -43,8 +43,8 @@ public:
     bool isUsingBackupConnection() const override { return m_usingBackup; }
     bool isDataSeeded() const override { return m_dataSeeded; }
 
-    // Insert-if-absent per channel, so a prefetch result never overwrites a
-    // later fetch. Returns how many channels were inserted.
+    // Insert-if-absent per field, so a prefetch result never overwrites a
+    // later write or fetch. Returns how many channels gained fields.
     int seedCache(const QHash<QString, FieldMap> &hashes, bool markSeeded);
 
     // Register a channel for periodic polling by the worker.
