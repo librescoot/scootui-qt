@@ -593,6 +593,21 @@ if(BUILD_TESTING)
     target_link_libraries(syncable_store_seed_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME syncable_store_seed_test COMMAND syncable_store_seed_test)
 
+    qt_add_executable(battery_store_fields_test
+        tests/BatteryStoreFieldsTest.cpp
+        src/models/Enums.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+        src/stores/SyncableStore.cpp
+        src/stores/SyncableStore.h
+        src/stores/BatteryStore.cpp
+        src/stores/BatteryStore.h
+    )
+    target_include_directories(battery_store_fields_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(battery_store_fields_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME battery_store_fields_test COMMAND battery_store_fields_test)
+
     qt_add_executable(boot_prefetch_test
         tests/BootPrefetchTest.cpp
         src/repositories/BootPrefetch.cpp

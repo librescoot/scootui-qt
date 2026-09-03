@@ -228,8 +228,6 @@ void Translations::initStrings()
     de[QStringLiteral("menuVehicle")] = QStringLiteral("Fahrzeug");
     en[QStringLiteral("menuInfo")] = QStringLiteral("Info");
     de[QStringLiteral("menuInfo")] = QStringLiteral("Info");
-    en[QStringLiteral("systemInfoFirmware")] = QStringLiteral("FIRMWARE");
-    de[QStringLiteral("systemInfoFirmware")] = QStringLiteral("FIRMWARE");
     en[QStringLiteral("systemInfoIdentity")] = QStringLiteral("SIM / MODEM IDENTITY");
     de[QStringLiteral("systemInfoIdentity")] = QStringLiteral("SIM / MODEM-KENNUNG");
     en[QStringLiteral("systemInfoNetwork")] = QStringLiteral("NETWORK");
@@ -262,12 +260,6 @@ void Translations::initStrings()
     de[QStringLiteral("infoInstalled")] = QStringLiteral("Installiert");
     en[QStringLiteral("infoNotInstalled")] = QStringLiteral("Not installed");
     de[QStringLiteral("infoNotInstalled")] = QStringLiteral("Nicht installiert");
-    en[QStringLiteral("infoYes")] = QStringLiteral("Yes");
-    de[QStringLiteral("infoYes")] = QStringLiteral("Ja");
-    en[QStringLiteral("infoNo")] = QStringLiteral("No");
-    de[QStringLiteral("infoNo")] = QStringLiteral("Nein");
-    en[QStringLiteral("systemInfoBoards")] = QStringLiteral("BOARDS");
-    de[QStringLiteral("systemInfoBoards")] = QStringLiteral("PLATINEN");
     en[QStringLiteral("systemInfoBluetooth")] = QStringLiteral("BLUETOOTH");
     de[QStringLiteral("systemInfoBluetooth")] = QStringLiteral("BLUETOOTH");
     en[QStringLiteral("systemInfoBattery0")] = QStringLiteral("BATTERY 1");
@@ -314,8 +306,6 @@ void Translations::initStrings()
     de[QStringLiteral("infoSerial")] = QStringLiteral("Seriennummer");
     en[QStringLiteral("infoHealth")] = QStringLiteral("Health");
     de[QStringLiteral("infoHealth")] = QStringLiteral("Zustand");
-    en[QStringLiteral("infoCycles")] = QStringLiteral("Cycles");
-    de[QStringLiteral("infoCycles")] = QStringLiteral("Ladezyklen");
     en[QStringLiteral("infoCharge")] = QStringLiteral("Charge");
     de[QStringLiteral("infoCharge")] = QStringLiteral("Ladung");
     en[QStringLiteral("infoChargeEstimated")] = QStringLiteral("Charge (est.)");
@@ -330,6 +320,24 @@ void Translations::initStrings()
     de[QStringLiteral("infoUniqueId")] = QStringLiteral("Eindeutige ID");
     en[QStringLiteral("infoPartNumber")] = QStringLiteral("Part number");
     de[QStringLiteral("infoPartNumber")] = QStringLiteral("Teilenummer");
+    en[QStringLiteral("infoCapacity")] = QStringLiteral("Capacity");
+    de[QStringLiteral("infoCapacity")] = QStringLiteral("Kapazität");
+    en[QStringLiteral("infoCellVoltage")] = QStringLiteral("Cell voltage");
+    de[QStringLiteral("infoCellVoltage")] = QStringLiteral("Zellenspannung");
+    en[QStringLiteral("infoLinkBaud")] = QStringLiteral("Link baud");
+    de[QStringLiteral("infoLinkBaud")] = QStringLiteral("Baudrate");
+    en[QStringLiteral("infoLinkCaps")] = QStringLiteral("Link caps");
+    de[QStringLiteral("infoLinkCaps")] = QStringLiteral("Link-Fähigkeiten");
+    en[QStringLiteral("infoDfuStatus")] = QStringLiteral("Update status");
+    de[QStringLiteral("infoDfuStatus")] = QStringLiteral("Update-Status");
+    en[QStringLiteral("infoFwBase")] = QStringLiteral("Base version");
+    de[QStringLiteral("infoFwBase")] = QStringLiteral("Basisversion");
+    en[QStringLiteral("infoFwApp")] = QStringLiteral("App version");
+    de[QStringLiteral("infoFwApp")] = QStringLiteral("App-Version");
+    en[QStringLiteral("infoRatedPower")] = QStringLiteral("Rated power");
+    de[QStringLiteral("infoRatedPower")] = QStringLiteral("Nennleistung");
+    en[QStringLiteral("infoMaxSpeed")] = QStringLiteral("Max speed");
+    de[QStringLiteral("infoMaxSpeed")] = QStringLiteral("Max. Geschwindigkeit");
 
     en[QStringLiteral("faultsEmpty")] = QStringLiteral("No faults recorded");
     de[QStringLiteral("faultsEmpty")] = QStringLiteral("Keine Fehler erfasst");

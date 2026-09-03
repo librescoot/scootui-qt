@@ -10,7 +10,10 @@ class SystemInfoService : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QVariantList versionRows READ versionRows NOTIFY versionRowsChanged)
-    Q_PROPERTY(QVariantList deviceRows READ deviceRows NOTIFY versionRowsChanged)
+    Q_PROPERTY(QVariantList mdbBoardRows READ mdbBoardRows NOTIFY versionRowsChanged)
+    Q_PROPERTY(QVariantList dbcBoardRows READ dbcBoardRows NOTIFY versionRowsChanged)
+    Q_PROPERTY(QVariantList nrfBoardRows READ nrfBoardRows NOTIFY versionRowsChanged)
+    Q_PROPERTY(QVariantList ecuBoardRows READ ecuBoardRows NOTIFY versionRowsChanged)
     Q_PROPERTY(QString mdbVersion READ mdbVersion NOTIFY versionRowsChanged)
     Q_PROPERTY(QString mdbVersionId READ mdbVersionId NOTIFY versionRowsChanged)
     Q_PROPERTY(QString dbcVersion READ dbcVersion NOTIFY versionRowsChanged)
@@ -21,10 +24,13 @@ public:
     explicit SystemInfoService(MdbRepository *repo, QObject *parent = nullptr);
 
     QVariantList versionRows() const { return m_versionRows; }
-    // Board identity from the `system` hash: flavor, environment and the OCOTP
-    // serials. Rows are omitted when the underlying field is absent, which is
-    // normal: nothing currently populates the MDB serials on every unit.
-    QVariantList deviceRows() const { return m_deviceRows; }
+    // Per-board identity blocks for the System > Info device page: one row
+    // list each for MDB, DBC, nRF and ECU. Rows carry a translation key rather
+    // than a label, and are omitted when the underlying field is absent.
+    QVariantList mdbBoardRows() const { return m_mdbBoardRows; }
+    QVariantList dbcBoardRows() const { return m_dbcBoardRows; }
+    QVariantList nrfBoardRows() const { return m_nrfBoardRows; }
+    QVariantList ecuBoardRows() const { return m_ecuBoardRows; }
     QString mdbVersion() const { return m_mdbVersion; }
     // The raw VERSION_ID, not the display string: it is what the release tags
     // are built from, so it is the one channel inference can be run against.
@@ -44,7 +50,10 @@ private:
 
     MdbRepository *m_repo;
     QVariantList m_versionRows; // [{label, value}, ...]
-    QVariantList m_deviceRows;  // [{label, value}, ...]
+    QVariantList m_mdbBoardRows;
+    QVariantList m_dbcBoardRows;
+    QVariantList m_nrfBoardRows;
+    QVariantList m_ecuBoardRows;
     QString m_mdbVersion;
     QString m_mdbVersionId;
     QString m_dbcVersion;

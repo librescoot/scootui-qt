@@ -311,6 +311,10 @@ void SimulatorService::setBatteryCharge(int slot, int percent)
     // Derive voltage from charge (roughly 42V empty to 58.8V full for a 48V pack)
     int mv = 42000 + (percent * 168); // 42000..58800 mV
     setBatteryField(slot, QStringLiteral("voltage"), QString::number(mv));
+    setBatteryField(slot, QStringLiteral("remaining-capacity"),
+                    QString::number((percent * 47000 + 50) / 100));
+    setBatteryField(slot, QStringLiteral("low-soc"),
+                    percent <= 10 ? QStringLiteral("true") : QStringLiteral("false"));
 }
 
 void SimulatorService::setBatteryPresent(int slot, bool present)
@@ -782,6 +786,7 @@ void SimulatorService::loadPreset(const QString &name)
         m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("present"), QStringLiteral("true"));
         m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("charge"), QStringLiteral("95"));
         m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("temperature"), QStringLiteral("23"));
+
         // Pack and board identity, so the System Info screens have something to
         // render. Values are shaped like the real ones, not copied from a unit.
         for (const QString &slot : {QStringLiteral("0"), QStringLiteral("1")}) {
@@ -790,10 +795,15 @@ void SimulatorService::loadPreset(const QString &name)
                         QStringLiteral("T-SIM2200000") + slot + QStringLiteral("42"));
             m_repo->set(hash, QStringLiteral("state-of-health"), QStringLiteral("98"));
             m_repo->set(hash, QStringLiteral("cycle-count"), QStringLiteral("94"));
+            m_repo->set(hash, QStringLiteral("full-capacity"), QStringLiteral("47000"));
             m_repo->set(hash, QStringLiteral("fw-version"), QStringLiteral("2.28"));
             m_repo->set(hash, QStringLiteral("manufacturing-date"), QStringLiteral("2020-09-17"));
             m_repo->set(hash, QStringLiteral("voltage"), QStringLiteral("48464"));
         }
+        m_repo->set(QStringLiteral("version:mdb"), QStringLiteral("version"), QStringLiteral("1.14.0"));
+        m_repo->set(QStringLiteral("version:mdb"), QStringLiteral("version_id"), QStringLiteral("1.14.0-1"));
+        m_repo->set(QStringLiteral("version:dbc"), QStringLiteral("version"), QStringLiteral("1.14.0"));
+        m_repo->set(QStringLiteral("version:dbc"), QStringLiteral("version_id"), QStringLiteral("1.14.0-1"));
         m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("serial-number"),
                     QStringLiteral("T-CBB 2107245036"));
         m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("unique-id"),
@@ -802,6 +812,11 @@ void SimulatorService::loadPreset(const QString &name)
                     QStringLiteral("MAX17301"));
         m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("state-of-health"),
                     QStringLiteral("94"));
+        // remaining/full in µAh, ratio consistent with the 95% charge above
+        m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("remaining-capacity"),
+                    QStringLiteral("22106500"));
+        m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("full-capacity"),
+                    QStringLiteral("23270000"));
         m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("cycle-count"),
                     QStringLiteral("5"));
         m_repo->set(QStringLiteral("version:mdb"), QStringLiteral("serial_number_real"),
@@ -809,6 +824,9 @@ void SimulatorService::loadPreset(const QString &name)
         m_repo->set(QStringLiteral("version:dbc"), QStringLiteral("serial_number_real"),
                     QStringLiteral("0e0421d4ee6ba0ab"));
         setBluetoothMac(QStringLiteral("f6:7e:c2:32:b3:bf"));
+        m_repo->set(QStringLiteral("ble"), QStringLiteral("link-baud"), QStringLiteral("1000000"));
+        m_repo->set(QStringLiteral("ble"), QStringLiteral("link-caps"), QStringLiteral("3"));
+        m_repo->set(QStringLiteral("ble"), QStringLiteral("firmware-update-status"), QStringLiteral("idle"));
         m_repo->set(QStringLiteral("scooter"), QStringLiteral("temperature"), QStringLiteral("18.5"));
         // Use online routing in simulator (no local valhalla). SettingsStore
         // syncs this out of the "settings" hash, not "dashboard".
@@ -1284,6 +1302,10 @@ void SimulatorService::applyDefaults()
 
     // Engine firmware
     m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("fw-version"), QStringLiteral("2.1.0-sim"));
+    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("fw:base-version"), QStringLiteral("1.0"));
+    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("fw:app-version"), QStringLiteral("2.1"));
+    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("motor:rated-power-kw"), QStringLiteral("2.5"));
+    m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("motor:max-speed-kmh"), QStringLiteral("45"));
     m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("kers"), QStringLiteral("on"));
 
     // Battery metadata

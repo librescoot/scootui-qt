@@ -44,7 +44,7 @@ Rectangle {
         })
     }
 
-    // Row labels come from the translation table. deviceRows arrive from C++
+    // Row labels come from the translation table. Board rows arrive from C++
     // carrying a key rather than a label for the same reason.
     //
     // Looking a string up by key defeats QML's dependency tracking, so every
@@ -62,17 +62,37 @@ Rectangle {
         return mv > 0 ? (mv / 1000).toFixed(2) + " V" : ""
     }
 
+    function uVToV(uV) {
+        return uV > 0 ? (uV / 1000000).toFixed(2) + " V" : ""
+    }
+
+    // The main BMS reports capacity in mAh, the connectivity battery's gauge
+    // in µAh; both render as Ah.
+    function mahToAh(mah) {
+        return (mah / 1000).toFixed(1) + " Ah"
+    }
+
+    function uahToAh(uah) {
+        return (uah / 1000000).toFixed(1) + " Ah"
+    }
+
     // ---- Device page ----
 
-    readonly property var versionRows: typeof systemInfoService !== "undefined"
-                                       ? systemInfoService.versionRows : []
-    readonly property var deviceRows: {
+    function keyedRows(src) {
         void systemInfoScreen.lang
-        var src = typeof systemInfoService !== "undefined" ? systemInfoService.deviceRows : []
-        return src.map(function (r) {
+        return (src || []).map(function (r) {
             return { label: systemInfoScreen.t(r.key, r.key), value: r.value }
         })
     }
+
+    readonly property var mdbBoardRows: keyedRows(typeof systemInfoService !== "undefined"
+                                                  ? systemInfoService.mdbBoardRows : null)
+    readonly property var dbcBoardRows: keyedRows(typeof systemInfoService !== "undefined"
+                                                  ? systemInfoService.dbcBoardRows : null)
+    readonly property var nrfBoardRows: keyedRows(typeof systemInfoService !== "undefined"
+                                                  ? systemInfoService.nrfBoardRows : null)
+    readonly property var ecuBoardRows: keyedRows(typeof systemInfoService !== "undefined"
+                                                  ? systemInfoService.ecuBoardRows : null)
 
     // ---- Connectivity page ----
 
@@ -82,7 +102,14 @@ Rectangle {
         { label: "IMSI", value: hasNet ? shown(internetStore.simImsi) : placeholder }
     ]
 
+    // Ordered along the data path: SIM state, registration, then the radio
+    // facts behind them, then what the connection delivers.
     readonly property var networkRows: (void systemInfoScreen.lang, present([
+        { label: t("infoSim", "SIM"), value: hasModem ? modemStore.simState : "" },
+        { label: t("infoRegistration", "Registration"), value: hasModem && modemStore.registration !== ""
+            ? modemStore.registration
+              + (modemStore.isRoaming ? " (" + t("infoRoaming", "roaming") + ")" : "")
+            : "" },
         { label: t("infoOperator", "Operator"), value: hasModem && modemStore.operatorName !== ""
             ? modemStore.operatorName
               + (modemStore.operatorCode !== "" ? " (" + modemStore.operatorCode + ")" : "")
@@ -90,11 +117,6 @@ Rectangle {
         { label: t("infoAccessTech", "Access tech"), value: hasNet ? internetStore.accessTech : "" },
         { label: t("infoSignal", "Signal"), value: hasNet && internetStore.signalQuality > 0
             ? internetStore.signalQuality + "%" : "" },
-        { label: t("infoRegistration", "Registration"), value: hasModem && modemStore.registration !== ""
-            ? modemStore.registration
-              + (modemStore.isRoaming ? " (" + t("infoRoaming", "roaming") + ")" : "")
-            : "" },
-        { label: t("infoSim", "SIM"), value: hasModem ? modemStore.simState : "" },
         { label: t("infoConnectivity", "Connectivity"), value: hasNet ? internetStore.connectivity : "" },
         { label: t("infoIpAddress", "IP address"), value: hasNet ? internetStore.ipAddress : "" }
     ]))
@@ -110,19 +132,59 @@ Rectangle {
 
     // ---- Battery pages ----
 
+    // Row values are either a plain string or a segment list; segments let an
+    // icon glyph sit inside a value (a cycle arrow between the two health
+    // numbers, a low-battery alert after the charge).
+    function seg(text, icon, warning) {
+        var s = { text: text }
+        if (icon) s.icon = true
+        if (warning) s.warning = true
+        return s
+    }
+
+    // Remaining/full Ah with the charge percentage rolled in; falls back to a
+    // plain charge row when the pack never reported a capacity. Low-soc shows
+    // as the battery-alert icon, not a row.
+    function capacityRow(label, remaining, full, charge, toAh, lowSoc) {
+        var segments = []
+        if (full > 0) {
+            segments.push(seg(toAh(remaining) + " / " + toAh(full) + " (" + charge + "%)"))
+        } else if (charge > 0) {
+            label = t("infoCharge", "Charge")
+            segments.push(seg(charge + "%"))
+        } else {
+            return null
+        }
+        if (lowSoc)
+            segments.push(seg(MaterialIcon.iconBatteryAlert, true, true))
+        return { label: label, valueSegments: segments }
+    }
+
+    // Cycles and health share a row: "94 ⟳ / 91%".
+    function healthRow(cycles, soh) {
+        var segments = []
+        if (cycles > 0)
+            segments.push(seg(String(cycles)), seg(MaterialIcon.iconAutorenew, true))
+        if (soh > 0)
+            segments.push(seg((cycles > 0 ? " / " : "") + soh + "%"))
+        return segments.length
+            ? { label: t("infoHealth", "Health"), valueSegments: segments } : null
+    }
+
     function packRows(store) {
         void systemInfoScreen.lang
         if (typeof store === "undefined" || !store.present)
             return []
-        return present([
-            { label: t("infoSerial", "Serial"), value: store.serialNumber },
-            { label: t("infoHealth", "Health"), value: store.stateOfHealth > 0 ? store.stateOfHealth + "%" : "" },
-            { label: t("infoCycles", "Cycles"), value: store.cycleCount > 0 ? String(store.cycleCount) : "" },
-            { label: t("infoCharge", "Charge"), value: store.charge > 0 ? store.charge + "%" : "" },
+        var rows = [
+            capacityRow(t("infoCapacity", "Capacity"), store.remainingCapacity,
+                        store.fullCapacity, store.charge, mahToAh, store.lowSoc),
             { label: t("infoVoltage", "Voltage"), value: mvToV(store.voltage) },
-            { label: t("infoFirmware", "Firmware"), value: store.firmwareVersion },
-            { label: t("infoManufactured", "Manufactured"), value: store.manufacturingDate }
-        ])
+            healthRow(store.cycleCount, store.stateOfHealth),
+            { label: t("infoSerial", "Serial"), value: store.serialNumber },
+            { label: t("infoManufactured", "Manufactured"), value: store.manufacturingDate },
+            { label: t("infoFirmware", "Firmware"), value: store.firmwareVersion }
+        ].filter(function (r) { return r !== null })
+        return present(rows)
     }
 
     readonly property var battery0Rows: typeof battery0Store !== "undefined"
@@ -132,24 +194,23 @@ Rectangle {
 
     readonly property var cbbRows: hasCbb && cbBatteryStore.present
         ? (void systemInfoScreen.lang, present([
+        capacityRow(t("infoCapacity", "Capacity"), cbBatteryStore.remainingCapacity,
+                    cbBatteryStore.fullCapacity, cbBatteryStore.charge, uahToAh, false),
+        { label: t("infoCellVoltage", "Cell voltage"),
+          value: cbBatteryStore.cellVoltage > 0 ? uVToV(cbBatteryStore.cellVoltage) : "" },
+        healthRow(cbBatteryStore.cycleCount, cbBatteryStore.stateOfHealth),
         { label: t("infoSerial", "Serial"), value: cbBatteryStore.serialNumber },
         { label: t("infoUniqueId", "Unique ID"), value: cbBatteryStore.uniqueId },
-        { label: t("infoPartNumber", "Part number"), value: cbBatteryStore.partNumber },
-        { label: t("infoHealth", "Health"), value: cbBatteryStore.stateOfHealth > 0
-            ? cbBatteryStore.stateOfHealth + "%" : "" },
-        { label: t("infoCycles", "Cycles"), value: cbBatteryStore.cycleCount > 0
-            ? String(cbBatteryStore.cycleCount) : "" },
-        { label: t("infoCharge", "Charge"), value: cbBatteryStore.chargeValid
-            ? cbBatteryStore.charge + "%" : "" }
-    ])) : []
+        { label: t("infoPartNumber", "Part number"), value: cbBatteryStore.partNumber }
+    ].filter(function (r) { return r !== null }))) : []
 
     // The AUX pack has no fuel gauge, so charge is a 5-bucket estimate derived
     // from the same ADC reading as the voltage. Label it as such.
     readonly property var auxRows: (void systemInfoScreen.lang, present([
-        { label: t("infoVoltage", "Voltage"), value: hasAux && auxBatteryStore.voltageValid
-            ? mvToV(auxBatteryStore.voltage) : "" },
         { label: t("infoChargeEstimated", "Charge (est.)"), value: hasAux && auxBatteryStore.chargeValid
-            ? auxBatteryStore.charge + "%" : "" }
+            ? auxBatteryStore.charge + "%" : "" },
+        { label: t("infoVoltage", "Voltage"), value: hasAux && auxBatteryStore.voltageValid
+            ? mvToV(auxBatteryStore.voltage) : "" }
     ]))
 
     // ---- Maps page ----
@@ -184,31 +245,27 @@ Rectangle {
         return t > 0 ? String(iso).substring(0, t) : String(iso)
     }
 
-    function yesNo(value) {
-        return value === "true" ? t("infoYes", "Yes") : t("infoNo", "No")
-    }
-
     readonly property var mapRegionRows: (void systemInfoScreen.lang, present([
         { label: t("infoRegion", "Region"),
           value: mapInfo["region-name"] || mapInfo["region"] || "" },
         { label: t("infoLastChecked", "Last checked"),
-          value: shortDate(mapInfo["last-update-check"]) },
-        { label: t("infoUpdateAvailable", "Update available"),
-          value: mapInfo["update-available"] !== undefined
-                 ? yesNo(mapInfo["update-available"]) : "" }
+          value: shortDate(mapInfo["last-update-check"])
+                 + (mapInfo["update-available"] === "true"
+                    ? " · " + t("infoUpdateAvailable", "update available") : "") }
     ]))
 
     // An artifact with no entry at all is absent from disk, which is worth
     // saying outright rather than rendering as a section with no rows.
+    // Freshness first; the checksum goes last as the longest value.
     function tileRows(prefix) {
         void systemInfoScreen.lang
         if (mapInfo[prefix + ":size"] === undefined)
             return [{ label: t("infoStatus", "Status"), value: t("infoNotInstalled", "Not installed") }]
         return present([
-            { label: t("infoSize", "Size"), value: humanBytes(mapInfo[prefix + ":size"]) },
-            { label: t("infoChecksum", "Checksum"), value: shortDigest(mapInfo[prefix + ":sha256"]) },
             { label: t("infoPublished", "Published"), value: shortDate(mapInfo[prefix + ":published-at"]) },
-            { label: t("infoInstalled", "Installed"), value: shortDate(mapInfo[prefix + ":mtime"]) }
+            { label: t("infoInstalled", "Installed"), value: shortDate(mapInfo[prefix + ":mtime"]) },
+            { label: t("infoSize", "Size"), value: humanBytes(mapInfo[prefix + ":size"]) },
+            { label: t("infoChecksum", "Checksum"), value: shortDigest(mapInfo[prefix + ":sha256"]) }
         ])
     }
 
@@ -226,7 +283,8 @@ Rectangle {
         // page is never empty.
         if (page === pageMaps)
             return false
-        return versionRows.length === 0 && deviceRows.length === 0
+        return mdbBoardRows.length === 0 && dbcBoardRows.length === 0
+               && nrfBoardRows.length === 0 && ecuBoardRows.length === 0
     }
 
     readonly property string pageTitle: {
@@ -320,20 +378,33 @@ Rectangle {
                 width: flickable.width
                 spacing: 0
 
+                // One block per board; empty fields are dropped by the service.
                 InfoSection {
                     width: content.width
                     pageActive: systemInfoScreen.page === systemInfoScreen.pageDevice
-                    sectionTitle: typeof translations !== "undefined"
-                                  ? translations.systemInfoFirmware : "FIRMWARE"
-                    rows: systemInfoScreen.versionRows
+                    sectionTitle: "MDB"
+                    rows: systemInfoScreen.mdbBoardRows
                 }
 
                 InfoSection {
                     width: content.width
                     pageActive: systemInfoScreen.page === systemInfoScreen.pageDevice
-                    sectionTitle: typeof translations !== "undefined"
-                                  ? translations.systemInfoBoards : "BOARDS"
-                    rows: systemInfoScreen.deviceRows
+                    sectionTitle: "DBC"
+                    rows: systemInfoScreen.dbcBoardRows
+                }
+
+                InfoSection {
+                    width: content.width
+                    pageActive: systemInfoScreen.page === systemInfoScreen.pageDevice
+                    sectionTitle: "nRF"
+                    rows: systemInfoScreen.nrfBoardRows
+                }
+
+                InfoSection {
+                    width: content.width
+                    pageActive: systemInfoScreen.page === systemInfoScreen.pageDevice
+                    sectionTitle: "ECU"
+                    rows: systemInfoScreen.ecuBoardRows
                 }
 
                 InfoSection {
@@ -529,18 +600,44 @@ Rectangle {
                     font.pixelSize: themeStore.fontBody
                 }
 
+                // Plain string value.
                 Text {
+                    visible: modelData.valueSegments === undefined
                     anchors.left: rowLabel.right
                     anchors.leftMargin: 8
                     anchors.right: parent.right
                     anchors.rightMargin: 20
                     anchors.verticalCenter: parent.verticalCenter
                     horizontalAlignment: Text.AlignRight
-                    text: modelData.value
+                    text: modelData.value || ""
                     color: systemInfoScreen.textPrimary
                     font.pixelSize: themeStore.fontBody
                     font.family: "monospace"
                     elide: Text.ElideRight
+                }
+
+                // Segment value: {text, icon, warning} runs laid out left to
+                // right, right-aligned as a whole. Icons render in the Material
+                // Icons face; warning segments take the warning color.
+                Row {
+                    visible: modelData.valueSegments !== undefined
+                    anchors.right: parent.right
+                    anchors.rightMargin: 20
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 3
+
+                    Repeater {
+                        model: modelData.valueSegments || []
+
+                        delegate: Text {
+                            required property var modelData
+                            text: modelData.text
+                            color: modelData.warning ? themeStore.statusWarning
+                                                     : systemInfoScreen.textPrimary
+                            font.pixelSize: themeStore.fontBody
+                            font.family: modelData.icon ? "Material Icons" : "monospace"
+                        }
+                    }
                 }
             }
         }

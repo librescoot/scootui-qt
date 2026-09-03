@@ -70,7 +70,6 @@ class Translations : public QObject
     Q_PROPERTY(QString menuAppearance READ menuAppearance NOTIFY languageChanged)
     Q_PROPERTY(QString menuVehicle READ menuVehicle NOTIFY languageChanged)
     Q_PROPERTY(QString menuInfo READ menuInfo NOTIFY languageChanged)
-    Q_PROPERTY(QString systemInfoFirmware READ systemInfoFirmware NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoIdentity READ systemInfoIdentity NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoNetwork READ systemInfoNetwork NOTIFY languageChanged)
     Q_PROPERTY(QString menuInfoConnectivity READ menuInfoConnectivity NOTIFY languageChanged)
@@ -79,7 +78,6 @@ class Translations : public QObject
     Q_PROPERTY(QString systemInfoMapsRegion READ systemInfoMapsRegion NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoMapsDisplay READ systemInfoMapsDisplay NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoMapsRouting READ systemInfoMapsRouting NOTIFY languageChanged)
-    Q_PROPERTY(QString systemInfoBoards READ systemInfoBoards NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoBluetooth READ systemInfoBluetooth NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoBattery0 READ systemInfoBattery0 NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoBattery1 READ systemInfoBattery1 NOTIFY languageChanged)
@@ -103,7 +101,6 @@ class Translations : public QObject
     Q_PROPERTY(QString infoDisconnected READ infoDisconnected NOTIFY languageChanged)
     Q_PROPERTY(QString infoSerial READ infoSerial NOTIFY languageChanged)
     Q_PROPERTY(QString infoHealth READ infoHealth NOTIFY languageChanged)
-    Q_PROPERTY(QString infoCycles READ infoCycles NOTIFY languageChanged)
     Q_PROPERTY(QString infoCharge READ infoCharge NOTIFY languageChanged)
     Q_PROPERTY(QString infoChargeEstimated READ infoChargeEstimated NOTIFY languageChanged)
     Q_PROPERTY(QString infoVoltage READ infoVoltage NOTIFY languageChanged)
@@ -111,6 +108,15 @@ class Translations : public QObject
     Q_PROPERTY(QString infoManufactured READ infoManufactured NOTIFY languageChanged)
     Q_PROPERTY(QString infoUniqueId READ infoUniqueId NOTIFY languageChanged)
     Q_PROPERTY(QString infoPartNumber READ infoPartNumber NOTIFY languageChanged)
+    Q_PROPERTY(QString infoCapacity READ infoCapacity NOTIFY languageChanged)
+    Q_PROPERTY(QString infoCellVoltage READ infoCellVoltage NOTIFY languageChanged)
+    Q_PROPERTY(QString infoLinkBaud READ infoLinkBaud NOTIFY languageChanged)
+    Q_PROPERTY(QString infoLinkCaps READ infoLinkCaps NOTIFY languageChanged)
+    Q_PROPERTY(QString infoDfuStatus READ infoDfuStatus NOTIFY languageChanged)
+    Q_PROPERTY(QString infoFwBase READ infoFwBase NOTIFY languageChanged)
+    Q_PROPERTY(QString infoFwApp READ infoFwApp NOTIFY languageChanged)
+    Q_PROPERTY(QString infoRatedPower READ infoRatedPower NOTIFY languageChanged)
+    Q_PROPERTY(QString infoMaxSpeed READ infoMaxSpeed NOTIFY languageChanged)
     Q_PROPERTY(QString faultsEmpty READ faultsEmpty NOTIFY languageChanged)
     Q_PROPERTY(QString faultActive READ faultActive NOTIFY languageChanged)
     Q_PROPERTY(QString faultCleared READ faultCleared NOTIFY languageChanged)
@@ -642,7 +648,6 @@ public:
     QString menuAppearance() const { return lookup("menuAppearance"); }
     QString menuVehicle() const { return lookup("menuVehicle"); }
     QString menuInfo() const { return lookup("menuInfo"); }
-    QString systemInfoFirmware() const { return lookup("systemInfoFirmware"); }
     QString systemInfoIdentity() const { return lookup("systemInfoIdentity"); }
     QString systemInfoNetwork() const { return lookup("systemInfoNetwork"); }
     QString menuInfoConnectivity() const { return lookup("menuInfoConnectivity"); }
@@ -651,7 +656,6 @@ public:
     QString systemInfoMapsRegion() const { return lookup("systemInfoMapsRegion"); }
     QString systemInfoMapsDisplay() const { return lookup("systemInfoMapsDisplay"); }
     QString systemInfoMapsRouting() const { return lookup("systemInfoMapsRouting"); }
-    QString systemInfoBoards() const { return lookup("systemInfoBoards"); }
     QString systemInfoBluetooth() const { return lookup("systemInfoBluetooth"); }
     QString systemInfoBattery0() const { return lookup("systemInfoBattery0"); }
     QString systemInfoBattery1() const { return lookup("systemInfoBattery1"); }
@@ -675,7 +679,6 @@ public:
     QString infoDisconnected() const { return lookup("infoDisconnected"); }
     QString infoSerial() const { return lookup("infoSerial"); }
     QString infoHealth() const { return lookup("infoHealth"); }
-    QString infoCycles() const { return lookup("infoCycles"); }
     QString infoCharge() const { return lookup("infoCharge"); }
     QString infoChargeEstimated() const { return lookup("infoChargeEstimated"); }
     QString infoVoltage() const { return lookup("infoVoltage"); }
@@ -683,6 +686,15 @@ public:
     QString infoManufactured() const { return lookup("infoManufactured"); }
     QString infoUniqueId() const { return lookup("infoUniqueId"); }
     QString infoPartNumber() const { return lookup("infoPartNumber"); }
+    QString infoCapacity() const { return lookup("infoCapacity"); }
+    QString infoCellVoltage() const { return lookup("infoCellVoltage"); }
+    QString infoLinkBaud() const { return lookup("infoLinkBaud"); }
+    QString infoLinkCaps() const { return lookup("infoLinkCaps"); }
+    QString infoDfuStatus() const { return lookup("infoDfuStatus"); }
+    QString infoFwBase() const { return lookup("infoFwBase"); }
+    QString infoFwApp() const { return lookup("infoFwApp"); }
+    QString infoRatedPower() const { return lookup("infoRatedPower"); }
+    QString infoMaxSpeed() const { return lookup("infoMaxSpeed"); }
     QString faultsEmpty() const { return lookup("faultsEmpty"); }
     QString faultActive() const { return lookup("faultActive"); }
     QString faultCleared() const { return lookup("faultCleared"); }
