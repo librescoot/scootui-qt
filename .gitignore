@@ -12,6 +12,9 @@ CMakeFiles/
 cmake_install.cmake
 *.cmake
 !cmake/
+# The negation above only re-includes the directory; the toolchain files inside
+# it still match *.cmake and were being dropped from the repo.
+!cmake/*.cmake
 !CMakeLists.txt
 
 # Qt generated
