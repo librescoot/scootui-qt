@@ -1248,6 +1248,8 @@ void SimulatorService::applyDefaults()
     setSetting(QStringLiteral("dashboard.show-temperature"), QStringLiteral("always"));
     setSetting(QStringLiteral("dashboard.show-cb-battery"), QStringLiteral("always"));
     setSetting(QStringLiteral("dashboard.show-aux-battery"), QStringLiteral("always"));
+    setSetting(QStringLiteral("dashboard.show-road-name"), QStringLiteral("always"));
+    setSetting(QStringLiteral("dashboard.show-speed-limit"), QStringLiteral("always"));
 
     setSetting(QStringLiteral("alarm.enabled"), QStringLiteral("true"));
     setSetting(QStringLiteral("alarm.honk"), QStringLiteral("false"));

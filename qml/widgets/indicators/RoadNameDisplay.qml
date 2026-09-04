@@ -8,7 +8,25 @@ Rectangle {
     property real fontSize: themeStore.fontCaption
     property real maxTextWidth: 200
 
-    visible: roadName.length > 0
+    // Set by whichever screen hosts the pill, so the "Map Only" setting can
+    // tell the two apart. The widget itself is screen-agnostic otherwise.
+    property bool onMapScreen: false
+
+    readonly property string visibilityMode:
+        typeof settingsStore !== "undefined" && settingsStore.showRoadName.length > 0
+        ? settingsStore.showRoadName : "always"
+
+    readonly property bool wantedHere: {
+        switch (visibilityMode) {
+        case "map":        return onMapScreen
+        case "navigating": return typeof navigationService !== "undefined"
+                                  && navigationService.isNavigating
+        case "never":      return false
+        default:           return true
+        }
+    }
+
+    visible: wantedHere && roadName.length > 0
     width: label.width + 8
     height: label.height + 4
     radius: themeStore.radiusBar

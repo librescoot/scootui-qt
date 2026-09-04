@@ -271,6 +271,7 @@ set(QML_FILES
     qml/widgets/indicators/SpeedLimitIndicator.qml
     qml/widgets/indicators/CalendarDayIcon.qml
     qml/widgets/indicators/RoadNameDisplay.qml
+    qml/widgets/indicators/RoadInfoRow.qml
     qml/widgets/blinker/BlinkerOverlay.qml
     qml/widgets/shutdown/ShutdownOverlay.qml
     qml/widgets/components/SvgIcon.qml

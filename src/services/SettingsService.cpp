@@ -163,6 +163,16 @@ void SettingsService::updateShowAuxBattery(const QString &mode)
     writeSetting(QStringLiteral("dashboard.show-aux-battery"), mode);
 }
 
+void SettingsService::updateShowRoadName(const QString &mode)
+{
+    writeSetting(QStringLiteral("dashboard.show-road-name"), mode);
+}
+
+void SettingsService::updateShowSpeedLimit(const QString &mode)
+{
+    writeSetting(QStringLiteral("dashboard.show-speed-limit"), mode);
+}
+
 void SettingsService::updateAlarmEnabled(bool enabled)
 {
     writeSetting(QStringLiteral("alarm.enabled"), enabled ? QStringLiteral("true") : QStringLiteral("false"));

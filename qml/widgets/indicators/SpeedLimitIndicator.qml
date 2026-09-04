@@ -20,7 +20,46 @@ Item {
     readonly property real fieldSize: 102 * u
     readonly property real numeralSize: 72 * u
 
-    visible: isNumeric || speedLimit === "none"
+    // Set by whichever screen hosts the sign, so the "Map Only" setting can
+    // tell the two apart. The widget itself is screen-agnostic otherwise.
+    property bool onMapScreen: false
+
+    readonly property string visibilityMode:
+        typeof settingsStore !== "undefined" && settingsStore.showSpeedLimit.length > 0
+        ? settingsStore.showSpeedLimit : "always"
+
+    readonly property real currentSpeed: typeof engineStore !== "undefined"
+                                         ? engineStore.speed : 0
+    readonly property int limitValue: isNumeric ? parseInt(speedLimit) : 0
+
+    // "Over Limit" latches on above the posted limit and only releases 2 km/h
+    // below it. Without the gap a rider holding 50 in a 50 zone would get a
+    // sign that blinks in and out with every GPS speed wobble.
+    property bool overLimit: false
+    function updateOverLimit() {
+        if (!isNumeric)
+            overLimit = false
+        else if (currentSpeed > limitValue)
+            overLimit = true
+        else if (currentSpeed <= limitValue - 2)
+            overLimit = false
+    }
+    onCurrentSpeedChanged: updateOverLimit()
+    onLimitValueChanged: updateOverLimit()
+    Component.onCompleted: updateOverLimit()
+
+    readonly property bool wantedHere: {
+        switch (visibilityMode) {
+        case "map":        return onMapScreen
+        case "navigating": return typeof navigationService !== "undefined"
+                                  && navigationService.isNavigating
+        case "over-limit": return overLimit
+        case "never":      return false
+        default:           return true
+        }
+    }
+
+    visible: wantedHere && (isNumeric || speedLimit === "none")
     width: iconSize
     height: iconSize
 

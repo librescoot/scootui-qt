@@ -390,6 +390,12 @@ void Translations::initStrings()
     en[QStringLiteral("menuMapView")] = QStringLiteral("Map View");
     de[QStringLiteral("menuMapView")] = QStringLiteral("Kartenansicht");
 
+    en[QStringLiteral("menuRoadName")] = QStringLiteral("Road Name");
+    de[QStringLiteral("menuRoadName")] = QStringLiteral("Stra\u00DFenname");
+
+    en[QStringLiteral("menuSpeedLimit")] = QStringLiteral("Speed Limit");
+    de[QStringLiteral("menuSpeedLimit")] = QStringLiteral("Tempolimit");
+
     en[QStringLiteral("menuView3d")] = QStringLiteral("3D");
     de[QStringLiteral("menuView3d")] = QStringLiteral("3D");
 
@@ -684,6 +690,15 @@ void Translations::initStrings()
 
     en[QStringLiteral("optWhenLow")] = QStringLiteral("When Low");
     de[QStringLiteral("optWhenLow")] = QStringLiteral("Wenn niedrig");
+
+    en[QStringLiteral("optMapOnly")] = QStringLiteral("Map Only");
+    de[QStringLiteral("optMapOnly")] = QStringLiteral("Nur Karte");
+
+    en[QStringLiteral("optWhenNavigating")] = QStringLiteral("When Navigating");
+    de[QStringLiteral("optWhenNavigating")] = QStringLiteral("Bei Navigation");
+
+    en[QStringLiteral("optOverLimit")] = QStringLiteral("Over Limit");
+    de[QStringLiteral("optOverLimit")] = QStringLiteral("Bei \u00DCberschreitung");
 
     // -----------------------------------------------------------------------
     // Control hints

@@ -32,6 +32,8 @@ public:
     Q_INVOKABLE void updateShowTemperature(const QString &mode);
     Q_INVOKABLE void updateShowCbBattery(const QString &mode);
     Q_INVOKABLE void updateShowAuxBattery(const QString &mode);
+    Q_INVOKABLE void updateShowRoadName(const QString &mode);
+    Q_INVOKABLE void updateShowSpeedLimit(const QString &mode);
     Q_INVOKABLE void updateAlarmEnabled(bool enabled);
     Q_INVOKABLE void updateAlarmHonk(bool enabled);
     Q_INVOKABLE void updateAlarmDuration(int seconds);

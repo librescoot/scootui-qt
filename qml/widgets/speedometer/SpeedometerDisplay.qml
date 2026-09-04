@@ -360,22 +360,12 @@ Item {
 
     // Road name + speed limit — below km/h. Sits lower in the gap between the
     // speed-arc endpoints, with a larger limit sign and room for a wider name.
-    Row {
+    RoadInfoRow {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: unitText.bottom
         anchors.topMargin: 12
-        spacing: 4
-
-        SpeedLimitIndicator {
-            iconSize: 36
-            anchors.verticalCenter: parent.verticalCenter
-        }
-
-        RoadNameDisplay {
-            anchors.verticalCenter: parent.verticalCenter
-            fontSize: 12
-            maxTextWidth: 240
-        }
+        fontSize: 12
+        maxTextWidth: 240
     }
 
     // Helper: linear interpolation between two colors, alpha included.

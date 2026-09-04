@@ -53,6 +53,8 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
     connect(m_settings, &SettingsStore::alarmHonkChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::alarmDurationChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::showGpsChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::showRoadNameChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::showSpeedLimitChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::showBluetoothChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::showCloudChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::showInternetChanged, this, &MenuStore::rebuildMenuTree);
@@ -708,6 +710,45 @@ void MenuStore::rebuildMenuTree()
             ->setIsVisible([this]() {
                 return m_settings->mapViewMode() == static_cast<int>(ScootEnums::MapViewMode::View2D);
             });
+    }
+
+    // Road name and speed limit. Both ride on the cluster and the map, so
+    // "Map Only" is a value here rather than a second pair of settings: it is
+    // the combination riders actually ask for (a clean speedometer, an
+    // informative map).
+    {
+        const QString roadNameVal = settings->showRoadName();
+        int roadNameIdx = 0;
+        if (roadNameVal == QLatin1String("map")) roadNameIdx = 1;
+        else if (roadNameVal == QLatin1String("navigating")) roadNameIdx = 2;
+        else if (roadNameVal == QLatin1String("never")) roadNameIdx = 3;
+        mapNavNode->addChild(MenuNode::cycleSetting(QStringLiteral("road_name"),
+            tr->menuRoadName(), {
+                {tr->optAlways(),         [svc]() { svc->updateShowRoadName(QStringLiteral("always")); }},
+                {tr->optMapOnly(),        [svc]() { svc->updateShowRoadName(QStringLiteral("map")); }},
+                {tr->optWhenNavigating(), [svc]() { svc->updateShowRoadName(QStringLiteral("navigating")); }},
+                {tr->optNever(),          [svc]() { svc->updateShowRoadName(QStringLiteral("never")); }},
+            }, roadNameIdx));
+    }
+
+    // The limit sign takes one value the road name has no analogue for:
+    // "Over Limit" shows it only while the rider is exceeding it, turning the
+    // sign into a warning instead of permanent furniture.
+    {
+        const QString limitVal = settings->showSpeedLimit();
+        int limitIdx = 0;
+        if (limitVal == QLatin1String("map")) limitIdx = 1;
+        else if (limitVal == QLatin1String("navigating")) limitIdx = 2;
+        else if (limitVal == QLatin1String("over-limit")) limitIdx = 3;
+        else if (limitVal == QLatin1String("never")) limitIdx = 4;
+        mapNavNode->addChild(MenuNode::cycleSetting(QStringLiteral("speed_limit"),
+            tr->menuSpeedLimit(), {
+                {tr->optAlways(),         [svc]() { svc->updateShowSpeedLimit(QStringLiteral("always")); }},
+                {tr->optMapOnly(),        [svc]() { svc->updateShowSpeedLimit(QStringLiteral("map")); }},
+                {tr->optWhenNavigating(), [svc]() { svc->updateShowSpeedLimit(QStringLiteral("navigating")); }},
+                {tr->optOverLimit(),      [svc]() { svc->updateShowSpeedLimit(QStringLiteral("over-limit")); }},
+                {tr->optNever(),          [svc]() { svc->updateShowSpeedLimit(QStringLiteral("never")); }},
+            }, limitIdx));
     }
 
     // Route Preference (inline cycle: Fastest → Shortest)

@@ -1455,6 +1455,48 @@ ApplicationWindow {
                                 }
                             }
                         }
+                        // Road info visibility. Its own grid because the two
+                        // settings take different option sets from the status
+                        // bar's, and from each other.
+                        GridLayout {
+                            Layout.fillWidth: true
+                            columns: 1
+                            columnSpacing: 16
+                            rowSpacing: 4
+                            Repeater {
+                                model: [
+                                    {key: "dashboard.show-road-name", label: "Road name",
+                                     options: ["always", "map", "navigating", "never"]},
+                                    {key: "dashboard.show-speed-limit", label: "Speed limit",
+                                     options: ["always", "map", "navigating", "over-limit", "never"]}
+                                ]
+                                delegate: RowLayout {
+                                    id: roadInfoRow
+                                    Layout.fillWidth: true
+                                    spacing: 4
+                                    required property var modelData
+                                    property string settingKey: modelData.key
+                                    SimLabel {
+                                        text: roadInfoRow.modelData.label
+                                        labelWidth: 80
+                                    }
+                                    ButtonGroup { id: roadInfoGroup }
+                                    Repeater {
+                                        model: roadInfoRow.modelData.options
+                                        SimButton {
+                                            required property string modelData
+                                            text: modelData
+                                            small: true
+                                            fixedWidth: 84
+                                            ButtonGroup.group: roadInfoGroup
+                                            checkable: true
+                                            onClicked: simulator.setSetting(roadInfoRow.settingKey, modelData)
+                                        }
+                                    }
+                                    Item { Layout.fillWidth: true }
+                                }
+                            }
+                        }
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: 4

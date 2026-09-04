@@ -132,6 +132,8 @@ class Translations : public QObject
     Q_PROPERTY(QString menuOffline READ menuOffline NOTIFY languageChanged)
     Q_PROPERTY(QString menuNavRouting READ menuNavRouting NOTIFY languageChanged)
     Q_PROPERTY(QString menuMapView READ menuMapView NOTIFY languageChanged)
+    Q_PROPERTY(QString menuRoadName READ menuRoadName NOTIFY languageChanged)
+    Q_PROPERTY(QString menuSpeedLimit READ menuSpeedLimit NOTIFY languageChanged)
     Q_PROPERTY(QString menuView3d READ menuView3d NOTIFY languageChanged)
     Q_PROPERTY(QString menuView2d READ menuView2d NOTIFY languageChanged)
     Q_PROPERTY(QString menuOrientation READ menuOrientation NOTIFY languageChanged)
@@ -231,6 +233,9 @@ class Translations : public QObject
     Q_PROPERTY(QString optAlternating READ optAlternating NOTIFY languageChanged)
     Q_PROPERTY(QString dateDayMonth READ dateDayMonth NOTIFY languageChanged)
     Q_PROPERTY(QString optWhenLow READ optWhenLow NOTIFY languageChanged)
+    Q_PROPERTY(QString optMapOnly READ optMapOnly NOTIFY languageChanged)
+    Q_PROPERTY(QString optWhenNavigating READ optWhenNavigating NOTIFY languageChanged)
+    Q_PROPERTY(QString optOverLimit READ optOverLimit NOTIFY languageChanged)
     Q_PROPERTY(QString optOff READ optOff NOTIFY languageChanged)
     Q_PROPERTY(QString optLow READ optLow NOTIFY languageChanged)
     Q_PROPERTY(QString optMedium READ optMedium NOTIFY languageChanged)
@@ -698,6 +703,8 @@ public:
     QString menuOnline() const { return lookup("menuOnline"); }
     QString menuOffline() const { return lookup("menuOffline"); }
     QString menuMapView() const { return lookup("menuMapView"); }
+    QString menuRoadName() const { return lookup("menuRoadName"); }
+    QString menuSpeedLimit() const { return lookup("menuSpeedLimit"); }
     QString menuView3d() const { return lookup("menuView3d"); }
     QString menuView2d() const { return lookup("menuView2d"); }
     QString menuOrientation() const { return lookup("menuOrientation"); }
@@ -800,6 +807,9 @@ public:
     // %1 day, %2 month abbreviation.
     QString dateDayMonth() const { return lookup("dateDayMonth"); }
     QString optWhenLow() const { return lookup("optWhenLow"); }
+    QString optMapOnly() const { return lookup("optMapOnly"); }
+    QString optWhenNavigating() const { return lookup("optWhenNavigating"); }
+    QString optOverLimit() const { return lookup("optOverLimit"); }
 
     // Three-letter month name for the status bar date. Not a Q_PROPERTY
     // because there are twelve of them and QML wants whichever one today

@@ -34,6 +34,8 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(QString showTemperature READ showTemperature NOTIFY showTemperatureChanged)
     Q_PROPERTY(QString showCbBattery READ showCbBattery NOTIFY showCbBatteryChanged)
     Q_PROPERTY(QString showAuxBattery READ showAuxBattery NOTIFY showAuxBatteryChanged)
+    Q_PROPERTY(QString showRoadName READ showRoadName NOTIFY showRoadNameChanged)
+    Q_PROPERTY(QString showSpeedLimit READ showSpeedLimit NOTIFY showSpeedLimitChanged)
     Q_PROPERTY(bool hornWhenSeatboxOpen READ hornWhenSeatboxOpen NOTIFY hornWhenSeatboxOpenChanged)
     Q_PROPERTY(bool alarmEnabled READ alarmEnabled NOTIFY alarmEnabledChanged)
     Q_PROPERTY(bool alarmHonk READ alarmHonk NOTIFY alarmHonkChanged)
@@ -97,6 +99,8 @@ public:
     QString showTemperature() const { return m_showTemperature; }
     QString showCbBattery() const { return m_showCbBattery; }
     QString showAuxBattery() const { return m_showAuxBattery; }
+    QString showRoadName() const { return m_showRoadName; }
+    QString showSpeedLimit() const { return m_showSpeedLimit; }
     bool alarmEnabled() const { return m_alarmEnabled == QLatin1String("true"); }
     bool alarmHonk() const { return m_alarmHonk == QLatin1String("true"); }
     QString alarmDuration() const { return m_alarmDuration; }
@@ -150,6 +154,8 @@ signals:
     void showTemperatureChanged();
     void showCbBatteryChanged();
     void showAuxBatteryChanged();
+    void showRoadNameChanged();
+    void showSpeedLimitChanged();
     void hornWhenSeatboxOpenChanged();
     void alarmEnabledChanged();
     void alarmHonkChanged();
@@ -235,6 +241,15 @@ private:
     // @schema dashboard.show-aux-battery
     // Icon-only indicator. Values: "always", "warning" (SoC <= 50%), "never".
     QString m_showAuxBattery = QStringLiteral("warning");
+    // @schema dashboard.show-road-name
+    // Road-name pill visibility. Values: "always", "map" (map screen only,
+    // cluster stays clean), "navigating" (only while a route is active),
+    // "never".
+    QString m_showRoadName = QStringLiteral("always");
+    // @schema dashboard.show-speed-limit
+    // Speed-limit sign visibility. Same values as the road name plus
+    // "over-limit" (only while the rider exceeds the posted limit).
+    QString m_showSpeedLimit = QStringLiteral("always");
     // @schema scooter.horn-when-seatbox-open
     QString m_hornWhenSeatboxOpen = QStringLiteral("false");
     // @schema alarm.enabled

@@ -39,6 +39,8 @@ SyncSettings SettingsStore::syncSettings() const
             {QStringLiteral("showTemperature"), QStringLiteral("dashboard.show-temperature")},
             {QStringLiteral("showCbBattery"), QStringLiteral("dashboard.show-cb-battery")},
             {QStringLiteral("showAuxBattery"), QStringLiteral("dashboard.show-aux-battery")},
+            {QStringLiteral("showRoadName"), QStringLiteral("dashboard.show-road-name")},
+            {QStringLiteral("showSpeedLimit"), QStringLiteral("dashboard.show-speed-limit")},
             {QStringLiteral("alarmEnabled"), QStringLiteral("alarm.enabled")},
             {QStringLiteral("alarmHonk"), QStringLiteral("alarm.honk")},
             {QStringLiteral("alarmDuration"), QStringLiteral("alarm.duration")},
@@ -124,6 +126,10 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
         if (value != m_showCbBattery) { m_showCbBattery = value; emit showCbBatteryChanged(); }
     } else if (variable == QLatin1String("dashboard.show-aux-battery")) {
         if (value != m_showAuxBattery) { m_showAuxBattery = value; emit showAuxBatteryChanged(); }
+    } else if (variable == QLatin1String("dashboard.show-road-name")) {
+        if (value != m_showRoadName) { m_showRoadName = value; emit showRoadNameChanged(); }
+    } else if (variable == QLatin1String("dashboard.show-speed-limit")) {
+        if (value != m_showSpeedLimit) { m_showSpeedLimit = value; emit showSpeedLimitChanged(); }
     } else if (variable == QLatin1String("alarm.enabled")) {
         if (value != m_alarmEnabled) { m_alarmEnabled = value; emit alarmEnabledChanged(); }
     } else if (variable == QLatin1String("alarm.honk")) {
