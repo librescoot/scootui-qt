@@ -282,6 +282,7 @@ set(QML_FILES
     qml/widgets/components/OverflowChip.qml
     qml/widgets/components/FrostedGlass.qml
     qml/widgets/components/MilestoneConfettiLayer.qml
+    qml/widgets/components/BalancedText.qml
     qml/widgets/map/MapViewWidget.qml
     qml/widgets/map/MapViewContent.qml
     qml/widgets/map/MapViewContentLegacy.qml

@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import "../widgets/components"
 
 Item {
     id: toastOverlay
@@ -69,15 +70,14 @@ Item {
                             }
                         }
 
-                        Text {
+                        BalancedText {
                             id: toastText
                             anchors.verticalCenter: parent.verticalCenter
-                            width: Math.min(implicitWidth, toastOverlay.width - 72 - (toastIcon.visible ? 30 : 0))
+                            maxWidth: toastOverlay.width - 72 - (toastIcon.visible ? 30 : 0)
                             text: modelData.message
                             color: toastItem.contentColor
                             font.pixelSize: themeStore.fontBody
                             font.weight: Font.Medium
-                            wrapMode: Text.WordWrap
                             horizontalAlignment: Text.AlignHCenter
                         }
                     }
