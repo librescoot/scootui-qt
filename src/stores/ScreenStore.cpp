@@ -2,9 +2,10 @@
 #include "SettingsStore.h"
 #include "../repositories/MdbRepository.h"
 
+#include <QMetaEnum>
+
 ScreenStore::ScreenStore(SettingsStore *settings, MdbRepository *repo, QObject *parent)
-    : QObject(parent)
-    , m_repo(repo)
+    : SyncableStore(repo, parent)
 {
     applyMode(settings->mode());
     connect(settings, &SettingsStore::modeChanged, this, [this, settings]() {
@@ -37,6 +38,58 @@ void ScreenStore::publishMenuOpen()
                                                  : QStringLiteral("false"));
 }
 
+QString ScreenStore::screenName(ScootEnums::ScreenMode mode)
+{
+    const QMetaEnum e = QMetaEnum::fromType<ScootEnums::ScreenMode>();
+    return QString::fromLatin1(e.valueToKey(static_cast<int>(mode)));
+}
+
+bool ScreenStore::screenModeFromName(const QString &name, ScootEnums::ScreenMode &out)
+{
+    const QMetaEnum e = QMetaEnum::fromType<ScootEnums::ScreenMode>();
+    bool ok = false;
+    const int v = e.keyToValue(name.toLatin1().constData(), &ok);
+    if (ok) out = static_cast<ScootEnums::ScreenMode>(v);
+    return ok;
+}
+
+void ScreenStore::publishScreen()
+{
+    if (!m_repo) return;
+    m_repo->set(QStringLiteral("dashboard"), QStringLiteral("remote-screen"),
+                screenName(m_currentScreen));
+}
+
+void ScreenStore::applyScreenLocally(ScootEnums::ScreenMode mode)
+{
+    if (mode == m_currentScreen) return;
+    m_currentScreen = mode;
+    publishMenuOpen();
+    emit currentScreenChanged();
+}
+
+SyncSettings ScreenStore::syncSettings() const
+{
+    return {
+        QStringLiteral("dashboard"),
+        500,
+        {
+            {QStringLiteral("remote-screen"), QStringLiteral("remote-screen")},
+        },
+        {},
+        {}
+    };
+}
+
+void ScreenStore::applyFieldUpdate(const QString &variable, const QString &value)
+{
+    if (variable != QLatin1String("remote-screen") || value.isEmpty())
+        return;
+    ScootEnums::ScreenMode mode;
+    if (screenModeFromName(value, mode))
+        applyScreenLocally(mode);
+}
+
 void ScreenStore::applyMode(const QString &mode)
 {
     ScootEnums::ScreenMode target = ScootEnums::ScreenMode::Cluster;
@@ -47,21 +100,15 @@ void ScreenStore::applyMode(const QString &mode)
     else if (mode == QLatin1String("motion-debug"))
         target = ScootEnums::ScreenMode::MotionDebug;
 
-    if (target != m_currentScreen) {
-        m_currentScreen = target;
-        publishMenuOpen();
-        emit currentScreenChanged();
-    }
+    setScreen(static_cast<int>(target));
 }
 
 void ScreenStore::setScreen(int screen)
 {
     auto mode = static_cast<ScootEnums::ScreenMode>(screen);
-    if (mode != m_currentScreen) {
-        m_currentScreen = mode;
-        publishMenuOpen();
-        emit currentScreenChanged();
-    }
+    if (mode == m_currentScreen) return;
+    applyScreenLocally(mode);
+    publishScreen();
 }
 
 void ScreenStore::showAddressSelection()

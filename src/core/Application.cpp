@@ -685,7 +685,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_stores = {engineStore, vehicleStore, battery0Store, battery1Store,
                 gpsStore, motionStore, bluetoothStore, internetStore, modemStore, navigationStore,
                 settingsStore, otaStore, usbStore, speedLimitStore,
-                autoStandbyStore, scooterStore, cbBatteryStore, auxBatteryStore, dashboardStore};
+                autoStandbyStore, scooterStore, cbBatteryStore, auxBatteryStore, dashboardStore,
+                screenStore};
 
     BOOT_MARK("services wired");
 

@@ -1,12 +1,11 @@
 #pragma once
 
-#include <QObject>
+#include "SyncableStore.h"
 #include "models/Enums.h"
 
 class SettingsStore;
-class MdbRepository;
 
-class ScreenStore : public QObject
+class ScreenStore : public SyncableStore
 {
     Q_OBJECT
     Q_PROPERTY(int currentScreen READ currentScreen NOTIFY currentScreenChanged)
@@ -70,11 +69,26 @@ signals:
     void systemInfoPageChanged();
     void umsModeRequested();
 
+protected:
+    SyncSettings syncSettings() const override;
+    void applyFieldUpdate(const QString &variable, const QString &value) override;
+
 private:
     void applyMode(const QString &mode);
     void publishMenuOpen();
+    // Mirrors the current screen into the "dashboard" hash (remote-screen)
+    // so any other scootui-qt instance sharing this Redis - a remote viewer,
+    // or the simulator panel driving a real bench unit - sees and can steer
+    // the same screen. Distinct from settings.dashboard.mode, which is the
+    // persisted boot-time preference (applyMode() below).
+    void publishScreen();
+    // Applies a screen transition without touching Redis. Shared by
+    // setScreen() (publishes afterwards) and applyFieldUpdate() (reacting to
+    // a value already in Redis, so publishing it back would just echo).
+    void applyScreenLocally(ScootEnums::ScreenMode mode);
+    static QString screenName(ScootEnums::ScreenMode mode);
+    static bool screenModeFromName(const QString &name, ScootEnums::ScreenMode &out);
 
-    MdbRepository *m_repo;
     ScootEnums::ScreenMode m_currentScreen = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeAddressSelection = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeAbout = ScootEnums::ScreenMode::Cluster;
