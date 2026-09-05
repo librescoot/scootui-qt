@@ -7,9 +7,12 @@
 #include <QDebug>
 #include <QFile>
 #include <QSoundEffect>
+#include <QTimer>
 #include <QUrl>
 
 namespace {
+
+constexpr int kCueLoadDelayMs = 3500;
 
 quint16 readLe16(const QByteArray &data, qsizetype offset)
 {
@@ -156,7 +159,9 @@ SoundCueService::SoundCueService(VehicleStore *vehicleStore, BatteryStore *batte
     , m_seatboxState(static_cast<ScootEnums::SeatboxLock>(vehicleStore->seatboxLock()))
     , m_blinkerState(static_cast<ScootEnums::BlinkerState>(vehicleStore->blinkerState()))
 {
-    loadCues(assetRoot);
+    QTimer::singleShot(kCueLoadDelayMs, this, [this, assetRoot]() {
+        loadCues(assetRoot);
+    });
 
     connect(vehicleStore, &VehicleStore::stateChanged, this, [this]() {
         const auto next = static_cast<ScootEnums::VehicleState>(m_vehicleStore->state());
