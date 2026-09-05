@@ -212,8 +212,6 @@ void SoundCueService::arm()
     m_battery0Present = m_battery0Store->present();
     m_battery1Present = m_battery1Store->present();
     m_armed = true;
-    if (m_vehicleState == ScootEnums::VehicleState::Parked)
-        playEvent(SoundEvent::VehicleWake);
 }
 
 bool SoundCueService::validateWaveFile(const QString &path, QString *error)

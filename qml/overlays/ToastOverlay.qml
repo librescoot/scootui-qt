@@ -26,13 +26,14 @@ Item {
             // Column no longer has a say. That keeps every toast centered on
             // its own instead of sharing a left edge with its neighbors.
             delegate: Item {
-                width: toastOverlay.width
+                id: toastDelegate
+                width: parent.width
                 height: toastItem.height
 
                 Rectangle {
                     id: toastItem
                     anchors.horizontalCenter: parent.horizontalCenter
-                    width: Math.min(contentRow.implicitWidth + 32, toastOverlay.width - 40)
+                    width: Math.min(contentRow.implicitWidth + 32, toastDelegate.width - 40)
                     height: contentRow.implicitHeight + 16
                     radius: themeStore.radiusCard
                     opacity: 0
@@ -73,7 +74,7 @@ Item {
                         BalancedText {
                             id: toastText
                             anchors.verticalCenter: parent.verticalCenter
-                            maxWidth: toastOverlay.width - 72 - (toastIcon.visible ? 30 : 0)
+                            maxWidth: toastDelegate.width - 72 - (toastIcon.visible ? 30 : 0)
                             text: modelData.message
                             color: toastItem.contentColor
                             font.pixelSize: themeStore.fontBody
