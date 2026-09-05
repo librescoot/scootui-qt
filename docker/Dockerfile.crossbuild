@@ -1,29 +1,48 @@
+# syntax=docker/dockerfile:1.7
+#
 # armhf (i.MX6 / Cortex-A9) cross-build environment for scootui.
 #
 # Base is trixie rather than bookworm because bookworm ships Qt 6.4.2 and no
 # QtLocation at all: QtLocation only came back in Qt 6.5, and QMapLibre needs
 # it. Trixie's 6.8.2 is also much closer to the Qt the DBC image is built
 # against (6.9.x), which matters for anything measuring QML load/startup cost.
+#
+# apt's own cache/lists live under BuildKit cache mounts rather than in the
+# layer itself. That means a layer that has to rebuild (because its RUN
+# command's text or its parent changed) still finds every .deb it needs
+# already on disk instead of refetching them from deb.debian.org, and it also
+# makes the old `apt-get clean && rm -rf /var/lib/apt/lists/*` dance
+# unnecessary: content under a cache mount was never part of the image layer
+# to begin with. `sharing=locked` only matters if two builds of this image run
+# concurrently on the same host.
 FROM debian:trixie AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN dpkg --add-architecture armhf && apt-get update && apt-get upgrade -y
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    dpkg --add-architecture armhf && apt-get update && apt-get upgrade -y
 
 # Native build tools + ARM cross-compiler
-RUN apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get install -y --no-install-recommends \
     build-essential cmake ninja-build pkg-config git curl xz-utils ca-certificates \
     gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
 
 # Native Qt6 tools (moc, rcc, qmlcachegen, etc.)
-RUN apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get install -y --no-install-recommends \
     qt6-base-dev-tools \
     qt6-declarative-dev-tools \
     qt6-tools-dev-tools \
     qt6-l10n-tools
 
 # armhf Qt6 development libraries + QML runtime plugins
-RUN apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get install -y --no-install-recommends \
     qt6-base-dev:armhf \
     qt6-base-private-dev:armhf \
     qt6-declarative-dev:armhf \
@@ -45,8 +64,14 @@ RUN apt-get install -y --no-install-recommends \
     qml6-module-qtlocation:armhf
 
 # scootui's own non-Qt dependencies (CMakeLists: ZLIB, hiredis, libzstd) plus
-# the libraries QMapLibre links against.
-RUN apt-get install -y --no-install-recommends \
+# the libraries QMapLibre links against (curl for tile fetch, ICU and sqlite3
+# for its Qt platform build, png/jpeg for image decode) - QMapLibre's own
+# CMake calls find_package() on several of these directly, so this has to
+# stay in `base`, ahead of the `qmaplibre` stage below, not deferred to the
+# final stage.
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get install -y --no-install-recommends \
     zlib1g-dev:armhf \
     libhiredis-dev:armhf \
     libzstd-dev:armhf \
@@ -54,8 +79,7 @@ RUN apt-get install -y --no-install-recommends \
     libicu-dev:armhf \
     libsqlite3-dev:armhf \
     libpng-dev:armhf \
-    libjpeg-dev:armhf \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    libjpeg-dev:armhf
 
 
 # ---------------------------------------------------------------------------
