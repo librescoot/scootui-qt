@@ -43,6 +43,14 @@ void EnvConfig::initialize()
         }
     }
 
+    // Hide the USB-backup-connection toast: SCOOTUI_HIDE_USB_WARNING=1/true/on
+    const QString hideUsbStr = env.value(QStringLiteral("SCOOTUI_HIDE_USB_WARNING")).trimmed().toLower();
+    if (hideUsbStr == QLatin1String("1") || hideUsbStr == QLatin1String("true")
+        || hideUsbStr == QLatin1String("on") || hideUsbStr == QLatin1String("yes")) {
+        m_hideUsbWarning = true;
+        qDebug() << "USB connection warning suppressed by environment";
+    }
+
     // Redis host: SCOOTUI_REDIS_HOST=host:port or just host
     const QString redisStr = env.value(QStringLiteral("SCOOTUI_REDIS_HOST"));
     if (!redisStr.isEmpty()) {

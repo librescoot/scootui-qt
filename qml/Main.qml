@@ -126,7 +126,8 @@ Window {
         }
         function onUsingBackupConnectionChanged() {
             if (typeof connectionStore !== "undefined" && typeof toastService !== "undefined") {
-                if (connectionStore.usingBackupConnection) {
+                const hideWarning = typeof hideUsbWarning !== "undefined" && hideUsbWarning
+                if (connectionStore.usingBackupConnection && !hideWarning) {
                     toastService.showPermanentError(
                         typeof translations !== "undefined"
                             ? translations.usbDisconnected

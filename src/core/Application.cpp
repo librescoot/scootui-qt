@@ -808,6 +808,7 @@ void Application::registerContextProperties(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("appWidth"), EnvConfig::resolution().width());
     ctx->setContextProperty(QStringLiteral("appHeight"), EnvConfig::resolution().height());
     ctx->setContextProperty(QStringLiteral("scaleFactor"), EnvConfig::scaleFactor());
+    ctx->setContextProperty(QStringLiteral("hideUsbWarning"), EnvConfig::hideUsbWarning());
 
     m_bootGate = new BootGate(this);
     connect(m_bootGate, &BootGate::clusterWarmChanged, this, [this]() {

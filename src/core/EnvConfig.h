@@ -26,6 +26,13 @@ public:
         return m_simulatorOverride < 0 ? inMemoryBackend : m_simulatorOverride > 0;
     }
 
+    // SCOOTUI_HIDE_USB_WARNING=1 suppresses the "USB connection interrupted"
+    // toast. Dev-only escape hatch: a dev box plugged into the MDB's single
+    // USB port displaces the DBC onto the PPP backup link by design (see
+    // CLAUDE.md), which is expected there but a real signal on a real
+    // vehicle, so this is never set in production.
+    static bool hideUsbWarning() { return m_hideUsbWarning; }
+
 private:
     static inline QSize m_resolution{defaultWidth, defaultHeight};
     static inline qreal m_scaleFactor = 1.0;
@@ -33,4 +40,5 @@ private:
     static inline int m_redisPort = 6379;
     // -1 unset, 0 forced off, 1 forced on
     static inline int m_simulatorOverride = -1;
+    static inline bool m_hideUsbWarning = false;
 };
