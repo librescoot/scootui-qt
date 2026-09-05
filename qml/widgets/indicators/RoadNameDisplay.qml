@@ -36,7 +36,7 @@ Rectangle {
         switch (roadType.toLowerCase()) {
             case "motorway":
             case "trunk":       return "#1565C0"  // blue
-            case "primary":     return "#FFB300"  // amber
+            case "primary":     return "#FFF300"  // traffic yellow
             case "secondary":   return "#FFFFFF"
             case "tertiary":    return "#FFFFFF"
             case "residential":
