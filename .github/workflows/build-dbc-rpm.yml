@@ -150,6 +150,9 @@ jobs:
 
           with open('docker/entrypoint.sh', 'r') as f:
               content = f.read()
+          meta_default = '${LAYER_VERSION_meta_librescoot:-wrynose}'
+          assert meta_default in content, 'meta-librescoot clone ref not found'
+          content = content.replace(meta_default, '${META_LIBRESCOOT_BRANCH:-wrynose}', 1)
           lines = [
               '# Concurrency capped for this runner, see the workflow for the reasoning.',
               f'echo "BB_NUMBER_THREADS = \\"{threads}\\"" >> /yocto/build/conf/local.conf',
@@ -203,6 +206,7 @@ jobs:
           # Our patched entrypoint.sh will write the _QT variants to local.conf after the target overwrite.
           # Our patched build.sh will pass them through to Docker.
           BUILD_CHANNEL="nightly" \
+          META_LIBRESCOOT_BRANCH="feat/scootui-sound-cues" \
           LIBRESCOOT_VERSION="${{ needs.generate-timestamp.outputs.timestamp }}" \
           SCOOTUI_QT_VERSION_UPDATE="1.0.0+git${{ needs.generate-timestamp.outputs.timestamp }}" \
           SCOOTUI_QT_SRCREV="${{ steps.scootui-qt-ref.outputs.commit }}" \
