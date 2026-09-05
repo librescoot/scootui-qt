@@ -1,6 +1,7 @@
 #include "SoundCueService.h"
 
 #include "services/ToastService.h"
+#include "stores/BatteryStore.h"
 #include "stores/VehicleStore.h"
 
 #include <QDebug>
@@ -35,11 +36,16 @@ bool isShutdownState(ScootEnums::VehicleState state)
 QString cueFileName(SoundCue cue)
 {
     switch (cue) {
+    case SoundCue::Wake: return QStringLiteral("state-wake.wav");
     case SoundCue::Ready: return QStringLiteral("state-ready.wav");
     case SoundCue::Parked: return QStringLiteral("state-parked.wav");
     case SoundCue::Shutdown: return QStringLiteral("state-shutdown.wav");
     case SoundCue::IndicatorOn: return QStringLiteral("indicator-on.wav");
     case SoundCue::IndicatorOff: return QStringLiteral("indicator-off.wav");
+    case SoundCue::BatteryInsert: return QStringLiteral("battery-insert.wav");
+    case SoundCue::BatteryRemove: return QStringLiteral("battery-remove.wav");
+    case SoundCue::SeatboxOpen: return QStringLiteral("seatbox-open.wav");
+    case SoundCue::SeatboxClosed: return QStringLiteral("seatbox-closed.wav");
     case SoundCue::Info: return QStringLiteral("notification-info.wav");
     case SoundCue::Success: return QStringLiteral("notification-success.wav");
     case SoundCue::Warning: return QStringLiteral("notification-warning.wav");
@@ -51,7 +57,8 @@ QString cueFileName(SoundCue cue)
 
 bool isStateCue(SoundCue cue)
 {
-    return cue == SoundCue::Ready || cue == SoundCue::Parked || cue == SoundCue::Shutdown;
+    return cue == SoundCue::Wake || cue == SoundCue::Ready
+        || cue == SoundCue::Parked || cue == SoundCue::Shutdown;
 }
 
 } // namespace
@@ -64,6 +71,8 @@ SoundEvent SoundCueMapping::vehicleTransition(ScootEnums::VehicleState from,
         return SoundEvent::None;
     if (to == State::ReadyToDrive)
         return SoundEvent::VehicleReady;
+    if (to == State::Parked && from == State::StandBy)
+        return SoundEvent::VehicleWake;
     if (to == State::Parked && from == State::ReadyToDrive)
         return SoundEvent::VehicleParked;
     if (isShutdownState(to) && !isShutdownState(from))
@@ -71,15 +80,32 @@ SoundEvent SoundCueMapping::vehicleTransition(ScootEnums::VehicleState from,
     return SoundEvent::None;
 }
 
-SoundEvent SoundCueMapping::indicatorTransition(ScootEnums::BlinkerState from,
-                                                 ScootEnums::BlinkerState to)
+SoundEvent SoundCueMapping::indicatorPhase(qreal previousOpacity, qreal opacity, bool active)
 {
-    using State = ScootEnums::BlinkerState;
+    constexpr qreal threshold = 0.02;
+    if (!active)
+        return SoundEvent::None;
+    if (previousOpacity <= threshold && opacity > threshold)
+        return SoundEvent::IndicatorOn;
+    if (previousOpacity > threshold && opacity <= threshold)
+        return SoundEvent::IndicatorOff;
+    return SoundEvent::None;
+}
+
+SoundEvent SoundCueMapping::batteryPresence(bool wasPresent, bool present)
+{
+    if (wasPresent == present)
+        return SoundEvent::None;
+    return present ? SoundEvent::BatteryInserted : SoundEvent::BatteryRemoved;
+}
+
+SoundEvent SoundCueMapping::seatboxTransition(ScootEnums::SeatboxLock from,
+                                               ScootEnums::SeatboxLock to)
+{
     if (from == to)
         return SoundEvent::None;
-    if (to == State::Off)
-        return SoundEvent::IndicatorOff;
-    return SoundEvent::IndicatorOn;
+    return to == ScootEnums::SeatboxLock::Open
+        ? SoundEvent::SeatboxOpened : SoundEvent::SeatboxClosed;
 }
 
 SoundEvent SoundCueMapping::notification(const QString &type)
@@ -94,11 +120,16 @@ SoundEvent SoundCueMapping::notification(const QString &type)
 SoundCue SoundCueMapping::cueForEvent(SoundEvent event)
 {
     switch (event) {
+    case SoundEvent::VehicleWake: return SoundCue::Wake;
     case SoundEvent::VehicleReady: return SoundCue::Ready;
     case SoundEvent::VehicleParked: return SoundCue::Parked;
     case SoundEvent::VehicleShutdown: return SoundCue::Shutdown;
     case SoundEvent::IndicatorOn: return SoundCue::IndicatorOn;
     case SoundEvent::IndicatorOff: return SoundCue::IndicatorOff;
+    case SoundEvent::BatteryInserted: return SoundCue::BatteryInsert;
+    case SoundEvent::BatteryRemoved: return SoundCue::BatteryRemove;
+    case SoundEvent::SeatboxOpened: return SoundCue::SeatboxOpen;
+    case SoundEvent::SeatboxClosed: return SoundCue::SeatboxClosed;
     case SoundEvent::NotificationInfo: return SoundCue::Info;
     case SoundEvent::NotificationSuccess: return SoundCue::Success;
     case SoundEvent::NotificationWarning: return SoundCue::Warning;
@@ -108,28 +139,65 @@ SoundCue SoundCueMapping::cueForEvent(SoundEvent event)
     return SoundCue::None;
 }
 
-SoundCueService::SoundCueService(VehicleStore *vehicleStore, ToastService *toastService,
+SoundCueService::SoundCueService(VehicleStore *vehicleStore, BatteryStore *battery0Store,
+                                 BatteryStore *battery1Store, ToastService *toastService,
                                  const QString &assetRoot, QObject *parent)
     : QObject(parent)
     , m_vehicleStore(vehicleStore)
+    , m_battery0Store(battery0Store)
+    , m_battery1Store(battery1Store)
     , m_vehicleState(static_cast<ScootEnums::VehicleState>(vehicleStore->state()))
-    , m_blinkerState(static_cast<ScootEnums::BlinkerState>(vehicleStore->blinkerState()))
+    , m_seatboxState(static_cast<ScootEnums::SeatboxLock>(vehicleStore->seatboxLock()))
 {
     loadCues(assetRoot);
 
     connect(vehicleStore, &VehicleStore::stateChanged, this, [this]() {
         const auto next = static_cast<ScootEnums::VehicleState>(m_vehicleStore->state());
-        playEvent(SoundCueMapping::vehicleTransition(m_vehicleState, next));
+        if (m_armed)
+            playEvent(SoundCueMapping::vehicleTransition(m_vehicleState, next));
         m_vehicleState = next;
     });
-    connect(vehicleStore, &VehicleStore::blinkerStateChanged, this, [this]() {
-        const auto next = static_cast<ScootEnums::BlinkerState>(m_vehicleStore->blinkerState());
-        playEvent(SoundCueMapping::indicatorTransition(m_blinkerState, next));
-        m_blinkerState = next;
+    connect(vehicleStore, &VehicleStore::blinkOpacityChanged, this, [this]() {
+        const qreal next = m_vehicleStore->blinkOpacity();
+        if (m_armed) {
+            const bool active = static_cast<ScootEnums::BlinkerState>(
+                m_vehicleStore->blinkerState()) != ScootEnums::BlinkerState::Off;
+            playEvent(SoundCueMapping::indicatorPhase(m_blinkOpacity, next, active));
+        }
+        m_blinkOpacity = next;
+    });
+    connect(vehicleStore, &VehicleStore::seatboxLockChanged, this, [this]() {
+        const auto next = static_cast<ScootEnums::SeatboxLock>(m_vehicleStore->seatboxLock());
+        if (m_armed)
+            playEvent(SoundCueMapping::seatboxTransition(m_seatboxState, next));
+        m_seatboxState = next;
+    });
+    connect(battery0Store, &BatteryStore::presentChanged, this, [this]() {
+        const bool next = m_battery0Store->present();
+        if (m_armed)
+            playEvent(SoundCueMapping::batteryPresence(m_battery0Present, next));
+        m_battery0Present = next;
+    });
+    connect(battery1Store, &BatteryStore::presentChanged, this, [this]() {
+        const bool next = m_battery1Store->present();
+        if (m_armed)
+            playEvent(SoundCueMapping::batteryPresence(m_battery1Present, next));
+        m_battery1Present = next;
     });
     connect(toastService, &ToastService::toastAdded, this, [this](const QString &type) {
-        playEvent(SoundCueMapping::notification(type));
+        if (m_armed)
+            playEvent(SoundCueMapping::notification(type));
     });
+}
+
+void SoundCueService::arm()
+{
+    m_vehicleState = static_cast<ScootEnums::VehicleState>(m_vehicleStore->state());
+    m_seatboxState = static_cast<ScootEnums::SeatboxLock>(m_vehicleStore->seatboxLock());
+    m_blinkOpacity = m_vehicleStore->blinkOpacity();
+    m_battery0Present = m_battery0Store->present();
+    m_battery1Present = m_battery1Store->present();
+    m_armed = true;
 }
 
 bool SoundCueService::validateWaveFile(const QString &path, QString *error)
@@ -191,7 +259,7 @@ bool SoundCueService::validateWaveFile(const QString &path, QString *error)
 
 void SoundCueService::loadCues(const QString &assetRoot)
 {
-    for (int value = static_cast<int>(SoundCue::Ready);
+    for (int value = static_cast<int>(SoundCue::Wake);
          value <= static_cast<int>(SoundCue::Error); ++value) {
         const auto cue = static_cast<SoundCue>(value);
         const QString path = assetRoot + QLatin1Char('/') + cueFileName(cue);

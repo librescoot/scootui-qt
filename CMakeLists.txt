@@ -314,6 +314,9 @@ set_source_files_properties(qml/widgets/components/MaterialIcon.qml
 
 set(SOUND_CUE_FILES
     assets/sounds/battery-insert.wav
+    assets/sounds/battery-remove.wav
+    assets/sounds/seatbox-open.wav
+    assets/sounds/seatbox-closed.wav
     assets/sounds/state-wake.wav
     assets/sounds/state-ready.wav
     assets/sounds/state-parked.wav
@@ -630,6 +633,8 @@ if(BUILD_TESTING)
         src/services/ToastService.h
         src/stores/VehicleStore.cpp
         src/stores/VehicleStore.h
+        src/stores/BatteryStore.cpp
+        src/stores/BatteryStore.h
         src/stores/SyncableStore.cpp
         src/stores/SyncableStore.h
         src/repositories/MdbRepository.h

@@ -244,7 +244,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_translations = new Translations(this);
     m_autoThemeService = new AutoThemeService(repo, themeStore, this);
     m_toastService = new ToastService(this);
-    m_soundCueService = new SoundCueService(vehicleStore, m_toastService,
+    m_soundCueService = new SoundCueService(vehicleStore, battery0Store, battery1Store,
+                                              m_toastService,
                                               QStringLiteral("qrc:/ScootUI/assets/sounds"), this);
     m_serialNumberService = new SerialNumberService(this);
     m_systemInfoService = new SystemInfoService(repo, this);
@@ -713,6 +714,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
         if (!redisRepo->isDataSeeded())
             redisRepo->prewarmCache(300);
     }
+    m_soundCueService->arm();
     BOOT_MARK("redis prewarm done");
 
     // Start the Redis worker thread (after all channels are registered)

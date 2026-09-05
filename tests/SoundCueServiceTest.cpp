@@ -72,6 +72,8 @@ private slots:
         using State = ScootEnums::VehicleState;
         QCOMPARE(eventValue(SoundCueMapping::vehicleTransition(State::Parked, State::ReadyToDrive)),
                  eventValue(SoundEvent::VehicleReady));
+        QCOMPARE(eventValue(SoundCueMapping::vehicleTransition(State::StandBy, State::Parked)),
+                 eventValue(SoundEvent::VehicleWake));
         QCOMPARE(eventValue(SoundCueMapping::vehicleTransition(State::ReadyToDrive, State::Parked)),
                  eventValue(SoundEvent::VehicleParked));
         QCOMPARE(eventValue(SoundCueMapping::vehicleTransition(State::ReadyToDrive, State::ShuttingDown)),
@@ -84,17 +86,32 @@ private slots:
                  eventValue(SoundEvent::None));
     }
 
-    void mapsIndicatorTransitions()
+    void mapsIndicatorPhases()
     {
-        using State = ScootEnums::BlinkerState;
-        QCOMPARE(eventValue(SoundCueMapping::indicatorTransition(State::Off, State::Left)),
+        QCOMPARE(eventValue(SoundCueMapping::indicatorPhase(0.0, 0.2, true)),
                  eventValue(SoundEvent::IndicatorOn));
-        QCOMPARE(eventValue(SoundCueMapping::indicatorTransition(State::Left, State::Right)),
-                 eventValue(SoundEvent::IndicatorOn));
-        QCOMPARE(eventValue(SoundCueMapping::indicatorTransition(State::Both, State::Off)),
+        QCOMPARE(eventValue(SoundCueMapping::indicatorPhase(0.8, 0.0, true)),
                  eventValue(SoundEvent::IndicatorOff));
-        QCOMPARE(eventValue(SoundCueMapping::indicatorTransition(State::Off, State::Off)),
+        QCOMPARE(eventValue(SoundCueMapping::indicatorPhase(0.2, 0.8, true)),
                  eventValue(SoundEvent::None));
+        QCOMPARE(eventValue(SoundCueMapping::indicatorPhase(0.8, 0.0, false)),
+                 eventValue(SoundEvent::None));
+    }
+
+    void mapsBatteryAndSeatboxTransitions()
+    {
+        QCOMPARE(eventValue(SoundCueMapping::batteryPresence(false, true)),
+                 eventValue(SoundEvent::BatteryInserted));
+        QCOMPARE(eventValue(SoundCueMapping::batteryPresence(true, false)),
+                 eventValue(SoundEvent::BatteryRemoved));
+        QCOMPARE(eventValue(SoundCueMapping::batteryPresence(true, true)),
+                 eventValue(SoundEvent::None));
+        QCOMPARE(eventValue(SoundCueMapping::seatboxTransition(
+                     ScootEnums::SeatboxLock::Closed, ScootEnums::SeatboxLock::Open)),
+                 eventValue(SoundEvent::SeatboxOpened));
+        QCOMPARE(eventValue(SoundCueMapping::seatboxTransition(
+                     ScootEnums::SeatboxLock::Open, ScootEnums::SeatboxLock::Closed)),
+                 eventValue(SoundEvent::SeatboxClosed));
     }
 
     void mapsNotificationsAndCues()
@@ -121,6 +138,9 @@ private slots:
     {
         const QStringList names = {
             QStringLiteral("battery-insert.wav"),
+            QStringLiteral("battery-remove.wav"),
+            QStringLiteral("seatbox-open.wav"),
+            QStringLiteral("seatbox-closed.wav"),
             QStringLiteral("state-wake.wav"),
             QStringLiteral("state-ready.wav"),
             QStringLiteral("state-parked.wav"),
