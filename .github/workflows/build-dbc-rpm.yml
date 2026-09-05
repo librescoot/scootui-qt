@@ -221,22 +221,29 @@ jobs:
           SAFE_BRANCH_NAME="${BRANCH_NAME//\//-}"
           echo "branch=$SAFE_BRANCH_NAME" >> $GITHUB_OUTPUT
 
-      - name: Extract ScootUI-Qt RPM
+      - name: Extract ScootUI-Qt and audio runtime RPMs
         run: |
           rm -rf artifacts
           mkdir -p artifacts/dbc-rpm
+          RPM_ROOT=librescoot/yocto/build/tmp/deploy/rpm
 
-          # Find and copy scootui-qt RPM from the DBC build (exclude dbg and dev variants)
-          SCOOTUI_QT_RPM=$(find librescoot/yocto/build/tmp/deploy/rpm -name "*scootui-qt*.rpm" | grep -v -E -- "-(dbg|dev|src)-" | head -1)
-          if [ -n "$SCOOTUI_QT_RPM" ]; then
-            cp "$SCOOTUI_QT_RPM" artifacts/dbc-rpm/scootui-qt-dbc-${{ steps.sanitize.outputs.branch }}-${{ needs.generate-timestamp.outputs.timestamp }}.rpm
-            echo "Found ScootUI-Qt RPM: $SCOOTUI_QT_RPM"
-            ls -la artifacts/dbc-rpm/
-          else
+          SCOOTUI_QT_RPM=$(find "$RPM_ROOT" -name "*scootui-qt*.rpm" | grep -v -E -- "-(dbg|dev|src)-" | head -1)
+          if [ -z "$SCOOTUI_QT_RPM" ]; then
             echo "ERROR: No ScootUI-Qt RPM found!"
             find librescoot/yocto/build -name "*scootui*.rpm" | head -10
             exit 1
           fi
+          cp "$SCOOTUI_QT_RPM" artifacts/dbc-rpm/scootui-qt-dbc-${{ steps.sanitize.outputs.branch }}-${{ needs.generate-timestamp.outputs.timestamp }}.rpm
+
+          for package in qtmultimedia qtmultimedia-plugins; do
+            rpm=$(find "$RPM_ROOT" -name "${package}-[0-9]*.rpm" | head -1)
+            if [ -z "$rpm" ]; then
+              echo "ERROR: No ${package} runtime RPM found!"
+              exit 1
+            fi
+            cp "$rpm" artifacts/dbc-rpm/
+          done
+          ls -la artifacts/dbc-rpm/
 
       - name: Upload ScootUI-Qt RPM artifact
         uses: actions/upload-artifact@v4
