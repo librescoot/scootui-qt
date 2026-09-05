@@ -44,9 +44,36 @@ ValhallaClient::ValhallaClient(QObject *parent)
 
 void ValhallaClient::setEndpoint(const QString &url)
 {
-    m_endpoint = url;
-    if (!m_endpoint.endsWith(QLatin1Char('/')))
-        m_endpoint.append(QLatin1Char('/'));
+    QString normalized = url;
+    if (!normalized.endsWith(QLatin1Char('/')))
+        normalized.append(QLatin1Char('/'));
+    if (normalized == m_endpoint)
+        return;
+
+    m_endpoint = normalized;
+
+    // Health state belongs to the server we were probing, not this one. Drop
+    // the in-flight probe so its reply can't be read as the new endpoint's
+    // health, forget what the old one told us, and probe the new one now
+    // rather than coasting on the cached verdict for up to HealthCacheMs.
+    if (m_healthReply) {
+        m_healthReply->disconnect(this);
+        m_healthReply->abort();
+        m_healthReply->deleteLater();
+        m_healthReply.clear();
+    }
+    m_probeInFlight = false;
+    m_healthTimer.stop();
+    m_probeBackoffMs = HealthProbeBackoffMinMs;
+
+    bool wasHealthy = m_isHealthy;
+    m_isHealthy = false;
+    m_hasBeenHealthy = false;
+    if (wasHealthy)
+        emit healthChanged();
+
+    qDebug() << "ValhallaClient: endpoint set to" << m_endpoint;
+    checkStatus();
 }
 
 void ValhallaClient::setLanguage(const QString &lang)
