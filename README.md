@@ -18,7 +18,7 @@ simulator panel for development without a vehicle.
 - Provides vector-map rendering, offline map metadata and update handling, road
   information, routing, rerouting, saved locations, and recent destinations.
 - Supports light, dark, and automatic themes; localization; dashboard input;
-  fault and connection feedback; and a desktop simulator.
+  fault and connection feedback; dashboard sound cues; and a desktop simulator.
 - Publishes dashboard readiness and map metadata to the datastore when a
   connection is available.
 
@@ -65,7 +65,7 @@ reference for the keys consumed by a given release.
 ## Build and test
 
 CMake requires C++17, CMake 3.16 or newer, Qt 6.4 or newer with Quick, QML,
-SVG, Network, SQL, and Concurrent, plus `pkg-config`, hiredis, zlib, zstd, and
+SVG, Network, SQL, Concurrent, and Multimedia, plus `pkg-config`, hiredis, zlib, zstd, and
 QMapLibre. QMapLibre is required for a target-equivalent build; desktop mode
 can run without it, with map rendering disabled.
 
@@ -93,7 +93,7 @@ assets under `/usr/share/scootui/glyphs`, and a disabled-by-default systemd
 unit. The i.MX6 unit uses Qt's `eglfs_kms` integration and
 `/etc/scootui-qt-kms.json`; the Raspberry Pi 4 variant sets a 1024 × 600
 resolution. The deployed application requires a suitable Qt 6 runtime,
-QMapLibre, hiredis, zlib, zstd, a Redis-compatible datastore, and, for routing,
+QMapLibre, Qt Multimedia with an available audio output, hiredis, zlib, zstd, a Redis-compatible datastore, and, for routing,
 a reachable Valhalla endpoint and appropriate map data.
 
 Operate it through systemd on the target:

@@ -50,6 +50,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     qt6-svg-dev:armhf \
     qt6-positioning-dev:armhf \
     qt6-location-dev:armhf \
+    qt6-multimedia-dev:armhf \
     libqt6sql6-sqlite:armhf \
     libgl-dev:armhf \
     libglx-dev:armhf \

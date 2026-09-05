@@ -91,6 +91,7 @@ QString ToastService::addToast(const QString &message, const QString &type, bool
     entry.icon = icon;
     m_toasts.append(entry);
     emit toastsChanged();
+    emit toastAdded(type);
 
     if (!permanent) {
         scheduleRemoval(entry.id, type == QLatin1String("error") ? 5000 : 3000);

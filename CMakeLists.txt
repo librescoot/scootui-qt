@@ -15,7 +15,7 @@ option(DESKTOP_MODE "Build for desktop development with simulator panel (QMapLib
 # rendering. Never set this for a device or Yocto build.
 option(SCOOTUI_ALLOW_MISSING_QMAPLIBRE "Configure without QMapLibre instead of failing (reduced build: no map rendering)" OFF)
 
-find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Qml Svg Network Sql Concurrent)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Qml Svg Network Sql Concurrent Multimedia)
 find_package(ZLIB REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(HIREDIS REQUIRED hiredis)
@@ -113,6 +113,7 @@ set(CPP_SOURCES
     src/services/InputHandler.cpp
     src/services/NavigationService.cpp
     src/services/ToastService.cpp
+    src/services/SoundCueService.cpp
     src/services/MapService.cpp
     src/services/LowTemperatureMonitor.cpp
     src/services/BluetoothHealthMonitor.cpp
@@ -193,6 +194,7 @@ set(CPP_HEADERS
     src/services/InputHandler.h
     src/services/NavigationService.h
     src/services/ToastService.h
+    src/services/SoundCueService.h
     src/services/MapService.h
     src/services/MapCameraPolicy.h
     src/services/NavigationCadence.h
@@ -310,6 +312,20 @@ set(QML_FILES
 set_source_files_properties(qml/widgets/components/MaterialIcon.qml
     PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
+set(SOUND_CUE_FILES
+    assets/sounds/battery-insert.wav
+    assets/sounds/state-wake.wav
+    assets/sounds/state-ready.wav
+    assets/sounds/state-parked.wav
+    assets/sounds/state-shutdown.wav
+    assets/sounds/indicator-on.wav
+    assets/sounds/indicator-off.wav
+    assets/sounds/notification-info.wav
+    assets/sounds/notification-success.wav
+    assets/sounds/notification-warning.wav
+    assets/sounds/notification-error.wav
+)
+
 qt_add_qml_module(scootui
     URI ScootUI
     VERSION 1.0
@@ -392,6 +408,7 @@ qt_add_qml_module(scootui
         assets/icons/librescoot-logo-small.png
         assets/icons/nav-setup-qr.png
         assets/icons/ums-docs-qr.png
+        ${SOUND_CUE_FILES}
         assets/routes/route1.json
         assets/routes/route2.json
         assets/routes/route3.json
@@ -427,6 +444,7 @@ target_link_libraries(scootui PRIVATE
     Qt6::Network
     Qt6::Sql
     Qt6::Concurrent
+    Qt6::Multimedia
     ZLIB::ZLIB
     ${HIREDIS_LIBRARIES}
     ${ZSTD_LIBRARIES}
@@ -603,6 +621,31 @@ if(BUILD_TESTING)
     target_link_directories(boot_prefetch_test PRIVATE ${HIREDIS_LIBRARY_DIRS})
     target_link_libraries(boot_prefetch_test PRIVATE Qt6::Core Qt6::Network Qt6::Test ${HIREDIS_LIBRARIES})
     add_test(NAME boot_prefetch_test COMMAND boot_prefetch_test)
+
+    qt_add_executable(sound_cue_service_test
+        tests/SoundCueServiceTest.cpp
+        src/services/SoundCueService.cpp
+        src/services/SoundCueService.h
+        src/services/ToastService.cpp
+        src/services/ToastService.h
+        src/stores/VehicleStore.cpp
+        src/stores/VehicleStore.h
+        src/stores/SyncableStore.cpp
+        src/stores/SyncableStore.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+    )
+    target_include_directories(sound_cue_service_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_compile_definitions(sound_cue_service_test PRIVATE
+        SOUND_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/sounds")
+    qt_add_resources(sound_cue_service_test sound_cue_test_resources
+        PREFIX "/ScootUI"
+        BASE "${CMAKE_CURRENT_SOURCE_DIR}"
+        FILES ${SOUND_CUE_FILES}
+    )
+    target_link_libraries(sound_cue_service_test PRIVATE Qt6::Core Qt6::Multimedia Qt6::Test)
+    add_test(NAME sound_cue_service_test COMMAND sound_cue_service_test)
 
     qt_add_executable(enum_strings_test
         tests/EnumStringsTest.cpp
