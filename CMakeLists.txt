@@ -313,20 +313,20 @@ set_source_files_properties(qml/widgets/components/MaterialIcon.qml
     PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
 set(SOUND_CUE_FILES
-    assets/sounds/battery-insert.wav
-    assets/sounds/battery-remove.wav
+    assets/sounds/battery-inserted.wav
+    assets/sounds/battery-removed.wav
     assets/sounds/seatbox-open.wav
     assets/sounds/seatbox-closed.wav
-    assets/sounds/state-wake.wav
-    assets/sounds/state-ready.wav
-    assets/sounds/state-parked.wav
-    assets/sounds/state-shutdown.wav
-    assets/sounds/indicator-on.wav
-    assets/sounds/indicator-off.wav
-    assets/sounds/notification-info.wav
-    assets/sounds/notification-success.wav
-    assets/sounds/notification-warning.wav
-    assets/sounds/notification-error.wav
+    assets/sounds/scooter-unlock.wav
+    assets/sounds/vehicle-ready-to-drive.wav
+    assets/sounds/vehicle-ready-to-drive-to-parked.wav
+    assets/sounds/scooter-lock.wav
+    assets/sounds/blinker-pulse.wav
+    assets/sounds/blinker-off.wav
+    assets/sounds/toast-info.wav
+    assets/sounds/toast-success.wav
+    assets/sounds/toast-warning.wav
+    assets/sounds/toast-error.wav
 )
 
 qt_add_qml_module(scootui

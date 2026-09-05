@@ -17,8 +17,8 @@ enum class SoundEvent {
     VehicleReady,
     VehicleParked,
     VehicleShutdown,
-    IndicatorOn,
-    IndicatorOff,
+    BlinkerPulse,
+    BlinkerOff,
     BatteryInserted,
     BatteryRemoved,
     SeatboxOpened,
@@ -35,8 +35,8 @@ enum class SoundCue {
     Ready,
     Parked,
     Shutdown,
-    IndicatorOn,
-    IndicatorOff,
+    BlinkerPulse,
+    BlinkerOff,
     BatteryInsert,
     BatteryRemove,
     SeatboxOpen,
@@ -49,7 +49,8 @@ enum class SoundCue {
 
 namespace SoundCueMapping {
 SoundEvent vehicleTransition(ScootEnums::VehicleState from, ScootEnums::VehicleState to);
-SoundEvent indicatorPhase(qreal previousOpacity, qreal opacity, bool active);
+SoundEvent blinkerPhase(qreal previousOpacity, qreal opacity, bool active);
+SoundEvent blinkerTransition(ScootEnums::BlinkerState from, ScootEnums::BlinkerState to);
 SoundEvent batteryPresence(bool wasPresent, bool present);
 SoundEvent seatboxTransition(ScootEnums::SeatboxLock from, ScootEnums::SeatboxLock to);
 SoundEvent notification(const QString &type);
@@ -82,6 +83,7 @@ private:
     QHash<SoundCue, QSoundEffect *> m_effects;
     ScootEnums::VehicleState m_vehicleState;
     ScootEnums::SeatboxLock m_seatboxState;
+    ScootEnums::BlinkerState m_blinkerState;
     qreal m_blinkOpacity = 0.0;
     bool m_battery0Present = false;
     bool m_battery1Present = false;

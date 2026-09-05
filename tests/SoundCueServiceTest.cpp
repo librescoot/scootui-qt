@@ -86,15 +86,26 @@ private slots:
                  eventValue(SoundEvent::None));
     }
 
-    void mapsIndicatorPhases()
+    void mapsBlinkerEvents()
     {
-        QCOMPARE(eventValue(SoundCueMapping::indicatorPhase(0.0, 0.2, true)),
-                 eventValue(SoundEvent::IndicatorOn));
-        QCOMPARE(eventValue(SoundCueMapping::indicatorPhase(0.8, 0.0, true)),
-                 eventValue(SoundEvent::IndicatorOff));
-        QCOMPARE(eventValue(SoundCueMapping::indicatorPhase(0.2, 0.8, true)),
+        using State = ScootEnums::BlinkerState;
+        QCOMPARE(eventValue(SoundCueMapping::blinkerPhase(0.0, 0.2, true)),
+                 eventValue(SoundEvent::BlinkerPulse));
+        QCOMPARE(eventValue(SoundCueMapping::blinkerPhase(0.8, 0.0, true)),
                  eventValue(SoundEvent::None));
-        QCOMPARE(eventValue(SoundCueMapping::indicatorPhase(0.8, 0.0, false)),
+        QCOMPARE(eventValue(SoundCueMapping::blinkerPhase(0.2, 0.8, true)),
+                 eventValue(SoundEvent::None));
+        QCOMPARE(eventValue(SoundCueMapping::blinkerPhase(0.8, 0.0, false)),
+                 eventValue(SoundEvent::None));
+        QCOMPARE(eventValue(SoundCueMapping::blinkerTransition(State::Left, State::Off)),
+                 eventValue(SoundEvent::BlinkerOff));
+        QCOMPARE(eventValue(SoundCueMapping::blinkerTransition(State::Right, State::Off)),
+                 eventValue(SoundEvent::BlinkerOff));
+        QCOMPARE(eventValue(SoundCueMapping::blinkerTransition(State::Both, State::Off)),
+                 eventValue(SoundEvent::BlinkerOff));
+        QCOMPARE(eventValue(SoundCueMapping::blinkerTransition(State::Left, State::Right)),
+                 eventValue(SoundEvent::None));
+        QCOMPARE(eventValue(SoundCueMapping::blinkerTransition(State::Off, State::Left)),
                  eventValue(SoundEvent::None));
     }
 
@@ -137,20 +148,20 @@ private slots:
     void generatedAssetsMeetFormat()
     {
         const QStringList names = {
-            QStringLiteral("battery-insert.wav"),
-            QStringLiteral("battery-remove.wav"),
+            QStringLiteral("battery-inserted.wav"),
+            QStringLiteral("battery-removed.wav"),
             QStringLiteral("seatbox-open.wav"),
             QStringLiteral("seatbox-closed.wav"),
-            QStringLiteral("state-wake.wav"),
-            QStringLiteral("state-ready.wav"),
-            QStringLiteral("state-parked.wav"),
-            QStringLiteral("state-shutdown.wav"),
-            QStringLiteral("indicator-on.wav"),
-            QStringLiteral("indicator-off.wav"),
-            QStringLiteral("notification-info.wav"),
-            QStringLiteral("notification-success.wav"),
-            QStringLiteral("notification-warning.wav"),
-            QStringLiteral("notification-error.wav"),
+            QStringLiteral("scooter-unlock.wav"),
+            QStringLiteral("vehicle-ready-to-drive.wav"),
+            QStringLiteral("vehicle-ready-to-drive-to-parked.wav"),
+            QStringLiteral("scooter-lock.wav"),
+            QStringLiteral("blinker-pulse.wav"),
+            QStringLiteral("blinker-off.wav"),
+            QStringLiteral("toast-info.wav"),
+            QStringLiteral("toast-success.wav"),
+            QStringLiteral("toast-warning.wav"),
+            QStringLiteral("toast-error.wav"),
         };
         for (const QString &name : names) {
             const QString path = QStringLiteral(SOUND_ASSET_DIR) + QLatin1Char('/') + name;
@@ -168,7 +179,7 @@ private slots:
     void validatesEmbeddedAsset()
     {
         QVERIFY(SoundCueService::validateWaveFile(
-            QStringLiteral("qrc:/ScootUI/assets/sounds/state-ready.wav")));
+            QStringLiteral("qrc:/ScootUI/assets/sounds/vehicle-ready-to-drive.wav")));
     }
 
     void validatesWaveAssets()

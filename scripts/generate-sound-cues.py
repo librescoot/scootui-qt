@@ -63,7 +63,14 @@ def add_reverb(samples: list[float]) -> list[float]:
 
 
 def add_chime(
-    samples: list[float], start: float, frequency: float, duration: float, level: float
+    samples: list[float],
+    start: float,
+    frequency: float,
+    duration: float,
+    level: float,
+    attack_duration: float = 0.12,
+    decay_rate: float = 3.2,
+    brightness: float = 0.03,
 ) -> list[float]:
     offset = int(start * SAMPLE_RATE)
     count = int(duration * SAMPLE_RATE)
@@ -71,18 +78,81 @@ def add_chime(
         samples.extend([0.0] * (offset + count - len(samples)))
     phase = 0.0
     for index in range(count):
-        phase += 2.0 * math.pi * frequency / SAMPLE_RATE
         age = index / SAMPLE_RATE
-        attack = min(1.0, age / 0.025)
-        decay = math.exp(-5.5 * age / duration)
-        shimmer = (
-            math.sin(phase)
-            + 0.24 * math.sin(0.5 * phase + 0.2)
-            + 0.24 * math.sin(2.41 * phase + 0.5)
-            + 0.08 * math.sin(3.03 * phase + 1.2)
-        )
-        samples[offset + index] += PEAK * level * attack * decay * shimmer / 1.56
+        phase += 2.0 * math.pi * frequency / SAMPLE_RATE
+        attack = math.sin(0.5 * math.pi * min(1.0, age / attack_duration)) ** 2
+        decay = math.exp(-decay_rate * age / duration)
+        tone = math.sin(phase) + brightness * math.sin(2.0 * phase + 0.4)
+        samples[offset + index] += PEAK * level * attack * decay * tone / (1.0 + brightness)
     return samples
+
+
+def render_blob(
+    name: str,
+    frequency: float,
+    duration: float,
+    level: float,
+    attack: float,
+    fade_start: float,
+    end_tone: tuple[float, float, float, float] | None = None,
+) -> None:
+    count = int(duration * SAMPLE_RATE)
+    mono: list[float] = []
+    phase = 0.0
+    for index in range(count):
+        age = index / SAMPLE_RATE
+        phase += 2.0 * math.pi * frequency / SAMPLE_RATE
+        if age < attack:
+            amplitude = math.sin(0.5 * math.pi * age / attack) ** 2
+        elif age < fade_start:
+            amplitude = 1.0
+        else:
+            progress = (age - fade_start) / (duration - fade_start)
+            amplitude = math.cos(0.5 * math.pi * progress) ** 2
+        pulse = 0.94 + 0.06 * math.sin(2.0 * math.pi * 5.0 * age)
+        tone = (
+            0.78 * math.sin(phase)
+            + 0.14 * math.sin(0.5 * phase + 0.2)
+            + 0.08 * math.sin(2.0 * phase + 0.4)
+        )
+        mono.append(PEAK * level * amplitude * pulse * tone)
+    if end_tone:
+        start, end_frequency, end_duration, end_level = end_tone
+        offset = int(start * SAMPLE_RATE)
+        count = int(end_duration * SAMPLE_RATE)
+        if len(mono) < offset + count:
+            mono.extend([0.0] * (offset + count - len(mono)))
+        phase = 0.0
+        for index in range(count):
+            age = index / SAMPLE_RATE
+            phase += 2.0 * math.pi * end_frequency / SAMPLE_RATE
+            if age < 0.06:
+                amplitude = math.sin(0.5 * math.pi * age / 0.06) ** 2
+            else:
+                progress = (age - 0.06) / (end_duration - 0.06)
+                amplitude = math.cos(0.5 * math.pi * progress) ** 2
+            mono[offset + index] += PEAK * end_level * amplitude * math.sin(phase)
+    write_stereo(name, add_reverb(mono))
+
+
+def render_gong(name: str, frequency: float, duration: float, level: float) -> None:
+    count = int(duration * SAMPLE_RATE)
+    mono: list[float] = []
+    phases = [0.0, 0.0, 0.0, 0.0]
+    ratios = [0.5, 1.0, 1.51, 2.13]
+    weights = [0.10, 0.64, 0.18, 0.08]
+    for index in range(count):
+        age = index / SAMPLE_RATE
+        attack = math.sin(0.5 * math.pi * min(1.0, age / 0.028)) ** 2
+        decay = math.exp(-2.4 * age / duration)
+        if age > duration - 0.16:
+            decay *= math.cos(0.5 * math.pi * (age - duration + 0.16) / 0.16) ** 2
+        body = 0.0
+        for part, (ratio, weight) in enumerate(zip(ratios, weights)):
+            phases[part] += 2.0 * math.pi * frequency * ratio / SAMPLE_RATE
+            body += weight * math.sin(phases[part] + part * 0.3)
+        mono.append(PEAK * level * attack * decay * body)
+    write_stereo(name, mono)
 
 
 def render_drone(
@@ -92,11 +162,15 @@ def render_drone(
     attack: float = 0.035,
     release: float = 0.14,
     chime: tuple[float, float, float, float] | None = None,
+    rounded: bool = False,
+    smooth_levels: bool = False,
+    fizz: bool = False,
 ) -> None:
     total_samples = sum(int(duration * SAMPLE_RATE) for _, _, duration, _ in stages)
     mono: list[float] = []
     phase = 0.0
     elapsed = 0
+    previous_level = stages[0][3]
     for start_frequency, end_frequency, duration, level in stages:
         count = int(duration * SAMPLE_RATE)
         for index in range(count):
@@ -104,53 +178,101 @@ def render_drone(
             frequency = start_frequency * (end_frequency / start_frequency) ** progress
             phase += 2.0 * math.pi * frequency / SAMPLE_RATE
             pulse = 0.86 + 0.14 * math.sin(2.0 * math.pi * 6.5 * elapsed / SAMPLE_RATE)
-            body = (
-                0.62 * math.sin(phase)
-                + 0.23 * math.sin(1.503 * phase + 0.4)
-                + 0.15 * math.sin(2.007 * phase + 1.1)
-            )
-            mono.append(PEAK * level * pulse * envelope(elapsed, total_samples, attack, release) * body)
+            if smooth_levels:
+                blend = min(1.0, index / (0.05 * SAMPLE_RATE))
+                sample_level = previous_level + (level - previous_level) * blend
+            else:
+                sample_level = level
+            if rounded:
+                body = 0.88 * math.sin(phase) + 0.12 * math.sin(2.0 * phase + 0.4)
+            else:
+                body = (
+                    0.62 * math.sin(phase)
+                    + 0.23 * math.sin(1.503 * phase + 0.4)
+                    + 0.15 * math.sin(2.007 * phase + 1.1)
+                )
+            if fizz:
+                overall = elapsed / max(1, total_samples - 1)
+                fizz_age = max(0.0, (overall - 0.32) / 0.68)
+                fizz_envelope = math.sin(math.pi * fizz_age) if fizz_age <= 1.0 else 0.0
+                body += 0.06 * fizz_envelope * (
+                    math.sin(7.13 * phase + 0.3) + math.sin(11.37 * phase + 1.0)
+                )
+            mono.append(PEAK * sample_level * pulse * envelope(elapsed, total_samples, attack, release) * body)
             elapsed += 1
+        previous_level = level
     if chime:
         mono = add_chime(mono, *chime)
     write_stereo(name, add_reverb(mono) if reverb else mono)
 
 
 def main() -> None:
-    cues = {
-        "battery-insert.wav": [(260, 330, 0.18, 0.72), (0, 0, 0.05, 0), (390, 470, 0.32, 0.90)],
-        "battery-remove.wav": [(470, 390, 0.18, 0.78), (0, 0, 0.05, 0), (330, 250, 0.28, 0.72)],
-        "seatbox-open.wav": [(310, 390, 0.12, 0.62), (0, 0, 0.04, 0), (430, 500, 0.16, 0.70)],
-        "seatbox-closed.wav": [(500, 430, 0.12, 0.62), (0, 0, 0.04, 0), (390, 310, 0.16, 0.70)],
-        "state-shutdown.wav": [(420, 330, 0.20, 0.68), (0, 0, 0.04, 0), (300, 190, 0.40, 0.82)],
-        "indicator-on.wav": [(520, 500, 0.09, 0.68)],
-        "indicator-off.wav": [(390, 370, 0.09, 0.58)],
-        "notification-info.wav": [(410, 470, 0.18, 0.70)],
-        "notification-success.wav": [(360, 430, 0.14, 0.70), (0, 0, 0.04, 0), (520, 620, 0.24, 0.84)],
-        "notification-warning.wav": [(330, 300, 0.14, 0.76), (0, 0, 0.07, 0), (330, 300, 0.20, 0.76)],
-        "notification-error.wav": [(290, 250, 0.18, 0.82), (0, 0, 0.04, 0), (230, 190, 0.30, 0.88)],
-    }
+    cues: dict[str, list[Tone]] = {}
     drones = {
-        "state-wake.wav": [(115, 125, 0.65, 0.38), (125, 220, 0.55, 0.90), (220, 220, 1.15, 0.76)],
-        "state-ready.wav": [(190, 190, 0.20, 0.32), (190, 330, 0.25, 0.76), (330, 330, 0.35, 0.56)],
-        "state-parked.wav": [(460, 350, 0.25, 0.75), (350, 180, 0.65, 0.88), (180, 150, 0.22, 0.55)],
+        "scooter-unlock.wav": [(115, 125, 0.65, 0.38), (125, 220, 0.55, 0.90), (220, 220, 1.15, 0.76)],
+        "battery-inserted.wav": [(105, 125, 0.22, 0.48), (125, 225, 0.48, 0.86), (225, 225, 0.38, 0.62)],
+        "battery-removed.wav": [(225, 110, 0.55, 0.76), (110, 70, 0.65, 0.48)],
     }
     for name, tones in cues.items():
         render(name, tones)
     for name, stages in drones.items():
-        if name == "state-wake.wav":
+        if name == "scooter-unlock.wav":
             render_drone(name, stages, reverb=True, attack=0.48, release=0.65)
-        elif name == "state-ready.wav":
+        elif name == "battery-inserted.wav":
             render_drone(
                 name,
                 stages,
                 reverb=True,
-                attack=0.48,
-                release=0.34,
-                chime=(0.45, 560, 0.35, 0.23),
+                attack=0.10,
+                release=0.36,
+                smooth_levels=True,
+            )
+        elif name == "battery-removed.wav":
+            render_drone(
+                name,
+                stages,
+                reverb=True,
+                attack=0.06,
+                release=0.62,
+                rounded=True,
+                smooth_levels=True,
+                fizz=True,
             )
         else:
             render_drone(name, stages)
+    ready = add_chime([], 0, 320, 0.30, 0.15)
+    ready = add_chime(ready, 0.25, 480, 0.58, 0.20)
+    write_stereo("vehicle-ready-to-drive.wav", add_reverb(ready))
+
+    parked = add_chime([], 0, 480, 0.30, 0.15)
+    parked = add_chime(parked, 0.25, 320, 0.58, 0.20)
+    write_stereo("vehicle-ready-to-drive-to-parked.wav", add_reverb(parked))
+
+    shutdown = add_chime([], 0, 240, 0.34, 0.21)
+    shutdown = add_chime(shutdown, 0.27, 160, 0.82, 0.27)
+    write_stereo("scooter-lock.wav", add_reverb(shutdown))
+
+    render_blob("seatbox-open.wav", 420, 0.48, 0.18, 0.10, 0.20)
+    render_blob("seatbox-closed.wav", 280, 0.52, 0.18, 0.10, 0.22)
+
+    render_gong("blinker-pulse.wav", 260, 0.50, 0.55)
+    render_gong("blinker-off.wav", 195, 0.25, 0.40)
+
+    info = add_chime([], 0, 390, 0.46, 0.80)
+    write_stereo("toast-info.wav", add_reverb(info))
+
+    success = add_chime([], 0, 329.63, 0.30, 0.65)
+    success = add_chime(success, 0.24, 493.88, 0.56, 0.85)
+    write_stereo("toast-success.wav", add_reverb(success))
+
+    warning = add_chime([], 0, 260, 0.32, 0.90)
+    warning = add_chime(warning, 0.38, 260, 0.36, 0.90)
+    write_stereo("toast-warning.wav", add_reverb(warning))
+
+    error = add_chime([], 0, 320, 0.17, 0.95, 0.015, 4.5, 0.16)
+    error = add_chime(error, 0.19, 320, 0.17, 1.00, 0.015, 4.5, 0.16)
+    error = add_chime(error, 0.38, 320, 0.23, 1.05, 0.015, 4.5, 0.16)
+    write_stereo("toast-error.wav", add_reverb(error))
 
 
 if __name__ == "__main__":
