@@ -1,6 +1,7 @@
 #include <QtTest>
 
 #include "services/SoundCueService.h"
+#include "services/ToastService.h"
 
 #include <QFile>
 #include <QTemporaryDir>
@@ -123,6 +124,29 @@ private slots:
         QCOMPARE(eventValue(SoundCueMapping::seatboxTransition(
                      ScootEnums::SeatboxLock::Open, ScootEnums::SeatboxLock::Closed)),
                  eventValue(SoundEvent::SeatboxClosed));
+    }
+
+    void suppressesDuplicateActiveToasts()
+    {
+        ToastService toasts;
+        QSignalSpy added(&toasts, &ToastService::toastAdded);
+        QSignalSpy changed(&toasts, &ToastService::toastsChanged);
+
+        toasts.showError(QStringLiteral("Cannot reach routing server"));
+        toasts.showError(QStringLiteral("Cannot reach routing server"));
+        QCOMPARE(toasts.toasts().size(), 1);
+        QCOMPARE(added.count(), 1);
+        QCOMPARE(changed.count(), 1);
+
+        toasts.showWarning(QStringLiteral("Cannot reach routing server"));
+        QCOMPARE(toasts.toasts().size(), 2);
+        QCOMPARE(added.count(), 2);
+
+        const QString firstId = toasts.toasts().first().toMap().value(QStringLiteral("id")).toString();
+        toasts.dismiss(firstId);
+        toasts.showError(QStringLiteral("Cannot reach routing server"));
+        QCOMPARE(toasts.toasts().size(), 2);
+        QCOMPARE(added.count(), 3);
     }
 
     void mapsNotificationsAndCues()

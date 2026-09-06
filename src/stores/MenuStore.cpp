@@ -1192,6 +1192,7 @@ void MenuStore::rebuildMenuTree()
     systemNode->addChild(MenuNode::action(QStringLiteral("capture_logs"),
                                           tr->menuCaptureLogs(), [this]() {
         auto *proc = new QProcess(this);
+        proc->setProperty("completionReported", false);
         proc->setProgram(QStringLiteral("ssh"));
         proc->setArguments({QStringLiteral("-y"), QStringLiteral("mdb"),
                             QStringLiteral("lsc"), QStringLiteral("logs")});
@@ -1199,8 +1200,11 @@ void MenuStore::rebuildMenuTree()
         connect(proc, &QProcess::errorOccurred, this,
                 [this, proc](QProcess::ProcessError err) {
             qWarning() << "[MenuStore] Capture Logs ssh errorOccurred:" << err;
-            if (m_toastService)
-                m_toastService->showError(m_translations->captureLogsToastFailed());
+            if (!proc->property("completionReported").toBool()) {
+                proc->setProperty("completionReported", true);
+                if (m_toastService)
+                    m_toastService->showError(m_translations->captureLogsToastFailed());
+            }
             proc->deleteLater();
         });
 
@@ -1208,11 +1212,14 @@ void MenuStore::rebuildMenuTree()
                 this, [this, proc](int exitCode, QProcess::ExitStatus status) {
             qInfo() << "[MenuStore] Capture Logs ssh finished, exitCode:" << exitCode
                     << "status:" << status;
-            if (m_toastService) {
-                if (status == QProcess::NormalExit && exitCode == 0)
-                    m_toastService->showSuccess(m_translations->captureLogsToastDone());
-                else
-                    m_toastService->showError(m_translations->captureLogsToastFailed());
+            if (!proc->property("completionReported").toBool()) {
+                proc->setProperty("completionReported", true);
+                if (m_toastService) {
+                    if (status == QProcess::NormalExit && exitCode == 0)
+                        m_toastService->showSuccess(m_translations->captureLogsToastDone());
+                    else
+                        m_toastService->showError(m_translations->captureLogsToastFailed());
+                }
             }
             proc->deleteLater();
         });

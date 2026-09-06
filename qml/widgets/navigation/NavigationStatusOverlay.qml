@@ -12,15 +12,13 @@ Item {
     readonly property int statusNavigating: 2
     readonly property int statusRerouting: 3
     readonly property int statusArrived: 4
-    readonly property int statusError: 5
 
     property int navStatus: typeof navigationService !== "undefined"
                             ? navigationService.status : 0
 
     visible: navStatus === statusCalculating ||
              navStatus === statusRerouting ||
-             navStatus === statusArrived ||
-             navStatus === statusError
+             navStatus === statusArrived
 
     // Floating status pill at top-center
     Rectangle {
@@ -35,7 +33,6 @@ Item {
                 case statusCalculating:
                 case statusRerouting: return themeStore.statusNeutral
                 case statusArrived: return themeStore.statusSuccess
-                case statusError: return themeStore.statusError
                 default: return "transparent"
             }
         }
@@ -89,24 +86,12 @@ Item {
                 color: "#FFFFFF"
             }
 
-            // Error icon (Flutter: warning_amber)
-            Text {
-                visible: navStatusOverlay.navStatus === statusError
-                text: MaterialIcon.iconWarningAmber
-                font.family: "Material Icons"
-                font.pixelSize: themeStore.fontBody
-                color: "white"
-            }
-
             Text {
                 text: {
                     switch (navStatusOverlay.navStatus) {
                         case statusCalculating: return translations.navCalculating
                         case statusRerouting: return translations.navRecalculating
                         case statusArrived: return translations.navArrived
-                        case statusError:
-                            return typeof navigationService !== "undefined"
-                                   ? navigationService.errorMessage : translations.navRouteError
                         default: return ""
                     }
                 }

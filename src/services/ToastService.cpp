@@ -69,6 +69,15 @@ void ToastService::dismiss(const QString &id)
 
 QString ToastService::addToast(const QString &message, const QString &type, bool permanent, const QString &id, const QString &icon)
 {
+    if (id.isEmpty()) {
+        for (const auto &toast : std::as_const(m_toasts)) {
+            if (toast.message == message && toast.type == type
+                && toast.permanent == permanent && toast.icon == icon) {
+                return toast.id;
+            }
+        }
+    }
+
     // If an id is provided and already exists, update it
     if (!id.isEmpty()) {
         for (auto &t : m_toasts) {
