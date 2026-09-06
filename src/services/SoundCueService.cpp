@@ -4,11 +4,15 @@
 #include "stores/BatteryStore.h"
 #include "stores/VehicleStore.h"
 
+#include <QAudioDevice>
 #include <QDebug>
 #include <QFile>
+#include <QMediaDevices>
 #include <QSoundEffect>
 #include <QTimer>
 #include <QUrl>
+
+#include <utility>
 
 namespace {
 
@@ -62,6 +66,39 @@ bool isStateCue(SoundCue cue)
 {
     return cue == SoundCue::Wake || cue == SoundCue::Ready
         || cue == SoundCue::Parked || cue == SoundCue::Shutdown;
+}
+
+QAudioDevice selectAudioOutput()
+{
+    const QList<QAudioDevice> outputs = QMediaDevices::audioOutputs();
+    if (outputs.isEmpty())
+        return {};
+
+    const QString configured = qEnvironmentVariable("SCOOTUI_AUDIO_DEVICE");
+    if (!configured.isEmpty()) {
+        for (const auto &device : outputs) {
+            if (QString::fromUtf8(device.id()).compare(configured, Qt::CaseInsensitive) == 0
+                || device.description().compare(configured, Qt::CaseInsensitive) == 0)
+                return device;
+        }
+        qWarning() << "Configured audio output not found:" << configured;
+    }
+
+    for (const auto &device : outputs) {
+        const QString identity = QString::fromUtf8(device.id()) + QLatin1Char(' ')
+            + device.description();
+        if (identity.contains(QLatin1String("tas5720"), Qt::CaseInsensitive))
+            return device;
+    }
+    for (const auto &device : outputs) {
+        const QString identity = QString::fromUtf8(device.id()) + QLatin1Char(' ')
+            + device.description();
+        if (identity.contains(QLatin1String("usb"), Qt::CaseInsensitive))
+            return device;
+    }
+
+    const QAudioDevice defaultOutput = QMediaDevices::defaultAudioOutput();
+    return defaultOutput.isNull() ? outputs.first() : defaultOutput;
 }
 
 } // namespace
@@ -278,6 +315,13 @@ bool SoundCueService::validateWaveFile(const QString &path, QString *error)
 
 void SoundCueService::loadCues(const QString &assetRoot)
 {
+    const QAudioDevice output = selectAudioOutput();
+    if (output.isNull()) {
+        qInfo() << "Sound cues disabled: no audio output available";
+        return;
+    }
+    m_audioAvailable = true;
+
     for (int value = static_cast<int>(SoundCue::Wake);
          value <= static_cast<int>(SoundCue::Error); ++value) {
         const auto cue = static_cast<SoundCue>(value);
@@ -288,15 +332,27 @@ void SoundCueService::loadCues(const QString &assetRoot)
             continue;
         }
 
-        auto *effect = new QSoundEffect(this);
+        auto *effect = new QSoundEffect(output, this);
         effect->setVolume(DefaultVolume);
         effect->setSource(QUrl(path));
-        connect(effect, &QSoundEffect::statusChanged, this, [effect, path]() {
+        connect(effect, &QSoundEffect::statusChanged, this, [this, effect, path]() {
             if (effect->status() == QSoundEffect::Error)
-                qWarning() << "Sound cue playback unavailable:" << path;
+                disableAudio(QStringLiteral("playback unavailable: ") + path);
         });
         m_effects.insert(cue, effect);
     }
+}
+
+void SoundCueService::disableAudio(const QString &reason)
+{
+    if (!m_audioAvailable)
+        return;
+    m_audioAvailable = false;
+    for (auto *effect : std::as_const(m_effects)) {
+        effect->stop();
+        effect->setMuted(true);
+    }
+    qWarning() << "Sound cues disabled:" << reason;
 }
 
 void SoundCueService::playEvent(SoundEvent event)
@@ -306,6 +362,8 @@ void SoundCueService::playEvent(SoundEvent event)
 
 void SoundCueService::playCue(SoundCue cue)
 {
+    if (!m_audioAvailable)
+        return;
     auto *effect = m_effects.value(cue, nullptr);
     if (!effect)
         return;

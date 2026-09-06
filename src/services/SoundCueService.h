@@ -74,6 +74,7 @@ public:
 
 private:
     void loadCues(const QString &assetRoot);
+    void disableAudio(const QString &reason);
     void playEvent(SoundEvent event);
     void playCue(SoundCue cue);
 
@@ -88,4 +89,5 @@ private:
     bool m_battery0Present = false;
     bool m_battery1Present = false;
     bool m_armed = false;
+    bool m_audioAvailable = false;
 };
