@@ -35,6 +35,11 @@ struct MapMetadata {
     std::optional<MapTileInfo> valhallaTiles;
     QString lastUpdateCheck;
     bool updateAvailable = false;
+    // Which tile set the update applies to. An installed digest differing from
+    // the remote manifest sets one side without the other; combined
+    // updateAvailable stays their OR so existing consumers keep working.
+    bool displayUpdateAvailable = false;
+    bool routingUpdateAvailable = false;
 
     QJsonObject toJson() const {
         QJsonObject o;
@@ -47,6 +52,10 @@ struct MapMetadata {
             o[QStringLiteral("lastUpdateCheck")] = lastUpdateCheck;
         if (updateAvailable)
             o[QStringLiteral("updateAvailable")] = true;
+        if (displayUpdateAvailable)
+            o[QStringLiteral("displayUpdateAvailable")] = true;
+        if (routingUpdateAvailable)
+            o[QStringLiteral("routingUpdateAvailable")] = true;
         return o;
     }
 
@@ -59,6 +68,8 @@ struct MapMetadata {
             m.valhallaTiles = MapTileInfo::fromJson(o[QStringLiteral("valhallaTiles")].toObject());
         m.lastUpdateCheck = o[QStringLiteral("lastUpdateCheck")].toString();
         m.updateAvailable = o[QStringLiteral("updateAvailable")].toBool();
+        m.displayUpdateAvailable = o[QStringLiteral("displayUpdateAvailable")].toBool();
+        m.routingUpdateAvailable = o[QStringLiteral("routingUpdateAvailable")].toBool();
         return m;
     }
 

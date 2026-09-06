@@ -162,8 +162,8 @@ static const QLatin1String MapsHash{"maps"};
 // deleted, not left behind describing tiles that are no longer installed.
 static const char *const MapsFields[] = {
     "region", "region-name",
-    "map:sha256", "map:size", "map:published-at", "map:mtime",
-    "routing:sha256", "routing:size", "routing:published-at", "routing:mtime",
+    "map:sha256", "map:size", "map:published-at", "map:mtime", "map:update-available",
+    "routing:sha256", "routing:size", "routing:published-at", "routing:mtime", "routing:update-available",
     "last-update-check", "update-available",
 };
 
@@ -202,6 +202,10 @@ QVariantMap MapDownloadService::collectMapState() const
     put(QStringLiteral("last-update-check"), m_metadata.lastUpdateCheck);
     state.insert(QStringLiteral("update-available"),
                  m_metadata.updateAvailable ? QStringLiteral("true") : QStringLiteral("false"));
+    state.insert(QStringLiteral("map:update-available"),
+                 m_metadata.displayUpdateAvailable ? QStringLiteral("true") : QStringLiteral("false"));
+    state.insert(QStringLiteral("routing:update-available"),
+                 m_metadata.routingUpdateAvailable ? QStringLiteral("true") : QStringLiteral("false"));
 
     return state;
 }
@@ -396,12 +400,13 @@ void MapDownloadService::checkForUpdates()
             return;
         }
 
-        bool hasUpdate = false;
+        bool displayHasUpdate = false;
+        bool routingHasUpdate = false;
         if (m_metadata.displayTiles && !m_metadata.displayTiles->digest.isEmpty()) {
             QString remoteDigest = region[QStringLiteral("map")].toObject()
                                        [QStringLiteral("sha256")].toString();
             if (!remoteDigest.isEmpty() && remoteDigest != m_metadata.displayTiles->digest) {
-                hasUpdate = true;
+                displayHasUpdate = true;
                 qDebug() << "Display map update available:"
                          << m_metadata.displayTiles->digest << "->" << remoteDigest;
             }
@@ -410,13 +415,17 @@ void MapDownloadService::checkForUpdates()
             QString remoteDigest = region[QStringLiteral("valhalla")].toObject()
                                        [QStringLiteral("sha256")].toString();
             if (!remoteDigest.isEmpty() && remoteDigest != m_metadata.valhallaTiles->digest) {
-                hasUpdate = true;
+                routingHasUpdate = true;
                 qDebug() << "Routing map update available:"
                          << m_metadata.valhallaTiles->digest << "->" << remoteDigest;
             }
         }
+        const bool hasUpdate = displayHasUpdate || routingHasUpdate;
 
         m_metadata.lastUpdateCheck = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
+        m_metadata.displayUpdateAvailable = displayHasUpdate;
+        m_metadata.routingUpdateAvailable = routingHasUpdate;
+        m_metadata.updateAvailable = hasUpdate;
         persistMetadata();
 
         // Go idle before announcing the update so a direct-connected slot that
@@ -427,8 +436,6 @@ void MapDownloadService::checkForUpdates()
 
         if (hasUpdate != m_updateAvailable) {
             m_updateAvailable = hasUpdate;
-            m_metadata.updateAvailable = hasUpdate;
-            persistMetadata();
             emit updateAvailableChanged();
         }
 
@@ -1049,9 +1056,11 @@ void MapDownloadService::finishInstall(const QString &installSource, const QStri
 
     if (isDisplay) {
         m_metadata.displayTiles = info;
+        m_metadata.displayUpdateAvailable = false;
         m_displayDone = true;
     } else {
         m_metadata.valhallaTiles = info;
+        m_metadata.routingUpdateAvailable = false;
         m_routingDone = true;
 
         // Restart valhalla service after installing routing maps
@@ -1079,9 +1088,12 @@ void MapDownloadService::finishInstall(const QString &installSource, const QStri
 
 void MapDownloadService::doFinishAll()
 {
-    if (m_updateAvailable) {
-        m_updateAvailable = false;
-        m_metadata.updateAvailable = false;
+    // The per-set flags clear as each set installs, so the combined flag is
+    // now their OR; a single-set download leaves the other set's flag standing.
+    const bool combined = m_metadata.displayUpdateAvailable || m_metadata.routingUpdateAvailable;
+    if (m_updateAvailable != combined) {
+        m_updateAvailable = combined;
+        m_metadata.updateAvailable = combined;
         persistMetadata();
         emit updateAvailableChanged();
     }

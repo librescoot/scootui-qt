@@ -628,4 +628,12 @@ if(BUILD_TESTING)
     target_include_directories(enum_strings_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(enum_strings_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME enum_strings_test COMMAND enum_strings_test)
+
+    qt_add_executable(map_metadata_test
+        tests/MapMetadataTest.cpp
+        src/models/MapMetadata.h
+    )
+    target_include_directories(map_metadata_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(map_metadata_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME map_metadata_test COMMAND map_metadata_test)
 endif()

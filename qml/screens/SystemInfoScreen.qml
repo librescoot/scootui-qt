@@ -256,13 +256,17 @@ Rectangle {
 
     // An artifact with no entry at all is absent from disk, which is worth
     // saying outright rather than rendering as a section with no rows.
-    // Freshness first; the checksum goes last as the longest value.
+    // Freshness first; the checksum goes last as the longest value. The
+    // update suffix is per tile set; the region-wide flag lives in REGION.
     function tileRows(prefix) {
         void systemInfoScreen.lang
         if (mapInfo[prefix + ":size"] === undefined)
             return [{ label: t("infoStatus", "Status"), value: t("infoNotInstalled", "Not installed") }]
         return present([
-            { label: t("infoPublished", "Published"), value: shortDate(mapInfo[prefix + ":published-at"]) },
+            { label: t("infoPublished", "Published"),
+              value: shortDate(mapInfo[prefix + ":published-at"])
+                     + (mapInfo[prefix + ":update-available"] === "true"
+                        ? " · " + t("infoUpdateAvailable", "update available") : "") },
             { label: t("infoInstalled", "Installed"), value: shortDate(mapInfo[prefix + ":mtime"]) },
             { label: t("infoSize", "Size"), value: humanBytes(mapInfo[prefix + ":size"]) },
             { label: t("infoChecksum", "Checksum"), value: shortDigest(mapInfo[prefix + ":sha256"]) }
