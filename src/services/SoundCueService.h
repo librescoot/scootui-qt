@@ -2,6 +2,7 @@
 
 #include "models/Enums.h"
 
+#include <QAudioDevice>
 #include <QHash>
 #include <QObject>
 #include <QString>
@@ -74,6 +75,7 @@ public:
 
 private:
     void loadCues(const QString &assetRoot);
+    void loadNextCue();
     void disableAudio(const QString &reason);
     void playEvent(SoundEvent event);
     void playCue(SoundCue cue);
@@ -82,6 +84,9 @@ private:
     BatteryStore *m_battery0Store;
     BatteryStore *m_battery1Store;
     QHash<SoundCue, QSoundEffect *> m_effects;
+    QAudioDevice m_audioOutput;
+    QString m_assetRoot;
+    int m_nextCue = static_cast<int>(SoundCue::Wake);
     ScootEnums::VehicleState m_vehicleState;
     ScootEnums::SeatboxLock m_seatboxState;
     ScootEnums::BlinkerState m_blinkerState;

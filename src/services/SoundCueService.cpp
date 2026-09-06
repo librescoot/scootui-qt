@@ -16,7 +16,8 @@
 
 namespace {
 
-constexpr int kCueLoadDelayMs = 3500;
+constexpr int kCueLoadDelayMs = 8000;
+constexpr int kCueLoadIntervalMs = 150;
 
 quint16 readLe16(const QByteArray &data, qsizetype offset)
 {
@@ -315,24 +316,28 @@ bool SoundCueService::validateWaveFile(const QString &path, QString *error)
 
 void SoundCueService::loadCues(const QString &assetRoot)
 {
-    const QAudioDevice output = selectAudioOutput();
-    if (output.isNull()) {
+    m_audioOutput = selectAudioOutput();
+    if (m_audioOutput.isNull()) {
         qInfo() << "Sound cues disabled: no audio output available";
         return;
     }
+    m_assetRoot = assetRoot;
     m_audioAvailable = true;
+    loadNextCue();
+}
 
-    for (int value = static_cast<int>(SoundCue::Wake);
-         value <= static_cast<int>(SoundCue::Error); ++value) {
-        const auto cue = static_cast<SoundCue>(value);
-        const QString path = assetRoot + QLatin1Char('/') + cueFileName(cue);
-        QString error;
-        if (!validateWaveFile(path, &error)) {
-            qWarning() << "Sound cue disabled:" << path << error;
-            continue;
-        }
+void SoundCueService::loadNextCue()
+{
+    if (!m_audioAvailable || m_nextCue > static_cast<int>(SoundCue::Error))
+        return;
 
-        auto *effect = new QSoundEffect(output, this);
+    const auto cue = static_cast<SoundCue>(m_nextCue++);
+    const QString path = m_assetRoot + QLatin1Char('/') + cueFileName(cue);
+    QString error;
+    if (!validateWaveFile(path, &error)) {
+        qWarning() << "Sound cue disabled:" << path << error;
+    } else {
+        auto *effect = new QSoundEffect(m_audioOutput, this);
         effect->setVolume(DefaultVolume);
         effect->setSource(QUrl(path));
         connect(effect, &QSoundEffect::statusChanged, this, [this, effect, path]() {
@@ -341,6 +346,9 @@ void SoundCueService::loadCues(const QString &assetRoot)
         });
         m_effects.insert(cue, effect);
     }
+
+    if (m_nextCue <= static_cast<int>(SoundCue::Error))
+        QTimer::singleShot(kCueLoadIntervalMs, this, &SoundCueService::loadNextCue);
 }
 
 void SoundCueService::disableAudio(const QString &reason)
