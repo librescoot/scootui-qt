@@ -43,7 +43,6 @@ Rectangle {
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: 8
                 spacing: 0
 
                 // TBT docks here during navigation; the layout reserves zero
@@ -60,16 +59,27 @@ Rectangle {
                     }
                 }
 
-                BlinkerRow {
+                Item {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 56
-                }
+                    Layout.fillHeight: true
 
-                Item { Layout.fillHeight: true }
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        spacing: 0
 
-                ClusterBottomBar {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 60
+                        BlinkerRow {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 56
+                        }
+
+                        Item { Layout.fillHeight: true }
+
+                        ClusterBottomBar {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 60
+                        }
+                    }
                 }
             }
         }

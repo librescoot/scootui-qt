@@ -276,7 +276,6 @@ Rectangle {
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.margins: 8
 
                 // North-up 2D centres the marker in the space the banner leaves,
                 // so MapService needs to know whether the banner is up. Only the
