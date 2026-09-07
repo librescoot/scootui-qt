@@ -13,6 +13,8 @@ struct ToastEntry {
     QString icon;      // optional qrc icon path, empty = no icon
 };
 
+class NotificationService;
+
 class ToastService : public QObject
 {
     Q_OBJECT
@@ -22,6 +24,7 @@ public:
     explicit ToastService(QObject *parent = nullptr);
 
     QVariantList toasts() const;
+    void setNotificationService(NotificationService *service) { m_notificationService = service; }
 
     Q_INVOKABLE void showInfo(const QString &message);
     Q_INVOKABLE void showError(const QString &message);
@@ -41,4 +44,5 @@ private:
     void scheduleRemoval(const QString &id, int ms);
 
     QList<ToastEntry> m_toasts;
+    NotificationService *m_notificationService = nullptr;
 };

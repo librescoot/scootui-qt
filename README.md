@@ -62,6 +62,33 @@ corresponding datastore hashes and channels; ScootUI Qt does not replace the
 services that own that state. The source settings store is the implementation
 reference for the keys consumed by a given release.
 
+## Unified notifications
+
+The dashboard uses one production notification registry and attention policy for
+navigation, warnings, connection health, faults, coverage, and transient
+feedback. Active conditions are updated and resolved by their owning producer;
+transient events expire by a monotonic display deadline and are retained in a
+bounded in-memory history. Priority arbitration keeps one attention card and,
+when useful, a compact valid navigation companion. Speed, blinkers, telltales,
+and pairing/UMS/system workflows remain independent protected surfaces.
+
+Desktop simulator notification buttons call the same registry API through a
+local-only test source. Enable the simulator explicitly with
+`SCOOTUI_SIMULATOR=1`; notification entries stay in the local UI registry and
+never write simulated faults or real source IDs to a connected datastore:
+
+```sh
+cmake -S . -B build -DDESKTOP_MODE=ON -DBUILD_TESTING=ON
+cmake --build build
+SCOOTUI_REDIS_HOST=none SCOOTUI_SIMULATOR=1 ./build/bin/scootui
+# A live backend is also supported for notification preview:
+SCOOTUI_REDIS_HOST=192.168.7.1 SCOOTUI_SIMULATOR=1 ./build/bin/scootui
+```
+
+For headless captures, use the existing screenshot hook with the production
+registry (the map renderer still requires QMapLibre on a target-equivalent
+build).
+
 ## Build and test
 
 CMake requires C++17, CMake 3.16 or newer, Qt 6.4 or newer with Quick, QML,

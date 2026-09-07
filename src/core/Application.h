@@ -17,6 +17,7 @@ class InputHandler;
 class ShutdownStore;
 class QSocketNotifier;
 class ToastService;
+class NotificationService;
 class SoundCueService;
 class MapService;
 class LowTemperatureMonitor;
@@ -105,6 +106,7 @@ private:
     ShutdownStore *m_shutdownStore = nullptr;
     QSocketNotifier *m_sigTermNotifier = nullptr;
     ToastService *m_toastService = nullptr;
+    NotificationService *m_notificationService = nullptr;
     SoundCueService *m_soundCueService = nullptr;
     MapService *m_mapService = nullptr;
     LowTemperatureMonitor *m_lowTempMonitor = nullptr;

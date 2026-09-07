@@ -80,11 +80,51 @@ Window {
 
     property bool startupGraceElapsed: false
 
+    readonly property string notificationScreenshotPath: {
+        if (typeof simulatorMode === "undefined" || !simulatorMode) return ""
+        var args = Qt.application.arguments
+        for (var i = 0; i < args.length; i++) {
+            var prefix = "--notification-screenshot="
+            if (args[i].indexOf(prefix) === 0) return args[i].substring(prefix.length)
+        }
+        return ""
+    }
+
+    readonly property string notificationScreenshotScreen: {
+        if (typeof simulatorMode === "undefined" || !simulatorMode) return ""
+        var args = Qt.application.arguments
+        for (var i = 0; i < args.length; i++) {
+            var prefix = "--notification-screen="
+            if (args[i].indexOf(prefix) === 0) return args[i].substring(prefix.length)
+        }
+        return ""
+    }
+
+    Component.onCompleted: {
+        if (notificationScreenshotScreen === "map" && typeof screenStore !== "undefined")
+            screenStore.setScreen(Scooter.ScreenMode.Map)
+    }
+
     Timer {
         id: startupTimer
         interval: 5000
         running: true
         onTriggered: root.startupGraceElapsed = true
+    }
+
+    Timer {
+        interval: 3500
+        running: root.notificationScreenshotPath !== ""
+        repeat: false
+        onTriggered: {
+            if (!root.contentItem || !root.notificationScreenshotPath) return
+            root.contentItem.grabToImage(function(result) {
+                if (result.saveToFile(root.notificationScreenshotPath))
+                    console.log("Notification screenshot saved to " + root.notificationScreenshotPath)
+                else
+                    console.warn("Notification screenshot failed: " + root.notificationScreenshotPath)
+            })
+        }
     }
 
     // Cancel startup timer when vehicle state becomes known;
@@ -103,40 +143,6 @@ Window {
                     screenStore.closeFaults()
                 else if (screenStore.currentScreen === Scooter.ScreenMode.SystemInfo)
                     screenStore.closeSystemInfo()
-            }
-        }
-    }
-
-    // Show permanent toast on mid-session Redis disconnect
-    Connections {
-        target: typeof connectionStore !== "undefined" ? connectionStore : null
-        function onProlongedDisconnectChanged() {
-            if (typeof connectionStore !== "undefined" && typeof toastService !== "undefined") {
-                if (connectionStore.prolongedDisconnect && connectionStore.hasEverConnected) {
-                    toastService.showPermanentError(
-                        typeof translations !== "undefined"
-                            ? translations.redisDisconnected
-                            : "System connection lost",
-                        "redis-disconnect"
-                    )
-                } else {
-                    toastService.dismiss("redis-disconnect")
-                }
-            }
-        }
-        function onUsingBackupConnectionChanged() {
-            if (typeof connectionStore !== "undefined" && typeof toastService !== "undefined") {
-                const hideWarning = typeof hideUsbWarning !== "undefined" && hideUsbWarning
-                if (connectionStore.usingBackupConnection && !hideWarning) {
-                    toastService.showPermanentError(
-                        typeof translations !== "undefined"
-                            ? translations.usbDisconnected
-                            : "USB connection interrupted",
-                        "usb-disconnect"
-                    )
-                } else {
-                    toastService.dismiss("usb-disconnect")
-                }
             }
         }
     }
@@ -336,11 +342,6 @@ Window {
                      ? root.activeScreen.bottomBarHeight : 48
         screenAllowed: root.currentScreen === Scooter.ScreenMode.Cluster
                        || root.currentScreen === Scooter.ScreenMode.Map
-    }
-
-    ToastOverlay {
-        anchors.fill: parent
-        z: 900
     }
 
     // Gated on the same condition as the overlay's own `visible`, because

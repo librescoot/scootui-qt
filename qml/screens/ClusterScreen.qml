@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import "../notifications"
 import "../widgets/speedometer"
 import "../widgets/status_bars"
 import "../widgets/cluster"
@@ -25,6 +26,8 @@ Rectangle {
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.topMargin: typeof notificationService !== "undefined" && notificationService
+                              ? notificationService.occupiedHeight : 0
 
             // Rare and event-driven — don't hold up the first paint.
             // Confetti only fires on km milestones, TBT is only visible
@@ -52,7 +55,10 @@ Rectangle {
                 Loader {
                     id: tbtLoader
                     Layout.fillWidth: true
-                    Layout.preferredHeight: (item && item.visible) ? item.implicitHeight : 0
+                    Layout.preferredHeight: (typeof notificationService === "undefined"
+                                             || !notificationService) && item && item.visible
+                                           ? item.implicitHeight : 0
+                    visible: typeof notificationService === "undefined" || !notificationService
                     asynchronous: true
                     sourceComponent: Component {
                         TurnByTurnWidget { anchors.fill: parent }
@@ -91,4 +97,19 @@ Rectangle {
     }
 
     readonly property real bottomBarHeight: bottomBar.height
+
+    UnifiedAttentionDock {
+        id: attentionDock
+        anchors.top: parent.top
+        anchors.topMargin: 40
+        anchors.left: parent.left
+        anchors.right: parent.right
+        z: 20
+    }
+
+    Binding {
+        target: typeof notificationService !== "undefined" ? notificationService : null
+        property: "surface"
+        value: "cluster"
+    }
 }

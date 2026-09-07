@@ -1,4 +1,5 @@
 #include "ToastService.h"
+#include "NotificationService.h"
 #include <QDebug>
 
 ToastService::ToastService(QObject *parent)
@@ -58,6 +59,11 @@ QString ToastService::showPermanentWarning(const QString &message, const QString
 
 void ToastService::dismiss(const QString &id)
 {
+    if (m_notificationService) {
+        m_notificationService->resolveCondition(id);
+        m_notificationService->clearEvent(id);
+        return;
+    }
     for (int i = 0; i < m_toasts.size(); ++i) {
         if (m_toasts[i].id == id) {
             m_toasts.removeAt(i);
@@ -69,6 +75,27 @@ void ToastService::dismiss(const QString &id)
 
 QString ToastService::addToast(const QString &message, const QString &type, bool permanent, const QString &id, const QString &icon)
 {
+    if (m_notificationService) {
+        const QString entryId = id.isEmpty()
+            ? QStringLiteral("toast-") + QString::number(qHash(message + QLatin1Char('\0') + type)) : id;
+        const int priority = type == QLatin1String("error") ? 2
+                           : type == QLatin1String("warning") ? 2
+                           : type == QLatin1String("info") ? 3 : 4;
+        const QString kind = type == QLatin1String("error") ? QStringLiteral("error")
+                           : type == QLatin1String("warning") ? QStringLiteral("warning")
+                           : QStringLiteral("info");
+        if (permanent)
+            m_notificationService->publishCondition(entryId, QStringLiteral("toast"),
+                                                     message, {}, priority, kind, icon);
+        else
+            m_notificationService->publishEvent(entryId, QStringLiteral("toast"),
+                                                 message, {}, priority, kind,
+                                                 type == QLatin1String("error") ? 5000 : 3000);
+        // NotificationService emits the presentation-approved cue. Keep the
+        // legacy signal silent here so an adapted toast cannot sound twice.
+        return entryId;
+    }
+
     if (id.isEmpty()) {
         for (const auto &toast : std::as_const(m_toasts)) {
             if (toast.message == message && toast.type == type

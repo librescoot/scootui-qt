@@ -18,6 +18,8 @@ Item {
     }
     readonly property real motorCurrent: typeof engineStore !== "undefined" ? engineStore.motorCurrent : 0
     readonly property bool ecuStale: typeof engineStore !== "undefined" && engineStore.faultCode === 20
+    readonly property bool telemetryTrustLost: typeof notificationService !== "undefined" && notificationService
+        && notificationService.telemetryTrustLost
     readonly property bool isDark: themeStore.isDark
 
     // Internal animated speed
@@ -341,7 +343,8 @@ Item {
         id: speedText
         anchors.horizontalCenter: parent.horizontalCenter
         y: parent.height / 2 - height / 2
-        text: speedometer.ecuStale ? "—" : Math.floor(speedometer.animatedSpeed).toString()
+        text: speedometer.ecuStale || speedometer.telemetryTrustLost
+              ? "—" : Math.floor(speedometer.animatedSpeed).toString()
         font.pixelSize: themeStore.fontDisplay
         font.weight: Font.Bold
         color: speedometer.isDark ? "#FFFFFF" : "#000000"

@@ -15,6 +15,10 @@ Item {
         return typeof engineStore !== "undefined" ? engineStore.speed : 0
     }
     readonly property bool ecuStale: typeof engineStore !== "undefined" && engineStore.faultCode === 20
+    readonly property bool telemetryTrustLost: typeof notificationService !== "undefined"
+                                                && notificationService.telemetryTrustLost
+    readonly property string displayedSpeed: speedCenter.ecuStale || speedCenter.telemetryTrustLost
+                                             ? "—" : Math.floor(speed).toString()
 
     // Tight bounding rect metrics for pixel-perfect sizing
     TextMetrics {
@@ -39,7 +43,7 @@ Item {
         Text {
             id: speedText
             anchors.horizontalCenter: parent.horizontalCenter
-            text: speedCenter.ecuStale ? "—" : Math.floor(speed).toString()
+            text: speedCenter.displayedSpeed
             font.pixelSize: themeStore.fontXL
             font.weight: Font.Bold
             color: themeStore.textColor

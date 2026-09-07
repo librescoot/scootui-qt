@@ -113,6 +113,8 @@ set(CPP_SOURCES
     src/services/InputHandler.cpp
     src/services/NavigationService.cpp
     src/services/ToastService.cpp
+    src/services/AttentionPolicy.cpp
+    src/services/NotificationService.cpp
     src/services/SoundCueService.cpp
     src/services/MapService.cpp
     src/services/LowTemperatureMonitor.cpp
@@ -194,6 +196,8 @@ set(CPP_HEADERS
     src/services/InputHandler.h
     src/services/NavigationService.h
     src/services/ToastService.h
+    src/services/AttentionPolicy.h
+    src/services/NotificationService.h
     src/services/SoundCueService.h
     src/services/MapService.h
     src/services/MapCameraPolicy.h
@@ -307,9 +311,11 @@ set(QML_FILES
     qml/overlays/DebugOverlay.qml
     qml/overlays/ServiceModeOverlay.qml
     qml/simulator/SimulatorWindow.qml
+    qml/notifications/UnifiedAttentionDock.qml
 )
 
-set_source_files_properties(qml/widgets/components/MaterialIcon.qml
+set_source_files_properties(
+    qml/widgets/components/MaterialIcon.qml
     PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
 set(SOUND_CUE_FILES
@@ -646,6 +652,10 @@ if(BUILD_TESTING)
         src/services/SoundCueService.h
         src/services/ToastService.cpp
         src/services/ToastService.h
+        src/services/AttentionPolicy.cpp
+        src/services/AttentionPolicy.h
+        src/services/NotificationService.cpp
+        src/services/NotificationService.h
         src/stores/VehicleStore.cpp
         src/stores/VehicleStore.h
         src/stores/BatteryStore.cpp
@@ -684,4 +694,31 @@ if(BUILD_TESTING)
     target_include_directories(map_metadata_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(map_metadata_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME map_metadata_test COMMAND map_metadata_test)
+
+    qt_add_executable(notification_service_test
+        tests/NotificationServiceTest.cpp
+        src/services/AttentionPolicy.cpp
+        src/services/AttentionPolicy.h
+        src/services/NotificationService.cpp
+        src/services/NotificationService.h
+        src/stores/VehicleStore.cpp
+        src/stores/VehicleStore.h
+        src/stores/SyncableStore.cpp
+        src/stores/SyncableStore.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+    )
+    target_include_directories(notification_service_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(notification_service_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME notification_service_test COMMAND notification_service_test)
+
+    find_program(QMLTESTRUNNER_EXECUTABLE qmltestrunner)
+    if(QMLTESTRUNNER_EXECUTABLE)
+        add_test(NAME notification_qml_tests
+            COMMAND ${QMLTESTRUNNER_EXECUTABLE} -input
+                    ${CMAKE_CURRENT_SOURCE_DIR}/tests -o -,txt)
+        set_tests_properties(notification_qml_tests PROPERTIES
+            ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    endif()
 endif()

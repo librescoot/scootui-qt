@@ -1,6 +1,7 @@
 #include "SoundCueService.h"
 
 #include "services/ToastService.h"
+#include "services/NotificationService.h"
 #include "stores/BatteryStore.h"
 #include "stores/VehicleStore.h"
 
@@ -244,6 +245,23 @@ SoundCueService::SoundCueService(VehicleStore *vehicleStore, BatteryStore *batte
         if (m_armed)
             playEvent(SoundCueMapping::notification(type));
     });
+}
+
+void SoundCueService::setNotificationService(NotificationService *service)
+{
+    if (m_notificationService == service)
+        return;
+    m_notificationService = service;
+    if (!service)
+        return;
+    const auto playNotification = [this](const QString &kind) {
+        if (!m_armed)
+            return;
+        playEvent(SoundCueMapping::notification(
+            kind == QLatin1String("critical") ? QStringLiteral("error") : kind));
+    };
+    connect(service, &NotificationService::eventPresented, this, playNotification);
+    connect(service, &NotificationService::conditionPresented, this, playNotification);
 }
 
 void SoundCueService::arm()

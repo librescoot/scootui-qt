@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import "../notifications"
 import "../widgets/status_bars"
 import "../widgets/components"
 import "../widgets/navigation"
@@ -178,6 +179,8 @@ Rectangle {
             // Map view (QMapLibre wrapper)
             MapViewWidget {
                 anchors.fill: parent
+                notificationTopInset: typeof notificationService !== "undefined" && notificationService
+                                     ? notificationService.occupiedHeight : 0
             }
 
             // Confetti layer — renders on top of the map but below widgets (z>=5 below)
@@ -190,7 +193,9 @@ Rectangle {
             VehicleMarker {
                 id: vehicleMarkerItem
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: parent.height / 2 + (typeof mapService !== "undefined" ? mapService.vehicleOffsetY : 0) - height / 2
+                y: (((typeof notificationService !== "undefined" && notificationService)
+                     ? notificationService.occupiedHeight : 0) + parent.height) / 2
+                   + (typeof mapService !== "undefined" ? mapService.vehicleOffsetY : 0) - height / 2
                 visible: typeof mapService !== "undefined" && mapService.isReady
                 transform: Rotation {
                     origin.x: vehicleMarkerItem.width / 2
@@ -205,7 +210,10 @@ Rectangle {
             // Without this, the 56 px circles stack on top of the maneuver
             // icon (left) and time-info pill (right) inside the banner.
             BlinkerRow {
-                anchors.top: tbtWidget.visible ? tbtWidget.bottom : parent.top
+                anchors.top: (typeof notificationService === "undefined" || !notificationService)
+                             && tbtWidget.visible ? tbtWidget.bottom
+                             : ((typeof notificationService !== "undefined" && notificationService)
+                                ? attentionDock.bottom : parent.top)
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.leftMargin: 4
@@ -214,46 +222,7 @@ Rectangle {
                 z: 5
             }
 
-            // Out of coverage overlay (Flutter: _buildOutOfCoverageOverlay)
-            // Floating pill at top when GPS is outside mbtiles bounds
-            Rectangle {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: parent.top
-                anchors.topMargin: 8
-                width: outOfCoverageRow.width + 24  // padding h:12
-                height: outOfCoverageRow.height + 16  // padding v:8
-                radius: themeStore.radiusCard
-                color: typeof themeStore !== "undefined" && themeStore.isDark
-                       ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.9)
-                border.width: 1.5
-                border.color: Qt.rgba(1, 0.647, 0, 0.6)  // orange with 60% opacity
-                visible: typeof mapService !== "undefined" && mapService.isOutOfCoverage
-                z: 10
-
-                Row {
-                    id: outOfCoverageRow
-                    anchors.centerIn: parent
-                    spacing: 8
-
-                    // map_outlined icon (Flutter: Icons.map_outlined, color: orange, size: 16)
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: MaterialIcon.iconMap
-                        font.family: "Material Icons"
-                        font.pixelSize: themeStore.fontBody
-                        color: "#FF9800"  // Colors.orange
-                    }
-
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: typeof translations !== "undefined"
-                              ? translations.mapOutOfCoverage : "No map data for current location"
-                        font.pixelSize: themeStore.fontBody
-                        font.weight: Font.Medium
-                        color: "#FF9800"  // Colors.orange
-                    }
-                }
-            }
+            // Coverage is presented by the shared attention dock.
 
             // No-map message (shown when not navigating and no map position)
             Text {
@@ -276,6 +245,9 @@ Rectangle {
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
+                visible: (typeof notificationService === "undefined" || !notificationService)
+                         && typeof navigationService !== "undefined"
+                         && navigationService.isNavigating && navigationService.hasCurrentManeuver
 
                 // North-up 2D centres the marker in the space the banner leaves,
                 // so MapService needs to know whether the banner is up. Only the
@@ -297,7 +269,9 @@ Rectangle {
             }
 
             // Navigation status overlay (calculating, rerouting, arrived, error)
-            NavigationStatusOverlay {}
+            NavigationStatusOverlay {
+                visible: typeof notificationService === "undefined" || !notificationService
+            }
 
             // Speed limit + road name (bottom center).
             RoadInfoRow {
@@ -306,75 +280,6 @@ Rectangle {
                 anchors.bottomMargin: 8
                 fontSize: 14
                 onMapScreen: true
-            }
-
-            // Map update indicator (top-left, fades after 20s in ready-to-drive)
-            Rectangle {
-                id: mapUpdateBadge
-                anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.leftMargin: 8
-                anchors.topMargin: 8
-                width: updateBadgeRow.width + 16
-                height: updateBadgeRow.height + 10
-                radius: themeStore.radiusCard
-                color: typeof themeStore !== "undefined" && themeStore.isDark
-                       ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.9)
-                border.width: 1
-                border.color: typeof themeStore !== "undefined" && themeStore.isDark
-                              ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.12)
-                visible: opacity > 0
-                z: 10
-
-                property bool shouldShow: typeof mapDownloadService !== "undefined"
-                                          && mapDownloadService.updateAvailable
-                property bool fadingOut: false
-
-                opacity: shouldShow && !fadingOut ? 1.0 : 0.0
-                Behavior on opacity { NumberAnimation { duration: 1000 } }
-
-                Row {
-                    id: updateBadgeRow
-                    anchors.centerIn: parent
-                    spacing: 6
-
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: MaterialIcon.iconUpdate
-                        font.family: "Material Icons"
-                        font.pixelSize: 16
-                        color: "#40C8F0"
-                    }
-
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: typeof translations !== "undefined"
-                              ? translations.mapUpdateBadge : "Map update"
-                        font.pixelSize: 12
-                        font.weight: Font.Medium
-                        color: typeof themeStore !== "undefined" && themeStore.isDark
-                               ? "#FFFFFF" : "#000000"
-                    }
-                }
-
-                Timer {
-                    id: fadeBadgeTimer
-                    interval: 20000
-                    onTriggered: mapUpdateBadge.fadingOut = true
-                }
-
-                Connections {
-                    target: typeof vehicleStore !== "undefined" ? vehicleStore : null
-                    function onStateChanged() {
-                        if (vehicleStore.state === 2) { // ReadyToDrive
-                            if (mapUpdateBadge.shouldShow)
-                                fadeBadgeTimer.start()
-                        } else {
-                            fadeBadgeTimer.stop()
-                            mapUpdateBadge.fadingOut = false
-                        }
-                    }
-                }
             }
 
             // North indicator (bottom-right, fixed position)
@@ -415,4 +320,19 @@ Rectangle {
     }
 
     readonly property real bottomBarHeight: bottomBar.height
+
+    UnifiedAttentionDock {
+        id: attentionDock
+        anchors.top: parent.top
+        anchors.topMargin: 40
+        anchors.left: parent.left
+        anchors.right: parent.right
+        z: 20
+    }
+
+    Binding {
+        target: typeof notificationService !== "undefined" ? notificationService : null
+        property: "surface"
+        value: "map"
+    }
 }

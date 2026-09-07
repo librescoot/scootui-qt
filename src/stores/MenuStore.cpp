@@ -838,9 +838,7 @@ void MenuStore::rebuildMenuTree()
                     delete conn;
                     if (!m_toastService)
                         return;
-                    if (updateFound)
-                        m_toastService->showInfo(m_translations->mapUpdateAvailableToast());
-                    else
+                    if (!updateFound)
                         m_toastService->showSuccess(m_translations->mapsUpToDateToast());
                 });
 

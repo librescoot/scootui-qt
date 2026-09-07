@@ -10,6 +10,7 @@
 class BatteryStore;
 class QSoundEffect;
 class ToastService;
+class NotificationService;
 class VehicleStore;
 
 enum class SoundEvent {
@@ -72,6 +73,7 @@ public:
 
     static bool validateWaveFile(const QString &path, QString *error = nullptr);
     void arm();
+    void setNotificationService(NotificationService *service);
 
 private:
     void loadCues(const QString &assetRoot);
@@ -84,6 +86,7 @@ private:
     BatteryStore *m_battery0Store;
     BatteryStore *m_battery1Store;
     QHash<SoundCue, QSoundEffect *> m_effects;
+    NotificationService *m_notificationService = nullptr;
     QAudioDevice m_audioOutput;
     QString m_assetRoot;
     int m_nextCue = static_cast<int>(SoundCue::Wake);

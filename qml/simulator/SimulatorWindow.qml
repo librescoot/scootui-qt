@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import ScootUI 1.0
+import "../notifications"
 
 ApplicationWindow {
     id: simWindow
@@ -17,6 +18,12 @@ ApplicationWindow {
     height: 900
     visible: true
     color: "#1e1e1e"
+
+    // Notification controls are local-only and do not write vehicle state.
+    Shortcut { sequence: "1"; enabled: notificationService.simulatorInjectionEnabled; onActivated: notificationService.simulateWarning("Simulator warning", "Local test notification") }
+    Shortcut { sequence: "2"; enabled: notificationService.simulatorInjectionEnabled; onActivated: notificationService.simulateError("Simulator error", "Local test transient error") }
+    Shortcut { sequence: "3"; enabled: notificationService.simulatorInjectionEnabled; onActivated: notificationService.simulateCritical("Simulator critical", "Local test critical condition") }
+    Shortcut { sequence: "4"; enabled: notificationService.simulatorInjectionEnabled; onActivated: notificationService.clearSimulatorEntries() }
 
     x: Screen.width / 2 - (uiWidth + width + uiGap) / 2 + uiWidth + uiGap
     y: Math.max(0, Screen.height / 2 - height / 2)
@@ -132,6 +139,30 @@ ApplicationWindow {
         }
 
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: "#444" }
+
+        Rectangle {
+            visible: notificationService.simulatorInjectionEnabled
+            Layout.fillWidth: true
+            Layout.preferredHeight: 72
+            color: "#203746"
+            border.color: "#4ea6d2"
+            border.width: 1
+            radius: 4
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 8
+                Text { text: "Unified notifications · local test source"; color: "white"; font.bold: true; font.pixelSize: 13 }
+                RowLayout {
+                    Layout.fillWidth: true
+                    SimButton { text: "Warning"; small: true; onClicked: notificationService.simulateWarning("Simulator warning", "Local test notification") }
+                    SimButton { text: "Error"; small: true; color: "#9c4d00"; onClicked: notificationService.simulateError("Simulator error", "Local test transient error") }
+                    SimButton { text: "Critical"; small: true; color: "#b71c1c"; onClicked: notificationService.simulateCritical("Simulator critical", "Local test critical condition") }
+                    SimButton { text: "Clear test"; small: true; onClicked: notificationService.clearSimulatorEntries() }
+                    Item { Layout.fillWidth: true }
+                    Text { text: "Production policy"; color: "#8bd5ff"; font.pixelSize: 10 }
+                }
+            }
+        }
 
         ScrollView {
             id: scroll

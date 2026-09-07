@@ -46,6 +46,7 @@
 #include "services/InputHandler.h"
 #include "services/NavigationService.h"
 #include "services/ToastService.h"
+#include "services/NotificationService.h"
 #include "services/SoundCueService.h"
 #include "services/MapService.h"
 #include "services/LowTemperatureMonitor.h"
@@ -243,11 +244,31 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // M5: Services
     m_settingsService = new SettingsService(repo, settingsStore, this);
     m_translations = new Translations(this);
+    m_translations->setLanguage(localeStore->language());
     m_autoThemeService = new AutoThemeService(repo, themeStore, this);
+    m_notificationService = new NotificationService(m_simulatorMode, this);
+    m_notificationService->setVehicleStore(vehicleStore);
+    connect(connectionStore, &ConnectionStore::prolongedDisconnectChanged, this, [this, connectionStore]() {
+        if (connectionStore->prolongedDisconnect() && connectionStore->hasEverConnected())
+            m_notificationService->publishCondition(QStringLiteral("redis-disconnect"), QStringLiteral("connection"),
+                                                     m_translations->redisDisconnected(), {}, 0, QStringLiteral("critical"));
+        else
+            m_notificationService->resolveCondition(QStringLiteral("redis-disconnect"));
+    });
+    connect(connectionStore, &ConnectionStore::usingBackupConnectionChanged, this, [this, connectionStore]() {
+        const bool hidden = EnvConfig::hideUsbWarning();
+        if (connectionStore->usingBackupConnection() && !hidden)
+            m_notificationService->publishCondition(QStringLiteral("usb-disconnect"), QStringLiteral("connection"),
+                                                     m_translations->usbDisconnected(), {}, 2, QStringLiteral("warning"));
+        else
+            m_notificationService->resolveCondition(QStringLiteral("usb-disconnect"));
+    });
     m_toastService = new ToastService(this);
+    m_toastService->setNotificationService(m_notificationService);
     m_soundCueService = new SoundCueService(vehicleStore, battery0Store, battery1Store,
                                               m_toastService,
                                               QStringLiteral("qrc:/ScootUI/assets/sounds"), this);
+    m_soundCueService->setNotificationService(m_notificationService);
     m_serialNumberService = new SerialNumberService(this);
     m_systemInfoService = new SystemInfoService(repo, this);
 
@@ -259,6 +280,45 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // M7: Navigation service
     m_navigationService = new NavigationService(gpsStore, navigationStore, vehicleStore,
                                                  settingsStore, speedLimitStore, repo, this);
+    const auto refreshNavigationAttention = [this]() {
+        const int status = m_navigationService->status();
+        const bool hasInstruction = m_navigationService->hasCurrentManeuver();
+        if (status == 0 || status == static_cast<int>(NavigationStatus::Error)
+            || (status == 2 && !hasInstruction)) {
+            m_notificationService->resolveCondition(QStringLiteral("navigation-offroute"));
+            m_notificationService->setNavigationPayload({});
+            return;
+        }
+        if (status == 2 && m_navigationService->isOffRoute())
+            m_notificationService->publishCondition(QStringLiteral("navigation-offroute"), QStringLiteral("navigation"),
+                                                     m_translations->navOffRoute(), {}, 2, QStringLiteral("warning"));
+        else
+            m_notificationService->resolveCondition(QStringLiteral("navigation-offroute"));
+        QVariantMap nav{{QStringLiteral("id"), QStringLiteral("navigation-session")},
+
+                        {QStringLiteral("source"), QStringLiteral("navigation")},
+                        {QStringLiteral("kind"), QStringLiteral("nav")},
+                        {QStringLiteral("status"), status},
+                        {QStringLiteral("valid"), status != 2 || hasInstruction},
+                        {QStringLiteral("distance"), m_navigationService->currentManeuverDistance()},
+                        {QStringLiteral("maneuverType"), m_navigationService->currentManeuverType()},
+                        {QStringLiteral("street"), m_navigationService->currentStreetName()},
+                        {QStringLiteral("instruction"), m_navigationService->currentVerbalInstruction()},
+                        {QStringLiteral("nextType"), m_navigationService->nextManeuverType()},
+                        {QStringLiteral("nextStreet"), m_navigationService->nextStreetName()},
+                        {QStringLiteral("nextDistance"), m_navigationService->nextManeuverDistance()},
+                        {QStringLiteral("offRoute"), m_navigationService->isOffRoute()},
+                        {QStringLiteral("roundabout"), m_navigationService->currentRoundaboutRender()},
+                        {QStringLiteral("error"), m_navigationService->errorMessage()}};
+        m_notificationService->setNavigationPayload(nav);
+    };
+    connect(m_navigationService, &NavigationService::statusChanged, this, refreshNavigationAttention);
+    connect(m_navigationService, &NavigationService::routeChanged, this, refreshNavigationAttention);
+    connect(m_navigationService, &NavigationService::instructionChanged, this, refreshNavigationAttention);
+    connect(m_navigationService, &NavigationService::positionChanged, this, refreshNavigationAttention);
+    connect(m_navigationService, &NavigationService::roundaboutRenderChanged, this, refreshNavigationAttention);
+    connect(m_navigationService, &NavigationService::errorChanged, this, refreshNavigationAttention);
+    refreshNavigationAttention();
 
     // Show toast on navigation errors so the user knows what went wrong
     connect(m_navigationService, &NavigationService::errorChanged, this, [this]() {
@@ -290,6 +350,10 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // onto that segment for presentation only.
     m_roadInfoService->setMapService(m_mapService);
     m_mapService->setRoadInfoService(m_roadInfoService);
+    connect(m_mapService, &MapService::isOutOfCoverageChanged, this, [this]() {
+        m_notificationService->setCoverageWarning(m_mapService->isOutOfCoverage());
+    });
+    m_notificationService->setCoverageWarning(m_mapService->isOutOfCoverage());
 
     // Navigation availability (B6)
     m_navAvailability = new NavigationAvailabilityService(settingsStore, internetStore, repo,
@@ -337,13 +401,12 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // The actual download is state-gated (see maybeAutoDownloadMaps).
     connect(m_mapDownloadService, &MapDownloadService::updateAvailableChanged, this,
             [this]() {
+        m_notificationService->setMapUpdateAvailable(m_mapDownloadService->updateAvailable(),
+                                                       m_translations->mapUpdateAvailableToast());
         if (!m_mapDownloadService->updateAvailable())
             return;
-        if (m_settingsStore->mapAutoDownload()) {
+        if (m_settingsStore->mapAutoDownload())
             maybeAutoDownloadMaps();
-        } else {
-            m_toastService->showInfo(m_translations->mapUpdateAvailableToast());
-        }
     });
 
     // Retry the auto-download on every state the download is allowed in, so an
@@ -385,6 +448,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Show persisted update notification on startup while parked/stand-by
     if (m_mapDownloadService->updateAvailable()) {
+        m_notificationService->setMapUpdateAvailable(true,
+                                                       m_translations->mapUpdateAvailableToast());
         auto *startupConn = new QMetaObject::Connection;
         *startupConn = connect(vehicleStore, &VehicleStore::stateChanged, this,
                 [this, vehicleStore, startupConn]() {
@@ -392,7 +457,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
             if (state == ScootEnums::VehicleState::Parked
                 || state == ScootEnums::VehicleState::StandBy) {
                 if (m_mapDownloadService->updateAvailable())
-                    m_toastService->showInfo(m_translations->mapUpdateAvailableToast());
+                    m_notificationService->setMapUpdateAvailable(true,
+                                                                   m_translations->mapUpdateAvailableToast());
             }
             disconnect(*startupConn);
             delete startupConn;
@@ -489,51 +555,61 @@ void Application::createStores(QQmlApplicationEngine &engine)
                                                        m_translations, this);
 
     // Battery fault monitoring
-    auto connectFaultMonitor = [this, settingsStore](BatteryStore *batteryStore) {
-        connect(batteryStore, &BatteryStore::faultsChanged, this,
-                [this, batteryStore, settingsStore]() {
-            auto faults = batteryStore->faults();
-            if (faults.isEmpty())
-                return;
-            // Suppress battery 1 fault toasts unless dual battery mode is enabled
-            if (batteryStore->batteryId() != QLatin1String("0") && !settingsStore->dualBattery())
-                return;
-            QString slotName = batteryStore->batteryId() == QLatin1String("0")
-                ? m_translations->batterySlot0()
-                : m_translations->batterySlot1();
-            if (faults.size() == 1) {
-                QString msg = slotName + QStringLiteral(": ")
-                    + FaultFormatter::formatSingleFault(faults.first(), m_translations);
-                if (FaultFormatter::hasAnyCritical(faults))
-                    m_toastService->showError(msg);
-                else
-                    m_toastService->showWarning(msg);
-            } else {
-                QString title = slotName + QStringLiteral(": ")
-                    + FaultFormatter::getMultipleFaultsTitle(faults, m_translations);
-                QString detail = FaultFormatter::formatMultipleFaults(faults, m_translations);
-                if (FaultFormatter::hasAnyCritical(faults))
-                    m_toastService->showError(title + QStringLiteral("\n") + detail);
-                else
-                    m_toastService->showWarning(title + QStringLiteral("\n") + detail);
-            }
-        });
+    auto refreshFault = [this, settingsStore](BatteryStore *batteryStore) {
+        const QString conditionId = QStringLiteral("battery-fault-") + batteryStore->batteryId();
+        auto faults = batteryStore->faults();
+        // Suppress battery 1 fault notifications unless dual battery mode is enabled.
+        if (batteryStore->batteryId() != QLatin1String("0") && !settingsStore->dualBattery()) {
+            m_notificationService->resolveCondition(conditionId);
+            return;
+        }
+        if (faults.isEmpty()) {
+            m_notificationService->resolveCondition(conditionId);
+            return;
+        }
+        QString slotName = batteryStore->batteryId() == QLatin1String("0")
+            ? m_translations->batterySlot0()
+            : m_translations->batterySlot1();
+        const bool critical = FaultFormatter::hasAnyCritical(faults);
+        QString title;
+        QString detail;
+        if (faults.size() == 1) {
+            title = slotName + QStringLiteral(": ")
+                + FaultFormatter::formatSingleFault(faults.first(), m_translations);
+        } else {
+            title = slotName + QStringLiteral(": ")
+                + FaultFormatter::getMultipleFaultsTitle(faults, m_translations);
+            detail = FaultFormatter::formatMultipleFaults(faults, m_translations);
+        }
+        m_notificationService->publishCondition(conditionId, QStringLiteral("battery"), title,
+                                                 detail, critical ? 0 : 2,
+                                                 critical ? QStringLiteral("critical") : QStringLiteral("warning"));
     };
-    connectFaultMonitor(battery0Store);
-    connectFaultMonitor(battery1Store);
+    connect(battery0Store, &BatteryStore::faultsChanged, this, [refreshFault, battery0Store]() {
+        refreshFault(battery0Store);
+    });
+    connect(battery1Store, &BatteryStore::faultsChanged, this, [refreshFault, battery1Store]() {
+        refreshFault(battery1Store);
+    });
+    refreshFault(battery0Store);
+    refreshFault(battery1Store);
 
     // ECU fault monitoring — mirrors the battery pattern but with "E" prefix and
     // different code→description mapping. Single-code, no fault set.
-    connect(engineStore, &EngineStore::faultCodeChanged, this, [this, engineStore]() {
+    const auto refreshEngineFault = [this, engineStore]() {
         int code = engineStore->faultCode();
-        if (code == 0)
+        if (code == 0) {
+            m_notificationService->resolveCondition(QStringLiteral("ecu-fault"));
             return;
-        QString msg = FaultFormatter::formatEcuFault(code, m_translations);
-        if (FaultFormatter::getEcuSeverity(code) == FaultSeverity::Critical)
-            m_toastService->showError(msg);
-        else
-            m_toastService->showWarning(msg);
-    });
+        }
+        const bool critical = FaultFormatter::getEcuSeverity(code) == FaultSeverity::Critical;
+        m_notificationService->publishCondition(QStringLiteral("ecu-fault"), QStringLiteral("ecu"),
+                                                 FaultFormatter::formatEcuFault(code, m_translations), {},
+                                                 critical ? 0 : 2,
+                                                 critical ? QStringLiteral("critical") : QStringLiteral("warning"));
+    };
+    connect(engineStore, &EngineStore::faultCodeChanged, this, refreshEngineFault);
+    refreshEngineFault();
 
     // Wire UMS log polling to USB status
     connect(usbStore, &UsbStore::statusChanged, this, [usbStore, umsLogStore]() {
@@ -549,10 +625,27 @@ void Application::createStores(QQmlApplicationEngine &engine)
     });
 
     // M5: Wire translations to locale
-    connect(localeStore, &LocaleStore::languageChanged, m_translations, [this, localeStore]() {
+    connect(localeStore, &LocaleStore::languageChanged, m_translations,
+            [this, localeStore, connectionStore, battery0Store, battery1Store,
+             refreshFault, refreshEngineFault]() {
         m_translations->setLanguage(localeStore->language());
+        refreshFault(battery0Store);
+        refreshFault(battery1Store);
+        refreshEngineFault();
+        if (connectionStore->prolongedDisconnect() && connectionStore->hasEverConnected())
+            m_notificationService->publishCondition(QStringLiteral("redis-disconnect"),
+                                                     QStringLiteral("connection"),
+                                                     m_translations->redisDisconnected(), {}, 0,
+                                                     QStringLiteral("critical"));
+        if (connectionStore->usingBackupConnection() && !EnvConfig::hideUsbWarning())
+            m_notificationService->publishCondition(QStringLiteral("usb-disconnect"),
+                                                     QStringLiteral("connection"),
+                                                     m_translations->usbDisconnected(), {}, 2,
+                                                     QStringLiteral("warning"));
+        if (m_notificationService->mapUpdateAvailable())
+            m_notificationService->setMapUpdateAvailable(true,
+                                                           m_translations->mapUpdateAvailableToast());
     });
-    m_translations->setLanguage(localeStore->language());
 
     // M5: Wire auto-theme to settings
     connect(settingsStore, &SettingsStore::themeChanged, this, [this, settingsStore]() {
@@ -664,6 +757,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("connectionStore"), connectionStore);
     ctx->setContextProperty(QStringLiteral("dashboardStore"), dashboardStore);
     ctx->setContextProperty(QStringLiteral("toastService"), m_toastService);
+    ctx->setContextProperty(QStringLiteral("notificationService"), m_notificationService);
     ctx->setContextProperty(QStringLiteral("mapService"), m_mapService);
     ctx->setContextProperty(QStringLiteral("inputHandler"), m_inputHandler);
     ctx->setContextProperty(QStringLiteral("navAvailabilityService"), m_navAvailability);
