@@ -73,6 +73,7 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFileSystemWatcher>
+#include <QFileInfo>
 #include <QProcess>
 #include <QFile>
 #include <QTimer>
@@ -409,8 +410,18 @@ void Application::createStores(QQmlApplicationEngine &engine)
     else
         mbtilesWatcher->addPath(QStringLiteral("/data"));
 
+    const auto mbtilesFingerprint = [] {
+        const QFileInfo info(QStringLiteral("/data/maps/map.mbtiles"));
+        if (!info.exists())
+            return QString();
+        return QStringLiteral("%1:%2")
+            .arg(info.size())
+            .arg(info.lastModified().toMSecsSinceEpoch());
+    };
+
     connect(mbtilesWatcher, &QFileSystemWatcher::directoryChanged, this,
-            [this, mbtilesWatcher](const QString &path) {
+            [this, mbtilesWatcher, mbtilesFingerprint,
+             lastFingerprint = mbtilesFingerprint()](const QString &path) mutable {
         static const QString mapsDir = QStringLiteral("/data/maps");
         // /data was just mounted — start watching /data/maps/ instead
         if (path == QLatin1String("/data") && QDir(mapsDir).exists()) {
@@ -427,8 +438,10 @@ void Application::createStores(QQmlApplicationEngine &engine)
             m_mapDownloadService->reloadMetadata();
         maybeCheckForMapUpdates();
 
-        if (!QFile::exists(mapsDir + QStringLiteral("/map.mbtiles")))
+        const QString fingerprint = mbtilesFingerprint();
+        if (fingerprint.isEmpty() || fingerprint == lastFingerprint)
             return;
+        lastFingerprint = fingerprint;
         qDebug() << "Mbtiles change detected, reloading services";
         reloadMapServices();
         // Re-run availability detection immediately. The service also polls
