@@ -62,6 +62,16 @@ Rectangle {
         return mv > 0 ? (mv / 1000).toFixed(2) + " V" : ""
     }
 
+    // The main BMS reports capacity in mAh, the connectivity battery's gauge
+    // in µAh; both render as Ah.
+    function mahToAh(mah) {
+        return (mah / 1000).toFixed(1) + " Ah"
+    }
+
+    function uahToAh(uah) {
+        return (uah / 1000000).toFixed(1) + " Ah"
+    }
+
     // ---- Device page ----
 
     readonly property var versionRows: typeof systemInfoService !== "undefined"
@@ -110,6 +120,31 @@ Rectangle {
 
     // ---- Battery pages ----
 
+    function seg(text, icon, warning) {
+        var s = { text: text }
+        if (icon) s.icon = true
+        if (warning) s.warning = true
+        return s
+    }
+
+    // Remaining/full Ah with the charge percentage rolled in; falls back to a
+    // plain charge row when the pack never reported a capacity. Low-soc shows
+    // as the battery-alert icon, not a separate row.
+    function capacityRow(label, remaining, full, charge, chargeValid, toAh, lowSoc) {
+        var segments = []
+        if (full > 0) {
+            segments.push(seg(toAh(remaining) + " / " + toAh(full) + " (" + charge + "%)"))
+        } else if (chargeValid) {
+            label = t("infoCharge", "Charge")
+            segments.push(seg(charge + "%"))
+        } else {
+            return null
+        }
+        if (lowSoc)
+            segments.push(seg(MaterialIcon.iconBatteryAlert, true, true))
+        return { label: label, valueSegments: segments }
+    }
+
     function packRows(store) {
         void systemInfoScreen.lang
         if (typeof store === "undefined" || !store.present)
@@ -118,11 +153,12 @@ Rectangle {
             { label: t("infoSerial", "Serial"), value: store.serialNumber },
             { label: t("infoHealth", "Health"), value: store.stateOfHealth > 0 ? store.stateOfHealth + "%" : "" },
             { label: t("infoCycles", "Cycles"), value: store.cycleCount > 0 ? String(store.cycleCount) : "" },
-            { label: t("infoCharge", "Charge"), value: store.charge > 0 ? store.charge + "%" : "" },
+            capacityRow(t("infoCapacity", "Capacity"), store.remainingCapacity,
+                        store.fullCapacity, store.charge, store.charge > 0, mahToAh, store.lowSoc),
             { label: t("infoVoltage", "Voltage"), value: mvToV(store.voltage) },
             { label: t("infoFirmware", "Firmware"), value: store.firmwareVersion },
             { label: t("infoManufactured", "Manufactured"), value: store.manufacturingDate }
-        ])
+        ].filter(function (r) { return r !== null }))
     }
 
     readonly property var battery0Rows: typeof battery0Store !== "undefined"
@@ -139,9 +175,10 @@ Rectangle {
             ? cbBatteryStore.stateOfHealth + "%" : "" },
         { label: t("infoCycles", "Cycles"), value: cbBatteryStore.cycleCount > 0
             ? String(cbBatteryStore.cycleCount) : "" },
-        { label: t("infoCharge", "Charge"), value: cbBatteryStore.chargeValid
-            ? cbBatteryStore.charge + "%" : "" }
-    ])) : []
+        capacityRow(t("infoCapacity", "Capacity"), cbBatteryStore.remainingCapacity,
+                    cbBatteryStore.fullCapacity, cbBatteryStore.charge,
+                    cbBatteryStore.chargeValid, uahToAh, false)
+    ].filter(function (r) { return r !== null }))) : []
 
     // The AUX pack has no fuel gauge, so charge is a 5-bucket estimate derived
     // from the same ADC reading as the voltage. Label it as such.
@@ -530,17 +567,41 @@ Rectangle {
                 }
 
                 Text {
+                    visible: modelData.valueSegments === undefined
                     anchors.left: rowLabel.right
                     anchors.leftMargin: 8
                     anchors.right: parent.right
                     anchors.rightMargin: 20
                     anchors.verticalCenter: parent.verticalCenter
                     horizontalAlignment: Text.AlignRight
-                    text: modelData.value
+                    text: modelData.value || ""
                     color: systemInfoScreen.textPrimary
                     font.pixelSize: themeStore.fontBody
                     font.family: "monospace"
                     elide: Text.ElideRight
+                }
+
+                // Segment values allow the warning glyph to use the Material
+                // Icons face while keeping capacity text monospace.
+                Row {
+                    visible: modelData.valueSegments !== undefined
+                    anchors.right: parent.right
+                    anchors.rightMargin: 20
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 3
+
+                    Repeater {
+                        model: modelData.valueSegments || []
+
+                        delegate: Text {
+                            required property var modelData
+                            text: modelData.text
+                            color: modelData.warning ? themeStore.statusWarning
+                                                     : systemInfoScreen.textPrimary
+                            font.pixelSize: themeStore.fontBody
+                            font.family: modelData.icon ? "Material Icons" : "monospace"
+                        }
+                    }
                 }
             }
         }

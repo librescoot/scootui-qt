@@ -330,6 +330,8 @@ void Translations::initStrings()
     de[QStringLiteral("infoUniqueId")] = QStringLiteral("Eindeutige ID");
     en[QStringLiteral("infoPartNumber")] = QStringLiteral("Part number");
     de[QStringLiteral("infoPartNumber")] = QStringLiteral("Teilenummer");
+    en[QStringLiteral("infoCapacity")] = QStringLiteral("Capacity");
+    de[QStringLiteral("infoCapacity")] = QStringLiteral("Kapazität");
 
     en[QStringLiteral("faultsEmpty")] = QStringLiteral("No faults recorded");
     de[QStringLiteral("faultsEmpty")] = QStringLiteral("Keine Fehler erfasst");

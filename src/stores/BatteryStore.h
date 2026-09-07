@@ -20,6 +20,11 @@ class BatteryStore : public SyncableStore
     Q_PROPERTY(QString temperatureState READ temperatureState NOTIFY temperatureStateChanged)
     Q_PROPERTY(int cycleCount READ cycleCount NOTIFY cycleCountChanged)
     Q_PROPERTY(int stateOfHealth READ stateOfHealth NOTIFY stateOfHealthChanged)
+    Q_PROPERTY(int remainingCapacity READ remainingCapacity NOTIFY remainingCapacityChanged)
+    Q_PROPERTY(int fullCapacity READ fullCapacity NOTIFY fullCapacityChanged)
+    // BMS low-state flag; unreported on firmware predating the field reads as
+    // "not low".
+    Q_PROPERTY(bool lowSoc READ lowSoc NOTIFY lowSocChanged)
     Q_PROPERTY(QString serialNumber READ serialNumber NOTIFY serialNumberChanged)
     Q_PROPERTY(QString manufacturingDate READ manufacturingDate NOTIFY manufacturingDateChanged)
     Q_PROPERTY(QString firmwareVersion READ firmwareVersion NOTIFY firmwareVersionChanged)
@@ -40,6 +45,9 @@ public:
     QString temperatureState() const { return m_temperatureState; }
     int cycleCount() const { return m_cycleCount; }
     int stateOfHealth() const { return m_stateOfHealth; }
+    int remainingCapacity() const { return m_remainingCapacity; }
+    int fullCapacity() const { return m_fullCapacity; }
+    bool lowSoc() const { return m_lowSoc; }
     QString serialNumber() const { return m_serialNumber; }
     QString manufacturingDate() const { return m_manufacturingDate; }
     QString firmwareVersion() const { return m_firmwareVersion; }
@@ -59,6 +67,9 @@ signals:
     void temperatureStateChanged();
     void cycleCountChanged();
     void stateOfHealthChanged();
+    void remainingCapacityChanged();
+    void fullCapacityChanged();
+    void lowSocChanged();
     void serialNumberChanged();
     void manufacturingDateChanged();
     void firmwareVersionChanged();
@@ -84,6 +95,9 @@ private:
     QString m_temperatureState;
     int m_cycleCount = 0;
     int m_stateOfHealth = 0;
+    int m_remainingCapacity = 0;
+    int m_fullCapacity = 0;
+    bool m_lowSoc = false;
     QString m_serialNumber;
     QString m_manufacturingDate;
     QString m_firmwareVersion;

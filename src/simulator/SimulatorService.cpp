@@ -311,6 +311,10 @@ void SimulatorService::setBatteryCharge(int slot, int percent)
     // Derive voltage from charge (roughly 42V empty to 58.8V full for a 48V pack)
     int mv = 42000 + (percent * 168); // 42000..58800 mV
     setBatteryField(slot, QStringLiteral("voltage"), QString::number(mv));
+    setBatteryField(slot, QStringLiteral("remaining-capacity"),
+                    QString::number((percent * 47000 + 50) / 100));
+    setBatteryField(slot, QStringLiteral("low-soc"),
+                    percent <= 10 ? QStringLiteral("true") : QStringLiteral("false"));
 }
 
 void SimulatorService::setBatteryPresent(int slot, bool present)
@@ -790,6 +794,7 @@ void SimulatorService::loadPreset(const QString &name)
                         QStringLiteral("T-SIM2200000") + slot + QStringLiteral("42"));
             m_repo->set(hash, QStringLiteral("state-of-health"), QStringLiteral("98"));
             m_repo->set(hash, QStringLiteral("cycle-count"), QStringLiteral("94"));
+            m_repo->set(hash, QStringLiteral("full-capacity"), QStringLiteral("47000"));
             m_repo->set(hash, QStringLiteral("fw-version"), QStringLiteral("2.28"));
             m_repo->set(hash, QStringLiteral("manufacturing-date"), QStringLiteral("2020-09-17"));
             m_repo->set(hash, QStringLiteral("voltage"), QStringLiteral("48464"));
@@ -802,6 +807,11 @@ void SimulatorService::loadPreset(const QString &name)
                     QStringLiteral("MAX17301"));
         m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("state-of-health"),
                     QStringLiteral("94"));
+        // remaining/full in µAh, ratio consistent with the 95% charge above
+        m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("remaining-capacity"),
+                    QStringLiteral("22106500"));
+        m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("full-capacity"),
+                    QStringLiteral("23270000"));
         m_repo->set(QStringLiteral("cb-battery"), QStringLiteral("cycle-count"),
                     QStringLiteral("5"));
         m_repo->set(QStringLiteral("version:mdb"), QStringLiteral("serial_number_real"),

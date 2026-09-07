@@ -111,6 +111,7 @@ class Translations : public QObject
     Q_PROPERTY(QString infoManufactured READ infoManufactured NOTIFY languageChanged)
     Q_PROPERTY(QString infoUniqueId READ infoUniqueId NOTIFY languageChanged)
     Q_PROPERTY(QString infoPartNumber READ infoPartNumber NOTIFY languageChanged)
+    Q_PROPERTY(QString infoCapacity READ infoCapacity NOTIFY languageChanged)
     Q_PROPERTY(QString faultsEmpty READ faultsEmpty NOTIFY languageChanged)
     Q_PROPERTY(QString faultActive READ faultActive NOTIFY languageChanged)
     Q_PROPERTY(QString faultCleared READ faultCleared NOTIFY languageChanged)
@@ -683,6 +684,7 @@ public:
     QString infoManufactured() const { return lookup("infoManufactured"); }
     QString infoUniqueId() const { return lookup("infoUniqueId"); }
     QString infoPartNumber() const { return lookup("infoPartNumber"); }
+    QString infoCapacity() const { return lookup("infoCapacity"); }
     QString faultsEmpty() const { return lookup("faultsEmpty"); }
     QString faultActive() const { return lookup("faultActive"); }
     QString faultCleared() const { return lookup("faultCleared"); }

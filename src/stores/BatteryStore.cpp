@@ -25,6 +25,9 @@ SyncSettings BatteryStore::syncSettings() const
             {QStringLiteral("temperatureState"), QStringLiteral("temperature-state")},
             {QStringLiteral("cycleCount"), QStringLiteral("cycle-count")},
             {QStringLiteral("stateOfHealth"), QStringLiteral("state-of-health")},
+            {QStringLiteral("remainingCapacity"), QStringLiteral("remaining-capacity")},
+            {QStringLiteral("fullCapacity"), QStringLiteral("full-capacity")},
+            {QStringLiteral("lowSoc"), QStringLiteral("low-soc")},
             {QStringLiteral("serialNumber"), QStringLiteral("serial-number")},
             {QStringLiteral("manufacturingDate"), QStringLiteral("manufacturing-date")},
             {QStringLiteral("firmwareVersion"), QStringLiteral("fw-version")},
@@ -79,6 +82,15 @@ void BatteryStore::applyFieldUpdate(const QString &variable, const QString &valu
     } else if (variable == QLatin1String("state-of-health")) {
         int v = value.toInt();
         if (v != m_stateOfHealth) { m_stateOfHealth = v; emit stateOfHealthChanged(); }
+    } else if (variable == QLatin1String("remaining-capacity")) {
+        int v = value.toInt();
+        if (v != m_remainingCapacity) { m_remainingCapacity = v; emit remainingCapacityChanged(); }
+    } else if (variable == QLatin1String("full-capacity")) {
+        int v = value.toInt();
+        if (v != m_fullCapacity) { m_fullCapacity = v; emit fullCapacityChanged(); }
+    } else if (variable == QLatin1String("low-soc")) {
+        bool v = (value == QLatin1String("true") || value == QLatin1String("1"));
+        if (v != m_lowSoc) { m_lowSoc = v; emit lowSocChanged(); }
     } else if (variable == QLatin1String("serial-number")) {
         if (value != m_serialNumber) { m_serialNumber = value; emit serialNumberChanged(); }
     } else if (variable == QLatin1String("manufacturing-date")) {
