@@ -117,7 +117,7 @@ docker run --rm \
 
         # Copy Qt6 platform plugins
         echo "Copying plugins..."
-        for dir in platforms egldeviceintegrations imageformats sqldrivers; do
+        for dir in platforms egldeviceintegrations imageformats multimedia sqldrivers; do
             if [ -d "$QT_PLUGIN_DIR/$dir" ]; then
                 mkdir -p /deploy/plugins/$dir
                 cp -L "$QT_PLUGIN_DIR/$dir/"*.so /deploy/plugins/$dir/ 2>/dev/null

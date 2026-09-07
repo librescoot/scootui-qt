@@ -34,6 +34,7 @@ public:
 
 signals:
     void toastsChanged();
+    void toastAdded(const QString &type);
 
 private:
     QString addToast(const QString &message, const QString &type, bool permanent, const QString &id = {}, const QString &icon = {});

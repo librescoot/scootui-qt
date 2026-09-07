@@ -48,6 +48,10 @@ Item {
             dismissTimer.interval = holdMs
             dismissTimer.restart()
         }
+        function onMilestoneCelebrate() {
+            dismissTimer.stop()
+            root.active = false
+        }
     }
 
     Timer {
