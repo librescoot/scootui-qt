@@ -320,11 +320,9 @@ private:
 
     // Vehicle offset
     static constexpr double VehicleOffsetPx = 120.0;
-    // Height the turn-by-turn banner reserves at the top of the map area: its
-    // 96 px floor plus an 8 px anchor margin. Deliberately the reserved height
-    // and not the rendered one - the banner grows and shrinks as instruction
-    // text rewraps, and following that would move the camera mid-route.
-    static constexpr double TbtReservedPx = 104.0;
+    // Deliberately reserve the banner's 96 px floor rather than its rendered
+    // height so instruction text rewrapping cannot move the camera mid-route.
+    static constexpr double TbtReservedPx = 96.0;
 
     // Trajectory-aware segment matching
     static constexpr int MatchWindowBack = 30;
