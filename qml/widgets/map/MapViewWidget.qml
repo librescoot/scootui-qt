@@ -8,6 +8,8 @@ Item {
     anchors.fill: parent
 
     property bool mapReady: typeof mapService !== "undefined" ? mapService.isReady : false
+    property string styleUrl: typeof mapService !== "undefined" ? mapService.styleUrl : ""
+    property bool styleReady: styleUrl.length > 0
 
     // Reload map when the style URL actually changes (offline/mbtiles or traffic
     // overlay toggle). PluginParameter is only read at creation time, so those
@@ -16,16 +18,21 @@ Item {
     Connections {
         target: typeof mapService !== "undefined" ? mapService : null
         function onStyleUrlChanged() {
+            // Never create QMapLibre without a style. Its unstyled native
+            // surface clears white and can become ScootUI's first frame.
             mapLoader.active = false
-            mapLoader.active = true
+            if (typeof mapService !== "undefined" && mapService.styleUrl.length > 0)
+                mapLoader.active = true
         }
     }
 
     Loader {
         id: mapLoader
         anchors.fill: parent
-        active: true
+        active: false
         source: Qt.resolvedUrl("MapViewContent.qml")
+
+        Component.onCompleted: active = mapViewWidget.styleReady
 
         // MapViewContent uses "import MapLibre.Location" (v4.x).
         // If unavailable, fall back to MapViewContentLegacy which uses "import MapLibre" (v3.x).
@@ -39,7 +46,7 @@ Item {
     // Fallback background when map not ready or plugin unavailable
     Rectangle {
         anchors.fill: parent
-        visible: !mapReady || mapLoader.status === Loader.Error
+        visible: !styleReady || !mapReady || mapLoader.status === Loader.Error
         color: typeof themeStore !== "undefined" && themeStore.isDark
                ? "#1a1a2e" : "#e8e8e8"
 
