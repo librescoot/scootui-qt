@@ -15,7 +15,7 @@ private slots:
         const auto selected = AttentionPolicy::select(conditions, {}, nav, true, 0);
         QCOMPARE(selected.main.value("id").toString(), QStringLiteral("warning"));
         QCOMPARE(selected.companion.value("id").toString(), QStringLiteral("navigation-session"));
-        QCOMPARE(selected.height, 92);
+        QCOMPARE(selected.height, 110);
     }
 
     void imminentNavigationWins()
@@ -45,7 +45,21 @@ private slots:
                         {"status", 2}, {"distance", 800.0}};
         const auto selected = AttentionPolicy::select({}, {}, nav, true, 0);
         QCOMPARE(selected.main.value("id").toString(), QStringLiteral("navigation-session"));
-        QCOMPARE(selected.height, 56);
+        QCOMPARE(selected.height, 76);
+    }
+
+    void criticalHeightFollowsContent()
+    {
+        QVariantMap critical{{"id", "critical"}, {"priority", 0}, {"kind", "critical"},
+                             {"title", "Stop safely"}};
+        QCOMPARE(AttentionPolicy::select({critical}, {}, {}, true, 0).height, 76);
+        critical["body"] = "Multiple active faults";
+        QCOMPARE(AttentionPolicy::select({critical}, {}, {}, true, 0).height, 96);
+        QVariantMap nav{{"id", "navigation-session"}, {"valid", true}, {"status", 2},
+                        {"distance", 40.0}};
+        QCOMPARE(AttentionPolicy::select({critical}, {}, nav, true, 0).height, 128);
+        critical.remove("body");
+        QCOMPARE(AttentionPolicy::select({critical}, {}, nav, true, 0).height, 110);
     }
 
     void criticalPreemptsAndDoesNotExpire()
@@ -88,6 +102,75 @@ private slots:
         QCOMPARE(conditionSpy.count(), 4);
         service.publishCondition("visible", "test", "Updated", {}, 0, "critical");
         QCOMPARE(conditionSpy.count(), 4);
+    }
+
+    void conditionResumeIsSilentUntilRecurrence()
+    {
+        NotificationService service;
+        QSignalSpy cues(&service, &NotificationService::conditionPresented);
+        service.publishCondition("warning", "test", "Warning", {}, 2);
+        service.publishCondition("critical", "test", "Critical", {}, 0, "critical");
+        QCOMPARE(cues.count(), 2);
+        service.resolveCondition("critical");
+        QCOMPARE(cues.count(), 2);
+        service.publishCondition("warning", "test", "Escalated", {}, 0, "critical");
+        QCOMPARE(cues.count(), 3);
+        service.publishCondition("warning", "test", "Warning", {}, 2);
+        service.publishCondition("warning", "test", "Escalated", {}, 0, "critical");
+        QCOMPARE(cues.count(), 3);
+        service.resolveCondition("warning");
+        service.publishCondition("warning", "test", "Recurred", {}, 2);
+        QCOMPARE(cues.count(), 4);
+    }
+
+    void deferredEventSoundsOnceWhenPresented()
+    {
+        NotificationService service;
+        QSignalSpy cues(&service, &NotificationService::eventPresented);
+        service.publishCondition("critical", "test", "Critical", {}, 0, "critical");
+        service.publishEvent("event", "test", "Deferred", {}, 2, "warning");
+        QCOMPARE(cues.count(), 0);
+        service.resolveCondition("critical");
+        QCOMPARE(cues.count(), 1);
+        QCOMPARE(cues.at(0).at(0).toString(), QStringLiteral("warning"));
+        service.publishCondition("critical", "test", "Critical", {}, 0, "critical");
+        service.resolveCondition("critical");
+        QCOMPARE(cues.count(), 1);
+        service.clearEvent("event");
+        service.publishEvent("event", "test", "Recurred", {}, 2, "warning");
+        QCOMPARE(cues.count(), 2);
+    }
+
+    void eventUpdateReplacesClassificationAndEscalates()
+    {
+        NotificationService service;
+        QSignalSpy cues(&service, &NotificationService::eventPresented);
+        service.publishEvent("event", "test", "Initial", {}, 4, "info");
+        service.publishCondition("warning", "test", "Warning", {}, 2);
+        service.publishEvent("event", "updated-source", "Escalated", "Details", 0, "critical");
+        const auto main = service.presentation().value("main").toMap();
+        QCOMPARE(main.value("id").toString(), QStringLiteral("event"));
+        QCOMPARE(main.value("source").toString(), QStringLiteral("updated-source"));
+        QCOMPARE(main.value("priority").toInt(), 0);
+        QCOMPARE(main.value("kind").toString(), QStringLiteral("critical"));
+        QCOMPARE(main.value("revision").toInt(), 2);
+        QCOMPARE(cues.count(), 2);
+        QCOMPARE(cues.at(1).at(0).toString(), QStringLiteral("critical"));
+        service.publishEvent("event", "updated-source", "Text update", {}, 0, "critical");
+        QCOMPARE(cues.count(), 2);
+    }
+
+    void hiddenExpiredEventNeverSounds()
+    {
+        NotificationService service;
+        QSignalSpy cues(&service, &NotificationService::eventPresented);
+        service.publishCondition("critical", "test", "Critical", {}, 0, "critical");
+        service.publishEvent("event", "test", "Stale", {}, 2, "warning", 10);
+        QTest::qWait(300);
+        service.resolveCondition("critical");
+        QCOMPARE(cues.count(), 0);
+        service.publishEvent("event", "test", "Fresh", {}, 2, "warning");
+        QCOMPARE(cues.count(), 1);
     }
 
     void transientExpiresAndHistoryIsBounded()

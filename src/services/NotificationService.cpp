@@ -114,6 +114,7 @@ void NotificationService::resolveCondition(const QString &id)
 {
     if (!m_conditions.remove(id))
         return;
+    m_conditionCuePriorities.remove(id);
     emit activeChanged();
     refreshPresentation();
 }
@@ -127,6 +128,10 @@ QString NotificationService::publishEvent(const QString &id, const QString &sour
     const qint64 now = m_clock.elapsed();
     for (auto &existing : m_events) {
         if (existing.value(QStringLiteral("id")) == id) {
+            existing[QStringLiteral("source")] = source;
+            existing[QStringLiteral("priority")] = qBound(0, priority, 4);
+            existing[QStringLiteral("kind")] = kind;
+            existing[QStringLiteral("revision")] = existing.value(QStringLiteral("revision")).toInt() + 1;
             existing[QStringLiteral("title")] = title;
             existing[QStringLiteral("body")] = body;
             existing[QStringLiteral("updatedAt")] = now;
@@ -158,17 +163,16 @@ QString NotificationService::publishEvent(const QString &id, const QString &sour
         });
         if (victim == m_events.end())
             break;
+        m_eventCuePriorities.remove(victim->value(QStringLiteral("id")).toString());
         m_events.erase(victim);
     }
     refreshPresentation();
-    if (m_presentation.value(QStringLiteral("main")).toMap()
-            .value(QStringLiteral("id")).toString() == id)
-        emit eventPresented(kind);
     return id;
 }
 
 void NotificationService::clearEvent(const QString &id)
 {
+    m_eventCuePriorities.remove(id);
     const auto oldSize = m_events.size();
     m_events.erase(std::remove_if(m_events.begin(), m_events.end(), [&id](const QVariantMap &entry) {
         return entry.value(QStringLiteral("id")) == id;
@@ -186,6 +190,7 @@ void NotificationService::expireEvents()
         if (entry.value(QStringLiteral("validUntil")).toLongLong() > now)
             kept.append(entry);
         else {
+            m_eventCuePriorities.remove(entry.value(QStringLiteral("id")).toString());
             QVariantMap historyEntry = entry;
             historyEntry.remove(QStringLiteral("validUntil"));
             m_history.prepend(historyEntry);
@@ -246,9 +251,6 @@ void NotificationService::refreshPresentation()
             condition[QStringLiteral("surfaceEligible")] = m_surface == QLatin1String("map");
         conditions.append(condition);
     }
-    const QVariantMap previousMain = m_presentation.value(QStringLiteral("main")).toMap();
-    const QString previousMainId = previousMain.value(QStringLiteral("id")).toString();
-    const int previousMainPriority = previousMain.value(QStringLiteral("priority"), 4).toInt();
     const AttentionSelection selection = AttentionPolicy::select(
         conditions, m_events, m_navigation, m_riding, m_clock.elapsed());
     QVariantMap presentation;
@@ -264,16 +266,27 @@ void NotificationService::refreshPresentation()
     m_presentation = presentation;
     emit presentationChanged();
 
-    const QVariantMap main = presentation.value(QStringLiteral("main")).toMap();
-    const QString currentMainId = main.value(QStringLiteral("id")).toString();
-    const int currentMainPriority = main.value(QStringLiteral("priority"), 4).toInt();
-    const bool becameMain = currentMainId != previousMainId;
-    const bool escalated = currentMainId == previousMainId
-        && currentMainPriority < previousMainPriority;
-    if (!currentMainId.isEmpty() && (becameMain || escalated)
-        && m_conditions.contains(currentMainId)
-        && currentMainId != QLatin1String("map-update"))
+    emitPresentationCue(m_presentation.value(QStringLiteral("main")).toMap());
+}
+
+void NotificationService::emitPresentationCue(const QVariantMap &main)
+{
+    const QString id = main.value(QStringLiteral("id")).toString();
+    if (id.isEmpty() || main.value(QStringLiteral("kind")) == QLatin1String("nav")
+        || id == QLatin1String("map-update"))
+        return;
+
+    const bool condition = m_conditions.contains(id);
+    auto &cuePriorities = condition ? m_conditionCuePriorities : m_eventCuePriorities;
+    const int priority = main.value(QStringLiteral("priority"), 4).toInt();
+    // Retain the highest urgency already announced through preemption and updates.
+    if (cuePriorities.contains(id) && priority >= cuePriorities.value(id))
+        return;
+    cuePriorities.insert(id, priority);
+    if (condition)
         emit conditionPresented(main.value(QStringLiteral("kind")).toString());
+    else
+        emit eventPresented(main.value(QStringLiteral("kind")).toString());
 }
 
 void NotificationService::simulateWarning(const QString &title, const QString &body)

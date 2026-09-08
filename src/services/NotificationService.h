@@ -73,7 +73,7 @@ signals:
 
 private:
     void refreshPresentation();
-    void refreshNavigation();
+    void emitPresentationCue(const QVariantMap &main);
     void onVehicleStateChanged();
     void expireEvents();
     QVariantMap makeEntry(const QString &id, const QString &source, const QString &title,
@@ -82,6 +82,8 @@ private:
     QHash<QString, QVariantMap> m_conditions;
     QList<QVariantMap> m_events;
     QList<QVariantMap> m_history;
+    QHash<QString, int> m_conditionCuePriorities;
+    QHash<QString, int> m_eventCuePriorities;
     QVariantMap m_navigation;
     QVariantMap m_presentation;
     VehicleStore *m_vehicleStore = nullptr;

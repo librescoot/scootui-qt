@@ -71,11 +71,11 @@ AttentionSelection AttentionPolicy::select(const QList<QVariantMap> &conditions,
     }
 
     const bool expanded = !result.main.isEmpty()
-        && (priority(result.main) == 0
+        && ((priority(result.main) == 0 && !result.main.value(QStringLiteral("body")).toString().isEmpty())
             || (result.main.value(QStringLiteral("kind")) == QLatin1String("nav") && imminent));
-    result.height = result.main.isEmpty() ? 0 : (expanded ? 96 : 56);
+    result.height = result.main.isEmpty() ? 0 : (expanded ? 96 : 76);
     if (!result.companion.isEmpty())
-        result.height = priority(result.main) == 0 ? 128 : 92;
+        result.height = qMin(128, result.height + 34);
     result.criticalCount = criticalCount;
     return result;
 }
