@@ -4,6 +4,7 @@
 #include "repositories/InMemoryMdbRepository.h"
 #include "stores/SpeedLimitStore.h"
 #include "stores/SpeedLimitParser.h"
+#include "stores/RoadSignStyle.h"
 
 class RoadMatchPolicyTest : public QObject
 {
@@ -20,6 +21,7 @@ private slots:
     void transientMissesRetainRoadMatch();
     void freeDriveSnapUsesAcquireReleaseHysteresis();
     void convertsMphToKph();
+    void classifiesGermanRoadSigns();
     void freshLocalMatchBeatsRedisPoll();
 };
 
@@ -157,6 +159,21 @@ void RoadMatchPolicyTest::convertsMphToKph()
              QStringLiteral("50"));
     QCOMPARE(SpeedLimitParser::resolve(QStringLiteral("DE:zone30")),
              QStringLiteral("30"));
+}
+
+void RoadMatchPolicyTest::classifiesGermanRoadSigns()
+{
+    QCOMPARE(RoadSignStyle::classify(QStringLiteral("motorway"),
+                                     QStringLiteral("A 9"), {}),
+             QStringLiteral("motorway"));
+    QCOMPARE(RoadSignStyle::classify(QStringLiteral("trunk"),
+                                     QStringLiteral("B 2R"), {}),
+             QStringLiteral("federal"));
+    QCOMPARE(RoadSignStyle::classify(QStringLiteral("primary"), {},
+                                     QStringLiteral("e-road;DE:national")),
+             QStringLiteral("federal"));
+    QVERIFY(RoadSignStyle::classify(QStringLiteral("trunk"), {}, {}).isEmpty());
+    QVERIFY(RoadSignStyle::classify(QStringLiteral("primary"), {}, {}).isEmpty());
 }
 
 void RoadMatchPolicyTest::freshLocalMatchBeatsRedisPoll()

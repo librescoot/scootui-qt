@@ -175,6 +175,7 @@ set(CPP_HEADERS
     src/stores/UmsLogStore.h
     src/stores/SpeedLimitStore.h
     src/stores/SpeedLimitParser.h
+    src/stores/RoadSignStyle.h
     src/stores/AutoStandbyStore.h
     src/stores/CbBatteryStore.h
     src/stores/AuxBatteryStore.h
@@ -516,6 +517,7 @@ if(BUILD_TESTING)
         src/stores/SpeedLimitStore.cpp
         src/stores/SpeedLimitStore.h
         src/stores/SpeedLimitParser.h
+        src/stores/RoadSignStyle.h
     )
     target_include_directories(road_match_policy_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(road_match_policy_test PRIVATE Qt6::Core Qt6::Test)

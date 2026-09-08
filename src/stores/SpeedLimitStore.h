@@ -13,6 +13,7 @@ class SpeedLimitStore : public SyncableStore
     // renders this in parens after the street name.
     Q_PROPERTY(QString roadRefs READ roadRefs NOTIFY roadRefsChanged)
     Q_PROPERTY(QString roadType READ roadType NOTIFY roadTypeChanged)
+    Q_PROPERTY(QString roadSignStyle READ roadSignStyle NOTIFY roadSignStyleChanged)
     Q_PROPERTY(double roadBearing READ roadBearing NOTIFY roadBearingChanged)
 
 public:
@@ -22,6 +23,7 @@ public:
     QString roadName() const { return m_roadName; }
     QString roadRefs() const { return m_roadRefs; }
     QString roadType() const { return m_roadType; }
+    QString roadSignStyle() const { return m_roadSignStyle; }
     double roadBearing() const { return m_roadBearing; }
 
     // Direct setters (used by RoadInfoService for tile-derived data)
@@ -29,6 +31,7 @@ public:
     void setRoadNameDirect(const QString &value);
     void setRoadRefsDirect(const QString &value);
     void setRoadTypeDirect(const QString &value);
+    void setRoadNetworksDirect(const QString &value);
     void setRoadBearingDirect(double value);
 
 signals:
@@ -36,6 +39,7 @@ signals:
     void roadNameChanged();
     void roadRefsChanged();
     void roadTypeChanged();
+    void roadSignStyleChanged();
     void roadBearingChanged();
 
 protected:
@@ -44,11 +48,14 @@ protected:
 
 private:
     void markDirectUpdate();
+    void updateRoadSignStyle();
 
     QString m_speedLimit;
     QString m_roadName;
     QString m_roadRefs;
     QString m_roadType;
+    QString m_roadNetworks;
+    QString m_roadSignStyle;
     double m_roadBearing = -1;
     QElapsedTimer m_directUpdateAge;
     static constexpr int DirectAuthorityHoldMs = 2500;

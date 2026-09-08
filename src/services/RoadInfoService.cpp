@@ -278,6 +278,7 @@ void RoadInfoService::countMissAndMaybeClear()
     if (!m_matchRetention.retainAfterMiss()) {
         clearRoadMatch();
         m_speedLimit->setRoadNameDirect(QString());
+        m_speedLimit->setRoadNetworksDirect(QString());
         m_speedLimit->setRoadRefsDirect(QString());
         m_speedLimit->setRoadTypeDirect(QString());
         m_speedLimit->setSpeedLimitDirect(QString());
@@ -303,6 +304,7 @@ void RoadInfoService::onGpsChanged()
         m_matchRetention.reset();
         clearRoadMatch();
         m_speedLimit->setRoadNameDirect(QString());
+        m_speedLimit->setRoadNetworksDirect(QString());
         m_speedLimit->setRoadRefsDirect(QString());
         m_speedLimit->setRoadTypeDirect(QString());
         m_speedLimit->setSpeedLimitDirect(QString());
@@ -359,6 +361,7 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
         && m_navigation->hasCurrentEdgeAttrs();
     auto publishRouteAttrs = [this]() {
         m_speedLimit->setRoadNameDirect(m_navigation->currentEdgeName());
+        m_speedLimit->setRoadNetworksDirect(QString());
         m_speedLimit->setRoadRefsDirect(
             m_navigation->currentEdgeRefs().join(QStringLiteral(", ")));
         m_speedLimit->setRoadTypeDirect(m_navigation->currentEdgeRoadClass());
@@ -393,6 +396,7 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
         QString name;
         QString refs;
         QString kind;
+        QString routeNetworks;
         QString maxspeed;
         double lat1 = 0, lon1 = 0, lat2 = 0, lon2 = 0;
         double snappedLat = 0, snappedLon = 0;
@@ -456,6 +460,8 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
                 candidate.name =
                     feature.properties.value(QStringLiteral("name"));
                 candidate.kind = kind;
+                candidate.routeNetworks =
+                    feature.properties.value(QStringLiteral("route_networks"));
                 candidate.maxspeed =
                     feature.properties.value(QStringLiteral("maxspeed"));
                 const QString refRaw =
@@ -577,6 +583,7 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
     QString name = chosen.name;
     QString refs = chosen.refs;
     QString kind = chosen.kind;
+    QString routeNetworks = chosen.routeNetworks;
     QString maxspeed = chosen.maxspeed;
     if (hasRouteAttrs) {
         if (!m_navigation->currentEdgeName().isEmpty())
@@ -590,6 +597,7 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
     }
     m_speedLimit->setSpeedLimitDirect(maxspeed);
     m_speedLimit->setRoadNameDirect(name);
+    m_speedLimit->setRoadNetworksDirect(routeNetworks);
     m_speedLimit->setRoadRefsDirect(refs);
     m_speedLimit->setRoadTypeDirect(kind);
     m_speedLimit->setRoadBearingDirect(chosen.policy.bearingDegrees);

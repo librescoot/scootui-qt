@@ -5,6 +5,7 @@ Rectangle {
     property string roadName: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadName : ""
     property string roadRefs: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadRefs : ""
     property string roadType: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadType : ""
+    property string roadSignStyle: typeof speedLimitStore !== "undefined" ? speedLimitStore.roadSignStyle : ""
     property real fontSize: themeStore.fontCaption
     property real maxTextWidth: 200
 
@@ -31,29 +32,28 @@ Rectangle {
     height: label.height + 4
     radius: themeStore.radiusBar
 
-    // German road sign styling based on road type
     color: {
+        switch (roadSignStyle) {
+        case "motorway": return "#1565C0"
+        case "federal":  return "#FFF300"
+        }
         switch (roadType.toLowerCase()) {
-            case "motorway":
-            case "trunk":       return "#1565C0"  // blue
-            case "primary":     return "#FFF300"  // traffic yellow
-            case "secondary":   return "#FFFFFF"
-            case "tertiary":    return "#FFFFFF"
-            case "residential":
-            case "living_street": return "#EEEEEE"
-            default:            return "#F5F5F5"
+        case "secondary":
+        case "tertiary": return "#FFFFFF"
+        case "residential":
+        case "living_street": return "#EEEEEE"
+        default: return "#F5F5F5"
         }
     }
     border.width: {
+        if (roadSignStyle.length > 0)
+            return 0
         switch (roadType.toLowerCase()) {
-            case "secondary":   return 1
-            case "tertiary":    return 0.5
-            case "motorway":
-            case "trunk":
-            case "primary":
-            case "residential":
-            case "living_street": return 0
-            default:            return 0.5
+        case "secondary": return 1
+        case "tertiary": return 0.5
+        case "residential":
+        case "living_street": return 0
+        default: return 0.5
         }
     }
     border.color: {
@@ -75,12 +75,7 @@ Rectangle {
         elide: Text.ElideRight
         maximumLineCount: 1
         width: Math.min(implicitWidth, root.maxTextWidth)
-        color: {
-            switch (root.roadType.toLowerCase()) {
-                case "motorway":
-                case "trunk":       return "#FFFFFF"
-                default:            return "#DD000000"
-            }
-        }
+        color: root.roadSignStyle === "motorway"
+               ? "#FFFFFF" : "#DD000000"
     }
 }

@@ -1,4 +1,5 @@
 #include "SpeedLimitStore.h"
+#include "RoadSignStyle.h"
 #include "SpeedLimitParser.h"
 
 SpeedLimitStore::SpeedLimitStore(MdbRepository *repo, QObject *parent)
@@ -34,9 +35,19 @@ void SpeedLimitStore::applyFieldUpdate(const QString &variable, const QString &v
     } else if (variable == QLatin1String("road-name")) {
         if (value != m_roadName) { m_roadName = value; emit roadNameChanged(); }
     } else if (variable == QLatin1String("road-refs")) {
-        if (value != m_roadRefs) { m_roadRefs = value; emit roadRefsChanged(); }
+        if (value != m_roadRefs) {
+            m_roadNetworks.clear();
+            m_roadRefs = value;
+            emit roadRefsChanged();
+            updateRoadSignStyle();
+        }
     } else if (variable == QLatin1String("road-type")) {
-        if (value != m_roadType) { m_roadType = value; emit roadTypeChanged(); }
+        if (value != m_roadType) {
+            m_roadNetworks.clear();
+            m_roadType = value;
+            emit roadTypeChanged();
+            updateRoadSignStyle();
+        }
     }
 }
 
@@ -56,13 +67,30 @@ void SpeedLimitStore::setRoadNameDirect(const QString &value)
 void SpeedLimitStore::setRoadRefsDirect(const QString &value)
 {
     markDirectUpdate();
-    if (value != m_roadRefs) { m_roadRefs = value; emit roadRefsChanged(); }
+    if (value != m_roadRefs) {
+        m_roadRefs = value;
+        emit roadRefsChanged();
+        updateRoadSignStyle();
+    }
 }
 
 void SpeedLimitStore::setRoadTypeDirect(const QString &value)
 {
     markDirectUpdate();
-    if (value != m_roadType) { m_roadType = value; emit roadTypeChanged(); }
+    if (value != m_roadType) {
+        m_roadType = value;
+        emit roadTypeChanged();
+        updateRoadSignStyle();
+    }
+}
+
+void SpeedLimitStore::setRoadNetworksDirect(const QString &value)
+{
+    markDirectUpdate();
+    if (value != m_roadNetworks) {
+        m_roadNetworks = value;
+        updateRoadSignStyle();
+    }
 }
 
 void SpeedLimitStore::setRoadBearingDirect(double value)
@@ -74,4 +102,14 @@ void SpeedLimitStore::setRoadBearingDirect(double value)
 void SpeedLimitStore::markDirectUpdate()
 {
     m_directUpdateAge.start();
+}
+
+void SpeedLimitStore::updateRoadSignStyle()
+{
+    const QString style = RoadSignStyle::classify(
+        m_roadType, m_roadRefs, m_roadNetworks);
+    if (style != m_roadSignStyle) {
+        m_roadSignStyle = style;
+        emit roadSignStyleChanged();
+    }
 }
