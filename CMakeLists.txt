@@ -686,4 +686,16 @@ if(BUILD_TESTING)
     target_include_directories(map_metadata_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(map_metadata_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME map_metadata_test COMMAND map_metadata_test)
+
+    qt_add_executable(maintenance_screen_test
+        tests/MaintenanceScreenTest.cpp
+        src/models/Enums.h
+    )
+    target_include_directories(maintenance_screen_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_compile_definitions(maintenance_screen_test PRIVATE
+        SCOOTUI_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(maintenance_screen_test PRIVATE Qt6::Quick Qt6::Qml Qt6::Test)
+    add_test(NAME maintenance_screen_test COMMAND maintenance_screen_test)
+    set_tests_properties(maintenance_screen_test PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

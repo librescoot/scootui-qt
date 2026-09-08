@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import ScootUI 1.0
+import "../widgets/components"
 
 Rectangle {
     id: maintenanceScreen
@@ -107,11 +108,11 @@ Rectangle {
                 visible: loadingMode.otaActive && loadingMode.otaStatus !== "idle"
                 anchors.horizontalCenter: parent.horizontalCenter
 
-                Text {
+                BalancedText {
+                    objectName: "otaStatusText"
                     anchors.horizontalCenter: parent.horizontalCenter
-                    width: maintenanceScreen.width - 64
+                    maxWidth: maintenanceScreen.width - 64
                     horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.WordWrap
                     font.pixelSize: themeStore.fontBody
                     color: Qt.rgba(1, 1, 1, 0.8)
                     text: {
@@ -181,14 +182,21 @@ Rectangle {
             anchors.rightMargin: 32
             spacing: 0
 
-            Text {
+            Item {
                 Layout.fillWidth: true
-                text: "Trying to connect to vehicle system..."
-                color: "white"
-                font.pixelSize: themeStore.fontTitle
-                font.weight: Font.Bold
-                wrapMode: Text.WordWrap
-                horizontalAlignment: Text.AlignHCenter
+                Layout.preferredHeight: connectionTitle.implicitHeight
+
+                BalancedText {
+                    id: connectionTitle
+                    objectName: "connectionTitle"
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    maxWidth: parent.width
+                    text: "Trying to connect to vehicle system..."
+                    color: "white"
+                    font.pixelSize: themeStore.fontTitle
+                    font.weight: Font.Bold
+                    horizontalAlignment: Text.AlignHCenter
+                }
             }
 
             Item { Layout.preferredHeight: 16 }
@@ -202,17 +210,24 @@ Rectangle {
 
             Item { Layout.preferredHeight: 16 }
 
-            Text {
+            Item {
                 Layout.fillWidth: true
-                text: "This usually indicates a missing or unreliable connection between " +
-                      "the dashboard computer (DBC) and the middle driver board (MDB).\n\n" +
-                      "Check the USB cable if this persists."
-                color: Qt.rgba(1, 1, 1, 0.70)
-                font.pixelSize: themeStore.fontBody
-                lineHeight: 1.4
-                lineHeightMode: Text.ProportionalHeight
-                wrapMode: Text.WordWrap
-                horizontalAlignment: Text.AlignHCenter
+                Layout.preferredHeight: connectionDetails.implicitHeight
+
+                BalancedText {
+                    id: connectionDetails
+                    objectName: "connectionDetails"
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    maxWidth: parent.width
+                    text: "This usually indicates a missing or unreliable connection between " +
+                          "the dashboard computer (DBC) and the middle driver board (MDB).\n\n" +
+                          "Check the USB cable if this persists."
+                    color: Qt.rgba(1, 1, 1, 0.70)
+                    font.pixelSize: themeStore.fontBody
+                    lineHeight: 1.4
+                    lineHeightMode: Text.ProportionalHeight
+                    horizontalAlignment: Text.AlignHCenter
+                }
             }
 
             Item { Layout.preferredHeight: 16 }
@@ -226,16 +241,23 @@ Rectangle {
 
             Item { Layout.preferredHeight: 16 }
 
-            Text {
+            Item {
                 Layout.fillWidth: true
-                text: "To put your scooter into drive mode anyway, raise the kickstand, " +
-                      "hold both brakes and press the seatbox button."
-                color: Qt.rgba(1, 1, 1, 0.60)
-                font.pixelSize: themeStore.fontBody
-                lineHeight: 1.4
-                lineHeightMode: Text.ProportionalHeight
-                wrapMode: Text.WordWrap
-                horizontalAlignment: Text.AlignHCenter
+                Layout.preferredHeight: connectionOverrideHint.implicitHeight
+
+                BalancedText {
+                    id: connectionOverrideHint
+                    objectName: "connectionOverrideHint"
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    maxWidth: parent.width
+                    text: "To put your scooter into drive mode anyway, raise the kickstand, " +
+                          "hold both brakes and press the seatbox button."
+                    color: Qt.rgba(1, 1, 1, 0.60)
+                    font.pixelSize: themeStore.fontBody
+                    lineHeight: 1.4
+                    lineHeightMode: Text.ProportionalHeight
+                    horizontalAlignment: Text.AlignHCenter
+                }
             }
         }
     }
