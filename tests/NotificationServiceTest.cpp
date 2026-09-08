@@ -5,7 +5,263 @@
 class NotificationServiceTest : public QObject
 {
     Q_OBJECT
+    static QString mainId(const NotificationService &service)
+    {
+        return service.presentation().value("main").toMap().value("id").toString();
+    }
+
+    static void tick(NotificationService &service)
+    {
+        QVERIFY(QMetaObject::invokeMethod(&service, "expireEvents", Qt::DirectConnection));
+    }
+
 private slots:
+    void equalSeverityCyclesAndWraps()
+    {
+        qint64 now = 0;
+        NotificationService service(false, nullptr, [&now] { return now; });
+        QSignalSpy cues(&service, &NotificationService::conditionPresented);
+        QSignalSpy changes(&service, &NotificationService::presentationChanged);
+        service.publishCondition("a", "test", "A", {}, 0, "critical");
+        service.publishCondition("b", "test", "B", {}, 0, "critical");
+        service.publishCondition("c", "test", "C", {}, 0, "critical");
+        service.publishCondition("lower", "test", "Lower", {}, 2);
+        QCOMPARE(mainId(service), QStringLiteral("a"));
+        QCOMPARE(service.presentation().value("criticalCount").toInt(), 3);
+        const int beforeTick = changes.count();
+        now = 4999;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("a"));
+        QCOMPARE(changes.count(), beforeTick);
+        for (const auto &id : {"b", "c", "a", "b"}) {
+            now = ((now / 5000) + 1) * 5000;
+            tick(service);
+            QCOMPARE(mainId(service), QString::fromLatin1(id));
+            QCOMPARE(service.presentation().value("criticalCount").toInt(), 3);
+        }
+        QCOMPARE(cues.count(), 3);
+    }
+
+    void singleItemAndNewArrivalKeepDwell()
+    {
+        qint64 now = 0;
+        NotificationService service(false, nullptr, [&now] { return now; });
+        service.publishCondition("a", "test", "A", {}, 2);
+        now = 2000;
+        service.publishCondition("b", "test", "B", {}, 2);
+        now = 4999;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("a"));
+        now = 5000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("b"));
+        service.resolveCondition("a");
+        QSignalSpy changes(&service, &NotificationService::presentationChanged);
+        now = 25000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("b"));
+        QCOMPARE(changes.count(), 0);
+        service.publishCondition("c", "test", "C", {}, 2);
+        QCOMPARE(mainId(service), QStringLiteral("c"));
+        now = 29999;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("c"));
+    }
+
+    void producerAndNavigationChurnDoesNotResetDwell()
+    {
+        qint64 now = 0;
+        NotificationService service(false, nullptr, [&now] { return now; });
+        service.publishCondition("a", "test", "A", {}, 2);
+        service.publishEvent("b", "test", "B", {}, 2, "warning", 20000);
+        QVariantMap nav{{"id", "navigation-session"}, {"valid", true}, {"status", 2}, {"distance", 800.0}};
+        for (now = 100; now <= 10000; now += 100) {
+            service.publishCondition("a", "test", QString::number(now), {}, 2);
+            service.publishEvent("b", "test", QString::number(now), {}, 2, "warning", 20000);
+            nav["distance"] = 800.0 + now;
+            service.setNavigationPayload(nav);
+            QCOMPARE(mainId(service), now < 5000 || now == 10000 ? QStringLiteral("a") : QStringLiteral("b"));
+            QCOMPARE(service.presentation().value("companion").toMap().value("distance"), nav.value("distance"));
+        }
+    }
+
+    void higherPriorityPreemptsAndEscalationRestartsDwell()
+    {
+        qint64 now = 0;
+        NotificationService service(false, nullptr, [&now] { return now; });
+        QSignalSpy cues(&service, &NotificationService::conditionPresented);
+        service.publishCondition("a", "test", "A", {}, 2);
+        service.publishCondition("b", "test", "B", {}, 2);
+        now = 5000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("b"));
+        now = 6000;
+        service.publishCondition("a", "test", "Critical A", {}, 0, "critical");
+        QCOMPARE(mainId(service), QStringLiteral("a"));
+        service.publishCondition("c", "test", "Critical C", {}, 0, "critical");
+        now = 10999;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("a"));
+        now = 11000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("c"));
+        service.resolveCondition("c");
+        QCOMPARE(mainId(service), QStringLiteral("a"));
+        QCOMPARE(cues.count(), 4);
+        service.publishCondition("a", "test", "A", {}, 2);
+        QCOMPARE(mainId(service), QStringLiteral("a"));
+        now = 15999;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("a"));
+        now = 16000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("b"));
+        QCOMPARE(cues.count(), 4);
+    }
+
+    void removalAdvancesToSuccessorAndSkipsRemovedPeers()
+    {
+        qint64 now = 0;
+        NotificationService service(false, nullptr, [&now] { return now; });
+        for (const auto &id : {"a", "b", "c", "d"})
+            service.publishCondition(id, "test", id, {}, 2);
+        now = 5000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("b"));
+        service.resolveCondition("d");
+        now = 6000;
+        service.resolveCondition("b");
+        QCOMPARE(mainId(service), QStringLiteral("c"));
+        now = 10999;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("c"));
+        now = 11000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("a"));
+        service.resolveCondition("c");
+        service.resolveCondition("a");
+        QVERIFY(mainId(service).isEmpty());
+        now = 12000;
+        service.publishCondition("a", "test", "Recurred", {}, 2);
+        service.publishCondition("b", "test", "Recurred", {}, 2);
+        now = 16999;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("a"));
+    }
+
+    void eventsRotateWithConditionsAndCuesStayDeduplicated()
+    {
+        qint64 now = 0;
+        NotificationService service(false, nullptr, [&now] { return now; });
+        QSignalSpy conditions(&service, &NotificationService::conditionPresented);
+        QSignalSpy events(&service, &NotificationService::eventPresented);
+        service.publishEvent("event", "test", "Event", {}, 2, "warning", 30000);
+        service.publishCondition("condition", "test", "Condition", {}, 2);
+        service.publishEvent("other", "test", "Other", {}, 2, "error", 30000);
+        for (const auto &id : {"condition", "other", "event", "condition", "other"}) {
+            now += 5000;
+            tick(service);
+            QCOMPARE(mainId(service), QString::fromLatin1(id));
+        }
+        QCOMPARE(conditions.count(), 1);
+        QCOMPARE(events.count(), 2);
+        service.clearEvent("other");
+        QCOMPARE(mainId(service), QStringLiteral("event"));
+        now = 30000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("condition"));
+        QCOMPARE(service.history().size(), 1);
+        QCOMPARE(events.count(), 2);
+    }
+
+    void eventFreshnessIsNotExtendedByRotation()
+    {
+        qint64 now = 0;
+        NotificationService service(false, nullptr, [&now] { return now; });
+        QSignalSpy cues(&service, &NotificationService::eventPresented);
+        service.publishCondition("a", "test", "A", {}, 2);
+        service.publishEvent("short", "test", "Short", {}, 2, "warning");
+        service.publishEvent("long", "test", "Long", {}, 2, "warning", 6000);
+        now = 5000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("long"));
+        QCOMPARE(cues.count(), 1);
+        QCOMPARE(service.history().size(), 1);
+        now = 6000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("a"));
+        QCOMPARE(service.history().size(), 2);
+        QCOMPARE(cues.count(), 1);
+        now = 10000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("a"));
+    }
+
+    void surfaceEligibilityRemovesCurrentPeer()
+    {
+        qint64 now = 0;
+        NotificationService service(false, nullptr, [&now] { return now; });
+        service.setSurface("map");
+        service.publishCondition("a", "test", "A", {}, 2);
+        service.setCoverageWarning(true);
+        service.publishCondition("c", "test", "C", {}, 2);
+        now = 5000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("map-coverage"));
+        service.setSurface("cluster");
+        QCOMPARE(mainId(service), QStringLiteral("c"));
+        now = 10000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("a"));
+        now = 15000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("c"));
+    }
+
+    void navigationPreemptsRotationAndRemainsCompanion()
+    {
+        qint64 now = 0;
+        NotificationService service(false, nullptr, [&now] { return now; });
+        service.publishCondition("a", "test", "A", {}, 2);
+        service.publishCondition("b", "test", "B", {}, 2);
+        QVariantMap nav{{"id", "navigation-session"}, {"valid", true}, {"status", 2}, {"distance", 800.0}};
+        service.setNavigationPayload(nav);
+        now = 5000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("b"));
+        QCOMPARE(service.presentation().value("companion").toMap().value("id").toString(), QStringLiteral("navigation-session"));
+        nav["distance"] = 40.0;
+        service.setNavigationPayload(nav);
+        QCOMPARE(mainId(service), QStringLiteral("navigation-session"));
+        QVERIFY(service.presentation().value("companion").toMap().isEmpty());
+        now = 20000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("navigation-session"));
+        nav["distance"] = 800.0;
+        service.setNavigationPayload(nav);
+        QCOMPARE(mainId(service), QStringLiteral("a"));
+        now = 25000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("b"));
+        service.publishCondition("a", "test", "A", {}, 3, "info");
+        service.publishCondition("b", "test", "B", {}, 3, "info");
+        QCOMPARE(mainId(service), QStringLiteral("navigation-session"));
+        now = 30000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("navigation-session"));
+    }
+
+    void ridingEligibilityRemovesEventsFromCycle()
+    {
+        AttentionCycleState cycle;
+        const QVariantMap a{{"id", "a"}, {"order", 1}, {"priority", 4}};
+        const QVariantMap b{{"id", "b"}, {"order", 2}, {"priority", 4}, {"validUntil", 30000}};
+        QCOMPARE(AttentionPolicy::select({a}, {b}, {}, false, 0, &cycle).main.value("id").toString(), QStringLiteral("a"));
+        QCOMPARE(AttentionPolicy::select({a}, {b}, {}, false, 5000, &cycle).main.value("id").toString(), QStringLiteral("b"));
+        QCOMPARE(AttentionPolicy::select({a}, {b}, {}, true, 6000, &cycle).main.value("id").toString(), QStringLiteral("a"));
+        QCOMPARE(AttentionPolicy::select({a}, {b}, {}, true, 11000, &cycle).main.value("id").toString(), QStringLiteral("a"));
+    }
+
     void priorityAndCompanion()
     {
         QList<QVariantMap> conditions;

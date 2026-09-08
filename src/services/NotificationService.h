@@ -6,6 +6,9 @@
 #include <QTimer>
 #include <QVariantList>
 #include <QVariantMap>
+#include <functional>
+
+#include "AttentionPolicy.h"
 
 class VehicleStore;
 
@@ -22,8 +25,10 @@ class NotificationService : public QObject
     Q_PROPERTY(QString surface READ surface WRITE setSurface NOTIFY surfaceChanged)
 
 public:
+    // An injected clock must be monotonic; production uses the elapsed timer.
     explicit NotificationService(bool simulatorInjectionEnabled = false,
-                                 QObject *parent = nullptr);
+                                 QObject *parent = nullptr,
+                                 std::function<qint64()> clock = {});
 
     QVariantMap presentation() const { return m_presentation; }
     QVariantList active() const;
@@ -72,10 +77,11 @@ signals:
     void conditionPresented(const QString &kind);
 
 private:
+    qint64 nowMs() const;
     void refreshPresentation();
     void emitPresentationCue(const QVariantMap &main);
     void onVehicleStateChanged();
-    void expireEvents();
+    Q_SLOT void expireEvents();
     QVariantMap makeEntry(const QString &id, const QString &source, const QString &title,
                           const QString &body, int priority, const QString &kind) const;
 
@@ -89,6 +95,8 @@ private:
     VehicleStore *m_vehicleStore = nullptr;
     QTimer m_expiryTimer;
     QElapsedTimer m_clock;
+    std::function<qint64()> m_nowMs;
+    AttentionCycleState m_cycle;
     QString m_surface = QStringLiteral("cluster");
     bool m_riding = false;
     bool m_telemetryConnected = true;

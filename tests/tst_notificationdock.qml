@@ -61,6 +61,25 @@ TestCase {
             verify(dock.height < 220)
         }
     }
+    function test_rotatingNotificationsKeepCompanionAndStyle() {
+        const nav = {kind: "nav", status: 2, distance: 80, maneuverType: 5,
+                     instruction: "Turn right onto Main Street", compactInstruction: "Turn right"}
+        for (const dark of [true, false]) {
+            dock.isDark = dark
+            show({id: "a", kind: "critical", priority: 0, title: "Battery fault", body: "Stop safely"}, nav, 2)
+            const card = findChild(dock, "attentionMainCard")
+            const color = card.color.toString()
+            const titleSize = findChild(dock, "notificationTitle").font.pixelSize
+            for (const title of ["Connection lost", "Battery fault"]) {
+                show({id: title, kind: "critical", priority: 0, title: title, body: "Stop safely"}, nav, 2)
+                compare(findChild(dock, "notificationTitle").text, title)
+                compare(findChild(dock, "notificationTitle").font.pixelSize, titleSize)
+                compare(findChild(dock, "attentionMainCard").color.toString(), color)
+                compare(findChild(findChild(dock, "attentionCompanion"), "maneuverInstruction").text, "Turn right")
+                fits(findChild(dock, "attentionCompanion"), dock)
+            }
+        }
+    }
     function test_navigationPayload_data() {
         return [
             {tag: "distant roundabout", distance: 650, type: 17},

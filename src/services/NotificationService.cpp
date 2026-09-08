@@ -6,14 +6,21 @@
 
 #include <algorithm>
 
-NotificationService::NotificationService(bool simulatorInjectionEnabled, QObject *parent)
-    : QObject(parent), m_simulatorInjectionEnabled(simulatorInjectionEnabled)
+NotificationService::NotificationService(bool simulatorInjectionEnabled, QObject *parent,
+                                         std::function<qint64()> clock)
+    : QObject(parent), m_nowMs(std::move(clock)),
+      m_simulatorInjectionEnabled(simulatorInjectionEnabled)
 {
     m_clock.start();
     m_expiryTimer.setInterval(250);
     connect(&m_expiryTimer, &QTimer::timeout, this, &NotificationService::expireEvents);
     m_expiryTimer.start();
     refreshPresentation();
+}
+
+qint64 NotificationService::nowMs() const
+{
+    return m_nowMs ? m_nowMs() : m_clock.elapsed();
 }
 
 QVariantMap NotificationService::makeEntry(const QString &id, const QString &source,
@@ -139,7 +146,7 @@ QString NotificationService::publishEvent(const QString &id, const QString &sour
 {
     if (id.isEmpty())
         return {};
-    const qint64 now = m_clock.elapsed();
+    const qint64 now = nowMs();
     for (auto &existing : m_events) {
         if (existing.value(QStringLiteral("id")) == id) {
             existing[QStringLiteral("source")] = source;
@@ -161,7 +168,7 @@ QString NotificationService::publishEvent(const QString &id, const QString &sour
     entry[QStringLiteral("validUntil")] = now + qMax(1, lifetimeMs);
     m_events.append(entry);
     while (m_events.size() > 20) {
-        const auto nowEntry = m_clock.elapsed();
+        const auto nowEntry = nowMs();
         auto victim = std::min_element(m_events.begin(), m_events.end(), [nowEntry](
             const QVariantMap &a, const QVariantMap &b) {
             const bool aStale = a.value(QStringLiteral("validUntil")).toLongLong() <= nowEntry;
@@ -197,7 +204,7 @@ void NotificationService::clearEvent(const QString &id)
 
 void NotificationService::expireEvents()
 {
-    const qint64 now = m_clock.elapsed();
+    const qint64 now = nowMs();
     bool changed = false;
     QList<QVariantMap> kept;
     for (const auto &entry : std::as_const(m_events)) {
@@ -211,12 +218,12 @@ void NotificationService::expireEvents()
             changed = true;
         }
     }
-    if (!changed)
-        return;
-    m_events = kept;
-    while (m_history.size() > 50)
-        m_history.removeLast();
-    emit historyChanged();
+    if (changed) {
+        m_events = kept;
+        while (m_history.size() > 50)
+            m_history.removeLast();
+        emit historyChanged();
+    }
     refreshPresentation();
 }
 
@@ -266,7 +273,7 @@ void NotificationService::refreshPresentation()
         conditions.append(condition);
     }
     const AttentionSelection selection = AttentionPolicy::select(
-        conditions, m_events, m_navigation, m_riding, m_clock.elapsed());
+        conditions, m_events, m_navigation, m_riding, nowMs(), &m_cycle);
     QVariantMap presentation;
     presentation[QStringLiteral("main")] = selection.main;
     presentation[QStringLiteral("companion")] = selection.companion;

@@ -69,8 +69,11 @@ navigation, warnings, connection health, faults, coverage, and transient
 feedback. Active conditions are updated and resolved by their owning producer;
 transient events expire by a monotonic freshness deadline and are retained in a
 bounded in-memory history. Priority arbitration keeps one attention card and,
-when useful, a compact valid navigation companion. Speed, blinkers, telltales,
-and pairing/UMS/system workflows remain independent protected surfaces.
+when useful, a compact valid navigation companion. Equal-priority notifications
+rotate every 5 seconds within the highest-priority group; higher-priority alerts
+preempt immediately. Rotation does not replay cues or extend event freshness.
+Speed, blinkers, telltales, and pairing/UMS/system workflows remain independent
+protected surfaces.
 
 Attention overlays the normal full-size cluster and map; it does not reserve
 instrument space or change the map camera or vehicle anchor. Only blinkers move
