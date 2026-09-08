@@ -64,18 +64,12 @@ AttentionSelection AttentionPolicy::select(const QList<QVariantMap> &conditions,
         result.main = candidates.first();
 
     if (!result.main.isEmpty() && result.main.value(QStringLiteral("kind")) != QLatin1String("nav")
-        && hasNavigation) {
+        && hasNavigation && navigation.value(QStringLiteral("status"), 2).toInt() == 2) {
         result.companion = navigation;
         result.companion[QStringLiteral("kind")] = QStringLiteral("nav");
         result.companion[QStringLiteral("priority")] = imminent ? 1 : 3;
     }
 
-    const bool expanded = !result.main.isEmpty()
-        && ((priority(result.main) == 0 && !result.main.value(QStringLiteral("body")).toString().isEmpty())
-            || (result.main.value(QStringLiteral("kind")) == QLatin1String("nav") && imminent));
-    result.height = result.main.isEmpty() ? 0 : (expanded ? 96 : 76);
-    if (!result.companion.isEmpty())
-        result.height = qMin(128, result.height + 34);
     result.criticalCount = criticalCount;
     return result;
 }

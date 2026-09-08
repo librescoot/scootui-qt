@@ -4,21 +4,14 @@ import "../components"
 
 Item {
     id: tbtWidget
-    // Natural size from content, floored at 96 for a stable idle footprint.
-    // Instruction text self-caps at maximumLineCount so the floor never gets
-    // overshot by a runaway string. Publishing as implicitHeight lets Layout
-    // containers read the widget's size without an external binding.
-    implicitHeight: Math.max(contentCol.implicitHeight + 24, 96)
-    // Show whenever we have any upcoming maneuver. The previous gate hid the
-    // banner at distance=0 for regular turns (only kStart/Arrive were kept
-    // visible there), which blanked the banner at the exact shape index of
-    // every turn — precisely when the rider needs the "execute now" cue.
-    visible: typeof navigationService !== "undefined" && navigationService.isNavigating
-             && navigationService.hasCurrentManeuver
+    property var maneuver: ({})
+    property bool compact: false
+    readonly property bool navigating: maneuver.status === 2
+    // A start instruction has no distance row, so leave room for the trip summary above it.
+    implicitHeight: compact ? Math.max(contentCol.implicitHeight + 12, 48)
+                   : navigating ? Math.max(contentCol.implicitHeight + 24
+                                          + (maneuver.isStart ? timeInfoBar.height : 0), 96) : 96
 
-    // Guarded against null as well as undefined: ClusterScreen incubates this
-    // through an asynchronous Loader, and `typeof null` is "object", so the
-    // typeof check alone lets a null context property through to the read.
     property bool isDark: (typeof themeStore !== "undefined" && themeStore)
                           ? themeStore.isDark : true
 
@@ -113,6 +106,21 @@ Item {
         }
     }
 
+    Text {
+        objectName: "navigationStatus"
+        anchors.centerIn: parent
+        width: parent.width - 24
+        visible: !tbtWidget.navigating
+        text: maneuver.status === 1 ? (typeof translations !== "undefined" ? translations.navCalculating : "Calculating route")
+              : maneuver.status === 3 ? (typeof translations !== "undefined" ? translations.navRecalculating : "Recalculating route")
+              : maneuver.status === 4 ? (typeof translations !== "undefined" ? translations.navArrived : "Arrived") : "Navigation"
+        font.pixelSize: themeStore.fontBody
+        color: isDark ? "white" : "#212121"
+        horizontalAlignment: Text.AlignHCenter
+        wrapMode: Text.WordWrap
+        z: 1
+    }
+
     // Main background container
     Rectangle {
         anchors.fill: parent
@@ -128,6 +136,7 @@ Item {
 
         RowLayout {
             id: contentRow
+            visible: tbtWidget.navigating
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
@@ -135,13 +144,12 @@ Item {
 
             // Icon box (left-aligned)
             Item {
-                Layout.preferredWidth: 80
-                Layout.preferredHeight: 80
+                Layout.preferredWidth: tbtWidget.compact ? 48 : 80
+                Layout.preferredHeight: tbtWidget.compact ? 48 : 80
 
-                property int mType: typeof navigationService !== "undefined"
-                                    ? navigationService.currentManeuverType : 0
-                property double mDist: typeof navigationService !== "undefined"
-                                       ? navigationService.currentManeuverDistance : 0
+                objectName: "maneuverIconBox"
+                property int mType: tbtWidget.maneuver.maneuverType || 0
+                property double mDist: tbtWidget.maneuver.distance || 0
                 property bool isRoundabout: (mType === mtRoundaboutEnter || mType === mtRoundaboutExit)
                                             && mDist <= iconThreshold(mType)
                 // Keep L/R uses two-tone SVGs (active arm bright, inactive arm
@@ -155,20 +163,21 @@ Item {
                     anchors.centerIn: parent
                     active: parent.isRoundabout
                     sourceComponent: RoundaboutIconFromMap {
-                        renderData: typeof navigationService !== "undefined"
-                                    ? navigationService.currentRoundaboutRender : null
+                        objectName: "mainRoundaboutIcon"
+                        renderData: tbtWidget.maneuver.roundabout || null
+                        fallbackExitNumber: Math.max(1, tbtWidget.maneuver.roundaboutExit || 0)
                         isDark: tbtWidget.isDark
-                        size: 80
+                        size: tbtWidget.compact ? 40 : 80
                     }
                 }
 
                 Image {
                     anchors.centerIn: parent
                     visible: parent.isKeepFork
-                    width: 64
-                    height: 64
-                    sourceSize.width: 64
-                    sourceSize.height: 64
+                    width: tbtWidget.compact ? 32 : 64
+                    height: width
+                    sourceSize.width: width
+                    sourceSize.height: height
                     fillMode: Image.PreserveAspectFit
                     source: {
                         if (parent.mType === mtKeepLeft)
@@ -187,29 +196,32 @@ Item {
                     text: parent.mDist <= iconThreshold(parent.mType)
                           ? maneuverIcon(parent.mType) : MaterialIcon.iconStraight
                     font.family: "Material Icons"
-                    font.pixelSize: themeStore.fontHero
+                    font.pixelSize: tbtWidget.compact ? 32 : themeStore.fontHero
                     color: isDark ? "white" : "#212121"
                 }
             }
 
             // Text Column (center-expanded)
-            ColumnLayout {
+            GridLayout {
                 id: contentCol
+                columns: tbtWidget.compact ? 2 : 1
+                rowSpacing: 4
+                columnSpacing: 8
                 Layout.fillWidth: true
                 Layout.leftMargin: 8
                 Layout.rightMargin: 8
-                Layout.topMargin: 12
-                Layout.bottomMargin: 8
-                spacing: 4
+                Layout.topMargin: tbtWidget.compact ? 6 : 12 + (tbtWidget.maneuver.isStart ? timeInfoBar.height : 0)
+                Layout.bottomMargin: tbtWidget.compact ? 6 : 8
 
                 // Distance indicator. Hidden for kStart-family ("head on X")
                 // because the rider is AT the start and 0 m is noise.
                 Text {
-                    Layout.fillWidth: true
-                    visible: typeof navigationService === "undefined"
-                             || !navigationService.currentIsStart
-                    text: typeof navigationService !== "undefined"
-                          ? formatDistance(navigationService.currentManeuverDistance) : ""
+                    Layout.fillWidth: !tbtWidget.compact
+                    objectName: "maneuverDistance"
+                    Layout.alignment: tbtWidget.compact ? Qt.AlignBaseline : Qt.AlignVCenter
+                    Layout.rightMargin: tbtWidget.compact ? 0 : timeInfoBar.width
+                    visible: !tbtWidget.maneuver.isStart
+                    text: formatDistance(tbtWidget.maneuver.distance || 0)
                     font.pixelSize: themeStore.fontBody
                     font.weight: Font.Bold
                     color: isDark ? "white" : "#212121"
@@ -220,13 +232,15 @@ Item {
                 // runaway instruction can't blow out the banner height.
                 Text {
                     Layout.fillWidth: true
-                    text: typeof navigationService !== "undefined"
-                          ? navigationService.currentVerbalInstruction : ""
+                    objectName: "maneuverInstruction"
+                    Layout.alignment: tbtWidget.compact ? Qt.AlignBaseline : Qt.AlignVCenter
+                    text: (tbtWidget.compact && tbtWidget.maneuver.compactInstruction)
+                          || tbtWidget.maneuver.instruction || tbtWidget.maneuver.street || "Navigation"
                     font.pixelSize: themeStore.fontBody
                     font.weight: isDark ? Font.Normal : Font.Medium
                     color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     wrapMode: Text.WordWrap
-                    maximumLineCount: 3
+                    maximumLineCount: tbtWidget.compact ? 1 : 3
                     elide: Text.ElideRight
                     lineHeight: 1.2
                 }
@@ -234,7 +248,8 @@ Item {
                 // Next instruction preview
                 RowLayout {
                     Layout.fillWidth: true
-                    visible: typeof navigationService !== "undefined" && navigationService.showNextPreview
+                    objectName: "maneuverNextPreview"
+                    visible: !tbtWidget.compact && !!tbtWidget.maneuver.showNextPreview
                     spacing: 4
 
                     Text {
@@ -244,8 +259,7 @@ Item {
                         color: isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
                     }
                     Text {
-                        text: typeof navigationService !== "undefined"
-                              ? maneuverIcon(navigationService.nextManeuverType) : ""
+                        text: maneuverIcon(tbtWidget.maneuver.nextType || 0)
                         font.family: "Material Icons"
                         font.pixelSize: themeStore.fontBody
                         color: isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
@@ -257,9 +271,8 @@ Item {
                         // a street. Fall back to "arrive" so the preview
                         // reads "Then [flag] arrive" rather than a bare flag.
                         text: {
-                            if (typeof navigationService === "undefined") return ""
-                            var nt = navigationService.nextManeuverType
-                            var name = navigationService.nextStreetName
+                            var nt = tbtWidget.maneuver.nextType
+                            var name = tbtWidget.maneuver.nextStreet
                             var isArrive = (nt === mtArrive || nt === mtArriveRight || nt === mtArriveLeft)
                             if (name && name.length > 0) return name
                             return isArrive ? "arrive" : ""
@@ -273,9 +286,11 @@ Item {
 
         }
 
-        // Compact Time Info Bar (top-right corner) — floats on top; doesn't affect wrapping
+        // Compact trip summary, above the instruction.
         Rectangle {
             id: timeInfoBar
+            objectName: "maneuverTripSummary"
+            visible: tbtWidget.navigating && !tbtWidget.compact
             z: 1
             anchors.top: parent.top
             anchors.right: parent.right
@@ -300,8 +315,7 @@ Item {
                     spacing: 2
                     Text { text: MaterialIcon.iconSpeed; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
-                        text: typeof navigationService !== "undefined"
-                              ? formatDistance(navigationService.distanceToDestination) : ""
+                        text: formatDistance(tbtWidget.maneuver.distanceToDestination || 0)
                         font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
                 }
@@ -311,8 +325,7 @@ Item {
                     spacing: 2
                     Text { text: MaterialIcon.iconTimer; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
-                        text: typeof navigationService !== "undefined"
-                              ? formatRemainingTime(navigationService.remainingDuration) : ""
+                        text: formatRemainingTime(tbtWidget.maneuver.remainingDuration || 0)
                         font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
                 }
@@ -322,7 +335,7 @@ Item {
                     spacing: 2
                     Text { text: MaterialIcon.iconFlag; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
-                        text: typeof navigationService !== "undefined" ? navigationService.eta : ""
+                        text: tbtWidget.maneuver.eta || ""
                         font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
                 }

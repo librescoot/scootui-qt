@@ -311,6 +311,7 @@ set(QML_FILES
     qml/overlays/DebugOverlay.qml
     qml/overlays/ServiceModeOverlay.qml
     qml/simulator/SimulatorWindow.qml
+    qml/notifications/NotificationCard.qml
     qml/notifications/UnifiedAttentionDock.qml
 )
 
@@ -713,12 +714,20 @@ if(BUILD_TESTING)
     target_link_libraries(notification_service_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME notification_service_test COMMAND notification_service_test)
 
-    find_program(QMLTESTRUNNER_EXECUTABLE qmltestrunner)
-    if(QMLTESTRUNNER_EXECUTABLE)
-        add_test(NAME notification_qml_tests
-            COMMAND ${QMLTESTRUNNER_EXECUTABLE} -input
-                    ${CMAKE_CURRENT_SOURCE_DIR}/tests -o -,txt)
-        set_tests_properties(notification_qml_tests PROPERTIES
-            ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
-    endif()
+    find_package(Qt6 6.4 REQUIRED COMPONENTS QuickTest)
+    qt_add_executable(notification_qml_test tests/NotificationQuickTest.cpp)
+    target_link_libraries(notification_qml_test PRIVATE Qt6::QuickTest Qt6::Quick)
+    file(GLOB NOTIFICATION_TEST_ICONS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/*.svg")
+    qt_add_resources(notification_qml_test "notification_test_assets"
+        PREFIX "/ScootUI"
+        BASE "${CMAKE_CURRENT_SOURCE_DIR}"
+        FILES ${NOTIFICATION_TEST_ICONS}
+              assets/fonts/subset/Roboto-Regular.ttf
+              assets/fonts/subset/Roboto-Bold.ttf
+              assets/fonts/subset/Roboto-Medium.ttf
+              assets/fonts/subset/MaterialIcons-Regular.otf)
+    add_test(NAME notification_qml_tests
+        COMMAND notification_qml_test -input ${CMAKE_CURRENT_SOURCE_DIR}/tests -o -,txt)
+    set_tests_properties(notification_qml_tests PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

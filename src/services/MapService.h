@@ -44,8 +44,6 @@ class MapService : public QObject
     Q_PROPERTY(QVariantList routeCoordinates READ routeCoordinates NOTIFY routeCoordinatesChanged)
     Q_PROPERTY(QString routeGeoJson READ routeGeoJson NOTIFY routeGeoJsonChanged)
     Q_PROPERTY(double vehicleOffsetY READ vehicleOffsetY NOTIFY vehicleOffsetYChanged)
-    // Whether the turn-by-turn banner is on screen. Written by MapScreen.qml.
-    Q_PROPERTY(bool tbtVisible READ tbtVisible WRITE setTbtVisible NOTIFY tbtVisibleChanged)
     Q_PROPERTY(bool isOutOfCoverage READ isOutOfCoverage NOTIFY isOutOfCoverageChanged)
     Q_PROPERTY(bool deadReckoningPaused READ deadReckoningPaused WRITE setDeadReckoningPaused NOTIFY deadReckoningPausedChanged)
     Q_PROPERTY(double vehicleLatitude READ vehicleLatitude NOTIFY vehiclePositionChanged)
@@ -89,20 +87,10 @@ public:
     double vehicleOffsetY() const
     {
         if (m_view2D && m_northOriented)
-            return m_tbtVisible ? TbtReservedPx / 2.0 : 0.0;
+            return 0.0;
         return m_vehicleOffsetY;
     }
 
-    bool tbtVisible() const { return m_tbtVisible; }
-    void setTbtVisible(bool visible)
-    {
-        if (visible == m_tbtVisible)
-            return;
-        m_tbtVisible = visible;
-        emit tbtVisibleChanged();
-        if (m_view2D && m_northOriented)
-            emit vehicleOffsetYChanged();
-    }
     bool isReady() const { return m_isReady; }
     QString styleUrl() const { return m_styleUrl; }
     QVariantList mapThemeLayers() const { return m_mapThemeLayers; }
@@ -153,7 +141,6 @@ signals:
     void routeCoordinatesChanged();
     void routeGeoJsonChanged();
     void vehicleOffsetYChanged();
-    void tbtVisibleChanged();
     void isOutOfCoverageChanged();
     void deadReckoningPausedChanged();
     void vehiclePositionChanged();
@@ -320,9 +307,6 @@ private:
 
     // Vehicle offset
     static constexpr double VehicleOffsetPx = 120.0;
-    // Deliberately reserve the banner's 96 px floor rather than its rendered
-    // height so instruction text rewrapping cannot move the camera mid-route.
-    static constexpr double TbtReservedPx = 96.0;
 
     // Trajectory-aware segment matching
     static constexpr int MatchWindowBack = 30;
@@ -391,7 +375,6 @@ private:
     QVariantList m_routeCoordinates;
     QString m_routeGeoJson;
     double m_vehicleOffsetY = VehicleOffsetPx;
-    bool m_tbtVisible = false;
 
     // --- Out-of-coverage state ---
     bool m_isOutOfCoverage = false;

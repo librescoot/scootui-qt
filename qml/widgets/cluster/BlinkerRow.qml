@@ -44,6 +44,7 @@ Item {
                     anchors.centerIn: parent
                     width: 36
                     height: 36
+                    objectName: "leftBlinkerImage"
                     source: "qrc:/ScootUI/assets/icons/librescoot-turn-left.svg"
                     sourceSize: Qt.size(36, 36)
                     opacity: blinkerRow.blinkOpacity / Math.max(0.3, blinkerRow.blinkOpacity)
@@ -74,6 +75,7 @@ Item {
                     anchors.centerIn: parent
                     width: 36
                     height: 36
+                    objectName: "rightBlinkerImage"
                     source: "qrc:/ScootUI/assets/icons/librescoot-turn-right.svg"
                     sourceSize: Qt.size(36, 36)
                     opacity: blinkerRow.blinkOpacity / Math.max(0.3, blinkerRow.blinkOpacity)

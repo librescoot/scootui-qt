@@ -14,6 +14,8 @@ Item {
     property real size: 80
     property bool isDark: true
     property var renderData: null
+    property int fallbackExitNumber: typeof navigationService !== "undefined"
+                                     ? Math.max(1, navigationService.roundaboutExitCount) : 1
 
     width: size
     height: size
@@ -559,8 +561,7 @@ Item {
     RoundaboutIcon {
         anchors.centerIn: parent
         visible: !root.hasMap
-        exitNumber: typeof navigationService !== "undefined"
-                    ? Math.max(1, navigationService.roundaboutExitCount) : 1
+        exitNumber: root.fallbackExitNumber
         isDark: root.isDark
         size: root.size
     }

@@ -195,6 +195,7 @@ Item {
     // QPainter.
     Item {
         id: dial
+        objectName: "speedometerDial"
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
         anchors.verticalCenterOffset: -20
@@ -267,7 +268,7 @@ Item {
         // Speed fill arc
         Shape {
             anchors.fill: parent
-            visible: speedometer.animatedSpeed > 0 && !speedometer.ecuStale
+            visible: speedometer.animatedSpeed > 0 && !speedometer.ecuStale && !speedometer.telemetryTrustLost
             opacity: speedometer.isAccelerating && speedometer.animatedSpeed <= speedometer.overspeedSpeed
                      ? 0.7 + 0.3 * speedometer.accelPulse : 1.0
             preferredRendererType: Shape.CurveRenderer
@@ -341,10 +342,10 @@ Item {
     // Speed number — anchored to arc center (centerY=150 in 240px canvas = parent.center + 30)
     Text {
         id: speedText
+        objectName: "speedometerDigits"
         anchors.horizontalCenter: parent.horizontalCenter
         y: parent.height / 2 - height / 2
-        text: speedometer.ecuStale || speedometer.telemetryTrustLost
-              ? "—" : Math.floor(speedometer.animatedSpeed).toString()
+        text: speedometer.ecuStale || speedometer.telemetryTrustLost ? "—" : Math.floor(speedometer.animatedSpeed).toString()
         font.pixelSize: themeStore.fontDisplay
         font.weight: Font.Bold
         color: speedometer.isDark ? "#FFFFFF" : "#000000"
@@ -353,6 +354,7 @@ Item {
     // km/h — tight below speed number
     Text {
         id: unitText
+        objectName: "speedometerUnit"
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: speedText.bottom
         anchors.topMargin: -12

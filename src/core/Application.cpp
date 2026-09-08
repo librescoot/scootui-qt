@@ -248,6 +248,10 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_autoThemeService = new AutoThemeService(repo, themeStore, this);
     m_notificationService = new NotificationService(m_simulatorMode, this);
     m_notificationService->setVehicleStore(vehicleStore);
+    // Speed must lose trust immediately, independently of the connection banner's grace period.
+    m_notificationService->setTelemetryConnected(repo->isConnected());
+    connect(repo, &MdbRepository::connectionStateChanged,
+            m_notificationService, &NotificationService::setTelemetryConnected);
     connect(connectionStore, &ConnectionStore::prolongedDisconnectChanged, this, [this, connectionStore]() {
         if (connectionStore->prolongedDisconnect() && connectionStore->hasEverConnected())
             m_notificationService->publishCondition(QStringLiteral("redis-disconnect"), QStringLiteral("connection"),
@@ -304,11 +308,18 @@ void Application::createStores(QQmlApplicationEngine &engine)
                         {QStringLiteral("maneuverType"), m_navigationService->currentManeuverType()},
                         {QStringLiteral("street"), m_navigationService->currentStreetName()},
                         {QStringLiteral("instruction"), m_navigationService->currentVerbalInstruction()},
+                        {QStringLiteral("compactInstruction"), m_navigationService->currentCompactInstruction()},
+                        {QStringLiteral("isStart"), m_navigationService->currentIsStart()},
+                        {QStringLiteral("distanceToDestination"), m_navigationService->distanceToDestination()},
+                        {QStringLiteral("remainingDuration"), m_navigationService->remainingDuration()},
+                        {QStringLiteral("eta"), m_navigationService->eta()},
                         {QStringLiteral("nextType"), m_navigationService->nextManeuverType()},
                         {QStringLiteral("nextStreet"), m_navigationService->nextStreetName()},
                         {QStringLiteral("nextDistance"), m_navigationService->nextManeuverDistance()},
                         {QStringLiteral("offRoute"), m_navigationService->isOffRoute()},
                         {QStringLiteral("roundabout"), m_navigationService->currentRoundaboutRender()},
+                        {QStringLiteral("roundaboutExit"), m_navigationService->roundaboutExitCount()},
+                        {QStringLiteral("showNextPreview"), m_navigationService->showNextPreview()},
                         {QStringLiteral("error"), m_navigationService->errorMessage()}};
         m_notificationService->setNavigationPayload(nav);
     };

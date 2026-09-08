@@ -54,20 +54,6 @@ Rectangle {
             Layout.fillHeight: true
             visible: mapScreen.showWaitingForGps
 
-            // Blinker icons — the map-area BlinkerRow below is hidden along
-            // with the map while waiting for a fix, so this takeover view
-            // needs its own (also covers hazards, which BlinkerOverlay
-            // doesn't render).
-            BlinkerRow {
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.leftMargin: 4
-                anchors.rightMargin: 4
-                anchors.topMargin: 4
-                z: 5
-            }
-
             Column {
                 anchors.centerIn: parent
                 spacing: 16
@@ -179,8 +165,7 @@ Rectangle {
             // Map view (QMapLibre wrapper)
             MapViewWidget {
                 anchors.fill: parent
-                notificationTopInset: typeof notificationService !== "undefined" && notificationService
-                                     ? notificationService.occupiedHeight : 0
+                objectName: "mapViewport"
             }
 
             // Confetti layer — renders on top of the map but below widgets (z>=5 below)
@@ -192,10 +177,9 @@ Rectangle {
             // In the flat 2D top-down view it stays upright (no X-tilt).
             VehicleMarker {
                 id: vehicleMarkerItem
+                objectName: "mapVehicleMarker"
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: (((typeof notificationService !== "undefined" && notificationService)
-                     ? notificationService.occupiedHeight : 0) + parent.height) / 2
-                   + (typeof mapService !== "undefined" ? mapService.vehicleOffsetY : 0) - height / 2
+                y: parent.height / 2 + (typeof mapService !== "undefined" ? mapService.vehicleOffsetY : 0) - height / 2
                 visible: typeof mapService !== "undefined" && mapService.isReady
                 transform: Rotation {
                     origin.x: vehicleMarkerItem.width / 2
@@ -203,23 +187,6 @@ Rectangle {
                     axis { x: 1; y: 0; z: 0 }
                     angle: (typeof settingsStore !== "undefined" && settingsStore.mapViewMode === 1) ? 0 : 55
                 }
-            }
-
-            // Blinker icons (icon mode) — sit just below the turn-by-turn
-            // banner when navigating, otherwise hug the top of the map.
-            // Without this, the 56 px circles stack on top of the maneuver
-            // icon (left) and time-info pill (right) inside the banner.
-            BlinkerRow {
-                anchors.top: (typeof notificationService === "undefined" || !notificationService)
-                             && tbtWidget.visible ? tbtWidget.bottom
-                             : ((typeof notificationService !== "undefined" && notificationService)
-                                ? attentionDock.bottom : parent.top)
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.leftMargin: 4
-                anchors.rightMargin: 4
-                anchors.topMargin: 4
-                z: 5
             }
 
             // Coverage is presented by the shared attention dock.
@@ -237,40 +204,6 @@ Rectangle {
                        ? Qt.rgba(1, 1, 1, 0.4) : Qt.rgba(0, 0, 0, 0.4)
                 font.pixelSize: themeStore.fontBody
                 horizontalAlignment: Text.AlignHCenter
-            }
-
-            // Turn-by-turn widget (top, full width)
-            TurnByTurnWidget {
-                id: tbtWidget
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                visible: (typeof notificationService === "undefined" || !notificationService)
-                         && typeof navigationService !== "undefined"
-                         && navigationService.isNavigating && navigationService.hasCurrentManeuver
-
-                // North-up 2D centres the marker in the space the banner leaves,
-                // so MapService needs to know whether the banner is up. Only the
-                // visibility travels: the reserved height is a constant there, so
-                // instruction text rewrapping cannot move the camera.
-                Binding {
-                    target: typeof mapService !== "undefined" ? mapService : null
-                    property: "tbtVisible"
-                    value: tbtWidget.visible
-                }
-
-                // Screens are Loader-swapped and DestinationScreen shares this
-                // MapService with a centred crosshair, so hand the flag back
-                // rather than leaving a stale true behind.
-                Component.onDestruction: {
-                    if (typeof mapService !== "undefined")
-                        mapService.tbtVisible = false
-                }
-            }
-
-            // Navigation status overlay (calculating, rerouting, arrived, error)
-            NavigationStatusOverlay {
-                visible: typeof notificationService === "undefined" || !notificationService
             }
 
             // Speed limit + road name (bottom center).
@@ -323,11 +256,20 @@ Rectangle {
 
     UnifiedAttentionDock {
         id: attentionDock
+        objectName: "mapAttention"
         anchors.top: parent.top
         anchors.topMargin: 40
         anchors.left: parent.left
         anchors.right: parent.right
         z: 20
+    }
+
+    BlinkerRow {
+        objectName: "mapBlinkers"
+        x: 4
+        y: 44 + attentionDock.height
+        width: parent.width - 8
+        z: 30
     }
 
     Binding {

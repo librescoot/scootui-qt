@@ -17,8 +17,7 @@ class NotificationService : public QObject
     Q_PROPERTY(QVariantList history READ history NOTIFY historyChanged)
     Q_PROPERTY(bool mapUpdateAvailable READ mapUpdateAvailable NOTIFY mapUpdateAvailableChanged)
     Q_PROPERTY(bool coverageWarning READ coverageWarning NOTIFY coverageWarningChanged)
-    Q_PROPERTY(bool telemetryTrustLost READ telemetryTrustLost NOTIFY activeChanged)
-    Q_PROPERTY(int occupiedHeight READ occupiedHeight NOTIFY presentationChanged)
+    Q_PROPERTY(bool telemetryTrustLost READ telemetryTrustLost NOTIFY telemetryTrustChanged)
     Q_PROPERTY(bool simulatorInjectionEnabled READ simulatorInjectionEnabled CONSTANT)
     Q_PROPERTY(QString surface READ surface WRITE setSurface NOTIFY surfaceChanged)
 
@@ -31,8 +30,8 @@ public:
     QVariantList history() const;
     bool mapUpdateAvailable() const { return m_mapUpdateAvailable; }
     bool coverageWarning() const { return m_coverageWarning; }
-    bool telemetryTrustLost() const { return m_conditions.contains(QStringLiteral("redis-disconnect")); }
-    int occupiedHeight() const { return m_presentation.value(QStringLiteral("height")).toInt(); }
+    bool telemetryTrustLost() const { return !m_telemetryConnected || m_conditions.contains(QStringLiteral("redis-disconnect")); }
+    void setTelemetryConnected(bool connected);
     bool simulatorInjectionEnabled() const { return m_simulatorInjectionEnabled; }
     QString surface() const { return m_surface; }
     void setSurface(const QString &surface);
@@ -68,6 +67,7 @@ signals:
     void mapUpdateAvailableChanged();
     void coverageWarningChanged();
     void surfaceChanged();
+    void telemetryTrustChanged();
     void eventPresented(const QString &kind);
     void conditionPresented(const QString &kind);
 
@@ -91,6 +91,7 @@ private:
     QElapsedTimer m_clock;
     QString m_surface = QStringLiteral("cluster");
     bool m_riding = false;
+    bool m_telemetryConnected = true;
     bool m_mapUpdateAvailable = false;
     bool m_coverageWarning = false;
     bool m_simulatorInjectionEnabled = false;

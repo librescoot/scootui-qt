@@ -8,7 +8,6 @@ Item {
     anchors.fill: parent
 
     property bool mapReady: typeof mapService !== "undefined" ? mapService.isReady : false
-    property real notificationTopInset: 0
 
     // Reload map when the style URL actually changes (offline/mbtiles or traffic
     // overlay toggle). PluginParameter is only read at creation time, so those
@@ -31,17 +30,10 @@ Item {
         // MapViewContent uses "import MapLibre.Location" (v4.x).
         // If unavailable, fall back to MapViewContentLegacy which uses "import MapLibre" (v3.x).
         onStatusChanged: {
-            if (status === Loader.Ready && item && "notificationTopInset" in item)
-                item.notificationTopInset = mapViewWidget.notificationTopInset
             if (status === Loader.Error && source.toString().indexOf("Legacy") === -1) {
                 source = Qt.resolvedUrl("MapViewContentLegacy.qml")
             }
         }
-    }
-
-    onNotificationTopInsetChanged: {
-        if (mapLoader.item && "notificationTopInset" in mapLoader.item)
-            mapLoader.item.notificationTopInset = notificationTopInset
     }
 
     // Fallback background when map not ready or plugin unavailable

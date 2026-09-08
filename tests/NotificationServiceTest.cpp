@@ -15,7 +15,6 @@ private slots:
         const auto selected = AttentionPolicy::select(conditions, {}, nav, true, 0);
         QCOMPARE(selected.main.value("id").toString(), QStringLiteral("warning"));
         QCOMPARE(selected.companion.value("id").toString(), QStringLiteral("navigation-session"));
-        QCOMPARE(selected.height, 110);
     }
 
     void imminentNavigationWins()
@@ -26,7 +25,6 @@ private slots:
         const auto selected = AttentionPolicy::select({warning}, {}, nav, true, 0);
         QCOMPARE(selected.main.value("id").toString(), QStringLiteral("navigation-session"));
         QVERIFY(selected.companion.isEmpty());
-        QCOMPARE(selected.height, 96);
     }
 
     void navigationErrorCannotCompanion()
@@ -39,27 +37,51 @@ private slots:
         QVERIFY(selected.companion.isEmpty());
     }
 
-    void distantNavigationUsesCompactRow()
+    void distantNavigationIsSelected()
     {
         QVariantMap nav{{"id", "navigation-session"}, {"kind", "nav"}, {"valid", true},
                         {"status", 2}, {"distance", 800.0}};
         const auto selected = AttentionPolicy::select({}, {}, nav, true, 0);
         QCOMPARE(selected.main.value("id").toString(), QStringLiteral("navigation-session"));
-        QCOMPARE(selected.height, 76);
     }
 
-    void criticalHeightFollowsContent()
+    void navigationTextSurvivesSelectionAndUpdates()
     {
-        QVariantMap critical{{"id", "critical"}, {"priority", 0}, {"kind", "critical"},
-                             {"title", "Stop safely"}};
-        QCOMPARE(AttentionPolicy::select({critical}, {}, {}, true, 0).height, 76);
-        critical["body"] = "Multiple active faults";
-        QCOMPARE(AttentionPolicy::select({critical}, {}, {}, true, 0).height, 96);
+        NotificationService service(true);
         QVariantMap nav{{"id", "navigation-session"}, {"valid", true}, {"status", 2},
-                        {"distance", 40.0}};
-        QCOMPARE(AttentionPolicy::select({critical}, {}, nav, true, 0).height, 128);
-        critical.remove("body");
-        QCOMPARE(AttentionPolicy::select({critical}, {}, nav, true, 0).height, 110);
+                        {"distance", 80.0}, {"instruction", "Turn right onto Main Street"},
+                        {"compactInstruction", "Turn right"}};
+        service.setNavigationPayload(nav);
+        QCOMPARE(service.presentation().value("main").toMap().value("instruction").toString(),
+                 QStringLiteral("Turn right onto Main Street"));
+        service.publishCondition("critical", "engine", "Stop safely", {}, 0, "critical");
+        QCOMPARE(service.presentation().value("companion").toMap().value("compactInstruction").toString(),
+                 QStringLiteral("Turn right"));
+        nav["compactInstruction"] = "Take the second exit";
+        service.setNavigationPayload(nav);
+        QCOMPARE(service.presentation().value("companion").toMap().value("compactInstruction").toString(),
+                 QStringLiteral("Take the second exit"));
+    }
+
+    void presentationContainsNoLayout()
+    {
+        NotificationService service(true);
+        service.publishCondition("fault", "engine", "Stop safely", "Details", 0, "critical");
+        const auto presentation = service.presentation();
+        QCOMPARE(presentation.size(), 3);
+        QVERIFY(presentation.contains("main"));
+        QVERIFY(presentation.contains("companion"));
+        QVERIFY(presentation.contains("criticalCount"));
+    }
+
+    void calculatingCannotPresentStaleCompanion()
+    {
+        QVariantMap warning{{"id", "warning"}, {"priority", 2}};
+        for (int status : {1, 3, 4, 5}) {
+            QVariantMap nav{{"id", "navigation-session"}, {"valid", true}, {"status", status},
+                            {"distance", 40.0}};
+            QVERIFY(AttentionPolicy::select({warning}, {}, nav, true, 0).companion.isEmpty());
+        }
     }
 
     void criticalPreemptsAndDoesNotExpire()
@@ -102,6 +124,37 @@ private slots:
         QCOMPARE(conditionSpy.count(), 4);
         service.publishCondition("visible", "test", "Updated", {}, 0, "critical");
         QCOMPARE(conditionSpy.count(), 4);
+    }
+
+    void telemetryLossDoesNotWaitForBanner()
+    {
+        NotificationService service;
+        QSignalSpy trust(&service, &NotificationService::telemetryTrustChanged);
+        QVERIFY(!service.telemetryTrustLost());
+        service.setTelemetryConnected(false);
+        QVERIFY(service.telemetryTrustLost());
+        QCOMPARE(trust.count(), 1);
+        QVERIFY(service.active().isEmpty());
+        QVERIFY(service.presentation().value("main").toMap().isEmpty());
+        service.setTelemetryConnected(false);
+        QCOMPARE(trust.count(), 1);
+        service.setTelemetryConnected(true);
+        QVERIFY(!service.telemetryTrustLost());
+        QCOMPARE(trust.count(), 2);
+    }
+
+    void prolongedDisconnectKeepsTrustLostUntilResolved()
+    {
+        NotificationService service;
+        QSignalSpy trust(&service, &NotificationService::telemetryTrustChanged);
+        service.setTelemetryConnected(false);
+        service.publishCondition("redis-disconnect", "connection", "Disconnected", {}, 0);
+        QCOMPARE(trust.count(), 1);
+        service.setTelemetryConnected(true);
+        QVERIFY(service.telemetryTrustLost());
+        service.resolveCondition("redis-disconnect");
+        QVERIFY(!service.telemetryTrustLost());
+        QCOMPARE(trust.count(), 2);
     }
 
     void conditionResumeIsSilentUntilRecurrence()

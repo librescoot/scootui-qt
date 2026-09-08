@@ -57,6 +57,14 @@ void NotificationService::setSurface(const QString &surface)
     refreshPresentation();
 }
 
+void NotificationService::setTelemetryConnected(bool connected)
+{
+    const bool wasLost = telemetryTrustLost();
+    m_telemetryConnected = connected;
+    if (wasLost != telemetryTrustLost())
+        emit telemetryTrustChanged();
+}
+
 void NotificationService::setNavigationPayload(const QVariantMap &navigation)
 {
     if (navigation == m_navigation)
@@ -102,7 +110,10 @@ QString NotificationService::publishCondition(const QString &id, const QString &
     const int revision = old.value(QStringLiteral("revision"), 0).toInt() + 1;
     entry[QStringLiteral("revision")] = revision;
     entry[QStringLiteral("order")] = old.value(QStringLiteral("order"), m_nextOrder++);
+    const bool wasLost = telemetryTrustLost();
     m_conditions.insert(id, entry);
+    if (wasLost != telemetryTrustLost())
+        emit telemetryTrustChanged();
     if (old != entry) {
         emit activeChanged();
         refreshPresentation();
@@ -112,8 +123,11 @@ QString NotificationService::publishCondition(const QString &id, const QString &
 
 void NotificationService::resolveCondition(const QString &id)
 {
+    const bool wasLost = telemetryTrustLost();
     if (!m_conditions.remove(id))
         return;
+    if (wasLost != telemetryTrustLost())
+        emit telemetryTrustChanged();
     m_conditionCuePriorities.remove(id);
     emit activeChanged();
     refreshPresentation();
@@ -257,10 +271,6 @@ void NotificationService::refreshPresentation()
     presentation[QStringLiteral("main")] = selection.main;
     presentation[QStringLiteral("companion")] = selection.companion;
     presentation[QStringLiteral("criticalCount")] = selection.criticalCount;
-    presentation[QStringLiteral("height")] = selection.height;
-    presentation[QStringLiteral("layout")] = selection.height >= 96 ? QStringLiteral("expanded")
-                                                                      : selection.height ? QStringLiteral("compact")
-                                                                                        : QStringLiteral("idle");
     if (presentation == m_presentation)
         return;
     m_presentation = presentation;

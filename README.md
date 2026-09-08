@@ -67,10 +67,16 @@ reference for the keys consumed by a given release.
 The dashboard uses one production notification registry and attention policy for
 navigation, warnings, connection health, faults, coverage, and transient
 feedback. Active conditions are updated and resolved by their owning producer;
-transient events expire by a monotonic display deadline and are retained in a
+transient events expire by a monotonic freshness deadline and are retained in a
 bounded in-memory history. Priority arbitration keeps one attention card and,
 when useful, a compact valid navigation companion. Speed, blinkers, telltales,
 and pairing/UMS/system workflows remain independent protected surfaces.
+
+Attention overlays the normal full-size cluster and map; it does not reserve
+instrument space or change the map camera or vehicle anchor. Only blinkers move
+below the overlay to stay visible. QML renders notifications and navigation with
+dedicated widgets from the shared selection payload, including actionable turn
+instructions and a compact navigation companion when an alert takes priority.
 
 Desktop simulator notification buttons call the same registry API through a
 local-only test source. Enable the simulator explicitly with

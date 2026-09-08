@@ -1,11 +1,10 @@
 import QtQuick
 import QtQuick.Layouts
-import "../notifications"
 import "../widgets/speedometer"
 import "../widgets/status_bars"
 import "../widgets/cluster"
 import "../widgets/indicators"
-import "../widgets/navigation"
+import "../notifications"
 import "../widgets/components"
 Rectangle {
     id: clusterScreen
@@ -26,12 +25,9 @@ Rectangle {
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.topMargin: typeof notificationService !== "undefined" && notificationService
-                              ? notificationService.occupiedHeight : 0
 
             // Rare and event-driven — don't hold up the first paint.
-            // Confetti only fires on km milestones, TBT is only visible
-            // during active navigation. Both incubate asynchronously
+            // Confetti only fires on km milestones and incubates asynchronously
             // after the cluster is rendered.
             Loader {
                 anchors.fill: parent
@@ -41,29 +37,13 @@ Rectangle {
 
             SpeedometerDisplay {
                 id: speedometer
+                objectName: "clusterSpeedometer"
                 anchors.fill: parent
             }
 
             ColumnLayout {
                 anchors.fill: parent
                 spacing: 0
-
-                // TBT docks here during navigation; the layout reserves zero
-                // height when idle or still incubating. Publishing implicitHeight
-                // from the widget removes the need for a sibling spacer to read
-                // tbtLoader.item.height.
-                Loader {
-                    id: tbtLoader
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: (typeof notificationService === "undefined"
-                                             || !notificationService) && item && item.visible
-                                           ? item.implicitHeight : 0
-                    visible: typeof notificationService === "undefined" || !notificationService
-                    asynchronous: true
-                    sourceComponent: Component {
-                        TurnByTurnWidget { anchors.fill: parent }
-                    }
-                }
 
                 Item {
                     Layout.fillWidth: true
@@ -74,14 +54,10 @@ Rectangle {
                         anchors.margins: 8
                         spacing: 0
 
-                        BlinkerRow {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 56
-                        }
-
                         Item { Layout.fillHeight: true }
 
                         ClusterBottomBar {
+                            objectName: "clusterPowerAndTelltales"
                             Layout.fillWidth: true
                             Layout.preferredHeight: 60
                         }
@@ -96,15 +72,20 @@ Rectangle {
         }
     }
 
-    readonly property real bottomBarHeight: bottomBar.height
-
     UnifiedAttentionDock {
         id: attentionDock
-        anchors.top: parent.top
-        anchors.topMargin: 40
-        anchors.left: parent.left
-        anchors.right: parent.right
+        objectName: "clusterAttention"
+        y: 40
+        width: parent.width
         z: 20
+    }
+
+    BlinkerRow {
+        objectName: "clusterBlinkers"
+        x: 8
+        y: 48 + attentionDock.height
+        width: parent.width - 16
+        z: 30
     }
 
     Binding {
@@ -112,4 +93,6 @@ Rectangle {
         property: "surface"
         value: "cluster"
     }
+
+    readonly property real bottomBarHeight: bottomBar.height
 }

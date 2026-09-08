@@ -5,7 +5,6 @@ import MapLibre.Location
 
 MapView {
     id: mapView
-    property real notificationTopInset: 0
 
     map.plugin: Plugin {
         id: mapPlugin
@@ -91,8 +90,7 @@ MapView {
             // Place it at the vehicle screen point (offset below center);
             // Qt handles the bearing-aware pivot so the map rotates around the marker.
             var offsetY = mapService.vehicleOffsetY
-            var inset = Math.min(notificationTopInset, map.height * 0.35)
-            var pt = Qt.point(map.width / 2, (inset + map.height) / 2 + offsetY)
+            var pt = Qt.point(map.width / 2, map.height / 2 + offsetY)
 
             if (typeof map.alignCoordinateToPoint === "function") {
                 map.alignCoordinateToPoint(vehicleCoord, pt)

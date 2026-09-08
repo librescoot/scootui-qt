@@ -39,6 +39,7 @@ class NavigationService : public QObject
     Q_PROPERTY(QString currentStreetName READ currentStreetName NOTIFY instructionChanged)
     Q_PROPERTY(QString currentVerbalInstruction READ currentVerbalInstruction NOTIFY instructionChanged)
     Q_PROPERTY(QString currentInstructionText READ currentInstructionText NOTIFY instructionChanged)
+    Q_PROPERTY(QString currentCompactInstruction READ currentCompactInstruction NOTIFY instructionChanged)
     Q_PROPERTY(bool currentIsStart READ currentIsStart NOTIFY instructionChanged)
     Q_PROPERTY(bool currentIsArrive READ currentIsArrive NOTIFY instructionChanged)
     Q_PROPERTY(bool hasCurrentManeuver READ hasCurrentManeuver NOTIFY instructionChanged)
@@ -112,6 +113,7 @@ public:
 
     QString currentVerbalInstruction() const;
     QString currentInstructionText() const;
+    QString currentCompactInstruction() const;
     bool currentIsStart() const;
     bool currentIsArrive() const;
     bool hasCurrentManeuver() const { return !m_upcomingInstructions.isEmpty(); }

@@ -316,6 +316,16 @@ QString NavigationService::currentVerbalInstruction() const
                  &instr.verbalSuccinctInstruction});
 }
 
+QString NavigationService::currentCompactInstruction() const
+{
+    if (m_upcomingInstructions.isEmpty()) return {};
+    const auto &instruction = m_upcomingInstructions.first();
+    // Keep start instructions and the approach/arrival tense selection intact.
+    if (instruction.isStart || currentIsArrive() || instruction.verbalSuccinctInstruction.isEmpty())
+        return currentVerbalInstruction();
+    return instruction.verbalSuccinctInstruction;
+}
+
 QString NavigationService::currentInstructionText() const
 {
     if (m_upcomingInstructions.isEmpty()) return {};

@@ -8,7 +8,6 @@ struct AttentionSelection {
     QVariantMap main;
     QVariantMap companion;
     int criticalCount = 0;
-    int height = 0;
 };
 
 class AttentionPolicy
