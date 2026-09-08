@@ -6,6 +6,10 @@ import MapLibre.Location
 MapView {
     id: mapView
 
+    // Latched by the patched QMapLibre bridge after a style has loaded and
+    // its first partial or complete frame has rendered.
+    property bool styledOutputReady: false
+
     map.plugin: Plugin {
         id: mapPlugin
         name: "maplibre"
@@ -138,6 +142,9 @@ MapView {
     // it sits last in the style, which put the route on top of everything.
     MapLibre.style: Style {
         id: routeStyle
+
+        onStyleLoadingStarted: mapView.styledOutputReady = false
+        onFirstStyledFrameRendered: mapView.styledOutputReady = true
 
         SourceParameter {
             id: routeSource

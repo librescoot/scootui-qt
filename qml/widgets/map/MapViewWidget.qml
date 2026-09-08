@@ -10,6 +10,9 @@ Item {
     property bool mapReady: typeof mapService !== "undefined" ? mapService.isReady : false
     property string styleUrl: typeof mapService !== "undefined" ? mapService.styleUrl : ""
     property bool styleReady: styleUrl.length > 0
+    readonly property bool styledOutputReady: mapLoader.status === Loader.Ready
+                                               && mapLoader.item !== null
+                                               && mapLoader.item.styledOutputReady
 
     // Reload map when the style URL actually changes (offline/mbtiles or traffic
     // overlay toggle). PluginParameter is only read at creation time, so those
@@ -46,7 +49,8 @@ Item {
     // Fallback background when map not ready or plugin unavailable
     Rectangle {
         anchors.fill: parent
-        visible: !styleReady || !mapReady || mapLoader.status === Loader.Error
+        visible: !styleReady || !mapReady || !styledOutputReady
+                 || mapLoader.status === Loader.Error
         color: typeof themeStore !== "undefined" && themeStore.isDark
                ? "#1a1a2e" : "#e8e8e8"
 
