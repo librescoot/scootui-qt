@@ -17,8 +17,8 @@ class Translations;
 //   2. the last main battery was removed from both slots.
 // Outside those two edges the warning is NOT raised, even if a pack reads low
 // (e.g. on boot, or while slowly draining over a long park) - the rider is only
-// nagged at the natural moments they can act on it. Once raised the toast
-// persists until the pack is no longer low (recharged / replaced).
+// nagged at the natural moments they can act on it. The toast is visible only
+// while parked and is dismissed when driving starts or the pack is no longer low.
 //
 // This is deliberately distinct from the charging-system warnings in
 // BatteryDisplay.qml, which drive status-bar icons continuously (those stay as

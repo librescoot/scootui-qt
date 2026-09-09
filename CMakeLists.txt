@@ -667,6 +667,33 @@ if(BUILD_TESTING)
     target_link_libraries(sound_cue_service_test PRIVATE Qt6::Core Qt6::Multimedia Qt6::Test)
     add_test(NAME sound_cue_service_test COMMAND sound_cue_service_test)
 
+    qt_add_executable(backup_battery_monitor_test
+        tests/BackupBatteryMonitorTest.cpp
+        src/services/BackupBatteryMonitor.cpp
+        src/services/BackupBatteryMonitor.h
+        src/services/ToastService.cpp
+        src/services/ToastService.h
+        src/l10n/Translations.cpp
+        src/l10n/Translations.h
+        src/models/Enums.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+        src/stores/SyncableStore.cpp
+        src/stores/SyncableStore.h
+        src/stores/AuxBatteryStore.cpp
+        src/stores/AuxBatteryStore.h
+        src/stores/BatteryStore.cpp
+        src/stores/BatteryStore.h
+        src/stores/CbBatteryStore.cpp
+        src/stores/CbBatteryStore.h
+        src/stores/VehicleStore.cpp
+        src/stores/VehicleStore.h
+    )
+    target_include_directories(backup_battery_monitor_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(backup_battery_monitor_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME backup_battery_monitor_test COMMAND backup_battery_monitor_test)
+
     qt_add_executable(enum_strings_test
         tests/EnumStringsTest.cpp
         src/models/EnumStrings.cpp
