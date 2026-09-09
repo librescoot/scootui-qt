@@ -631,6 +631,33 @@ if(BUILD_TESTING)
     target_link_libraries(battery_store_fields_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME battery_store_fields_test COMMAND battery_store_fields_test)
 
+    qt_add_executable(backup_battery_monitor_test
+        tests/BackupBatteryMonitorTest.cpp
+        src/models/Enums.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+        src/stores/SyncableStore.cpp
+        src/stores/SyncableStore.h
+        src/stores/VehicleStore.cpp
+        src/stores/VehicleStore.h
+        src/stores/BatteryStore.cpp
+        src/stores/BatteryStore.h
+        src/stores/CbBatteryStore.cpp
+        src/stores/CbBatteryStore.h
+        src/stores/AuxBatteryStore.cpp
+        src/stores/AuxBatteryStore.h
+        src/services/BackupBatteryMonitor.cpp
+        src/services/BackupBatteryMonitor.h
+        src/services/ToastService.cpp
+        src/services/ToastService.h
+        src/l10n/Translations.cpp
+        src/l10n/Translations.h
+    )
+    target_include_directories(backup_battery_monitor_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(backup_battery_monitor_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME backup_battery_monitor_test COMMAND backup_battery_monitor_test)
+
     qt_add_executable(boot_prefetch_test
         tests/BootPrefetchTest.cpp
         src/repositories/BootPrefetch.cpp
