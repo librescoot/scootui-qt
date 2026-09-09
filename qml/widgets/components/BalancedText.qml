@@ -19,6 +19,7 @@ Text {
     onMaxWidthChanged: rebalance()
     onTextChanged: rebalance()
     onFontChanged: rebalance()
+    onTextFormatChanged: rebalance()
     Component.onCompleted: rebalance()
 
     function rebalance() {
@@ -27,6 +28,7 @@ Text {
             return
         }
 
+        probe.textFormat = textFormat
         probe.font = font
         probe.text = text
         probe.width = maxWidth

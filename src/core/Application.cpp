@@ -47,6 +47,7 @@
 #include "services/NavigationService.h"
 #include "services/ToastService.h"
 #include "services/NotificationService.h"
+#include "services/NotificationIngress.h"
 #include "services/SoundCueService.h"
 #include "services/MapService.h"
 #include "services/LowTemperatureMonitor.h"
@@ -247,6 +248,10 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_translations->setLanguage(localeStore->language());
     m_autoThemeService = new AutoThemeService(repo, themeStore, this);
     m_notificationService = new NotificationService(m_simulatorMode, this);
+    auto *notificationIngress = new NotificationIngress(repo, m_notificationService);
+    connect(notificationIngress, &NotificationIngress::rejected, this, [](const QString &reason) {
+        qWarning() << "External notification rejected:" << reason;
+    });
     m_notificationService->setVehicleStore(vehicleStore);
     // Speed must lose trust immediately, independently of the connection banner's grace period.
     m_notificationService->setTelemetryConnected(repo->isConnected());

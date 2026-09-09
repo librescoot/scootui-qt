@@ -23,10 +23,12 @@ TestCase {
         dock.isDark = true
         service.presentation = ({})
     }
+
     function show(main, companion, criticalCount) {
         service.presentation = ({main: main, companion: companion || {}, criticalCount: criticalCount || 0})
         waitForRendering(dock)
     }
+
     function fits(item, container) {
         verify(item !== null)
         const top = item.mapToItem(container, 0, 0)
@@ -35,13 +37,16 @@ TestCase {
         verify(bottom.x <= container.width + 1 && bottom.y <= container.height + 1,
                item.objectName + " bottom " + bottom + " container height " + container.height)
     }
+
     function test_idle() {
         verify(!dock.visible)
         compare(dock.height, 0)
     }
+
     function test_notifications_data() {
         return [{tag: "dark", dark: true}, {tag: "light", dark: false}]
     }
+
     function test_notifications(data) {
         dock.isDark = data.dark
         for (const priority of [0, 2, 3]) {
@@ -61,6 +66,7 @@ TestCase {
             verify(dock.height < 220)
         }
     }
+
     function test_rotatingNotificationsKeepCompanionAndStyle() {
         const nav = {kind: "nav", status: 2, distance: 80, maneuverType: 5,
                      instruction: "Turn right onto Main Street", compactInstruction: "Turn right"}
@@ -80,6 +86,18 @@ TestCase {
             }
         }
     }
+
+    function test_notificationTextIsPlain() {
+        show({kind: "info", priority: 4, title: "<b>Plain title</b>",
+              body: "<img src='https://example.invalid/image.png'>"})
+        const title = findChild(dock, "notificationTitle")
+        const body = findChild(dock, "notificationBody")
+        compare(title.textFormat, Text.PlainText)
+        compare(body.textFormat, Text.PlainText)
+        compare(title.text, "<b>Plain title</b>")
+        fits(title, findChild(dock, "attentionMainCard"))
+    }
+
     function test_navigationPayload_data() {
         return [
             {tag: "distant roundabout", distance: 650, type: 17},
@@ -89,6 +107,7 @@ TestCase {
             {tag: "right U-turn", distance: 50, type: 11}
         ]
     }
+
     function test_navigationPayload(data) {
         const maneuver = {kind: "nav", status: 2, distance: data.distance,
                           maneuverType: data.type, roundaboutExit: 2, street: "Ernst-Reuter-Platz",
@@ -137,6 +156,7 @@ TestCase {
             fits(compactInstruction, compact)
         }
     }
+
     function test_longInstructionAndStart() {
         const instruction = "Turn right onto the very long street name leading towards the city centre and continue past the railway station"
         for (const start of [true, false]) {
@@ -156,6 +176,7 @@ TestCase {
             verify(dock.height < 220)
         }
     }
+
     function test_compactTextAndBaseline() {
         for (const dark of [true, false]) {
             dock.isDark = dark
@@ -176,6 +197,7 @@ TestCase {
             }
         }
     }
+
     function test_longCompanionIsBounded() {
         show({kind: "critical", priority: 0,
               title: "Battery 0: Multiple Critical Issues", body: "Stop safely and check the battery"},
@@ -190,6 +212,7 @@ TestCase {
         fits(companion, dock)
         verify(dock.height < 220)
     }
+
     function test_navigationStatus() {
         for (const status of [1, 3, 4]) {
             show({kind: "nav", status: status})

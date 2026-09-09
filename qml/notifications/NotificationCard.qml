@@ -48,6 +48,7 @@ Rectangle {
                 BalancedText {
                     id: titleText
                     objectName: "notificationTitle"
+                    textFormat: Text.PlainText
                     maxWidth: parent.width
                     text: card.entry.id === "map-coverage"
                           ? (typeof translations !== "undefined" ? translations.mapOutOfCoverage : "No map for current location")
@@ -63,6 +64,7 @@ Rectangle {
             }
             Text {
                 objectName: "notificationBody"
+                textFormat: Text.PlainText
                 Layout.fillWidth: true
                 visible: card.entry.id !== "map-coverage" && !!card.entry.body
                 text: card.entry.body || ""

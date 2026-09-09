@@ -115,6 +115,7 @@ set(CPP_SOURCES
     src/services/ToastService.cpp
     src/services/AttentionPolicy.cpp
     src/services/NotificationService.cpp
+    src/services/NotificationIngress.cpp
     src/services/SoundCueService.cpp
     src/services/MapService.cpp
     src/services/LowTemperatureMonitor.cpp
@@ -198,6 +199,7 @@ set(CPP_HEADERS
     src/services/ToastService.h
     src/services/AttentionPolicy.h
     src/services/NotificationService.h
+    src/services/NotificationIngress.h
     src/services/SoundCueService.h
     src/services/MapService.h
     src/services/MapCameraPolicy.h
@@ -698,6 +700,8 @@ if(BUILD_TESTING)
 
     qt_add_executable(notification_service_test
         tests/NotificationServiceTest.cpp
+        src/services/NotificationIngress.cpp
+        src/services/NotificationIngress.h
         src/services/AttentionPolicy.cpp
         src/services/AttentionPolicy.h
         src/services/NotificationService.cpp

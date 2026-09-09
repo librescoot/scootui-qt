@@ -80,6 +80,52 @@ instrument space or change the map camera or vehicle anchor. Only blinkers move
 below the overlay to stay visible. QML renders notifications and navigation with
 dedicated widgets from the shared selection payload, including actionable turn
 instructions and a compact navigation companion when an alert takes priority.
+Informational events are allowed while riding; they yield to higher-priority
+items and expire normally.
+
+### External notifications over Redis
+
+Publish a JSON object on `scootui:notification` on the Redis instance used by the
+dashboard. Shell scripts, services and third-party tools use the same interface:
+
+```sh
+redis-cli PUBLISH scootui:notification \
+  '{"source":"my-script","id":"job","title":"Download complete","severity":"success","ttl_ms":10000}'
+
+# Same source + id updates the existing event and renews its expiry.
+redis-cli PUBLISH scootui:notification \
+  '{"source":"my-script","id":"job","title":"Download failed","body":"Please try again","severity":"warning","ttl_ms":15000}'
+
+redis-cli PUBLISH scootui:notification \
+  '{"source":"my-script","id":"job","action":"dismiss"}'
+```
+
+| Field | Contract |
+|---|---|
+| `id` | Required, 1–64 ASCII letters, digits, `.`, `_`, `-`; first character alphanumeric. |
+| `source` | Same format as `id`; defaults to `external`. Namespaces sender IDs. |
+| `action` | `show` (default) or `dismiss`. Dismiss accepts only action, source and id. |
+| `title` | Required for show, nonblank, at most 120 UTF-16 code units. |
+| `body` | Optional plain text, at most 512 UTF-16 code units. |
+| `severity` | `info` (default), `success`, `warning`, or `critical`. |
+| `ttl_ms` | Integer 1000–60000; defaults to 10000. Starts at receipt, not first display. |
+
+Messages are limited to 4096 UTF-8 bytes. Unknown fields, wrong types and invalid
+values are rejected without changing notifications; rejection reasons appear in
+the dashboard journal. Text is rendered literally, not as HTML.
+
+These are transient events, not persistent fault conditions. Info/success use
+priority 4, warning priority 2, and critical priority 0. They share arbitration,
+five-second equal-priority cycling, cue deduplication and the bounded event
+registry with built-in notifications. Higher-priority items can keep an event
+hidden until it expires; an update extends its freshness but does not restart
+its current cycling dwell. Dismiss is idempotent. External IDs cannot dismiss or
+replace built-in entries.
+
+Redis pub/sub is fire-and-forget: it does not queue requests while the dashboard
+is disconnected or off, wake the display, or acknowledge actual presentation.
+The `PUBLISH` return value counts subscribers, not accepted/displayed messages.
+Tools use their existing Redis client; no additional socket listener is needed.
 
 Desktop simulator notification buttons call the same registry API through a
 local-only test source. Enable the simulator explicitly with

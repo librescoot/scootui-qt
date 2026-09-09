@@ -17,6 +17,7 @@ AttentionSelection AttentionPolicy::select(const QList<QVariantMap> &conditions,
                                             bool riding, qint64 nowMs,
                                             AttentionCycleState *cycle)
 {
+    Q_UNUSED(riding);
     QList<QVariantMap> candidates;
     int criticalCount = 0;
     for (const auto &condition : conditions) {
@@ -47,9 +48,9 @@ AttentionSelection AttentionPolicy::select(const QList<QVariantMap> &conditions,
     for (const auto &event : events) {
         if (!valid(event, nowMs))
             continue;
-        if (riding && priority(event) >= 4)
-            continue;
         candidates.append(event);
+        if (priority(event) == 0)
+            ++criticalCount;
     }
 
     std::stable_sort(candidates.begin(), candidates.end(), [](const QVariantMap &a,

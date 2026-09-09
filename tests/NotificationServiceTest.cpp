@@ -1,6 +1,8 @@
 #include <QtTest>
 #include "services/AttentionPolicy.h"
 #include "services/NotificationService.h"
+#include "services/NotificationIngress.h"
+#include "repositories/InMemoryMdbRepository.h"
 
 class NotificationServiceTest : public QObject
 {
@@ -251,15 +253,127 @@ private slots:
         QCOMPARE(mainId(service), QStringLiteral("navigation-session"));
     }
 
-    void ridingEligibilityRemovesEventsFromCycle()
+    void ridingDoesNotSuppressInformationalEvents()
     {
         AttentionCycleState cycle;
         const QVariantMap a{{"id", "a"}, {"order", 1}, {"priority", 4}};
         const QVariantMap b{{"id", "b"}, {"order", 2}, {"priority", 4}, {"validUntil", 30000}};
         QCOMPARE(AttentionPolicy::select({a}, {b}, {}, false, 0, &cycle).main.value("id").toString(), QStringLiteral("a"));
         QCOMPARE(AttentionPolicy::select({a}, {b}, {}, false, 5000, &cycle).main.value("id").toString(), QStringLiteral("b"));
-        QCOMPARE(AttentionPolicy::select({a}, {b}, {}, true, 6000, &cycle).main.value("id").toString(), QStringLiteral("a"));
+        QCOMPARE(AttentionPolicy::select({a}, {b}, {}, true, 6000, &cycle).main.value("id").toString(), QStringLiteral("b"));
         QCOMPARE(AttentionPolicy::select({a}, {b}, {}, true, 11000, &cycle).main.value("id").toString(), QStringLiteral("a"));
+        QCOMPARE(AttentionPolicy::select({}, {b}, {}, true, 12000).main.value("id").toString(), QStringLiteral("b"));
+        QVERIFY(AttentionPolicy::select({}, {b}, {}, true, 30000).main.isEmpty());
+    }
+
+    void externalNotificationPubsubUpdateAndDismiss()
+    {
+        InMemoryMdbRepository repository;
+        NotificationService service;
+        NotificationIngress ingress(&repository, &service);
+        repository.publish("scootui:notification",
+                           R"({"source":"script","id":"job","title":"Started","severity":"info"})");
+        QCOMPARE(mainId(service), QStringLiteral("external:script:job"));
+        QCOMPARE(service.presentation().value("main").toMap().value("priority").toInt(), 4);
+        repository.publish("scootui:notification",
+                           R"({"source":"script","id":"job","title":"Done","severity":"success"})");
+        QCOMPARE(service.presentation().value("main").toMap().value("title").toString(),
+                 QStringLiteral("Done"));
+        repository.publish("scootui:notification",
+                           R"({"source":"script","id":"job","action":"dismiss"})");
+        QVERIFY(service.presentation().value("main").toMap().isEmpty());
+    }
+
+    void externalIdsCannotDismissBuiltInsOrOtherSources()
+    {
+        InMemoryMdbRepository repository;
+        NotificationService service;
+        NotificationIngress ingress(&repository, &service);
+        service.publishEvent("ecu-fault", "ecu", "Built in", {}, 0, "critical", 60000);
+        QVERIFY(ingress.receive(R"({"id":"ecu-fault","action":"dismiss"})"));
+        QCOMPARE(mainId(service), QStringLiteral("ecu-fault"));
+        service.clearEvent("ecu-fault");
+        QVERIFY(ingress.receive(R"({"source":"one","id":"job","title":"First"})"));
+        QVERIFY(ingress.receive(R"({"source":"two","id":"job","action":"dismiss"})"));
+        QCOMPARE(mainId(service), QStringLiteral("external:one:job"));
+    }
+
+    void externalMalformedMessagesHaveNoEffects()
+    {
+        InMemoryMdbRepository repository;
+        NotificationService service;
+        NotificationIngress ingress(&repository, &service);
+        QSignalSpy rejected(&ingress, &NotificationIngress::rejected);
+        repository.publish("scootui:notification", "*");
+        QCOMPARE(rejected.count(), 0);
+
+        const QStringList invalid = {
+            "not json",
+            "[]",
+            "null",
+            "{}",
+            R"({"id":"a","title":" "})",
+            R"({"id":"a","title":true})",
+            R"({"id":"a","title":"Hi","body":7})",
+            R"({"id":"a","title":"Hi","severity":"urgent"})",
+            R"({"id":"a","title":"Hi","priority":0})",
+            R"({"id":"a","title":"Hi","ttl_ms":0})",
+            R"({"id":"a","title":"Hi","ttl_ms":60001})",
+            R"({"id":"a","title":"Hi","ttl_ms":1000.5})",
+            R"({"id":"a","title":"Hi","ttl_ms":"1000"})",
+            R"({"id":"a","title":"Hi","ttl_ms":null})",
+            R"({"id":"a","title":"Hi","source":"invalid:source"})",
+            R"({"id":"a:b","title":"Hi"})",
+            R"({"id":"a\n","title":"Hi"})",
+            R"({"id":"a","source":"test\n","title":"Hi"})",
+            R"({"id":"a","title":"Hi","action":"resolve"})",
+            R"({"id":"a","action":"dismiss","ttl_ms":5000})",
+            QString(4097, 'x'),
+            QStringLiteral("{\"id\":\"a\",\"title\":\"%1\"}").arg(QString(121, 'x')),
+            QStringLiteral("{\"id\":\"a\",\"title\":\"Hi\",\"body\":\"%1\"}")
+                .arg(QString(513, 'x'))};
+        for (const auto &message : invalid) {
+            QVERIFY2(!ingress.receive(message), qPrintable(message));
+            QVERIFY(service.presentation().value("main").toMap().isEmpty());
+            QVERIFY(service.history().isEmpty());
+        }
+        QCOMPARE(rejected.count(), invalid.size());
+    }
+
+    void externalExpiryAndCriticalCycling()
+    {
+        qint64 now = 0;
+        InMemoryMdbRepository repository;
+        NotificationService service(false, nullptr, [&now] { return now; });
+        NotificationIngress ingress(&repository, &service);
+        QVERIFY(
+            ingress.receive(R"({"id":"a","title":"First","severity":"critical","ttl_ms":10000})"));
+        QVERIFY(
+            ingress.receive(R"({"id":"b","title":"Second","severity":"critical","ttl_ms":10000})"));
+        QCOMPARE(service.presentation().value("criticalCount").toInt(), 2);
+        QCOMPARE(mainId(service), QStringLiteral("external:external:a"));
+        now = 5000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("external:external:b"));
+        now = 10000;
+        tick(service);
+        QVERIFY(service.presentation().value("main").toMap().isEmpty());
+        QCOMPARE(service.presentation().value("criticalCount").toInt(), 0);
+        QCOMPARE(service.history().size(), 2);
+    }
+
+    void externalIngressUnsubscribesIndependently()
+    {
+        InMemoryMdbRepository repository;
+        NotificationService service;
+        int otherCalls = 0;
+        repository.subscribe("scootui:notification",
+                             [&otherCalls](const QString &, const QString &) { ++otherCalls; });
+        auto *ingress = new NotificationIngress(&repository, &service);
+        delete ingress;
+        repository.publish("scootui:notification", R"({"id":"a","title":"Hi"})");
+        QCOMPARE(otherCalls, 1);
+        QVERIFY(service.presentation().value("main").toMap().isEmpty());
     }
 
     void priorityAndCompanion()
