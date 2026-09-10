@@ -26,13 +26,18 @@ public:
     QString roadSignStyle() const { return m_roadSignStyle; }
     double roadBearing() const { return m_roadBearing; }
 
-    // Direct setters (used by RoadInfoService for tile-derived data)
-    void setSpeedLimitDirect(const QString &value);
-    void setRoadNameDirect(const QString &value);
-    void setRoadRefsDirect(const QString &value);
-    void setRoadTypeDirect(const QString &value);
-    void setRoadNetworksDirect(const QString &value);
-    void setRoadBearingDirect(double value);
+    // Ownership is per field: a later external write (even the same value)
+    // must survive expiry of an earlier tile match.
+    enum class Source { External, Route, Tile };
+    void clearSource(Source source);
+
+    // Direct setters used by RoadInfoService.
+    void setSpeedLimitDirect(const QString &value, Source source = Source::Route);
+    void setRoadNameDirect(const QString &value, Source source = Source::Route);
+    void setRoadRefsDirect(const QString &value, Source source = Source::Route);
+    void setRoadTypeDirect(const QString &value, Source source = Source::Route);
+    void setRoadNetworksDirect(const QString &value, Source source = Source::Route);
+    void setRoadBearingDirect(double value, Source source = Source::Route);
 
 signals:
     void speedLimitChanged();
@@ -47,8 +52,15 @@ protected:
     void applyFieldUpdate(const QString &variable, const QString &value) override;
 
 private:
-    void markDirectUpdate();
+    void markDirectUpdate(Source source);
     void updateRoadSignStyle();
+
+    Source m_speedLimitSource = Source::External;
+    Source m_roadNameSource = Source::External;
+    Source m_roadRefsSource = Source::External;
+    Source m_roadTypeSource = Source::External;
+    Source m_roadNetworksSource = Source::External;
+    Source m_roadBearingSource = Source::External;
 
     QString m_speedLimit;
     QString m_roadName;

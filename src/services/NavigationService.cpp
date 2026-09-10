@@ -963,6 +963,7 @@ void NavigationService::onRouteAttributesReady(const QList<EdgeAttrs> &attrs)
         return;
     }
     m_route.shapeAttrs = attrs;
+    emit routeAttributesChanged();
     qDebug() << "NavigationService: route enriched with" << attrs.size()
              << "edge attribute slots";
 }

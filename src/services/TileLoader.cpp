@@ -21,7 +21,7 @@ TileLoader::~TileLoader()
 
 void TileLoader::closeDb()
 {
-    if (!m_open)
+    if (!QSqlDatabase::contains(m_connectionName))
         return;
     {
         QSqlDatabase db = QSqlDatabase::database(m_connectionName);
@@ -33,6 +33,9 @@ void TileLoader::closeDb()
 
 void TileLoader::setPath(const QString &path, int generation)
 {
+    Q_ASSERT(QThread::currentThread() == thread());
+    if (QThread::currentThread()->isInterruptionRequested())
+        return;
     closeDb();
     m_path = path;
     m_generation = generation;
@@ -48,6 +51,9 @@ void TileLoader::setPath(const QString &path, int generation)
 
 void TileLoader::load(quint64 key, int zoom, int generation)
 {
+    Q_ASSERT(QThread::currentThread() == thread());
+    if (QThread::currentThread()->isInterruptionRequested())
+        return;
     if (generation != m_generation || !m_open) {
         emit missing(key, generation);
         return;
@@ -66,10 +72,16 @@ void TileLoader::load(quint64 key, int zoom, int generation)
         emit missing(key, generation);
         return;
     }
+    if (QThread::currentThread()->isInterruptionRequested())
+        return;
     const QByteArray decompressed = VectorTile::gunzip(query.value(0).toByteArray());
+    if (QThread::currentThread()->isInterruptionRequested())
+        return;
     if (decompressed.isEmpty()) {
         emit missing(key, generation);
         return;
     }
-    emit loaded(key, VectorTile::parse(decompressed), generation);
+    const auto tile = VectorTile::parse(decompressed);
+    if (!QThread::currentThread()->isInterruptionRequested())
+        emit loaded(key, tile, generation);
 }

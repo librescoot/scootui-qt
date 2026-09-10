@@ -23,6 +23,7 @@ private slots:
     void convertsMphToKph();
     void classifiesGermanRoadSigns();
     void freshLocalMatchBeatsRedisPoll();
+    void tileExpiryPreservesNewOwners();
 };
 
 void RoadMatchPolicyTest::headingDisambiguatesCrossingRoads()
@@ -195,6 +196,35 @@ void RoadMatchPolicyTest::freshLocalMatchBeatsRedisPoll()
 
     QCOMPARE(store.roadName(), QStringLiteral("matched"));
     QCOMPARE(store.speedLimit(), QStringLiteral("48"));
+}
+
+void RoadMatchPolicyTest::tileExpiryPreservesNewOwners()
+{
+    class Store : public SpeedLimitStore {
+    public:
+        using SpeedLimitStore::SpeedLimitStore;
+        using SpeedLimitStore::applyFieldUpdate;
+    };
+    InMemoryMdbRepository repo;
+    Store store(&repo);
+    using Source = SpeedLimitStore::Source;
+    store.setSpeedLimitDirect(QStringLiteral("50"), Source::Tile);
+    store.setRoadNameDirect(QStringLiteral("Same Name"), Source::Tile);
+    store.setRoadRefsDirect(QStringLiteral("B 2"), Source::Tile);
+    store.setRoadTypeDirect(QStringLiteral("primary"), Source::Tile);
+    store.setRoadBearingDirect(90, Source::Tile);
+    store.setRoadNameDirect(QStringLiteral("Same Name"), Source::Route);
+    QTest::qWait(2600); // External updates become authoritative after the existing hold.
+    store.applyFieldUpdate(QStringLiteral("speed-limit"), QStringLiteral("50"));
+    store.applyFieldUpdate(QStringLiteral("road-refs"), QStringLiteral("B 7"));
+    store.clearSource(Source::Tile);
+    QCOMPARE(store.speedLimit(), QStringLiteral("50")); // Same-value external ownership.
+    QCOMPARE(store.roadName(), QStringLiteral("Same Name")); // Same-value route ownership.
+    QCOMPARE(store.roadRefs(), QStringLiteral("B 7"));
+    QVERIFY(store.roadType().isEmpty());
+    QCOMPARE(store.roadBearing(), -1.0);
+    store.applyFieldUpdate(QStringLiteral("road-type"), QStringLiteral("secondary"));
+    QCOMPARE(store.roadType(), QStringLiteral("secondary")); // Clearing did not renew hold.
 }
 
 QTEST_APPLESS_MAIN(RoadMatchPolicyTest)

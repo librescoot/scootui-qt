@@ -18,6 +18,9 @@ class SpeedLimitStore;
 class NavigationService;
 class MapService;
 class TileLoader;
+class RoadMatchDispatcher;
+struct RoadMatchRequest;
+struct RoadMatchResult;
 
 class RoadInfoService : public QObject
 {
@@ -30,6 +33,7 @@ public:
     ~RoadInfoService();
 
     void reloadMbtiles();
+    void stopWorkers();
     void setMapService(MapService *map);
 
     bool hasConfidentRoadMatch() const { return m_hasConfidentRoadMatch; }
@@ -61,7 +65,14 @@ private slots:
     void onTileMissing(quint64 key, int generation);
 
 private:
+    friend class RoadInfoServiceTest;
+    void checkTileFreshness(qint64 nowMs);
+    void clearTileOutputs();
     void updateRoadInfo(double lat, double lon);
+    void applyMatch(const RoadMatchRequest &request, const RoadMatchResult &result);
+    void publishCurrentRouteAttrs();
+    void onRouteContextChanged();
+    void invalidatePosition();
     bool openDb(const QString &path);
     void closeDb();
     void requestTile(quint64 key);
@@ -79,6 +90,9 @@ private:
     MapService *m_map = nullptr;
 
     QElapsedTimer m_lastUpdate;
+    QElapsedTimer m_freshnessClock;
+    QTimer m_freshnessTimer;
+    qint64 m_lastAcceptedMatchMs = -1;
     bool m_dbOpen = false;
     QString m_dbConnectionName;
     QString m_dbPath; // path of the currently-open mbtiles (for idempotent reload)
@@ -88,7 +102,11 @@ private:
     // synchronously by the on-demand lookups.
     QHash<quint64, VectorTile::Tile> m_tileCache;
     QList<quint64> m_cacheOrder; // oldest first
-    QThread m_loaderThread;
+    QThread *m_loaderThread = nullptr;
+    bool m_stopping = false;
+    RoadMatchDispatcher *m_matcher = nullptr;
+    quint64 m_routeGeneration = 0;
+    int m_routeSegmentIndex = -1;
     TileLoader *m_loader = nullptr;
     int m_generation = 0;
     QSet<quint64> m_pending;
@@ -100,6 +118,8 @@ private:
 
     static constexpr int FallbackUpdateIntervalMs =
         NavigationCadence::RenderTickMs * NavigationCadence::RoadInfoEveryTicks;
+    static constexpr int TileFreshnessMs =
+        RoadMatchRetentionState::MissesBeforeClear * FallbackUpdateIntervalMs;
     static constexpr int QueryZoom = 14;
     static constexpr int MaxCachedTiles = 50;
 

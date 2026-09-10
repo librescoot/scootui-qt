@@ -68,6 +68,7 @@ set(CPP_SOURCES
     src/main.cpp
     src/core/EnvConfig.cpp
     src/core/DataPartition.cpp
+    src/core/HmiLatencyMonitor.cpp
     src/core/Application.cpp
     src/core/BootGate.cpp
     src/repositories/InMemoryMdbRepository.cpp
@@ -130,6 +131,9 @@ set(CPP_SOURCES
     src/services/VectorTileDecoder.cpp
     src/services/MapDownloadService.cpp
     src/services/UpdateChannelService.cpp
+    src/services/RoadMatcher.cpp
+    src/services/RoadMatchDispatcher.cpp
+    src/services/RoadWorkerThreads.cpp
     src/services/RoadInfoService.cpp
     src/services/TileLoader.cpp
     src/services/OdometerMilestoneService.cpp
@@ -145,6 +149,8 @@ set(CPP_HEADERS
     src/core/AppConfig.h
     src/core/EnvConfig.h
     src/core/DataPartition.h
+    src/core/HmiLatencyMonitor.h
+    src/core/HmiLatencyMetrics.h
     src/core/Application.h
     src/core/BootGate.h
     src/models/Enums.h
@@ -213,6 +219,9 @@ set(CPP_HEADERS
     src/services/UpdateChannelService.h
     src/services/VectorTileDecoder.h
     src/services/MapDownloadService.h
+    src/services/RoadMatcher.h
+    src/services/RoadMatchDispatcher.h
+    src/services/RoadWorkerThreads.h
     src/services/RoadInfoService.h
     src/services/TileLoader.h
     src/services/RoadMatchPolicy.h
@@ -523,6 +532,33 @@ if(BUILD_TESTING)
     target_link_libraries(road_match_policy_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME road_match_policy_test COMMAND road_match_policy_test)
 
+    qt_add_executable(road_info_service_test
+        tests/RoadInfoServiceTest.cpp
+        src/services/RoadInfoService.cpp
+        src/services/RoadMatchDispatcher.cpp
+        src/services/RoadMatcher.cpp
+        src/services/RoadWorkerThreads.cpp
+        src/services/TileLoader.cpp
+        src/services/VectorTileDecoder.cpp
+        src/services/NavigationService.cpp
+        src/services/MapService.cpp
+        src/routing/ValhallaClient.cpp
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/stores/SyncableStore.cpp
+        src/stores/SpeedLimitStore.cpp
+        src/stores/GpsStore.cpp
+        src/stores/NavigationStore.cpp
+        src/stores/VehicleStore.cpp
+        src/stores/SettingsStore.cpp
+        src/stores/ThemeStore.cpp
+        src/stores/MotionStore.cpp
+        src/stores/EngineStore.cpp
+    )
+    target_include_directories(road_info_service_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(road_info_service_test PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6::Sql Qt6::Test ZLIB::ZLIB)
+    add_test(NAME road_info_service_test COMMAND road_info_service_test)
+
     qt_add_executable(map_timing_test
         tests/MapTimingTest.cpp
         src/services/MapCameraPolicy.h
@@ -602,6 +638,24 @@ if(BUILD_TESTING)
     target_link_libraries(boot_channels_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME boot_channels_test COMMAND boot_channels_test)
 
+    qt_add_executable(road_match_dispatcher_test
+        tests/RoadMatchDispatcherTest.cpp
+        src/services/RoadMatchDispatcher.cpp
+        src/services/RoadWorkerThreads.cpp
+        src/services/RoadMatchDispatcher.h
+        src/services/RoadMatcher.cpp
+        src/services/VectorTileDecoder.cpp)
+    target_include_directories(road_match_dispatcher_test PRIVATE src)
+    target_link_libraries(road_match_dispatcher_test PRIVATE Qt6::Core Qt6::Test ZLIB::ZLIB)
+    add_test(NAME road_match_dispatcher_test COMMAND road_match_dispatcher_test)
+
+    qt_add_executable(hmi_latency_test tests/HmiLatencyTest.cpp
+        src/core/HmiLatencyMonitor.cpp src/core/HmiLatencyMonitor.h)
+    target_include_directories(hmi_latency_test PRIVATE src)
+    target_link_libraries(hmi_latency_test PRIVATE Qt6::Quick Qt6::Test)
+    add_test(NAME hmi_latency_test COMMAND hmi_latency_test)
+    set_tests_properties(hmi_latency_test PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
     qt_add_executable(road_match_search_bounds_test tests/RoadMatchSearchBoundsTest.cpp)
     target_include_directories(road_match_search_bounds_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(road_match_search_bounds_test PRIVATE Qt6::Core Qt6::Test)
@@ -635,33 +689,6 @@ if(BUILD_TESTING)
     target_include_directories(battery_store_fields_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(battery_store_fields_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME battery_store_fields_test COMMAND battery_store_fields_test)
-
-    qt_add_executable(backup_battery_monitor_test
-        tests/BackupBatteryMonitorTest.cpp
-        src/models/Enums.h
-        src/repositories/MdbRepository.h
-        src/repositories/InMemoryMdbRepository.cpp
-        src/repositories/InMemoryMdbRepository.h
-        src/stores/SyncableStore.cpp
-        src/stores/SyncableStore.h
-        src/stores/VehicleStore.cpp
-        src/stores/VehicleStore.h
-        src/stores/BatteryStore.cpp
-        src/stores/BatteryStore.h
-        src/stores/CbBatteryStore.cpp
-        src/stores/CbBatteryStore.h
-        src/stores/AuxBatteryStore.cpp
-        src/stores/AuxBatteryStore.h
-        src/services/BackupBatteryMonitor.cpp
-        src/services/BackupBatteryMonitor.h
-        src/services/ToastService.cpp
-        src/services/ToastService.h
-        src/l10n/Translations.cpp
-        src/l10n/Translations.h
-    )
-    target_include_directories(backup_battery_monitor_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-    target_link_libraries(backup_battery_monitor_test PRIVATE Qt6::Core Qt6::Test)
-    add_test(NAME backup_battery_monitor_test COMMAND backup_battery_monitor_test)
 
     qt_add_executable(boot_prefetch_test
         tests/BootPrefetchTest.cpp

@@ -112,6 +112,25 @@ service journal and datastore state when diagnosing it. Use an isolated
 Redis-compatible instance for development experiments rather than writing to a
 live vehicle datastore.
 
+### HMI responsiveness
+
+Periodic road matching runs on a value-snapshot worker, with at most one active
+job and one replaceable pending job. Superseded results are rejected. Tile-derived
+road metadata expires three seconds after its last accepted publication; current
+route and external values are preserved independently.
+
+The journal reports `HMI latency:` when the GUI timer is at least 50 ms late or
+synchronization-to-swap time reaches 100 ms. Reports are limited to one per ten
+seconds and do not request extra frames. Swap gaps include idle time and alone do
+not indicate a stall. `RoadMatch:` reports aged/rejected snapshots and replaced
+pending work under load.
+
+Ordinary road-service destruction requests cancellation without waiting. Final
+process teardown joins road workers before destroying Qt services; pathological
+storage reads or indivisible decoding can still delay shutdown. Synchronous
+on-demand tile/address queries, including roundabout icon geometry, remain GUI
+hotspots. This is not a hard real-time guarantee or CPU-core reservation.
+
 ## License
 
 This project is licensed under the [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License](LICENSE).

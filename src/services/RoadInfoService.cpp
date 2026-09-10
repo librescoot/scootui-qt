@@ -3,7 +3,8 @@
 #include "MapService.h"
 #include "NavigationService.h"
 #include "RoadMatchPolicy.h"
-#include "RoadMatchSearchBounds.h"
+#include "RoadMatchDispatcher.h"
+#include "RoadWorkerThreads.h"
 #include "TileLoader.h"
 #include "stores/GpsStore.h"
 #include "stores/SpeedLimitStore.h"
@@ -27,49 +28,6 @@ static const QSet<QString> s_roadTypes = {
     QStringLiteral("service")
 };
 
-namespace {
-constexpr double EarthRadiusMeters = 6371000.0;
-
-void projectOntoSegment(double lat, double lon,
-                        double lat1, double lon1,
-                        double lat2, double lon2,
-                        double &snappedLat, double &snappedLon,
-                        double &distance)
-{
-    const double cosLat = std::max(0.01, std::cos(lat * M_PI / 180.0));
-    const double ax = (lon1 - lon) * M_PI / 180.0
-        * EarthRadiusMeters * cosLat;
-    const double ay = (lat1 - lat) * M_PI / 180.0 * EarthRadiusMeters;
-    const double bx = (lon2 - lon) * M_PI / 180.0
-        * EarthRadiusMeters * cosLat;
-    const double by = (lat2 - lat) * M_PI / 180.0 * EarthRadiusMeters;
-    const double dx = bx - ax;
-    const double dy = by - ay;
-    const double denominator = dx * dx + dy * dy;
-    const double t = denominator > 1e-9
-        ? std::clamp(-(ax * dx + ay * dy) / denominator, 0.0, 1.0)
-        : 0.0;
-    const double px = ax + t * dx;
-    const double py = ay + t * dy;
-    distance = std::hypot(px, py);
-    snappedLat = lat + py / EarthRadiusMeters * 180.0 / M_PI;
-    snappedLon = lon + px / (EarthRadiusMeters * cosLat) * 180.0 / M_PI;
-}
-
-double segmentBearing(double lat1, double lon1, double lat2, double lon2)
-{
-    const double dLon = (lon2 - lon1) * M_PI / 180.0;
-    const double y = std::sin(dLon) * std::cos(lat2 * M_PI / 180.0);
-    const double x = std::cos(lat1 * M_PI / 180.0)
-            * std::sin(lat2 * M_PI / 180.0)
-        - std::sin(lat1 * M_PI / 180.0)
-            * std::cos(lat2 * M_PI / 180.0) * std::cos(dLon);
-    if (std::abs(x) < 1e-10 && std::abs(y) < 1e-10)
-        return -1.0;
-    return std::fmod(std::atan2(y, x) * 180.0 / M_PI + 360.0, 360.0);
-}
-}
-
 RoadInfoService::RoadInfoService(GpsStore *gps, SpeedLimitStore *speedLimit,
                                    NavigationService *navigation,
                                    QObject *parent)
@@ -80,14 +38,35 @@ RoadInfoService::RoadInfoService(GpsStore *gps, SpeedLimitStore *speedLimit,
     , m_dbConnectionName(QStringLiteral("roadinfo_tiles"))
 {
     m_lastUpdate.start();
+    m_freshnessClock.start();
+    // Independent of GPS, submissions and completions: a latest-wins worker
+    // may reject every result under sustained overload, or GPS may go silent.
+    m_freshnessTimer.setInterval(100);
+    connect(&m_freshnessTimer, &QTimer::timeout, this, [this]() {
+        checkTileFreshness(m_freshnessClock.elapsed());
+    });
+    m_freshnessTimer.start();
 
+    m_matcher = new RoadMatchDispatcher(this);
+    connect(m_matcher, &RoadMatchDispatcher::ready, this, &RoadInfoService::applyMatch);
+    if (m_navigation) {
+        connect(m_navigation, &NavigationService::routeChanged,
+                this, &RoadInfoService::onRouteContextChanged);
+        connect(m_navigation, &NavigationService::routeAttributesChanged,
+                this, &RoadInfoService::onRouteContextChanged);
+        connect(m_navigation, &NavigationService::positionChanged, this, [this]() {
+            if (m_routeSegmentIndex != m_navigation->currentSegmentIndex())
+                onRouteContextChanged();
+        });
+    }
+
+    m_loaderThread = RoadWorkerThreads::create(QStringLiteral("roadinfo-tiles"));
     m_loader = new TileLoader;
-    m_loader->moveToThread(&m_loaderThread);
-    connect(&m_loaderThread, &QThread::finished, m_loader, &QObject::deleteLater);
+    m_loader->moveToThread(m_loaderThread);
+    connect(m_loaderThread, &QThread::finished, m_loader, &QObject::deleteLater);
     connect(m_loader, &TileLoader::loaded, this, &RoadInfoService::onTileLoaded);
     connect(m_loader, &TileLoader::missing, this, &RoadInfoService::onTileMissing);
-    m_loaderThread.setObjectName(QStringLiteral("roadinfo-tiles"));
-    m_loaderThread.start();
+    m_loaderThread->start();
 
     m_rematchTimer.setSingleShot(true);
     connect(&m_rematchTimer, &QTimer::timeout, this, [this]() {
@@ -113,9 +92,23 @@ RoadInfoService::RoadInfoService(GpsStore *gps, SpeedLimitStore *speedLimit,
 
 RoadInfoService::~RoadInfoService()
 {
-    m_loaderThread.quit();
-    m_loaderThread.wait();
+    stopWorkers();
     closeDb();
+}
+
+void RoadInfoService::stopWorkers()
+{
+    if (m_stopping)
+        return;
+    m_stopping = true;
+    m_matcher->stop();
+    m_rematchTimer.stop();
+    m_freshnessTimer.stop();
+    m_pending.clear();
+    // Queued loader results are disconnected before its autonomous shutdown.
+    disconnect(m_loader, nullptr, this, nullptr);
+    m_loaderThread->requestInterruption();
+    m_loaderThread->quit();
 }
 
 bool RoadInfoService::openDb(const QString &path)
@@ -134,12 +127,17 @@ bool RoadInfoService::openDb(const QString &path)
     ++m_generation;
     QMetaObject::invokeMethod(m_loader, "setPath", Qt::QueuedConnection,
                               Q_ARG(QString, path), Q_ARG(int, m_generation));
+    if (m_hasLastPosition)
+        m_rematchTimer.start(0);
     qDebug() << "RoadInfoService: mbtiles database opened";
     return true;
 }
 
 void RoadInfoService::closeDb()
 {
+    ++m_generation;
+    m_matcher->invalidate();
+    m_rematchTimer.stop();
     if (!m_dbOpen)
         return;
     {
@@ -162,6 +160,7 @@ void RoadInfoService::setMapService(MapService *map)
         return;
     if (m_map)
         disconnect(m_map, nullptr, this, nullptr);
+    invalidatePosition();
     m_map = map;
     m_updateCadence.reset();
     if (m_map) {
@@ -172,6 +171,8 @@ void RoadInfoService::setMapService(MapService *map)
 
 void RoadInfoService::reloadMbtiles()
 {
+    if (m_stopping)
+        return;
     QString path = QFile::exists(QStringLiteral("map.mbtiles"))
         ? QStringLiteral("map.mbtiles")
         : AddressDatabaseService::MbtilesPath;
@@ -206,7 +207,7 @@ void RoadInfoService::requestTile(quint64 key)
 
 void RoadInfoService::onTileLoaded(quint64 key, const VectorTile::Tile &tile, int generation)
 {
-    if (generation != m_generation)
+    if (m_stopping || generation != m_generation)
         return;
     m_pending.remove(key);
     insertTile(key, tile);
@@ -216,7 +217,7 @@ void RoadInfoService::onTileLoaded(quint64 key, const VectorTile::Tile &tile, in
 
 void RoadInfoService::onTileMissing(quint64 key, int generation)
 {
-    if (generation != m_generation)
+    if (m_stopping || generation != m_generation)
         return;
     m_pending.remove(key);
     m_absent.insert(key);
@@ -276,42 +277,64 @@ void RoadInfoService::countMissAndMaybeClear()
     // or one noisy fix cannot pop the marker off the road. MapService still
     // releases immediately if the physical estimate moves materially away from
     // that retained segment.
-    if (!m_matchRetention.retainAfterMiss()) {
-        clearRoadMatch();
-        m_speedLimit->setRoadNameDirect(QString());
-        m_speedLimit->setRoadNetworksDirect(QString());
-        m_speedLimit->setRoadRefsDirect(QString());
-        m_speedLimit->setRoadTypeDirect(QString());
-        m_speedLimit->setSpeedLimitDirect(QString());
-        m_speedLimit->setRoadBearingDirect(-1);
-    }
+    if (!m_matchRetention.retainAfterMiss())
+        clearTileOutputs();
+}
+
+void RoadInfoService::checkTileFreshness(qint64 nowMs)
+{
+    if (m_lastAcceptedMatchMs >= 0
+        && nowMs - m_lastAcceptedMatchMs >= TileFreshnessMs)
+        clearTileOutputs();
+}
+
+void RoadInfoService::clearTileOutputs()
+{
+    m_lastAcceptedMatchMs = -1;
+    m_matchRetention.reset();
+    clearRoadMatch();
+    m_speedLimit->clearSource(SpeedLimitStore::Source::Tile);
 }
 
 void RoadInfoService::clearRoadMatch()
 {
-    if (!m_hasConfidentRoadMatch && m_previousMatchKey.isEmpty())
-        return;
+    const bool changed = m_hasConfidentRoadMatch || !m_previousMatchKey.isEmpty();
     m_hasConfidentRoadMatch = false;
     m_previousMatchKey.clear();
+    m_matchLat1 = m_matchLon1 = m_matchLat2 = m_matchLon2 = 0;
     m_matchDistanceMeters = 0;
-    emit roadMatchChanged();
+    if (changed)
+        emit roadMatchChanged();
+}
+
+void RoadInfoService::invalidatePosition()
+{
+    clearTileOutputs();
+    m_matcher->invalidate();
+    m_hasLastPosition = false;
+    m_rematchTimer.stop();
+}
+
+void RoadInfoService::onRouteContextChanged()
+{
+    m_routeSegmentIndex = m_navigation->currentSegmentIndex();
+    ++m_routeGeneration;
+    m_matcher->invalidate();
+    m_speedLimit->clearSource(SpeedLimitStore::Source::Route);
+    if (m_navigation->hasCurrentEdgeAttrs())
+        publishCurrentRouteAttrs();
+    if (m_hasLastPosition)
+        m_rematchTimer.start(0);
 }
 
 void RoadInfoService::onGpsChanged()
 {
+    if (!m_gps || !m_gps->hasValidGps())
+        invalidatePosition();
     if (m_map && m_map->hasVehiclePosition())
         return;
-    if (!m_gps || !m_gps->hasValidGps()) {
-        m_matchRetention.reset();
-        clearRoadMatch();
-        m_speedLimit->setRoadNameDirect(QString());
-        m_speedLimit->setRoadNetworksDirect(QString());
-        m_speedLimit->setRoadRefsDirect(QString());
-        m_speedLimit->setRoadTypeDirect(QString());
-        m_speedLimit->setSpeedLimitDirect(QString());
-        m_speedLimit->setRoadBearingDirect(-1);
+    if (!m_gps || !m_gps->hasValidGps())
         return;
-    }
 
     if (m_lastUpdate.elapsed() < FallbackUpdateIntervalMs)
         return;
@@ -329,8 +352,10 @@ void RoadInfoService::onGpsChanged()
 
 void RoadInfoService::onVehiclePositionChanged()
 {
-    if (!m_map || !m_map->hasVehiclePosition())
+    if (!m_map || !m_map->hasVehiclePosition()) {
+        invalidatePosition();
         return;
+    }
     if (!m_updateCadence.advance())
         return;
     if (!m_dbOpen)
@@ -353,23 +378,28 @@ int RoadInfoService::latToTileY(double lat, int zoom)
     return static_cast<int>(n) - 1 - slippyY;
 }
 
+void RoadInfoService::publishCurrentRouteAttrs()
+{
+    m_speedLimit->setRoadNameDirect(m_navigation->currentEdgeName());
+    m_speedLimit->setRoadNetworksDirect(QString());
+    m_speedLimit->setRoadRefsDirect(
+        m_navigation->currentEdgeRefs().join(QStringLiteral(", ")));
+    m_speedLimit->setRoadTypeDirect(m_navigation->currentEdgeRoadClass());
+    const int kph = m_navigation->currentEdgeSpeedLimitKph();
+    m_speedLimit->setSpeedLimitDirect(
+        kph > 0 ? QString::number(kph) : QString());
+}
+
 void RoadInfoService::updateRoadInfo(double lat, double lon)
 {
+    if (m_stopping)
+        return;
     m_hasLastPosition = true;
     m_lastLat = lat;
     m_lastLon = lon;
     const bool hasRouteAttrs = m_navigation
         && m_navigation->hasCurrentEdgeAttrs();
-    auto publishRouteAttrs = [this]() {
-        m_speedLimit->setRoadNameDirect(m_navigation->currentEdgeName());
-        m_speedLimit->setRoadNetworksDirect(QString());
-        m_speedLimit->setRoadRefsDirect(
-            m_navigation->currentEdgeRefs().join(QStringLiteral(", ")));
-        m_speedLimit->setRoadTypeDirect(m_navigation->currentEdgeRoadClass());
-        const int kph = m_navigation->currentEdgeSpeedLimitKph();
-        m_speedLimit->setSpeedLimitDirect(
-            kph > 0 ? QString::number(kph) : QString());
-    };
+    auto publishRouteAttrs = [this]() { publishCurrentRouteAttrs(); };
 
     // A complete route edge is authoritative and avoids doing any tile work.
     // Partial trace attributes fall through so missing name/class/speed fields
@@ -378,13 +408,14 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
         && !m_navigation->currentEdgeName().isEmpty()
         && !m_navigation->currentEdgeRoadClass().isEmpty()
         && m_navigation->currentEdgeSpeedLimitKph() > 0) {
+        m_matcher->invalidate();
+        clearTileOutputs();
         publishRouteAttrs();
-        clearRoadMatch();
-        m_matchRetention.reset();
         return;
     }
 
     if (!m_dbOpen) {
+        m_matcher->invalidate();
         if (hasRouteAttrs) {
             publishRouteAttrs();
             clearRoadMatch();
@@ -392,175 +423,56 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
         return;
     }
 
-    struct Candidate {
-        RoadMatchCandidateScore policy;
-        QString name;
-        QString refs;
-        QString kind;
-        QString routeNetworks;
-        QString maxspeed;
-        double lat1 = 0, lon1 = 0, lat2 = 0, lon2 = 0;
-        double snappedLat = 0, snappedLon = 0;
-        double actualDistanceMeters = std::numeric_limits<double>::max();
-    };
-    QList<Candidate> candidates;
-    bool waitingForTiles = false;
-
-    const int centerX = lonToTileX(lon, QueryZoom);
-    const int centerY = latToTileY(lat, QueryZoom);
-    const int tileCount = 1 << QueryZoom;
-    const double n = std::pow(2.0, QueryZoom);
-
-    // Search the 3x3 neighborhood. Looking only in the coordinate's own tile
-    // misses roads just across a z14 boundary even when they are a few metres
-    // away, producing a regular metadata blank near tile seams.
-    for (int ox = -1; ox <= 1; ++ox) {
-        for (int oy = -1; oy <= 1; ++oy) {
-            const int tileX = centerX + ox;
-            const int tileY = centerY + oy;
-            if (tileX < 0 || tileY < 0
-                || tileX >= tileCount || tileY >= tileCount)
-                continue;
-
-            const quint64 cacheKey = (static_cast<quint64>(tileX) << 32)
-                | static_cast<quint64>(static_cast<uint32_t>(tileY));
-            if (!m_tileCache.contains(cacheKey)) {
-                if (!m_absent.contains(cacheKey)) {
-                    requestTile(cacheKey);
-                    waitingForTiles = true;
-                }
-                continue;
-            }
-            touchTile(cacheKey);
-
-            const VectorTile::Tile &tile = m_tileCache[cacheKey];
-            const VectorTile::Layer *streetsLayer = nullptr;
-            for (const auto &layer : tile.layers) {
-                if (layer.name == QLatin1String("streets")) {
-                    streetsLayer = &layer;
-                    break;
-                }
-            }
-            if (!streetsLayer)
-                continue;
-            const double extent = streetsLayer->extent;
-            const auto searchBounds = RoadMatchSearchBounds::around(
-                lat, lon, tileX, tileY, QueryZoom, extent);
-
-            for (const auto &feature : streetsLayer->features) {
-                if (feature.type != 2)
-                    continue;
-                const QString kind =
-                    feature.properties.value(QStringLiteral("kind"));
-                if (!s_roadTypes.contains(kind))
-                    continue;
-                const QVector<QVector<QPointF>> parts =
-                    VectorTile::decodeLineStringParts(feature.geometry);
-                if (!searchBounds.intersects(parts))
-                    continue;
-
-                Candidate candidate;
-                candidate.name =
-                    feature.properties.value(QStringLiteral("name"));
-                candidate.kind = kind;
-                candidate.routeNetworks =
-                    feature.properties.value(QStringLiteral("route_networks"));
-                candidate.maxspeed =
-                    feature.properties.value(QStringLiteral("maxspeed"));
-                const QString refRaw =
-                    feature.properties.value(QStringLiteral("ref"));
-                QStringList refParts = refRaw.split(
-                    QLatin1Char(';'), Qt::SkipEmptyParts);
-                for (QString &part : refParts)
-                    part = part.trimmed();
-                candidate.refs = refParts.join(QStringLiteral(", "));
-                candidate.policy.tunnel =
-                    feature.properties.value(QStringLiteral("tunnel"))
-                    == QLatin1String("true");
-                candidate.policy.oneWay =
-                    feature.properties.value(QStringLiteral("oneway"))
-                    == QLatin1String("true");
-                candidate.policy.oneWayReverse =
-                    feature.properties.value(QStringLiteral("oneway_reverse"))
-                    == QLatin1String("true");
-
-                for (const QVector<QPointF> &points : parts) {
-                    for (int i = 0; i + 1 < points.size(); ++i) {
-                        const double lon1 = (tileX + points[i].x() / extent)
-                            / n * 360.0 - 180.0;
-                        const double mercY1 = 1.0 - (tileY + 1.0
-                            - points[i].y() / extent) / n;
-                        const double lat1 = std::atan(std::sinh(
-                            M_PI * (1.0 - 2.0 * mercY1))) * 180.0 / M_PI;
-                        const double lon2 = (tileX + points[i + 1].x() / extent)
-                            / n * 360.0 - 180.0;
-                        const double mercY2 = 1.0 - (tileY + 1.0
-                            - points[i + 1].y() / extent) / n;
-                        const double lat2 = std::atan(std::sinh(
-                            M_PI * (1.0 - 2.0 * mercY2))) * 180.0 / M_PI;
-
-                        double snappedLat, snappedLon, distance;
-                        projectOntoSegment(lat, lon, lat1, lon1, lat2, lon2,
-                                           snappedLat, snappedLon, distance);
-                        if (distance < candidate.actualDistanceMeters) {
-                            candidate.actualDistanceMeters = distance;
-                            candidate.lat1 = lat1; candidate.lon1 = lon1;
-                            candidate.lat2 = lat2; candidate.lon2 = lon2;
-                            candidate.snappedLat = snappedLat;
-                            candidate.snappedLon = snappedLon;
-                        }
-                    }
-                }
-                if (!std::isfinite(candidate.actualDistanceMeters))
-                    continue;
-                candidate.policy.distanceMeters =
-                    candidate.actualDistanceMeters;
-                candidate.policy.bearingDegrees = segmentBearing(
-                    candidate.lat1, candidate.lon1,
-                    candidate.lat2, candidate.lon2);
-                candidate.policy.key = candidate.name
-                    + QLatin1Char('|') + candidate.refs
-                    + QLatin1Char('|') + candidate.kind
-                    + QLatin1Char('|')
-                    + QString::number((candidate.lat1 + candidate.lat2) * 0.5,
-                                      'f', 5)
-                    + QLatin1Char('|')
-                    + QString::number((candidate.lon1 + candidate.lon2) * 0.5,
-                                      'f', 5);
-                candidates.append(candidate);
-            }
-        }
-    }
-
-    if (candidates.isEmpty() && waitingForTiles)
-        return;
-
+    RoadMatchRequest request;
+    request.routeGeneration = m_routeGeneration;
+    request.mapGeneration = m_generation;
+    request.lat = lat;
+    request.lon = lon;
     const GpsSample gps = m_gps ? m_gps->currentSample() : GpsSample{};
-    const bool headingReliable = m_gps && gps.hasValidCoordinate()
+    request.heading = gps.course;
+    request.headingReliable = m_gps && gps.hasValidCoordinate()
         && gps.hasFix() && m_gps->timestampAgeMs() <= 2500
         && gps.speedKmh >= 3.0 && std::isfinite(gps.course);
-    double maxDistance = 35.0;
     if (m_map)
-        maxDistance = std::clamp(m_map->positionUncertaintyMeters() + 8.0,
-                                 15.0, 40.0);
+        request.maxDistance = std::clamp(m_map->positionUncertaintyMeters() + 8.0,
+                                         15.0, 40.0);
     else if (gps.ephMeters > 0.0)
-        maxDistance = std::clamp(gps.ephMeters * 1.5 + 8.0, 15.0, 40.0);
-
-    QList<RoadMatchCandidateScore> policyCandidates;
-    policyCandidates.reserve(candidates.size());
-    const QString routeName = m_navigation
+        request.maxDistance = std::clamp(gps.ephMeters * 1.5 + 8.0, 15.0, 40.0);
+    request.routeName = m_navigation
         ? m_navigation->currentSegmentStreetName() : QString();
-    for (const Candidate &candidate : candidates) {
-        auto score = candidate.policy;
-        if (!routeName.isEmpty()
-            && candidate.name.compare(routeName, Qt::CaseInsensitive) == 0) {
-            score.distanceMeters = std::max(0.0, score.distanceMeters - 12.0);
+    request.previousKey = m_previousMatchKey;
+    const int centerX = lonToTileX(lon, QueryZoom);
+    const int centerY = latToTileY(lat, QueryZoom);
+    for (int ox = -1; ox <= 1; ++ox) {
+        for (int oy = -1; oy <= 1; ++oy) {
+            const int x = centerX + ox, y = centerY + oy;
+            if (x < 0 || y < 0 || x >= (1 << QueryZoom) || y >= (1 << QueryZoom))
+                continue;
+            const quint64 key = (quint64(x) << 32) | quint32(y);
+            const auto it = m_tileCache.constFind(key);
+            if (it != m_tileCache.cend()) {
+                request.tiles.insert(key, it.value());
+                touchTile(key);
+            } else if (!m_absent.contains(key)) {
+                requestTile(key);
+                request.waitingForTiles = true;
+            }
         }
-        policyCandidates.append(score);
     }
-    const RoadMatchSelection selection = RoadMatchPolicy::select(
-        policyCandidates, gps.course, headingReliable,
-        m_previousMatchKey, maxDistance);
+    m_matcher->submit(std::move(request));
+}
+
+void RoadInfoService::applyMatch(const RoadMatchRequest &request,
+                                const RoadMatchResult &result)
+{
+    if (!request.isCurrent(m_matcher->latestSequence(), m_routeGeneration,
+                           m_generation, m_hasLastPosition))
+        return;
+    if (result.waitingForTiles)
+        return;
+    const auto &selection = result.selection;
+    const bool hasRouteAttrs = m_navigation && m_navigation->hasCurrentEdgeAttrs();
+    auto publishRouteAttrs = [this]() { publishCurrentRouteAttrs(); };
     if (selection.index < 0) {
         if (hasRouteAttrs) {
             publishRouteAttrs();
@@ -572,7 +484,7 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
         return;
     }
 
-    const Candidate &chosen = candidates[selection.index];
+    const auto &chosen = result.chosen;
     const bool freeDrive = !m_navigation || !m_navigation->hasRoute();
     if (freeDrive && !selection.confident) {
         // A ranked winner is not necessarily a trustworthy road at a crossing
@@ -583,6 +495,7 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
     }
 
     m_matchRetention.matched();
+    m_lastAcceptedMatchMs = m_freshnessClock.elapsed();
     QString name = chosen.name;
     QString refs = chosen.refs;
     QString kind = chosen.kind;
@@ -598,12 +511,17 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
         if (m_navigation->currentEdgeSpeedLimitKph() > 0)
             maxspeed = QString::number(m_navigation->currentEdgeSpeedLimitKph());
     }
-    m_speedLimit->setSpeedLimitDirect(maxspeed);
-    m_speedLimit->setRoadNameDirect(name);
-    m_speedLimit->setRoadNetworksDirect(routeNetworks);
-    m_speedLimit->setRoadRefsDirect(refs);
-    m_speedLimit->setRoadTypeDirect(kind);
-    m_speedLimit->setRoadBearingDirect(chosen.policy.bearingDegrees);
+    using Source = SpeedLimitStore::Source;
+    m_speedLimit->setSpeedLimitDirect(maxspeed,
+        hasRouteAttrs && m_navigation->currentEdgeSpeedLimitKph() > 0 ? Source::Route : Source::Tile);
+    m_speedLimit->setRoadNameDirect(name,
+        hasRouteAttrs && !m_navigation->currentEdgeName().isEmpty() ? Source::Route : Source::Tile);
+    m_speedLimit->setRoadNetworksDirect(routeNetworks, Source::Tile);
+    m_speedLimit->setRoadRefsDirect(refs,
+        hasRouteAttrs && !m_navigation->currentEdgeRefs().isEmpty() ? Source::Route : Source::Tile);
+    m_speedLimit->setRoadTypeDirect(kind,
+        hasRouteAttrs && !m_navigation->currentEdgeRoadClass().isEmpty() ? Source::Route : Source::Tile);
+    m_speedLimit->setRoadBearingDirect(chosen.policy.bearingDegrees, Source::Tile);
 
     const bool confident = freeDrive && selection.confident;
     const bool changed = confident != m_hasConfidentRoadMatch

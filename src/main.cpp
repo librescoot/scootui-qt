@@ -1,4 +1,5 @@
 #include <QGuiApplication>
+#include <QScopeGuard>
 #include <QQmlApplicationEngine>
 #include <QQmlComponent>
 #include <QQmlContext>
@@ -55,6 +56,7 @@ static void presentWhenPainted(Application &application, QObject *root)
         application.uiPresented();
         return;
     }
+    application.observeWindow(window);
     QObject::connect(window, &QQuickWindow::frameSwapped,
         &application, [&application]() {
             BOOT_MARK("first frameSwapped");
@@ -119,6 +121,11 @@ int main(int argc, char *argv[])
     application.setBootPrefetch(prefetch.get());
 
     QQmlApplicationEngine engine;
+    // Runs on normal exit, initialization failure and exception paths, before
+    // QML, services and Qt/static state are destroyed. No joins during HMI use.
+    const auto roadWorkerShutdown = qScopeGuard([&application]() {
+        application.shutdownRoadWorkers();
+    });
     BOOT_MARK("QQmlApplicationEngine ready");
 
     // Ensure QMapLibre QML modules (MapLibre.Location) are found

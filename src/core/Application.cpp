@@ -1,4 +1,6 @@
 #include "Application.h"
+#include "HmiLatencyMonitor.h"
+#include "services/RoadWorkerThreads.h"
 #include "AppConfig.h"
 #include "EnvConfig.h"
 #include "core/BootGate.h"
@@ -157,8 +159,22 @@ Application::~Application()
         delete child;
 }
 
+void Application::shutdownRoadWorkers()
+{
+    if (m_roadInfoService)
+        m_roadInfoService->stopWorkers();
+    RoadWorkerThreads::drainAfterEventLoop();
+}
+
+void Application::observeWindow(QQuickWindow *window)
+{
+    if (m_latencyMonitor)
+        m_latencyMonitor->attachWindow(window);
+}
+
 bool Application::initialize(QQmlApplicationEngine &engine)
 {
+    m_latencyMonitor = new HmiLatencyMonitor(this);
     // Two independent choices. Which repository backs the UI, and whether the
     // simulator panel runs on top of it. They used to be one: "no Redis host"
     // meant both, which ruled out driving a dedicated Redis from the panel or

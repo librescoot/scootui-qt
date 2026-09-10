@@ -178,6 +178,42 @@ private slots:
         QCOMPARE(missing.takeFirst().at(0).toULongLong(), key(TileX + 1, TileY));
     }
 
+    void connectionRemovedOnAutonomousShutdown_data()
+    {
+        QTest::addColumn<bool>("validPath");
+        QTest::newRow("open database") << true;
+        QTest::newRow("failed open") << false;
+    }
+
+    void connectionRemovedOnAutonomousShutdown()
+    {
+        QFETCH(bool, validPath);
+        auto *thread = new QThread;
+        auto *loader = new TileLoader;
+        const QString connection = QStringLiteral("tile_loader_%1")
+            .arg(reinterpret_cast<quintptr>(loader), 0, 16);
+        loader->moveToThread(thread);
+        connect(thread, &QThread::finished, loader, &QObject::deleteLater);
+        connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+        QSignalSpy deleted(loader, &QObject::destroyed);
+        QSignalSpy threadDeleted(thread, &QObject::destroyed);
+        QSignalSpy missing(loader, &TileLoader::missing);
+        thread->start();
+        const QString path = validPath ? m_path : m_dir.filePath("absent/map.mbtiles");
+        QMetaObject::invokeMethod(loader, "setPath", Qt::QueuedConnection,
+                                  Q_ARG(QString, path), Q_ARG(int, 1));
+        QMetaObject::invokeMethod(loader, "load", Qt::QueuedConnection,
+                                  Q_ARG(quint64, key(TileX + 1, TileY)),
+                                  Q_ARG(int, Zoom), Q_ARG(int, 1));
+        QVERIFY(missing.wait(5000));
+        QVERIFY(QSqlDatabase::contains(connection));
+        thread->requestInterruption();
+        thread->quit();
+        QTRY_COMPARE(deleted.count(), 1);
+        QTRY_COMPARE(threadDeleted.count(), 1);
+        QVERIFY(!QSqlDatabase::contains(connection));
+    }
+
     void staleGenerationIsMissing()
     {
         QSignalSpy loaded(m_loader, &TileLoader::loaded);
