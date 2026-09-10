@@ -49,6 +49,7 @@
 #include "services/NavigationService.h"
 #include "services/ToastService.h"
 #include "services/SoundCueService.h"
+#include "services/SoundCuePlayer.h"
 #include "services/MapService.h"
 #include "services/LowTemperatureMonitor.h"
 #include "services/BluetoothHealthMonitor.h"
@@ -159,10 +160,13 @@ Application::~Application()
         delete child;
 }
 
-void Application::shutdownRoadWorkers()
+void Application::shutdownBackgroundWorkers()
 {
+    if (m_soundCueService)
+        m_soundCueService->stop();
     if (m_roadInfoService)
         m_roadInfoService->stopWorkers();
+    SoundCuePlayer::drainAfterEventLoop();
     RoadWorkerThreads::drainAfterEventLoop();
 }
 

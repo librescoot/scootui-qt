@@ -914,6 +914,11 @@ void NavigationService::onVehicleStateChanged()
 void NavigationService::onRouteCalculated(const Route &route)
 {
     m_route = route;
+    // Shape indices identify a pair only within one route. A reroute can reuse
+    // them for a different ring, and GPS may not yet permit rebuilding it.
+    m_roundaboutEnterShape = m_roundaboutExitShape = -1;
+    m_roundaboutRender.clear();
+    emit roundaboutRenderChanged();
     m_remainingDuration = route.duration;
     m_currentSegmentIndex = 0;
     m_wasArrived = false;

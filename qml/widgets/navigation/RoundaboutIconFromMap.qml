@@ -36,9 +36,81 @@ Item {
     property var layout: null
     readonly property bool hasMap: layout !== null
 
-    onRenderDataChanged: rebuild()
-    onSizeChanged: rebuild()
-    Component.onCompleted: rebuild()
+    property var streets: []
+    property double streetRequest: 0
+    property string dataKey: ""
+    property bool completed: false
+    property bool streetsComplete: false
+
+    onRenderDataChanged: {
+        if (completed) refreshData()
+    }
+    onSizeChanged: if (completed) rebuild()
+    Component.onCompleted: {
+        completed = true
+        refreshData()
+    }
+    Component.onDestruction: {
+        if (typeof roadInfoService !== "undefined") roadInfoService.cancelStreets(root)
+    }
+
+    Connections {
+        target: typeof roadInfoService !== "undefined" ? roadInfoService : null
+        function onStreetsReady(owner, sequence, features, complete) {
+            if (owner !== root || sequence !== root.streetRequest) return
+            root.streetRequest = 0
+            root.streetsComplete = complete
+            // An unavailable tile must not erase an already usable same-turn result.
+            if (complete || ((!root.hasMap || root.streets.length === 0) && features.length > 0)) {
+                root.streets = features
+                root.rebuild()
+            }
+        }
+        function onStreetsInvalidated(routeChanged) {
+            root.streetRequest = 0
+            root.dataKey = ""
+            root.streets = []
+            if (routeChanged) root.layout = null
+            else root.rebuild() // a map reload cannot blank valid route geometry
+            // Defer until route bindings have observed the same route signal.
+            Qt.callLater(root.refreshData)
+        }
+    }
+
+    Timer {
+        interval: 2000
+        repeat: true
+        running: root.completed && root.renderData !== null && !root.streetsComplete
+                 && root.streetRequest === 0
+        onTriggered: root.requestStreets()
+    }
+
+    function refreshData() {
+        var key = JSON.stringify(renderData)
+        if (key === dataKey) return
+        dataKey = key
+        if (typeof roadInfoService !== "undefined") roadInfoService.cancelStreets(root)
+        streetRequest = 0
+        streets = []
+        streetsComplete = false
+        // Cache lookup is value-only: no tile I/O or decode on the GUI thread.
+        if (typeof roadInfoService !== "undefined") {
+            var cached = roadInfoService.cachedStreets(renderData || {})
+            if (cached.complete) {
+                streets = cached.streets
+                streetsComplete = true
+            }
+        }
+        // Route-only layout is immediate on a cold/missing/slow tile path.
+        rebuild()
+        if (!streetsComplete) requestStreets()
+    }
+
+    function requestStreets() {
+        var rd = renderData
+        if (!rd || rd.centerLat === undefined || typeof roadInfoService === "undefined") return
+        streetRequest = roadInfoService.requestStreets(root, rd)
+    }
 
     function rebuild() {
         layout = computeLayout()
@@ -96,14 +168,6 @@ Item {
         return { lat: lat0 + cy / 111320,
                  lon: lon0 + cx / mPerLon,
                  r: Math.sqrt(rSq) }
-    }
-
-    function fetchStreets(lat, lon, reachM) {
-        if (typeof roadInfoService === "undefined") return []
-        var dLat = reachM / 111320
-        var dLon = reachM / metresPerLon(lat)
-        return roadInfoService.streetsInBbox(lat - dLat, lon - dLon,
-                                             lat + dLat, lon + dLon)
     }
 
     // Last-resort ring recovery: the route arc did not pin the circle down, so
@@ -267,7 +331,7 @@ Item {
 
         var reach = valid ? (R + Math.max(25, 0.9 * R))
                           : (Math.max(R, 12) * 3 + 60)
-        var feats = fetchStreets(cLat, cLon, reach)
+        var feats = streets
 
         if (!valid) {
             var refit = ringFromTiles(feats, cLat, cLon, reach)

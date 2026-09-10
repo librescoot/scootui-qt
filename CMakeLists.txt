@@ -115,6 +115,8 @@ set(CPP_SOURCES
     src/services/NavigationService.cpp
     src/services/ToastService.cpp
     src/services/SoundCueService.cpp
+    src/services/SoundCuePlayer.cpp
+    src/services/SoundCuePlayer.h
     src/services/MapService.cpp
     src/services/LowTemperatureMonitor.cpp
     src/services/BluetoothHealthMonitor.cpp
@@ -132,6 +134,9 @@ set(CPP_SOURCES
     src/services/MapDownloadService.cpp
     src/services/UpdateChannelService.cpp
     src/services/RoadMatcher.cpp
+    src/services/StreetQueryDispatcher.cpp
+    src/services/StreetQueryDispatcher.h
+    src/services/StreetQuery.cpp
     src/services/RoadMatchDispatcher.cpp
     src/services/RoadWorkerThreads.cpp
     src/services/RoadInfoService.cpp
@@ -535,6 +540,8 @@ if(BUILD_TESTING)
     qt_add_executable(road_info_service_test
         tests/RoadInfoServiceTest.cpp
         src/services/RoadInfoService.cpp
+        src/services/StreetQueryDispatcher.cpp
+        src/services/StreetQuery.cpp
         src/services/RoadMatchDispatcher.cpp
         src/services/RoadMatcher.cpp
         src/services/RoadWorkerThreads.cpp
@@ -556,8 +563,10 @@ if(BUILD_TESTING)
         src/stores/EngineStore.cpp
     )
     target_include_directories(road_info_service_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-    target_link_libraries(road_info_service_test PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6::Sql Qt6::Test ZLIB::ZLIB)
+    target_compile_definitions(road_info_service_test PRIVATE SCOOTUI_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(road_info_service_test PRIVATE Qt6::Quick Qt6::Core Qt6::Gui Qt6::Network Qt6::Sql Qt6::Test ZLIB::ZLIB)
     add_test(NAME road_info_service_test COMMAND road_info_service_test)
+    set_tests_properties(road_info_service_test PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 
     qt_add_executable(map_timing_test
         tests/MapTimingTest.cpp
@@ -580,6 +589,7 @@ if(BUILD_TESTING)
 
     qt_add_executable(tile_loader_test
         tests/TileLoaderTest.cpp
+        src/services/StreetQuery.cpp
         src/services/TileLoader.cpp
         src/services/TileLoader.h
         src/services/VectorTileDecoder.cpp
@@ -637,6 +647,17 @@ if(BUILD_TESTING)
     target_include_directories(boot_channels_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(boot_channels_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME boot_channels_test COMMAND boot_channels_test)
+
+    qt_add_executable(street_query_dispatcher_test
+        tests/StreetQueryDispatcherTest.cpp
+        src/services/StreetQueryDispatcher.cpp
+        src/services/StreetQuery.cpp
+        src/services/TileLoader.cpp
+        src/services/RoadWorkerThreads.cpp
+        src/services/VectorTileDecoder.cpp)
+    target_include_directories(street_query_dispatcher_test PRIVATE src)
+    target_link_libraries(street_query_dispatcher_test PRIVATE Qt6::Core Qt6::Sql Qt6::Test ZLIB::ZLIB)
+    add_test(NAME street_query_dispatcher_test COMMAND street_query_dispatcher_test)
 
     qt_add_executable(road_match_dispatcher_test
         tests/RoadMatchDispatcherTest.cpp
@@ -701,9 +722,20 @@ if(BUILD_TESTING)
     target_link_libraries(boot_prefetch_test PRIVATE Qt6::Core Qt6::Network Qt6::Test ${HIREDIS_LIBRARIES})
     add_test(NAME boot_prefetch_test COMMAND boot_prefetch_test)
 
+    qt_add_executable(sound_cue_player_test
+        tests/SoundCuePlayerTest.cpp
+        src/services/SoundCuePlayer.cpp
+        src/services/SoundCuePlayer.h
+    )
+    target_include_directories(sound_cue_player_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(sound_cue_player_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME sound_cue_player_test COMMAND sound_cue_player_test)
+
     qt_add_executable(sound_cue_service_test
         tests/SoundCueServiceTest.cpp
         src/services/SoundCueService.cpp
+        src/services/SoundCuePlayer.cpp
+        src/services/SoundCuePlayer.h
         src/services/SoundCueService.h
         src/services/ToastService.cpp
         src/services/ToastService.h

@@ -4,6 +4,14 @@
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <memory>
+#include <atomic>
+#include <QScopeGuard>
+#include <QQmlEngine>
+#include <QQmlContext>
+#include <QQmlComponent>
+#include <QQuickItem>
+#include <QQuickWindow>
+#include "services/StreetQueryDispatcher.h"
 
 #include "services/RoadInfoService.h"
 #include "services/RoadMatchDispatcher.h"
@@ -16,6 +24,7 @@
 #include "stores/VehicleStore.h"
 #include "stores/SettingsStore.h"
 #include "stores/SpeedLimitStore.h"
+#include "stores/ThemeStore.h"
 
 // No address database service is instantiated by this focused integration test.
 // Keep the production road service's startup probe away from installed maps.
@@ -121,6 +130,261 @@ class RoadInfoServiceTest : public QObject
     }
 
 private slots:
+    void roundaboutPrefetchBeforeActivation_data() {
+        QTest::addColumn<bool>("finishBeforeActivation");
+        QTest::newRow("completed-prefetch") << true;
+        QTest::newRow("in-flight-prefetch") << false;
+    }
+    void roundaboutPrefetchBeforeActivation() {
+#if QT_VERSION < QT_VERSION_CHECK(6, 7, 0)
+        QSKIP("Production roundabout Shapes require Qt 6.7+");
+#else
+        QFETCH(bool, finishBeforeActivation);
+        Fixture f;
+        auto matchGate = std::make_shared<Gate>();
+        prepare(f, matchGate);
+        delete f.road.m_streets;
+        auto gate = std::make_shared<Gate>();
+        auto calls = std::make_shared<std::atomic<int>>(0);
+        f.road.m_streets = new StreetQueryDispatcher(&f.road, [gate, calls](const auto &) {
+            ++*calls;
+            gate->entered.release();
+            gate->release.acquire();
+            return StreetQueryResult{{}, true};
+        });
+        const auto release = qScopeGuard([gate]() { gate->release.release(100); });
+        connect(f.road.m_streets, &StreetQueryDispatcher::ready, &f.road, &RoadInfoService::streetsReady);
+        f.gps.start();
+        f.repo.publish("gps:tpv", R"({"latitude":"51.993","longitude":"13","state":"fix-established","timestamp":"2026-09-09T00:00:00Z"})");
+        Route r;
+        r.waypoints = {{51.993, 13}, {51.9999, 13}, {52, 13.000162},
+                       {52.0001, 13}, {52.0003, 13}};
+        RouteInstruction enter, exit;
+        enter.type = ManeuverType::RoundaboutEnter; enter.originalShapeIndex = 1;
+        enter.location = r.waypoints[1];
+        exit.type = ManeuverType::RoundaboutExit; exit.originalShapeIndex = 3;
+        exit.location = r.waypoints[3];
+        r.instructions = {enter, exit};
+        r.distance = 900;
+        f.nav.setRoute(r);
+        QVERIFY(f.nav.currentManeuverDistance() > 500);
+        const auto geometry = f.nav.currentRoundaboutRender();
+        QVERIFY(geometry.value("ringValid").toBool());
+        QTRY_COMPARE(calls->load(), 1); // no QML/TBT/icon exists yet
+        matchGate->release.release();
+        f.road.m_matcher->submit({});
+        QTRY_VERIFY(!f.road.m_matcher->running()); // icon I/O cannot occupy matcher worker
+        if (finishBeforeActivation) {
+            gate->release.release();
+            QTRY_VERIFY(!f.road.m_streets->running());
+            QVERIFY(f.road.cachedStreets(geometry)["complete"].toBool());
+        }
+        ThemeStore theme(&f.settings);
+        QQmlEngine engine;
+        engine.rootContext()->setContextProperty("roadInfoService", &f.road);
+        engine.rootContext()->setContextProperty("navigationService", &f.nav);
+        engine.rootContext()->setContextProperty("themeStore", &theme);
+        QQmlComponent component(&engine, QUrl::fromLocalFile(
+            QStringLiteral(SCOOTUI_SOURCE_DIR "/qml/widgets/navigation/TurnByTurnWidget.qml")));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        QQuickWindow window;
+        QQuickItem host(window.contentItem());
+        window.show();
+        std::unique_ptr<QObject> widget(component.create());
+        QVERIFY2(widget, qPrintable(component.errorString()));
+        qobject_cast<QQuickItem *>(widget.get())->setParentItem(&host);
+        const auto findIcon = [&]() -> QObject * {
+            for (auto *child : widget->findChildren<QObject *>())
+                if (child->metaObject()->indexOfProperty("streetRequest") >= 0) return child;
+            return nullptr;
+        };
+        QVERIFY(!findIcon()); // actual TBT Loader is still outside its threshold
+        f.repo.publish("gps:tpv", R"({"latitude":"51.998","longitude":"13","state":"fix-established","timestamp":"2026-09-09T00:00:01Z"})");
+        QVERIFY(f.nav.currentManeuverDistance() < 500);
+        QTRY_VERIFY(findIcon());
+        QPointer<QObject> icon = findIcon();
+        QVERIFY(icon->property("hasMap").toBool());
+        QCOMPARE(calls->load(), 1);
+        QVERIFY(!f.road.m_streets->hasPending());
+        if (!finishBeforeActivation) gate->release.release();
+        QTRY_VERIFY(icon->property("streetsComplete").toBool());
+        QCOMPARE(calls->load(), 1);
+        host.setVisible(false); // warmed hidden screen cancels demand
+        QTRY_VERIFY(icon.isNull());
+        host.setVisible(true);
+        QTRY_VERIFY(findIcon());
+        icon = findIcon();
+        QVERIFY(icon->property("streetsComplete").toBool());
+        QCOMPARE(calls->load(), 1);
+
+        // Same-index reroute must rebuild the actual navigation render snapshot.
+        for (auto &point : r.waypoints) point.longitude += 0.001;
+        f.nav.setRoute(r);
+        QVERIFY(f.nav.currentRoundaboutRender() != geometry);
+        QVERIFY(!f.road.cachedStreets(geometry)["complete"].toBool());
+        QTRY_COMPARE(calls->load(), 2);
+        // Reload while this prefetch/demand is blocked rejects its old-map reply.
+        const auto path = f.road.m_dbPath;
+        f.road.closeDb();
+        QVERIFY(f.road.openDb(path));
+        QCoreApplication::processEvents();
+        gate->release.release();
+        QTRY_COMPARE(calls->load(), 3);
+        QVERIFY(!icon->property("streetsComplete").toBool());
+        gate->release.release();
+        QTRY_VERIFY(icon->property("streetsComplete").toBool());
+        f.nav.clearNavigation();
+        QCoreApplication::processEvents();
+        QTRY_VERIFY(icon.isNull());
+        QVERIFY(!f.road.m_streets->hasPending());
+#endif
+    }
+
+    void roundaboutMissingTileKeepsCurrentGeometry_data() {
+        QTest::addColumn<bool>("unusableFirst");
+        QTest::newRow("retain-valid-partial") << false;
+        QTest::newRow("recover-after-unusable-partial") << true;
+    }
+
+    void roundaboutMissingTileKeepsCurrentGeometry() {
+        QFETCH(bool, unusableFirst);
+#if QT_VERSION < QT_VERSION_CHECK(6, 7, 0)
+        QSKIP("Production roundabout Shapes require Qt 6.7+");
+#else
+        Fixture f;
+        QVariantList path;
+        for (const auto &p : {QVariantList{51.9995, 13.0}, QVariantList{51.9999, 13.0},
+                              QVariantList{52.0, 13.000162}, QVariantList{52.0001, 13.0},
+                              QVariantList{52.0003, 13.0}})
+            path.append(QVariant(p));
+        const QVariantList ring{path[1], path[2], path[3]};
+        const QVariantMap data{{"centerLat", 52.0}, {"centerLon", 13.0}, {"ringRadius", 12},
+                              {"ringValid", false}, {"entryIndex", 1}, {"exitIndex", 3}, {"path", path}};
+        delete f.road.m_streets;
+        auto calls = std::make_shared<std::atomic<int>>(0);
+        f.road.m_streets = new StreetQueryDispatcher(&f.road, [calls, ring, unusableFirst](const auto &) {
+            const int call = ++*calls;
+            if (unusableFirst && call == 1)
+                return StreetQueryResult{{QVariantMap{{"roundabout", false}, {"points", ring}}}, false};
+            const int stage = call - int(unusableFirst);
+            if (stage == 2) return StreetQueryResult{{}, false};
+            return StreetQueryResult{{QVariantMap{{"roundabout", true}, {"points", ring}}}, stage >= 3};
+        });
+        connect(f.road.m_streets, &StreetQueryDispatcher::ready, &f.road, &RoadInfoService::streetsReady);
+        QQmlEngine engine;
+        engine.rootContext()->setContextProperty("roadInfoService", &f.road);
+        QQmlComponent component(&engine, QUrl::fromLocalFile(
+            QStringLiteral(SCOOTUI_SOURCE_DIR "/qml/widgets/navigation/RoundaboutIconFromMap.qml")));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        std::unique_ptr<QObject> icon(component.createWithInitialProperties({{"renderData", data}}));
+        QVERIFY(icon);
+        QTRY_COMPARE(icon->property("streetRequest").toDouble(), 0.0);
+        if (unusableFirst) {
+            QVERIFY(!icon->property("hasMap").toBool());
+            const QVariant rawStreets = icon->property("streets");
+            const QVariant streets = rawStreets.metaType() == QMetaType::fromType<QJSValue>()
+                ? rawStreets.value<QJSValue>().toVariant() : rawStreets;
+            QCOMPARE(streets.toList().size(), 1);
+            QVERIFY(QMetaObject::invokeMethod(icon.get(), "requestStreets"));
+            QTRY_COMPARE(icon->property("streetRequest").toDouble(), 0.0);
+            QCOMPARE(calls->load(), 2);
+        }
+        QVERIFY(icon->property("hasMap").toBool());
+        QVERIFY(!icon->property("streetsComplete").toBool());
+        const auto layout = icon->property("layout").value<QJSValue>().toVariant();
+        // Deterministically invoke the same function as the missing-tile retry timer.
+        QVERIFY(QMetaObject::invokeMethod(icon.get(), "requestStreets"));
+        QTRY_COMPARE(icon->property("streetRequest").toDouble(), 0.0);
+        QCOMPARE(calls->load(), 2 + int(unusableFirst));
+        QVERIFY(icon->property("hasMap").toBool());
+        QCOMPARE(icon->property("layout").value<QJSValue>().toVariant(), layout);
+        QVERIFY(QMetaObject::invokeMethod(icon.get(), "requestStreets"));
+        QTRY_VERIFY(icon->property("streetsComplete").toBool());
+        QCOMPARE(calls->load(), 3 + int(unusableFirst));
+        QVERIFY(icon->property("hasMap").toBool());
+#endif
+    }
+
+    void roundaboutQmlServiceSeam() {
+#if QT_VERSION < QT_VERSION_CHECK(6, 7, 0)
+        QSKIP("Production roundabout Shapes require Qt 6.7+");
+#else
+        Fixture f;
+        delete f.road.m_streets;
+        auto gate = std::make_shared<Gate>();
+        auto calls = std::make_shared<std::atomic<int>>(0);
+        f.road.m_streets = new StreetQueryDispatcher(&f.road, [gate, calls](const auto &) {
+            ++*calls;
+            gate->entered.release();
+            gate->release.acquire();
+            return StreetQueryResult{{QVariantMap{{"name", "current"}, {"points", QVariantList{}}}}, true};
+        });
+        const auto release = qScopeGuard([gate]() { gate->release.release(100); });
+        connect(f.road.m_streets, &StreetQueryDispatcher::ready, &f.road, &RoadInfoService::streetsReady);
+        QQmlEngine engine;
+        engine.rootContext()->setContextProperty("roadInfoService", &f.road);
+        QQmlComponent component(&engine, QUrl::fromLocalFile(
+            QStringLiteral(SCOOTUI_SOURCE_DIR "/qml/widgets/navigation/RoundaboutIconFromMap.qml")));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        std::unique_ptr<QObject> icon(component.create());
+        QVERIFY2(icon, qPrintable(component.errorString()));
+        QVariantList path;
+        for (const auto &p : {QVariantList{51.9995, 13.0}, QVariantList{51.9999, 13.0},
+                              QVariantList{52.0, 13.00016}, QVariantList{52.0, 13.0005}})
+            path.append(QVariant(p));
+        QVariantMap data{{"centerLat", 52.0}, {"centerLon", 13.0}, {"ringRadius", 12},
+                         {"ringValid", true}, {"entryIndex", 1}, {"exitIndex", 2}, {"path", path}};
+        icon->setProperty("renderData", data);
+        QVERIFY(gate->entered.tryAcquire(1, 2000));
+        QVERIFY(icon->property("hasMap").toBool()); // route-only geometry during I/O
+        const double first = icon->property("streetRequest").toDouble();
+        icon->setProperty("size", 100);
+        QCOMPARE(icon->property("streetRequest").toDouble(), first);
+        QCOMPARE(calls->load(), 1);
+        data["centerLon"] = 13.00001;
+        icon->setProperty("renderData", data);
+        const double latest = icon->property("streetRequest").toDouble();
+        QVERIFY(latest != first);
+        f.road.streetsReady(icon.get(), quint64(first), {QVariantMap{{"name", "stale"}}}, true);
+        QCOMPARE(icon->property("streetRequest").toDouble(), latest);
+        gate->release.release();
+        QTRY_COMPARE(calls->load(), 2);
+        QVERIFY(icon->property("hasMap").toBool());
+        QVERIFY(!icon->property("streetsComplete").toBool());
+        gate->release.release();
+        QTRY_VERIFY(icon->property("streetsComplete").toBool());
+        QVERIFY(icon->property("hasMap").toBool());
+        const auto currentLayout = icon->property("layout").value<QJSValue>().toVariant();
+        // Duplicate data and size changes do not fetch again or lose map features.
+        icon->setProperty("renderData", data);
+        QCOMPARE(calls->load(), 2);
+        QCOMPARE(icon->property("layout").value<QJSValue>().toVariant(), currentLayout);
+
+        // Real route signal invalidates service requests and refreshes QML bindings.
+        emit f.nav.routeChanged();
+        QTRY_COMPARE(calls->load(), 3);
+        QVERIFY(icon->property("hasMap").toBool());
+        // A map reload rejects that in-flight reply, even with identical route data.
+        f.road.closeDb();
+        QCoreApplication::processEvents();
+        gate->release.release();
+        QTRY_COMPARE(calls->load(), 4);
+        QVERIFY(!icon->property("streetsComplete").toBool());
+        gate->release.release();
+        QTRY_VERIFY(icon->property("streetsComplete").toBool());
+
+        // New unfit turn cannot keep the preceding ring while waiting for tiles.
+        data["ringValid"] = false;
+        icon->setProperty("renderData", data);
+        QTRY_COMPARE(calls->load(), 5);
+        QVERIFY(!icon->property("hasMap").toBool());
+        icon.reset();
+        QVERIFY(!f.road.m_streets->hasPending());
+        gate->release.release();
+        QTRY_VERIFY(!f.road.m_streets->running());
+#endif
+    }
+
     void cleanup() { RoadWorkerThreads::drainAfterEventLoop(); }
 
     void sustainedOverloadExpiresAcceptedOutput() {
@@ -306,5 +570,5 @@ private slots:
     }
 };
 
-QTEST_GUILESS_MAIN(RoadInfoServiceTest)
+QTEST_MAIN(RoadInfoServiceTest)
 #include "RoadInfoServiceTest.moc"

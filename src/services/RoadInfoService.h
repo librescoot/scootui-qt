@@ -19,8 +19,10 @@ class NavigationService;
 class MapService;
 class TileLoader;
 class RoadMatchDispatcher;
+class StreetQueryDispatcher;
 struct RoadMatchRequest;
 struct RoadMatchResult;
+struct StreetQueryRequest;
 
 class RoadInfoService : public QObject
 {
@@ -46,17 +48,15 @@ public:
     // Look up the nearest address label from the offline addresses tile layer
     QString lookupNearestAddress(double lat, double lon);
 
-    // Return all street linestrings whose bounding box intersects the given
-    // geographic bbox, at zoom QueryZoom. Each entry is a QVariantMap:
-    //   { points: [[lat, lon], ...],
-    //     kind: "residential"|"primary"|...,
-    //     roundabout: bool,
-    //     name: string }
-    Q_INVOKABLE QVariantList streetsInBbox(double minLat, double minLon,
-                                             double maxLat, double maxLon);
+    // Async, latest-wins across icon instances. No QML objects cross threads.
+    Q_INVOKABLE quint64 requestStreets(QObject *owner, const QVariantMap &geometry);
+    Q_INVOKABLE QVariantMap cachedStreets(const QVariantMap &geometry) const;
+    Q_INVOKABLE void cancelStreets(QObject *owner);
 
 signals:
     void roadMatchChanged();
+    void streetsReady(QObject *owner, quint64 sequence, const QVariantList &streets, bool complete);
+    void streetsInvalidated(bool routeChanged);
 
 private slots:
     void onGpsChanged();
@@ -67,6 +67,8 @@ private slots:
 private:
     friend class RoadInfoServiceTest;
     void checkTileFreshness(qint64 nowMs);
+    StreetQueryRequest streetRequest(const QVariantMap &geometry) const;
+    void invalidateStreets(bool routeChanged = false);
     void clearTileOutputs();
     void updateRoadInfo(double lat, double lon);
     void applyMatch(const RoadMatchRequest &request, const RoadMatchResult &result);
@@ -105,6 +107,8 @@ private:
     QThread *m_loaderThread = nullptr;
     bool m_stopping = false;
     RoadMatchDispatcher *m_matcher = nullptr;
+    StreetQueryDispatcher *m_streets = nullptr;
+    QTimer m_streetPrefetchTimer;
     quint64 m_routeGeneration = 0;
     int m_routeSegmentIndex = -1;
     TileLoader *m_loader = nullptr;

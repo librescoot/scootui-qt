@@ -1,6 +1,7 @@
 #include "VectorTileDecoder.h"
 #include <zlib.h>
 #include <cstring>
+#include <QThread>
 
 namespace VectorTile {
 
@@ -8,7 +9,7 @@ namespace VectorTile {
 // Gzip decompression
 // ---------------------------------------------------------------------------
 
-QByteArray gunzip(const QByteArray &compressed)
+QByteArray gunzip(const QByteArray &compressed, int maxDecodedBytes)
 {
     if (compressed.isEmpty())
         return {};
@@ -24,7 +25,8 @@ QByteArray gunzip(const QByteArray &compressed)
     stream.avail_in = static_cast<uInt>(compressed.size());
 
     QByteArray result;
-    result.reserve(compressed.size() * 4);
+    result.reserve(maxDecodedBytes > 0 ? qMin(qint64(maxDecodedBytes), qint64(compressed.size()) * 4)
+                                       : qint64(compressed.size()) * 4);
 
     char buf[16384];
     int ret;
@@ -36,7 +38,13 @@ QByteArray gunzip(const QByteArray &compressed)
             inflateEnd(&stream);
             return {};
         }
-        result.append(buf, sizeof(buf) - stream.avail_out);
+        const int produced = sizeof(buf) - stream.avail_out;
+        if (QThread::currentThread()->isInterruptionRequested()
+            || (maxDecodedBytes > 0 && result.size() > maxDecodedBytes - produced)) {
+            inflateEnd(&stream);
+            return {};
+        }
+        result.append(buf, produced);
     } while (ret != Z_STREAM_END);
 
     inflateEnd(&stream);
@@ -65,20 +73,21 @@ public:
     {
         uint64_t result = 0;
         int shift = 0;
-        while (m_data < m_end) {
+        while (m_data < m_end && shift < 64) {
             uint8_t b = *m_data++;
             result |= static_cast<uint64_t>(b & 0x7F) << shift;
             if ((b & 0x80) == 0)
                 return result;
             shift += 7;
         }
+        m_data = m_end;
         return result;
     }
 
     QByteArray readBytes()
     {
         uint64_t len = readVarint();
-        if (m_data + len > m_end)
+        if (len > uint64_t(m_end - m_data))
             len = m_end - m_data;
         QByteArray result(reinterpret_cast<const char *>(m_data), static_cast<int>(len));
         m_data += len;
@@ -88,7 +97,7 @@ public:
     PbReader readSubmessage()
     {
         uint64_t len = readVarint();
-        if (m_data + len > m_end)
+        if (len > uint64_t(m_end - m_data))
             len = m_end - m_data;
         PbReader sub(m_data, static_cast<int>(len));
         m_data += len;
@@ -98,17 +107,21 @@ public:
     QVector<uint32_t> readPackedUint32()
     {
         uint64_t len = readVarint();
+        if (len > uint64_t(m_end - m_data)) len = m_end - m_data;
         const uint8_t *end = m_data + len;
-        if (end > m_end) end = m_end;
         QVector<uint32_t> result;
         while (m_data < end) {
             uint64_t v = 0;
             int shift = 0;
-            while (m_data < end) {
+            while (m_data < end && shift < 64) {
                 uint8_t b = *m_data++;
                 v |= static_cast<uint64_t>(b & 0x7F) << shift;
                 if ((b & 0x80) == 0) break;
                 shift += 7;
+            }
+            if (shift >= 64) {
+                m_data = end;
+                return {};
             }
             result.append(static_cast<uint32_t>(v));
         }
@@ -118,7 +131,7 @@ public:
     uint32_t readFixed32()
     {
         uint32_t val = 0;
-        if (m_data + 4 <= m_end) {
+        if (m_end - m_data >= 4) {
             std::memcpy(&val, m_data, 4);
             m_data += 4;
         }
@@ -128,7 +141,7 @@ public:
     uint64_t readFixed64()
     {
         uint64_t val = 0;
-        if (m_data + 8 <= m_end) {
+        if (m_end - m_data >= 8) {
             std::memcpy(&val, m_data, 8);
             m_data += 8;
         }
@@ -139,9 +152,9 @@ public:
     {
         switch (wireType) {
         case 0: readVarint(); break;
-        case 1: m_data += 8; break;
-        case 2: { uint64_t len = readVarint(); m_data += len; } break;
-        case 5: m_data += 4; break;
+        case 1: m_data += qMin<qptrdiff>(8, m_end - m_data); break;
+        case 2: { uint64_t len = readVarint(); m_data += qMin<uint64_t>(len, m_end - m_data); } break;
+        case 5: m_data += qMin<qptrdiff>(4, m_end - m_data); break;
         default: m_data = m_end; break;
         }
     }
@@ -274,7 +287,7 @@ static Layer parseLayer(PbReader &r)
         for (int i = 0; i + 1 < rf.tags.size(); i += 2) {
             int keyIdx = static_cast<int>(rf.tags[i]);
             int valIdx = static_cast<int>(rf.tags[i + 1]);
-            if (keyIdx < keys.size() && valIdx < values.size()) {
+            if (keyIdx >= 0 && valIdx >= 0 && keyIdx < keys.size() && valIdx < values.size()) {
                 f.properties.insert(keys[keyIdx], values[valIdx]);
             }
         }
@@ -320,7 +333,7 @@ QVector<QVector<QPointF>> decodeLineStringParts(const QVector<uint32_t> &geometr
     QVector<QVector<QPointF>> parts;
     QVector<QPointF> current;
     int i = 0;
-    int32_t cursorX = 0, cursorY = 0;
+    qint64 cursorX = 0, cursorY = 0;
 
     while (i < geometry.size()) {
         uint32_t cmd = geometry[i++];

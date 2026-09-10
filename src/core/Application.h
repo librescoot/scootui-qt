@@ -56,7 +56,7 @@ public:
     // systemd READY=1. Idempotent.
     void uiPresented();
     void observeWindow(QQuickWindow *window);
-    void shutdownRoadWorkers();
+    void shutdownBackgroundWorkers();
     bool isSimulatorMode() const { return m_simulatorMode; }
     bool isInMemoryBackend() const { return m_inMemoryBackend; }
 

@@ -123,8 +123,8 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
     // Runs on normal exit, initialization failure and exception paths, before
     // QML, services and Qt/static state are destroyed. No joins during HMI use.
-    const auto roadWorkerShutdown = qScopeGuard([&application]() {
-        application.shutdownRoadWorkers();
+    const auto backgroundWorkerShutdown = qScopeGuard([&application]() {
+        application.shutdownBackgroundWorkers();
     });
     BOOT_MARK("QQmlApplicationEngine ready");
 

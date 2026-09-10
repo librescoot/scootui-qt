@@ -4,6 +4,7 @@
 #include "NavigationService.h"
 #include "RoadMatchPolicy.h"
 #include "RoadMatchDispatcher.h"
+#include "StreetQueryDispatcher.h"
 #include "RoadWorkerThreads.h"
 #include "TileLoader.h"
 #include "stores/GpsStore.h"
@@ -12,6 +13,8 @@
 #include <QDebug>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QVariantList>
@@ -19,14 +22,6 @@
 #include <QtMath>
 #include <algorithm>
 #include <limits>
-
-static const QSet<QString> s_roadTypes = {
-    QStringLiteral("motorway"), QStringLiteral("trunk"),
-    QStringLiteral("primary"), QStringLiteral("secondary"),
-    QStringLiteral("tertiary"), QStringLiteral("unclassified"),
-    QStringLiteral("residential"), QStringLiteral("living_street"),
-    QStringLiteral("service")
-};
 
 RoadInfoService::RoadInfoService(GpsStore *gps, SpeedLimitStore *speedLimit,
                                    NavigationService *navigation,
@@ -47,6 +42,22 @@ RoadInfoService::RoadInfoService(GpsStore *gps, SpeedLimitStore *speedLimit,
     });
     m_freshnessTimer.start();
 
+    m_streets = new StreetQueryDispatcher(this);
+    connect(m_streets, &StreetQueryDispatcher::ready, this, &RoadInfoService::streetsReady);
+    m_streetPrefetchTimer.setSingleShot(true);
+    connect(&m_streetPrefetchTimer, &QTimer::timeout, this, [this]() {
+        if (!m_stopping && m_navigation && m_dbOpen) {
+            const auto geometry = m_navigation->currentRoundaboutRender();
+            if (!geometry.isEmpty())
+                m_streets->prefetch(streetRequest(geometry));
+        }
+    });
+    if (m_navigation) {
+        connect(m_navigation, &NavigationService::routeChanged,
+                this, [this]() { invalidateStreets(true); });
+        connect(m_navigation, &NavigationService::roundaboutRenderChanged,
+                this, [this]() { invalidateStreets(true); });
+    }
     m_matcher = new RoadMatchDispatcher(this);
     connect(m_matcher, &RoadMatchDispatcher::ready, this, &RoadInfoService::applyMatch);
     if (m_navigation) {
@@ -102,6 +113,8 @@ void RoadInfoService::stopWorkers()
         return;
     m_stopping = true;
     m_matcher->stop();
+    m_streets->stop();
+    m_streetPrefetchTimer.stop();
     m_rematchTimer.stop();
     m_freshnessTimer.stop();
     m_pending.clear();
@@ -125,6 +138,7 @@ bool RoadInfoService::openDb(const QString &path)
     m_dbPath = path;
     m_dbMtime = QFileInfo(path).lastModified();
     ++m_generation;
+    invalidateStreets();
     QMetaObject::invokeMethod(m_loader, "setPath", Qt::QueuedConnection,
                               Q_ARG(QString, path), Q_ARG(int, m_generation));
     if (m_hasLastPosition)
@@ -136,6 +150,7 @@ bool RoadInfoService::openDb(const QString &path)
 void RoadInfoService::closeDb()
 {
     ++m_generation;
+    invalidateStreets();
     m_matcher->invalidate();
     m_rematchTimer.stop();
     if (!m_dbOpen)
@@ -616,107 +631,53 @@ QString RoadInfoService::lookupNearestAddress(double lat, double lon)
     return streetPart.isEmpty() ? cityPart : streetPart;
 }
 
-QVariantList RoadInfoService::streetsInBbox(double minLat, double minLon,
-                                              double maxLat, double maxLon)
+void RoadInfoService::invalidateStreets(bool routeChanged)
 {
-    QVariantList result;
-    if (!m_dbOpen)
-        return result;
-
-    // Tile range. latToTileY() returns TMS Y (Y=0 at bottom), so larger lat
-    // maps to larger tile Y.
-    int txMin = lonToTileX(minLon, QueryZoom);
-    int txMax = lonToTileX(maxLon, QueryZoom);
-    int tyMin = latToTileY(minLat, QueryZoom);
-    int tyMax = latToTileY(maxLat, QueryZoom);
-    if (txMin > txMax) std::swap(txMin, txMax);
-    if (tyMin > tyMax) std::swap(tyMin, tyMax);
-
-    const double n = std::pow(2.0, QueryZoom);
-
-    for (int tx = txMin; tx <= txMax; ++tx) {
-        for (int ty = tyMin; ty <= tyMax; ++ty) {
-            quint64 cacheKey = (static_cast<quint64>(tx) << 32)
-                               | static_cast<quint64>(static_cast<uint32_t>(ty));
-
-            if (!loadTileBlocking(cacheKey))
-                continue;
-            const VectorTile::Tile *tile = &m_tileCache[cacheKey];
-
-            // Find streets layer
-            const VectorTile::Layer *streetsLayer = nullptr;
-            for (const auto &layer : tile->layers) {
-                if (layer.name == QLatin1String("streets")) {
-                    streetsLayer = &layer;
-                    break;
-                }
-            }
-            if (!streetsLayer || streetsLayer->features.isEmpty())
-                continue;
-
-            const double extent = streetsLayer->extent;
-
-            for (const auto &feature : streetsLayer->features) {
-                if (feature.type != 2) // LINESTRING only
-                    continue;
-
-                QString kind = feature.properties.value(QStringLiteral("kind"));
-                QString roundaboutStr = feature.properties.value(
-                    QStringLiteral("junction_roundabout"));
-                bool isRoundabout = (roundaboutStr == QLatin1String("true") ||
-                                     roundaboutStr == QLatin1String("1"));
-
-                // Filter to vehicle road types or roundabouts.
-                if (!s_roadTypes.contains(kind) && !isRoundabout)
-                    continue;
-
-                const QVector<QVector<QPointF>> parts =
-                    VectorTile::decodeLineStringParts(feature.geometry);
-                if (parts.isEmpty())
-                    continue;
-
-                const QString name = feature.properties.value(QStringLiteral("name"));
-
-                // One entry per part: a multipart feature is several disjoint
-                // stretches of the same road, and joining them would draw a
-                // line across whatever sits between.
-                for (const QVector<QPointF> &tilePoints : parts) {
-                    QVariantList points;
-                    points.reserve(tilePoints.size());
-                    double fMinLat = std::numeric_limits<double>::max();
-                    double fMaxLat = -std::numeric_limits<double>::max();
-                    double fMinLon = std::numeric_limits<double>::max();
-                    double fMaxLon = -std::numeric_limits<double>::max();
-
-                    for (const auto &tp : tilePoints) {
-                        double lon = (tx + tp.x() / extent) / n * 360.0 - 180.0;
-                        double yMerc = 1.0 - (ty + 1.0 - tp.y() / extent) / n;
-                        double lat = std::atan(std::sinh(M_PI * (1.0 - 2.0 * yMerc)))
-                                     * 180.0 / M_PI;
-                        QVariantList pt;
-                        pt << lat << lon;
-                        points.append(QVariant(pt));
-                        fMinLat = std::min(fMinLat, lat);
-                        fMaxLat = std::max(fMaxLat, lat);
-                        fMinLon = std::min(fMinLon, lon);
-                        fMaxLon = std::max(fMaxLon, lon);
-                    }
-
-                    // Bbox intersection test.
-                    if (fMaxLat < minLat || fMinLat > maxLat ||
-                        fMaxLon < minLon || fMinLon > maxLon)
-                        continue;
-
-                    QVariantMap entry;
-                    entry[QStringLiteral("points")] = points;
-                    entry[QStringLiteral("kind")] = kind;
-                    entry[QStringLiteral("roundabout")] = isRoundabout;
-                    entry[QStringLiteral("name")] = name;
-                    result.append(entry);
-                }
-            }
-        }
+    m_streets->invalidate();
+    if (!m_stopping) {
+        emit streetsInvalidated(routeChanged);
+        // Navigation updates its render value after route/instruction signals.
+        // Prefetch the current pair as soon as that value settles, before the
+        // QML icon's 500 m activation gate and independently of TBT creation.
+        m_streetPrefetchTimer.start(0);
     }
+}
 
-    return result;
+StreetQueryRequest RoadInfoService::streetRequest(const QVariantMap &geometry) const
+{
+    StreetQueryRequest request;
+    request.path = m_dbOpen ? m_dbPath : QString();
+    request.mapGeneration = m_generation;
+    // Serialize only for identity, on GUI: never carry QJSValue/QObject variants
+    // into a worker snapshot. Geometry extraction needs just the numeric bbox.
+    request.geometryKey = QJsonDocument(QJsonObject::fromVariantMap(geometry)).toJson(QJsonDocument::Compact);
+    const double lat = geometry.value(QStringLiteral("centerLat")).toDouble();
+    const double lon = geometry.value(QStringLiteral("centerLon")).toDouble();
+    const double radius = geometry.value(QStringLiteral("ringRadius")).toDouble();
+    const double reach = geometry.value(QStringLiteral("ringValid")).toBool()
+        ? radius + std::max(25.0, 0.9 * radius) : std::max(radius, 12.0) * 3 + 60;
+    const double dLat = reach / 111320;
+    const double dLon = reach / (111320 * std::cos(qDegreesToRadians(lat)));
+    request.minLat = lat - dLat; request.minLon = lon - dLon;
+    request.maxLat = lat + dLat; request.maxLon = lon + dLon;
+    return request;
+}
+
+quint64 RoadInfoService::requestStreets(QObject *owner, const QVariantMap &geometry)
+{
+    if (m_stopping || geometry.isEmpty())
+        return 0;
+    return m_streets->submit(owner, streetRequest(geometry));
+}
+
+QVariantMap RoadInfoService::cachedStreets(const QVariantMap &geometry) const
+{
+    const auto result = m_streets->cached(streetRequest(geometry));
+    return {{QStringLiteral("streets"), result.streets},
+            {QStringLiteral("complete"), result.complete}};
+}
+
+void RoadInfoService::cancelStreets(QObject *owner)
+{
+    m_streets->cancel(owner);
 }

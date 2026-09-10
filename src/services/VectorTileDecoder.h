@@ -26,7 +26,7 @@ struct Tile {
 };
 
 // Decompress gzip-compressed tile data
-QByteArray gunzip(const QByteArray &compressed);
+QByteArray gunzip(const QByteArray &compressed, int maxDecodedBytes = 0);
 
 // Parse a protobuf-encoded vector tile
 Tile parse(const QByteArray &data);

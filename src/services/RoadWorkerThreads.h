@@ -5,7 +5,7 @@
 class QThread;
 
 namespace RoadWorkerThreads {
-// GUI-thread-only registry, limited to the matcher and tile loader. Threads may
+// GUI-thread-only registry, limited to road matching, tiles and icon queries. Threads may
 // outlive their service during normal operation; finished wrappers delete later.
 QThread *create(const QString &name);
 

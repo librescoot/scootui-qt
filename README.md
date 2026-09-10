@@ -125,11 +125,45 @@ seconds and do not request extra frames. Swap gaps include idle time and alone d
 not indicate a stall. `RoadMatch:` reports aged/rejected snapshots and replaced
 pending work under load.
 
-Ordinary road-service destruction requests cancellation without waiting. Final
-process teardown joins road workers before destroying Qt services; pathological
-storage reads or indivisible decoding can still delay shutdown. Synchronous
-on-demand tile/address queries, including roundabout icon geometry, remain GUI
-hotspots. This is not a hard real-time guarantee or CPU-core reservation.
+Roundabout street tile reads, gzip/protobuf decoding and geographic line extraction
+run on a separate low-priority worker, not on the GUI or periodic matcher worker.
+The service prefetches the **current leading roundabout pair** when navigation
+publishes its render geometry, irrespective of distance or TBT creation; the icon
+still activates at the existing 500 m threshold. It does not scan all later turns.
+One completed result is cached by exact render geometry, bbox, path and map generation;
+activation reuses that cache or promotes the matching in-flight prefetch. Visible
+demand replaces pending speculation. There is at most one active job/result and
+one replaceable pending request, and route/map changes discard obsolete work/results.
+Icon destruction cancels its consumer without waiting.
+
+Cold, missing or slow tiles do not delay TBT or a valid route-derived ring/arrow.
+Until usable ring geometry exists the schematic icon remains available; partial
+same-turn geometry survives missing-tile replies. Active icons retry incomplete
+queries every two seconds, without overlapping requests. Icon queries cover at
+most 3×3 zoom-14 tiles, cap each compressed/decoded tile at 4/16 MiB and the returned
+geometry at 2,048 lines / 32,768 points. Oversized output falls back rather than
+publishing a truncated ring. SQLite lock waiting is limited to 100 ms on tile
+workers; this is **not** a deadline for storage reads.
+
+Sound device discovery, asset loading, playback and effect cleanup run on a separate
+audio thread. Each effect retains its normal restart behavior; different effects
+can overlap. A bounded mailbox holds at most one pending request per cue, with only
+the latest pending vehicle-state cue and blinker edge retained. Pulses delayed by
+100 ms or more are discarded rather than replayed off-beat. Calls before an effect
+is created are dropped, as before. Under overload repeated pending cues coalesce;
+other cue types retain their relative submission order. Audio cannot block the GUI
+through backend calls, but actual sound onset is still subject to backend delays.
+
+Ordinary road/audio-service destruction requests cancellation without waiting.
+Final process teardown joins these workers before destroying Qt services;
+pathological storage reads, indivisible parsing or audio-driver calls can still
+delay shutdown.
+Circle fitting, arm selection/sorting, pixel projection and Shape/Canvas updates
+remain on the GUI thread, bounded by the returned street geometry but not a frame
+time budget; size changes reuse streets without another tile query. Synchronous
+address lookup and other HMI work remain outside this coverage.
+Prefetch is best effort: late route publication or slow storage can still require
+the immediate fallback. This is not a hard real-time guarantee or CPU-core reservation.
 
 ## License
 
