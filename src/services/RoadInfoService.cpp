@@ -3,6 +3,7 @@
 #include "MapService.h"
 #include "NavigationService.h"
 #include "RoadMatchPolicy.h"
+#include "RoadMatchSearchBounds.h"
 #include "TileLoader.h"
 #include "stores/GpsStore.h"
 #include "stores/SpeedLimitStore.h"
@@ -443,6 +444,8 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
             if (!streetsLayer)
                 continue;
             const double extent = streetsLayer->extent;
+            const auto searchBounds = RoadMatchSearchBounds::around(
+                lat, lon, tileX, tileY, QueryZoom, extent);
 
             for (const auto &feature : streetsLayer->features) {
                 if (feature.type != 2)
@@ -453,7 +456,7 @@ void RoadInfoService::updateRoadInfo(double lat, double lon)
                     continue;
                 const QVector<QVector<QPointF>> parts =
                     VectorTile::decodeLineStringParts(feature.geometry);
-                if (parts.isEmpty())
+                if (!searchBounds.intersects(parts))
                     continue;
 
                 Candidate candidate;

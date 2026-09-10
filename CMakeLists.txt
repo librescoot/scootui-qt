@@ -602,6 +602,11 @@ if(BUILD_TESTING)
     target_link_libraries(boot_channels_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME boot_channels_test COMMAND boot_channels_test)
 
+    qt_add_executable(road_match_search_bounds_test tests/RoadMatchSearchBoundsTest.cpp)
+    target_include_directories(road_match_search_bounds_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(road_match_search_bounds_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME road_match_search_bounds_test COMMAND road_match_search_bounds_test)
+
     qt_add_executable(syncable_store_seed_test
         tests/SyncableStoreSeedTest.cpp
         src/repositories/MdbRepository.h
