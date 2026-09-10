@@ -153,6 +153,8 @@ public:
 
 signals:
     void statusChanged();
+    void arrived();
+    void arrivalReset();
     void routeChanged();
     void errorChanged();
     void destinationChanged();
@@ -232,12 +234,6 @@ private:
     // that the confirmation doesn't crowd out its alert text.
     static constexpr int    PostWindowMs        = 6000;
     static constexpr double PostMinUpcomingGap  = 400.0;  // next must be > this to show post
-    // Arrival text switches from future-tense alert ("You will arrive") to
-    // past-tense instruction ("You have arrived") once we're practically on
-    // top of the destination. Matches the arrival-zone radius the rest of
-    // the status machine uses but tightened so the text flip happens after
-    // the rider has effectively reached the pin.
-    static constexpr double ArrivalTextSwitch   = 30.0;
 
     GpsStore *m_gps;
     NavigationStore *m_nav;

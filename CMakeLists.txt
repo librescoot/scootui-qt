@@ -313,6 +313,7 @@ set(QML_FILES
     qml/overlays/DebugOverlay.qml
     qml/overlays/ServiceModeOverlay.qml
     qml/simulator/SimulatorWindow.qml
+    qml/notifications/QueuedNotificationCounts.qml
     qml/notifications/NotificationCard.qml
     qml/notifications/UnifiedAttentionDock.qml
 )
@@ -700,6 +701,8 @@ if(BUILD_TESTING)
 
     qt_add_executable(notification_service_test
         tests/NotificationServiceTest.cpp
+        src/services/ToastService.cpp
+        src/services/ToastService.h
         src/services/NotificationIngress.cpp
         src/services/NotificationIngress.h
         src/services/AttentionPolicy.cpp
@@ -719,8 +722,37 @@ if(BUILD_TESTING)
     add_test(NAME notification_service_test COMMAND notification_service_test)
 
     find_package(Qt6 6.4 REQUIRED COMPONENTS QuickTest)
-    qt_add_executable(notification_qml_test tests/NotificationQuickTest.cpp)
-    target_link_libraries(notification_qml_test PRIVATE Qt6::QuickTest Qt6::Quick)
+    qt_add_executable(notification_qml_test
+        tests/NotificationQuickTest.cpp
+        src/services/ToastService.cpp
+        src/services/ToastService.h
+        src/services/NavigationService.cpp
+        src/services/MapService.cpp
+        src/services/RoadInfoService.cpp
+        src/services/TileLoader.cpp
+        src/services/VectorTileDecoder.cpp
+        src/services/AddressDatabaseService.cpp
+        src/services/FlatTrie.cpp
+        src/services/AttentionPolicy.cpp
+        src/services/NotificationService.cpp
+        src/services/NotificationIngress.cpp
+        src/routing/ValhallaClient.cpp
+        src/l10n/Translations.cpp
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/stores/SyncableStore.cpp
+        src/stores/GpsStore.cpp
+        src/stores/NavigationStore.cpp
+        src/stores/VehicleStore.cpp
+        src/stores/SettingsStore.cpp
+        src/stores/SpeedLimitStore.cpp
+        src/stores/EngineStore.cpp
+        src/stores/MotionStore.cpp
+        src/stores/ThemeStore.cpp)
+    target_include_directories(notification_qml_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_compile_definitions(notification_qml_test PRIVATE
+        ROUTE_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/routes")
+    target_link_libraries(notification_qml_test PRIVATE Qt6::QuickTest Qt6::Quick Qt6::Network Qt6::Sql Qt6::Concurrent ZLIB::ZLIB)
     file(GLOB NOTIFICATION_TEST_ICONS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/*.svg")
     qt_add_resources(notification_qml_test "notification_test_assets"
         PREFIX "/ScootUI"

@@ -97,6 +97,7 @@ private:
     QElapsedTimer m_clock;
     std::function<qint64()> m_nowMs;
     AttentionCycleState m_cycle;
+    AttentionCycleState m_companionCycle;
     QString m_surface = QStringLiteral("cluster");
     bool m_riding = false;
     bool m_telemetryConnected = true;

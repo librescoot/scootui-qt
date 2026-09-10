@@ -8,6 +8,7 @@ struct AttentionSelection {
     QVariantMap main;
     QVariantMap companion;
     int criticalCount = 0;
+    QVariantMap queuedCounts;
 };
 
 struct AttentionCycleState {
@@ -26,5 +27,6 @@ public:
                                      const QList<QVariantMap> &events,
                                      const QVariantMap &navigation,
                                      bool riding, qint64 nowMs,
-                                     AttentionCycleState *cycle = nullptr);
+                                     AttentionCycleState *cycle = nullptr,
+                                     AttentionCycleState *companionCycle = nullptr);
 };

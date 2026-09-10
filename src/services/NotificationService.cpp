@@ -6,6 +6,21 @@
 
 #include <algorithm>
 
+namespace {
+int notificationPriority(int priority, const QString &kind)
+{
+    if (priority == 0 || kind == QLatin1String("critical") || kind == QLatin1String("error"))
+        return 0;
+    if (kind == QLatin1String("warning"))
+        return 2;
+    if (kind == QLatin1String("success"))
+        return 3;
+    if (kind == QLatin1String("debug"))
+        return 5;
+    return kind == QLatin1String("info") ? 4 : qBound(0, priority, 5);
+}
+}
+
 NotificationService::NotificationService(bool simulatorInjectionEnabled, QObject *parent,
                                          std::function<qint64()> clock)
     : QObject(parent), m_nowMs(std::move(clock)),
@@ -110,7 +125,7 @@ QString NotificationService::publishCondition(const QString &id, const QString &
 {
     if (id.isEmpty())
         return {};
-    QVariantMap entry = makeEntry(id, source, title, body, qBound(0, priority, 4), kind);
+    QVariantMap entry = makeEntry(id, source, title, body, notificationPriority(priority, kind), kind);
     if (!icon.isEmpty())
         entry[QStringLiteral("icon")] = icon;
     const auto old = m_conditions.value(id);
@@ -150,7 +165,7 @@ QString NotificationService::publishEvent(const QString &id, const QString &sour
     for (auto &existing : m_events) {
         if (existing.value(QStringLiteral("id")) == id) {
             existing[QStringLiteral("source")] = source;
-            existing[QStringLiteral("priority")] = qBound(0, priority, 4);
+            existing[QStringLiteral("priority")] = notificationPriority(priority, kind);
             existing[QStringLiteral("kind")] = kind;
             existing[QStringLiteral("revision")] = existing.value(QStringLiteral("revision")).toInt() + 1;
             existing[QStringLiteral("title")] = title;
@@ -161,7 +176,7 @@ QString NotificationService::publishEvent(const QString &id, const QString &sour
             return id;
         }
     }
-    QVariantMap entry = makeEntry(id, source, title, body, qBound(0, priority, 4), kind);
+    QVariantMap entry = makeEntry(id, source, title, body, notificationPriority(priority, kind), kind);
     entry[QStringLiteral("createdAt")] = now;
     entry[QStringLiteral("updatedAt")] = now;
     entry[QStringLiteral("order")] = m_nextOrder++;
@@ -245,7 +260,7 @@ void NotificationService::setMapUpdateAvailable(bool available, const QString &t
               .value(QStringLiteral("title"), QStringLiteral("Map update")).toString()
         : title;
     publishCondition(QStringLiteral("map-update"), QStringLiteral("maps"),
-                     displayTitle, {}, 3, QStringLiteral("info"));
+                     displayTitle, {}, 4, QStringLiteral("info"));
     if (changed)
         emit mapUpdateAvailableChanged();
 }
@@ -273,17 +288,19 @@ void NotificationService::refreshPresentation()
         conditions.append(condition);
     }
     const AttentionSelection selection = AttentionPolicy::select(
-        conditions, m_events, m_navigation, m_riding, nowMs(), &m_cycle);
+        conditions, m_events, m_navigation, m_riding, nowMs(), &m_cycle, &m_companionCycle);
     QVariantMap presentation;
     presentation[QStringLiteral("main")] = selection.main;
     presentation[QStringLiteral("companion")] = selection.companion;
     presentation[QStringLiteral("criticalCount")] = selection.criticalCount;
+    presentation[QStringLiteral("queuedCounts")] = selection.queuedCounts;
     if (presentation == m_presentation)
         return;
     m_presentation = presentation;
     emit presentationChanged();
 
     emitPresentationCue(m_presentation.value(QStringLiteral("main")).toMap());
+    emitPresentationCue(m_presentation.value(QStringLiteral("companion")).toMap());
 }
 
 void NotificationService::emitPresentationCue(const QVariantMap &main)

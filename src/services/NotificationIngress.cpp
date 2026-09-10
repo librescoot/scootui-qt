@@ -91,12 +91,16 @@ bool NotificationIngress::receive(const QString &message)
     const QString severity =
         object.value(QStringLiteral("severity")).toString(QStringLiteral("info"));
     int priority = 4;
-    if (severity == QLatin1String("critical"))
+    if (severity == QLatin1String("critical") || severity == QLatin1String("error"))
         priority = 0;
     else if (severity == QLatin1String("warning"))
         priority = 2;
-    else if (severity != QLatin1String("info") && severity != QLatin1String("success"))
-        return reject(QStringLiteral("severity must be info, success, warning or critical"));
+    else if (severity == QLatin1String("success"))
+        priority = 3;
+    else if (severity == QLatin1String("debug"))
+        priority = 5;
+    else if (severity != QLatin1String("info"))
+        return reject(QStringLiteral("severity must be debug, info, success, warning, error or critical"));
 
     int ttlMs = 10000;
     if (object.contains(QStringLiteral("ttl_ms"))) {

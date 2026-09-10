@@ -27,8 +27,9 @@ Item {
         id: notificationRenderer
         NotificationCard {
             objectName: "attentionMainCard"
+            compact: dock.hasCompanion
             entry: dock.main
-            criticalCount: dock.presentation.criticalCount || 0
+            queuedCounts: dock.presentation.queuedCounts || ({})
             isDark: dock.isDark
         }
     }
@@ -36,6 +37,8 @@ Item {
         id: navigationRenderer
         TurnByTurnWidget {
             objectName: "attentionTurnByTurn"
+            compact: dock.hasCompanion
+            queuedCounts: dock.presentation.queuedCounts || ({})
             maneuver: dock.main
             isDark: dock.isDark
         }
@@ -47,10 +50,25 @@ Item {
         width: parent.width
         height: item ? item.implicitHeight : 0
         active: dock.hasCompanion
-        sourceComponent: TurnByTurnWidget {
+        sourceComponent: dock.companion.kind === "nav" ? compactNavigationRenderer : companionNotificationRenderer
+    }
+
+    Component {
+        id: compactNavigationRenderer
+        TurnByTurnWidget {
             objectName: "attentionCompanion"
             compact: true
             maneuver: dock.companion
+            isDark: dock.isDark
+        }
+    }
+
+    Component {
+        id: companionNotificationRenderer
+        NotificationCard {
+            objectName: "attentionCompanionNotification"
+            compact: true
+            entry: dock.companion
             isDark: dock.isDark
         }
     }

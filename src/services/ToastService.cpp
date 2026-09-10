@@ -78,11 +78,12 @@ QString ToastService::addToast(const QString &message, const QString &type, bool
     if (m_notificationService) {
         const QString entryId = id.isEmpty()
             ? QStringLiteral("toast-") + QString::number(qHash(message + QLatin1Char('\0') + type)) : id;
-        const int priority = type == QLatin1String("error") ? 2
+        const int priority = type == QLatin1String("error") ? 0
                            : type == QLatin1String("warning") ? 2
-                           : type == QLatin1String("info") ? 3 : 4;
+                           : type == QLatin1String("success") ? 3 : 4;
         const QString kind = type == QLatin1String("error") ? QStringLiteral("error")
                            : type == QLatin1String("warning") ? QStringLiteral("warning")
+                           : type == QLatin1String("success") ? QStringLiteral("success")
                            : QStringLiteral("info");
         if (permanent)
             m_notificationService->publishCondition(entryId, QStringLiteral("toast"),

@@ -1086,6 +1086,13 @@ void Translations::initStrings()
     en[QStringLiteral("navRecalculating")] = QStringLiteral("Recalculating route...");
     de[QStringLiteral("navRecalculating")] = QStringLiteral("Route wird neu berechnet...");
 
+    en[QStringLiteral("navDestinationHere")] = QStringLiteral("Your destination is here");
+    de[QStringLiteral("navDestinationHere")] = QStringLiteral("Dein Ziel ist hier");
+    en[QStringLiteral("navDestinationRight")] = QStringLiteral("Your destination is on your right");
+    de[QStringLiteral("navDestinationRight")] = QStringLiteral("Dein Ziel ist auf der rechten Seite");
+    en[QStringLiteral("navDestinationLeft")] = QStringLiteral("Your destination is on your left");
+    de[QStringLiteral("navDestinationLeft")] = QStringLiteral("Dein Ziel ist auf der linken Seite");
+
     en[QStringLiteral("navArrived")] = QStringLiteral("You have arrived");
     de[QStringLiteral("navArrived")] = QStringLiteral("Sie sind angekommen");
 

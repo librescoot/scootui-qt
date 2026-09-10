@@ -68,10 +68,20 @@ The dashboard uses one production notification registry and attention policy for
 navigation, warnings, connection health, faults, coverage, and transient
 feedback. Active conditions are updated and resolved by their owning producer;
 transient events expire by a monotonic freshness deadline and are retained in a
-bounded in-memory history. Priority arbitration keeps one attention card and,
-when useful, a compact valid navigation companion. Equal-priority notifications
-rotate every 5 seconds within the highest-priority group; higher-priority alerts
-preempt immediately. Rotation does not replay cues or extend event freshness.
+bounded in-memory history. Priority is **error/critical > warning > navigation >
+success > info > debug**, independent of maneuver distance. Navigation stays
+primary while success/info/debug notifications use the secondary slot, including
+while ready-to-drive. Errors and warnings preempt navigation; valid navigating or
+arrived guidance remains as a compact TurnByTurnWidget beneath the alert.
+
+Equal-priority notifications rotate every 5 monotonic seconds within the highest
+eligible group in each notification slot. Updates do not restart the current
+dwell. Rotation and preemption/resumption do not replay cues or extend event
+freshness. Additional queued notifications are counted by severity on the topmost
+banner (including a topmost TurnByTurnWidget), inline rather than in an extra row:
+red error/critical, amber warning, green success, blue info, grey debug. Neither visible slot is counted; counts
+follow dismissal, expiry and surface eligibility. Error and critical share a
+count. Navigation itself is not a queued notification.
 Speed, blinkers, telltales, and pairing/UMS/system workflows remain independent
 protected surfaces.
 
@@ -80,8 +90,22 @@ instrument space or change the map camera or vehicle anchor. Only blinkers move
 below the overlay to stay visible. QML renders notifications and navigation with
 dedicated widgets from the shared selection payload, including actionable turn
 instructions and a compact navigation companion when an alert takes priority.
-Informational events are allowed while riding; they yield to higher-priority
-items and expire normally.
+When both slots are visible, the actual shared navigation widget uses its compact
+layout in either slot. Notification cards use the same translucent dark/light
+background as navigation, without a left accent stripe; icons, text and queued
+counts retain severity colors. Their titles are slightly larger/bolder than the
+navigation text. Two-slot cards limit body text to one elided line and titles to
+two lines so the overlay stays clear of the unchanged speed readout.
+Events still expire while queued: a sufficiently large or higher-priority queue
+can outlast an event's TTL; displaying it never renews its deadline.
+
+Calculating/recalculating uses the shared navigation banner, navigation icon and
+loading indicator. Arrival retains the route's actual final maneuver icon and
+uses localized present-tense destination wording, including its typed left/right
+side (or an unsided fallback). A once-per-route “You have arrived” success event
+lasts 10 seconds from publication. GPS updates, recalculation and store reconnects
+do not republish it. Guidance remains until the normal route-clear/end lifecycle;
+an explicit new destination/route resets arrival and clears the old success event.
 
 ### External notifications over Redis
 
@@ -107,15 +131,17 @@ redis-cli PUBLISH scootui:notification \
 | `action` | `show` (default) or `dismiss`. Dismiss accepts only action, source and id. |
 | `title` | Required for show, nonblank, at most 120 UTF-16 code units. |
 | `body` | Optional plain text, at most 512 UTF-16 code units. |
-| `severity` | `info` (default), `success`, `warning`, or `critical`. |
+| `severity` | `debug`, `info` (default), `success`, `warning`, `error`, or `critical` (error alias). |
 | `ttl_ms` | Integer 1000–60000; defaults to 10000. Starts at receipt, not first display. |
 
 Messages are limited to 4096 UTF-8 bytes. Unknown fields, wrong types and invalid
 values are rejected without changing notifications; rejection reasons appear in
 the dashboard journal. Text is rendered literally, not as HTML.
 
-These are transient events, not persistent fault conditions. Info/success use
-priority 4, warning priority 2, and critical priority 0. They share arbitration,
+These are transient events, not persistent fault conditions. Debug uses priority
+5, info 4, success 3, warning 2, and error/critical 0. Existing critical and
+numeric-priority producer APIs remain available; severity names normalize their
+classification before arbitration. They share arbitration,
 five-second equal-priority cycling, cue deduplication and the bounded event
 registry with built-in notifications. Higher-priority items can keep an event
 hidden until it expires; an update extends its freshness but does not restart

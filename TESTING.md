@@ -1,3 +1,43 @@
+## Local notification/navigation regression tests
+
+No vehicle or live Redis is needed:
+
+```sh
+cmake --build build -j4
+QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software ctest --test-dir build --output-on-failure
+SCOOTUI_TEST_CAPTURE_DIR=/tmp/notification-captures QT_QPA_PLATFORM=offscreen \
+  QT_QUICK_BACKEND=software ctest --test-dir build -R notification_qml_tests --output-on-failure
+```
+
+`NotificationServiceTest.cpp` covers severity ordering, both notification-slot
+cycles with an injected monotonic clock, update/dismiss/expiry, eligibility,
+queued counts and cue deduplication, including ToastService semantic mappings,
+legacy 3000/5000ms toast lifetimes and the native 4000ms event default.
+`NotificationQuickTest.cpp` supplies real ToastService,
+NotificationIngress/NotificationService, ready-to-drive VehicleStore and native
+NavigationService instances to `tst_attentionscreens.qml`. The harness uses the
+existing route1/right, route3/left and route6/unsided fixture geometry, a local
+in-memory repository and a loopback-only routing endpoint that holds requests
+pending for deterministic native loading-state checks. No route is requested
+from a public server. Tests verify rendered primary navigation plus secondary
+info/success, 5-second cycling and preemption, once-only arrival events, reconnect,
+recalculation, route clear/reset and unchanged 300×240 dial/full map viewport.
+Screen tests compare rendered speed-glyph pixels against an unobscured reference
+and check tight glyph bounds for 0, 8, 18, 28, 50 and the unavailable dash in both
+themes. Cases include both slots, long titles/bodies/instructions and queued
+counts, not just unchanged item coordinates. Captures poll for painted maneuver
+ink within the actual icon bounds (excluding the dial and subdued roundabout
+ring), including fork/roundabout loading and restoration in both themes. A
+background-only negative control guards against mistaking the dial for an icon.
+The native toast case checks a rendered green success icon above queued info
+while navigation remains primary.
+`tst_notificationdock.qml` also checks translucent, stripe-free notification
+styling against the shared navigation background, and loading transitions that
+retain old roundabout/fork maneuver fields. Plain-text checks include the hidden
+BalancedText measurement probe.
+Captures are actual rendered widgets with bundled fonts/icons, not delivery logs.
+The reduced desktop build cannot validate a real MapLibre renderer or device GPU.
+
 # Testing scootui-qt on a real DBC
 
 Two things make on-target testing awkward: you cannot see what the UI is

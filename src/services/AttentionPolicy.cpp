@@ -3,7 +3,54 @@
 #include <algorithm>
 
 namespace {
-int priority(const QVariantMap &entry) { return entry.value(QStringLiteral("priority"), 4).toInt(); }
+int priority(const QVariantMap &entry)
+{
+    // Keep the public 0/2/3/4 priorities; navigation sits between warning and success.
+    if (entry.value(QStringLiteral("kind")) == QLatin1String("nav"))
+        return 3;
+    const int value = entry.value(QStringLiteral("priority"), 4).toInt();
+    return value >= 3 ? value + 1 : value;
+}
+
+QVariantMap selectPeer(const QList<QVariantMap> &candidates, qint64 nowMs,
+                       AttentionCycleState *cycle)
+{
+    if (candidates.isEmpty()) {
+        if (cycle)
+            *cycle = {};
+        return {};
+    }
+    QVariantMap selected = candidates.first();
+    if (!cycle)
+        return selected;
+    const int topPriority = priority(selected);
+    QList<QVariantMap> peers;
+    for (const auto &candidate : candidates) {
+        if (priority(candidate) == topPriority)
+            peers.append(candidate);
+    }
+    if (cycle->priority == topPriority) {
+        const auto current = std::find_if(peers.cbegin(), peers.cend(), [cycle](const QVariantMap &entry) {
+            return entry.value(QStringLiteral("order")).toULongLong() == cycle->order;
+        });
+        if (current != peers.cend() && nowMs - cycle->presentedAtMs < AttentionPolicy::DwellMs) {
+            selected = *current;
+        } else {
+            const auto next = std::find_if(peers.cbegin(), peers.cend(), [cycle](const QVariantMap &entry) {
+                return entry.value(QStringLiteral("order")).toULongLong() > cycle->order;
+            });
+            selected = next == peers.cend() ? peers.first() : *next;
+        }
+    }
+    const quint64 order = selected.value(QStringLiteral("order")).toULongLong();
+    if (cycle->priority != topPriority || cycle->order != order) {
+        cycle->order = order;
+        cycle->priority = topPriority;
+        cycle->presentedAtMs = nowMs;
+    }
+    return selected;
+}
+
 bool valid(const QVariantMap &entry, qint64 nowMs)
 {
     const qint64 until = entry.value(QStringLiteral("validUntil"), 0).toLongLong();
@@ -15,7 +62,8 @@ AttentionSelection AttentionPolicy::select(const QList<QVariantMap> &conditions,
                                             const QList<QVariantMap> &events,
                                             const QVariantMap &navigation,
                                             bool riding, qint64 nowMs,
-                                            AttentionCycleState *cycle)
+                                            AttentionCycleState *cycle,
+                                            AttentionCycleState *companionCycle)
 {
     Q_UNUSED(riding);
     QList<QVariantMap> candidates;
@@ -35,12 +83,9 @@ AttentionSelection AttentionPolicy::select(const QList<QVariantMap> &conditions,
     const bool hasNavigation = !navigation.isEmpty()
         && navigation.value(QStringLiteral("valid"), false).toBool()
         && navigation.value(QStringLiteral("status"), 0).toInt() != 5;
-    const bool imminent = hasNavigation
-        && navigation.value(QStringLiteral("status"), 2).toInt() == 2
-        && navigation.value(QStringLiteral("distance"), 0.0).toDouble() <= 120.0;
     if (hasNavigation) {
         QVariantMap nav = navigation;
-        nav[QStringLiteral("priority")] = imminent ? 1 : 3;
+        nav[QStringLiteral("priority")] = 3;
         nav[QStringLiteral("kind")] = QStringLiteral("nav");
         candidates.append(nav);
     }
@@ -62,50 +107,33 @@ AttentionSelection AttentionPolicy::select(const QList<QVariantMap> &conditions,
     });
 
     AttentionSelection result;
-    if (!candidates.isEmpty())
-        result.main = candidates.first();
-
-    // Navigation keeps its existing arbitration; only notification peers rotate.
-    if (cycle) {
-        if (result.main.isEmpty() || result.main.value(QStringLiteral("kind")) == QLatin1String("nav")) {
-            *cycle = {};
-        } else {
-            const int topPriority = priority(result.main);
-            QList<QVariantMap> peers;
-            for (const auto &candidate : candidates) {
-                if (priority(candidate) == topPriority
-                    && candidate.value(QStringLiteral("kind")) != QLatin1String("nav"))
-                    peers.append(candidate);
-            }
-            if (cycle->priority == topPriority) {
-                const auto current = std::find_if(peers.cbegin(), peers.cend(), [cycle](const QVariantMap &entry) {
-                    return entry.value(QStringLiteral("order")).toULongLong() == cycle->order;
-                });
-                if (current != peers.cend() && nowMs - cycle->presentedAtMs < DwellMs) {
-                    result.main = *current;
-                } else {
-                    const auto next = std::find_if(peers.cbegin(), peers.cend(), [cycle](const QVariantMap &entry) {
-                        return entry.value(QStringLiteral("order")).toULongLong() > cycle->order;
-                    });
-                    result.main = next == peers.cend() ? peers.first() : *next;
-                }
-            }
-            const quint64 order = result.main.value(QStringLiteral("order")).toULongLong();
-            if (cycle->priority != topPriority || cycle->order != order) {
-                cycle->order = order;
-                cycle->priority = topPriority;
-                cycle->presentedAtMs = nowMs;
-            }
+    result.main = selectPeer(candidates, nowMs, cycle);
+    QList<QVariantMap> companions;
+    if (result.main.value(QStringLiteral("kind")) == QLatin1String("nav")) {
+        for (const auto &candidate : candidates) {
+            if (candidate.value(QStringLiteral("kind")) != QLatin1String("nav"))
+                companions.append(candidate);
+        }
+    } else if (hasNavigation) {
+        const int status = navigation.value(QStringLiteral("status"), 2).toInt();
+        if (status == 2 || status == 4) {
+            QVariantMap nav = navigation;
+            nav[QStringLiteral("kind")] = QStringLiteral("nav");
+            companions.append(nav);
         }
     }
-
-    if (!result.main.isEmpty() && result.main.value(QStringLiteral("kind")) != QLatin1String("nav")
-        && hasNavigation && navigation.value(QStringLiteral("status"), 2).toInt() == 2) {
-        result.companion = navigation;
-        result.companion[QStringLiteral("kind")] = QStringLiteral("nav");
-        result.companion[QStringLiteral("priority")] = imminent ? 1 : 3;
+    result.companion = selectPeer(companions, nowMs, companionCycle);
+    for (const auto &candidate : candidates) {
+        if (candidate == result.main || candidate == result.companion
+            || candidate.value(QStringLiteral("kind")) == QLatin1String("nav"))
+            continue;
+        const int value = candidate.value(QStringLiteral("priority"), 4).toInt();
+        const QString severity = value == 0 ? QStringLiteral("error")
+            : value <= 2 ? QStringLiteral("warning")
+            : value == 3 ? QStringLiteral("success")
+            : value == 5 ? QStringLiteral("debug") : QStringLiteral("info");
+        result.queuedCounts[severity] = result.queuedCounts.value(severity, 0).toInt() + 1;
     }
-
     result.criticalCount = criticalCount;
     return result;
 }

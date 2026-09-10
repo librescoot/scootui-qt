@@ -1,6 +1,7 @@
 import QtQuick
 import QtTest
 import "../qml/notifications"
+import "../qml/widgets/components"
 
 TestCase {
     name: "UnifiedAttentionDock"
@@ -88,13 +89,15 @@ TestCase {
     }
 
     function test_notificationTextIsPlain() {
-        show({kind: "info", priority: 4, title: "<b>Plain title</b>",
+        show({kind: "info", priority: 4, title: "<b>Plain title with enough words to wrap over multiple lines literally</b>",
               body: "<img src='https://example.invalid/image.png'>"})
         const title = findChild(dock, "notificationTitle")
         const body = findChild(dock, "notificationBody")
         compare(title.textFormat, Text.PlainText)
         compare(body.textFormat, Text.PlainText)
-        compare(title.text, "<b>Plain title</b>")
+        compare(title.text, "<b>Plain title with enough words to wrap over multiple lines literally</b>")
+        compare(findChild(title, "balancedTextProbe").textFormat, Text.PlainText)
+        verify(title.lineCount > 1)
         fits(title, findChild(dock, "attentionMainCard"))
     }
 
@@ -213,14 +216,106 @@ TestCase {
         verify(dock.height < 220)
     }
 
-    function test_navigationStatus() {
-        for (const status of [1, 3, 4]) {
+    function test_notificationStyleMatchesNavigation_data() {
+        return [{tag: "dark", dark: true}, {tag: "light", dark: false}]
+    }
+
+    function test_notificationStyleMatchesNavigation(data) {
+        dock.isDark = data.dark
+        const nav = {kind: "nav", status: 2, maneuverType: 5, distance: 80,
+                     instruction: "Turn right onto Main Street", compactInstruction: "Turn right"}
+        show(nav)
+        const background = findChild(dock, "maneuverBackground").color.toString()
+        const instructionSize = findChild(dock, "maneuverInstruction").font.pixelSize
+        for (const severity of [{kind: "error", priority: 0}, {kind: "critical", priority: 0},
+                                {kind: "warning", priority: 2}, {kind: "success", priority: 3},
+                                {kind: "info", priority: 4}, {kind: "debug", priority: 5}]) {
+            const entry = {kind: severity.kind, priority: severity.priority, title: "Vehicle status updated",
+                           body: "Check the details before continuing"}
+            for (const mode of ["full", "compact", "secondary"]) {
+                show(mode === "secondary" ? nav : entry, mode === "full" ? {} : mode === "secondary" ? entry : nav)
+                const card = findChild(dock, mode === "secondary" ? "attentionCompanionNotification" : "attentionMainCard")
+                compare(card.color.toString(), background)
+                fuzzyCompare(card.color.a, 0.8, 0.01)
+                compare(card.border.width, 0)
+                for (const child of card.children)
+                    verify(!(child.width === 3 && child.height === card.height), "No left accent stripe")
+                const title = findChild(card, "notificationTitle")
+                compare(title.font.pixelSize, instructionSize + 2)
+                compare(title.font.weight, Font.DemiBold)
+                compare(findChild(card, "notificationBody").font.pixelSize, instructionSize)
+                compare(findChild(card, "notificationIcon").color, card.accent)
+                verify(!title.truncated)
+                fits(title, card)
+                if (typeof captureDirectory !== "undefined" && captureDirectory.length > 0)
+                    grabImage(dock).save(captureDirectory + "/notification-style-" + severity.kind + "-" + mode + "-" + data.tag + ".png")
+            }
+        }
+    }
+
+    function test_loadingClearsRetainedDirectionalIcons_data() {
+        const cases = []
+        for (const type of [2, 3, 17, 18]) {
+            for (const compact of [true, false]) {
+                for (const dark of [true, false])
+                    cases.push({tag: type + (compact ? "-compact" : "-full") + (dark ? "-dark" : "-light"),
+                                type: type, compact: compact, dark: dark})
+            }
+        }
+        return cases
+    }
+
+    function test_loadingClearsRetainedDirectionalIcons(data) {
+        dock.isDark = data.dark
+        const nav = {kind: "nav", status: 2, maneuverType: data.type, distance: 80,
+                     instruction: "Keep the current direction", roundaboutExit: 2}
+        const companion = data.compact ? {kind: "info", priority: 4, title: "Trip updated"} : {}
+        show(nav, companion)
+        const widget = findChild(dock, "attentionTurnByTurn")
+        const icon = findChild(widget, "maneuverIconBox")
+        verify(icon.isRoundabout || icon.isKeepFork)
+        for (const status of [1, 3]) {
+            show(Object.assign({}, nav, {status: status}), companion)
+            compare(widget.compact, data.compact)
+            compare(icon.mType, data.type)
+            compare(icon.mDist, 80)
+            verify(!icon.isRoundabout && !icon.isKeepFork)
+            verify(findChild(widget, "mainRoundaboutIcon") === null)
+            verify(!findChild(widget, "maneuverForkIcon").visible)
+            const glyph = findChild(widget, "maneuverGlyph")
+            verify(glyph.visible)
+            compare(glyph.text, MaterialIcon.iconNavigation)
+            verify(findChild(widget, "navigationLoadingIndicator").running)
+            if (typeof captureDirectory !== "undefined" && captureDirectory.length > 0) {
+                wait(200)
+                grabImage(dock).save(captureDirectory + "/navigation-retained-loading-" + status + "-" + data.tag + ".png")
+            }
+        }
+        show(nav, companion)
+        verify(icon.isRoundabout || icon.isKeepFork)
+        verify(!findChild(widget, "navigationLoadingIndicator").running)
+    }
+
+    function test_navigationStatus_data() {
+        return [{tag: "dark", dark: true}, {tag: "light", dark: false}]
+    }
+
+    function test_navigationStatus(data) {
+        dock.isDark = data.dark
+        for (const status of [1, 3]) {
             show({kind: "nav", status: status})
-            const label = findChild(dock, "navigationStatus")
+            const label = findChild(dock, "maneuverInstruction")
             verify(label.visible)
             verify(label.text.length > 0)
             fits(label, dock)
-            verify(!findChild(dock, "maneuverInstruction").visible)
+            const indicator = findChild(dock, "navigationLoadingIndicator")
+            verify(indicator.running)
+            compare(indicator.palette.text.toString(), data.dark ? "#ffffff" : "#212121")
+            compare(indicator.palette.dark.toString(), indicator.palette.text.toString())
+            verify(!findChild(dock, "maneuverDistance").visible)
+            verify(!findChild(dock, "maneuverTripSummary").visible)
+            if (typeof captureDirectory !== "undefined" && captureDirectory.length > 0)
+                grabImage(dock).save(captureDirectory + "/navigation-loading-" + status + "-" + data.tag + ".png")
         }
     }
 }

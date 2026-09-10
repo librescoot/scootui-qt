@@ -334,6 +334,13 @@ void Application::createStores(QQmlApplicationEngine &engine)
     connect(m_navigationService, &NavigationService::positionChanged, this, refreshNavigationAttention);
     connect(m_navigationService, &NavigationService::roundaboutRenderChanged, this, refreshNavigationAttention);
     connect(m_navigationService, &NavigationService::errorChanged, this, refreshNavigationAttention);
+    connect(m_navigationService, &NavigationService::arrived, this, [this]() {
+        m_notificationService->publishEvent(QStringLiteral("navigation-arrived"), QStringLiteral("navigation"),
+                                            m_translations->navArrived(), {}, 3, QStringLiteral("success"), 10000);
+    });
+    connect(m_navigationService, &NavigationService::arrivalReset, this, [this]() {
+        m_notificationService->clearEvent(QStringLiteral("navigation-arrived"));
+    });
     refreshNavigationAttention();
 
     // Show toast on navigation errors so the user knows what went wrong

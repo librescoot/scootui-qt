@@ -1,12 +1,17 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
+import "../../notifications"
 import "../components"
 
 Item {
     id: tbtWidget
     property var maneuver: ({})
     property bool compact: false
-    readonly property bool navigating: maneuver.status === 2
+    property var queuedCounts: ({})
+    readonly property bool arrived: maneuver.status === 4
+    readonly property bool navigating: maneuver.status === 2 || arrived
+    readonly property bool loading: maneuver.status === 1 || maneuver.status === 3
     // A start instruction has no distance row, so leave room for the trip summary above it.
     implicitHeight: compact ? Math.max(contentCol.implicitHeight + 12, 48)
                    : navigating ? Math.max(contentCol.implicitHeight + 24
@@ -39,6 +44,14 @@ Item {
     readonly property int mtArrive: 20
     readonly property int mtArriveRight: 21
     readonly property int mtArriveLeft: 22
+
+    function arrivalInstruction() {
+        if (maneuver.maneuverType === mtArriveRight)
+            return typeof translations !== "undefined" ? translations.navDestinationRight : "Your destination is on your right"
+        if (maneuver.maneuverType === mtArriveLeft)
+            return typeof translations !== "undefined" ? translations.navDestinationLeft : "Your destination is on your left"
+        return typeof translations !== "undefined" ? translations.navDestinationHere : "Your destination is here"
+    }
 
     function iconThreshold(maneuverType) {
         switch (maneuverType) {
@@ -106,23 +119,20 @@ Item {
         }
     }
 
-    Text {
-        objectName: "navigationStatus"
-        anchors.centerIn: parent
-        width: parent.width - 24
-        visible: !tbtWidget.navigating
-        text: maneuver.status === 1 ? (typeof translations !== "undefined" ? translations.navCalculating : "Calculating route")
-              : maneuver.status === 3 ? (typeof translations !== "undefined" ? translations.navRecalculating : "Recalculating route")
-              : maneuver.status === 4 ? (typeof translations !== "undefined" ? translations.navArrived : "Arrived") : "Navigation"
-        font.pixelSize: themeStore.fontBody
-        color: isDark ? "white" : "#212121"
-        horizontalAlignment: Text.AlignHCenter
-        wrapMode: Text.WordWrap
-        z: 1
+    QueuedNotificationCounts {
+        id: counts
+        anchors.top: tbtWidget.compact ? undefined : parent.top
+        anchors.verticalCenter: tbtWidget.compact ? parent.verticalCenter : undefined
+        anchors.right: parent.right
+        anchors.rightMargin: 8
+        queuedCounts: tbtWidget.queuedCounts
+        isDark: tbtWidget.isDark
+        z: 2
     }
 
     // Main background container
     Rectangle {
+        objectName: "maneuverBackground"
         anchors.fill: parent
         color: isDark ? Qt.rgba(0, 0, 0, 0.8) : Qt.rgba(1, 1, 1, 0.8)
 
@@ -136,10 +146,11 @@ Item {
 
         RowLayout {
             id: contentRow
-            visible: tbtWidget.navigating
+            visible: tbtWidget.navigating || tbtWidget.loading
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
+            anchors.rightMargin: tbtWidget.compact && counts.hasCounts ? counts.width + 8 : 0
             spacing: 0
 
             // Icon box (left-aligned)
@@ -150,13 +161,13 @@ Item {
                 objectName: "maneuverIconBox"
                 property int mType: tbtWidget.maneuver.maneuverType || 0
                 property double mDist: tbtWidget.maneuver.distance || 0
-                property bool isRoundabout: (mType === mtRoundaboutEnter || mType === mtRoundaboutExit)
+                property bool isRoundabout: !tbtWidget.loading && (mType === mtRoundaboutEnter || mType === mtRoundaboutExit)
                                             && mDist <= iconThreshold(mType)
                 // Keep L/R uses two-tone SVGs (active arm bright, inactive arm
                 // dimmed) so the rider sees which fork to take, not just that
                 // there is one. Only kicks in within the announce threshold —
                 // outside it the Text fallback shows a plain straight arrow.
-                property bool isKeepFork: (mType === mtKeepLeft || mType === mtKeepRight)
+                property bool isKeepFork: !tbtWidget.loading && (mType === mtKeepLeft || mType === mtKeepRight)
                                           && mDist <= iconThreshold(mType)
 
                 Loader {
@@ -172,6 +183,7 @@ Item {
                 }
 
                 Image {
+                    objectName: "maneuverForkIcon"
                     anchors.centerIn: parent
                     visible: parent.isKeepFork
                     width: tbtWidget.compact ? 32 : 64
@@ -190,13 +202,26 @@ Item {
                     }
                 }
 
+                BusyIndicator {
+                    objectName: "navigationLoadingIndicator"
+                    anchors.centerIn: parent
+                    width: tbtWidget.compact ? 46 : 76
+                    height: width
+                    palette.text: tbtWidget.isDark ? "white" : "#212121"
+                    palette.dark: tbtWidget.isDark ? "white" : "#212121"
+                    running: tbtWidget.loading
+                    visible: running
+                }
+
                 Text {
+                    objectName: "maneuverGlyph"
                     anchors.centerIn: parent
                     visible: !parent.isRoundabout && !parent.isKeepFork
-                    text: parent.mDist <= iconThreshold(parent.mType)
+                    text: tbtWidget.loading ? MaterialIcon.iconNavigation
+                          : parent.mDist <= iconThreshold(parent.mType)
                           ? maneuverIcon(parent.mType) : MaterialIcon.iconStraight
                     font.family: "Material Icons"
-                    font.pixelSize: tbtWidget.compact ? 32 : themeStore.fontHero
+                    font.pixelSize: tbtWidget.loading ? 28 : tbtWidget.compact ? 32 : themeStore.fontHero
                     color: isDark ? "white" : "#212121"
                 }
             }
@@ -219,8 +244,8 @@ Item {
                     Layout.fillWidth: !tbtWidget.compact
                     objectName: "maneuverDistance"
                     Layout.alignment: tbtWidget.compact ? Qt.AlignBaseline : Qt.AlignVCenter
-                    Layout.rightMargin: tbtWidget.compact ? 0 : timeInfoBar.width
-                    visible: !tbtWidget.maneuver.isStart
+                    Layout.rightMargin: tbtWidget.compact ? 0 : timeInfoBar.width + (counts.hasCounts ? counts.width + 16 : 0)
+                    visible: tbtWidget.navigating && !tbtWidget.arrived && !tbtWidget.maneuver.isStart
                     text: formatDistance(tbtWidget.maneuver.distance || 0)
                     font.pixelSize: themeStore.fontBody
                     font.weight: Font.Bold
@@ -233,8 +258,14 @@ Item {
                 Text {
                     Layout.fillWidth: true
                     objectName: "maneuverInstruction"
+                    textFormat: Text.PlainText
                     Layout.alignment: tbtWidget.compact ? Qt.AlignBaseline : Qt.AlignVCenter
-                    text: (tbtWidget.compact && tbtWidget.maneuver.compactInstruction)
+                    text: tbtWidget.loading
+                          ? (maneuver.status === 1
+                             ? (typeof translations !== "undefined" ? translations.navCalculating : "Calculating route…")
+                             : (typeof translations !== "undefined" ? translations.navRecalculating : "Recalculating route…"))
+                          : tbtWidget.arrived ? arrivalInstruction()
+                          : (tbtWidget.compact && tbtWidget.maneuver.compactInstruction)
                           || tbtWidget.maneuver.instruction || tbtWidget.maneuver.street || "Navigation"
                     font.pixelSize: themeStore.fontBody
                     font.weight: isDark ? Font.Normal : Font.Medium
@@ -249,7 +280,7 @@ Item {
                 RowLayout {
                     Layout.fillWidth: true
                     objectName: "maneuverNextPreview"
-                    visible: !tbtWidget.compact && !!tbtWidget.maneuver.showNextPreview
+                    visible: tbtWidget.navigating && !tbtWidget.arrived && !tbtWidget.compact && !!tbtWidget.maneuver.showNextPreview
                     spacing: 4
 
                     Text {
@@ -290,10 +321,11 @@ Item {
         Rectangle {
             id: timeInfoBar
             objectName: "maneuverTripSummary"
-            visible: tbtWidget.navigating && !tbtWidget.compact
+            visible: tbtWidget.navigating && !tbtWidget.arrived && !tbtWidget.compact
             z: 1
             anchors.top: parent.top
             anchors.right: parent.right
+            anchors.rightMargin: counts.hasCounts ? counts.width + 16 : 0
             implicitWidth: timeRow.width + 16
             implicitHeight: timeRow.height + 8
             color: isDark ? Qt.rgba(0, 0, 0, 0.95) : Qt.rgba(1, 1, 1, 0.98)

@@ -2,6 +2,7 @@
 #include "services/AttentionPolicy.h"
 #include "services/NotificationService.h"
 #include "services/NotificationIngress.h"
+#include "services/ToastService.h"
 #include "repositories/InMemoryMdbRepository.h"
 
 class NotificationServiceTest : public QObject
@@ -18,6 +19,104 @@ class NotificationServiceTest : public QObject
     }
 
 private slots:
+    void toastAdapterMappingsAndLifetimes_data()
+    {
+        QTest::addColumn<QString>("kind");
+        QTest::addColumn<int>("priority");
+        QTest::addColumn<int>("ttl");
+        QTest::newRow("error") << QStringLiteral("error") << 0 << 5000;
+        QTest::newRow("warning") << QStringLiteral("warning") << 2 << 3000;
+        QTest::newRow("success") << QStringLiteral("success") << 3 << 3000;
+        QTest::newRow("info") << QStringLiteral("info") << 4 << 3000;
+    }
+
+    void toastAdapterMappingsAndLifetimes()
+    {
+        QFETCH(QString, kind);
+        QFETCH(int, priority);
+        QFETCH(int, ttl);
+        qint64 now = 0;
+        NotificationService service(false, nullptr, [&now] { return now; });
+        ToastService toast;
+        toast.setNotificationService(&service);
+        QSignalSpy cues(&service, &NotificationService::eventPresented);
+        QSignalSpy legacyCues(&toast, &ToastService::toastAdded);
+        const auto publish = [&] {
+            if (kind == "error") toast.showError("Message");
+            else if (kind == "warning") toast.showWarning("Message");
+            else if (kind == "success") toast.showSuccess("Message");
+            else toast.showInfo("Message");
+        };
+        publish();
+        const auto entry = service.presentation().value("main").toMap();
+        QCOMPARE(entry.value("kind").toString(), kind);
+        QCOMPARE(entry.value("priority").toInt(), priority);
+        QCOMPARE(entry.value("validUntil").toLongLong(), qint64(ttl));
+        QCOMPARE(cues.count(), 1);
+        QCOMPARE(cues.first().first().toString(), kind);
+        publish();
+        service.setSurface("map");
+        QCOMPARE(cues.count(), 1);
+        QCOMPARE(legacyCues.count(), 0);
+        QVERIFY(toast.toasts().isEmpty());
+        now = ttl - 1;
+        tick(service);
+        QVERIFY(!mainId(service).isEmpty());
+        now = ttl;
+        tick(service);
+        QVERIFY(mainId(service).isEmpty());
+
+        if (kind != "success") {
+            QString id;
+            if (kind == "error") id = toast.showPermanentError("Permanent", "permanent", "custom.svg");
+            else if (kind == "warning") id = toast.showPermanentWarning("Permanent", "permanent", "custom.svg");
+            else id = toast.showPermanentInfo("Permanent", "permanent", "custom.svg");
+            const auto permanent = service.presentation().value("main").toMap();
+            QCOMPARE(permanent.value("kind").toString(), kind);
+            QCOMPARE(permanent.value("priority").toInt(), priority);
+            QCOMPARE(permanent.value("icon").toString(), QStringLiteral("custom.svg"));
+            now += 10000;
+            tick(service);
+            QCOMPARE(mainId(service), id);
+            toast.dismiss(id);
+            QVERIFY(mainId(service).isEmpty());
+        }
+    }
+
+    void toastSuccessPreemptsInfoAndQueuesBySemanticKind()
+    {
+        NotificationService service;
+        ToastService toast;
+        toast.setNotificationService(&service);
+        QSignalSpy cues(&service, &NotificationService::eventPresented);
+        QSignalSpy legacyCues(&toast, &ToastService::toastAdded);
+        toast.showInfo("Info");
+        toast.showSuccess("Success");
+        QCOMPARE(service.presentation().value("main").toMap().value("kind").toString(), QStringLiteral("success"));
+        QCOMPARE(service.presentation().value("queuedCounts").toMap(), (QVariantMap{{"info", 1}}));
+        toast.showWarning("Warning");
+        QCOMPARE(service.presentation().value("queuedCounts").toMap(), (QVariantMap{{"success", 1}, {"info", 1}}));
+        service.clearEvent(mainId(service));
+        QCOMPARE(service.presentation().value("main").toMap().value("kind").toString(), QStringLiteral("success"));
+        toast.showSuccess("Success");
+        QCOMPARE(cues.count(), 3);
+        QCOMPARE(cues.at(1).first().toString(), QStringLiteral("success"));
+        QCOMPARE(legacyCues.count(), 0);
+    }
+
+    void nativeEventDefaultLifetimeUnchanged()
+    {
+        qint64 now = 0;
+        NotificationService service(false, nullptr, [&now] { return now; });
+        service.publishEvent("native", "test", "Native", {});
+        now = 3999;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("native"));
+        now = 4000;
+        tick(service);
+        QVERIFY(mainId(service).isEmpty());
+    }
+
     void equalSeverityCyclesAndWraps()
     {
         qint64 now = 0;
@@ -159,7 +258,7 @@ private slots:
         QSignalSpy events(&service, &NotificationService::eventPresented);
         service.publishEvent("event", "test", "Event", {}, 2, "warning", 30000);
         service.publishCondition("condition", "test", "Condition", {}, 2);
-        service.publishEvent("other", "test", "Other", {}, 2, "error", 30000);
+        service.publishEvent("other", "test", "Other", {}, 2, "warning", 30000);
         for (const auto &id : {"condition", "other", "event", "condition", "other"}) {
             now += 5000;
             tick(service);
@@ -199,6 +298,24 @@ private slots:
         QCOMPARE(mainId(service), QStringLiteral("a"));
     }
 
+    void ingressDefaultLifetimeStartsAtPublication()
+    {
+        qint64 now = 0;
+        NotificationService service(false, nullptr, [&now] { return now; });
+        InMemoryMdbRepository repository;
+        NotificationIngress ingress(&repository, &service);
+        service.publishCondition("warning", "test", "Warning", {}, 2);
+        QVERIFY(ingress.receive(QStringLiteral(R"({"id":"default","title":"Default lifetime"})")));
+        now = 9999;
+        tick(service);
+        service.resolveCondition("warning");
+        QCOMPARE(mainId(service), QStringLiteral("external:external:default"));
+        now = 10000;
+        tick(service);
+        QVERIFY(mainId(service).isEmpty());
+        QCOMPARE(service.history().size(), 1);
+    }
+
     void surfaceEligibilityRemovesCurrentPeer()
     {
         qint64 now = 0;
@@ -220,7 +337,7 @@ private slots:
         QCOMPARE(mainId(service), QStringLiteral("c"));
     }
 
-    void navigationPreemptsRotationAndRemainsCompanion()
+    void navigationNeverPreemptsWarningsAndLowerSeveritiesUseCompanion()
     {
         qint64 now = 0;
         NotificationService service(false, nullptr, [&now] { return now; });
@@ -231,26 +348,93 @@ private slots:
         now = 5000;
         tick(service);
         QCOMPARE(mainId(service), QStringLiteral("b"));
-        QCOMPARE(service.presentation().value("companion").toMap().value("id").toString(), QStringLiteral("navigation-session"));
         nav["distance"] = 40.0;
         service.setNavigationPayload(nav);
+        QCOMPARE(mainId(service), QStringLiteral("b"));
+        QCOMPARE(service.presentation().value("companion").toMap().value("id").toString(), QStringLiteral("navigation-session"));
+        now = 10000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("a"));
+        service.publishCondition("a", "test", "A", {}, 4, "info");
+        service.publishCondition("b", "test", "B", {}, 4, "info");
+        QCOMPARE(mainId(service), QStringLiteral("navigation-session"));
+        QCOMPARE(service.presentation().value("companion").toMap().value("id").toString(), QStringLiteral("a"));
+        now = 15000;
+        tick(service);
+        QCOMPARE(service.presentation().value("companion").toMap().value("id").toString(), QStringLiteral("b"));
+    }
+
+    void secondaryDwellCountsExpiryAndCues()
+    {
+        qint64 now = 0;
+        NotificationService service(false, nullptr, [&now] { return now; });
+        QSignalSpy cues(&service, &NotificationService::eventPresented);
+        QVariantMap nav{{"id", "navigation-session"}, {"valid", true}, {"status", 2}, {"distance", 80.0}};
+        service.setNavigationPayload(nav);
+        service.publishEvent("a", "test", "A", {}, 4, "info", 10000);
+        service.publishEvent("b", "test", "B", {}, 4, "info", 10000);
+        service.publishEvent("c", "test", "C", {}, 4, "info", 10000);
+        QCOMPARE(service.presentation().value("queuedCounts").toMap().value("info").toInt(), 2);
+        for (now = 100; now < 5000; now += 100) {
+            nav["distance"] = 80.0 + now;
+            service.setNavigationPayload(nav);
+            QCOMPARE(service.presentation().value("companion").toMap().value("id").toString(), QStringLiteral("a"));
+        }
+        tick(service);
+        QCOMPARE(service.presentation().value("companion").toMap().value("id").toString(), QStringLiteral("b"));
+        QCOMPARE(cues.count(), 2);
+        service.clearEvent("b");
+        QCOMPARE(service.presentation().value("companion").toMap().value("id").toString(), QStringLiteral("c"));
+        QCOMPARE(service.presentation().value("queuedCounts").toMap().value("info").toInt(), 1);
+        now = 10000;
+        tick(service);
         QCOMPARE(mainId(service), QStringLiteral("navigation-session"));
         QVERIFY(service.presentation().value("companion").toMap().isEmpty());
-        now = 20000;
-        tick(service);
-        QCOMPARE(mainId(service), QStringLiteral("navigation-session"));
-        nav["distance"] = 800.0;
+        QVERIFY(service.presentation().value("queuedCounts").toMap().isEmpty());
+        QCOMPARE(cues.count(), 3);
+        QCOMPARE(service.history().size(), 2);
+    }
+
+    void secondaryCyclesWrapWithoutRepeatingCues()
+    {
+        qint64 now = 0;
+        NotificationService service(false, nullptr, [&now] { return now; });
+        QSignalSpy cues(&service, &NotificationService::eventPresented);
+        QVariantMap nav{{"id", "navigation-session"}, {"valid", true}, {"status", 2}};
         service.setNavigationPayload(nav);
-        QCOMPARE(mainId(service), QStringLiteral("a"));
-        now = 25000;
-        tick(service);
-        QCOMPARE(mainId(service), QStringLiteral("b"));
-        service.publishCondition("a", "test", "A", {}, 3, "info");
-        service.publishCondition("b", "test", "B", {}, 3, "info");
+        service.publishEvent("a", "test", "A", {}, 4, "info", 30000);
+        service.publishEvent("b", "test", "B", {}, 4, "info", 30000);
+        for (now = 100; now <= 20000; now += 100) {
+            service.publishEvent("a", "test", QString::number(now), {}, 4, "info", 30000);
+            nav["distance"] = now;
+            service.setNavigationPayload(nav);
+            const QString expected = (now / 5000) % 2 == 0 ? QStringLiteral("a") : QStringLiteral("b");
+            QCOMPARE(service.presentation().value("companion").toMap().value("id").toString(), expected);
+            QCOMPARE(mainId(service), QStringLiteral("navigation-session"));
+        }
+        QCOMPARE(cues.count(), 2);
+    }
+
+    void severityOrderAndQueuedCounts()
+    {
+        NotificationService service;
+        InMemoryMdbRepository repository;
+        NotificationIngress ingress(&repository, &service);
+        service.setNavigationPayload({{"id", "navigation-session"}, {"valid", true}, {"status", 2}});
+        for (const auto &kind : {"debug", "info", "success", "warning", "error", "critical"})
+            QVERIFY(ingress.receive(QStringLiteral(R"({"id":"%1","title":"%1","severity":"%1"})").arg(kind)));
+        QCOMPARE(mainId(service), QStringLiteral("external:external:error"));
+        auto counts = service.presentation().value("queuedCounts").toMap();
+        QCOMPARE(counts, (QVariantMap{{"error", 1}, {"warning", 1}, {"success", 1}, {"info", 1}, {"debug", 1}}));
+        for (const auto &kind : {"error", "critical", "warning"})
+            service.clearEvent(QStringLiteral("external:external:%1").arg(kind));
         QCOMPARE(mainId(service), QStringLiteral("navigation-session"));
-        now = 30000;
-        tick(service);
-        QCOMPARE(mainId(service), QStringLiteral("navigation-session"));
+        QCOMPARE(service.presentation().value("companion").toMap().value("kind").toString(), QStringLiteral("success"));
+        QCOMPARE(service.presentation().value("queuedCounts").toMap(), (QVariantMap{{"info", 1}, {"debug", 1}}));
+        service.clearEvent("external:external:success");
+        QCOMPARE(service.presentation().value("companion").toMap().value("kind").toString(), QStringLiteral("info"));
+        service.clearEvent("external:external:info");
+        QCOMPARE(service.presentation().value("companion").toMap().value("kind").toString(), QStringLiteral("debug"));
     }
 
     void ridingDoesNotSuppressInformationalEvents()
@@ -387,14 +571,14 @@ private slots:
         QCOMPARE(selected.companion.value("id").toString(), QStringLiteral("navigation-session"));
     }
 
-    void imminentNavigationWins()
+    void imminentNavigationCannotHideWarning()
     {
         QVariantMap warning{{"id", "warning"}, {"priority", 2}, {"kind", "warning"}};
         QVariantMap nav{{"id", "navigation-session"}, {"kind", "nav"}, {"valid", true},
                         {"status", 2}, {"distance", 40.0}};
         const auto selected = AttentionPolicy::select({warning}, {}, nav, true, 0);
-        QCOMPARE(selected.main.value("id").toString(), QStringLiteral("navigation-session"));
-        QVERIFY(selected.companion.isEmpty());
+        QCOMPARE(selected.main.value("id").toString(), QStringLiteral("warning"));
+        QCOMPARE(selected.companion.value("id").toString(), QStringLiteral("navigation-session"));
     }
 
     void navigationErrorCannotCompanion()
@@ -438,7 +622,8 @@ private slots:
         NotificationService service(true);
         service.publishCondition("fault", "engine", "Stop safely", "Details", 0, "critical");
         const auto presentation = service.presentation();
-        QCOMPARE(presentation.size(), 3);
+        QCOMPARE(presentation.size(), 4);
+        QVERIFY(presentation.contains("queuedCounts"));
         QVERIFY(presentation.contains("main"));
         QVERIFY(presentation.contains("companion"));
         QVERIFY(presentation.contains("criticalCount"));
@@ -447,7 +632,7 @@ private slots:
     void calculatingCannotPresentStaleCompanion()
     {
         QVariantMap warning{{"id", "warning"}, {"priority", 2}};
-        for (int status : {1, 3, 4, 5}) {
+        for (int status : {1, 3, 5}) {
             QVariantMap nav{{"id", "navigation-session"}, {"valid", true}, {"status", status},
                             {"distance", 40.0}};
             QVERIFY(AttentionPolicy::select({warning}, {}, nav, true, 0).companion.isEmpty());

@@ -265,23 +265,11 @@ QString NavigationService::currentVerbalInstruction() const
         return m_lastPassedManeuver.verbalPostTransitionInstruction;
     }
 
-    // Arrival family: verbal_pre and instruction both say "You have arrived"
-    // (past tense) — wrong while still approaching. verbal_alert emits the
-    // future-tense variant. Flip to past tense only once we're effectively
-    // on top of the destination.
-    bool isArriveFamily = (instr.type == ManeuverType::Arrive ||
-                           instr.type == ManeuverType::ArriveRight ||
-                           instr.type == ManeuverType::ArriveLeft);
-    if (isArriveFamily) {
-        if (instr.distance > ArrivalTextSwitch) {
-            return pick({&instr.verbalAlertInstruction,
-                         &instr.verbalPreTransitionInstruction,
-                         &instr.instructionText,
-                         &instr.verbalSuccinctInstruction});
-        }
-        return pick({&instr.instructionText,
+    // Keep destination-side approach guidance until the arrival transition.
+    if (currentIsArrive()) {
+        return pick({&instr.verbalAlertInstruction,
                      &instr.verbalPreTransitionInstruction,
-                     &instr.verbalAlertInstruction,
+                     &instr.instructionText,
                      &instr.verbalSuccinctInstruction});
     }
 
@@ -723,6 +711,7 @@ void NavigationService::setDestination(double lat, double lng, const QString &ad
     m_rerouteRetry->stop();
     m_navigationCadence.reset();
     m_wasArrived = false;
+    emit arrivalReset();
     m_currentSegmentIndex = 0;
     m_hasLastPassedManeuver = false;
     m_prevLeadingShapeIdx = -1;
@@ -782,6 +771,7 @@ void NavigationService::clearNavigation()
     m_rerouteRetry->stop();
     m_navigationCadence.reset();
     m_wasArrived = false;
+    emit arrivalReset();
     m_currentSegmentIndex = 0;
     m_hasLastPassedManeuver = false;
     m_prevLeadingShapeIdx = -1;
@@ -808,6 +798,9 @@ void NavigationService::clearNavigation()
 
 void NavigationService::setRoute(const Route &route)
 {
+    m_wasArrived = false;
+    emit arrivalReset();
+    m_destination = {};
     m_activeRouteReason = ValhallaClient::Reason::Initial;
     onRouteCalculated(route);
 }
@@ -876,11 +869,16 @@ void NavigationService::onNavigationDataChanged()
     }
 
     LatLng newDest{lat, lng};
-    // Don't recalculate if same destination and we are already Navigating or Calculating
-    if (newDest == m_destination && (m_status == NavigationStatus::Navigating || m_status == NavigationStatus::Calculating)) {
-        return; 
+    // Store refreshes/reconnects do not start a new navigation session.
+    if (newDest == m_destination && (m_status == NavigationStatus::Navigating || m_status == NavigationStatus::Calculating
+        || m_status == NavigationStatus::Arrived || m_status == NavigationStatus::Rerouting)) {
+        return;
     }
 
+    if (!(newDest == m_destination)) {
+        m_wasArrived = false;
+        emit arrivalReset();
+    }
     m_destination = newDest;
     m_destAddress = m_nav->address();
     clearError();
@@ -923,10 +921,11 @@ void NavigationService::onVehicleStateChanged()
 
 void NavigationService::onRouteCalculated(const Route &route)
 {
+    if (m_wasArrived)
+        return;
     m_route = route;
     m_remainingDuration = route.duration;
     m_currentSegmentIndex = 0;
-    m_wasArrived = false;
     m_routeStartedAt.restart();
     m_hasLastPassedManeuver = false;
     m_prevLeadingShapeIdx = -1;
@@ -1036,7 +1035,8 @@ void NavigationService::onRequestDispatched(ValhallaClient::Reason reason)
 
 void NavigationService::updateNavigationState()
 {
-    if (!m_route.isValid()) return;
+    // Arrival guidance belongs to this route until clear/end or an explicit new route.
+    if (m_wasArrived || !m_route.isValid()) return;
 
     LatLng pos = currentPosition();
     if (!pos.isValid()) return;
@@ -1077,22 +1077,32 @@ void NavigationService::updateNavigationState()
     m_distanceToDestination = RouteHelpers::remainingDistanceAlongRoute(
         m_snappedPosition, m_route.waypoints, m_currentSegmentIndex);
 
-    // Arrival detection (straight-line proximity to the actual goal point)
+    // Use the actual final maneuver, even if the proximity threshold was crossed
+    // between GPS ticks before the upcoming-instruction walker reached it.
     if (straightLineToDestination < ArrivalProximity) {
-        if (m_status != NavigationStatus::Arrived) {
-            m_wasArrived = true;
-            setStatus(NavigationStatus::Arrived);
+        RouteInstruction arrival;
+        arrival.type = ManeuverType::Arrive;
+        for (auto it = m_route.instructions.crbegin(); it != m_route.instructions.crend(); ++it) {
+            if (it->type == ManeuverType::Arrive || it->type == ManeuverType::ArriveLeft
+                || it->type == ManeuverType::ArriveRight) {
+                arrival = *it;
+                break;
+            }
         }
+        arrival.distance = 0;
+        m_upcomingInstructions = {arrival};
+        m_hasLastPassedManeuver = false;
+        m_wasArrived = true;
+        m_remainingDuration = 0;
+        m_isOffRoute = false;
+        m_rerouteRetry->stop();
+        m_valhalla->cancelPending();
+        setStatus(NavigationStatus::Arrived);
+        emit instructionChanged();
         emit positionChanged();
+        updateRoundaboutRender();
+        emit arrived();
         return;
-    }
-
-    // Departure from arrival zone
-    if (m_wasArrived && m_status == NavigationStatus::Arrived) {
-        if (!m_vehicle->isShuttingDown()) {
-            m_wasArrived = false;
-            setStatus(NavigationStatus::Navigating);
-        }
     }
 
     // Off-route detection with hysteresis to prevent boundary oscillation.

@@ -28,7 +28,6 @@ Text {
             return
         }
 
-        probe.textFormat = textFormat
         probe.font = font
         probe.text = text
         probe.width = maxWidth
@@ -53,6 +52,8 @@ Text {
 
     Text {
         id: probe
+        objectName: "balancedTextProbe"
+        textFormat: root.textFormat
         visible: false
         wrapMode: Text.WordWrap
     }
