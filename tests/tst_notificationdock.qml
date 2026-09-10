@@ -216,11 +216,11 @@ TestCase {
         verify(dock.height < 220)
     }
 
-    function test_notificationStyleMatchesNavigation_data() {
+    function test_notificationStylePreservesNavigationTypography_data() {
         return [{tag: "dark", dark: true}, {tag: "light", dark: false}]
     }
 
-    function test_notificationStyleMatchesNavigation(data) {
+    function test_notificationStylePreservesNavigationTypography(data) {
         dock.isDark = data.dark
         const nav = {kind: "nav", status: 2, maneuverType: 5, distance: 80,
                      instruction: "Turn right onto Main Street", compactInstruction: "Turn right"}
@@ -235,7 +235,17 @@ TestCase {
             for (const mode of ["full", "compact", "secondary"]) {
                 show(mode === "secondary" ? nav : entry, mode === "full" ? {} : mode === "secondary" ? entry : nav)
                 const card = findChild(dock, mode === "secondary" ? "attentionCompanionNotification" : "attentionMainCard")
-                compare(card.color.toString(), background)
+                verify(card.color.toString() !== background)
+                if (severity.kind === "error" || severity.kind === "critical")
+                    verify(card.color.r > card.color.g && card.color.r > card.color.b)
+                else if (severity.kind === "warning")
+                    verify(card.color.r > card.color.g && card.color.g > card.color.b)
+                else if (severity.kind === "success")
+                    verify(card.color.g > card.color.r && card.color.g > card.color.b)
+                else if (severity.kind === "info")
+                    verify(card.color.b > card.color.r && card.color.b > card.color.g)
+                else
+                    verify(Math.abs(card.color.r - card.color.b) < 0.05)
                 fuzzyCompare(card.color.a, 0.8, 0.01)
                 compare(card.border.width, 0)
                 for (const child of card.children)
@@ -245,6 +255,11 @@ TestCase {
                 compare(title.font.weight, Font.DemiBold)
                 compare(findChild(card, "notificationBody").font.pixelSize, instructionSize)
                 compare(findChild(card, "notificationIcon").color, card.accent)
+                if (severity.kind === "info")
+                    compare(findChild(card, "notificationIcon").text, MaterialIcon.iconInfoOutline)
+                else if (severity.kind === "debug")
+                    compare(findChild(card, "notificationIcon").text, MaterialIcon.iconBugReport)
+                compare(title.maximumLineCount, mode === "secondary" ? 1 : 2)
                 verify(!title.truncated)
                 fits(title, card)
                 if (typeof captureDirectory !== "undefined" && captureDirectory.length > 0)
@@ -253,13 +268,94 @@ TestCase {
         }
     }
 
+    function test_pairedPrimaryKeepsNormalManeuver_data() {
+        return [{tag: "dark", dark: true}, {tag: "light", dark: false}]
+    }
+
+    function test_pairedPrimaryKeepsNormalManeuver(data) {
+        dock.isDark = data.dark
+        for (const kind of ["success", "info"]) {
+            for (const longText of [false, true]) {
+                const nav = {kind: "nav", status: 2, maneuverType: 5, distance: 80,
+                             instruction: longText ? "Turn right onto the very long street name towards the railway station and continue ahead"
+                                                   : "Turn right onto Main Street",
+                             compactInstruction: "Turn right", showNextPreview: true, nextStreet: "Station"}
+                show(nav, {kind: kind, priority: kind === "success" ? 3 : 4,
+                           title: longText ? "Download complete with additional details about the downloaded maps" : "Download complete",
+                           body: longText ? "The selected map regions are now available for offline use" : ""})
+                const widget = findChild(dock, "attentionTurnByTurn")
+                const secondary = findChild(dock, "attentionCompanionNotification")
+                verify(widget.paired && !widget.compact)
+                compare(widget.height, 96)
+                compare(findChild(widget, "maneuverIconBox").width, 80)
+                compare(findChild(widget, "maneuverIconBox").height, 80)
+                compare(findChild(widget, "maneuverGlyph").font.pixelSize, themeStore.fontHero)
+                const instruction = findChild(widget, "maneuverInstruction")
+                compare(instruction.text, nav.instruction)
+                compare(instruction.maximumLineCount, 2)
+                verify(instruction.width >= 380)
+                if (!longText) verify(!instruction.truncated)
+                fits(instruction, widget)
+                fits(findChild(widget, "maneuverIconBox"), widget)
+                fits(findChild(widget, "maneuverDistance"), widget)
+                verify(!findChild(widget, "maneuverTripSummary").visible)
+                verify(!findChild(widget, "maneuverNextPreview").visible)
+                verify(secondary.visible)
+                compare(findChild(secondary, "notificationTitle").maximumLineCount, 1)
+                compare(findChild(secondary, "notificationBody").visible, longText)
+                fits(secondary, dock)
+                verify(dock.height <= 152)
+            }
+        }
+    }
+
+    function test_queuedCountsWrapWithoutTakingContentWidth_data() {
+        return [{tag: "dark", dark: true}, {tag: "light", dark: false}]
+    }
+
+    function test_queuedCountsWrapWithoutTakingContentWidth(data) {
+        dock.isDark = data.dark
+        for (const values of [
+                 {error: 12, warning: 23, success: 34, info: 45, debug: 56},
+                 {error: 100, warning: 1234, success: 99999, info: 2147483647, debug: 56},
+                 {error: 2147483647, warning: 2147483647, success: 2147483647, info: 2147483647, debug: 2147483647}]) {
+            service.presentation = {main: {kind: "critical", priority: 0,
+                title: "Battery 0: Multiple Critical Issues", body: "Stop safely and check the battery"},
+                companion: {kind: "nav", status: 2, maneuverType: 5, distance: 80, instruction: "Turn right"},
+                queuedCounts: values}
+            waitForRendering(dock)
+            const card = findChild(dock, "attentionMainCard")
+            const counts = findChild(card, "queuedNotificationCounts")
+            const title = findChild(card, "notificationTitle")
+            const body = findChild(card, "notificationBody")
+            compare(counts.width, 112)
+            verify(counts.height > 20 && counts.height <= 100)
+            verify(title.maxWidth >= 296)
+            verify(!title.truncated)
+            fits(title, card)
+            fits(body, card)
+            fits(counts, card)
+            verify(title.mapToItem(card, title.width, 0).x < counts.x)
+            verify(body.mapToItem(card, body.width, 0).x < counts.x)
+            for (const kind of counts.visibleKinds) {
+                const badge = findChild(counts, "queuedCount_" + kind)
+                compare(badge.count, values[kind])
+                compare(badge.text, "+" + values[kind])
+                compare(badge.lineCount, 1)
+                verify(!badge.truncated)
+                fits(badge, counts)
+            }
+            verify(dock.height <= 156)
+        }
+    }
+
     function test_loadingClearsRetainedDirectionalIcons_data() {
         const cases = []
         for (const type of [2, 3, 17, 18]) {
-            for (const compact of [true, false]) {
+            for (const paired of [true, false]) {
                 for (const dark of [true, false])
-                    cases.push({tag: type + (compact ? "-compact" : "-full") + (dark ? "-dark" : "-light"),
-                                type: type, compact: compact, dark: dark})
+                    cases.push({tag: type + (paired ? "-paired" : "-full") + (dark ? "-dark" : "-light"),
+                                type: type, paired: paired, dark: dark})
             }
         }
         return cases
@@ -269,14 +365,15 @@ TestCase {
         dock.isDark = data.dark
         const nav = {kind: "nav", status: 2, maneuverType: data.type, distance: 80,
                      instruction: "Keep the current direction", roundaboutExit: 2}
-        const companion = data.compact ? {kind: "info", priority: 4, title: "Trip updated"} : {}
+        const companion = data.paired ? {kind: "info", priority: 4, title: "Trip updated"} : {}
         show(nav, companion)
         const widget = findChild(dock, "attentionTurnByTurn")
         const icon = findChild(widget, "maneuverIconBox")
         verify(icon.isRoundabout || icon.isKeepFork)
         for (const status of [1, 3]) {
             show(Object.assign({}, nav, {status: status}), companion)
-            compare(widget.compact, data.compact)
+            compare(widget.compact, false)
+            compare(widget.paired, data.paired)
             compare(icon.mType, data.type)
             compare(icon.mDist, 80)
             verify(!icon.isRoundabout && !icon.isKeepFork)

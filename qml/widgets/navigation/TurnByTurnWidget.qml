@@ -8,14 +8,15 @@ Item {
     id: tbtWidget
     property var maneuver: ({})
     property bool compact: false
+    property bool paired: false
     property var queuedCounts: ({})
     readonly property bool arrived: maneuver.status === 4
     readonly property bool navigating: maneuver.status === 2 || arrived
     readonly property bool loading: maneuver.status === 1 || maneuver.status === 3
     // A start instruction has no distance row, so leave room for the trip summary above it.
     implicitHeight: compact ? Math.max(contentCol.implicitHeight + 12, 48)
-                   : navigating ? Math.max(contentCol.implicitHeight + 24
-                                          + (maneuver.isStart ? timeInfoBar.height : 0), 96) : 96
+                   : navigating ? Math.max(contentCol.implicitHeight + (paired ? 12 : 24)
+                                          + (maneuver.isStart && timeInfoBar.visible ? timeInfoBar.height : 0), counts.height, 96) : Math.max(counts.height, 96)
 
     property bool isDark: (typeof themeStore !== "undefined" && themeStore)
                           ? themeStore.isDark : true
@@ -121,8 +122,7 @@ Item {
 
     QueuedNotificationCounts {
         id: counts
-        anchors.top: tbtWidget.compact ? undefined : parent.top
-        anchors.verticalCenter: tbtWidget.compact ? parent.verticalCenter : undefined
+        anchors.verticalCenter: parent.verticalCenter
         anchors.right: parent.right
         anchors.rightMargin: 8
         queuedCounts: tbtWidget.queuedCounts
@@ -150,7 +150,7 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            anchors.rightMargin: tbtWidget.compact && counts.hasCounts ? counts.width + 8 : 0
+            anchors.rightMargin: counts.hasCounts ? counts.width + 8 : 0
             spacing: 0
 
             // Icon box (left-aligned)
@@ -235,8 +235,8 @@ Item {
                 Layout.fillWidth: true
                 Layout.leftMargin: 8
                 Layout.rightMargin: 8
-                Layout.topMargin: tbtWidget.compact ? 6 : 12 + (tbtWidget.maneuver.isStart ? timeInfoBar.height : 0)
-                Layout.bottomMargin: tbtWidget.compact ? 6 : 8
+                Layout.topMargin: tbtWidget.compact || tbtWidget.paired ? 6 : 12 + (tbtWidget.maneuver.isStart && timeInfoBar.visible ? timeInfoBar.height : 0)
+                Layout.bottomMargin: tbtWidget.compact || tbtWidget.paired ? 6 : 8
 
                 // Distance indicator. Hidden for kStart-family ("head on X")
                 // because the rider is AT the start and 0 m is noise.
@@ -244,7 +244,7 @@ Item {
                     Layout.fillWidth: !tbtWidget.compact
                     objectName: "maneuverDistance"
                     Layout.alignment: tbtWidget.compact ? Qt.AlignBaseline : Qt.AlignVCenter
-                    Layout.rightMargin: tbtWidget.compact ? 0 : timeInfoBar.width + (counts.hasCounts ? counts.width + 16 : 0)
+                    Layout.rightMargin: timeInfoBar.visible ? timeInfoBar.width : 0
                     visible: tbtWidget.navigating && !tbtWidget.arrived && !tbtWidget.maneuver.isStart
                     text: formatDistance(tbtWidget.maneuver.distance || 0)
                     font.pixelSize: themeStore.fontBody
@@ -271,7 +271,7 @@ Item {
                     font.weight: isDark ? Font.Normal : Font.Medium
                     color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     wrapMode: Text.WordWrap
-                    maximumLineCount: tbtWidget.compact ? 1 : 3
+                    maximumLineCount: tbtWidget.compact ? 1 : tbtWidget.paired ? 2 : 3
                     elide: Text.ElideRight
                     lineHeight: 1.2
                 }
@@ -280,7 +280,7 @@ Item {
                 RowLayout {
                     Layout.fillWidth: true
                     objectName: "maneuverNextPreview"
-                    visible: tbtWidget.navigating && !tbtWidget.arrived && !tbtWidget.compact && !!tbtWidget.maneuver.showNextPreview
+                    visible: tbtWidget.navigating && !tbtWidget.arrived && !tbtWidget.compact && !tbtWidget.paired && !!tbtWidget.maneuver.showNextPreview
                     spacing: 4
 
                     Text {
@@ -321,7 +321,7 @@ Item {
         Rectangle {
             id: timeInfoBar
             objectName: "maneuverTripSummary"
-            visible: tbtWidget.navigating && !tbtWidget.arrived && !tbtWidget.compact
+            visible: tbtWidget.navigating && !tbtWidget.arrived && !tbtWidget.compact && !tbtWidget.paired
             z: 1
             anchors.top: parent.top
             anchors.right: parent.right

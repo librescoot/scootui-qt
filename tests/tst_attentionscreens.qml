@@ -125,12 +125,16 @@ TestCase {
     readonly property string longTitle: "Multiple critical issues require attention before continuing your journey safely"
     readonly property string longBody: "Stop safely and check the vehicle before continuing; additional diagnostic details are available"
     readonly property var allCounts: ({error: 12, warning: 23, success: 34, info: 45, debug: 56})
+    readonly property var largestCounts: ({error: 2147483647, warning: 2147483647, success: 2147483647, info: 2147483647, debug: 2147483647})
     readonly property var longNavigation: ({kind: "nav", status: 2, maneuverType: 17, distance: 80,
         instruction: "Take the third exit onto the very long road name towards the central railway station and continue straight ahead",
         nextStreet: "Central station", nextType: 5, showNextPreview: true,
         remainingDuration: 1200, distanceToDestination: 6500, eta: "18:10"})
     readonly property var states: [
         {name: "idle", main: {}, companion: {}},
+        {name: "info", main: {kind: "info", priority: 4, title: "Phone connected"}},
+        {name: "success", main: {kind: "success", priority: 3, title: "Download complete"}},
+        {name: "warning-only", main: {kind: "warning", priority: 2, title: "Battery warning"}},
         {name: "navigation", main: navigation, companion: {}},
         {name: "navigation-success", main: navigation, companion: {kind: "success", priority: 3, title: "Download complete"}, queuedCounts: {info: 2}},
         {name: "navigation-info", main: navigation, companion: {kind: "info", priority: 4, title: "Trip updated"}},
@@ -149,6 +153,10 @@ TestCase {
         {name: "loading-success-counts", main: {kind: "nav", status: 3, maneuverType: 17, distance: 80},
          companion: {kind: "success", priority: 3, title: longTitle, body: longBody}, queuedCounts: {info: 23, debug: 34}},
         {name: "navigation-long-only", main: longNavigation, companion: {}},
+        {name: "critical-largest-counts", main: {kind: "critical", priority: 0, title: longTitle, body: longBody},
+         companion: longNavigation, queuedCounts: largestCounts},
+        {name: "navigation-largest-counts", main: longNavigation,
+         companion: {kind: "success", priority: 3, title: longTitle, body: longBody}, queuedCounts: largestCounts},
         {name: "error-long-only", main: {kind: "error", priority: 0, title: longTitle, body: longBody},
          companion: {}, queuedCounts: allCounts}
     ]
@@ -192,6 +200,33 @@ TestCase {
         }
         return painted >= 8
     }
+    function verifyBadges(screen, image) {
+        const counts = findChild(screen, "queuedNotificationCounts")
+        if (!counts || !counts.hasCounts) return
+        verify(counts.visible && counts.width > 0 && counts.height > 0)
+        verify(counts.width <= 112)
+        const renderer = findChild(screen, "attentionTurnByTurn") || findChild(screen, "attentionMainCard")
+        const area = counts.mapToItem(renderer, 0, 0)
+        verify(area.x >= 0 && area.y >= 0)
+        verify(area.x + counts.width <= renderer.width + 1)
+        verify(area.y + counts.height <= renderer.height + 1)
+        for (const kind of counts.visibleKinds) {
+            const badge = findChild(counts, "queuedCount_" + kind)
+            compare(badge.text, "+" + counts.queuedCounts[kind])
+            compare(badge.count, counts.queuedCounts[kind])
+            verify(!badge.truncated)
+            const local = badge.mapToItem(counts, 0, 0)
+            verify(local.x >= 0 && local.y >= 0)
+            verify(local.x + badge.width <= counts.width + 1)
+            verify(local.y + badge.height <= counts.height + 1)
+            const origin = badge.mapToItem(screen, 0, 0)
+            let painted = 0
+            for (let y = Math.ceil(origin.y); y < Math.floor(origin.y + badge.height); ++y)
+                for (let x = Math.ceil(origin.x); x < Math.floor(origin.x + badge.width); ++x)
+                    if (matchesInk(image.pixel(x, y), badge.color)) ++painted
+            verify(painted >= 8, kind + " count must paint its severity ink")
+        }
+    }
     function capture(screen, name) {
         let image
         tryVerify(function() {
@@ -203,6 +238,7 @@ TestCase {
             }
             return image.width > 0 && image.height > 0
         }, 2000, name + ": maneuver ink must be rendered before capture")
+        verifyBadges(screen, image)
         if (typeof captureDirectory !== "undefined" && captureDirectory.length > 0)
             image.save(captureDirectory + "/" + name + ".png")
     }
@@ -284,6 +320,15 @@ TestCase {
             verify(blinkers.y + blinkers.height <= 480 - screen.bottomBarHeight)
             verify(blinkers.z > overlay.z)
             verifyUnobscuredGlyphs(screen, overlay, bounds, reference, state.name)
+            if (data.speed === 28 && data.dark) {
+                const counts = findChild(screen, "queuedNotificationCounts")
+                const title = findChild(screen, "notificationTitle")
+                const nav = findChild(screen, "attentionTurnByTurn") || findChild(screen, "attentionCompanion")
+                console.info("LAYOUT", state.name, "dock", overlay.height,
+                             "counts", counts ? counts.width + "x" + counts.height : "none",
+                             "titleWidth", title ? title.maxWidth : 0, "navHeight", nav ? nav.height : 0,
+                             "glyphTop", bounds.top)
+            }
             capture(screen, "cluster-" + (data.speed < 0 ? "dash" : data.speed) + "-" + state.name + (data.dark ? "" : "-light"))
         }
     }
@@ -493,12 +538,20 @@ TestCase {
     }
 
     function test_nativeArrival_data() {
-        return [{tag: "right", fixture: "route1", type: 21, text: "Your destination is on your right"},
-                {tag: "left", fixture: "route3", type: 22, text: "Your destination is on your left"},
-                {tag: "unsided", fixture: "route6", type: 20, text: "Your destination is here"}]
+        const cases = []
+        for (const dark of [true, false]) {
+            for (const arrival of [
+                {side: "right", fixture: "route1", type: 21, text: "Your destination is on your right"},
+                {side: "left", fixture: "route3", type: 22, text: "Your destination is on your left"},
+                {side: "unsided", fixture: "route6", type: 20, text: "Your destination is here"}])
+                cases.push(Object.assign({}, arrival, {tag: arrival.side + (dark ? "" : "-light"), dark: dark}))
+        }
+        return cases
     }
 
     function test_nativeArrival(data) {
+        themeStore.isDark = data.dark
+        themeStore.backgroundColor = data.dark ? "black" : "white"
         const screen = useNative()
         verify(harness.loadFixture(data.fixture))
         harness.approach()

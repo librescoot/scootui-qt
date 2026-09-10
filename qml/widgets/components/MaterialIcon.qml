@@ -51,6 +51,7 @@ QtObject {
     readonly property string iconLock:            "\ue3ae"
 
     // Status / Info
+    readonly property string iconInfoOutline:     "\ue33d"
     readonly property string iconErrorOutline:    "\ue238"
     readonly property string iconWarningAmber:    "\ue6cc"
     readonly property string iconSnowflake:       "\ue037" // legacy "ac_unit" \u2014 same glyph

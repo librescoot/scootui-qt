@@ -37,7 +37,7 @@ Item {
         id: navigationRenderer
         TurnByTurnWidget {
             objectName: "attentionTurnByTurn"
-            compact: dock.hasCompanion
+            paired: dock.hasCompanion
             queuedCounts: dock.presentation.queuedCounts || ({})
             maneuver: dock.main
             isDark: dock.isDark
@@ -68,6 +68,7 @@ Item {
         NotificationCard {
             objectName: "attentionCompanionNotification"
             compact: true
+            secondary: true
             entry: dock.companion
             isDark: dock.isDark
         }
