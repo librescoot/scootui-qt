@@ -18,6 +18,11 @@ class SpeedLimitStore;
 class NavigationService;
 class MapService;
 class TileLoader;
+class RoadMatchDispatcher;
+class StreetQueryDispatcher;
+struct RoadMatchRequest;
+struct RoadMatchResult;
+struct StreetQueryRequest;
 
 class RoadInfoService : public QObject
 {
@@ -30,6 +35,7 @@ public:
     ~RoadInfoService();
 
     void reloadMbtiles();
+    void stopWorkers();
     void setMapService(MapService *map);
 
     bool hasConfidentRoadMatch() const { return m_hasConfidentRoadMatch; }
@@ -42,17 +48,15 @@ public:
     // Look up the nearest address label from the offline addresses tile layer
     QString lookupNearestAddress(double lat, double lon);
 
-    // Return all street linestrings whose bounding box intersects the given
-    // geographic bbox, at zoom QueryZoom. Each entry is a QVariantMap:
-    //   { points: [[lat, lon], ...],
-    //     kind: "residential"|"primary"|...,
-    //     roundabout: bool,
-    //     name: string }
-    Q_INVOKABLE QVariantList streetsInBbox(double minLat, double minLon,
-                                             double maxLat, double maxLon);
+    // Async, latest-wins across icon instances. No QML objects cross threads.
+    Q_INVOKABLE quint64 requestStreets(QObject *owner, const QVariantMap &geometry);
+    Q_INVOKABLE QVariantMap cachedStreets(const QVariantMap &geometry) const;
+    Q_INVOKABLE void cancelStreets(QObject *owner);
 
 signals:
     void roadMatchChanged();
+    void streetsReady(QObject *owner, quint64 sequence, const QVariantList &streets, bool complete);
+    void streetsInvalidated(bool routeChanged);
 
 private slots:
     void onGpsChanged();
@@ -61,7 +65,16 @@ private slots:
     void onTileMissing(quint64 key, int generation);
 
 private:
+    friend class RoadInfoServiceTest;
+    void checkTileFreshness(qint64 nowMs);
+    StreetQueryRequest streetRequest(const QVariantMap &geometry) const;
+    void invalidateStreets(bool routeChanged = false);
+    void clearTileOutputs();
     void updateRoadInfo(double lat, double lon);
+    void applyMatch(const RoadMatchRequest &request, const RoadMatchResult &result);
+    void publishCurrentRouteAttrs();
+    void onRouteContextChanged();
+    void invalidatePosition();
     bool openDb(const QString &path);
     void closeDb();
     void requestTile(quint64 key);
@@ -79,6 +92,9 @@ private:
     MapService *m_map = nullptr;
 
     QElapsedTimer m_lastUpdate;
+    QElapsedTimer m_freshnessClock;
+    QTimer m_freshnessTimer;
+    qint64 m_lastAcceptedMatchMs = -1;
     bool m_dbOpen = false;
     QString m_dbConnectionName;
     QString m_dbPath; // path of the currently-open mbtiles (for idempotent reload)
@@ -88,7 +104,13 @@ private:
     // synchronously by the on-demand lookups.
     QHash<quint64, VectorTile::Tile> m_tileCache;
     QList<quint64> m_cacheOrder; // oldest first
-    QThread m_loaderThread;
+    QThread *m_loaderThread = nullptr;
+    bool m_stopping = false;
+    RoadMatchDispatcher *m_matcher = nullptr;
+    StreetQueryDispatcher *m_streets = nullptr;
+    QTimer m_streetPrefetchTimer;
+    quint64 m_routeGeneration = 0;
+    int m_routeSegmentIndex = -1;
     TileLoader *m_loader = nullptr;
     int m_generation = 0;
     QSet<quint64> m_pending;
@@ -100,6 +122,8 @@ private:
 
     static constexpr int FallbackUpdateIntervalMs =
         NavigationCadence::RenderTickMs * NavigationCadence::RoadInfoEveryTicks;
+    static constexpr int TileFreshnessMs =
+        RoadMatchRetentionState::MissesBeforeClear * FallbackUpdateIntervalMs;
     static constexpr int QueryZoom = 14;
     static constexpr int MaxCachedTiles = 50;
 

@@ -13,6 +13,7 @@ VehicleStore::VehicleStore(MdbRepository *repo, QObject *parent)
             });
     }
 
+    m_blinkTimer.setTimerType(Qt::PreciseTimer);
     m_blinkTimer.setInterval(BLINK_TICK_MS);
     connect(&m_blinkTimer, &QTimer::timeout, this, &VehicleStore::updateBlinkClock);
 
@@ -47,6 +48,7 @@ SyncSettings VehicleStore::syncSettings() const
         QStringLiteral("vehicle"),
         1000,
         {
+            {QStringLiteral("blinkerStart"), QStringLiteral("blinker:start_nanos")},
             {QStringLiteral("blinkerState"), QStringLiteral("blinker:state")},
             {QStringLiteral("blinkerSwitch"), QStringLiteral("blinker:switch")},
             {QStringLiteral("brakeLeft"), QStringLiteral("brake:left")},
@@ -86,31 +88,31 @@ void VehicleStore::applyFieldUpdate(const QString &variable, const QString &valu
 {
     if (variable == QLatin1String("blinker:state")) {
         auto v = ScootEnums::parseBlinkerState(value);
-        if (v != m_blinkerState) {
+        const bool stateChanged = v != m_blinkerState;
+        if (stateChanged) {
             m_blinkerState = v;
             emit blinkerStateChanged();
-            if (v != ScootEnums::BlinkerState::Off) {
-                // Anchor the cycle at "now" until blinker:start_nanos arrives
-                // via HGET (typically a few ms on local Redis). For the ~1-2
-                // frames before resync the arrow is at opacity ~0 anyway, so
-                // the correction isn't visible.
-                m_blinkStartMs = QDateTime::currentMSecsSinceEpoch();
+        }
+        if (v != ScootEnums::BlinkerState::Off) {
+            if (stateChanged) {
                 m_blinkTimer.start();
-                if (m_repo)
-                    m_repo->requestField(QStringLiteral("vehicle"), QStringLiteral("blinker:start_nanos"));
-            } else {
-                m_blinkTimer.stop();
-                if (m_blinkOpacity != 0.0) {
-                    m_blinkOpacity = 0.0;
-                    emit blinkOpacityChanged();
-                }
+            }
+            // Hash updates include the anchor before the state. A standalone
+            // state notification needs a fresh snapshot, not a locally timed cycle.
+            if (m_repo && !m_blinkBatch)
+                m_repo->requestAll(QStringLiteral("vehicle"));
+        } else if (stateChanged) {
+            m_blinkTimer.stop();
+            if (m_blinkOpacity != 0.0) {
+                m_blinkOpacity = 0.0;
+                emit blinkOpacityChanged();
             }
         }
     } else if (variable == QLatin1String("blinker:start_nanos")) {
         qint64 startNanos = value.toLongLong();
-        if (startNanos > 0 && m_blinkerState != ScootEnums::BlinkerState::Off) {
-            m_blinkStartMs = startNanos / 1000000LL;
-        }
+        m_blinkStartMs = startNanos > 0 ? startNanos / 1000000LL : 0;
+        if (!m_blinkBatch)
+            updateBlinkClock();
     } else if (variable == QLatin1String("blinker:switch")) {
         auto v = ScootEnums::parseBlinkerSwitch(value);
         if (v != m_blinkerSwitch) { m_blinkerSwitch = v; emit blinkerSwitchChanged(); }
@@ -256,6 +258,12 @@ void VehicleStore::setBrake(bool isLeft, ScootEnums::Toggle value)
     }
 }
 
+void VehicleStore::endBatchUpdate()
+{
+    m_blinkBatch = false;
+    updateBlinkClock();
+}
+
 void VehicleStore::updateBlinkClock()
 {
     // Sample the real hardware fade curve (fade10-blink) so the on-screen
@@ -265,7 +273,8 @@ void VehicleStore::updateBlinkClock()
     const qint64 nowMs = QDateTime::currentMSecsSinceEpoch();
     const qint64 phase = ((nowMs - m_blinkStartMs) % blinker::kCycleMs
                           + blinker::kCycleMs) % blinker::kCycleMs;
-    const qreal opacity = blinker::sample(static_cast<int>(phase));
+    const qreal opacity = m_blinkStartMs > 0 && m_blinkerState != ScootEnums::BlinkerState::Off
+        ? blinker::sample(static_cast<int>(phase)) : 0.0;
 
     if (!qFuzzyCompare(1.0 + opacity, 1.0 + m_blinkOpacity)) {
         m_blinkOpacity = opacity;

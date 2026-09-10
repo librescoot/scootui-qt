@@ -1,4 +1,5 @@
 #include <QGuiApplication>
+#include <QScopeGuard>
 #include <QQmlApplicationEngine>
 #include <QQmlComponent>
 #include <QQmlContext>
@@ -55,6 +56,7 @@ static void presentWhenPainted(Application &application, QObject *root)
         application.uiPresented();
         return;
     }
+    application.observeWindow(window);
     QObject::connect(window, &QQuickWindow::frameSwapped,
         &application, [&application]() {
             BOOT_MARK("first frameSwapped");
@@ -113,15 +115,23 @@ int main(int argc, char *argv[])
     defaultFont.setPixelSize(16);
     app.setFont(defaultFont);
 
+    // Keep the application services alive until after QML is destroyed. QML
+    // bindings refer to these objects, so the engine must be destroyed first.
+    Application application;
+    application.setBootPrefetch(prefetch.get());
+
     QQmlApplicationEngine engine;
+    // Runs on normal exit, initialization failure and exception paths, before
+    // QML, services and Qt/static state are destroyed. No joins during HMI use.
+    const auto backgroundWorkerShutdown = qScopeGuard([&application]() {
+        application.shutdownBackgroundWorkers();
+    });
     BOOT_MARK("QQmlApplicationEngine ready");
 
     // Ensure QMapLibre QML modules (MapLibre.Location) are found
     engine.addImportPath(QStringLiteral("/usr/local/qml"));
     engine.addImportPath(QStringLiteral("/usr/qml"));
 
-    Application application;
-    application.setBootPrefetch(prefetch.get());
     BOOT_MARK("Application::initialize starting");
     if (!application.initialize(engine)) {
         qCritical() << "Failed to initialize application";

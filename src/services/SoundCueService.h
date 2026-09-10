@@ -2,13 +2,11 @@
 
 #include "models/Enums.h"
 
-#include <QAudioDevice>
-#include <QHash>
 #include <QObject>
 #include <QString>
 
 class BatteryStore;
-class QSoundEffect;
+class SoundCuePlayer;
 class ToastService;
 class NotificationService;
 class VehicleStore;
@@ -74,22 +72,16 @@ public:
     static bool validateWaveFile(const QString &path, QString *error = nullptr);
     void arm();
     void setNotificationService(NotificationService *service);
+    void stop();
 
 private:
-    void loadCues(const QString &assetRoot);
-    void loadNextCue();
-    void disableAudio(const QString &reason);
     void playEvent(SoundEvent event);
-    void playCue(SoundCue cue);
 
     VehicleStore *m_vehicleStore;
     BatteryStore *m_battery0Store;
     BatteryStore *m_battery1Store;
-    QHash<SoundCue, QSoundEffect *> m_effects;
     NotificationService *m_notificationService = nullptr;
-    QAudioDevice m_audioOutput;
-    QString m_assetRoot;
-    int m_nextCue = static_cast<int>(SoundCue::Wake);
+    SoundCuePlayer *m_player = nullptr;
     ScootEnums::VehicleState m_vehicleState;
     ScootEnums::SeatboxLock m_seatboxState;
     ScootEnums::BlinkerState m_blinkerState;
@@ -97,5 +89,4 @@ private:
     bool m_battery0Present = false;
     bool m_battery1Present = false;
     bool m_armed = false;
-    bool m_audioAvailable = false;
 };

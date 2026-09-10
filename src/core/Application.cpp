@@ -1,4 +1,6 @@
 #include "Application.h"
+#include "HmiLatencyMonitor.h"
+#include "services/RoadWorkerThreads.h"
 #include "AppConfig.h"
 #include "EnvConfig.h"
 #include "core/BootGate.h"
@@ -49,6 +51,7 @@
 #include "services/NotificationService.h"
 #include "services/NotificationIngress.h"
 #include "services/SoundCueService.h"
+#include "services/SoundCuePlayer.h"
 #include "services/MapService.h"
 #include "services/LowTemperatureMonitor.h"
 #include "services/BluetoothHealthMonitor.h"
@@ -159,8 +162,25 @@ Application::~Application()
         delete child;
 }
 
+void Application::shutdownBackgroundWorkers()
+{
+    if (m_soundCueService)
+        m_soundCueService->stop();
+    if (m_roadInfoService)
+        m_roadInfoService->stopWorkers();
+    SoundCuePlayer::drainAfterEventLoop();
+    RoadWorkerThreads::drainAfterEventLoop();
+}
+
+void Application::observeWindow(QQuickWindow *window)
+{
+    if (m_latencyMonitor)
+        m_latencyMonitor->attachWindow(window);
+}
+
 bool Application::initialize(QQmlApplicationEngine &engine)
 {
+    m_latencyMonitor = new HmiLatencyMonitor(this);
     // Two independent choices. Which repository backs the UI, and whether the
     // simulator panel runs on top of it. They used to be one: "no Redis host"
     // meant both, which ruled out driving a dedicated Redis from the panel or
@@ -1247,13 +1267,10 @@ void Application::setupSignalHandlers()
             if (m_shutdownStore) {
                 m_shutdownStore->forceBlackout();
             }
-            // Hold the black frame for ~2s before exiting. imx-drm does a
-            // lastclose/master-release modeset when we exit, which shows up
-            // as a visible "no-signal" flash on the DPI panel. The DBC's
-            // VBUS is cut 5s after vehicle-service enters ShuttingDown; by
-            // waiting 2s we let other DBC services finish and keep the
-            // flash hidden behind the power rail going away.
-            QTimer::singleShot(2000, &QCoreApplication::quit);
+            // The forced-blackout fade is 600ms. Quit one frame later so
+            // teardown fits inside systemd's 3s stop timeout and leaves time
+            // for the DBC to halt before vehicle-service cuts power at 4s.
+            QTimer::singleShot(700, &QCoreApplication::quit);
         });
 
         struct sigaction sa;

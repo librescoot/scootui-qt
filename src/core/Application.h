@@ -36,6 +36,8 @@ class UpdateChannelService;
 class RoadInfoService;
 class OdometerMilestoneService;
 class DataPartition;
+class HmiLatencyMonitor;
+class QQuickWindow;
 
 class BootPrefetch;
 class BootGate;
@@ -54,6 +56,8 @@ public:
     // from boot-animation and, together with the Redis connect, gates the
     // systemd READY=1. Idempotent.
     void uiPresented();
+    void observeWindow(QQuickWindow *window);
+    void shutdownBackgroundWorkers();
     bool isSimulatorMode() const { return m_simulatorMode; }
     bool isInMemoryBackend() const { return m_inMemoryBackend; }
 
@@ -125,6 +129,7 @@ private:
     RoadInfoService *m_roadInfoService = nullptr;
     OdometerMilestoneService *m_odometerMilestoneService = nullptr;
     DataPartition *m_dataPartition = nullptr;
+    HmiLatencyMonitor *m_latencyMonitor = nullptr;
     // Stashed for maybeAutoDownloadMaps(), which needs to be reachable from
     // several connects (updateAvailableChanged, vehicleStore::stateChanged,
     // and the startup check) without duplicating its gating logic in each.

@@ -94,6 +94,8 @@ signals:
     void faultsChanged();
 
 protected:
+    void beginBatchUpdate() override { m_blinkBatch = true; }
+    void endBatchUpdate() override;
     SyncSettings syncSettings() const override;
     void applyFieldUpdate(const QString &variable, const QString &value) override;
     void applySetUpdate(const QString &name, const QStringList &members) override;
@@ -115,6 +117,7 @@ private:
     static constexpr int BLINK_TICK_MS = 33;
 
     SubscriptionId m_buttonsSubscriptionId = 0;
+    bool m_blinkBatch = false;
     QTimer m_blinkTimer;
     qreal m_blinkOpacity = 0.0;
     // Wall-clock anchor (ms since epoch) for the cycle schedule. Vehicle-service

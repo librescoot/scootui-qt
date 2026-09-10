@@ -68,17 +68,33 @@ bool BackupBatteryMonitor::auxLow() const
 void BackupBatteryMonitor::evaluate()
 {
     const int state = m_vehicle->state();
+    const bool parked = state == static_cast<int>(ScootEnums::VehicleState::Parked);
     const bool noMain = noMainBattery();
 
     // --- Edge detection: arm the warning only at the two moments the rider
     //     enters an at-risk resting state. ---
     const bool parkEdge =
         m_prevState == static_cast<int>(ScootEnums::VehicleState::ReadyToDrive)
-        && state == static_cast<int>(ScootEnums::VehicleState::Parked);
+        && parked;
     const bool removalEdge = !m_prevNoMain && noMain;
 
     m_prevState = state;
     m_prevNoMain = noMain;
+
+    if (!parked) {
+        m_armPark = false;
+        m_armRemoval = false;
+        m_debounceTimer->stop();
+        if (m_cbShowing) {
+            m_cbShowing = false;
+            m_toast->dismiss(CbToastId);
+        }
+        if (m_auxShowing) {
+            m_auxShowing = false;
+            m_toast->dismiss(AuxToastId);
+        }
+        return;
+    }
 
     if (parkEdge)
         m_armPark = true;
@@ -106,7 +122,8 @@ void BackupBatteryMonitor::raise()
     // still a park, but a "removed last battery" edge is void if a pack was
     // reinserted within the debounce window (the common battery-swap case).
     const bool parked = m_vehicle->state() == static_cast<int>(ScootEnums::VehicleState::Parked);
-    const bool relevant = (m_armPark && parked) || (m_armRemoval && noMainBattery());
+    const bool relevant = parked
+        && (m_armPark || (m_armRemoval && noMainBattery()));
     m_armPark = false;
     m_armRemoval = false;
     if (!relevant)

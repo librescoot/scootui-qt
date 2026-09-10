@@ -98,6 +98,7 @@ public:
     // overlapping tunnel/bridge way at the same lat/lon can win the
     // nearest-segment race against the surface road we're actually on.
     QString currentSegmentStreetName() const;
+    int currentSegmentIndex() const { return m_currentSegmentIndex; }
 
     // Per-edge metadata for the segment we're currently on, sourced from a
     // Valhalla /trace_attributes follow-up. Returns false / empty defaults
@@ -156,6 +157,7 @@ signals:
     void arrived();
     void arrivalReset();
     void routeChanged();
+    void routeAttributesChanged();
     void errorChanged();
     void destinationChanged();
     // Fired once every time a user explicitly requests navigation to a

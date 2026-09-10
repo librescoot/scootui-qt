@@ -1,4 +1,6 @@
 #include "SoundCueService.h"
+#include "SoundCuePlayer.h"
+#include <QHash>
 
 #include "services/ToastService.h"
 #include "services/NotificationService.h"
@@ -17,7 +19,6 @@
 
 namespace {
 
-constexpr int kCueLoadDelayMs = 8000;
 constexpr int kCueLoadIntervalMs = 150;
 
 quint16 readLe16(const QByteArray &data, qsizetype offset)
@@ -104,6 +105,22 @@ QAudioDevice selectAudioOutput()
 }
 
 } // namespace
+
+class QtSoundCueBackend final : public SoundCueBackend
+{
+public:
+    void initialize(const QString &assetRoot) override;
+    void play(SoundCue cue) override;
+private:
+    void loadNextCue();
+    void disableAudio(const QString &reason);
+    QHash<SoundCue, QSoundEffect *> m_effects;
+    QAudioDevice m_audioOutput;
+    QString m_assetRoot;
+    int m_nextCue = static_cast<int>(SoundCue::Wake);
+    bool m_audioAvailable = false;
+    quint32 m_availableMask = 0;
+};
 
 SoundEvent SoundCueMapping::vehicleTransition(ScootEnums::VehicleState from,
                                                ScootEnums::VehicleState to)
@@ -198,9 +215,7 @@ SoundCueService::SoundCueService(VehicleStore *vehicleStore, BatteryStore *batte
     , m_seatboxState(static_cast<ScootEnums::SeatboxLock>(vehicleStore->seatboxLock()))
     , m_blinkerState(static_cast<ScootEnums::BlinkerState>(vehicleStore->blinkerState()))
 {
-    QTimer::singleShot(kCueLoadDelayMs, this, [this, assetRoot]() {
-        loadCues(assetRoot);
-    });
+    m_player = new SoundCuePlayer(assetRoot, []() { return new QtSoundCueBackend; }, this);
 
     connect(vehicleStore, &VehicleStore::stateChanged, this, [this]() {
         const auto next = static_cast<ScootEnums::VehicleState>(m_vehicleStore->state());
@@ -332,7 +347,7 @@ bool SoundCueService::validateWaveFile(const QString &path, QString *error)
     return true;
 }
 
-void SoundCueService::loadCues(const QString &assetRoot)
+void QtSoundCueBackend::initialize(const QString &assetRoot)
 {
     m_audioOutput = selectAudioOutput();
     if (m_audioOutput.isNull()) {
@@ -344,7 +359,7 @@ void SoundCueService::loadCues(const QString &assetRoot)
     loadNextCue();
 }
 
-void SoundCueService::loadNextCue()
+void QtSoundCueBackend::loadNextCue()
 {
     if (!m_audioAvailable || m_nextCue > static_cast<int>(SoundCue::Error))
         return;
@@ -352,28 +367,34 @@ void SoundCueService::loadNextCue()
     const auto cue = static_cast<SoundCue>(m_nextCue++);
     const QString path = m_assetRoot + QLatin1Char('/') + cueFileName(cue);
     QString error;
-    if (!validateWaveFile(path, &error)) {
+    if (!SoundCueService::validateWaveFile(path, &error)) {
         qWarning() << "Sound cue disabled:" << path << error;
     } else {
         auto *effect = new QSoundEffect(m_audioOutput, this);
-        effect->setVolume(DefaultVolume);
-        effect->setSource(QUrl(path));
+        effect->setVolume(SoundCueService::DefaultVolume);
         connect(effect, &QSoundEffect::statusChanged, this, [this, effect, path]() {
             if (effect->status() == QSoundEffect::Error)
                 disableAudio(QStringLiteral("playback unavailable: ") + path);
         });
         m_effects.insert(cue, effect);
+        effect->setSource(QUrl(path));
+        if (m_audioAvailable) {
+            m_availableMask |= 1u << int(cue);
+            emit availableCuesChanged(m_availableMask);
+        }
     }
 
     if (m_nextCue <= static_cast<int>(SoundCue::Error))
-        QTimer::singleShot(kCueLoadIntervalMs, this, &SoundCueService::loadNextCue);
+        QTimer::singleShot(kCueLoadIntervalMs, this, &QtSoundCueBackend::loadNextCue);
 }
 
-void SoundCueService::disableAudio(const QString &reason)
+void QtSoundCueBackend::disableAudio(const QString &reason)
 {
     if (!m_audioAvailable)
         return;
     m_audioAvailable = false;
+    m_availableMask = 0;
+    emit availableCuesChanged(0);
     for (auto *effect : std::as_const(m_effects)) {
         effect->stop();
         effect->setMuted(true);
@@ -383,10 +404,16 @@ void SoundCueService::disableAudio(const QString &reason)
 
 void SoundCueService::playEvent(SoundEvent event)
 {
-    playCue(SoundCueMapping::cueForEvent(event));
+    m_player->play(SoundCueMapping::cueForEvent(event));
 }
 
-void SoundCueService::playCue(SoundCue cue)
+void SoundCueService::stop()
+{
+    m_armed = false;
+    m_player->stop();
+}
+
+void QtSoundCueBackend::play(SoundCue cue)
 {
     if (!m_audioAvailable)
         return;

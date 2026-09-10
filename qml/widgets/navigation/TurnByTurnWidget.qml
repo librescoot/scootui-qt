@@ -172,7 +172,9 @@ Item {
 
                 Loader {
                     anchors.centerIn: parent
-                    active: parent.isRoundabout
+                    // The warmed hidden cluster must not compete with the visible
+                    // map screen for street-query demand. Service prefetch is independent.
+                    active: parent.isRoundabout && tbtWidget.visible
                     sourceComponent: RoundaboutIconFromMap {
                         objectName: "mainRoundaboutIcon"
                         renderData: tbtWidget.maneuver.roundabout || null

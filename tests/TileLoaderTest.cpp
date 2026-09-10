@@ -7,6 +7,9 @@
 #include <zlib.h>
 
 #include "services/TileLoader.h"
+#include "services/StreetQueryDispatcher.h"
+#include <cmath>
+#include <limits>
 
 namespace {
 
@@ -47,6 +50,8 @@ QByteArray buildTile()
     QByteArray tags;
     varint(tags, 0);
     varint(tags, 0);
+    varint(tags, 1);
+    varint(tags, 1);
 
     QByteArray feature;
     lengthDelimited(feature, 2, tags);
@@ -62,6 +67,10 @@ QByteArray buildTile()
     lengthDelimited(layer, 2, feature);
     lengthDelimited(layer, 3, QByteArrayLiteral("name"));
     lengthDelimited(layer, 4, value);
+    lengthDelimited(layer, 3, QByteArrayLiteral("kind"));
+    QByteArray kindValue;
+    lengthDelimited(kindValue, 1, QByteArrayLiteral("residential"));
+    lengthDelimited(layer, 4, kindValue);
     varintField(layer, 5, 4096);
 
     QByteArray tile;
@@ -176,6 +185,94 @@ private slots:
                                   Q_ARG(quint64, key(TileX + 1, TileY)), Q_ARG(int, Zoom), Q_ARG(int, 1));
         QVERIFY(missing.wait(5000));
         QCOMPARE(missing.takeFirst().at(0).toULongLong(), key(TileX + 1, TileY));
+    }
+
+    void boundedStreetExtractionAndMissingReload() {
+        auto lon = [](double x) { return x / (1 << Zoom) * 360.0 - 180.0; };
+        auto lat = [](double y) {
+            return std::atan(std::sinh(M_PI * (2 * y / (1 << Zoom) - 1))) * 180 / M_PI;
+        };
+        StreetQueryRequest r;
+        r.path = m_path; r.mapGeneration = 1;
+        r.minLon = lon(TileX + 0.001); r.maxLon = lon(TileX + 0.02);
+        r.minLat = lat(TileY + 0.98); r.maxLat = lat(TileY + 0.999);
+        auto result = queryStreets(r);
+        QVERIFY(result.complete);
+        QCOMPARE(result.streets.size(), 1);
+        const auto feature = result.streets[0].toMap();
+        QCOMPARE(feature["name"].toString(), QString("Teststrasse"));
+        QCOMPARE(feature["kind"].toString(), QString("residential"));
+        QCOMPARE(feature["roundabout"].toBool(), false);
+        const auto points = feature["points"].toList();
+        QCOMPARE(points.size(), 2);
+        QVERIFY(qAbs(points[0].toList()[0].toDouble() - lat(TileY + 1 - 20.0 / 4096)) < 1e-10);
+        QVERIFY(qAbs(points[0].toList()[1].toDouble() - lon(TileX + 10.0 / 4096)) < 1e-10);
+        r.mapGeneration = 2;
+        r.path = m_dir.filePath("missing.mbtiles");
+        QVERIFY(!queryStreets(r).complete);
+        r.path = m_path;
+        QCOMPARE(queryStreets(r).streets.size(), 1);
+        r.minLon = lon(TileX + 1.001); r.maxLon = lon(TileX + 1.02);
+        result = queryStreets(r);
+        QVERIFY(!result.complete);
+        QVERIFY(result.streets.isEmpty());
+        r.minLon = -180; r.maxLon = 179;
+        QVERIFY(queryStreets(r).streets.isEmpty());
+        r.minLon = std::numeric_limits<double>::quiet_NaN();
+        QVERIFY(queryStreets(r).streets.isEmpty());
+    }
+
+    void iconDecodeLimitsAndMalformedInput() {
+        const auto raw = buildTile();
+        const auto compressed = gzipCompress(raw);
+        QVERIFY(VectorTile::gunzip(compressed, raw.size() - 1).isEmpty());
+        QCOMPARE(VectorTile::gunzip(compressed, raw.size()), raw);
+        TileLoader loader;
+        loader.setPath(m_path, 1);
+        QVERIFY(!loader.read(key(TileX, TileY), Zoom, 1, compressed.size() - 1, 1024));
+        QVERIFY(!loader.read(key(TileX, TileY), Zoom, 1, 1024, raw.size() - 1));
+        QVERIFY(loader.read(key(TileX, TileY), Zoom, 1, 1024, 1024).has_value());
+        // Oversized varints and length fields must terminate without invalid shifts
+        // or pointer arithmetic. Sanitizer runs exercise these through the parser.
+        QVERIFY(VectorTile::parse(QByteArray(20, char(0xff))).layers.isEmpty());
+        QVERIFY(VectorTile::parse(QByteArray::fromHex("1affffffffffffffffff7f")).layers.size() <= 1);
+        VectorTile::parse(QByteArray::fromHex("1a080dffffffffffffffff"));
+    }
+
+    void connectionRemovedOnAutonomousShutdown_data()
+    {
+        QTest::addColumn<bool>("validPath");
+        QTest::newRow("open database") << true;
+        QTest::newRow("failed open") << false;
+    }
+
+    void connectionRemovedOnAutonomousShutdown()
+    {
+        QFETCH(bool, validPath);
+        auto *thread = new QThread;
+        auto *loader = new TileLoader;
+        const QString connection = QStringLiteral("tile_loader_%1")
+            .arg(reinterpret_cast<quintptr>(loader), 0, 16);
+        loader->moveToThread(thread);
+        connect(thread, &QThread::finished, loader, &QObject::deleteLater);
+        connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+        QSignalSpy deleted(loader, &QObject::destroyed);
+        QSignalSpy threadDeleted(thread, &QObject::destroyed);
+        QSignalSpy missing(loader, &TileLoader::missing);
+        thread->start();
+        const QString path = validPath ? m_path : m_dir.filePath("absent/map.mbtiles");
+        QMetaObject::invokeMethod(loader, "setPath", Qt::QueuedConnection,
+                                  Q_ARG(QString, path), Q_ARG(int, 1));
+        QMetaObject::invokeMethod(loader, "load", Qt::QueuedConnection,
+                                  Q_ARG(quint64, key(TileX + 1, TileY)),
+                                  Q_ARG(int, Zoom), Q_ARG(int, 1));
+        QVERIFY(missing.wait(5000));
+        QVERIFY(QSqlDatabase::contains(connection));
+        thread->requestInterruption();
+        thread->quit();
+        QTRY_COMPARE(deleted.count(), 1);
+        QTRY_COMPARE(threadDeleted.count(), 1);
+        QVERIFY(!QSqlDatabase::contains(connection));
     }
 
     void staleGenerationIsMissing()

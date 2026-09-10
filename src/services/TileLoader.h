@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QString>
+#include <optional>
 #include "VectorTileDecoder.h"
 
 // Loads and decodes vector tiles on its own thread with its own sqlite
@@ -14,6 +15,9 @@ class TileLoader : public QObject
 public:
     explicit TileLoader(QObject *parent = nullptr);
     ~TileLoader();
+    // Direct calls only on the owning worker. Limits are opt-in for icon queries.
+    std::optional<VectorTile::Tile> read(quint64 key, int zoom, int generation,
+                                        int maxCompressedBytes = 0, int maxDecodedBytes = 0);
 
 public slots:
     void setPath(const QString &path, int generation);

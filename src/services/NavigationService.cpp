@@ -924,6 +924,11 @@ void NavigationService::onRouteCalculated(const Route &route)
     if (m_wasArrived)
         return;
     m_route = route;
+    // Shape indices identify a pair only within one route. A reroute can reuse
+    // them for a different ring, and GPS may not yet permit rebuilding it.
+    m_roundaboutEnterShape = m_roundaboutExitShape = -1;
+    m_roundaboutRender.clear();
+    emit roundaboutRenderChanged();
     m_remainingDuration = route.duration;
     m_currentSegmentIndex = 0;
     m_routeStartedAt.restart();
@@ -972,6 +977,7 @@ void NavigationService::onRouteAttributesReady(const QList<EdgeAttrs> &attrs)
         return;
     }
     m_route.shapeAttrs = attrs;
+    emit routeAttributesChanged();
     qDebug() << "NavigationService: route enriched with" << attrs.size()
              << "edge attribute slots";
 }
