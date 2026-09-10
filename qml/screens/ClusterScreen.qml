@@ -88,11 +88,6 @@ Rectangle {
         z: 30
     }
 
-    Binding {
-        target: typeof notificationService !== "undefined" ? notificationService : null
-        property: "surface"
-        value: "cluster"
-    }
 
     readonly property real bottomBarHeight: bottomBar.height
 }

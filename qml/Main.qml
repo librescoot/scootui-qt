@@ -279,6 +279,14 @@ Window {
     }
     readonly property Item activeScreen: root.clusterIsActive ? clusterLoader.item : screenLoader.item
 
+    // Only the screen selector owns eligibility; a prewarmed hidden cluster
+    // must not overwrite the visible map's notification surface.
+    Binding {
+        target: typeof notificationService !== "undefined" ? notificationService : null
+        property: "surface"
+        value: screenLoader.source.toString() === Qt.resolvedUrl(root.screenUrls.map).toString() ? "map" : "cluster"
+    }
+
     // Compile the screens that are not on screen yet, in the background, so a
     // later switch pays only for creation. Runs once, after the first frame has
     // been presented; the cluster goes first because that is where a stand-by

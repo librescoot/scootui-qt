@@ -499,6 +499,29 @@ install(TARGETS scootui
 if(BUILD_TESTING)
     find_package(Qt6 6.4 REQUIRED COMPONENTS Test)
 
+    set(APPLICATION_NOTIFICATION_TEST_SOURCES ${CPP_SOURCES})
+    list(REMOVE_ITEM APPLICATION_NOTIFICATION_TEST_SOURCES src/main.cpp)
+    qt_add_executable(application_notification_test
+        tests/ApplicationNotificationTest.cpp
+        ${APPLICATION_NOTIFICATION_TEST_SOURCES} ${CPP_HEADERS})
+    target_include_directories(application_notification_test PRIVATE
+        $<TARGET_PROPERTY:scootui,INCLUDE_DIRECTORIES>)
+    target_link_directories(application_notification_test PRIVATE
+        $<TARGET_PROPERTY:scootui,LINK_DIRECTORIES>)
+    target_link_libraries(application_notification_test PRIVATE
+        $<TARGET_PROPERTY:scootui,LINK_LIBRARIES> Qt6::Test)
+    file(GLOB APPLICATION_TEST_ICONS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/*.svg")
+    file(GLOB APPLICATION_TEST_FONTS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/subset/*")
+    qt_add_resources(application_notification_test "application_notification_assets"
+        PREFIX "/ScootUI" BASE "${CMAKE_CURRENT_SOURCE_DIR}"
+        FILES ${QML_FILES} qml/widgets/components/qmldir
+              ${APPLICATION_TEST_ICONS} ${APPLICATION_TEST_FONTS} ${SOUND_CUE_FILES}
+              assets/styles/mapdark.json assets/styles/maplight.json)
+    add_test(NAME application_notification_test COMMAND application_notification_test)
+    set_tests_properties(application_notification_test PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software"
+        TIMEOUT 60)
+
     qt_add_executable(gps_store_test
         tests/GpsStoreTest.cpp
         src/repositories/MdbRepository.h

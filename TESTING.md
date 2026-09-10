@@ -9,6 +9,17 @@ SCOOTUI_TEST_CAPTURE_DIR=/tmp/notification-captures QT_QPA_PLATFORM=offscreen \
   QT_QUICK_BACKEND=software ctest --test-dir build -R notification_qml_tests --output-on-failure
 ```
 
+`ApplicationNotificationTest.cpp` loads the actual Application wiring and Main.qml
+with an in-memory backend and simulator disabled. It verifies map-first startup,
+subsequent hidden cluster warming, persistent cluster reuse, switching both ways,
+and map coverage eligibility (including maintenance). It also toggles the real
+dual-battery setting with an unchanged slot-1 fault and verifies immediate
+resolution/republication without another fault signal. Network requests fail
+closed through a loopback proxy; the test requests the native warm-cluster gate
+without invoking the platform boot-animation handoff, and drains background
+workers before destroying Application. Optional captures show the map coverage
+warning before and after hidden cluster warming.
+
 `NotificationServiceTest.cpp` covers severity ordering, both notification-slot
 cycles with an injected monotonic clock, update/dismiss/expiry, eligibility,
 queued counts and cue deduplication, including ToastService semantic mappings,

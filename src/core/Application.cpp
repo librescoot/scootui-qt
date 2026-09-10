@@ -634,6 +634,9 @@ void Application::createStores(QQmlApplicationEngine &engine)
     connect(battery1Store, &BatteryStore::faultsChanged, this, [refreshFault, battery1Store]() {
         refreshFault(battery1Store);
     });
+    connect(settingsStore, &SettingsStore::dualBatteryChanged, this, [refreshFault, battery1Store]() {
+        refreshFault(battery1Store);
+    });
     refreshFault(battery0Store);
     refreshFault(battery1Store);
 
