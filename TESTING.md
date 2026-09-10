@@ -31,6 +31,20 @@ ring), including fork/roundabout loading and restoration in both themes. A
 background-only negative control guards against mistaking the dial for an icon.
 The native toast case checks a rendered green success icon above queued info
 while navigation remains primary.
+The native low-12V cases construct BackupBatteryMonitor with real battery and
+vehicle stores backed only by the in-memory repository, remove the main battery
+while parked, and wait for the normal 1500ms debounce. They assert the complete
+English/German producer text fits at 20px without scrolling or clipping, in both
+themes with/without navigation and queued counts; returning to riding dismisses
+the warning. The original custom-icon payload remains intact; the unified card
+continues to display its severity glyph.
+Maximum-length 120/512-character external messages, literal HTML and unbroken
+words exercise bounded vertical scrolling, start/end positions, stable layout,
+entry/content resets, hide/show, short replacement and destruction. Screen
+captures of scroll start/end also compare unobscured speed glyph pixels. A
+1-second external TTL test verifies expiry does not wait for scrolling. The
+injected service clock is independent of real-time QML scrolling, so these tests
+do not promise that every message can be read before expiry.
 `tst_notificationdock.qml` also checks translucent, stripe-free notification
 styling against the shared navigation background, and loading transitions that
 retain old roundabout/fork maneuver fields. Plain-text checks include the hidden

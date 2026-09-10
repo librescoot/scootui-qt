@@ -251,7 +251,7 @@ TestCase {
                 for (const child of card.children)
                     verify(!(child.width === 3 && child.height === card.height), "No left accent stripe")
                 const title = findChild(card, "notificationTitle")
-                compare(title.font.pixelSize, instructionSize + 2)
+                verify(title.font.pixelSize >= instructionSize && title.font.pixelSize <= instructionSize + 2)
                 compare(title.font.weight, Font.DemiBold)
                 compare(findChild(card, "notificationBody").font.pixelSize, instructionSize)
                 compare(findChild(card, "notificationIcon").color, card.accent)
@@ -259,9 +259,10 @@ TestCase {
                     compare(findChild(card, "notificationIcon").text, MaterialIcon.iconInfoOutline)
                 else if (severity.kind === "debug")
                     compare(findChild(card, "notificationIcon").text, MaterialIcon.iconBugReport)
-                compare(title.maximumLineCount, mode === "secondary" ? 1 : 2)
+                compare(title.elide, Text.ElideNone)
                 verify(!title.truncated)
-                fits(title, card)
+                if (!card.scrolling) fits(title, card)
+                else fits(findChild(card, "notificationTextViewport"), card)
                 if (typeof captureDirectory !== "undefined" && captureDirectory.length > 0)
                     grabImage(dock).save(captureDirectory + "/notification-style-" + severity.kind + "-" + mode + "-" + data.tag + ".png")
             }
@@ -301,10 +302,10 @@ TestCase {
                 verify(!findChild(widget, "maneuverTripSummary").visible)
                 verify(!findChild(widget, "maneuverNextPreview").visible)
                 verify(secondary.visible)
-                compare(findChild(secondary, "notificationTitle").maximumLineCount, 1)
+                compare(findChild(secondary, "notificationTitle").elide, Text.ElideNone)
                 compare(findChild(secondary, "notificationBody").visible, longText)
                 fits(secondary, dock)
-                verify(dock.height <= 152)
+                verify(dock.height <= 156)
             }
         }
     }
@@ -335,8 +336,8 @@ TestCase {
             fits(title, card)
             fits(body, card)
             fits(counts, card)
-            verify(title.mapToItem(card, title.width, 0).x < counts.x)
-            verify(body.mapToItem(card, body.width, 0).x < counts.x)
+            verify(title.mapToItem(card, title.width, 0).x < counts.mapToItem(card, 0, 0).x)
+            verify(body.mapToItem(card, body.width, 0).x < counts.mapToItem(card, 0, 0).x)
             for (const kind of counts.visibleKinds) {
                 const badge = findChild(counts, "queuedCount_" + kind)
                 compare(badge.count, values[kind])
@@ -347,6 +348,80 @@ TestCase {
             }
             verify(dock.height <= 156)
         }
+    }
+
+    function test_oversizedTextScroll_data() {
+        const cases = []
+        for (const dark of [true, false])
+            for (const mode of ["full", "compact", "secondary"])
+                cases.push({tag: mode + (dark ? "-dark" : "-light"), mode: mode, dark: dark})
+        return cases
+    }
+
+    function test_oversizedTextScroll(data) {
+        dock.isDark = data.dark
+        const nav = {kind: "nav", status: 2, maneuverType: 5, distance: 80,
+                     instruction: "Turn right onto Main Street", compactInstruction: "Turn right"}
+        const titleString = data.mode === "full" ? "W".repeat(120)
+            : ("<b>Plain title</b> " + "Long notification title ".repeat(10)).slice(0, 120)
+        const bodyString = data.mode === "compact" ? "W".repeat(512)
+            : ("<img src='https://example.invalid/image.png'> " + "All original details remain readable. ".repeat(20)).slice(0, 512)
+        const entry = {id: "oversized", kind: "info", priority: 4, title: titleString, body: bodyString}
+        show(data.mode === "secondary" ? nav : entry,
+             data.mode === "full" ? {} : data.mode === "secondary" ? entry : nav)
+        const card = findChild(dock, data.mode === "secondary" ? "attentionCompanionNotification" : "attentionMainCard")
+        const title = findChild(card, "notificationTitle")
+        const body = findChild(card, "notificationBody")
+        const viewport = findChild(card, "notificationTextViewport")
+        const content = findChild(card, "notificationTextContent")
+        compare(title.text, titleString)
+        compare(body.text, bodyString)
+        for (const text of [title, body]) {
+            compare(text.textFormat, Text.PlainText)
+            compare(text.elide, Text.ElideNone)
+            verify(!text.truncated)
+            verify(text.font.pixelSize >= 18)
+            verify(text.contentWidth <= viewport.width + 1, "Unbroken words must wrap")
+        }
+        compare(findChild(title, "balancedTextProbe").textFormat, Text.PlainText)
+        verify(card.overflowDistance > 0 && viewport.clip)
+        tryCompare(card, "scrolling", true)
+        compare(content.y, 0)
+        fits(viewport, card)
+        verify(dock.height <= 156)
+        if (captureDirectory.length) grabImage(dock).save(captureDirectory + "/scroll-start-" + data.tag + ".png")
+        const originalHeight = dock.height
+        tryCompare(content, "y", -card.overflowDistance, 40000)
+        compare(dock.height, originalHeight)
+        fuzzyCompare(body.mapToItem(viewport, 0, body.height).y, viewport.height, 0.1)
+        if (captureDirectory.length) grabImage(dock).save(captureDirectory + "/scroll-end-" + data.tag + ".png")
+        // Stable service refreshes must not restart a reader; content and entry changes must.
+        const end = content.y
+        service.presentation = Object.assign({}, service.presentation)
+        wait(50)
+        compare(content.y, end)
+        card.entry = Object.assign({}, entry, {id: "next"})
+        tryCompare(content, "y", 0)
+        tryVerify(function() { return content.y < -5 }, 2500)
+        card.entry = Object.assign({}, entry, {title: "Changed title"})
+        tryCompare(content, "y", 0)
+        tryVerify(function() { return content.y < -5 }, 2500)
+        dock.visible = false
+        tryCompare(card, "scrolling", false)
+        compare(content.y, 0)
+        dock.visible = true
+        tryCompare(card, "scrolling", true)
+        compare(content.y, 0)
+        card.entry = {id: "short", kind: "info", priority: 4, title: "Fits", body: "Full body"}
+        tryCompare(card, "overflowDistance", 0)
+        tryCompare(card, "scrolling", false)
+        verify(!viewport.clip)
+        fits(title, card)
+        fits(body, card)
+        service.presentation = ({})
+        waitForRendering(dock)
+        compare(findChild(dock, "attentionMainRenderer").active, false)
+        dock.visible = Qt.binding(function() { return dock.hasMain })
     }
 
     function test_loadingClearsRetainedDirectionalIcons_data() {

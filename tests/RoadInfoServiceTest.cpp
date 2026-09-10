@@ -193,12 +193,27 @@ private slots:
         std::unique_ptr<QObject> widget(component.create());
         QVERIFY2(widget, qPrintable(component.errorString()));
         qobject_cast<QQuickItem *>(widget.get())->setParentItem(&host);
+        // The shared widget consumes the unified presentation payload, rather
+        // than reading maneuver fields directly from the navigation singleton.
+        const auto refreshManeuver = [&]() {
+            widget->setProperty("maneuver", QVariantMap{
+                {"kind", "nav"}, {"status", f.nav.status()},
+                {"maneuverType", f.nav.currentManeuverType()},
+                {"distance", f.nav.currentManeuverDistance()},
+                {"roundabout", f.nav.currentRoundaboutRender()},
+                {"roundaboutExit", f.nav.roundaboutExitCount()}});
+        };
+        connect(&f.nav, &NavigationService::statusChanged, widget.get(), refreshManeuver);
+        connect(&f.nav, &NavigationService::instructionChanged, widget.get(), refreshManeuver);
+        connect(&f.nav, &NavigationService::positionChanged, widget.get(), refreshManeuver);
+        connect(&f.nav, &NavigationService::roundaboutRenderChanged, widget.get(), refreshManeuver);
+        refreshManeuver();
         const auto findIcon = [&]() -> QObject * {
             for (auto *child : widget->findChildren<QObject *>())
                 if (child->metaObject()->indexOfProperty("streetRequest") >= 0) return child;
             return nullptr;
         };
-        QVERIFY(!findIcon()); // actual TBT Loader is still outside its threshold
+        QTRY_VERIFY(!findIcon()); // actual TBT Loader is still outside its threshold
         f.repo.publish("gps:tpv", R"({"latitude":"51.998","longitude":"13","state":"fix-established","timestamp":"2026-09-09T00:00:01Z"})");
         QVERIFY(f.nav.currentManeuverDistance() < 500);
         QTRY_VERIFY(findIcon());

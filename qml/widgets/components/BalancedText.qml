@@ -20,6 +20,7 @@ Text {
     onTextChanged: rebalance()
     onFontChanged: rebalance()
     onTextFormatChanged: rebalance()
+    onWrapModeChanged: rebalance()
     Component.onCompleted: rebalance()
 
     function rebalance() {
@@ -55,6 +56,6 @@ Text {
         objectName: "balancedTextProbe"
         textFormat: root.textFormat
         visible: false
-        wrapMode: Text.WordWrap
+        wrapMode: root.wrapMode
     }
 }

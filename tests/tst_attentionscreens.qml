@@ -332,7 +332,12 @@ TestCase {
             capture(screen, "cluster-" + (data.speed < 0 ? "dash" : data.speed) + "-" + state.name + (data.dark ? "" : "-light"))
         }
     }
-    function test_mapViewportAndMarker() {
+    function test_mapViewportAndMarker_data() {
+        return [{tag: "dark", dark: true}, {tag: "light", dark: false}]
+    }
+    function test_mapViewportAndMarker(data) {
+        themeStore.isDark = data.dark
+        themeStore.backgroundColor = data.dark ? "black" : "white"
         const screen = createTemporaryObject(mapComponent, this)
         verify(screen !== null)
         const viewport = findChild(screen, "mapViewport")
@@ -356,7 +361,7 @@ TestCase {
                 verify(blinkers.y >= overlay.y + overlay.height)
                 verify(blinkers.z > overlay.z)
                 compare(mapService.vehicleOffsetY, offset)
-                if (offset === 80) capture(screen, "map-" + state.name)
+                if (offset === 80) capture(screen, "map-" + state.name + (data.dark ? "" : "-light"))
             }
         }
     }
@@ -371,6 +376,134 @@ TestCase {
         compare(harness.vehicle.state, 2) // ReadyToDrive
         notificationService.presentation = Qt.binding(function() { return harness ? harness.notifications.presentation : ({}) })
         return createTemporaryObject(clusterComponent, this)
+    }
+
+    function test_nativeBackupAuxTextFit_data() {
+        const cases = []
+        for (const language of ["en", "de"])
+            for (const dark of [true, false])
+                for (const nav of [false, true])
+                    for (const counts of [false, true])
+                        cases.push({tag: language + (dark ? "-dark" : "-light")
+                            + (nav ? "-nav" : "-alone") + (counts ? "-counts" : ""),
+                            language: language, dark: dark, nav: nav, counts: counts})
+        return cases
+    }
+
+    function test_nativeBackupAuxTextFit(data) {
+        themeStore.isDark = data.dark
+        themeStore.backgroundColor = data.dark ? "black" : "white"
+        const screen = useNative()
+        harness.translations.setLanguage(data.language)
+        waitForRendering(screen)
+        const overlay = findChild(screen, "clusterAttention")
+        const bounds = paintedGlyphBounds(findChild(screen, "speedometerDigits"), screen)
+        const reference = grabImage(screen)
+        if (data.nav) {
+            verify(harness.loadFixture("route1"))
+            harness.approach()
+        }
+        nativeEventCues.clear()
+        harness.removeMainBatteryParked()
+        // Exercise the producer's normal 1500ms debounce, not its private raise().
+        verify(harness.notifications.presentation.main.id !== "backup-aux-low")
+        tryVerify(function() { return harness.notifications.presentation.main.id === "backup-aux-low" }, 2500)
+        if (data.counts) {
+            for (const kind of ["warning", "success", "info", "debug"])
+                for (let i = 0; i < 12; ++i)
+                    harness.notifications.publishCondition(kind + i, "test", "Queued " + kind, "",
+                        kind === "warning" ? 2 : kind === "success" ? 3 : kind === "info" ? 4 : 5, kind)
+        }
+        waitForRendering(screen)
+        const card = findChild(screen, "attentionMainCard")
+        const title = findChild(card, "notificationTitle")
+        const viewport = findChild(card, "notificationTextViewport")
+        const expected = data.language === "en"
+            ? "12V battery charge low. Please insert a charged main battery so the internal batteries don't run flat."
+            : "12V-Ladestand niedrig. Bitte einen geladenen Hauptakku einsetzen, damit die internen Batterien nicht leer laufen."
+        compare(title.text, expected)
+        compare(title.text, harness.translations.warningBackupAuxLow)
+        compare(card.entry.icon, "qrc:/ScootUI/assets/icons/librescoot-aux-battery-blank.svg")
+        compare(findChild(card, "notificationIcon").text, MaterialIcon.iconWarningAmber)
+        compare(title.elide, Text.ElideNone)
+        verify(!title.truncated)
+        verify(title.font.pixelSize >= 18)
+        compare(card.overflowDistance, 0)
+        verify(!card.scrolling && !viewport.clip)
+        const origin = title.mapToItem(viewport, 0, 0)
+        verify(origin.x >= 0 && origin.y >= 0)
+        verify(origin.x + title.width <= viewport.width + 1)
+        verify(origin.y + title.height <= viewport.height + 1)
+        verifyUnobscuredGlyphs(screen, overlay, bounds, reference, data.tag)
+        console.info("AUX-FIT", data.tag, "font", title.font.pixelSize, "lines", title.lineCount,
+                     "text", title.width + "x" + title.height, "dock", overlay.height)
+        capture(screen, "native-12v-" + data.tag)
+        harness.ride()
+        verify(harness.notifications.presentation.main.id !== "backup-aux-low")
+        compare(harness.notifications.presentation.queuedCounts.warning || 0, data.counts ? 11 : 0)
+    }
+
+    function test_nativeOversizedScrollCapture_data() {
+        return [{tag: "warning-dark", dark: true, severity: "warning"},
+                {tag: "warning-light", dark: false, severity: "warning"},
+                {tag: "info-dark", dark: true, severity: "info"},
+                {tag: "info-light", dark: false, severity: "info"}]
+    }
+
+    function test_nativeOversizedScrollCapture(data) {
+        themeStore.isDark = data.dark
+        themeStore.backgroundColor = data.dark ? "black" : "white"
+        const screen = useNative()
+        waitForRendering(screen)
+        const overlay = findChild(screen, "clusterAttention")
+        const bounds = paintedGlyphBounds(findChild(screen, "speedometerDigits"), screen)
+        const reference = grabImage(screen)
+        verify(harness.loadFixture("route1"))
+        harness.approach()
+        const titleString = ("Long notification with all details retained. ".repeat(4)).slice(0, 120)
+        const bodyString = ("Please check the vehicle before continuing. These details scroll only when they cannot fit above the speed readout. ".repeat(6)).slice(0, 501) + " Final line"
+        compare(bodyString.length, 512)
+        verify(harness.receive(JSON.stringify({id: "long", title: titleString, body: bodyString,
+            severity: data.severity, ttl_ms: 60000})))
+        waitForRendering(screen)
+        const card = findChild(screen, data.severity === "warning" ? "attentionMainCard" : "attentionCompanionNotification")
+        const content = findChild(card, "notificationTextContent")
+        const viewport = findChild(card, "notificationTextViewport")
+        const title = findChild(card, "notificationTitle")
+        const body = findChild(card, "notificationBody")
+        compare(title.text, titleString)
+        compare(body.text, bodyString)
+        verify(!title.truncated && !body.truncated && body.visible)
+        verify(card.overflowDistance > 0)
+        compare(content.y, 0)
+        verifyUnobscuredGlyphs(screen, overlay, bounds, reference, data.tag + "-start")
+        capture(screen, "native-scroll-start-" + data.tag)
+        tryCompare(content, "y", -card.overflowDistance, 30000)
+        fuzzyCompare(body.mapToItem(viewport, 0, body.height).y, viewport.height, 0.1)
+        verifyUnobscuredGlyphs(screen, overlay, bounds, reference, data.tag + "-end")
+        capture(screen, "native-scroll-end-" + data.tag)
+        harness.advance(59999)
+        verify(card.visible)
+        harness.advance(1)
+        compare(harness.notifications.presentation.main.kind, "nav")
+        compare(harness.notifications.presentation.companion, {})
+    }
+
+    function test_externalShortTtlDoesNotWaitForScroll() {
+        const screen = useNative()
+        verify(harness.receive(JSON.stringify({id: "short", title: "W".repeat(120),
+            body: "W".repeat(512), severity: "warning", ttl_ms: 1000})))
+        waitForRendering(screen)
+        const card = findChild(screen, "attentionMainCard")
+        verify(card.overflowDistance > 0)
+        compare(findChild(card, "notificationTitle").text.length, 120)
+        compare(findChild(card, "notificationBody").text.length, 512)
+        harness.advance(999)
+        verify(card.visible)
+        harness.advance(1)
+        compare(harness.notifications.presentation.main, {})
+        waitForRendering(screen)
+        compare(findChild(screen, "attentionMainRenderer").active, false)
     }
 
     function test_maneuverInkRejectsBackground_data() {

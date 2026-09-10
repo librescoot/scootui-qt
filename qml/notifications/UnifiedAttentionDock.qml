@@ -11,6 +11,8 @@ Item {
     readonly property bool hasMain: Object.keys(main).length > 0
     readonly property bool hasCompanion: Object.keys(companion).length > 0
 
+    readonly property real maximumHeight: 156
+
     width: parent ? parent.width : 480
     height: hasMain ? mainRenderer.height + (hasCompanion ? companionCard.height : 0) : 0
     visible: hasMain
@@ -27,6 +29,7 @@ Item {
         id: notificationRenderer
         NotificationCard {
             objectName: "attentionMainCard"
+            maximumHeight: dock.maximumHeight - (dock.hasCompanion ? companionCard.height : 0)
             compact: dock.hasCompanion
             entry: dock.main
             queuedCounts: dock.presentation.queuedCounts || ({})
@@ -69,6 +72,7 @@ Item {
             objectName: "attentionCompanionNotification"
             compact: true
             secondary: true
+            maximumHeight: dock.maximumHeight - mainRenderer.height
             entry: dock.companion
             isDark: dock.isDark
         }

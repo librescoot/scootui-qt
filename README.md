@@ -90,14 +90,30 @@ instrument space or change the map camera or vehicle anchor. Only blinkers move
 below the overlay to stay visible. QML renders notifications and navigation with
 dedicated widgets from the shared selection payload, including actionable turn
 instructions and a compact navigation companion when an alert takes priority.
-When both slots are visible, the actual shared navigation widget uses its compact
-layout in either slot. Notification cards use the same translucent dark/light
-background as navigation, without a left accent stripe; icons, text and queued
-counts retain severity colors. Their titles are slightly larger/bolder than the
-navigation text. Two-slot cards limit body text to one elided line and titles to
-two lines so the overlay stays clear of the unchanged speed readout.
-Events still expire while queued: a sufficiently large or higher-priority queue
-can outlast an event's TTL; displaying it never renews its deadline.
+When navigation is primary with a secondary notification, its normal 96px banner
+and 64px maneuver glyph remain; next-preview and trip-summary rows are hidden.
+Higher-priority alerts use compact navigation beneath them. Notification cards
+use 80%-opaque severity-tinted backgrounds (red, amber, green, blue, neutral),
+without a left stripe. Queued counts wrap within 112px, preserving exact numbers
+and severity/accessibility labels.
+
+Notification text uses tight padding, natural height within a 156px overlay
+budget, and 20px semibold titles that adapt to 18px when needed; bodies remain
+18px. The English and German native low-12V warning fits fully without scrolling,
+including navigation and queued counts. Unusually long titles and bodies retain
+their complete plain-text strings and wrap even unbroken words, with no ellipsis.
+If they still exceed the safe space above the speed glyphs, the text automatically
+scrolls vertically at 20px/second after a 1.2-second pause, pauses 1.6 seconds at
+the end, and repeats. A small position indicator marks overflow. Scrolling resets
+on entry/content changes and stops when hidden; it does not change slot cycling,
+cue deduplication, or expiry. The primary maneuver data does not scroll.
+
+Events still expire while queued or scrolling: a sufficiently large or
+higher-priority queue can outlast an event's TTL, and an unusually long message
+with a short TTL (including the external 1-second minimum) can expire before its
+full scroll completes. Displaying or scrolling never renews the deadline.
+External events default to 10 seconds, native events to 4 seconds, adapted toasts
+to 3 seconds (5 for errors), and arrival feedback to 10 seconds.
 
 Calculating/recalculating uses the shared navigation banner, navigation icon and
 loading indicator. Arrival retains the route's actual final maneuver icon and

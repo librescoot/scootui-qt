@@ -13,6 +13,10 @@
 #include "services/NotificationService.h"
 #include "services/NotificationIngress.h"
 #include "services/ToastService.h"
+#include "services/BackupBatteryMonitor.h"
+#include "stores/BatteryStore.h"
+#include "stores/AuxBatteryStore.h"
+#include "stores/CbBatteryStore.h"
 #include "repositories/InMemoryMdbRepository.h"
 #include "routing/RouteHelpers.h"
 #include "stores/GpsStore.h"
@@ -35,7 +39,8 @@ class NativeAttentionHarness : public QObject
 public:
     NativeAttentionHarness()
         : m_gps(&m_repo), m_navStore(&m_repo), m_vehicle(&m_repo), m_settings(&m_repo),
-          m_speedLimit(&m_repo), m_notifications(false, nullptr, [this] { return m_now; }),
+          m_speedLimit(&m_repo), m_battery0(&m_repo, "0"), m_battery1(&m_repo, "1"),
+          m_auxBattery(&m_repo), m_cbBattery(&m_repo), m_notifications(false, nullptr, [this] { return m_now; }),
           m_ingress(&m_repo, &m_notifications)
     {
         // Keep route requests pending locally so loading can be rendered deterministically.
@@ -44,7 +49,12 @@ public:
         m_repo.set("settings", "dashboard.valhalla-url",
                    QStringLiteral("http://127.0.0.1:%1").arg(m_router.serverPort()));
         m_repo.set("vehicle", "state", "ready-to-drive");
+        m_repo.set("battery:0", "present", "true");
         m_settings.start();
+        m_battery0.start();
+        m_battery1.start();
+        m_auxBattery.start();
+        m_cbBattery.start();
         m_vehicle.start();
         m_gps.start();
         m_navStore.start();
@@ -52,6 +62,8 @@ public:
                                              &m_speedLimit, &m_repo, this);
         m_notifications.setVehicleStore(&m_vehicle);
         m_toasts.setNotificationService(&m_notifications);
+        m_backupMonitor = new BackupBatteryMonitor(&m_battery0, &m_battery1, &m_cbBattery,
+            &m_auxBattery, &m_vehicle, &m_toasts, &m_translations, this);
         const auto refresh = [this]() {
             if (m_navigation->status() == 0) {
                 m_notifications.setNavigationPayload({});
@@ -81,7 +93,7 @@ public:
         });
     }
 
-    ~NativeAttentionHarness() override { delete m_navigation; }
+    ~NativeAttentionHarness() override { delete m_backupMonitor; delete m_navigation; }
 
     NotificationService *notifications() { return &m_notifications; }
     ToastService *toasts() { return &m_toasts; }
@@ -137,6 +149,15 @@ public:
         m_repo.publish("navigation", "updated");
     }
 
+    Q_INVOKABLE void removeMainBatteryParked()
+    {
+        m_repo.set("vehicle", "state", "parked");
+        m_repo.set("aux-battery", "voltage", "11600");
+        m_repo.set("battery:0", "present", "false");
+    }
+
+    Q_INVOKABLE void ride() { m_repo.set("vehicle", "state", "ready-to-drive"); }
+
     Q_INVOKABLE bool receive(const QString &json) { return m_ingress.receive(json); }
 
     Q_INVOKABLE void advance(int milliseconds)
@@ -167,6 +188,11 @@ private:
     VehicleStore m_vehicle;
     SettingsStore m_settings;
     SpeedLimitStore m_speedLimit;
+    BatteryStore m_battery0;
+    BatteryStore m_battery1;
+    AuxBatteryStore m_auxBattery;
+    CbBatteryStore m_cbBattery;
+    BackupBatteryMonitor *m_backupMonitor;
     NotificationService m_notifications;
     NotificationIngress m_ingress;
     ToastService m_toasts;

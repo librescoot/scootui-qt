@@ -817,6 +817,10 @@ if(BUILD_TESTING)
     find_package(Qt6 6.4 REQUIRED COMPONENTS QuickTest)
     qt_add_executable(notification_qml_test
         tests/NotificationQuickTest.cpp
+        src/services/BackupBatteryMonitor.cpp
+        src/stores/BatteryStore.cpp
+        src/stores/AuxBatteryStore.cpp
+        src/stores/CbBatteryStore.cpp
         src/services/StreetQueryDispatcher.cpp
         src/services/StreetQuery.cpp
         src/services/RoadMatchDispatcher.cpp
