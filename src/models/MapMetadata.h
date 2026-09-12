@@ -73,6 +73,16 @@ struct MapMetadata {
         return m;
     }
 
+    // Writers before the per-set flags only set the combined one. Read
+    // literally that says neither set has an update, so widen it to both.
+    void normaliseUpdateTargets()
+    {
+        if (updateAvailable && !displayUpdateAvailable && !routingUpdateAvailable) {
+            displayUpdateAvailable = true;
+            routingUpdateAvailable = true;
+        }
+    }
+
     static QString metadataPath() {
 #ifdef Q_OS_LINUX
         return QStringLiteral("/data/maps/metadata.json");

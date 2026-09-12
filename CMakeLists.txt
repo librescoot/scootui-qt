@@ -360,6 +360,7 @@ qt_add_qml_module(scootui
     QML_FILES ${QML_FILES}
     RESOURCES
         qml/widgets/components/qmldir
+        qml/screens/MapDownloadPolicy.js
         assets/icons/librescoot-turn-left.svg
         assets/icons/librescoot-turn-right.svg
         assets/icons/librescoot-keep-left.svg

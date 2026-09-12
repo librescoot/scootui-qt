@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import "../widgets/status_bars"
 import "../widgets/components"
+import "MapDownloadPolicy.js" as MapDownloadPolicy
 
 Rectangle {
     id: navSetupScreen
@@ -29,8 +30,7 @@ Rectangle {
     readonly property int dlStatus: hasDownloadService ? mapDownloadService.status : 0
     readonly property double dlProgress: hasDownloadService ? mapDownloadService.progress : 0
     readonly property string dlRegion: hasDownloadService ? mapDownloadService.regionName : ""
-    // Known slug: resolution, and the GPS it needs, can be skipped.
-    readonly property bool regionResolved: dlRegion !== ""
+    readonly property bool regionResolved: MapDownloadPolicy.regionResolved(dlRegion)
     readonly property string dlError: hasDownloadService ? mapDownloadService.errorMessage : ""
     readonly property string dlErrorText: {
         if (dlError === "" || typeof translations === "undefined") return ""
@@ -86,24 +86,15 @@ Rectangle {
     // whatever is missing. If both are fine but an update is available, we
     // refresh whichever the mode asks for. Used by both the size label and
     // the download trigger so they can't drift.
-    readonly property bool willDownloadDisplay: {
-        if (showDisplayRow && !mapsOk) return true
-        if (dlDisplayUpdate && showDisplayRow) return true
-        return false
-    }
-    readonly property bool willDownloadRouting: {
-        if (showRoutingRow && !routingOk) return true
-        if (dlRoutingUpdate && showRoutingRow) return true
-        return false
-    }
+    readonly property bool willDownloadDisplay: MapDownloadPolicy.willDownload(showDisplayRow, mapsOk, dlDisplayUpdate)
+    readonly property bool willDownloadRouting: MapDownloadPolicy.willDownload(showRoutingRow, routingOk, dlRoutingUpdate)
     readonly property bool willDownloadAnything: willDownloadDisplay || willDownloadRouting
 
-    // A fix only matters when the region is unknown and there is work to do.
-    readonly property bool gpsRequired: willDownloadAnything && !regionResolved
+    readonly property bool gpsRequired: MapDownloadPolicy.gpsRequired(dlRegion, willDownloadAnything)
 
-    readonly property bool canDownload: dlStatus === statusIdle && isOnline
-                                         && (hasGps || regionResolved)
-                                         && willDownloadAnything
+    readonly property bool canDownload: MapDownloadPolicy.canDownload(
+                                            dlStatus, statusIdle, isOnline, hasGps,
+                                            dlRegion, willDownloadAnything)
     readonly property string downloadButtonLabel: {
         if (dlUpdateAvailable)
             return typeof translations !== "undefined" ? translations.navSetupUpdateButton : "Update"
@@ -371,15 +362,12 @@ Rectangle {
                 Text {
                     visible: navSetupScreen.dlRegion !== "" && navSetupScreen.willDownloadAnything
                     Layout.alignment: Qt.AlignHCenter
-                    text: {
-                        var total = 0
-                        if (navSetupScreen.hasDownloadService) {
-                            if (navSetupScreen.willDownloadDisplay) total += mapDownloadService.estimatedDisplayBytes
-                            if (navSetupScreen.willDownloadRouting) total += mapDownloadService.estimatedRoutingBytes
-                        }
-                        var sizeMB = Math.round(total / 1048576)
-                        return navSetupScreen.dlRegion + " (" + sizeMB + " MB)"
-                    }
+                    text: MapDownloadPolicy.sizeLabel(
+                              navSetupScreen.dlRegion,
+                              navSetupScreen.hasDownloadService ? mapDownloadService.estimatedDisplayBytes : 0,
+                              navSetupScreen.hasDownloadService ? mapDownloadService.estimatedRoutingBytes : 0,
+                              navSetupScreen.willDownloadDisplay,
+                              navSetupScreen.willDownloadRouting)
                     color: navSetupScreen.accentColor
                     font.pixelSize: themeStore.fontBody
                     font.weight: Font.Bold

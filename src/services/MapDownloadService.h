@@ -165,7 +165,6 @@ private:
     QString routingDestPath() const;
     bool hasEnoughDiskSpace(qint64 needed) const;
     void seedEstimatesFromMetadata();
-    void normaliseUpdateTargets();
     bool isCurrentOperation(quint64 generation) const {
         return generation == m_operationGeneration && !m_cancelled;
     }

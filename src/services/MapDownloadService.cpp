@@ -94,7 +94,7 @@ MapDownloadService::MapDownloadService(MdbRepository *repo, QObject *parent)
         m_regionName = displayNameForSlug(m_resolvedSlug);
     }
     m_updateAvailable = m_metadata.updateAvailable;
-    normaliseUpdateTargets();
+    m_metadata.normaliseUpdateTargets();
 
     adoptInstalledMaps();
     computeMissingDigests();
@@ -127,7 +127,7 @@ void MapDownloadService::reloadMetadata()
 
     if (haveMetadata && changed) {
         m_metadata = fresh;
-        normaliseUpdateTargets();
+        m_metadata.normaliseUpdateTargets();
 
         if (!m_metadata.region.isEmpty() && m_resolvedSlug.isEmpty()) {
             m_resolvedSlug = m_metadata.region;
@@ -579,18 +579,6 @@ void MapDownloadService::doResolveSlug(double lat, double lng)
         if (!isCurrentOperation(generation)) return;
         doFetchReleases(m_needsDisplay, m_needsRouting);
     });
-}
-
-void MapDownloadService::normaliseUpdateTargets()
-{
-    // Pre-per-set metadata.json only carries the combined flag; treat that as
-    // "both may need it" rather than "neither", or the screen reads all-set.
-    if (m_metadata.updateAvailable
-        && !m_metadata.displayUpdateAvailable
-        && !m_metadata.routingUpdateAvailable) {
-        m_metadata.displayUpdateAvailable = true;
-        m_metadata.routingUpdateAvailable = true;
-    }
 }
 
 void MapDownloadService::seedEstimatesFromMetadata()

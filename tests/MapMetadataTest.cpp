@@ -11,6 +11,7 @@ class MapMetadataTest : public QObject
 private slots:
     void perSetFlagsRoundTrip();
     void falseFlagsAreOmitted();
+    void legacyCombinedFlagWidensToBothSets();
 };
 
 void MapMetadataTest::perSetFlagsRoundTrip()
@@ -34,6 +35,35 @@ void MapMetadataTest::falseFlagsAreOmitted()
     QVERIFY(!o.contains(QStringLiteral("updateAvailable")));
     QVERIFY(!o.contains(QStringLiteral("displayUpdateAvailable")));
     QVERIFY(!o.contains(QStringLiteral("routingUpdateAvailable")));
+}
+
+void MapMetadataTest::legacyCombinedFlagWidensToBothSets()
+{
+    // Shape a pre-per-set writer produced: combined flag only.
+    MapMetadata legacy = MapMetadata::fromJson(QJsonObject{
+        {QStringLiteral("region"), QStringLiteral("berlin_brandenburg")},
+        {QStringLiteral("updateAvailable"), true},
+    });
+    QCOMPARE(legacy.displayUpdateAvailable, false);
+
+    legacy.normaliseUpdateTargets();
+    QCOMPARE(legacy.displayUpdateAvailable, true);
+    QCOMPARE(legacy.routingUpdateAvailable, true);
+
+    // A current writer that named one set must not be widened.
+    MapMetadata current = MapMetadata::fromJson(QJsonObject{
+        {QStringLiteral("updateAvailable"), true},
+        {QStringLiteral("displayUpdateAvailable"), true},
+    });
+    current.normaliseUpdateTargets();
+    QCOMPARE(current.displayUpdateAvailable, true);
+    QCOMPARE(current.routingUpdateAvailable, false);
+
+    // Nothing to update stays nothing to update.
+    MapMetadata idle;
+    idle.normaliseUpdateTargets();
+    QCOMPARE(idle.displayUpdateAvailable, false);
+    QCOMPARE(idle.routingUpdateAvailable, false);
 }
 
 QTEST_GUILESS_MAIN(MapMetadataTest)
