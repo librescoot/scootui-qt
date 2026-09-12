@@ -135,7 +135,10 @@ MapView {
             type: "line"
             property string source: "route"
             layout: { "line-cap": "round", "line-join": "round" }
-            paint: { "line-color": "#1565C0", "line-width": 11 }
+            paint: {
+                "line-color": typeof mapService !== "undefined" ? mapService.routeBorderColor : "#1565C0",
+                "line-width": typeof mapService !== "undefined" ? mapService.routeBorderWidth : 11
+            }
         }
 
         LayerParameter {
@@ -143,7 +146,10 @@ MapView {
             type: "line"
             property string source: "route"
             layout: { "line-cap": "round", "line-join": "round" }
-            paint: { "line-color": "#42A5F5", "line-width": 7 }
+            paint: {
+                "line-color": typeof mapService !== "undefined" ? mapService.routeFillColor : "#42A5F5",
+                "line-width": typeof mapService !== "undefined" ? mapService.routeFillWidth : 7
+            }
         }
 
         // Theme recolor: override the paint of existing style layers in place

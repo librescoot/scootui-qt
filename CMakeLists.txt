@@ -121,6 +121,7 @@ set(CPP_SOURCES
     src/services/SoundCuePlayer.cpp
     src/services/SoundCuePlayer.h
     src/services/MapService.cpp
+    src/services/MapStyleMetadata.cpp
     src/services/LowTemperatureMonitor.cpp
     src/services/BluetoothHealthMonitor.cpp
     src/services/HandlebarLockMonitor.cpp
@@ -214,6 +215,7 @@ set(CPP_HEADERS
     src/services/NotificationIngress.h
     src/services/SoundCueService.h
     src/services/MapService.h
+    src/services/MapStyleMetadata.h
     src/services/MapCameraPolicy.h
     src/services/NavigationCadence.h
     src/services/LowTemperatureMonitor.h
@@ -537,6 +539,15 @@ if(BUILD_TESTING)
     target_include_directories(gps_store_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(gps_store_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME gps_store_test COMMAND gps_store_test)
+    qt_add_executable(map_style_metadata_test
+        tests/MapStyleMetadataTest.cpp
+        src/services/MapStyleMetadata.cpp
+        src/services/MapStyleMetadata.h
+    )
+    target_include_directories(map_style_metadata_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(map_style_metadata_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME map_style_metadata_test COMMAND map_style_metadata_test)
+
 
     qt_add_executable(position_estimator_test
         tests/PositionEstimatorTest.cpp
@@ -584,6 +595,7 @@ if(BUILD_TESTING)
         src/services/VectorTileDecoder.cpp
         src/services/NavigationService.cpp
         src/services/MapService.cpp
+        src/services/MapStyleMetadata.cpp
         src/routing/ValhallaClient.cpp
         src/repositories/MdbRepository.h
         src/repositories/InMemoryMdbRepository.cpp
@@ -855,6 +867,7 @@ if(BUILD_TESTING)
         src/services/ToastService.h
         src/services/NavigationService.cpp
         src/services/MapService.cpp
+        src/services/MapStyleMetadata.cpp
         src/services/RoadInfoService.cpp
         src/services/TileLoader.cpp
         src/services/VectorTileDecoder.cpp

@@ -10,6 +10,7 @@
 
 #include "services/PositionEstimator.h"
 #include "services/RoadMatchPolicy.h"
+#include "services/MapStyleMetadata.h"
 
 class GpsStore;
 class EngineStore;
@@ -43,6 +44,10 @@ class MapService : public QObject
     Q_PROPERTY(QVariantList mapThemeLayers READ mapThemeLayers CONSTANT)
     Q_PROPERTY(QVariantList routeCoordinates READ routeCoordinates NOTIFY routeCoordinatesChanged)
     Q_PROPERTY(QString routeGeoJson READ routeGeoJson NOTIFY routeGeoJsonChanged)
+    Q_PROPERTY(QString routeFillColor READ routeFillColor NOTIFY routeStyleChanged)
+    Q_PROPERTY(QString routeBorderColor READ routeBorderColor NOTIFY routeStyleChanged)
+    Q_PROPERTY(int routeFillWidth READ routeFillWidth NOTIFY routeStyleChanged)
+    Q_PROPERTY(int routeBorderWidth READ routeBorderWidth NOTIFY routeStyleChanged)
     Q_PROPERTY(double vehicleOffsetY READ vehicleOffsetY NOTIFY vehicleOffsetYChanged)
     Q_PROPERTY(bool isOutOfCoverage READ isOutOfCoverage NOTIFY isOutOfCoverageChanged)
     Q_PROPERTY(bool deadReckoningPaused READ deadReckoningPaused WRITE setDeadReckoningPaused NOTIFY deadReckoningPausedChanged)
@@ -96,6 +101,10 @@ public:
     QVariantList mapThemeLayers() const { return m_mapThemeLayers; }
     QVariantList routeCoordinates() const { return m_routeCoordinates; }
     QString routeGeoJson() const { return m_routeGeoJson; }
+    QString routeFillColor() const { return m_routeStyle.fillColor; }
+    QString routeBorderColor() const { return m_routeStyle.borderColor; }
+    int routeFillWidth() const { return m_routeStyle.fillWidth; }
+    int routeBorderWidth() const { return m_routeStyle.borderWidth; }
     bool isOutOfCoverage() const { return m_isOutOfCoverage; }
 
     double vehicleLatitude() const { return m_drLatitude; }
@@ -140,6 +149,7 @@ signals:
     void styleUrlChanged();
     void routeCoordinatesChanged();
     void routeGeoJsonChanged();
+    void routeStyleChanged();
     void vehicleOffsetYChanged();
     void isOutOfCoverageChanged();
     void deadReckoningPausedChanged();
@@ -178,6 +188,9 @@ private:
     // with the per-layer paint properties that differ between the two themes.
     void buildThemeLayerOverrides();
     QString rewriteStyleForMbtiles(const QString &qrcPath, const QString &mbtilesPath);
+    QString styleSourcePath(bool isDark) const;
+    QString styleSourceStamp() const;
+    bool applyRouteStyle(const QString &stylePath);
 
     // Traffic overlay
     static void removeTrafficFromStyle(QJsonObject &root);
@@ -196,8 +209,7 @@ private:
     // Derives tilt from the current smoothed zoom.
     void updateTiltForZoom();
     // Places the route source and layers at the right depth in the style.
-    static void injectRouteLayers(QJsonObject &root);
-
+    void injectRouteLayers(QJsonObject &root) const;
     // Route GeoJSON for native MapLibre layer
     void updateRouteGeoJson();
 
@@ -374,6 +386,8 @@ private:
     QVariantList m_mapThemeLayers;
     QVariantList m_routeCoordinates;
     QString m_routeGeoJson;
+    MapRouteStyle m_routeStyle;
+    qint64 m_styleSourceMtime = 0;
     double m_vehicleOffsetY = VehicleOffsetPx;
 
     // --- Out-of-coverage state ---

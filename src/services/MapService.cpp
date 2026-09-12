@@ -787,13 +787,13 @@ void MapService::rebuildStyleUrl()
     bool useLocal = !m_mbtilesPath.isEmpty();
     bool showTraffic = m_settings->mapTrafficOverlay();
 
+    QString qrcPath = styleSourcePath(isDark);
+    applyRouteStyle(qrcPath);
+
     qDebug() << "MapService: rebuildStyleUrl - dark:" << isDark
              << "mbtiles:" << (useLocal ? m_mbtilesPath : QStringLiteral("none"))
-             << "traffic:" << showTraffic;
-
-    QString qrcPath = isDark
-        ? QStringLiteral("qrc:/ScootUI/assets/styles/mapdark.json")
-        : QStringLiteral("qrc:/ScootUI/assets/styles/maplight.json");
+             << "traffic:" << showTraffic
+             << "style:" << qrcPath;
 
     QString url;
     if (useLocal) {
@@ -812,6 +812,55 @@ void MapService::rebuildStyleUrl()
     }
 }
 
+QString MapService::styleSourcePath(bool isDark) const
+{
+    const QString name = isDark ? QStringLiteral("mapdark.json") : QStringLiteral("maplight.json");
+    const QString override = QStringLiteral("/data/maps/") + name;
+    return QFile::exists(override) ? override
+                                   : QStringLiteral("qrc:/ScootUI/assets/styles/") + name;
+}
+
+// Reads the route colours from whichever style is in use, so the rewritten
+// style layers and the QML fallback layers agree on one source of truth.
+bool MapService::applyRouteStyle(const QString &stylePath)
+{
+    QString path = stylePath;
+    path.replace(QStringLiteral("qrc:/"), QStringLiteral(":/"));
+
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly)) {
+        qWarning() << "MapService: cannot read style for route metadata" << path;
+        m_styleSourceMtime = 0;
+        return false;
+    }
+    const MapRouteStyle style = parseMapRouteStyle(f.readAll());
+    f.close();
+
+    // A qrc style cannot change while the service runs, so it gets no stamp:
+    // that keeps the rewritten-style URL stable across rebuilds.
+    m_styleSourceMtime = path.startsWith(QLatin1Char(':'))
+        ? 0
+        : QFileInfo(path).lastModified().toSecsSinceEpoch();
+
+    if (style.fillColor == m_routeStyle.fillColor
+        && style.borderColor == m_routeStyle.borderColor
+        && style.fillWidth == m_routeStyle.fillWidth
+        && style.borderWidth == m_routeStyle.borderWidth) {
+        return false;
+    }
+
+    m_routeStyle = style;
+    emit routeStyleChanged();
+    return true;
+}
+
+QString MapService::styleSourceStamp() const
+{
+    return m_styleSourceMtime
+        ? QStringLiteral("-") + QString::number(m_styleSourceMtime)
+        : QString();
+}
+
 QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString &mbtilesPath)
 {
     // Determine output path (include traffic state + mbtiles mtime so the URL
@@ -823,13 +872,13 @@ QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString
     QString filePrefix = stem + styleVariantSuffix();
     qint64 mtimeSecs = QFileInfo(mbtilesPath).lastModified().toSecsSinceEpoch();
     QString outPath = QStringLiteral("/tmp/") + filePrefix + QStringLiteral("-")
-        + QString::number(mtimeSecs) + QStringLiteral(".json");
+        + QString::number(mtimeSecs) + styleSourceStamp() + QStringLiteral(".json");
 
     // Best-effort cleanup of stale rewritten styles for this stem/traffic
     // combination so /tmp doesn't accumulate one file per map update.
     QDir tmpDir(QStringLiteral("/tmp"));
     const QRegularExpression staleRe(QStringLiteral("^") + QRegularExpression::escape(filePrefix)
-                                      + QStringLiteral("-\\d+\\.json$"));
+                                      + QStringLiteral("-\\d+(-\\d+)?\\.json$"));
     for (const QString &name : tmpDir.entryList(QDir::Files)) {
         if (staleRe.match(name).hasMatch())
             QFile::remove(tmpDir.filePath(name));
@@ -989,7 +1038,7 @@ void MapService::debugResetZoom()
 }
 
 
-void MapService::injectRouteLayers(QJsonObject &root)
+void MapService::injectRouteLayers(QJsonObject &root) const
 {
     // The route has to sit at a specific depth: under the building extrusions
     // so they occlude it, with a translucent copy above them so it stays
@@ -1039,22 +1088,27 @@ void MapService::injectRouteLayers(QJsonObject &root)
         }
     }
 
+    const QString border = m_routeStyle.borderColor;
+    const QString fill = m_routeStyle.fillColor;
+    const int borderWidth = m_routeStyle.borderWidth;
+    const int fillWidth = m_routeStyle.fillWidth;
+
     QJsonArray out;
     for (int i = 0; i < layers.size(); ++i) {
         // With no extrusions (2D) there is nothing to hide behind, so the
         // solid route goes straight under the labels and no ghost is drawn.
         if (i == firstExtrusion || (firstExtrusion < 0 && i == firstSymbol)) {
-            out.append(line(QStringLiteral("route-border"), QStringLiteral("#1565C0"), 11, 1.0));
-            out.append(line(QStringLiteral("route-fill"), QStringLiteral("#42A5F5"), 7, 1.0));
+            out.append(line(QStringLiteral("route-border"), border, borderWidth, 1.0));
+            out.append(line(QStringLiteral("route-fill"), fill, fillWidth, 1.0));
         }
         out.append(layers.at(i));
         if (firstExtrusion >= 0 && i == lastExtrusion) {
-            out.append(line(QStringLiteral("route-ghost"), QStringLiteral("#42A5F5"), 7, 0.35));
+            out.append(line(QStringLiteral("route-ghost"), fill, fillWidth, 0.35));
         }
     }
     if (firstExtrusion < 0 && firstSymbol < 0) {
-        out.append(line(QStringLiteral("route-border"), QStringLiteral("#1565C0"), 11, 1.0));
-        out.append(line(QStringLiteral("route-fill"), QStringLiteral("#42A5F5"), 7, 1.0));
+        out.append(line(QStringLiteral("route-border"), border, borderWidth, 1.0));
+        out.append(line(QStringLiteral("route-fill"), fill, fillWidth, 1.0));
     }
     root[QStringLiteral("layers")] = out;
 }
@@ -1098,7 +1152,7 @@ QString MapService::rewriteStyleVariant(const QString &qrcPath)
     QString baseName = qrcPath.section(QLatin1Char('/'), -1);
     QString stem = baseName.chopped(5);  // strip ".json"
     QString outPath = QStringLiteral("/tmp/") + stem + styleVariantSuffix()
-                      + QStringLiteral(".json");
+                      + styleSourceStamp() + QStringLiteral(".json");
 
     QString qrcFile = qrcPath;
     qrcFile.replace(QStringLiteral("qrc:/"), QStringLiteral(":/"));

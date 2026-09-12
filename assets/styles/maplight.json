@@ -3,7 +3,11 @@
 	"version": 8,
 	"name": "simplified-light",
 	"metadata": {
-		"license": "https://creativecommons.org/publicdomain/zero/1.0/"
+		"license": "https://creativecommons.org/publicdomain/zero/1.0/",
+		"route-fill-color": "#42A5F5",
+		"route-border-color": "#1565C0",
+		"route-fill-width": 7,
+		"route-border-width": 11
 	},
 	"sources": {
 		"versatiles-shortbread": {
