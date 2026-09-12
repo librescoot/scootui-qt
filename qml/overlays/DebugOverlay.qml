@@ -465,6 +465,21 @@ Item {
             }
             Row {
                 spacing: 0
+                Text { text: "SPD: "; font.pixelSize: 10; color: "#9E9E9E" }
+                Text {
+                    text: {
+                        if (typeof engineStore === "undefined") return "?"
+                        var raw = engineStore.hasRawSpeed ? engineStore.rawSpeed.toFixed(0) : "—"
+                        var corrected = engineStore.hasCorrectedSpeed
+                                      ? engineStore.correctedSpeed.toFixed(0) : "—"
+                        return "ECU " + raw + "  CORR " + corrected
+                               + "  FILT " + engineStore.speed.toFixed(0) + " km/h"
+                    }
+                    font.pixelSize: 10; font.bold: true; color: debugOverlay.textColor
+                }
+            }
+            Row {
+                spacing: 0
                 Text { text: "PWR: "; font.pixelSize: 10; color: "#9E9E9E" }
                 Text {
                     text: typeof engineStore !== "undefined"

@@ -23,6 +23,7 @@ SyncSettings EngineStore::syncSettings() const
             {QStringLiteral("rpm"), QStringLiteral("rpm")},
             {QStringLiteral("speed"), QStringLiteral("speed")},
             {QStringLiteral("rawSpeed"), QStringLiteral("raw-speed")},
+            {QStringLiteral("correctedSpeed"), QStringLiteral("corrected-speed")},
             {QStringLiteral("throttle"), QStringLiteral("throttle")},
             {QStringLiteral("firmwareVersion"), QStringLiteral("fw-version")},
             {QStringLiteral("odometer"), QStringLiteral("odometer")},
@@ -89,6 +90,13 @@ void EngineStore::applyFieldUpdate(const QString &variable, const QString &value
             m_rawSpeed = v;
             m_hasRawSpeed = true;
             emit rawSpeedChanged();
+        }
+    } else if (variable == QLatin1String("corrected-speed")) {
+        auto v = value.toDouble();
+        if (v != m_correctedSpeed || !m_hasCorrectedSpeed) {
+            m_correctedSpeed = v;
+            m_hasCorrectedSpeed = true;
+            emit correctedSpeedChanged();
         }
     } else if (variable == QLatin1String("throttle")) {
         auto v = ScootEnums::parseToggle(value);
