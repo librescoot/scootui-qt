@@ -16,6 +16,9 @@
 #   MaterialIcons:           https://github.com/google/material-design-icons
 #                            (android/sources/MaterialIcons-Regular.otf for
 #                            the legacy PUA codepoint mapping used in QML)
+#   DejaVuSans (symbols):     https://dejavu-fonts.github.io/
+#                            vendored in assets/fonts/symbols/ under the
+#                            Bitstream Vera licence.
 #
 # Dependencies: pyftsubset (fonttools). Install with `pip install fonttools`
 #   or `apt install python3-fonttools`.
@@ -70,12 +73,22 @@ MATERIAL_UNICODES="0020,$(echo "${MATERIAL_CODEPOINTS}" | paste -s -d , -)"
 #              (‘ ‘ “ “), German low-9 („), bullet (•), ellipsis (…),
 #              guillemets (‹ › « »), interpunct, etc. One-shot.
 #   20AC       Euro sign (only currency we’d ever show).
-#   2264       Less-or-equal (≤) — battery display. The math operators
-#              block isn’t worth pulling in just for this.
+#   2264       Less-or-equal (≤) — battery display.
+#   2265       Greater-or-equal (≥) — remaining trip time.
+#   0394       Greek capital delta (Δ) — debug overlay delta readout.
 #
-# Roboto does not ship a glyph for ␣ (U+2423, used as the space marker on
-# the address keyboard); we rely on Qt’s font fallback at render time.
-ROBOTO_UNICODES="0020-017F,2000-206F,20AC,2264"
+# Roboto has no arrows, geometric shapes or misc symbols. Bundle the handful
+# the UI uses from DejaVu Sans (Bitstream Vera licence, see
+# assets/fonts/symbols/LICENSE-DejaVu.txt) as a fallback family; the licence
+# reserves the names for unmodified copies, so the subset is renamed.
+#
+#   2192 →   map toast         2423 ␣   address keyboard
+#   25B6 ▶   25BC ▼   simulator
+#   25C9 ◉  2605 ★  2620 ☠  2665 ♥  266B ♫  26A1 ⚡  27F3 ⟳   milestones
+ROBOTO_UNICODES="0020-017F,2000-206F,20AC,0394,2264,2265"
+SYMBOLS_SOURCE="${FONTS_DIR}/symbols/DejaVuSans.ttf"
+SYMBOLS_OUTPUT="${SUBSET_DIR}/ScootUISymbols.ttf"
+SYMBOLS_UNICODES="2192,2423,25B6,25BC,25C9,2605,2620,2665,266B,26A1,27F3"
 
 echo "=== scootui-qt font subsetter ==="
 echo "MaterialIcon codepoints (${MATERIAL_COUNT} used):"
@@ -112,6 +125,53 @@ subset() {
         "$(( 100 * size_after / size_before ))"
 }
 
+subset_symbols() {
+    if [[ ! -f "${SYMBOLS_SOURCE}" ]]; then
+        echo "error: ${SYMBOLS_SOURCE} not found" >&2
+        exit 1
+    fi
+    # nameID 13/14 carry the licence text and URL; keep them with the font.
+    pyftsubset "${SYMBOLS_SOURCE}" \
+        --unicodes="${SYMBOLS_UNICODES}" \
+        --name-IDs=0,1,2,3,4,5,6,13,14 \
+        --no-ignore-missing-glyphs \
+        --output-file="${SYMBOLS_OUTPUT}"
+    # The Bitstream Vera licence reserves the font names for unmodified
+    # copies, so give the subset its own family.
+    python3 - "${SYMBOLS_OUTPUT}" <<'PY'
+import sys
+from fontTools.ttLib import TTFont
+
+path = sys.argv[1]
+family = "ScootUI Symbols"
+postscript = "ScootUISymbols-Regular"
+font = TTFont(path)
+for record in font["name"].names:
+    if record.nameID == 1:
+        value = family
+    elif record.nameID == 2:
+        value = "Regular"
+    elif record.nameID == 3:
+        value = postscript
+    elif record.nameID == 4:
+        value = family
+    elif record.nameID == 6:
+        value = postscript
+    elif record.nameID in (16, 17):
+        value = family
+    else:
+        continue
+    record.string = value
+font.save(path)
+PY
+    local size_before="$(stat -c %s "${SYMBOLS_SOURCE}" 2>/dev/null || stat -f %z "${SYMBOLS_SOURCE}")"
+    local size_after="$(stat -c %s "${SYMBOLS_OUTPUT}" 2>/dev/null || stat -f %z "${SYMBOLS_OUTPUT}")"
+    printf "  %-32s  %8d -> %6d bytes  (%2d%% of original)\n" \
+        "ScootUISymbols.ttf" \
+        "${size_before}" "${size_after}" \
+        "$(( 100 * size_after / size_before ))"
+}
+
 echo "Subsetting Roboto family..."
 subset Roboto-Regular.ttf          "${ROBOTO_UNICODES}"
 subset Roboto-Bold.ttf             "${ROBOTO_UNICODES}"
@@ -123,6 +183,14 @@ subset RobotoCondensed-Bold.ttf    "${ROBOTO_UNICODES}"
 echo
 echo "Subsetting MaterialIcons..."
 subset MaterialIcons-Regular.otf "${MATERIAL_UNICODES}"
+
+echo
+echo "Subsetting symbol fallback..."
+subset_symbols
+
+echo
+echo "Checking that the subsets cover every non-ASCII character in UI strings..."
+python3 "${SCRIPT_DIR}/check-font-coverage.py"
 
 echo
 echo "Subset fonts written to ${SUBSET_DIR}."

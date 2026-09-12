@@ -109,9 +109,13 @@ int main(int argc, char *argv[])
     BOOT_MARK("font: RobotoCondensed-Regular");
     QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/subset/MaterialIcons-Regular.otf"));
     BOOT_MARK("font: MaterialIcons");
+    // Symbol fallback for glyphs Roboto lacks; see scripts/subset-fonts.sh.
+    QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/subset/ScootUISymbols.ttf"));
+    BOOT_MARK("font: ScootUISymbols");
 
-    // Set Roboto as default application font
+    // Roboto first, the symbol subset behind it for missing glyphs.
     QFont defaultFont(QStringLiteral("Roboto"));
+    defaultFont.setFamilies({QStringLiteral("Roboto"), QStringLiteral("ScootUI Symbols")});
     defaultFont.setPixelSize(16);
     app.setFont(defaultFont);
 

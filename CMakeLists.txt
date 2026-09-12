@@ -459,6 +459,7 @@ qt_add_qml_module(scootui
         assets/fonts/subset/RobotoCondensed-Bold.ttf
         assets/fonts/subset/RobotoCondensed-Regular.ttf
         assets/fonts/subset/MaterialIcons-Regular.otf
+        assets/fonts/subset/ScootUISymbols.ttf
         assets/styles/mapdark.json
         assets/styles/maplight.json
 )
@@ -886,7 +887,8 @@ if(BUILD_TESTING)
               assets/fonts/subset/Roboto-Regular.ttf
               assets/fonts/subset/Roboto-Bold.ttf
               assets/fonts/subset/Roboto-Medium.ttf
-              assets/fonts/subset/MaterialIcons-Regular.otf)
+              assets/fonts/subset/MaterialIcons-Regular.otf
+              assets/fonts/subset/ScootUISymbols.ttf)
     add_test(NAME notification_qml_tests
         COMMAND notification_qml_test -input ${CMAKE_CURRENT_SOURCE_DIR}/tests -o -,txt)
     set_tests_properties(notification_qml_tests PROPERTIES
