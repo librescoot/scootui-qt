@@ -71,7 +71,7 @@ TestCase {
         property real mapTilt: 60
         property real mapLatitude: 52.52
         property real mapLongitude: 13.405
-        property string styleUrl: ""
+        property string styleJson: ""
         property string routeGeoJson: ""
         property var mapThemeLayers: []
         property bool debugZoomEnabled: false

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QByteArray>
 #include <QTimer>
 #include <QElapsedTimer>
 #include <QVariantList>
@@ -37,7 +38,7 @@ class MapService : public QObject
     // the map stays north-up.
     Q_PROPERTY(double rawMapBearing READ rawMapBearing NOTIFY mapBearingChanged)
     Q_PROPERTY(bool isReady READ isReady NOTIFY isReadyChanged)
-    Q_PROPERTY(QString styleUrl READ styleUrl NOTIFY styleUrlChanged)
+    Q_PROPERTY(QString styleJson READ styleJson NOTIFY styleJsonChanged)
     // Per-layer paint overrides for the dark/light themes, computed once from
     // the embedded style JSONs. The map QML applies these at runtime so a theme
     // switch recolors existing layers in place instead of reloading the style.
@@ -97,7 +98,7 @@ public:
     }
 
     bool isReady() const { return m_isReady; }
-    QString styleUrl() const { return m_styleUrl; }
+    QString styleJson() const { return m_styleJson; }
     QVariantList mapThemeLayers() const { return m_mapThemeLayers; }
     QVariantList routeCoordinates() const { return m_routeCoordinates; }
     QString routeGeoJson() const { return m_routeGeoJson; }
@@ -146,7 +147,7 @@ signals:
     void mapTiltChanged();
     void mapBearingChanged();
     void isReadyChanged();
-    void styleUrlChanged();
+    void styleJsonChanged();
     void routeCoordinatesChanged();
     void routeGeoJsonChanged();
     void routeStyleChanged();
@@ -183,33 +184,16 @@ private:
     static double normalizeAngle(double angle);
 
     // Style
-    void rebuildStyleUrl();
-    // Diffs the embedded dark/light style JSONs once and fills m_mapThemeLayers
+    void rebuildStyle();
+    // Diffs the selected dark/light style JSONs once and fills m_mapThemeLayers
     // with the per-layer paint properties that differ between the two themes.
     void buildThemeLayerOverrides();
-    QString rewriteStyleForMbtiles(const QString &qrcPath, const QString &mbtilesPath);
     QString styleSourcePath(bool isDark) const;
-    QString styleSourceStamp() const;
-    bool applyRouteStyle(const QString &stylePath);
-
-    // Traffic overlay
-    static void removeTrafficFromStyle(QJsonObject &root);
-    // 2D draws building footprints flat. Collapsing a fill-extrusion to zero
-    // height does not do that: the layer stays on the extrusion path, offscreen
-    // composite pass included, and measures slower than the 3D view it replaces
-    // (9.5 fps against 12.7 on the DBC). Rewriting the layer to a plain fill
-    // gets 25 fps, so the swap happens in the style rather than at runtime.
-    static QJsonObject flattenExtrusionLayer(QJsonObject layer);
-    static void flattenBuildingExtrusions(QJsonObject &root);
-    // Emits the /tmp style variant for the current traffic and view-mode combo.
-    QString rewriteStyleVariant(const QString &qrcPath);
-    QString styleVariantSuffix() const;
+    bool applyRouteStyle(const QByteArray &styleJson);
     // Installed glyph directory, or empty when none is usable.
     QString localGlyphDirectory() const;
     // Derives tilt from the current smoothed zoom.
     void updateTiltForZoom();
-    // Places the route source and layers at the right depth in the style.
-    void injectRouteLayers(QJsonObject &root) const;
     // Route GeoJSON for native MapLibre layer
     void updateRouteGeoJson();
 
@@ -382,12 +366,11 @@ private:
     bool m_view2D = false;
     bool m_northOriented = false;
     bool m_isReady = false;
-    QString m_styleUrl;
+    QString m_styleJson;
     QVariantList m_mapThemeLayers;
     QVariantList m_routeCoordinates;
     QString m_routeGeoJson;
     MapRouteStyle m_routeStyle;
-    qint64 m_styleSourceMtime = 0;
     double m_vehicleOffsetY = VehicleOffsetPx;
 
     // --- Out-of-coverage state ---

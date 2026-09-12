@@ -31,8 +31,8 @@ MapView {
         }
         
         PluginParameter {
-            name: "maplibre.map.styles"
-            value: typeof mapService !== "undefined" ? mapService.styleUrl : ""
+            name: "maplibre.map.style_json"
+            value: typeof mapService !== "undefined" ? mapService.styleJson : ""
         }
         
         PluginParameter {

@@ -8,23 +8,23 @@ Item {
     anchors.fill: parent
 
     property bool mapReady: typeof mapService !== "undefined" ? mapService.isReady : false
-    property string styleUrl: typeof mapService !== "undefined" ? mapService.styleUrl : ""
-    property bool styleReady: styleUrl.length > 0
+    property string styleJson: typeof mapService !== "undefined" ? mapService.styleJson : ""
+    property bool styleReady: styleJson.length > 0
     readonly property bool styledOutputReady: mapLoader.status === Loader.Ready
                                                && mapLoader.item !== null
                                                && mapLoader.item.styledOutputReady
 
-    // Reload map when the style URL actually changes (offline/mbtiles or traffic
-    // overlay toggle). PluginParameter is only read at creation time, so those
-    // need a MapView recreate. Theme switches do NOT change the URL: the map
+    // Reload when the composed style changes (offline/online source, traffic,
+    // view mode, or map replacement). PluginParameter is read at creation time,
+    // so those need a MapView recreate. Theme switches do not change the JSON:
     // recolors existing layers in place (see MapViewContent.qml), no reload.
     Connections {
         target: typeof mapService !== "undefined" ? mapService : null
-        function onStyleUrlChanged() {
+        function onStyleJsonChanged() {
             // Never create QMapLibre without a style. Its unstyled native
             // surface clears white and can become ScootUI's first frame.
             mapLoader.active = false
-            if (typeof mapService !== "undefined" && mapService.styleUrl.length > 0)
+            if (typeof mapService !== "undefined" && mapService.styleJson.length > 0)
                 mapLoader.active = true
         }
     }

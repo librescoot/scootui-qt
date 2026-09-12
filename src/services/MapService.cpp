@@ -1,5 +1,6 @@
 #include "MapService.h"
 #include "MapCameraPolicy.h"
+#include "MapStyleComposer.h"
 #include "RoadInfoService.h"
 #include "NavigationService.h"
 #include "stores/GpsStore.h"
@@ -22,7 +23,6 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QHash>
-#include <QRegularExpression>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
@@ -230,8 +230,8 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
     , m_tickTimer(new QTimer(this))
 {
     // reloadMbtiles() opens a SQLite connection for the mbtiles validation
-    // probe and parses two JSON style files to rewrite tile:// URLs.
-    // buildThemeLayerOverrides() parses two more QRC style JSONs (~150ms on
+    // probe and composes the selected map style in memory.
+    // buildThemeLayerOverrides() parses two style JSONs (~150ms on
     // iMX6). None of it is needed before the first frame (the map isn't the
     // initial screen), so queue both on the first event-loop tick to keep them
     // off the createStores()/engine.load() critical path.
@@ -255,7 +255,7 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
     // --- Theme changes ---
     // No style reload on theme switch: the map QML recolors existing layers in
     // place from m_mapThemeLayers (built above on the first event-loop tick),
-    // so the style URL is theme-independent.
+    // so theme changes do not recompose the style.
 
     // --- Map type changes (online / offline) ---
     connect(m_settings, &SettingsStore::mapTypeChanged, this, &MapService::onMapTypeChanged);
@@ -335,7 +335,8 @@ void MapService::reloadMbtiles()
 
     // Path alone isn't enough: an OTA install renames a new map.mbtiles over
     // the same path, so also check whether the file itself changed.
-    if (newPath == m_mbtilesPath && newMtime == m_mbtilesMtime)
+    if (newPath == m_mbtilesPath && newMtime == m_mbtilesMtime
+        && !m_styleJson.isEmpty())
         return;
 
     if (newPath.isEmpty()) {
@@ -346,7 +347,7 @@ void MapService::reloadMbtiles()
 
     m_mbtilesPath = newPath;
     m_mbtilesMtime = newMtime;
-    rebuildStyleUrl();
+    rebuildStyle();
     loadMbtilesBounds();
 }
 
@@ -655,7 +656,7 @@ void MapService::onOverviewTimeout()
 
 void MapService::onMapTypeChanged()
 {
-    rebuildStyleUrl();
+    rebuildStyle();
 }
 
 void MapService::onMapViewModeChanged()
@@ -667,43 +668,21 @@ void MapService::onMapViewModeChanged()
     emit mapBearingChanged();
     // Buildings are extruded in 3D and flat in 2D, which is a different style.
     // Rebuild the theme overrides first so they carry the matching layer type,
-    // then the URL, whose change reloads the map.
+    // then compose the JSON whose change reloads the map.
     buildThemeLayerOverrides();
-    rebuildStyleUrl();
+    rebuildStyle();
 }
 
 void MapService::onTrafficOverlayChanged()
 {
-    rebuildStyleUrl();
-}
-
-void MapService::removeTrafficFromStyle(QJsonObject &root)
-{
-    // Remove google-traffic source
-    QJsonObject sources = root.value(QStringLiteral("sources")).toObject();
-    if (sources.contains(QStringLiteral("google-traffic"))) {
-        sources.remove(QStringLiteral("google-traffic"));
-        root[QStringLiteral("sources")] = sources;
-        qDebug() << "MapService: stripped google-traffic source";
-    }
-
-    // Remove traffic-overlay layer
-    QJsonArray layers = root.value(QStringLiteral("layers")).toArray();
-    QJsonArray filtered;
-    for (const QJsonValue &v : layers) {
-        QJsonObject layer = v.toObject();
-        if (layer.value(QStringLiteral("id")).toString() == QStringLiteral("traffic-overlay"))
-            continue;
-        filtered.append(v);
-    }
-    root[QStringLiteral("layers")] = filtered;
+    rebuildStyle();
 }
 
 void MapService::buildThemeLayerOverrides()
 {
-    auto loadLayers = [](const QString &qrcPath) -> QHash<QString, QJsonObject> {
+    auto loadLayers = [](const QString &stylePath) -> QHash<QString, QJsonObject> {
         QHash<QString, QJsonObject> out;
-        QString file = qrcPath;
+        QString file = stylePath;
         file.replace(QStringLiteral("qrc:/"), QStringLiteral(":/"));
         QFile f(file);
         if (!f.open(QIODevice::ReadOnly)) {
@@ -720,10 +699,10 @@ void MapService::buildThemeLayerOverrides()
         return out;
     };
 
-    QHash<QString, QJsonObject> dark =
-        loadLayers(QStringLiteral("qrc:/ScootUI/assets/styles/mapdark.json"));
-    QHash<QString, QJsonObject> light =
-        loadLayers(QStringLiteral("qrc:/ScootUI/assets/styles/maplight.json"));
+    const QString darkPath = styleSourcePath(true);
+    const QString lightPath = styleSourcePath(false);
+    QHash<QString, QJsonObject> dark = loadLayers(darkPath);
+    QHash<QString, QJsonObject> light = loadLayers(lightPath);
 
     // In 2D the emitted style carries buildings as plain fills, so the
     // overrides have to be derived from the flattened layers. Otherwise they
@@ -731,13 +710,15 @@ void MapService::buildThemeLayerOverrides()
     // the recolour would silently stop applying on a theme change.
     if (m_view2D) {
         for (auto it = dark.begin(); it != dark.end(); ++it)
-            it.value() = flattenExtrusionLayer(it.value());
+            it.value() = flattenMapExtrusionLayer(it.value());
         for (auto it = light.begin(); it != light.end(); ++it)
-            it.value() = flattenExtrusionLayer(it.value());
+            it.value() = flattenMapExtrusionLayer(it.value());
     }
 
     // Walk the light style's layer order so the overrides keep style order.
-    QFile lf(QStringLiteral(":/ScootUI/assets/styles/maplight.json"));
+    QString lightFile = lightPath;
+    lightFile.replace(QStringLiteral("qrc:/"), QStringLiteral(":/"));
+    QFile lf(lightFile);
     QJsonArray order;
     if (lf.open(QIODevice::ReadOnly)) {
         order = QJsonDocument::fromJson(lf.readAll())
@@ -781,34 +762,55 @@ void MapService::buildThemeLayerOverrides()
     qDebug() << "MapService: built" << m_mapThemeLayers.size() << "theme layer overrides";
 }
 
-void MapService::rebuildStyleUrl()
+void MapService::rebuildStyle()
 {
-    bool isDark = m_theme->isDark();
-    bool useLocal = !m_mbtilesPath.isEmpty();
-    bool showTraffic = m_settings->mapTrafficOverlay();
+    const bool isDark = m_theme->isDark();
+    const bool offlineSelected = m_settings->mapType()
+        == static_cast<int>(ScootEnums::MapType::Offline);
+    const bool useLocal = offlineSelected && !m_mbtilesPath.isEmpty();
+    const QString sourcePath = styleSourcePath(isDark);
+    QString filePath = sourcePath;
+    filePath.replace(QStringLiteral("qrc:/"), QStringLiteral(":/"));
 
-    QString qrcPath = styleSourcePath(isDark);
-    applyRouteStyle(qrcPath);
+    QFile source(filePath);
+    if (!source.open(QIODevice::ReadOnly)) {
+        qWarning() << "MapService: cannot read style" << filePath;
+        return;
+    }
+    QByteArray sourceJson = source.readAll();
+    source.close();
 
-    qDebug() << "MapService: rebuildStyleUrl - dark:" << isDark
-             << "mbtiles:" << (useLocal ? m_mbtilesPath : QStringLiteral("none"))
-             << "traffic:" << showTraffic
-             << "style:" << qrcPath;
+    applyRouteStyle(sourceJson);
 
-    QString url;
+    MapStyleConfig config;
+    config.mbtilesPath = useLocal ? m_mbtilesPath : QString();
+    config.glyphDirectory = useLocal ? localGlyphDirectory() : QString();
+    config.trafficVisible = m_settings->mapTrafficOverlay();
+    config.view2D = m_view2D;
+    config.route = m_routeStyle;
     if (useLocal) {
-        url = rewriteStyleForMbtiles(qrcPath, m_mbtilesPath);
-    } else {
-        // Always materialize the online style. Besides traffic/2D variants,
-        // this guarantees the native route source and correctly ordered route
-        // layers exist in the normal traffic-enabled 3D configuration too.
-        url = rewriteStyleVariant(qrcPath);
+        const QFileInfo info(m_mbtilesPath);
+        config.revision = QStringLiteral("%1:%2")
+            .arg(m_mbtilesMtime.toMSecsSinceEpoch())
+            .arg(info.size());
     }
 
-    if (url != m_styleUrl) {
-        qDebug() << "MapService: style URL changed:" << url;
-        m_styleUrl = url;
-        emit styleUrlChanged();
+    MapStyleComposeResult result = composeMapStyle(sourceJson, config);
+    if (!result) {
+        qWarning() << "MapService: cannot compose style" << sourcePath << result.error;
+        return;
+    }
+
+    const QString json = QString::fromUtf8(result.json);
+    qDebug() << "MapService: composed style - dark:" << isDark
+             << "mbtiles:" << (useLocal ? m_mbtilesPath : QStringLiteral("none"))
+             << "traffic:" << config.trafficVisible
+             << "2d:" << config.view2D
+             << "source:" << sourcePath;
+
+    if (json != m_styleJson) {
+        m_styleJson = json;
+        emit styleJsonChanged();
     }
 }
 
@@ -820,28 +822,10 @@ QString MapService::styleSourcePath(bool isDark) const
                                    : QStringLiteral("qrc:/ScootUI/assets/styles/") + name;
 }
 
-// Reads the route colours from whichever style is in use, so the rewritten
-// style layers and the QML fallback layers agree on one source of truth.
-bool MapService::applyRouteStyle(const QString &stylePath)
+// Reads route appearance from the same document that is sent to MapLibre.
+bool MapService::applyRouteStyle(const QByteArray &styleJson)
 {
-    QString path = stylePath;
-    path.replace(QStringLiteral("qrc:/"), QStringLiteral(":/"));
-
-    QFile f(path);
-    if (!f.open(QIODevice::ReadOnly)) {
-        qWarning() << "MapService: cannot read style for route metadata" << path;
-        m_styleSourceMtime = 0;
-        return false;
-    }
-    const MapRouteStyle style = parseMapRouteStyle(f.readAll());
-    f.close();
-
-    // A qrc style cannot change while the service runs, so it gets no stamp:
-    // that keeps the rewritten-style URL stable across rebuilds.
-    m_styleSourceMtime = path.startsWith(QLatin1Char(':'))
-        ? 0
-        : QFileInfo(path).lastModified().toSecsSinceEpoch();
-
+    const MapRouteStyle style = parseMapRouteStyle(styleJson);
     if (style.fillColor == m_routeStyle.fillColor
         && style.borderColor == m_routeStyle.borderColor
         && style.fillWidth == m_routeStyle.fillWidth
@@ -852,151 +836,6 @@ bool MapService::applyRouteStyle(const QString &stylePath)
     m_routeStyle = style;
     emit routeStyleChanged();
     return true;
-}
-
-QString MapService::styleSourceStamp() const
-{
-    return m_styleSourceMtime
-        ? QStringLiteral("-") + QString::number(m_styleSourceMtime)
-        : QString();
-}
-
-QString MapService::rewriteStyleForMbtiles(const QString &qrcPath, const QString &mbtilesPath)
-{
-    // Determine output path (include traffic state + mbtiles mtime so the URL
-    // changes whenever traffic is toggled or the mbtiles file is replaced by
-    // an OTA install — an unchanged styleUrl string would otherwise suppress
-    // styleUrlChanged and leave MapViewWidget rendering the stale map).
-    QString baseName = qrcPath.section(QLatin1Char('/'), -1);  // "mapdark.json" or "maplight.json"
-    QString stem = baseName.chopped(5);  // strip ".json"
-    QString filePrefix = stem + styleVariantSuffix();
-    qint64 mtimeSecs = QFileInfo(mbtilesPath).lastModified().toSecsSinceEpoch();
-    QString outPath = QStringLiteral("/tmp/") + filePrefix + QStringLiteral("-")
-        + QString::number(mtimeSecs) + styleSourceStamp() + QStringLiteral(".json");
-
-    // Best-effort cleanup of stale rewritten styles for this stem/traffic
-    // combination so /tmp doesn't accumulate one file per map update.
-    QDir tmpDir(QStringLiteral("/tmp"));
-    const QRegularExpression staleRe(QStringLiteral("^") + QRegularExpression::escape(filePrefix)
-                                      + QStringLiteral("-\\d+(-\\d+)?\\.json$"));
-    for (const QString &name : tmpDir.entryList(QDir::Files)) {
-        if (staleRe.match(name).hasMatch())
-            QFile::remove(tmpDir.filePath(name));
-    }
-
-    // Read embedded style from QRC
-    QString qrcFile = qrcPath;
-    qrcFile.replace(QStringLiteral("qrc:/"), QStringLiteral(":/"));
-    QFile f(qrcFile);
-    if (!f.open(QIODevice::ReadOnly)) {
-        qWarning() << "MapService: cannot open embedded style" << qrcFile;
-        return qrcPath;
-    }
-    QJsonDocument doc = QJsonDocument::fromJson(f.readAll());
-    f.close();
-    if (!doc.isObject()) {
-        qWarning() << "MapService: invalid style JSON";
-        return qrcPath;
-    }
-
-    QJsonObject root = doc.object();
-
-    // Rewrite sources to use mbtiles://
-    QJsonObject sources = root.value(QStringLiteral("sources")).toObject();
-    for (auto it = sources.begin(); it != sources.end(); ++it) {
-        QJsonObject src = it.value().toObject();
-        // Only rewrite vector sources; keep raster sources (e.g. traffic overlay) as-is
-        if (src.value(QStringLiteral("type")).toString() != QStringLiteral("vector"))
-            continue;
-        src.remove(QStringLiteral("tiles"));
-        QString mbtilesUrl = QStringLiteral("mbtiles://") + mbtilesPath;
-        src[QStringLiteral("url")] = mbtilesUrl;
-        // Cap maxzoom to actual tile data so MapLibre overzooms correctly
-        src[QStringLiteral("maxzoom")] = 14;
-        sources[it.key()] = src;
-        qDebug() << "MapService: source" << it.key() << "-> " << mbtilesUrl;
-    }
-    root[QStringLiteral("sources")] = sources;
-
-    // Sprites are still remote-only, so those go regardless
-    root.remove(QStringLiteral("sprite"));
-
-    // Symbol layers need glyph PBFs. A glyph fetch that fails leaves the request
-    // unparsed in MapLibre's glyph manager, and the tile then waits on it
-    // forever, so every feature on that tile disappears rather than just the
-    // label. Only keep the symbol layers when the glyphs are actually installed.
-    const QString glyphDir = localGlyphDirectory();
-    if (glyphDir.isEmpty()) {
-        root.remove(QStringLiteral("glyphs"));
-        QJsonArray layers = root.value(QStringLiteral("layers")).toArray();
-        QJsonArray filtered;
-        for (const QJsonValue &v : layers) {
-            QJsonObject layer = v.toObject();
-            if (layer.value(QStringLiteral("type")).toString() == QStringLiteral("symbol")) {
-                qDebug() << "MapService: stripping symbol layer" << layer.value(QStringLiteral("id")).toString();
-                continue;
-            }
-            filtered.append(v);
-        }
-        root[QStringLiteral("layers")] = filtered;
-    } else {
-        const QString glyphUrl =
-            QUrl::fromLocalFile(glyphDir).toString() + QStringLiteral("/{fontstack}/{range}.pbf");
-        root[QStringLiteral("glyphs")] = glyphUrl;
-        qDebug() << "MapService: glyphs ->" << glyphUrl;
-    }
-
-    // Strip traffic overlay if disabled
-    if (!m_settings->mapTrafficOverlay())
-        removeTrafficFromStyle(root);
-
-    // Flat footprints in 2D
-    if (m_view2D)
-        flattenBuildingExtrusions(root);
-
-    injectRouteLayers(root);
-
-    // Write to /tmp
-    QFile out(outPath);
-    if (!out.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        qWarning() << "MapService: cannot write" << outPath;
-        return qrcPath;
-    }
-    QByteArray json = QJsonDocument(root).toJson(QJsonDocument::Compact);
-    out.write(json);
-    out.close();
-
-    QString fileUrl = QStringLiteral("file://") + outPath;
-    qDebug() << "MapService: wrote offline style to" << fileUrl << "(" << json.size() << "bytes)";
-    return fileUrl;
-}
-
-QJsonObject MapService::flattenExtrusionLayer(QJsonObject layer)
-{
-    if (layer.value(QStringLiteral("type")).toString() != QLatin1String("fill-extrusion"))
-        return layer;
-
-    // Keep the id: theme overrides and the route layers' insert_before anchor
-    // both resolve by it.
-    const QJsonObject src = layer.value(QStringLiteral("paint")).toObject();
-    QJsonObject flat;
-    if (src.contains(QStringLiteral("fill-extrusion-color")))
-        flat[QStringLiteral("fill-color")] = src.value(QStringLiteral("fill-extrusion-color"));
-    if (src.contains(QStringLiteral("fill-extrusion-opacity")))
-        flat[QStringLiteral("fill-opacity")] = src.value(QStringLiteral("fill-extrusion-opacity"));
-
-    layer[QStringLiteral("type")] = QStringLiteral("fill");
-    layer[QStringLiteral("paint")] = flat;
-    return layer;
-}
-
-void MapService::flattenBuildingExtrusions(QJsonObject &root)
-{
-    const QJsonArray layers = root.value(QStringLiteral("layers")).toArray();
-    QJsonArray out;
-    for (const QJsonValue &v : layers)
-        out.append(flattenExtrusionLayer(v.toObject()));
-    root[QStringLiteral("layers")] = out;
 }
 
 void MapService::updateTiltForZoom()
@@ -1038,81 +877,6 @@ void MapService::debugResetZoom()
 }
 
 
-void MapService::injectRouteLayers(QJsonObject &root) const
-{
-    // The route has to sit at a specific depth: under the building extrusions
-    // so they occlude it, with a translucent copy above them so it stays
-    // followable through a block, and under the street labels so names are not
-    // painted over. QMapLibre's LayerParameter cannot express an insertion
-    // point, so the layers are placed here instead of being added from QML.
-    QJsonObject sources = root.value(QStringLiteral("sources")).toObject();
-    QJsonObject empty;
-    empty[QStringLiteral("type")] = QStringLiteral("FeatureCollection");
-    empty[QStringLiteral("features")] = QJsonArray();
-    QJsonObject routeSource;
-    routeSource[QStringLiteral("type")] = QStringLiteral("geojson");
-    routeSource[QStringLiteral("data")] = empty;
-    sources[QStringLiteral("route")] = routeSource;
-    root[QStringLiteral("sources")] = sources;
-
-    auto line = [](const QString &id, const QString &color, double width, double opacity) {
-        QJsonObject layout;
-        layout[QStringLiteral("line-cap")] = QStringLiteral("round");
-        layout[QStringLiteral("line-join")] = QStringLiteral("round");
-        QJsonObject paint;
-        paint[QStringLiteral("line-color")] = color;
-        paint[QStringLiteral("line-width")] = width;
-        if (opacity < 1.0)
-            paint[QStringLiteral("line-opacity")] = opacity;
-        QJsonObject layer;
-        layer[QStringLiteral("id")] = id;
-        layer[QStringLiteral("type")] = QStringLiteral("line");
-        layer[QStringLiteral("source")] = QStringLiteral("route");
-        layer[QStringLiteral("layout")] = layout;
-        layer[QStringLiteral("paint")] = paint;
-        return layer;
-    };
-
-    const QJsonArray layers = root.value(QStringLiteral("layers")).toArray();
-    int firstExtrusion = -1;
-    int lastExtrusion = -1;
-    int firstSymbol = -1;
-    for (int i = 0; i < layers.size(); ++i) {
-        const QString type = layers.at(i).toObject().value(QStringLiteral("type")).toString();
-        if (type == QLatin1String("fill-extrusion")) {
-            if (firstExtrusion < 0)
-                firstExtrusion = i;
-            lastExtrusion = i;
-        } else if (type == QLatin1String("symbol") && firstSymbol < 0) {
-            firstSymbol = i;
-        }
-    }
-
-    const QString border = m_routeStyle.borderColor;
-    const QString fill = m_routeStyle.fillColor;
-    const int borderWidth = m_routeStyle.borderWidth;
-    const int fillWidth = m_routeStyle.fillWidth;
-
-    QJsonArray out;
-    for (int i = 0; i < layers.size(); ++i) {
-        // With no extrusions (2D) there is nothing to hide behind, so the
-        // solid route goes straight under the labels and no ghost is drawn.
-        if (i == firstExtrusion || (firstExtrusion < 0 && i == firstSymbol)) {
-            out.append(line(QStringLiteral("route-border"), border, borderWidth, 1.0));
-            out.append(line(QStringLiteral("route-fill"), fill, fillWidth, 1.0));
-        }
-        out.append(layers.at(i));
-        if (firstExtrusion >= 0 && i == lastExtrusion) {
-            out.append(line(QStringLiteral("route-ghost"), fill, fillWidth, 0.35));
-        }
-    }
-    if (firstExtrusion < 0 && firstSymbol < 0) {
-        out.append(line(QStringLiteral("route-border"), border, borderWidth, 1.0));
-        out.append(line(QStringLiteral("route-fill"), fill, fillWidth, 1.0));
-    }
-    root[QStringLiteral("layers")] = out;
-}
-
 QString MapService::localGlyphDirectory() const
 {
     QStringList candidates;
@@ -1135,58 +899,6 @@ QString MapService::localGlyphDirectory() const
         qWarning() << "MapService: glyph directory" << path << "has no usable fontstack";
     }
     return QString();
-}
-
-QString MapService::styleVariantSuffix() const
-{
-    QString s;
-    if (!m_settings->mapTrafficOverlay())
-        s += QStringLiteral("-notraffic");
-    if (m_view2D)
-        s += QStringLiteral("-2d");
-    return s;
-}
-
-QString MapService::rewriteStyleVariant(const QString &qrcPath)
-{
-    QString baseName = qrcPath.section(QLatin1Char('/'), -1);
-    QString stem = baseName.chopped(5);  // strip ".json"
-    QString outPath = QStringLiteral("/tmp/") + stem + styleVariantSuffix()
-                      + styleSourceStamp() + QStringLiteral(".json");
-
-    QString qrcFile = qrcPath;
-    qrcFile.replace(QStringLiteral("qrc:/"), QStringLiteral(":/"));
-    QFile f(qrcFile);
-    if (!f.open(QIODevice::ReadOnly)) {
-        qWarning() << "MapService: cannot open embedded style" << qrcFile;
-        return qrcPath;
-    }
-    QJsonDocument doc = QJsonDocument::fromJson(f.readAll());
-    f.close();
-    if (!doc.isObject()) {
-        qWarning() << "MapService: invalid style JSON";
-        return qrcPath;
-    }
-
-    QJsonObject root = doc.object();
-    if (!m_settings->mapTrafficOverlay())
-        removeTrafficFromStyle(root);
-    if (m_view2D)
-        flattenBuildingExtrusions(root);
-    injectRouteLayers(root);
-
-    QFile out(outPath);
-    if (!out.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        qWarning() << "MapService: cannot write" << outPath;
-        return qrcPath;
-    }
-    QByteArray json = QJsonDocument(root).toJson(QJsonDocument::Compact);
-    out.write(json);
-    out.close();
-
-    QString fileUrl = QStringLiteral("file://") + outPath;
-    qDebug() << "MapService: wrote no-traffic style to" << fileUrl << "(" << json.size() << "bytes)";
-    return fileUrl;
 }
 
 // The ECU owns speed whenever it is talking, including when it reports 0: that

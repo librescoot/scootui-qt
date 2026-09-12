@@ -31,8 +31,8 @@ MapView {
         }
         
         PluginParameter {
-            name: "maplibre.map.styles"
-            value: typeof mapService !== "undefined" ? mapService.styleUrl : ""
+            name: "maplibre.map.style_json"
+            value: typeof mapService !== "undefined" ? mapService.styleJson : ""
         }
         
         PluginParameter {
@@ -154,9 +154,8 @@ MapView {
             onDataChanged: updateNotify()
         }
 
-        // These also act as a fallback if style rewriting fails. When the
-        // emitted style already contains the same IDs, QMapLibre updates those
-        // native layers in place and preserves their intended insertion depth.
+        // The composed style already contains these IDs at their intended
+        // depth; the parameters update their source data and appearance.
         LayerParameter {
             styleId: "route-border"
             type: "line"
