@@ -3,11 +3,17 @@
 No vehicle or live Redis is needed:
 
 ```sh
+cmake -B build -DBUILD_TESTING=ON
 cmake --build build -j4
 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software ctest --test-dir build --output-on-failure
 SCOOTUI_TEST_CAPTURE_DIR=/tmp/notification-captures QT_QPA_PLATFORM=offscreen \
   QT_QUICK_BACKEND=software ctest --test-dir build -R notification_qml_tests --output-on-failure
 ```
+
+CI runs the same suite on push and pull request
+(`.github/workflows/tests.yml`): the font coverage check, then a desktop
+`BUILD_TESTING=ON` build against a pinned Qt 6.9.3. Qt is pinned because the
+QML tests compare rendered pixels and layout, and 18 of them fail on Qt 6.8.
 
 `ApplicationNotificationTest.cpp` loads the actual Application wiring and Main.qml
 with an in-memory backend and simulator disabled. It verifies map-first startup,

@@ -1,0 +1,71 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  font-coverage:
+    name: Font Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install fonttools
+        run: pip install fonttools
+
+      # Fails if a string literal in src/ or qml/ uses a character no bundled
+      # font carries. Roboto has no arrows or symbols, so those come from the
+      # "ScootUI Symbols" subset; see scripts/subset-fonts.sh.
+      - name: Check bundled fonts cover every UI string
+        run: python3 scripts/check-font-coverage.py
+
+  unit-tests:
+    name: Unit and QML tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build pkg-config \
+            libhiredis-dev libzstd-dev zlib1g-dev \
+            libgl1-mesa-dev libglx-dev libegl-dev libgles-dev \
+            libfontconfig1 libxkbcommon-x11-0 libxcb-cursor0 \
+            libdbus-1-3 libglib2.0-0 libpulse-dev
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Qt is pinned rather than taken from the runner's apt. The QML tests
+      # compare rendered glyph pixels and layout, and 18 of them fail on
+      # Debian/Ubuntu's Qt 6.8 while passing here; the DBC image is 6.9.x.
+      - name: Install Qt 6.9.3
+        run: |
+          pip install aqtinstall
+          aqt install-qt linux desktop 6.9.3 linux_gcc_64 -m qtmultimedia -O "$HOME/Qt"
+
+      # No QMapLibre on the runner: the tests cover everything except real map
+      # rendering, which needs the device GPU anyway (see TESTING.md).
+      - name: Configure
+        run: |
+          cmake -B build -G Ninja \
+            -DBUILD_TESTING=ON \
+            -DDESKTOP_MODE=ON \
+            -DSCOOTUI_ALLOW_MISSING_QMAPLIBRE=ON \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_PREFIX_PATH="$HOME/Qt/6.9.3/gcc_64"
+
+      - name: Build
+        run: cmake --build build -j"$(nproc)"
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -j"$(nproc)"
