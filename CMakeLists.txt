@@ -560,6 +560,22 @@ if(BUILD_TESTING)
     target_link_libraries(map_style_composer_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME map_style_composer_test COMMAND map_style_composer_test)
 
+    qt_add_executable(shortcut_menu_store_test
+        tests/ShortcutMenuStoreTest.cpp
+        src/stores/ShortcutMenuStore.cpp
+        src/stores/VehicleStore.cpp
+        src/stores/ScreenStore.cpp
+        src/stores/SettingsStore.cpp
+        src/stores/SyncableStore.cpp
+        src/services/SettingsService.cpp
+        src/models/Enums.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+    )
+    target_include_directories(shortcut_menu_store_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(shortcut_menu_store_test PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
+    add_test(NAME shortcut_menu_store_test COMMAND shortcut_menu_store_test)
+
     qt_add_executable(position_estimator_test
         tests/PositionEstimatorTest.cpp
         src/services/PositionEstimator.h

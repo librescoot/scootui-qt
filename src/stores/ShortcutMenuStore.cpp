@@ -33,6 +33,17 @@ ShortcutMenuStore::ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
     m_cycleTimer->setInterval(ITEM_CYCLE_MS);
     connect(m_cycleTimer, &QTimer::timeout, this, &ShortcutMenuStore::onCycleTimeout);
 
+    connect(m_vehicle, &VehicleStore::kickstandChanged, this, [this]() {
+        if (m_visible
+            && m_vehicle->kickstand() == static_cast<int>(ScootEnums::Kickstand::Up)) {
+            resetState();
+        }
+    });
+    connect(m_vehicle, &VehicleStore::stateChanged, this, [this]() {
+        if (m_visible && !isReadyToDrive())
+            resetState();
+    });
+
     if (m_repo) {
         m_inputSubscriptionId = m_repo->subscribe(
             QLatin1String(kInputEventsChannel),
@@ -50,6 +61,9 @@ ShortcutMenuStore::~ShortcutMenuStore()
 
 void ShortcutMenuStore::show()
 {
+    if (!isReadyToDrive())
+        return;
+
     if (!m_visible) {
         m_visible = true;
         m_selectedIndex = 0;
