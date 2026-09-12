@@ -217,10 +217,17 @@ int main(int argc, char *argv[])
 
     // Safety net: catch exceptions from MapLibre's internal sqlite reader
     // (e.g. mapbox::sqlite::Exception on malformed mbtiles databases)
+    int exitCode = 0;
     try {
-        return app.exec();
+        exitCode = app.exec();
     } catch (const std::exception &e) {
         qCritical() << "Unhandled exception:" << e.what();
-        return 1;
+        exitCode = 1;
     }
+
+    // Before unwinding the stack, which destroys the engine first: a
+    // QQmlComponent outliving its engine faults in its destructor.
+    application.releaseQmlComponents();
+
+    return exitCode;
 }

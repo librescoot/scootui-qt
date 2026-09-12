@@ -85,6 +85,9 @@ private slots:
 
     void cleanup()
     {
+        // Preloaded components must go before the engine that compiled them.
+        if (m_application)
+            m_application->releaseQmlComponents();
         m_engine.reset();
         m_application->shutdownBackgroundWorkers();
         m_application.reset();

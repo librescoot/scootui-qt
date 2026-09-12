@@ -41,6 +41,7 @@ class QQuickWindow;
 
 class BootPrefetch;
 class BootGate;
+class ScreenPreloader;
 class QTimer;
 
 class Application : public QObject
@@ -57,6 +58,9 @@ public:
     // systemd READY=1. Idempotent.
     void uiPresented();
     void observeWindow(QQuickWindow *window);
+    // Drops the C++-owned QML components. Must run before the engine dies, and
+    // never after. Idempotent.
+    void releaseQmlComponents();
     void shutdownBackgroundWorkers();
     bool isSimulatorMode() const { return m_simulatorMode; }
     bool isInMemoryBackend() const { return m_inMemoryBackend; }
@@ -145,6 +149,7 @@ private:
     quint64 m_mapCommandSubscriptionId = 0;
     bool m_mapDownloadHoldActive = false;
     BootGate *m_bootGate = nullptr;
+    ScreenPreloader *m_screenPreloader = nullptr;
     QTimer *m_clusterWarmFallback = nullptr;
     bool m_uiPresented = false;
     bool m_readyPublished = false;

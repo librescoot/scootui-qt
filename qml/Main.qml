@@ -290,9 +290,8 @@ Window {
     // Compile the screens that are not on screen yet, in the background, so a
     // later switch pays only for creation. Runs once, after the first frame has
     // been presented; the cluster goes first because that is where a stand-by
-    // or maintenance boot ends up. The components are kept so the engine does
-    // not drop the compiled types from its cache.
-    property var preloadedScreens: []
+    // or maintenance boot ends up. The components live in C++ so the engine
+    // does not drop the compiled types from its cache.
     property bool screensPreloaded: false
     function preloadScreens() {
         if (root.screensPreloaded)
@@ -302,14 +301,13 @@ Window {
                      "navSetup", "address", "debug", "motionDebug", "umsInfo",
                      "updateChannel", "hopOnInfo"]
         var current = screenLoader.source.toString()
-        var list = []
         for (var i = 0; i < order.length; i++) {
             var url = Qt.resolvedUrl(root.screenUrls[order[i]])
             if (url.toString() === current)
                 continue
-            list.push(Qt.createComponent(url, Component.Asynchronous))
+            if (typeof screenPreloader !== "undefined" && screenPreloader)
+                screenPreloader.preload(url)
         }
-        root.preloadedScreens = list
     }
     // Not before the first frame and not before the cluster exists: on a
     // cluster boot the warm-up completes inside engine.load(), and twelve

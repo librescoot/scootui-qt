@@ -1,4 +1,5 @@
 #include "Application.h"
+#include <QQmlComponent>
 #include "HmiLatencyMonitor.h"
 #include "services/RoadWorkerThreads.h"
 #include "AppConfig.h"
@@ -104,6 +105,33 @@ public:
     Q_INVOKABLE qint64 elapsed() const { return g_bootTimer.elapsed(); }
 };
 
+// Owns the screen components Main.qml compiles ahead of time. Keeping them in
+// C++ rather than a QML array keeps their lifetime off the JavaScript heap,
+// which is swept from inside ~QQmlApplicationEngine.
+class ScreenPreloader : public QObject {
+    Q_OBJECT
+public:
+    explicit ScreenPreloader(QQmlEngine *engine, QObject *parent = nullptr)
+        : QObject(parent), m_engine(engine) {}
+
+    Q_INVOKABLE void preload(const QUrl &url)
+    {
+        m_components.append(
+            new QQmlComponent(m_engine, url, QQmlComponent::Asynchronous, this));
+    }
+
+    // Call while the engine is still alive; see releaseQmlComponents().
+    void release()
+    {
+        qDeleteAll(m_components);
+        m_components.clear();
+    }
+
+private:
+    QQmlEngine *m_engine;
+    QList<QQmlComponent *> m_components;
+};
+
 #ifdef Q_OS_LINUX
 #include <QSocketNotifier>
 #include <sys/socket.h>
@@ -160,6 +188,12 @@ Application::~Application()
     const auto children = this->children();
     for (auto *child : children)
         delete child;
+}
+
+void Application::releaseQmlComponents()
+{
+    if (m_screenPreloader)
+        m_screenPreloader->release();
 }
 
 void Application::shutdownBackgroundWorkers()
@@ -768,6 +802,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // Register context properties
     auto *ctx = engine.rootContext();
     ctx->setContextProperty(QStringLiteral("bootTimer"), new BootTimer(this));
+    m_screenPreloader = new ScreenPreloader(&engine, this);
+    ctx->setContextProperty(QStringLiteral("screenPreloader"), m_screenPreloader);
     ctx->setContextProperty(QStringLiteral("enumStrings"), new EnumStrings(this));
     ctx->setContextProperty(QStringLiteral("engineStore"), engineStore);
     ctx->setContextProperty(QStringLiteral("vehicleStore"), vehicleStore);
