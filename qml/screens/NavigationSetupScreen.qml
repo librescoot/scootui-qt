@@ -29,6 +29,8 @@ Rectangle {
     readonly property int dlStatus: hasDownloadService ? mapDownloadService.status : 0
     readonly property double dlProgress: hasDownloadService ? mapDownloadService.progress : 0
     readonly property string dlRegion: hasDownloadService ? mapDownloadService.regionName : ""
+    // Known slug: resolution, and the GPS it needs, can be skipped.
+    readonly property bool regionResolved: dlRegion !== ""
     readonly property string dlError: hasDownloadService ? mapDownloadService.errorMessage : ""
     readonly property string dlErrorText: {
         if (dlError === "" || typeof translations === "undefined") return ""
@@ -42,6 +44,8 @@ Rectangle {
         return ""
     }
     readonly property bool dlUpdateAvailable: hasDownloadService ? mapDownloadService.updateAvailable : false
+    readonly property bool dlDisplayUpdate: hasDownloadService ? mapDownloadService.displayUpdateAvailable : false
+    readonly property bool dlRoutingUpdate: hasDownloadService ? mapDownloadService.routingUpdateAvailable : false
     readonly property real dlDownloaded: hasDownloadService ? mapDownloadService.downloadedBytes : 0
     readonly property real dlTotal: hasDownloadService ? mapDownloadService.totalBytes : 0
 
@@ -84,17 +88,21 @@ Rectangle {
     // the download trigger so they can't drift.
     readonly property bool willDownloadDisplay: {
         if (showDisplayRow && !mapsOk) return true
-        if (dlUpdateAvailable && showDisplayRow) return true
+        if (dlDisplayUpdate && showDisplayRow) return true
         return false
     }
     readonly property bool willDownloadRouting: {
         if (showRoutingRow && !routingOk) return true
-        if (dlUpdateAvailable && showRoutingRow) return true
+        if (dlRoutingUpdate && showRoutingRow) return true
         return false
     }
     readonly property bool willDownloadAnything: willDownloadDisplay || willDownloadRouting
 
-    readonly property bool canDownload: dlStatus === statusIdle && isOnline && hasGps
+    // A fix only matters when the region is unknown and there is work to do.
+    readonly property bool gpsRequired: willDownloadAnything && !regionResolved
+
+    readonly property bool canDownload: dlStatus === statusIdle && isOnline
+                                         && (hasGps || regionResolved)
                                          && willDownloadAnything
     readonly property string downloadButtonLabel: {
         if (dlUpdateAvailable)
@@ -117,19 +125,19 @@ Rectangle {
 
     // Auto-resolve region when GPS becomes available
     onHasGpsChanged: {
-        if (hasGps && isOnline && dlRegion === "" && hasDownloadService) {
+        if (hasGps && isOnline && !regionResolved && hasDownloadService) {
             mapDownloadService.resolveRegion(gpsLat, gpsLng)
         }
     }
 
     onIsOnlineChanged: {
-        if (hasGps && isOnline && dlRegion === "" && hasDownloadService) {
+        if (hasGps && isOnline && !regionResolved && hasDownloadService) {
             mapDownloadService.resolveRegion(gpsLat, gpsLng)
         }
     }
 
     Component.onCompleted: {
-        if (hasGps && isOnline && dlRegion === "" && hasDownloadService) {
+        if (hasGps && isOnline && !regionResolved && hasDownloadService) {
             mapDownloadService.resolveRegion(gpsLat, gpsLng)
         }
     }
@@ -350,7 +358,7 @@ Rectangle {
 
                 // Waiting for GPS
                 Text {
-                    visible: navSetupScreen.isOnline && !navSetupScreen.hasGps
+                    visible: navSetupScreen.isOnline && navSetupScreen.gpsRequired
                     Layout.alignment: Qt.AlignHCenter
                     text: typeof translations !== "undefined" ? translations.navSetupDownloadWaitingGps : "Waiting for GPS fix..."
                     color: navSetupScreen.textSecondary

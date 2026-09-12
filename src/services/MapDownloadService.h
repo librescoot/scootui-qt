@@ -22,6 +22,9 @@ class MapDownloadService : public QObject
     Q_PROPERTY(QString regionName READ regionName NOTIFY regionNameChanged)
     Q_PROPERTY(QString errorMessage READ errorMessage NOTIFY errorMessageChanged)
     Q_PROPERTY(bool updateAvailable READ updateAvailable NOTIFY updateAvailableChanged)
+    // Per-set flags so the setup screen offers only the side that changed.
+    Q_PROPERTY(bool displayUpdateAvailable READ displayUpdateAvailable NOTIFY updateTargetsChanged)
+    Q_PROPERTY(bool routingUpdateAvailable READ routingUpdateAvailable NOTIFY updateTargetsChanged)
     Q_PROPERTY(qint64 downloadedBytes READ downloadedBytes NOTIFY progressChanged)
     Q_PROPERTY(qint64 totalBytes READ totalBytes NOTIFY progressChanged)
     Q_PROPERTY(bool hasPartialDisplayDownload READ hasPartialDisplayDownload NOTIFY partialStateChanged)
@@ -43,6 +46,8 @@ public:
     QString regionName() const { return m_regionName; }
     QString errorMessage() const { return m_errorMessage; }
     bool updateAvailable() const { return m_updateAvailable; }
+    bool displayUpdateAvailable() const { return m_metadata.displayUpdateAvailable; }
+    bool routingUpdateAvailable() const { return m_metadata.routingUpdateAvailable; }
     qint64 downloadedBytes() const { return m_downloadedBytes; }
     qint64 totalBytes() const { return m_totalBytes; }
     bool hasPartialDisplayDownload() const;
@@ -96,6 +101,7 @@ signals:
     void regionNameChanged();
     void errorMessageChanged();
     void updateAvailableChanged();
+    void updateTargetsChanged();
     void partialStateChanged();
     void estimatesChanged();
     void downloadComplete();
@@ -158,6 +164,8 @@ private:
     QString displayDestPath() const;
     QString routingDestPath() const;
     bool hasEnoughDiskSpace(qint64 needed) const;
+    void seedEstimatesFromMetadata();
+    void normaliseUpdateTargets();
     bool isCurrentOperation(quint64 generation) const {
         return generation == m_operationGeneration && !m_cancelled;
     }

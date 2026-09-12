@@ -94,9 +94,11 @@ MapDownloadService::MapDownloadService(MdbRepository *repo, QObject *parent)
         m_regionName = displayNameForSlug(m_resolvedSlug);
     }
     m_updateAvailable = m_metadata.updateAvailable;
+    normaliseUpdateTargets();
 
     adoptInstalledMaps();
     computeMissingDigests();
+    seedEstimatesFromMetadata();
 
     // Both of the above persist only when they changed something. A vehicle
     // where neither fired still has to state what it has.
@@ -119,10 +121,13 @@ void MapDownloadService::reloadMetadata()
     const bool haveMetadata = !(fresh.region.isEmpty() && fresh.lastUpdateCheck.isEmpty());
     const bool changed = fresh.region != m_metadata.region
         || fresh.lastUpdateCheck != m_metadata.lastUpdateCheck
-        || fresh.updateAvailable != m_metadata.updateAvailable;
+        || fresh.updateAvailable != m_metadata.updateAvailable
+        || fresh.displayUpdateAvailable != m_metadata.displayUpdateAvailable
+        || fresh.routingUpdateAvailable != m_metadata.routingUpdateAvailable;
 
     if (haveMetadata && changed) {
         m_metadata = fresh;
+        normaliseUpdateTargets();
 
         if (!m_metadata.region.isEmpty() && m_resolvedSlug.isEmpty()) {
             m_resolvedSlug = m_metadata.region;
@@ -133,9 +138,11 @@ void MapDownloadService::reloadMetadata()
             m_updateAvailable = m_metadata.updateAvailable;
             emit updateAvailableChanged();
         }
+        emit updateTargetsChanged();
 
         adoptInstalledMaps();
         computeMissingDigests();
+        seedEstimatesFromMetadata();
         emit partialStateChanged();
 
         qDebug() << "Map metadata reloaded after /data became available: region"
@@ -402,6 +409,11 @@ void MapDownloadService::checkForUpdates()
 
         bool displayHasUpdate = false;
         bool routingHasUpdate = false;
+        // Reuse the manifest we already parsed to size the setup screen.
+        const qint64 displaySize = static_cast<qint64>(
+            region[QStringLiteral("map")].toObject()[QStringLiteral("size")].toDouble());
+        const qint64 routingSize = static_cast<qint64>(
+            region[QStringLiteral("valhalla")].toObject()[QStringLiteral("size")].toDouble());
         if (m_metadata.displayTiles && !m_metadata.displayTiles->digest.isEmpty()) {
             QString remoteDigest = region[QStringLiteral("map")].toObject()
                                        [QStringLiteral("sha256")].toString();
@@ -422,11 +434,21 @@ void MapDownloadService::checkForUpdates()
         }
         const bool hasUpdate = displayHasUpdate || routingHasUpdate;
 
+        const qint64 newDisplayBytes = displaySize > 0 ? displaySize : m_estimatedDisplayBytes;
+        const qint64 newRoutingBytes = routingSize > 0 ? routingSize : m_estimatedRoutingBytes;
+        if (newDisplayBytes != m_estimatedDisplayBytes
+            || newRoutingBytes != m_estimatedRoutingBytes) {
+            m_estimatedDisplayBytes = newDisplayBytes;
+            m_estimatedRoutingBytes = newRoutingBytes;
+            emit estimatesChanged();
+        }
+
         m_metadata.lastUpdateCheck = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
         m_metadata.displayUpdateAvailable = displayHasUpdate;
         m_metadata.routingUpdateAvailable = routingHasUpdate;
         m_metadata.updateAvailable = hasUpdate;
         persistMetadata();
+        emit updateTargetsChanged();
 
         // Go idle before announcing the update so a direct-connected slot that
         // reacts to updateAvailableChanged (e.g. Application's auto-download
@@ -557,6 +579,37 @@ void MapDownloadService::doResolveSlug(double lat, double lng)
         if (!isCurrentOperation(generation)) return;
         doFetchReleases(m_needsDisplay, m_needsRouting);
     });
+}
+
+void MapDownloadService::normaliseUpdateTargets()
+{
+    // Pre-per-set metadata.json only carries the combined flag; treat that as
+    // "both may need it" rather than "neither", or the screen reads all-set.
+    if (m_metadata.updateAvailable
+        && !m_metadata.displayUpdateAvailable
+        && !m_metadata.routingUpdateAvailable) {
+        m_metadata.displayUpdateAvailable = true;
+        m_metadata.routingUpdateAvailable = true;
+    }
+}
+
+void MapDownloadService::seedEstimatesFromMetadata()
+{
+    // Setup screen sizing before a manifest is in hand. Only fills zeroes, so a
+    // manifest size fetched later is not overwritten by the installed file.
+    bool changed = false;
+    if (m_estimatedDisplayBytes == 0 && m_metadata.displayTiles
+        && m_metadata.displayTiles->size > 0) {
+        m_estimatedDisplayBytes = m_metadata.displayTiles->size;
+        changed = true;
+    }
+    if (m_estimatedRoutingBytes == 0 && m_metadata.valhallaTiles
+        && m_metadata.valhallaTiles->size > 0) {
+        m_estimatedRoutingBytes = m_metadata.valhallaTiles->size;
+        changed = true;
+    }
+    if (changed)
+        emit estimatesChanged();
 }
 
 void MapDownloadService::fetchEstimates()
@@ -1072,6 +1125,7 @@ void MapDownloadService::finishInstall(const QString &installSource, const QStri
 
     m_metadata.region = m_resolvedSlug;
     persistMetadata();
+    emit updateTargetsChanged();
 
     emit partialStateChanged();
 
