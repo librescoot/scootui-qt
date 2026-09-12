@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import ScootUI 1.0
-import "../notifications"
 
 ApplicationWindow {
     id: simWindow
@@ -139,30 +138,6 @@ ApplicationWindow {
         }
 
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: "#444" }
-
-        Rectangle {
-            visible: notificationService.simulatorInjectionEnabled
-            Layout.fillWidth: true
-            Layout.preferredHeight: 72
-            color: "#203746"
-            border.color: "#4ea6d2"
-            border.width: 1
-            radius: 4
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 8
-                Text { text: "Unified notifications · local test source"; color: "white"; font.bold: true; font.pixelSize: 13 }
-                RowLayout {
-                    Layout.fillWidth: true
-                    SimButton { text: "Warning"; small: true; onClicked: notificationService.simulateWarning("Simulator warning", "Local test notification") }
-                    SimButton { text: "Error"; small: true; color: "#9c4d00"; onClicked: notificationService.simulateError("Simulator error", "Local test transient error") }
-                    SimButton { text: "Critical"; small: true; color: "#b71c1c"; onClicked: notificationService.simulateCritical("Simulator critical", "Local test critical condition") }
-                    SimButton { text: "Clear test"; small: true; onClicked: notificationService.clearSimulatorEntries() }
-                    Item { Layout.fillWidth: true }
-                    Text { text: "Production policy"; color: "#8bd5ff"; font.pixelSize: 10 }
-                }
-            }
-        }
 
         ScrollView {
             id: scroll
@@ -750,6 +725,35 @@ ApplicationWindow {
                             SimButton { text: "Roundabout"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(5) }
                             SimButton { text: "U-turn start"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(6) }
                             SimButton { text: "Roundabout (short arc)"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(7) }
+                        }
+
+                        SectionHeader {
+                            visible: notificationService.simulatorInjectionEnabled
+                            text: "Notifications"
+                            SimButton {
+                                text: "Clear"; small: true; color: "#f44336"; fixedWidth: 44
+                                onClicked: notificationService.clearSimulatorEntries()
+                            }
+                        }
+                        RowLayout {
+                            visible: notificationService.simulatorInjectionEnabled
+                            Layout.fillWidth: true
+                            spacing: 4
+                            SimButton {
+                                text: "Warning"; small: true; Layout.fillWidth: true
+                                onClicked: notificationService.simulateWarning(
+                                    "Simulator warning", "Local test notification")
+                            }
+                            SimButton {
+                                text: "Error"; small: true; Layout.fillWidth: true; color: "#9c4d00"
+                                onClicked: notificationService.simulateError(
+                                    "Simulator error", "Local test transient error")
+                            }
+                            SimButton {
+                                text: "Critical"; small: true; Layout.fillWidth: true; color: "#b71c1c"
+                                onClicked: notificationService.simulateCritical(
+                                    "Simulator critical", "Local test critical condition")
+                            }
                         }
 
                         SectionHeader { text: "GPS" }
