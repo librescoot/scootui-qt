@@ -194,10 +194,10 @@ void Translations::initStrings()
     de[QStringLiteral("updateModeTitle")] = QStringLiteral("Update-Modus");
 
     en[QStringLiteral("updateModeBody1")] = QStringLiteral(
-        "Connect your laptop over USB — the scooter mounts as a drive. "
+        "Connect your laptop over USB: the scooter mounts as a drive. "
         "Drop updates on, pull logs off.");
     de[QStringLiteral("updateModeBody1")] = QStringLiteral(
-        "Laptop per USB anschließen — der Scooter erscheint als Laufwerk. "
+        "Laptop per USB anschließen: der Scooter erscheint als Laufwerk. "
         "Updates drauf, Logs runter.");
 
     en[QStringLiteral("updateModeBody2")] = QStringLiteral(
@@ -1301,8 +1301,8 @@ void Translations::initStrings()
     en[QStringLiteral("navSetupDownloadProgressBytes")] = QStringLiteral("%1 / %2 MB");
     de[QStringLiteral("navSetupDownloadProgressBytes")] = QStringLiteral("%1 / %2 MB");
 
-    en[QStringLiteral("mapUpdateAvailableToast")] = QStringLiteral("Map update available \u2014 open Menu \u2192 Navigation Setup to install");
-    de[QStringLiteral("mapUpdateAvailableToast")] = QStringLiteral("Kartenupdate verf\u00fcgbar \u2014 Men\u00fc \u2192 Navigation einrichten");
+    en[QStringLiteral("mapUpdateAvailableToast")] = QStringLiteral("Map update available. Open Menu \u2192 Navigation Setup to install");
+    de[QStringLiteral("mapUpdateAvailableToast")] = QStringLiteral("Kartenupdate verf\u00fcgbar. Men\u00fc \u2192 Navigation einrichten");
 
     en[QStringLiteral("mapUpdateBadge")] = QStringLiteral("Map update");
     de[QStringLiteral("mapUpdateBadge")] = QStringLiteral("Kartenupdate");
@@ -1426,8 +1426,8 @@ void Translations::initStrings()
     // Speed & power
     // -----------------------------------------------------------------------
 
-    en[QStringLiteral("warningHandlebarLocked")] = QStringLiteral("Handlebar locked \u2014 turn all the way left to unlock");
-    de[QStringLiteral("warningHandlebarLocked")] = QStringLiteral("Lenker verriegelt \u2014 ganz nach links drehen zum Entriegeln");
+    en[QStringLiteral("warningHandlebarLocked")] = QStringLiteral("Handlebar locked. Turn all the way left to unlock");
+    de[QStringLiteral("warningHandlebarLocked")] = QStringLiteral("Lenker verriegelt. Ganz nach links drehen zum Entriegeln");
 
     en[QStringLiteral("warningLowTemperature")] = QStringLiteral("Low temperature detected. Reduced performance possible.");
     de[QStringLiteral("warningLowTemperature")] = QStringLiteral("Niedrige Temperatur erkannt. Eingeschr\u00E4nkte Leistung m\u00F6glich.");

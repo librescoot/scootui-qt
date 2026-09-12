@@ -113,7 +113,7 @@ Rectangle {
                             width: parent.width
                             text: typeof translations !== "undefined"
                                   ? translations.updateModeBody1
-                                  : "Connect your laptop over USB — the scooter mounts as a drive. Drop updates on, pull logs off."
+                                  : "Connect your laptop over USB: the scooter mounts as a drive. Drop updates on, pull logs off."
                             color: updateModeScreen.textPrimary
                             font.pixelSize: themeStore.fontBody
                             lineHeight: 1.3
