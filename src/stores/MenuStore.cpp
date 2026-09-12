@@ -1243,7 +1243,9 @@ void MenuStore::rebuildMenuTree()
                                     : label;
         };
 
-        auto *infoNode = MenuNode::submenu(QStringLiteral("info"), withCount(tr->menuInfo()),
+        // Count belongs on the Faults entries, not on this parent; otherwise
+        // the root menu shows "Faults (1)" and "Info (1)" together.
+        auto *infoNode = MenuNode::submenu(QStringLiteral("info"), tr->menuInfo(),
                                            tr->menuInfo().toUpper());
         m_rootNode->addChild(infoNode);
 
