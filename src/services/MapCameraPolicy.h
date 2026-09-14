@@ -8,6 +8,23 @@
 class MapCameraPolicy
 {
 public:
+    static LatLng routeOverviewCenter(const QList<LatLng> &shape)
+    {
+        if (shape.isEmpty())
+            return {};
+        double minLat = shape.first().latitude;
+        double maxLat = minLat;
+        double minLon = shape.first().longitude;
+        double maxLon = minLon;
+        for (const LatLng &point : shape) {
+            minLat = std::min(minLat, point.latitude);
+            maxLat = std::max(maxLat, point.latitude);
+            minLon = std::min(minLon, point.longitude);
+            maxLon = std::max(maxLon, point.longitude);
+        }
+        return {(minLat + maxLat) * 0.5, (minLon + maxLon) * 0.5};
+    }
+
     static double routeOverviewZoom(const QList<LatLng> &shape,
                                     double minZoom = 11.0,
                                     double maxZoom = 15.0)
@@ -29,10 +46,9 @@ public:
         const double height = (maxLat - minLat) * M_PI / 180.0 * EarthRadius;
         const double width = (maxLon - minLon) * M_PI / 180.0 * EarthRadius
             * std::max(0.01, std::cos(centerLat));
-        // The rider remains anchored near the screen center during the brief
-        // overview rather than moving to the route bbox center, so reserve
-        // roughly twice the one-sided extent plus padding.
-        const double extent = std::max(width, height) * 2.2;
+        // The overview centers the route bounds, so reserve only a small
+        // margin around the larger axis.
+        const double extent = std::max(width, height) * 1.1;
         if (extent < 1.0)
             return maxZoom;
 

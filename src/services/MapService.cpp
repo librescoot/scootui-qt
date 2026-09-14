@@ -451,9 +451,12 @@ void MapService::clearRoute()
 
     m_targetZoom = DefaultZoom;
 
-    // Cancel any active overview
+    // Cancel any active overview.
+    const bool overviewWasActive = m_routeOverviewActive;
     m_routeOverviewActive = false;
     m_overviewTimer->stop();
+    if (overviewWasActive)
+        emit overviewCameraChanged();
 }
 
 // ---------------------------------------------------------------------------
@@ -634,20 +637,37 @@ void MapService::onRouteChanged()
     // Initial routes get a brief extent-aware overview. A reroute must not
     // repeatedly pull the camera away from the rider; its new geometry is
     // already evaluated against the physical pose on the next estimator tick.
-    if (!m_navigation->lastRouteWasReroute()) {
+    if (!m_navigation->lastRouteWasReroute() && m_routeShape.size() >= 2) {
+        // Use the route shape accepted for rendering, not NavigationService's
+        // raw waypoints, so the overview cannot hand MapLibre an invalid center.
+        QList<LatLng> shape;
+        shape.reserve(m_routeShape.size());
+        for (const auto &point : m_routeShape)
+            shape.append({point.first, point.second});
+
+        const LatLng center = MapCameraPolicy::routeOverviewCenter(shape);
         m_overviewZoom = MapCameraPolicy::routeOverviewZoom(
-            m_navigation->routeWaypoints(), OverviewMinZoom, OverviewMaxZoom);
+            shape, OverviewMinZoom, OverviewMaxZoom);
+        m_routeOverviewLatitude = center.latitude;
+        m_routeOverviewLongitude = center.longitude;
         m_routeOverviewActive = true;
         m_overviewTimer->start();
+        emit overviewCameraChanged();
     } else {
+        const bool overviewWasActive = m_routeOverviewActive;
         m_routeOverviewActive = false;
         m_overviewTimer->stop();
+        if (overviewWasActive)
+            emit overviewCameraChanged();
     }
 }
 
 void MapService::onOverviewTimeout()
 {
+    if (!m_routeOverviewActive)
+        return;
     m_routeOverviewActive = false;
+    emit overviewCameraChanged();
 }
 
 // ---------------------------------------------------------------------------

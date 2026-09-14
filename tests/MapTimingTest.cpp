@@ -10,6 +10,7 @@ class MapTimingTest : public QObject
 private slots:
     void dividersStayOnIntegerRenderTicks();
     void overviewFitsRouteExtent();
+    void overviewCentersBounds();
     void closeSecondTurnExpandsLookahead();
 };
 
@@ -34,7 +35,23 @@ void MapTimingTest::overviewFitsRouteExtent()
     const QList<LatLng> shortRoute{{52.5, 13.4}, {52.501, 13.4}};
     const QList<LatLng> longRoute{{52.5, 13.4}, {52.6, 13.4}};
     QCOMPARE(MapCameraPolicy::routeOverviewZoom(shortRoute), 15.0);
-    QVERIFY(MapCameraPolicy::routeOverviewZoom(longRoute) < 14.0);
+    const double longZoom = MapCameraPolicy::routeOverviewZoom(longRoute);
+    QVERIFY(longZoom > 11.0);
+    QVERIFY(longZoom < 12.0);
+}
+
+void MapTimingTest::overviewCentersBounds()
+{
+    const QList<LatLng> route{{52.5, 13.4}, {52.6, 13.7}, {52.55, 13.5}};
+    const LatLng center = MapCameraPolicy::routeOverviewCenter(route);
+    QCOMPARE(center.latitude, 52.55);
+    QCOMPARE(center.longitude, 13.55);
+
+    const LatLng empty = MapCameraPolicy::routeOverviewCenter({});
+    QVERIFY(!empty.isValid());
+    const LatLng single = MapCameraPolicy::routeOverviewCenter({{52.5, 13.4}});
+    QCOMPARE(single.latitude, 52.5);
+    QCOMPARE(single.longitude, 13.4);
 }
 
 void MapTimingTest::closeSecondTurnExpandsLookahead()

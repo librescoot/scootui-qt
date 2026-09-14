@@ -47,12 +47,18 @@ MapView {
     }
 
     map.zoomLevel: typeof mapService !== "undefined" ? mapService.mapZoom : 15
-    map.bearing: typeof mapService !== "undefined" ? mapService.mapBearing : 0
+    // An overview is a top-down, north-up route frame. Perspective or map
+    // rotation would make the extent-derived zoom asymmetric and can clip it.
+    map.bearing: typeof mapService !== "undefined" && mapService.routeOverviewActive
+                 ? 0
+                 : (typeof mapService !== "undefined" ? mapService.mapBearing : 0)
     // 3D (default) tilts the map back to show forward perspective; 2D is
     // a flat top-down view.
-    map.tilt: (typeof settingsStore !== "undefined" && settingsStore.mapViewMode === 1)
+    map.tilt: typeof mapService !== "undefined" && mapService.routeOverviewActive
               ? 0
-              : (typeof mapService !== "undefined" ? mapService.mapTilt : 60)
+              : ((typeof settingsStore !== "undefined" && settingsStore.mapViewMode === 1)
+                 ? 0
+                 : (typeof mapService !== "undefined" ? mapService.mapTilt : 60))
 
     function vehicleCoordinate() {
         if (typeof mapService !== "undefined" && mapService.isReady) {
@@ -66,6 +72,17 @@ MapView {
 
     function updateCamera() {
         if (!map || map.width <= 0 || map.height <= 0) return
+
+        if (typeof mapService !== "undefined" && mapService.isReady
+                && mapService.routeOverviewActive) {
+            var overviewCoord = QtPositioning.coordinate(
+                        mapService.routeOverviewLatitude,
+                        mapService.routeOverviewLongitude)
+            if (overviewCoord && overviewCoord.isValid) {
+                map.center = overviewCoord
+                return
+            }
+        }
 
         var vehicleCoord = vehicleCoordinate()
         if (!vehicleCoord || !vehicleCoord.isValid) return
@@ -107,6 +124,7 @@ MapView {
         function onIsReadyChanged() { mapView.updateCamera() }
         function onVehiclePositionChanged() { mapView.updateCamera() }
         function onVehicleOffsetYChanged() { mapView.updateCamera() }
+        function onOverviewCameraChanged() { mapView.updateCamera() }
     }
 
     Connections {

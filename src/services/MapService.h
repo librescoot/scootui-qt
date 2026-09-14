@@ -50,6 +50,9 @@ class MapService : public QObject
     Q_PROPERTY(int routeFillWidth READ routeFillWidth NOTIFY routeStyleChanged)
     Q_PROPERTY(int routeBorderWidth READ routeBorderWidth NOTIFY routeStyleChanged)
     Q_PROPERTY(double vehicleOffsetY READ vehicleOffsetY NOTIFY vehicleOffsetYChanged)
+    Q_PROPERTY(bool routeOverviewActive READ routeOverviewActive NOTIFY overviewCameraChanged)
+    Q_PROPERTY(double routeOverviewLatitude READ routeOverviewLatitude NOTIFY overviewCameraChanged)
+    Q_PROPERTY(double routeOverviewLongitude READ routeOverviewLongitude NOTIFY overviewCameraChanged)
     Q_PROPERTY(bool isOutOfCoverage READ isOutOfCoverage NOTIFY isOutOfCoverageChanged)
     Q_PROPERTY(bool deadReckoningPaused READ deadReckoningPaused WRITE setDeadReckoningPaused NOTIFY deadReckoningPausedChanged)
     Q_PROPERTY(double vehicleLatitude READ vehicleLatitude NOTIFY vehiclePositionChanged)
@@ -96,6 +99,9 @@ public:
             return 0.0;
         return m_vehicleOffsetY;
     }
+    bool routeOverviewActive() const { return m_routeOverviewActive; }
+    double routeOverviewLatitude() const { return m_routeOverviewLatitude; }
+    double routeOverviewLongitude() const { return m_routeOverviewLongitude; }
 
     bool isReady() const { return m_isReady; }
     QString styleJson() const { return m_styleJson; }
@@ -152,6 +158,7 @@ signals:
     void routeGeoJsonChanged();
     void routeStyleChanged();
     void vehicleOffsetYChanged();
+    void overviewCameraChanged();
     void isOutOfCoverageChanged();
     void deadReckoningPausedChanged();
     void vehiclePositionChanged();
@@ -427,6 +434,8 @@ private:
     // --- Route overview state ---
     QTimer *m_overviewTimer = nullptr;
     bool m_routeOverviewActive = false;
+    double m_routeOverviewLatitude = 0;
+    double m_routeOverviewLongitude = 0;
     double m_overviewZoom = OverviewMaxZoom;
 
     // --- Rotation smoothing state ---

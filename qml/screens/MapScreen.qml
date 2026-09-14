@@ -174,13 +174,15 @@ Rectangle {
             }
 
             // Vehicle marker at fixed screen position, tilted to match 3D map.
-            // In the flat 2D top-down view it stays upright (no X-tilt).
+            // It is hidden during route overview because the camera then centers
+            // the route rather than anchoring this screen position to the rider.
             VehicleMarker {
                 id: vehicleMarkerItem
                 objectName: "mapVehicleMarker"
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: parent.height / 2 + (typeof mapService !== "undefined" ? mapService.vehicleOffsetY : 0) - height / 2
                 visible: typeof mapService !== "undefined" && mapService.isReady
+                         && !mapService.routeOverviewActive
                 transform: Rotation {
                     origin.x: vehicleMarkerItem.width / 2
                     origin.y: vehicleMarkerItem.height / 2
