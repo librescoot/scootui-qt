@@ -56,6 +56,19 @@ class Translations : public QObject
     Q_PROPERTY(QString menuAlarmDuration20 READ menuAlarmDuration20 NOTIFY languageChanged)
     Q_PROPERTY(QString menuAlarmDuration30 READ menuAlarmDuration30 NOTIFY languageChanged)
     Q_PROPERTY(QString menuSystem READ menuSystem NOTIFY languageChanged)
+    Q_PROPERTY(QString menuKeycards READ menuKeycards NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardEnrollTitle READ keycardEnrollTitle NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardEnrollStart READ keycardEnrollStart NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardEnrollInfoBody READ keycardEnrollInfoBody NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardEnrollActiveBody READ keycardEnrollActiveBody NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardSetupTitle READ keycardSetupTitle NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardSetupBody READ keycardSetupBody NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardMasterTeachInBody READ keycardMasterTeachInBody NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardAddMaster READ keycardAddMaster NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardMasterPrefix READ keycardMasterPrefix NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardConfirmRemoveLast READ keycardConfirmRemoveLast NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardSkip READ keycardSkip NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardDone READ keycardDone NOTIFY languageChanged)
     Q_PROPERTY(QString menuCaptureLogs READ menuCaptureLogs NOTIFY languageChanged)
     Q_PROPERTY(QString captureLogsToastStarted READ captureLogsToastStarted NOTIFY languageChanged)
     Q_PROPERTY(QString captureLogsToastDone READ captureLogsToastDone NOTIFY languageChanged)
@@ -637,6 +650,19 @@ public:
     QString menuAlarmDuration20() const { return lookup("menuAlarmDuration20"); }
     QString menuAlarmDuration30() const { return lookup("menuAlarmDuration30"); }
     QString menuSystem() const { return lookup("menuSystem"); }
+    QString menuKeycards() const { return lookup("menuKeycards"); }
+    QString keycardEnrollTitle() const { return lookup("keycardEnrollTitle"); }
+    QString keycardEnrollStart() const { return lookup("keycardEnrollStart"); }
+    QString keycardEnrollInfoBody() const { return lookup("keycardEnrollInfoBody"); }
+    QString keycardEnrollActiveBody() const { return lookup("keycardEnrollActiveBody"); }
+    QString keycardSetupTitle() const { return lookup("keycardSetupTitle"); }
+    QString keycardSetupBody() const { return lookup("keycardSetupBody"); }
+    QString keycardMasterTeachInBody() const { return lookup("keycardMasterTeachInBody"); }
+    QString keycardAddMaster() const { return lookup("keycardAddMaster"); }
+    QString keycardMasterPrefix() const { return lookup("keycardMasterPrefix"); }
+    QString keycardConfirmRemoveLast() const { return lookup("keycardConfirmRemoveLast"); }
+    QString keycardSkip() const { return lookup("keycardSkip"); }
+    QString keycardDone() const { return lookup("keycardDone"); }
     QString menuCaptureLogs() const { return lookup("menuCaptureLogs"); }
     QString captureLogsToastStarted() const { return lookup("captureLogsToastStarted"); }
     QString captureLogsToastDone() const { return lookup("captureLogsToastDone"); }

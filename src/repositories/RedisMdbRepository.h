@@ -33,6 +33,7 @@ public:
     void publishButtonEvent(const QString &event) override;
 
     QStringList getSetMembers(const QString &setKey) override;
+    void requestSetMembers(const QString &setKey) override;
     void addToSet(const QString &setKey, const QString &member) override;
     void removeFromSet(const QString &setKey, const QString &member) override;
     void hdel(const QString &key, const QString &field) override;

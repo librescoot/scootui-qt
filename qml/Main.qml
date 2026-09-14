@@ -103,6 +103,9 @@ Window {
     Component.onCompleted: {
         if (notificationScreenshotScreen === "map" && typeof screenStore !== "undefined")
             screenStore.setScreen(Scooter.ScreenMode.Map)
+        if (typeof keycardStore !== "undefined" && keycardStore.enrollActive
+                && typeof screenStore !== "undefined")
+            screenStore.showKeycardEnrollInfo()
     }
 
     Timer {
@@ -194,6 +197,19 @@ Window {
         }
     }
 
+    Connections {
+        target: typeof keycardStore !== "undefined" ? keycardStore : null
+        function syncEnrollmentScreen() {
+            if (!keycardStore || typeof screenStore === "undefined") return
+            if (keycardStore.enrollActive) {
+                if (screenStore.currentScreen !== Scooter.ScreenMode.KeycardEnrollInfo)
+                    screenStore.showKeycardEnrollInfo()
+            } else if (screenStore.currentScreen === Scooter.ScreenMode.KeycardEnrollInfo) {
+                screenStore.closeKeycardEnrollInfo()
+            }
+        }
+        function onLearnStateChanged() { syncEnrollmentScreen() }
+    }
     // Screen switcher.
     //
     // Screens are loaded by URL, not through inline Component blocks. An inline
@@ -216,7 +232,9 @@ Window {
         systemInfo:    "screens/SystemInfoScreen.qml",
         umsInfo:       "screens/UpdateModeInfoScreen.qml",
         updateChannel: "screens/UpdateChannelScreen.qml",
-        hopOnInfo:     "screens/HopOnInfoScreen.qml"
+        hopOnInfo:     "screens/HopOnInfoScreen.qml",
+        keycardEnroll: "screens/KeycardEnrollInfoScreen.qml",
+        keycardManage: "screens/KeycardManageScreen.qml"
     })
 
     Loader {
@@ -247,6 +265,8 @@ Window {
                 case Scooter.ScreenMode.UpdateModeInfo:  name = "umsInfo";       break
                 case Scooter.ScreenMode.UpdateChannel:   name = "updateChannel"; break
                 case Scooter.ScreenMode.HopOnInfo:       name = "hopOnInfo";     break
+                case Scooter.ScreenMode.KeycardEnrollInfo:name = "keycardEnroll"; break
+                case Scooter.ScreenMode.KeycardManage:    name = "keycardManage"; break
                 default:                                 name = "cluster";       break
             }
             console.log("SCREEN: " + name + " (screen=" + screen + ")")
@@ -299,7 +319,7 @@ Window {
         root.screensPreloaded = true
         var order = ["map", "maintenance", "about", "faults", "systemInfo",
                      "navSetup", "address", "debug", "motionDebug", "umsInfo",
-                     "updateChannel", "hopOnInfo"]
+                     "updateChannel", "hopOnInfo", "keycardEnroll", "keycardManage"]
         var current = screenLoader.source.toString()
         for (var i = 0; i < order.length; i++) {
             var url = Qt.resolvedUrl(root.screenUrls[order[i]])

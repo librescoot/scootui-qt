@@ -67,6 +67,7 @@ protected:
 private:
     void onFieldsReceived(const QString &channel, const FieldMap &fields);
     void onFieldFetched(const QString &channel, const QString &field, const QString &value);
+    void onSetMembersFetched(const QString &key, const QStringList &members);
     void onPubsubMessage(const QString &channel, const QString &message);
     void doRefreshSet(const SyncSetFieldDef &field);
     void scheduleSetTimer(const SyncSetFieldDef &field);

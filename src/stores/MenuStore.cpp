@@ -9,6 +9,7 @@
 #include "RecentDestinationsStore.h"
 #include "InternetStore.h"
 #include "HopOnStore.h"
+#include "KeycardStore.h"
 #include "FaultsStore.h"
 #include "l10n/Translations.h"
 #include "services/ToastService.h"
@@ -156,6 +157,14 @@ void MenuStore::setHopOnStore(HopOnStore *store)
         connect(m_hopOn, &HopOnStore::comboChanged,
                 this, &MenuStore::rebuildMenuTree);
     }
+}
+
+void MenuStore::setKeycardStore(KeycardStore *store)
+{
+    m_keycard = store;
+    if (m_keycard)
+        connect(m_keycard, &KeycardStore::learnStateChanged, this, &MenuStore::rebuildMenuTree);
+    rebuildMenuTree();
 }
 
 void MenuStore::setMapDownloadService(MapDownloadService *svc)
@@ -942,6 +951,25 @@ void MenuStore::rebuildMenuTree()
     // alongside the service entries (Update Mode, Faults).
     auto *systemNode = MenuNode::submenu(QStringLiteral("settings_system"), tr->menuSystem());
     settingsNode->addChild(systemNode);
+
+    if (m_keycard) {
+        systemNode->addChild(MenuNode::action(QStringLiteral("keycards"), m_translations->menuKeycards(), [this]() {
+            closeForScreen();
+            if (m_screenStore) m_screenStore->showKeycardManage();
+        }));
+        if (m_keycard->learning()) {
+            systemNode->addChild(MenuNode::action(QStringLiteral("keycards_stop"), QStringLiteral("Stop card enrollment"), [this]() {
+                m_keycard->stopEnroll();
+                closeForScreen();
+                if (m_screenStore) m_screenStore->showKeycardEnrollInfo();
+            }));
+        } else if (m_keycard->masterTeachIn() || m_keycard->masterBootstrap()) {
+            systemNode->addChild(MenuNode::action(QStringLiteral("keycards_setup"), QStringLiteral("Keycard setup"), [this]() {
+                closeForScreen();
+                if (m_screenStore) m_screenStore->showKeycardEnrollInfo();
+            }));
+        }
+    }
 
     // Language (inline cycle: English → Deutsch)
     {

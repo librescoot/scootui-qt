@@ -164,6 +164,32 @@ void Translations::initStrings()
 
     en[QStringLiteral("menuSystem")] = QStringLiteral("System");
     de[QStringLiteral("menuSystem")] = QStringLiteral("System");
+    en[QStringLiteral("menuKeycards")] = QStringLiteral("Keycards");
+    de[QStringLiteral("menuKeycards")] = QStringLiteral("Schlüsselkarten");
+    en[QStringLiteral("keycardEnrollTitle")] = QStringLiteral("Add unlock cards");
+    de[QStringLiteral("keycardEnrollTitle")] = QStringLiteral("Entsperrkarten hinzufügen");
+    en[QStringLiteral("keycardEnrollStart")] = QStringLiteral("Start");
+    de[QStringLiteral("keycardEnrollStart")] = QStringLiteral("Starten");
+    en[QStringLiteral("keycardEnrollInfoBody")] = QStringLiteral("Start enrollment, then tap each card you want to unlock the scooter.");
+    de[QStringLiteral("keycardEnrollInfoBody")] = QStringLiteral("Anlernen starten und dann jede Karte antippen, die den Roller entsperren soll.");
+    en[QStringLiteral("keycardEnrollActiveBody")] = QStringLiteral("Enrollment is active. Tap each new card, then choose Done.");
+    de[QStringLiteral("keycardEnrollActiveBody")] = QStringLiteral("Anlernen ist aktiv. Neue Karten antippen und danach Fertig wählen.");
+    en[QStringLiteral("keycardSetupTitle")] = QStringLiteral("Set up keycards");
+    de[QStringLiteral("keycardSetupTitle")] = QStringLiteral("Schlüsselkarten einrichten");
+    en[QStringLiteral("keycardSetupBody")] = QStringLiteral("Tap a card to make it the teach-in card, or skip to add unlock cards.");
+    de[QStringLiteral("keycardSetupBody")] = QStringLiteral("Eine Karte antippen, um sie als Anlernkarte festzulegen, oder überspringen und Entsperrkarten hinzufügen.");
+    en[QStringLiteral("keycardMasterTeachInBody")] = QStringLiteral("Tap one new card. Teach-in ends automatically after it is accepted.");
+    de[QStringLiteral("keycardMasterTeachInBody")] = QStringLiteral("Eine neue Karte antippen. Das Anlernen endet automatisch nach der Übernahme.");
+    en[QStringLiteral("keycardAddMaster")] = QStringLiteral("Add teach-in card");
+    de[QStringLiteral("keycardAddMaster")] = QStringLiteral("Anlernkarte hinzufügen");
+    en[QStringLiteral("keycardMasterPrefix")] = QStringLiteral("Teach-in:");
+    de[QStringLiteral("keycardMasterPrefix")] = QStringLiteral("Anlernkarte:");
+    en[QStringLiteral("keycardConfirmRemoveLast")] = QStringLiteral("Remove last card? Tap again to confirm");
+    de[QStringLiteral("keycardConfirmRemoveLast")] = QStringLiteral("Letzte Karte entfernen? Zum Bestätigen erneut antippen");
+    en[QStringLiteral("keycardSkip")] = QStringLiteral("Skip");
+    de[QStringLiteral("keycardSkip")] = QStringLiteral("Überspringen");
+    en[QStringLiteral("keycardDone")] = QStringLiteral("Done");
+    de[QStringLiteral("keycardDone")] = QStringLiteral("Fertig");
 
     en[QStringLiteral("menuCaptureLogs")] = QStringLiteral("Capture Logs");
     de[QStringLiteral("menuCaptureLogs")] = QStringLiteral("Logs sichern");

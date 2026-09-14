@@ -35,6 +35,11 @@ public:
 
     // Set operations
     virtual QStringList getSetMembers(const QString &setKey) = 0;
+    // Request a current set snapshot. Implementations with asynchronous Redis
+    // reads emit setMembersFetched when the requested snapshot arrives.
+    virtual void requestSetMembers(const QString &setKey) {
+        emit setMembersFetched(setKey, getSetMembers(setKey));
+    }
     virtual void addToSet(const QString &setKey, const QString &member) = 0;
     virtual void removeFromSet(const QString &setKey, const QString &member) = 0;
     virtual void hdel(const QString &key, const QString &field) = 0;
@@ -77,4 +82,6 @@ signals:
     void fieldFetched(const QString &channel, const QString &field, const QString &value);
     // Emitted after an xrevrange call completes. Entries are as described in xrevrange().
     void streamFetched(const QString &key, const QVariantList &entries);
+    // Emitted after a requested SMEMBERS snapshot is available.
+    void setMembersFetched(const QString &key, const QStringList &members);
 };

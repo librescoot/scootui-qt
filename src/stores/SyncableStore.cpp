@@ -47,6 +47,8 @@ void SyncableStore::start()
     // Listen for single-field fetches (from HGET after pub/sub notification)
     connect(m_repo, &MdbRepository::fieldFetched,
             this, &SyncableStore::onFieldFetched);
+    connect(m_repo, &MdbRepository::setMembersFetched,
+            this, &SyncableStore::onSetMembersFetched);
 
     // Subscribe to pubsub for this channel (triggers immediate HGET in worker)
     m_subscriptionId = m_repo->subscribe(
@@ -78,6 +80,8 @@ void SyncableStore::stop()
                this, &SyncableStore::onFieldsReceived);
     disconnect(m_repo, &MdbRepository::fieldFetched,
                this, &SyncableStore::onFieldFetched);
+    disconnect(m_repo, &MdbRepository::setMembersFetched,
+               this, &SyncableStore::onSetMembersFetched);
 
     if (!m_channel.isEmpty() && m_subscriptionId != 0) {
         m_repo->unsubscribe(m_channel, m_subscriptionId);
@@ -112,6 +116,16 @@ void SyncableStore::onFieldFetched(const QString &channel, const QString &field,
     if (!m_started) return;
     if (channel != m_cachedSettings.channel) return;
     applyFieldUpdate(field, value);
+}
+
+void SyncableStore::onSetMembersFetched(const QString &key, const QStringList &members)
+{
+    if (!m_started)
+        return;
+    for (const auto &field : m_cachedSettings.setFields) {
+        if (interpolateKey(field.setKey) == key)
+            applySetUpdate(field.name, members);
+    }
 }
 
 void SyncableStore::onPubsubMessage(const QString &channel, const QString &message)
@@ -170,9 +184,7 @@ void SyncableStore::doRefreshSet(const SyncSetFieldDef &field)
 {
     if (!m_started) return;
 
-    const QString key = interpolateKey(field.setKey);
-    const QStringList members = m_repo->getSetMembers(key);
-    applySetUpdate(field.name, members);
+    m_repo->requestSetMembers(interpolateKey(field.setKey));
 }
 
 void SyncableStore::scheduleSetTimer(const SyncSetFieldDef &field)

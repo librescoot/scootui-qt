@@ -110,8 +110,11 @@ void RedisMdbRepository::startWorker()
     // Set/lrange results
     connect(m_worker, &HiredisWorker::setMembersResult,
             this, [this](const QString &key, const QStringList &members) {
-        QMutexLocker lock(&m_resultMutex);
-        m_setResults[key] = members;
+        {
+            QMutexLocker lock(&m_resultMutex);
+            m_setResults[key] = members;
+        }
+        emit setMembersFetched(key, members);
     }, Qt::QueuedConnection);
 
     connect(m_worker, &HiredisWorker::lrangeResult,
@@ -449,14 +452,19 @@ void RedisMdbRepository::removeFromSet(const QString &setKey, const QString &mem
 // one-cycle lag (the periodic timer in SyncableStore handles steady-state).
 QStringList RedisMdbRepository::getSetMembers(const QString &setKey)
 {
-    if (m_worker) {
-        auto *w = m_worker;
-        QMetaObject::invokeMethod(w, [w, setKey]() {
-            w->doGetSetMembers(setKey);
-        }, Qt::QueuedConnection);
-    }
+    requestSetMembers(setKey);
     QMutexLocker lock(&m_resultMutex);
     return m_setResults.value(setKey);
+}
+
+void RedisMdbRepository::requestSetMembers(const QString &setKey)
+{
+    if (!m_worker)
+        return;
+    auto *w = m_worker;
+    QMetaObject::invokeMethod(w, [w, setKey]() {
+        w->doGetSetMembers(setKey);
+    }, Qt::QueuedConnection);
 }
 
 QStringList RedisMdbRepository::lrange(const QString &key, int start, int stop)

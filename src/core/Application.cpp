@@ -34,6 +34,7 @@
 #include "stores/ScreenStore.h"
 #include "stores/MenuStore.h"
 #include "stores/HopOnStore.h"
+#include "stores/KeycardStore.h"
 #include "stores/FaultEventStore.h"
 #include "stores/FaultsStore.h"
 #include "stores/TripStore.h"
@@ -753,6 +754,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
                                       m_settingsService, dashboardStore,
                                       repo, screenStore, this);
     menuStore->setHopOnStore(hopOnStore);
+    auto *keycardStore = new KeycardStore(repo, this);
+    menuStore->setKeycardStore(keycardStore);
     menuStore->setMapDownloadService(m_mapDownloadService);
 
     // Fault aggregation: stream tail + union of per-service active-fault sets.
@@ -827,6 +830,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("screenStore"), screenStore);
     ctx->setContextProperty(QStringLiteral("menuStore"), menuStore);
     ctx->setContextProperty(QStringLiteral("hopOnStore"), hopOnStore);
+    ctx->setContextProperty(QStringLiteral("keycardStore"), keycardStore);
     ctx->setContextProperty(QStringLiteral("tripStore"), tripStore);
     ctx->setContextProperty(QStringLiteral("shutdownStore"), shutdownStore);
     ctx->setContextProperty(QStringLiteral("localeStore"), localeStore);
@@ -879,7 +883,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
                 gpsStore, motionStore, bluetoothStore, internetStore, modemStore, navigationStore,
                 settingsStore, otaStore, usbStore, speedLimitStore,
                 autoStandbyStore, scooterStore, cbBatteryStore, auxBatteryStore, dashboardStore,
-                screenStore};
+                screenStore, keycardStore};
 
     BOOT_MARK("services wired");
 
