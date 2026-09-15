@@ -16,6 +16,8 @@ option(DESKTOP_MODE "Build for desktop development with simulator panel (QMapLib
 option(SCOOTUI_ALLOW_MISSING_QMAPLIBRE "Configure without QMapLibre instead of failing (reduced build: no map rendering)" OFF)
 
 find_package(Qt6 6.4 REQUIRED COMPONENTS Quick Qml Svg Network Sql Concurrent Multimedia)
+qt_policy(SET QTP0001 NEW)
+qt_policy(SET QTP0004 NEW)
 find_package(ZLIB REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(HIREDIS REQUIRED hiredis)
@@ -363,6 +365,7 @@ set(SOUND_CUE_FILES
 
 qt_add_qml_module(scootui
     URI ScootUI
+    RESOURCE_PREFIX "/"
     VERSION 1.0
     QML_FILES ${QML_FILES}
     RESOURCES

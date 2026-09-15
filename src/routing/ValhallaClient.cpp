@@ -7,6 +7,7 @@
 #include <QJsonArray>
 #include <QSslConfiguration>
 #include <QDebug>
+#include <QTimeZone>
 
 #include <cmath>
 
@@ -383,7 +384,7 @@ void ValhallaClient::handleHealthReply(QNetworkReply *reply, bool /*forced*/)
             auto v = doc.object().value(QStringLiteral("tileset_last_modified"));
             qint64 ts = v.isDouble() ? static_cast<qint64>(v.toDouble()) : v.toVariant().toLongLong();
             if (ts > 0) {
-                QDateTime dt = QDateTime::fromSecsSinceEpoch(ts, Qt::UTC);
+                QDateTime dt = QDateTime::fromSecsSinceEpoch(ts, QTimeZone::UTC);
                 if (dt != m_tilesetLastModified) {
                     m_tilesetLastModified = dt;
                     emit tilesetLastModifiedChanged();

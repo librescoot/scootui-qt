@@ -148,7 +148,8 @@ static int s_sigTermFd[2];
 static void sigTermHandler(int)
 {
     char a = 1;
-    ::write(s_sigTermFd[0], &a, sizeof(a));
+    const ssize_t written = ::write(s_sigTermFd[0], &a, sizeof(a));
+    (void)written;
 }
 
 static void sdNotifyReady()
@@ -1305,7 +1306,8 @@ void Application::setupSignalHandlers()
                                                  QSocketNotifier::Read, this);
         connect(m_sigTermNotifier, &QSocketNotifier::activated, this, [this]() {
             char tmp;
-            ::read(s_sigTermFd[1], &tmp, sizeof(tmp));
+            const ssize_t bytesRead = ::read(s_sigTermFd[1], &tmp, sizeof(tmp));
+            (void)bytesRead;
             qDebug() << "SIGTERM received";
             if (m_shutdownStore) {
                 m_shutdownStore->forceBlackout();

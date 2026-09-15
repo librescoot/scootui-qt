@@ -12,6 +12,7 @@
 
 #include <QDebug>
 #include <QDateTime>
+#include <QTimeZone>
 #include <QPointF>
 #include <QUrl>
 #include <QVariantList>
@@ -35,7 +36,7 @@ namespace {
 // deployed scooters have picked up tiles built after the cutoff.
 constexpr double kDurationPadFactor = 1.20;
 const QDateTime kPadCutoffUtc =
-    QDateTime(QDate(2026, 4, 24), QTime(0, 0), Qt::UTC);
+    QDateTime(QDate(2026, 4, 24), QTime(0, 0), QTimeZone::UTC);
 }
 
 NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
