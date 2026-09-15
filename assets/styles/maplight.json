@@ -286,6 +286,7 @@
 			"id": "railways",
 			"type": "line",
 			"source": "versatiles-shortbread",
+			"layout": { "line-cap": "round", "line-join": "round" },
 			"source-layer": "streets",
 			"filter": ["==", "kind", "rail"],
 			"paint": {
@@ -299,6 +300,7 @@
 			"id": "minor-roads-casing",
 			"type": "line",
 			"source": "versatiles-shortbread",
+			"layout": { "line-cap": "round", "line-join": "round" },
 			"source-layer": "streets",
 			"filter": ["in", "kind", "service", "pedestrian", "track", "busway"],
 			"paint": {
@@ -317,6 +319,7 @@
 			"id": "minor-roads",
 			"type": "line",
 			"source": "versatiles-shortbread",
+			"layout": { "line-cap": "round", "line-join": "round" },
 			"source-layer": "streets",
 			"filter": ["in", "kind", "service", "pedestrian", "track", "busway"],
 			"paint": {
@@ -335,6 +338,7 @@
 			"id": "local-roads-casing",
 			"type": "line",
 			"source": "versatiles-shortbread",
+			"layout": { "line-cap": "round", "line-join": "round" },
 			"source-layer": "streets",
 			"filter": ["in", "kind", "tertiary", "unclassified", "residential", "living_street", "tertiary_link"],
 			"paint": {
@@ -355,6 +359,7 @@
 			"id": "local-roads",
 			"type": "line",
 			"source": "versatiles-shortbread",
+			"layout": { "line-cap": "round", "line-join": "round" },
 			"source-layer": "streets",
 			"filter": ["in", "kind", "tertiary", "unclassified", "residential", "living_street", "tertiary_link"],
 			"paint": {
@@ -375,6 +380,7 @@
 			"id": "main-roads-casing",
 			"type": "line",
 			"source": "versatiles-shortbread",
+			"layout": { "line-cap": "round", "line-join": "round" },
 			"source-layer": "streets",
 			"filter": ["in", "kind", "primary", "secondary", "primary_link", "secondary_link"],
 			"paint": {
@@ -396,6 +402,7 @@
 			"id": "main-roads",
 			"type": "line",
 			"source": "versatiles-shortbread",
+			"layout": { "line-cap": "round", "line-join": "round" },
 			"source-layer": "streets",
 			"filter": ["in", "kind", "primary", "secondary", "primary_link", "secondary_link"],
 			"paint": {
@@ -417,6 +424,7 @@
 			"id": "major-roads-casing",
 			"type": "line",
 			"source": "versatiles-shortbread",
+			"layout": { "line-cap": "round", "line-join": "round" },
 			"source-layer": "streets",
 			"filter": ["in", "kind", "motorway", "trunk", "motorway_link", "trunk_link"],
 			"paint": {
@@ -439,6 +447,7 @@
 			"id": "major-roads",
 			"type": "line",
 			"source": "versatiles-shortbread",
+			"layout": { "line-cap": "round", "line-join": "round" },
 			"source-layer": "streets",
 			"filter": ["in", "kind", "motorway", "trunk", "motorway_link", "trunk_link"],
 			"paint": {
