@@ -292,6 +292,27 @@ void HiredisWorker::doHget(const QString &channel, const QString &field)
     freeReplyObject(reply);
 }
 
+void HiredisWorker::doGet(const QString &key)
+{
+    if (!ensureConnected()) return;
+
+    redisReply *reply = static_cast<redisReply *>(
+        redisCommand(m_ctx, "GET %s", key.toUtf8().constData()));
+    if (!reply) {
+        qWarning() << "HiredisWorker: GET" << key << "failed:" << m_ctx->errstr;
+        disconnectRedis();
+        m_connected = false;
+        emit connectionChanged(false, m_usingBackup);
+        return;
+    }
+
+    if (reply->type == REDIS_REPLY_STRING)
+        emit valueFetched(key, QString::fromUtf8(reply->str, reply->len));
+    else if (reply->type == REDIS_REPLY_NIL)
+        emit valueFetched(key, QString());
+    freeReplyObject(reply);
+}
+
 void HiredisWorker::doHgetAll(const QString &channel)
 {
     if (!ensureConnected()) return;

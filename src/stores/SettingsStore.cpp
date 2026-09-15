@@ -1,5 +1,136 @@
 #include "SettingsStore.h"
 
+#include <limits>
+
+namespace {
+
+constexpr qint64 kMaxDurationNanoseconds = std::numeric_limits<qint64>::max();
+
+bool isAsciiDigit(const QChar character)
+{
+    return character >= QLatin1Char('0') && character <= QLatin1Char('9');
+}
+
+bool parseNonnegativeInt64(const QString &value, qint64 &result)
+{
+    if (value.isEmpty())
+        return false;
+
+    qint64 parsed = 0;
+    for (const QChar character : value) {
+        if (!isAsciiDigit(character))
+            return false;
+        const qint64 digit = character.unicode() - QLatin1Char('0').unicode();
+        if (parsed > (kMaxDurationNanoseconds - digit) / 10)
+            return false;
+        parsed = parsed * 10 + digit;
+    }
+    result = parsed;
+    return true;
+}
+
+bool isCanonicalNonnegativeDecimal(const QString &value)
+{
+    if (value.isEmpty() || (value.size() > 1 && value.startsWith(QLatin1Char('0'))))
+        return false;
+
+    qint64 unused = 0;
+    return parseNonnegativeInt64(value, unused);
+}
+
+qint64 fractionalNanoseconds(const QString &digits, qint64 unitNanoseconds)
+{
+    const QByteArray unit = QByteArray::number(unitNanoseconds);
+    QByteArray product(digits.size() + unit.size(), 0);
+    for (qsizetype i = digits.size() - 1; i >= 0; --i) {
+        const int digit = digits.at(i).unicode() - QLatin1Char('0').unicode();
+        int carry = 0;
+        for (qsizetype j = unit.size() - 1; j >= 0; --j) {
+            const int index = i + j + 1;
+            const int sum = product.at(index) + digit * (unit.at(j) - '0') + carry;
+            product[index] = static_cast<char>(sum % 10);
+            carry = sum / 10;
+        }
+        product[i] = static_cast<char>(product.at(i) + carry);
+    }
+
+    qint64 result = 0;
+    for (qsizetype i = 0; i < unit.size(); ++i)
+        result = result * 10 + product.at(i);
+    return result;
+}
+
+bool isValidPositiveDuration(const QString &value)
+{
+    if (value.isEmpty())
+        return false;
+
+    qint64 totalNanoseconds = 0;
+    qsizetype offset = 0;
+    while (offset < value.size()) {
+        const qsizetype integerStart = offset;
+        while (offset < value.size() && isAsciiDigit(value.at(offset)))
+            ++offset;
+        const QString integer = value.mid(integerStart, offset - integerStart);
+        if (integer.isEmpty()
+            || (integer.size() > 1 && integer.startsWith(QLatin1Char('0'))))
+            return false;
+
+        QString fraction;
+        if (offset < value.size() && value.at(offset) == QLatin1Char('.')) {
+            ++offset;
+            const qsizetype fractionStart = offset;
+            while (offset < value.size() && isAsciiDigit(value.at(offset)))
+                ++offset;
+            fraction = value.mid(fractionStart, offset - fractionStart);
+            if (fraction.isEmpty())
+                return false;
+        }
+
+        qint64 unitNanoseconds = 0;
+        if (value.mid(offset, 2) == QLatin1String("ns")) {
+            unitNanoseconds = 1;
+            offset += 2;
+        } else if (value.mid(offset, 2) == QLatin1String("us")) {
+            unitNanoseconds = 1000;
+            offset += 2;
+        } else if (value.mid(offset, 2) == QLatin1String("ms")) {
+            unitNanoseconds = 1000000;
+            offset += 2;
+        } else if (offset < value.size() && value.at(offset) == QLatin1Char('s')) {
+            unitNanoseconds = 1000000000;
+            ++offset;
+        } else if (offset < value.size() && value.at(offset) == QLatin1Char('m')) {
+            unitNanoseconds = 60000000000LL;
+            ++offset;
+        } else if (offset < value.size() && value.at(offset) == QLatin1Char('h')) {
+            unitNanoseconds = 3600000000000LL;
+            ++offset;
+        } else {
+            return false;
+        }
+
+        qint64 whole = 0;
+        if (!integer.isEmpty() && !parseNonnegativeInt64(integer, whole))
+            return false;
+        if (whole > kMaxDurationNanoseconds / unitNanoseconds)
+            return false;
+        qint64 componentNanoseconds = whole * unitNanoseconds;
+        if (!fraction.isEmpty()) {
+            const qint64 fractional = fractionalNanoseconds(fraction, unitNanoseconds);
+            if (componentNanoseconds > kMaxDurationNanoseconds - fractional)
+                return false;
+            componentNanoseconds += fractional;
+        }
+        if (totalNanoseconds > kMaxDurationNanoseconds - componentNanoseconds)
+            return false;
+        totalNanoseconds += componentNanoseconds;
+    }
+    return totalNanoseconds > 0;
+}
+
+} // namespace
+
 SettingsStore::SettingsStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
@@ -50,6 +181,8 @@ SyncSettings SettingsStore::syncSettings() const
             {QStringLiteral("mapTrafficOverlay"), QStringLiteral("dashboard.map.traffic-overlay")},
             {QStringLiteral("milestoneCelebrations"), QStringLiteral("dashboard.milestone-celebrations")},
             {QStringLiteral("serviceActive"), QStringLiteral("dashboard.service-mode-active")},
+            {QStringLiteral("tripCounterReset"), QStringLiteral("trip.counter-reset")},
+            {QStringLiteral("tripExpunge"), QStringLiteral("trip.expunge"), true},
             {QStringLiteral("otaChannel"), QStringLiteral("updates.mdb.channel")},
             {QStringLiteral("otaChannelDbc"), QStringLiteral("updates.dbc.channel")},
             {QStringLiteral("otaMethod"), QStringLiteral("updates.mdb.method")},
@@ -151,6 +284,16 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
             m_serviceActive = value;
             emit serviceActiveChanged();
         }
+    } else if (variable == QLatin1String("trip.counter-reset")) {
+        if (value != m_tripCounterReset) { m_tripCounterReset = value; emit tripCounterResetChanged(); }
+    } else if (variable == QLatin1String("trip.expunge")) {
+        const bool available = !value.isEmpty();
+        if (available != m_tripExpungeAvailable) {
+            m_tripExpungeAvailable = available;
+            emit tripExpungeAvailableChanged();
+        }
+        const QString normalized = isValidTripExpunge(value) ? value : defaultTripExpunge();
+        if (normalized != m_tripExpunge) { m_tripExpunge = normalized; emit tripExpungeChanged(); }
     } else if (variable == QLatin1String("updates.mdb.channel")) {
         if (value != m_otaChannel) { m_otaChannel = value; emit otaChannelChanged(); }
     // The DBC half of each pair reuses the MDB signal: it moves the same
@@ -168,4 +311,39 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
     } else if (variable == QLatin1String("updates.mdb.last-check-time")) {
         if (value != m_otaLastCheck) { m_otaLastCheck = value; emit otaLastCheckChanged(); }
     }
+}
+
+bool SettingsStore::isValidTripExpunge(const QString &value)
+{
+    if (value == QLatin1String("never"))
+        return true;
+
+    const qsizetype colon = value.indexOf(QLatin1Char(':'));
+    if (colon <= 0 || colon == value.size() - 1)
+        return false;
+    const QString policy = value.left(colon);
+    const QString operand = value.mid(colon + 1);
+    if (policy == QLatin1String("age")) {
+        if (operand.endsWith(QLatin1Char('d'))) {
+            const QString days = operand.left(operand.size() - 1);
+            qint64 count = 0;
+            return isCanonicalNonnegativeDecimal(days) && parseNonnegativeInt64(days, count)
+                && count >= 1 && count <= 106751;
+        }
+        return isValidPositiveDuration(operand);
+    }
+    return (policy == QLatin1String("count") || policy == QLatin1String("size"))
+        && isCanonicalNonnegativeDecimal(operand);
+}
+
+QString SettingsStore::tripExpungePolicy(const QString &value)
+{
+    return isValidTripExpunge(value) && value != QLatin1String("never")
+        ? value.section(QLatin1Char(':'), 0, 0) : (value == QLatin1String("never") ? value : QString());
+}
+
+QString SettingsStore::tripExpungeValue(const QString &value)
+{
+    return isValidTripExpunge(value) && value != QLatin1String("never")
+        ? value.section(QLatin1Char(':'), 1) : QString();
 }

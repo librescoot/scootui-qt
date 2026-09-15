@@ -15,9 +15,14 @@
 #include "core/EnvConfig.h"
 #include "repositories/InMemoryMdbRepository.h"
 #include "services/NotificationService.h"
+#include "services/SettingsService.h"
 #include "stores/BatteryStore.h"
+#include "stores/MenuStore.h"
 #include "stores/ScreenStore.h"
 #include "stores/SettingsStore.h"
+#define private public
+#include "stores/TripStore.h"
+#undef private
 
 QElapsedTimer g_bootTimer;
 
@@ -144,6 +149,169 @@ private slots:
         m_application->m_repository->set("vehicle", "state", "parked");
         QTRY_COMPARE(notifications->surface(), QString("map"));
         QTRY_COMPARE(mainId(), QString("map-coverage"));
+    }
+
+    void tripCounterMenuUsesPersistentCapabilityAndCancelFirst()
+    {
+        auto *repo = m_application->m_repository.get();
+        auto *menu = context<MenuStore>("menuStore");
+        auto *trip = context<TripStore>("tripStore");
+        auto *settings = context<SettingsStore>("settingsStore");
+        QVERIFY(menu && trip && settings);
+
+        const auto hasItem = [menu](const QString &id) {
+            for (const QVariant &item : menu->currentItems()) {
+                if (item.toMap().value("id").toString() == id)
+                    return true;
+            }
+            return false;
+        };
+        const auto select = [menu](const QString &id) {
+            int target = -1;
+            const auto items = menu->currentItems();
+            for (int i = 0; i < items.size(); ++i) {
+                if (items.at(i).toMap().value("id").toString() == id) {
+                    target = i;
+                    break;
+                }
+            }
+            QVERIFY2(target >= 0, qPrintable(id));
+            while (menu->selectedIndex() != target)
+                menu->navigateDown();
+            menu->selectItem();
+        };
+
+        menu->open();
+        QTest::qWait(160);
+        select(QStringLiteral("settings"));
+        select(QStringLiteral("settings_vehicle"));
+        QVERIFY(!hasItem(QStringLiteral("settings_trip_counter")));
+        menu->goBack();
+        menu->goBack();
+
+        repo->set("trip:counter", "api-version", "1");
+        repo->set("settings", "trip.expunge", "age:365d");
+        QVERIFY(trip->persistentAvailable());
+        select(QStringLiteral("settings"));
+        select(QStringLiteral("settings_vehicle"));
+        select(QStringLiteral("settings_trip_counter"));
+        QVERIFY(hasItem(QStringLiteral("trip_counter_reset_policy")));
+        for (const QString &expected : {QStringLiteral("day"), QStringLiteral("battery"),
+                                       QStringLiteral("manual"), QStringLiteral("ride")}) {
+            select(QStringLiteral("trip_counter_reset_policy"));
+            QCOMPARE(settings->tripCounterReset(), expected);
+        }
+        select(QStringLiteral("trip_counter_history"));
+        QVERIFY(hasItem(QStringLiteral("trip_history_retention")));
+        QVERIFY(hasItem(QStringLiteral("trip_history_value")));
+        select(QStringLiteral("trip_history_value"));
+        QCOMPARE(settings->tripExpunge(), QStringLiteral("age:730d"));
+        select(QStringLiteral("trip_history_retention"));
+        QCOMPARE(settings->tripExpunge(), QStringLiteral("count:500"));
+        select(QStringLiteral("trip_history_retention"));
+        QCOMPARE(settings->tripExpunge(), QStringLiteral("size:524288000"));
+        select(QStringLiteral("trip_history_retention"));
+        QCOMPARE(settings->tripExpunge(), QStringLiteral("never"));
+        QVERIFY(!hasItem(QStringLiteral("trip_history_value")));
+        menu->goBack();
+        select(QStringLiteral("trip_counter_reset"));
+        const auto confirmation = menu->currentItems();
+        QCOMPARE(confirmation.size(), 2);
+        QCOMPARE(confirmation.at(0).toMap().value("id").toString(),
+                 QStringLiteral("trip_counter_reset_cancel"));
+        QCOMPARE(confirmation.at(1).toMap().value("id").toString(),
+                 QStringLiteral("trip_counter_reset_confirm"));
+        QVERIFY(confirmation.at(1).toMap().value("caution").toBool());
+    }
+
+    void tripExpungeFallsBackAndPreservesCustomValue()
+    {
+        auto *repo = m_application->m_repository.get();
+        auto *settings = context<SettingsStore>("settingsStore");
+        auto *service = context<SettingsService>("settingsService");
+        QVERIFY(settings && service);
+
+        QVERIFY(!settings->tripExpungeAvailable());
+        repo->set("settings", "trip.expunge", "age:14d");
+        QVERIFY(settings->tripExpungeAvailable());
+        QCOMPARE(settings->tripExpunge(), QStringLiteral("age:14d"));
+        service->updateTripExpunge(QStringLiteral("age"));
+        QCOMPARE(repo->get("settings", "trip.expunge"), QStringLiteral("age:14d"));
+        service->updateTripExpunge(QStringLiteral("count"));
+        QCOMPARE(repo->get("settings", "trip.expunge"), QStringLiteral("count:500"));
+        service->updateTripExpunge(QStringLiteral("count"), QStringLiteral("1000"));
+        QCOMPARE(repo->get("settings", "trip.expunge"), QStringLiteral("count:1000"));
+        service->updateTripExpunge(QStringLiteral("age"), QStringLiteral("not-valid"));
+        QCOMPARE(repo->get("settings", "trip.expunge"), QStringLiteral("count:1000"));
+        repo->set("settings", "trip.expunge", "bad:value");
+        QCOMPARE(settings->tripExpunge(), QStringLiteral("age:365d"));
+        repo->hdel("settings", "trip.expunge");
+        QTRY_VERIFY(!settings->tripExpungeAvailable());
+        QCOMPARE(settings->tripExpunge(), QStringLiteral("age:365d"));
+    }
+
+    void tripExpungeGrammarMatchesBoundaryCorpus()
+    {
+        const QStringList valid{
+            QStringLiteral("never"),
+            QStringLiteral("age:1ns"),
+            QStringLiteral("age:1us"),
+            QStringLiteral("age:1.5ms"),
+            QStringLiteral("age:1h30m"),
+            QStringLiteral("age:1d"),
+            QStringLiteral("age:106751d"),
+            QStringLiteral("count:0"),
+            QStringLiteral("count:9223372036854775807"),
+            QStringLiteral("size:0"),
+            QStringLiteral("size:9223372036854775807"),
+        };
+        const QStringList invalid{
+            QStringLiteral("age:0"),
+            QStringLiteral("age:0ns"),
+            QStringLiteral("age:0.5ns"),
+            QStringLiteral("age:.5us"),
+            QStringLiteral("age:1.s"),
+            QStringLiteral("age:01s"),
+            QString::fromUtf8("age:1µs"),
+            QString::fromUtf8("age:1μs"),
+            QStringLiteral("age:106752d"),
+            QStringLiteral("age:2562047h47m16.854775808s"),
+            QStringLiteral("count:01"),
+            QStringLiteral("count:+1"),
+            QStringLiteral("count:9223372036854775808"),
+            QStringLiteral("size:-1"),
+            QStringLiteral("size:9223372036854775808"),
+            QStringLiteral(" age:1s"),
+            QStringLiteral("age: 1s"),
+            QStringLiteral("age:1s "),
+            QStringLiteral("count: 1"),
+            QStringLiteral("size:1\t"),
+        };
+
+        for (const QString &value : valid)
+            QVERIFY2(SettingsStore::isValidTripExpunge(value), qPrintable(value));
+        for (const QString &value : invalid)
+            QVERIFY2(!SettingsStore::isValidTripExpunge(value), qPrintable(value));
+    }
+
+    void tripCounterAcknowledgedResetPublishesSuccessToast()
+    {
+        auto *repo = m_application->m_repository.get();
+        auto *trip = context<TripStore>("tripStore");
+        auto *notifications = context<NotificationService>("notificationService");
+        QVERIFY(trip && notifications);
+        repo->set("trip:counter", "api-version", "1");
+        trip->reset();
+        QCOMPARE(trip->resetState(), QStringLiteral("pending"));
+        const QString requestId = trip->m_pendingResetId;
+        QVERIFY(!requestId.isEmpty());
+        repo->publish("trip:command-result", QStringLiteral(
+            R"({"id":"%1","op":"counter.reset","status":"ok","error":""})").arg(requestId));
+        QCOMPARE(trip->resetState(), QStringLiteral("success"));
+        QTRY_COMPARE(notifications->presentation().value("main").toMap().value("title").toString(),
+                     QStringLiteral("Trip counter reset"));
+        QCOMPARE(notifications->presentation().value("main").toMap().value("kind").toString(),
+                 QStringLiteral("success"));
     }
 
     void dualBatteryToggleRefreshesUnchangedSlotOneFault()

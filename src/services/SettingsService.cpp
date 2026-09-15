@@ -252,6 +252,34 @@ void SettingsService::updateMilestoneCelebrations(bool enabled)
                  enabled ? QStringLiteral("true") : QStringLiteral("false"));
 }
 
+void SettingsService::updateTripCounterReset(const QString &policy)
+{
+    if (policy == QLatin1String("ride") || policy == QLatin1String("day")
+        || policy == QLatin1String("battery") || policy == QLatin1String("manual"))
+        writeSetting(QStringLiteral("trip.counter-reset"), policy);
+}
+
+void SettingsService::updateTripExpunge(const QString &policy, const QString &value)
+{
+    const QString current = m_settings ? m_settings->tripExpunge()
+                                       : SettingsStore::defaultTripExpunge();
+    const QString currentPolicy = SettingsStore::tripExpungePolicy(current);
+    QString operand = value;
+    if (policy == QLatin1String("never")) {
+        operand.clear();
+    } else if (operand.isEmpty() && policy == currentPolicy) {
+        operand = SettingsStore::tripExpungeValue(current);
+    } else if (operand.isEmpty()) {
+        if (policy == QLatin1String("age")) operand = QStringLiteral("365d");
+        else if (policy == QLatin1String("count")) operand = QStringLiteral("500");
+        else if (policy == QLatin1String("size")) operand = QStringLiteral("524288000");
+    }
+    const QString composed = policy == QLatin1String("never")
+        ? QStringLiteral("never") : policy + QLatin1Char(':') + operand;
+    if (SettingsStore::isValidTripExpunge(composed))
+        writeSetting(QStringLiteral("trip.expunge"), composed);
+}
+
 QString SettingsService::toggleBootAnimation()
 {
 #ifdef Q_OS_LINUX

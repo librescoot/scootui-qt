@@ -21,6 +21,8 @@ public:
     QString get(const QString &channel, const QString &variable) override;
     FieldMap getAll(const QString &channel) override;
     void requestAll(const QString &channel) override;
+    void requestValue(const QString &key) override;
+    void setValue(const QString &key, const QString &value);
     void set(const QString &channel, const QString &variable,
              const QString &value, bool publish = true) override;
     void publish(const QString &channel, const QString &message) override;
@@ -47,6 +49,7 @@ private:
     };
 
     QHash<QString, QHash<QString, QString>> m_storage;
+    QHash<QString, QString> m_valueStorage;
     QHash<QString, QSet<QString>> m_setStorage;
     QHash<QString, QList<SubscriptionEntry>> m_subscribers;
     SubscriptionId m_nextSubscriptionId = 1;

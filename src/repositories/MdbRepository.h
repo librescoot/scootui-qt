@@ -63,6 +63,9 @@ public:
     // Fetch a single field immediately (e.g. after pub/sub notification)
     virtual void requestField(const QString &channel, const QString &field) { Q_UNUSED(channel); Q_UNUSED(field); }
 
+    // Fetch a scalar Redis value immediately. Result arrives via valueFetched.
+    virtual void requestValue(const QString &key) { emit valueFetched(key, {}); }
+
     // Fetch all fields of a hash immediately (HGETALL on demand). Result arrives
     // asynchronously via fieldsUpdated, same path the periodic poller uses.
     virtual void requestAll(const QString &channel) { Q_UNUSED(channel); }
@@ -80,6 +83,7 @@ signals:
     void fieldsUpdated(const QString &channel, const FieldMap &fields);
     // Emitted when a single field has been fetched (e.g. via HGET after pub/sub)
     void fieldFetched(const QString &channel, const QString &field, const QString &value);
+    void valueFetched(const QString &key, const QString &value);
     // Emitted after an xrevrange call completes. Entries are as described in xrevrange().
     void streamFetched(const QString &key, const QVariantList &entries);
     // Emitted after a requested SMEMBERS snapshot is available.

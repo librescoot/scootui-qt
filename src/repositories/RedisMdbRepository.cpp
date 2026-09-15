@@ -60,6 +60,14 @@ void RedisMdbRepository::requestField(const QString &channel, const QString &fie
     }
 }
 
+void RedisMdbRepository::requestValue(const QString &key)
+{
+    if (m_worker) {
+        auto *w = m_worker;
+        QMetaObject::invokeMethod(w, [w, key]() { w->doGet(key); }, Qt::QueuedConnection);
+    }
+}
+
 void RedisMdbRepository::requestAll(const QString &channel)
 {
     if (m_worker) {
@@ -103,6 +111,9 @@ void RedisMdbRepository::startWorker()
     // Connection state from worker (bool connected, bool usingBackup)
     connect(m_worker, &HiredisWorker::connectionChanged,
             this, &RedisMdbRepository::onWorkerConnectionChanged, Qt::QueuedConnection);
+
+    connect(m_worker, &HiredisWorker::valueFetched,
+            this, &RedisMdbRepository::valueFetched, Qt::QueuedConnection);
 
     connect(m_worker, &HiredisWorker::firstPassComplete,
             this, &RedisMdbRepository::markDataSeeded, Qt::QueuedConnection);

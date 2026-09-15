@@ -49,6 +49,8 @@ public:
     Q_INVOKABLE void updateMapCheckForUpdates(bool enabled);
     Q_INVOKABLE void updateMapAutoDownload(bool enabled);
     Q_INVOKABLE void updateMilestoneCelebrations(bool enabled);
+    Q_INVOKABLE void updateTripCounterReset(const QString &policy);
+    Q_INVOKABLE void updateTripExpunge(const QString &policy, const QString &value = {});
     Q_INVOKABLE QString toggleBootAnimation();
 
     // OTA settings apply to the whole scooter, so each of these writes the

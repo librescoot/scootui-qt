@@ -22,6 +22,7 @@
 #include "core/AppConfig.h"
 
 #include <QDateTime>
+#include <QLocale>
 #include <QDebug>
 #include <QProcess>
 #include <iterator>
@@ -69,6 +70,17 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
     connect(m_settings, &SettingsStore::mapNorthOrientedChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::milestoneCelebrationsChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::serviceActiveChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::tripCounterResetChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::tripExpungeChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::tripExpungeAvailableChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_trip, &TripStore::persistentAvailableChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_trip, &TripStore::resetStateChanged, this, [this]() {
+        if (!m_toastService) return;
+        if (m_trip->resetState() == QLatin1String("success"))
+            m_toastService->showSuccess(m_translations->tripCounterResetSuccess());
+        else if (m_trip->resetState() == QLatin1String("error"))
+            m_toastService->showError(m_translations->tripCounterResetError());
+    });
     connect(m_settings, &SettingsStore::otaChannelChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::otaMethodChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::otaCheckIntervalChanged, this, &MenuStore::rebuildMenuTree);
@@ -589,6 +601,95 @@ void MenuStore::rebuildMenuTree()
                     m_hopOn->disable();
                     close();
                 }));
+        }
+    }
+
+    // The persistent counter is introduced by trip-service. Older vehicles
+    // retain TripStore's in-memory ride counter and deliberately get no
+    // policy controls rather than settings that cannot be applied.
+    if (m_trip->persistentAvailable()) {
+        auto *tripCounterNode = MenuNode::submenu(QStringLiteral("settings_trip_counter"),
+            tr->menuTripCounter(), tr->menuTripCounter().toUpper());
+        vehicleNode->addChild(tripCounterNode);
+
+        const QString policy = settings->tripCounterReset();
+        int policyIndex = 0;
+        if (policy == QLatin1String("day")) policyIndex = 1;
+        else if (policy == QLatin1String("battery")) policyIndex = 2;
+        else if (policy == QLatin1String("manual")) policyIndex = 3;
+        tripCounterNode->addChild(MenuNode::cycleSetting(
+            QStringLiteral("trip_counter_reset_policy"), tr->menuTripCounterResetAutomatically(), {
+                {tr->menuTripCounterEveryRide(), [svc]() { svc->updateTripCounterReset(QStringLiteral("ride")); }},
+                {tr->menuTripCounterEveryDay(), [svc]() { svc->updateTripCounterReset(QStringLiteral("day")); }},
+                {tr->menuTripCounterBatterySwap(), [svc]() { svc->updateTripCounterReset(QStringLiteral("battery")); }},
+                {tr->menuTripCounterManualOnly(), [svc]() { svc->updateTripCounterReset(QStringLiteral("manual")); }},
+            }, policyIndex));
+
+        auto *resetNode = tripCounterNode->addChild(MenuNode::submenu(
+            QStringLiteral("trip_counter_reset"), tr->menuResetTripCounter(),
+            tr->menuResetTripCounterConfirm()));
+        resetNode->setCaution(true);
+        resetNode->addChild(MenuNode::action(QStringLiteral("trip_counter_reset_cancel"),
+            tr->controlCancel(), [this]() { goBack(); }));
+        auto *confirmReset = resetNode->addChild(MenuNode::action(
+            QStringLiteral("trip_counter_reset_confirm"), tr->menuResetTripCounter(), [this]() {
+                m_trip->reset();
+                close();
+            }));
+        confirmReset->setCaution(true);
+
+        if (settings->tripExpungeAvailable()) {
+        const QString expunge = settings->tripExpunge();
+        const QString expungePolicy = SettingsStore::tripExpungePolicy(expunge);
+        const QString expungeValue = SettingsStore::tripExpungeValue(expunge);
+        auto *historyNode = tripCounterNode->addChild(MenuNode::submenu(
+            QStringLiteral("trip_counter_history"), tr->menuTripHistory(),
+            tr->menuTripHistory().toUpper()));
+        int retentionIndex = expungePolicy == QLatin1String("count") ? 1
+            : expungePolicy == QLatin1String("size") ? 2
+            : expungePolicy == QLatin1String("never") ? 3 : 0;
+        historyNode->addChild(MenuNode::cycleSetting(
+            QStringLiteral("trip_history_retention"), tr->menuTripHistoryRetention(), {
+                {tr->menuTripHistoryByAge(), [svc]() { svc->updateTripExpunge(QStringLiteral("age")); }},
+                {tr->menuTripHistoryByCount(), [svc]() { svc->updateTripExpunge(QStringLiteral("count")); }},
+                {tr->menuTripHistoryBySize(), [svc]() { svc->updateTripExpunge(QStringLiteral("size")); }},
+                {tr->optNever(), [svc]() { svc->updateTripExpunge(QStringLiteral("never")); }},
+            }, retentionIndex));
+
+        if (expungePolicy != QLatin1String("never")) {
+            const QLocale locale(currentLang);
+            const auto number = [&locale](int value) { return locale.toString(value); };
+            const QList<QPair<QString, QString>> presets = expungePolicy == QLatin1String("age")
+                ? QList<QPair<QString, QString>>{{QStringLiteral("30d"), tr->tripHistoryDays().arg(number(30))}, {QStringLiteral("90d"), tr->tripHistoryDays().arg(number(90))}, {QStringLiteral("365d"), tr->tripHistoryYears().arg(number(1))}, {QStringLiteral("730d"), tr->tripHistoryYears().arg(number(2))}}
+                : expungePolicy == QLatin1String("count")
+                    ? QList<QPair<QString, QString>>{{QStringLiteral("100"), number(100)}, {QStringLiteral("500"), number(500)}, {QStringLiteral("1000"), number(1000)}}
+                    : QList<QPair<QString, QString>>{{QStringLiteral("104857600"), tr->tripHistoryMegabytes().arg(number(100))}, {QStringLiteral("524288000"), tr->tripHistoryMegabytes().arg(number(500))}, {QStringLiteral("1073741824"), tr->tripHistoryGigabytes().arg(number(1))}};
+            QList<CycleOption> options;
+            int valueIndex = 0;
+            bool presetFound = false;
+            for (int i = 0; i < presets.size(); ++i) {
+                if (presets.at(i).first == expungeValue) {
+                    valueIndex = i;
+                    presetFound = true;
+                }
+            }
+            if (!presetFound) {
+                options.append({expungeValue, [svc, expungePolicy, expungeValue]() {
+                    svc->updateTripExpunge(expungePolicy, expungeValue);
+                }});
+                valueIndex = 0;
+            }
+            for (const auto &preset : presets) {
+                options.append({preset.second, [svc, expungePolicy, value = preset.first]() {
+                    svc->updateTripExpunge(expungePolicy, value);
+                }});
+            }
+            const QString valueTitle = expungePolicy == QLatin1String("age") ? tr->menuTripHistoryKeepFor()
+                : expungePolicy == QLatin1String("count") ? tr->menuTripHistoryKeepTrips()
+                : tr->menuTripHistoryKeepStorage();
+            historyNode->addChild(MenuNode::cycleSetting(QStringLiteral("trip_history_value"),
+                valueTitle, options, valueIndex));
+        }
         }
     }
 

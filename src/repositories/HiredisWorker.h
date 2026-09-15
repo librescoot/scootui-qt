@@ -59,6 +59,9 @@ public slots:
     // Fetch a single field from a hash (queued from main thread)
     void doHget(const QString &channel, const QString &field);
 
+    // Fetch a scalar key (queued from main thread)
+    void doGet(const QString &key);
+
     // Fetch all fields of a hash on demand (HGETALL, queued from main thread).
     // Emits fieldsUpdated on the worker thread when the response arrives.
     void doHgetAll(const QString &channel);
@@ -73,6 +76,7 @@ signals:
     // Emitted on the worker thread; received on the main thread via queued connection
     void fieldsUpdated(const QString &channel, const FieldMap &fields);
     void fieldFetched(const QString &channel, const QString &field, const QString &value);
+    void valueFetched(const QString &key, const QString &value);
     void connectionChanged(bool connected, bool usingBackup);
     // Every registered channel polled once since the current connection came up.
     void firstPassComplete();

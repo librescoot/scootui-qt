@@ -46,6 +46,9 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(bool mapTrafficOverlay READ mapTrafficOverlay NOTIFY mapTrafficOverlayChanged)
     Q_PROPERTY(bool milestoneCelebrations READ milestoneCelebrations NOTIFY milestoneCelebrationsChanged)
     Q_PROPERTY(QString serviceActive READ serviceActive NOTIFY serviceActiveChanged)
+    Q_PROPERTY(QString tripCounterReset READ tripCounterReset NOTIFY tripCounterResetChanged)
+    Q_PROPERTY(QString tripExpunge READ tripExpunge NOTIFY tripExpungeChanged)
+    Q_PROPERTY(bool tripExpungeAvailable READ tripExpungeAvailable NOTIFY tripExpungeAvailableChanged)
     // OTA settings are written to both updates.mdb.* and updates.dbc.*; the
     // MDB copy is mirrored here as the one the dashboard reads back, because
     // the two are only ever set together.
@@ -110,6 +113,14 @@ public:
     bool mapTrafficOverlay() const { return m_mapTrafficOverlay == QLatin1String("true"); }
     bool milestoneCelebrations() const { return m_milestoneCelebrations == QLatin1String("true"); }
     QString serviceActive() const { return m_serviceActive; }
+    QString tripCounterReset() const { return m_tripCounterReset; }
+    QString tripExpunge() const { return m_tripExpunge; }
+    bool tripExpungeAvailable() const { return m_tripExpungeAvailable; }
+
+    static QString defaultTripExpunge() { return QStringLiteral("age:365d"); }
+    static bool isValidTripExpunge(const QString &value);
+    static QString tripExpungePolicy(const QString &value);
+    static QString tripExpungeValue(const QString &value);
     QString otaChannel() const { return m_otaChannel; }
     QString otaChannelDbc() const { return m_otaChannelDbc; }
     bool otaChannelDiverged() const { return boardsDiverge(m_otaChannel, m_otaChannelDbc); }
@@ -166,6 +177,9 @@ signals:
     void mapTrafficOverlayChanged();
     void milestoneCelebrationsChanged();
     void serviceActiveChanged();
+    void tripCounterResetChanged();
+    void tripExpungeChanged();
+    void tripExpungeAvailableChanged();
     void otaChannelChanged();
     void otaMethodChanged();
     void otaCheckIntervalChanged();
@@ -276,6 +290,9 @@ private:
     // that no user-visible setting is missing one.
     // @schema dashboard.service-mode-active
     QString m_serviceActive = QStringLiteral("false");
+    QString m_tripCounterReset = QStringLiteral("ride");
+    QString m_tripExpunge = defaultTripExpunge();
+    bool m_tripExpungeAvailable = false;
     // The UI writes the MDB and DBC keys together
     // (SettingsService::writeOtaSetting) because the two boards ship as a
     // pair, so both halves are read back and kept, and a disagreement between

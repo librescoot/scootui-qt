@@ -787,6 +787,11 @@ if(BUILD_TESTING)
         src/stores/SyncableStore.h
         src/stores/VehicleStore.cpp
         src/stores/VehicleStore.h
+        src/stores/EngineStore.cpp
+        src/stores/EngineStore.h
+        src/stores/TripStore.cpp
+        src/stores/TripStore.h
+        src/models/Enums.h
     )
     target_include_directories(syncable_store_seed_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(syncable_store_seed_test PRIVATE Qt6::Core Qt6::Test)

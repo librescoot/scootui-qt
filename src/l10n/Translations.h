@@ -95,6 +95,28 @@ class Translations : public QObject
     Q_PROPERTY(QString menuSystemInfo READ menuSystemInfo NOTIFY languageChanged)
     Q_PROPERTY(QString menuAppearance READ menuAppearance NOTIFY languageChanged)
     Q_PROPERTY(QString menuVehicle READ menuVehicle NOTIFY languageChanged)
+    Q_PROPERTY(QString menuTripCounter READ menuTripCounter NOTIFY languageChanged)
+    Q_PROPERTY(QString menuTripCounterResetAutomatically READ menuTripCounterResetAutomatically NOTIFY languageChanged)
+    Q_PROPERTY(QString menuTripCounterEveryRide READ menuTripCounterEveryRide NOTIFY languageChanged)
+    Q_PROPERTY(QString menuTripCounterEveryDay READ menuTripCounterEveryDay NOTIFY languageChanged)
+    Q_PROPERTY(QString menuTripCounterBatterySwap READ menuTripCounterBatterySwap NOTIFY languageChanged)
+    Q_PROPERTY(QString menuTripCounterManualOnly READ menuTripCounterManualOnly NOTIFY languageChanged)
+    Q_PROPERTY(QString menuResetTripCounter READ menuResetTripCounter NOTIFY languageChanged)
+    Q_PROPERTY(QString menuResetTripCounterConfirm READ menuResetTripCounterConfirm NOTIFY languageChanged)
+    Q_PROPERTY(QString tripCounterResetSuccess READ tripCounterResetSuccess NOTIFY languageChanged)
+    Q_PROPERTY(QString tripCounterResetError READ tripCounterResetError NOTIFY languageChanged)
+    Q_PROPERTY(QString menuTripHistory READ menuTripHistory NOTIFY languageChanged)
+    Q_PROPERTY(QString menuTripHistoryRetention READ menuTripHistoryRetention NOTIFY languageChanged)
+    Q_PROPERTY(QString menuTripHistoryByAge READ menuTripHistoryByAge NOTIFY languageChanged)
+    Q_PROPERTY(QString menuTripHistoryByCount READ menuTripHistoryByCount NOTIFY languageChanged)
+    Q_PROPERTY(QString menuTripHistoryBySize READ menuTripHistoryBySize NOTIFY languageChanged)
+    Q_PROPERTY(QString menuTripHistoryKeepFor READ menuTripHistoryKeepFor NOTIFY languageChanged)
+    Q_PROPERTY(QString menuTripHistoryKeepTrips READ menuTripHistoryKeepTrips NOTIFY languageChanged)
+    Q_PROPERTY(QString menuTripHistoryKeepStorage READ menuTripHistoryKeepStorage NOTIFY languageChanged)
+    Q_PROPERTY(QString tripHistoryDays READ tripHistoryDays NOTIFY languageChanged)
+    Q_PROPERTY(QString tripHistoryYears READ tripHistoryYears NOTIFY languageChanged)
+    Q_PROPERTY(QString tripHistoryMegabytes READ tripHistoryMegabytes NOTIFY languageChanged)
+    Q_PROPERTY(QString tripHistoryGigabytes READ tripHistoryGigabytes NOTIFY languageChanged)
     Q_PROPERTY(QString menuInfo READ menuInfo NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoIdentity READ systemInfoIdentity NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoNetwork READ systemInfoNetwork NOTIFY languageChanged)
@@ -700,6 +722,28 @@ public:
     QString menuSystemInfo() const { return lookup("menuSystemInfo"); }
     QString menuAppearance() const { return lookup("menuAppearance"); }
     QString menuVehicle() const { return lookup("menuVehicle"); }
+    QString menuTripCounter() const { return lookup("menuTripCounter"); }
+    QString menuTripCounterResetAutomatically() const { return lookup("menuTripCounterResetAutomatically"); }
+    QString menuTripCounterEveryRide() const { return lookup("menuTripCounterEveryRide"); }
+    QString menuTripCounterEveryDay() const { return lookup("menuTripCounterEveryDay"); }
+    QString menuTripCounterBatterySwap() const { return lookup("menuTripCounterBatterySwap"); }
+    QString menuTripCounterManualOnly() const { return lookup("menuTripCounterManualOnly"); }
+    QString menuResetTripCounter() const { return lookup("menuResetTripCounter"); }
+    QString menuResetTripCounterConfirm() const { return lookup("menuResetTripCounterConfirm"); }
+    QString tripCounterResetSuccess() const { return lookup("tripCounterResetSuccess"); }
+    QString tripCounterResetError() const { return lookup("tripCounterResetError"); }
+    QString menuTripHistory() const { return lookup("menuTripHistory"); }
+    QString menuTripHistoryRetention() const { return lookup("menuTripHistoryRetention"); }
+    QString menuTripHistoryByAge() const { return lookup("menuTripHistoryByAge"); }
+    QString menuTripHistoryByCount() const { return lookup("menuTripHistoryByCount"); }
+    QString menuTripHistoryBySize() const { return lookup("menuTripHistoryBySize"); }
+    QString menuTripHistoryKeepFor() const { return lookup("menuTripHistoryKeepFor"); }
+    QString menuTripHistoryKeepTrips() const { return lookup("menuTripHistoryKeepTrips"); }
+    QString menuTripHistoryKeepStorage() const { return lookup("menuTripHistoryKeepStorage"); }
+    QString tripHistoryDays() const { return lookup("tripHistoryDays"); }
+    QString tripHistoryYears() const { return lookup("tripHistoryYears"); }
+    QString tripHistoryMegabytes() const { return lookup("tripHistoryMegabytes"); }
+    QString tripHistoryGigabytes() const { return lookup("tripHistoryGigabytes"); }
     QString menuInfo() const { return lookup("menuInfo"); }
     QString systemInfoIdentity() const { return lookup("systemInfoIdentity"); }
     QString systemInfoNetwork() const { return lookup("systemInfoNetwork"); }

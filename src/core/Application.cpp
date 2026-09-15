@@ -288,7 +288,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     auto *auxBatteryStore = new AuxBatteryStore(repo, this);
     auto *themeStore = new ThemeStore(settingsStore, this);
     auto *screenStore = new ScreenStore(settingsStore, repo, this);
-    auto *tripStore = new TripStore(engineStore, vehicleStore, this);
+    auto *tripStore = new TripStore(repo, engineStore, vehicleStore, this);
     m_shutdownStore = new ShutdownStore(this);
     auto *shutdownStore = m_shutdownStore;
     auto *localeStore = new LocaleStore(settingsStore, this);
@@ -884,7 +884,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
                 gpsStore, motionStore, bluetoothStore, internetStore, modemStore, navigationStore,
                 settingsStore, otaStore, usbStore, speedLimitStore,
                 autoStandbyStore, scooterStore, cbBatteryStore, auxBatteryStore, dashboardStore,
-                screenStore, keycardStore};
+                screenStore, keycardStore, tripStore};
 
     BOOT_MARK("services wired");
 

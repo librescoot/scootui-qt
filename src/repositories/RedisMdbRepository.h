@@ -54,6 +54,7 @@ public:
 
     // Fetch a single field immediately (queues to worker thread)
     void requestField(const QString &channel, const QString &field) override;
+    void requestValue(const QString &key) override;
 
     // Fetch all fields of a hash immediately (queues to worker thread)
     void requestAll(const QString &channel) override;

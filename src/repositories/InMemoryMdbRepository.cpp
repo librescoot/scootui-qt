@@ -6,6 +6,7 @@
 InMemoryMdbRepository::InMemoryMdbRepository(QObject *parent)
     : MdbRepository(parent)
 {
+    m_valueStorage.insert(QStringLiteral("trip:ready"), QStringLiteral("1"));
     startBrightnessSimulation();
 }
 
@@ -45,6 +46,20 @@ void InMemoryMdbRepository::requestAll(const QString &channel)
 {
     if (m_storage.contains(channel))
         emit fieldsUpdated(channel, m_storage.value(channel));
+}
+
+void InMemoryMdbRepository::requestValue(const QString &key)
+{
+    emit valueFetched(key, m_valueStorage.value(key));
+}
+
+void InMemoryMdbRepository::setValue(const QString &key, const QString &value)
+{
+    if (value.isEmpty())
+        m_valueStorage.remove(key);
+    else
+        m_valueStorage.insert(key, value);
+    emit valueFetched(key, value);
 }
 
 void InMemoryMdbRepository::set(const QString &channel, const QString &variable,
