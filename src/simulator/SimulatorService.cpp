@@ -922,6 +922,8 @@ void SimulatorService::loadTestRoute(int index)
 
         // Move vehicle to route start
         const auto &start = route.waypoints.first();
+        m_autoDriveLat = start.latitude;
+        m_autoDriveLng = start.longitude;
         setGpsPosition(start.latitude, start.longitude);
         setGpsState(QStringLiteral("fix-established"));
 
