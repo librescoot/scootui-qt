@@ -69,6 +69,19 @@ class Translations : public QObject
     Q_PROPERTY(QString keycardConfirmRemoveLast READ keycardConfirmRemoveLast NOTIFY languageChanged)
     Q_PROPERTY(QString keycardSkip READ keycardSkip NOTIFY languageChanged)
     Q_PROPERTY(QString keycardDone READ keycardDone NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardUnlockCard READ keycardUnlockCard NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardTeachInCard READ keycardTeachInCard NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardRemoveUnlockCard READ keycardRemoveUnlockCard NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardRemoveLastUnlockCard READ keycardRemoveLastUnlockCard NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardRemoveTeachInCard READ keycardRemoveTeachInCard NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardEnrollDetail READ keycardEnrollDetail NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardDetectedCount READ keycardDetectedCount NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardLastCard READ keycardLastCard NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardScanAccepted READ keycardScanAccepted NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardMasterSaved READ keycardMasterSaved NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardScanDuplicate READ keycardScanDuplicate NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardScanRejected READ keycardScanRejected NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardScanError READ keycardScanError NOTIFY languageChanged)
     Q_PROPERTY(QString menuCaptureLogs READ menuCaptureLogs NOTIFY languageChanged)
     Q_PROPERTY(QString captureLogsToastStarted READ captureLogsToastStarted NOTIFY languageChanged)
     Q_PROPERTY(QString captureLogsToastDone READ captureLogsToastDone NOTIFY languageChanged)
@@ -598,8 +611,6 @@ class Translations : public QObject
     Q_PROPERTY(QString shortcutToggleHazards READ shortcutToggleHazards NOTIFY languageChanged)
     Q_PROPERTY(QString shortcutDebugOverlay READ shortcutDebugOverlay NOTIFY languageChanged)
 
-    Q_PROPERTY(QString language READ language NOTIFY languageChanged)
-
 public:
     explicit Translations(QObject *parent = nullptr);
 
@@ -663,6 +674,19 @@ public:
     QString keycardConfirmRemoveLast() const { return lookup("keycardConfirmRemoveLast"); }
     QString keycardSkip() const { return lookup("keycardSkip"); }
     QString keycardDone() const { return lookup("keycardDone"); }
+    QString keycardUnlockCard() const { return lookup("keycardUnlockCard"); }
+    QString keycardTeachInCard() const { return lookup("keycardTeachInCard"); }
+    QString keycardRemoveUnlockCard() const { return lookup("keycardRemoveUnlockCard"); }
+    QString keycardRemoveLastUnlockCard() const { return lookup("keycardRemoveLastUnlockCard"); }
+    QString keycardRemoveTeachInCard() const { return lookup("keycardRemoveTeachInCard"); }
+    QString keycardEnrollDetail() const { return lookup("keycardEnrollDetail"); }
+    QString keycardDetectedCount() const { return lookup("keycardDetectedCount"); }
+    QString keycardLastCard() const { return lookup("keycardLastCard"); }
+    QString keycardScanAccepted() const { return lookup("keycardScanAccepted"); }
+    QString keycardMasterSaved() const { return lookup("keycardMasterSaved"); }
+    QString keycardScanDuplicate() const { return lookup("keycardScanDuplicate"); }
+    QString keycardScanRejected() const { return lookup("keycardScanRejected"); }
+    QString keycardScanError() const { return lookup("keycardScanError"); }
     QString menuCaptureLogs() const { return lookup("menuCaptureLogs"); }
     QString captureLogsToastStarted() const { return lookup("captureLogsToastStarted"); }
     QString captureLogsToastDone() const { return lookup("captureLogsToastDone"); }

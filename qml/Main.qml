@@ -79,6 +79,16 @@ Window {
     }
 
     property bool startupGraceElapsed: false
+    property bool keycardMasterCompletionPending: false
+
+    function closeKeycardEnrollment() {
+        keycardCloseTimer.stop()
+        keycardMasterCompletionPending = false
+        if (typeof screenStore !== "undefined"
+                && screenStore.currentScreen === Scooter.ScreenMode.KeycardEnrollInfo)
+            screenStore.closeKeycardEnrollInfo()
+        if (typeof menuStore !== "undefined") menuStore.resume()
+    }
 
     readonly property string notificationScreenshotPath: {
         if (typeof simulatorMode === "undefined" || !simulatorMode) return ""
@@ -104,8 +114,11 @@ Window {
         if (notificationScreenshotScreen === "map" && typeof screenStore !== "undefined")
             screenStore.setScreen(Scooter.ScreenMode.Map)
         if (typeof keycardStore !== "undefined" && keycardStore.enrollActive
-                && typeof screenStore !== "undefined")
+                && typeof screenStore !== "undefined") {
+            keycardMasterCompletionPending = keycardStore.masterTeachIn
+                                             || keycardStore.masterBootstrap
             screenStore.showKeycardEnrollInfo()
+        }
     }
 
     Timer {
@@ -197,18 +210,39 @@ Window {
         }
     }
 
+    Timer {
+        id: keycardCloseTimer
+        interval: 1500
+        repeat: false
+        onTriggered: root.closeKeycardEnrollment()
+    }
+
     Connections {
         target: typeof keycardStore !== "undefined" ? keycardStore : null
         function syncEnrollmentScreen() {
             if (!keycardStore || typeof screenStore === "undefined") return
             if (keycardStore.enrollActive) {
-                if (screenStore.currentScreen !== Scooter.ScreenMode.KeycardEnrollInfo)
+                keycardCloseTimer.stop()
+                root.keycardMasterCompletionPending = keycardStore.masterTeachIn
+                                                      || keycardStore.masterBootstrap
+                if (screenStore.currentScreen !== Scooter.ScreenMode.KeycardEnrollInfo) {
+                    if (typeof menuStore !== "undefined" && menuStore.isOpen)
+                        menuStore.closeForScreen()
                     screenStore.showKeycardEnrollInfo()
+                }
             } else if (screenStore.currentScreen === Scooter.ScreenMode.KeycardEnrollInfo) {
-                screenStore.closeKeycardEnrollInfo()
+                if (root.keycardMasterCompletionPending)
+                    keycardCloseTimer.restart()
+                else
+                    root.closeKeycardEnrollment()
             }
         }
         function onLearnStateChanged() { syncEnrollmentScreen() }
+        function onEnrollmentFeedbackChanged() {
+            if (root.keycardMasterCompletionPending && !keycardStore.enrollActive
+                    && keycardStore.scanStatus === "accepted")
+                keycardCloseTimer.restart()
+        }
     }
     // Screen switcher.
     //
@@ -233,8 +267,7 @@ Window {
         umsInfo:       "screens/UpdateModeInfoScreen.qml",
         updateChannel: "screens/UpdateChannelScreen.qml",
         hopOnInfo:     "screens/HopOnInfoScreen.qml",
-        keycardEnroll: "screens/KeycardEnrollInfoScreen.qml",
-        keycardManage: "screens/KeycardManageScreen.qml"
+        keycardEnroll: "screens/KeycardEnrollInfoScreen.qml"
     })
 
     Loader {
@@ -266,7 +299,6 @@ Window {
                 case Scooter.ScreenMode.UpdateChannel:   name = "updateChannel"; break
                 case Scooter.ScreenMode.HopOnInfo:       name = "hopOnInfo";     break
                 case Scooter.ScreenMode.KeycardEnrollInfo:name = "keycardEnroll"; break
-                case Scooter.ScreenMode.KeycardManage:    name = "keycardManage"; break
                 default:                                 name = "cluster";       break
             }
             console.log("SCREEN: " + name + " (screen=" + screen + ")")
@@ -319,7 +351,7 @@ Window {
         root.screensPreloaded = true
         var order = ["map", "maintenance", "about", "faults", "systemInfo",
                      "navSetup", "address", "debug", "motionDebug", "umsInfo",
-                     "updateChannel", "hopOnInfo", "keycardEnroll", "keycardManage"]
+                     "updateChannel", "hopOnInfo", "keycardEnroll"]
         var current = screenLoader.source.toString()
         for (var i = 0; i < order.length; i++) {
             var url = Qt.resolvedUrl(root.screenUrls[order[i]])

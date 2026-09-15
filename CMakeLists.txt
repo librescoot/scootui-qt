@@ -280,7 +280,6 @@ set(QML_FILES
     qml/screens/UpdateChannelScreen.qml
     qml/screens/HopOnInfoScreen.qml
     qml/screens/KeycardEnrollInfoScreen.qml
-    qml/screens/KeycardManageScreen.qml
     qml/widgets/navigation/TurnByTurnWidget.qml
     qml/widgets/navigation/NavigationStatusOverlay.qml
     qml/widgets/navigation/RoundaboutIcon.qml

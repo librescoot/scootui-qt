@@ -80,7 +80,7 @@ public:
     // Closes the menu to hand the display to a full-screen page, remembering
     // where in the tree we stood. resume() puts the rider back on that level
     // when the page is dismissed; any other close() drops the memory.
-    void closeForScreen();
+    Q_INVOKABLE void closeForScreen();
     Q_INVOKABLE void resume();
     Q_INVOKABLE void navigateDown();
     Q_INVOKABLE void selectItem();

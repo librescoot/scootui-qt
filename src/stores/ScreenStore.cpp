@@ -25,7 +25,6 @@ bool ScreenStore::isBrakeNavigated(ScootEnums::ScreenMode mode)
     case ScootEnums::ScreenMode::UpdateChannel:
     case ScootEnums::ScreenMode::HopOnInfo:
     case ScootEnums::ScreenMode::KeycardEnrollInfo:
-    case ScootEnums::ScreenMode::KeycardManage:
         return true;
     default:
         return false;
@@ -227,17 +226,6 @@ void ScreenStore::showKeycardEnrollInfo()
 void ScreenStore::closeKeycardEnrollInfo()
 {
     setScreen(static_cast<int>(m_screenBeforeKeycardEnrollInfo));
-}
-
-void ScreenStore::showKeycardManage()
-{
-    m_screenBeforeKeycardManage = m_currentScreen;
-    setScreen(static_cast<int>(ScootEnums::ScreenMode::KeycardManage));
-}
-
-void ScreenStore::closeKeycardManage()
-{
-    setScreen(static_cast<int>(m_screenBeforeKeycardManage));
 }
 
 void ScreenStore::enterHopOnLock()

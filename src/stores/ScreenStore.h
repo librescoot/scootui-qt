@@ -50,8 +50,6 @@ public:
     Q_INVOKABLE void closeHopOnInfo();
     Q_INVOKABLE void showKeycardEnrollInfo();
     Q_INVOKABLE void closeKeycardEnrollInfo();
-    Q_INVOKABLE void showKeycardManage();
-    Q_INVOKABLE void closeKeycardManage();
 
     // Hop-on Locked: switch to Cluster (lightweight) so the heavy underlying
     // screen (notably MapScreen with QtLocation) doesn't keep rendering under
@@ -103,7 +101,6 @@ private:
     ScootEnums::ScreenMode m_screenBeforeUpdateChannel = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeHopOnInfo = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeKeycardEnrollInfo = ScootEnums::ScreenMode::Cluster;
-    ScootEnums::ScreenMode m_screenBeforeKeycardManage = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeHopOnLock = ScootEnums::ScreenMode::Cluster;
     int m_setupMode = 2; // Both by default
     int m_systemInfoPage = SystemInfoDevice;

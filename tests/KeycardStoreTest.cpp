@@ -36,6 +36,7 @@ private slots:
     void hydratesSortedSnapshotsAndMode();
     void refreshesSetOnSystemNotification();
     void appliesDelayedSetResult();
+    void tracksEnrollmentFeedback();
     void emitsCurrentCommandVocabulary();
 };
 
@@ -82,6 +83,34 @@ void KeycardStoreTest::appliesDelayedSetResult()
     QVERIFY(repo.requestedSets.contains("keycard:authorized"));
     repo.deliver("keycard:authorized");
     QCOMPARE(store.unlockCards(), QStringList({"CAFE"}));
+}
+
+void KeycardStoreTest::tracksEnrollmentFeedback()
+{
+    RecordingRepository repo;
+    KeycardStore store(&repo);
+    store.start();
+    QSignalSpy changed(&store, &KeycardStore::enrollmentFeedbackChanged);
+
+    repo.publish("keycard:events", "mode-entered:learn:command");
+    repo.publish("keycard:events", "card-learned:CAFE");
+    QCOMPARE(store.sessionCardCount(), 1);
+    QCOMPARE(store.lastScannedUid(), QStringLiteral("CAFE"));
+    QCOMPARE(store.scanStatus(), QStringLiteral("accepted"));
+
+    repo.publish("keycard:events", "card-duplicate:CAFE");
+    QCOMPARE(store.sessionCardCount(), 1);
+    QCOMPARE(store.scanStatus(), QStringLiteral("duplicate"));
+
+    repo.publish("keycard:events", "rejected:already-authorized:BEEF");
+    QCOMPARE(store.lastScannedUid(), QStringLiteral("BEEF"));
+    QCOMPARE(store.scanStatus(), QStringLiteral("rejected"));
+
+    repo.publish("keycard:events", "mode-entered:master");
+    QCOMPARE(store.sessionCardCount(), 0);
+    QVERIFY(store.lastScannedUid().isEmpty());
+    QVERIFY(store.scanStatus().isEmpty());
+    QVERIFY(changed.count() >= 4);
 }
 
 void KeycardStoreTest::emitsCurrentCommandVocabulary()

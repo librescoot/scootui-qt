@@ -3,6 +3,19 @@
 KeycardStore::KeycardStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
+    if (m_repo) {
+        m_eventSubscriptionId = m_repo->subscribe(
+            QStringLiteral("keycard:events"),
+            [this](const QString &, const QString &message) {
+                onKeycardEvent(message);
+            });
+    }
+}
+
+KeycardStore::~KeycardStore()
+{
+    if (m_repo && m_eventSubscriptionId != 0)
+        m_repo->unsubscribe(QStringLiteral("keycard:events"), m_eventSubscriptionId);
 }
 
 SyncSettings KeycardStore::syncSettings() const
@@ -35,9 +48,67 @@ void KeycardStore::applySetUpdate(const QString &name, const QStringList &member
     }
 }
 
-void KeycardStore::startEnroll() { if (m_repo) m_repo->push("scooter:keycard", "learn:start"); }
+void KeycardStore::clearEnrollmentFeedback()
+{
+    if (m_sessionCards.isEmpty() && m_lastScannedUid.isEmpty() && m_scanStatus.isEmpty())
+        return;
+    m_sessionCards.clear();
+    m_lastScannedUid.clear();
+    m_scanStatus.clear();
+    emit enrollmentFeedbackChanged();
+}
+
+void KeycardStore::setEnrollmentFeedback(const QString &uid, const QString &status)
+{
+    m_lastScannedUid = uid;
+    m_scanStatus = status;
+    emit enrollmentFeedbackChanged();
+}
+
+void KeycardStore::onKeycardEvent(const QString &message)
+{
+    const QStringList parts = message.split(':');
+    if (parts.isEmpty()) return;
+
+    const QString &event = parts[0];
+    if (event == QLatin1String("mode-entered")) {
+        clearEnrollmentFeedback();
+        return;
+    }
+    if (event == QLatin1String("reset")) {
+        clearEnrollmentFeedback();
+        return;
+    }
+    if (parts.size() < 2) return;
+
+    const QString &uid = parts.last();
+    if (event == QLatin1String("card-learned")) {
+        if (!m_sessionCards.contains(uid))
+            m_sessionCards.append(uid);
+        setEnrollmentFeedback(uid, QStringLiteral("accepted"));
+    } else if (event == QLatin1String("card-duplicate")) {
+        setEnrollmentFeedback(uid, QStringLiteral("duplicate"));
+    } else if (event == QLatin1String("rejected")) {
+        setEnrollmentFeedback(uid, QStringLiteral("rejected"));
+    } else if (event == QLatin1String("error")) {
+        setEnrollmentFeedback(uid, QStringLiteral("error"));
+    } else if (event == QLatin1String("master-learned")
+               || (event == QLatin1String("master-added") && parts.size() >= 3)) {
+        setEnrollmentFeedback(parts[1], QStringLiteral("accepted"));
+    }
+}
+
+void KeycardStore::startEnroll()
+{
+    clearEnrollmentFeedback();
+    if (m_repo) m_repo->push("scooter:keycard", "learn:start");
+}
 void KeycardStore::stopEnroll() { if (m_repo) m_repo->push("scooter:keycard", "learn:stop"); }
-void KeycardStore::startMasterEnroll() { if (m_repo) m_repo->push("scooter:keycard", "learn:master:start"); }
+void KeycardStore::startMasterEnroll()
+{
+    clearEnrollmentFeedback();
+    if (m_repo) m_repo->push("scooter:keycard", "learn:master:start");
+}
 void KeycardStore::stopMasterEnroll() { if (m_repo) m_repo->push("scooter:keycard", "learn:master:stop"); }
 void KeycardStore::skipMasterBootstrap()
 {

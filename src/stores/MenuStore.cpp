@@ -162,8 +162,14 @@ void MenuStore::setHopOnStore(HopOnStore *store)
 void MenuStore::setKeycardStore(KeycardStore *store)
 {
     m_keycard = store;
-    if (m_keycard)
-        connect(m_keycard, &KeycardStore::learnStateChanged, this, &MenuStore::rebuildMenuTree);
+    if (m_keycard) {
+        connect(m_keycard, &KeycardStore::learnStateChanged,
+                this, &MenuStore::rebuildMenuTree);
+        connect(m_keycard, &KeycardStore::unlockCardsChanged,
+                this, &MenuStore::rebuildMenuTree);
+        connect(m_keycard, &KeycardStore::masterCardsChanged,
+                this, &MenuStore::rebuildMenuTree);
+    }
     rebuildMenuTree();
 }
 
@@ -953,21 +959,70 @@ void MenuStore::rebuildMenuTree()
     settingsNode->addChild(systemNode);
 
     if (m_keycard) {
-        systemNode->addChild(MenuNode::action(QStringLiteral("keycards"), m_translations->menuKeycards(), [this]() {
-            closeForScreen();
-            if (m_screenStore) m_screenStore->showKeycardManage();
-        }));
-        if (m_keycard->learning()) {
-            systemNode->addChild(MenuNode::action(QStringLiteral("keycards_stop"), QStringLiteral("Stop card enrollment"), [this]() {
-                m_keycard->stopEnroll();
-                closeForScreen();
-                if (m_screenStore) m_screenStore->showKeycardEnrollInfo();
-            }));
-        } else if (m_keycard->masterTeachIn() || m_keycard->masterBootstrap()) {
-            systemNode->addChild(MenuNode::action(QStringLiteral("keycards_setup"), QStringLiteral("Keycard setup"), [this]() {
-                closeForScreen();
-                if (m_screenStore) m_screenStore->showKeycardEnrollInfo();
-            }));
+        auto *keycardsNode = systemNode->addChild(MenuNode::submenu(
+            QStringLiteral("keycards"), tr->menuKeycards()));
+
+        if (m_keycard->enrollActive()) {
+            keycardsNode->addChild(MenuNode::action(
+                QStringLiteral("keycards_enrollment"),
+                m_keycard->learning() ? tr->keycardEnrollTitle() : tr->keycardSetupTitle(),
+                [this]() {
+                    closeForScreen();
+                    if (m_screenStore) m_screenStore->showKeycardEnrollInfo();
+                }));
+        } else {
+            keycardsNode->addChild(MenuNode::action(
+                QStringLiteral("keycards_add_unlock"), tr->keycardEnrollTitle(),
+                [this]() {
+                    closeForScreen();
+                    m_keycard->startEnroll();
+                    if (m_screenStore) m_screenStore->showKeycardEnrollInfo();
+                }));
+            keycardsNode->addChild(MenuNode::action(
+                QStringLiteral("keycards_add_master"), tr->keycardAddMaster(),
+                [this]() {
+                    closeForScreen();
+                    m_keycard->startMasterEnroll();
+                    if (m_screenStore) m_screenStore->showKeycardEnrollInfo();
+                }));
+        }
+
+        const QStringList unlockCards = m_keycard->unlockCards();
+        for (const QString &uid : unlockCards) {
+            const bool lastUnlockCard = unlockCards.size() == 1;
+            auto *cardNode = keycardsNode->addChild(MenuNode::submenu(
+                QStringLiteral("keycard_unlock_%1").arg(uid), uid,
+                lastUnlockCard ? tr->keycardConfirmRemoveLast()
+                               : tr->keycardUnlockCard()));
+            cardNode->setValueLabel(tr->keycardUnlockCard());
+            if (lastUnlockCard) {
+                cardNode->setCaution(true);
+                cardNode->addChild(MenuNode::action(
+                    QStringLiteral("keycard_remove_cancel_%1").arg(uid),
+                    tr->controlCancel(), [this]() { goBack(); }));
+            }
+
+            auto *removeNode = cardNode->addChild(MenuNode::action(
+                QStringLiteral("keycard_remove_%1").arg(uid),
+                lastUnlockCard ? tr->keycardRemoveLastUnlockCard()
+                               : tr->keycardRemoveUnlockCard(),
+                [this, uid, lastUnlockCard]() {
+                    if (lastUnlockCard) m_keycard->removeCardForced(uid);
+                    else m_keycard->removeCard(uid);
+                }));
+            removeNode->setCaution(true);
+        }
+
+        for (const QString &uid : m_keycard->masterCards()) {
+            auto *cardNode = keycardsNode->addChild(MenuNode::submenu(
+                QStringLiteral("keycard_master_%1").arg(uid), uid,
+                tr->keycardTeachInCard()));
+            cardNode->setValueLabel(tr->keycardTeachInCard());
+            auto *removeNode = cardNode->addChild(MenuNode::action(
+                QStringLiteral("keycard_master_remove_%1").arg(uid),
+                tr->keycardRemoveTeachInCard(),
+                [this, uid]() { m_keycard->removeMaster(uid); }));
+            removeNode->setCaution(true);
         }
     }
 
