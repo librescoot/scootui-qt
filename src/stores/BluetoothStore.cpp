@@ -15,7 +15,6 @@ SyncSettings BluetoothStore::syncSettings() const
             {QStringLiteral("pinCode"), QStringLiteral("pin-code")},
             {QStringLiteral("serviceHealth"), QStringLiteral("service-health")},
             {QStringLiteral("serviceError"), QStringLiteral("service-error")},
-            {QStringLiteral("lastUpdate"), QStringLiteral("last-update")},
         },
         {
             {QStringLiteral("fault"), QStringLiteral("ble:fault"), 5000},
@@ -50,7 +49,5 @@ void BluetoothStore::applyFieldUpdate(const QString &variable, const QString &va
         if (value != m_serviceHealth) { m_serviceHealth = value; emit serviceHealthChanged(); }
     } else if (variable == QLatin1String("service-error")) {
         if (value != m_serviceError) { m_serviceError = value; emit serviceErrorChanged(); }
-    } else if (variable == QLatin1String("last-update")) {
-        if (value != m_lastUpdate) { m_lastUpdate = value; emit lastUpdateChanged(); }
     }
 }

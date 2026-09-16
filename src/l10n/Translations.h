@@ -370,6 +370,7 @@ class Translations : public QObject
     // Bluetooth
     Q_PROPERTY(QString blePinPrompt READ blePinPrompt NOTIFY languageChanged)
     Q_PROPERTY(QString bluetoothCommError READ bluetoothCommError NOTIFY languageChanged)
+    Q_PROPERTY(QString bluetoothError READ bluetoothError NOTIFY languageChanged)
     Q_PROPERTY(QString bluetoothPinInstruction READ bluetoothPinInstruction NOTIFY languageChanged)
 
     // Hibernation
@@ -526,18 +527,24 @@ class Translations : public QObject
     Q_PROPERTY(QString otaUpdateError READ otaUpdateError NOTIFY languageChanged)
     Q_PROPERTY(QString otaPreparingUpdate READ otaPreparingUpdate NOTIFY languageChanged)
     Q_PROPERTY(QString otaPendingReboot READ otaPendingReboot NOTIFY languageChanged)
+    // %1 = version. Toast templates.
+    Q_PROPERTY(QString otaDownloadingVersionUpdate READ otaDownloadingVersionUpdate NOTIFY languageChanged)
+    Q_PROPERTY(QString otaInstallingVersionUpdate READ otaInstallingVersionUpdate NOTIFY languageChanged)
+    Q_PROPERTY(QString otaUpdateFailedWithMessage READ otaUpdateFailedWithMessage NOTIFY languageChanged)
     Q_PROPERTY(QString otaScooterWillTurnOff READ otaScooterWillTurnOff NOTIFY languageChanged)
 
     // Battery messages
     Q_PROPERTY(QString batteryKm READ batteryKm NOTIFY languageChanged)
     Q_PROPERTY(QString batteryCbNotCharging READ batteryCbNotCharging NOTIFY languageChanged)
     Q_PROPERTY(QString batteryAuxLowNotCharging READ batteryAuxLowNotCharging NOTIFY languageChanged)
+    Q_PROPERTY(QString batteryAuxNotCharging READ batteryAuxNotCharging NOTIFY languageChanged)
     Q_PROPERTY(QString batteryAuxVoltageLow READ batteryAuxVoltageLow NOTIFY languageChanged)
     Q_PROPERTY(QString batteryAuxVoltageVeryLowReplace READ batteryAuxVoltageVeryLowReplace NOTIFY languageChanged)
     Q_PROPERTY(QString batteryAuxVoltageVeryLowCharge READ batteryAuxVoltageVeryLowCharge NOTIFY languageChanged)
     Q_PROPERTY(QString batteryEmptyRecharge READ batteryEmptyRecharge NOTIFY languageChanged)
     Q_PROPERTY(QString batteryMaxSpeedReduced READ batteryMaxSpeedReduced NOTIFY languageChanged)
     Q_PROPERTY(QString batteryLowPowerReduced READ batteryLowPowerReduced NOTIFY languageChanged)
+    Q_PROPERTY(QString batteryLowPowerReducedShort READ batteryLowPowerReducedShort NOTIFY languageChanged)
     Q_PROPERTY(QString batterySlot0 READ batterySlot0 NOTIFY languageChanged)
     Q_PROPERTY(QString batterySlot1 READ batterySlot1 NOTIFY languageChanged)
 
@@ -1017,6 +1024,7 @@ public:
 
     QString blePinPrompt() const { return lookup("blePinPrompt"); }
     QString bluetoothCommError() const { return lookup("bluetoothCommError"); }
+    QString bluetoothError() const { return lookup("bluetoothError"); }
     QString bluetoothPinInstruction() const { return lookup("bluetoothPinInstruction"); }
 
     QString hibernatePrompt() const { return lookup("hibernatePrompt"); }
@@ -1167,18 +1175,23 @@ public:
     QString otaUpdateError() const { return lookup("otaUpdateError"); }
     QString otaPreparingUpdate() const { return lookup("otaPreparingUpdate"); }
     QString otaPendingReboot() const { return lookup("otaPendingReboot"); }
+    QString otaDownloadingVersionUpdate() const { return lookup("otaDownloadingVersionUpdate"); }
+    QString otaInstallingVersionUpdate() const { return lookup("otaInstallingVersionUpdate"); }
+    QString otaUpdateFailedWithMessage() const { return lookup("otaUpdateFailedWithMessage"); }
     QString otaScooterWillTurnOff() const { return lookup("otaScooterWillTurnOff"); }
 
     // Battery messages
     QString batteryKm() const { return lookup("batteryKm"); }
     QString batteryCbNotCharging() const { return lookup("batteryCbNotCharging"); }
     QString batteryAuxLowNotCharging() const { return lookup("batteryAuxLowNotCharging"); }
+    QString batteryAuxNotCharging() const { return lookup("batteryAuxNotCharging"); }
     QString batteryAuxVoltageLow() const { return lookup("batteryAuxVoltageLow"); }
     QString batteryAuxVoltageVeryLowReplace() const { return lookup("batteryAuxVoltageVeryLowReplace"); }
     QString batteryAuxVoltageVeryLowCharge() const { return lookup("batteryAuxVoltageVeryLowCharge"); }
     QString batteryEmptyRecharge() const { return lookup("batteryEmptyRecharge"); }
     QString batteryMaxSpeedReduced() const { return lookup("batteryMaxSpeedReduced"); }
     QString batteryLowPowerReduced() const { return lookup("batteryLowPowerReduced"); }
+    QString batteryLowPowerReducedShort() const { return lookup("batteryLowPowerReducedShort"); }
     QString batterySlot0() const { return lookup("batterySlot0"); }
     QString batterySlot1() const { return lookup("batterySlot1"); }
 

@@ -120,6 +120,9 @@ Row {
     readonly property bool auxChargeValid: typeof auxBatteryStore !== "undefined" && auxBatteryStore.chargeValid
     readonly property int auxVoltageMv: typeof auxBatteryStore !== "undefined" ? auxBatteryStore.voltage : 0
     readonly property bool auxVoltageValid: typeof auxBatteryStore !== "undefined" && auxBatteryStore.voltageValid
+    // The AUX pack has no `present` field in redis (unlike CBB), so treat it as
+    // present once the nRF52 has reported anything about it.
+    readonly property bool auxPresent: auxVoltageValid || auxChargeValid
 
     // AUX 12V thresholds, in mV. The AUX pack has no fuel gauge: mdb-nrf52
     // quantizes this same voltage into 5 SoC buckets (0/25/50/75/100), so SoC
@@ -281,6 +284,17 @@ Row {
             && present0
             && vehicleStore.seatboxLock === slClosed
     }
+    // AUX "alternator" warning: a main pack is active, so the 12V system should
+    // be charging, but the charger reports not-charging. Level-independent -
+    // this is the charging path, not the pack's state of charge. Mirrored by
+    // the telltale panel (red UNECE charging-condition telltale) and the
+    // AuxChargeMonitor toast; here it reuses the monochrome AUX warning icon.
+    readonly property bool auxNotChargingCondition: {
+        if (typeof auxBatteryStore === "undefined" || typeof battery0Store === "undefined") return false
+        return present0 && charge0 > 0 && battState0 === bsActive
+            && auxPresent
+            && auxBatteryStore.chargeStatus === acsNotCharging
+    }
 
     // --- "Stranded" warnings: backup battery low while NO main battery is inserted ---
     // Distinct from the charging-system warnings above (which require a main
@@ -315,7 +329,7 @@ Row {
     property bool _cbStrandedDebounceActive: false
     property bool _auxStrandedDebounceActive: false
 
-    readonly property bool _anyAuxCondition: auxLowVoltageCondition || auxCriticalCondition
+    readonly property bool _anyAuxCondition: auxLowVoltageCondition || auxCriticalCondition || auxNotChargingCondition
 
     onCbWarningConditionChanged: {
         if (cbWarningCondition) {

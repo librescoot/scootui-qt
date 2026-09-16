@@ -128,9 +128,12 @@ set(CPP_SOURCES
     src/services/MapStyleComposer.h
     src/services/MapStyleMetadata.cpp
     src/services/LowTemperatureMonitor.cpp
+    src/services/LowSocMonitor.cpp
+    src/services/OtaMonitor.cpp
     src/services/BluetoothHealthMonitor.cpp
     src/services/HandlebarLockMonitor.cpp
     src/services/BackupBatteryMonitor.cpp
+    src/services/ChargingSystemMonitor.cpp
     src/services/NavigationAvailabilityService.cpp
     src/services/SavedLocationsService.cpp
     src/services/RecentDestinationsService.cpp
@@ -225,9 +228,12 @@ set(CPP_HEADERS
     src/services/MapCameraPolicy.h
     src/services/NavigationCadence.h
     src/services/LowTemperatureMonitor.h
+    src/services/LowSocMonitor.h
+    src/services/OtaMonitor.h
     src/services/BluetoothHealthMonitor.h
     src/services/HandlebarLockMonitor.h
     src/services/BackupBatteryMonitor.h
+    src/services/ChargingSystemMonitor.h
     src/services/NavigationAvailabilityService.h
     src/services/SavedLocationsService.h
     src/services/ReverseGeocodingService.h
@@ -407,6 +413,7 @@ qt_add_qml_module(scootui
         assets/icons/librescoot-aux-battery-level-50.svg
         assets/icons/librescoot-aux-battery-level-75.svg
         assets/icons/librescoot-aux-battery-level-100.svg
+        assets/icons/librescoot-battery-charging-condition.svg
         assets/icons/librescoot-overlay-error.svg
         assets/icons/librescoot-overlay-error-light.svg
         assets/icons/librescoot-overlay-locked.svg
@@ -826,6 +833,122 @@ if(BUILD_TESTING)
     target_include_directories(battery_store_fields_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(battery_store_fields_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME battery_store_fields_test COMMAND battery_store_fields_test)
+
+    qt_add_executable(backup_battery_monitor_test
+        tests/BackupBatteryMonitorTest.cpp
+        src/models/Enums.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+        src/stores/SyncableStore.cpp
+        src/stores/SyncableStore.h
+        src/stores/VehicleStore.cpp
+        src/stores/VehicleStore.h
+        src/stores/BatteryStore.cpp
+        src/stores/BatteryStore.h
+        src/stores/CbBatteryStore.cpp
+        src/stores/CbBatteryStore.h
+        src/stores/AuxBatteryStore.cpp
+        src/stores/AuxBatteryStore.h
+        src/services/BackupBatteryMonitor.cpp
+        src/services/BackupBatteryMonitor.h
+        src/services/ToastService.cpp
+        src/services/ToastService.h
+        src/services/NotificationService.cpp
+        src/services/NotificationService.h
+        src/services/AttentionPolicy.cpp
+        src/services/AttentionPolicy.h
+        src/l10n/Translations.cpp
+        src/l10n/Translations.h
+    )
+    target_include_directories(backup_battery_monitor_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(backup_battery_monitor_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME backup_battery_monitor_test COMMAND backup_battery_monitor_test)
+
+    qt_add_executable(charging_system_monitor_test
+        tests/ChargingSystemMonitorTest.cpp
+        src/models/Enums.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+        src/stores/SyncableStore.cpp
+        src/stores/SyncableStore.h
+        src/stores/BatteryStore.cpp
+        src/stores/BatteryStore.h
+        src/stores/CbBatteryStore.cpp
+        src/stores/CbBatteryStore.h
+        src/stores/AuxBatteryStore.cpp
+        src/stores/AuxBatteryStore.h
+        src/services/ChargingSystemMonitor.cpp
+        src/services/ChargingSystemMonitor.h
+        src/services/ToastService.cpp
+        src/services/ToastService.h
+        src/services/NotificationService.cpp
+        src/services/NotificationService.h
+        src/services/AttentionPolicy.cpp
+        src/services/AttentionPolicy.h
+        src/stores/VehicleStore.cpp
+        src/stores/VehicleStore.h
+        src/l10n/Translations.cpp
+        src/l10n/Translations.h
+    )
+    target_include_directories(charging_system_monitor_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(charging_system_monitor_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME charging_system_monitor_test COMMAND charging_system_monitor_test)
+
+    qt_add_executable(low_soc_monitor_test
+        tests/LowSocMonitorTest.cpp
+        src/models/Enums.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+        src/stores/SyncableStore.cpp
+        src/stores/SyncableStore.h
+        src/stores/BatteryStore.cpp
+        src/stores/BatteryStore.h
+        src/services/LowSocMonitor.cpp
+        src/services/LowSocMonitor.h
+        src/services/ToastService.cpp
+        src/services/ToastService.h
+        src/services/NotificationService.cpp
+        src/services/NotificationService.h
+        src/services/AttentionPolicy.cpp
+        src/services/AttentionPolicy.h
+        src/stores/VehicleStore.cpp
+        src/stores/VehicleStore.h
+        src/l10n/Translations.cpp
+        src/l10n/Translations.h
+    )
+    target_include_directories(low_soc_monitor_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(low_soc_monitor_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME low_soc_monitor_test COMMAND low_soc_monitor_test)
+
+    qt_add_executable(ota_monitor_test
+        tests/OtaMonitorTest.cpp
+        src/models/Enums.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+        src/stores/SyncableStore.cpp
+        src/stores/SyncableStore.h
+        src/stores/OtaStore.cpp
+        src/stores/OtaStore.h
+        src/services/OtaMonitor.cpp
+        src/services/OtaMonitor.h
+        src/services/ToastService.cpp
+        src/services/ToastService.h
+        src/services/NotificationService.cpp
+        src/services/NotificationService.h
+        src/services/AttentionPolicy.cpp
+        src/services/AttentionPolicy.h
+        src/stores/VehicleStore.cpp
+        src/stores/VehicleStore.h
+        src/l10n/Translations.cpp
+        src/l10n/Translations.h
+    )
+    target_include_directories(ota_monitor_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(ota_monitor_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME ota_monitor_test COMMAND ota_monitor_test)
 
     qt_add_executable(boot_prefetch_test
         tests/BootPrefetchTest.cpp

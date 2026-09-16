@@ -1,0 +1,12 @@
+<!-- UNECE R121 / ISO 7000-0247 "Battery charging condition" telltale, red. -->
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M179.233 61.377H20.763V150.36H179.233V61.377Z" stroke="#FF0000" stroke-width="10"/>
+<path d="M67.161 44.64H41.525V61.377H67.161V44.64Z" fill="#FF0000"/>
+<path d="M158.476 44.64H132.84V61.377H158.476V44.64Z" fill="#FF0000"/>
+<path d="M36.726 96.3621H68.294H36.726Z" fill="#FF0000"/>
+<path d="M36.726 96.3621H68.294" stroke="#FF0000" stroke-width="8"/>
+<path d="M131.71 96.3621H163.278H131.71Z" fill="#FF0000"/>
+<path d="M131.71 96.3621H163.278" stroke="#FF0000" stroke-width="8"/>
+<path d="M147.49 112.15V80.582V112.15Z" fill="#FF0000"/>
+<path d="M147.49 112.15V80.582" stroke="#FF0000" stroke-width="8"/>
+</svg>

@@ -1034,6 +1034,10 @@ void Translations::initStrings()
     en[QStringLiteral("bluetoothCommError")] = QStringLiteral("Bluetooth service communication error");
     de[QStringLiteral("bluetoothCommError")] = QStringLiteral("Bluetooth-Kommunikationsfehler");
 
+    // %1 = the reported service error (untranslated).
+    en[QStringLiteral("bluetoothError")] = QStringLiteral("Bluetooth: %1");
+    de[QStringLiteral("bluetoothError")] = QStringLiteral("Bluetooth: %1");
+
     en[QStringLiteral("bluetoothPinInstruction")] = QStringLiteral("Use this code to pair your device");
     de[QStringLiteral("bluetoothPinInstruction")] = QStringLiteral("Diesen Code zum Koppeln verwenden");
 
@@ -1494,8 +1498,17 @@ void Translations::initStrings()
     en[QStringLiteral("otaPreparingUpdate")] = QStringLiteral("Preparing update...");
     de[QStringLiteral("otaPreparingUpdate")] = QStringLiteral("Update wird vorbereitet...");
 
-    en[QStringLiteral("otaPendingReboot")] = QStringLiteral("Update installed, will apply next time the scooter is started");
-    de[QStringLiteral("otaPendingReboot")] = QStringLiteral("Update installiert, wird beim n\u00E4chsten Start angewendet");
+    en[QStringLiteral("otaPendingReboot")] = QStringLiteral("Update installed, will be applied on next boot.");
+    de[QStringLiteral("otaPendingReboot")] = QStringLiteral("Update installiert, wird beim n\u00E4chsten Start angewendet.");
+
+    en[QStringLiteral("otaDownloadingVersionUpdate")] = QStringLiteral("Downloading Librescoot %1 update");
+    de[QStringLiteral("otaDownloadingVersionUpdate")] = QStringLiteral("Librescoot %1-Update wird heruntergeladen");
+
+    en[QStringLiteral("otaInstallingVersionUpdate")] = QStringLiteral("Installing Librescoot %1 update");
+    de[QStringLiteral("otaInstallingVersionUpdate")] = QStringLiteral("Librescoot %1-Update wird installiert");
+
+    en[QStringLiteral("otaUpdateFailedWithMessage")] = QStringLiteral("Update failed: %1");
+    de[QStringLiteral("otaUpdateFailedWithMessage")] = QStringLiteral("Update fehlgeschlagen: %1");
 
     en[QStringLiteral("otaScooterWillTurnOff")] = QStringLiteral("Your scooter will turn off when done.\nYou can unlock it again at any point.");
     de[QStringLiteral("otaScooterWillTurnOff")] = QStringLiteral("Dein Roller wird danach ausgeschaltet.\nDu kannst ihn jederzeit wieder entsperren.");
@@ -1512,6 +1525,9 @@ void Translations::initStrings()
 
     en[QStringLiteral("batteryAuxLowNotCharging")] = QStringLiteral("AUX Battery low and not charging");
     de[QStringLiteral("batteryAuxLowNotCharging")] = QStringLiteral("AUX-Batterie schwach und l\u00E4dt nicht");
+
+    en[QStringLiteral("batteryAuxNotCharging")] = QStringLiteral("AUX Battery not charging");
+    de[QStringLiteral("batteryAuxNotCharging")] = QStringLiteral("AUX-Batterie l\u00E4dt nicht");
 
     en[QStringLiteral("batteryAuxVoltageLow")] = QStringLiteral("AUX Battery voltage low");
     de[QStringLiteral("batteryAuxVoltageLow")] = QStringLiteral("AUX-Batterie Spannung niedrig");
@@ -1530,6 +1546,9 @@ void Translations::initStrings()
 
     en[QStringLiteral("batteryLowPowerReduced")] = QStringLiteral("Battery low. Power reduced. Please recharge battery");
     de[QStringLiteral("batteryLowPowerReduced")] = QStringLiteral("Batterie schwach. Leistung reduziert. Bitte aufladen");
+
+    en[QStringLiteral("batteryLowPowerReducedShort")] = QStringLiteral("Battery low. Power reduced. Recharge battery");
+    de[QStringLiteral("batteryLowPowerReducedShort")] = QStringLiteral("Batterie schwach. Leistung reduziert. Aufladen");
 
     en[QStringLiteral("batterySlot0")] = QStringLiteral("Battery 0");
     de[QStringLiteral("batterySlot0")] = QStringLiteral("Batterie 0");
