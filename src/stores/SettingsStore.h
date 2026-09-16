@@ -290,7 +290,9 @@ private:
     // that no user-visible setting is missing one.
     // @schema dashboard.service-mode-active
     QString m_serviceActive = QStringLiteral("false");
+    // @schema trip.counter-reset
     QString m_tripCounterReset = QStringLiteral("ride");
+    // @schema trip.expunge
     QString m_tripExpunge = defaultTripExpunge();
     bool m_tripExpungeAvailable = false;
     // The UI writes the MDB and DBC keys together
