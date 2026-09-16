@@ -158,11 +158,11 @@ QString ShortcutMenuStore::actionKey(const QVariantMap &action)
 QVariantList ShortcutMenuStore::availableActions() const
 {
     QVariantList actions;
+    actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("view")}});
     if (m_navigation && m_navigation->property("hasRoute").toBool()) {
         actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("route-overview")}});
         actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("stop-navigation")}});
-    } else {
-        actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("view")}});
+        return actions;
     }
 
     if (!m_savedLocations || !destinationAvailable())

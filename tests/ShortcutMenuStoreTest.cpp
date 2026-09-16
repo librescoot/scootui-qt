@@ -208,18 +208,22 @@ void ShortcutMenuStoreTest::activeNavigationOffersOverviewAndStop()
                            &navigation, &map, nullptr, &repo, nullptr);
 
     menu.show();
-    QCOMPARE(menu.actionCount(), 2);
+    QCOMPARE(menu.actionCount(), 3);
     QCOMPARE(menu.actions().at(0).toMap().value(QStringLiteral("kind")).toString(),
-             QStringLiteral("route-overview"));
+             QStringLiteral("view"));
     QCOMPARE(menu.actions().at(1).toMap().value(QStringLiteral("kind")).toString(),
+             QStringLiteral("route-overview"));
+    QCOMPARE(menu.actions().at(2).toMap().value(QStringLiteral("kind")).toString(),
              QStringLiteral("stop-navigation"));
 
+    menu.cycle();
     menu.confirm();
     repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
     QCOMPARE(map.overviewCalls, 1);
     QVERIFY(navigation.hasRoute());
 
     menu.show();
+    menu.cycle();
     menu.cycle();
     menu.confirm();
     repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));

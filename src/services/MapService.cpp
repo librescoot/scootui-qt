@@ -631,9 +631,18 @@ bool MapService::showRouteOverview()
         return false;
 
     QList<LatLng> shape;
-    shape.reserve(m_routeShape.size());
-    for (const auto &point : m_routeShape)
-        shape.append({point.first, point.second});
+    int firstRemainingPoint = 0;
+    if (m_currentRouteSegment >= 0 && m_currentRouteSegment < m_routeShape.size() - 1) {
+        if (m_hasInitialPosition)
+            shape.append({m_drLatitude, m_drLongitude});
+        else
+            shape.append({m_routeShape[m_currentRouteSegment].first,
+                          m_routeShape[m_currentRouteSegment].second});
+        firstRemainingPoint = m_currentRouteSegment + 1;
+    }
+    shape.reserve(shape.size() + m_routeShape.size() - firstRemainingPoint);
+    for (int i = firstRemainingPoint; i < m_routeShape.size(); ++i)
+        shape.append({m_routeShape[i].first, m_routeShape[i].second});
 
     const LatLng center = MapCameraPolicy::routeOverviewCenter(shape);
     m_overviewZoom = MapCameraPolicy::routeOverviewZoom(
