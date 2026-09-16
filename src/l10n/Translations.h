@@ -523,6 +523,7 @@ class Translations : public QObject
     Q_PROPERTY(QString batteryKm READ batteryKm NOTIFY languageChanged)
     Q_PROPERTY(QString batteryCbNotCharging READ batteryCbNotCharging NOTIFY languageChanged)
     Q_PROPERTY(QString batteryAuxLowNotCharging READ batteryAuxLowNotCharging NOTIFY languageChanged)
+    Q_PROPERTY(QString batteryAuxNotCharging READ batteryAuxNotCharging NOTIFY languageChanged)
     Q_PROPERTY(QString batteryAuxVoltageLow READ batteryAuxVoltageLow NOTIFY languageChanged)
     Q_PROPERTY(QString batteryAuxVoltageVeryLowReplace READ batteryAuxVoltageVeryLowReplace NOTIFY languageChanged)
     Q_PROPERTY(QString batteryAuxVoltageVeryLowCharge READ batteryAuxVoltageVeryLowCharge NOTIFY languageChanged)
@@ -1153,6 +1154,7 @@ public:
     QString batteryKm() const { return lookup("batteryKm"); }
     QString batteryCbNotCharging() const { return lookup("batteryCbNotCharging"); }
     QString batteryAuxLowNotCharging() const { return lookup("batteryAuxLowNotCharging"); }
+    QString batteryAuxNotCharging() const { return lookup("batteryAuxNotCharging"); }
     QString batteryAuxVoltageLow() const { return lookup("batteryAuxVoltageLow"); }
     QString batteryAuxVoltageVeryLowReplace() const { return lookup("batteryAuxVoltageVeryLowReplace"); }
     QString batteryAuxVoltageVeryLowCharge() const { return lookup("batteryAuxVoltageVeryLowCharge"); }

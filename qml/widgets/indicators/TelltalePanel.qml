@@ -33,6 +33,18 @@ Rectangle {
     readonly property bool hazards: hasVehicle && vehicleStore.blinkerState === 3
     readonly property bool parked: vehicleState === 4
 
+    // Car-style alternator warning: a main pack is active but the AUX charger
+    // reports not-charging. Level-independent; mirrored by the status-bar AUX
+    // warning icon and the AuxChargeMonitor toast. Uses the red UNECE R121 /
+    // ISO 7000-0247 charging-condition telltale.
+    readonly property bool auxNotCharging: {
+        if (typeof battery0Store === "undefined" || typeof auxBatteryStore === "undefined") return false
+        var mainActive = battery0Store.present && battery0Store.charge > 0
+                         && battery0Store.batteryState === 3
+        var auxPresent = auxBatteryStore.voltageValid || auxBatteryStore.chargeValid
+        return mainActive && auxPresent && auxBatteryStore.chargeStatus === 0
+    }
+
     // Turtle: a present, active pack at or below 20% caps motor power.
     readonly property bool turtle: {
         var b0 = typeof battery0Store !== "undefined" && battery0Store.present
@@ -43,7 +55,7 @@ Rectangle {
     }
 
     readonly property bool anyActive: engineFault || usbDisconnected || hazards
-                                      || parked || turtle
+                                      || parked || turtle || auxNotCharging
 
     visible: anyActive
     width: telltaleRow.width + 16
@@ -61,6 +73,14 @@ Rectangle {
         IndicatorLight {
             active: panel.engineFault || panel.usbDisconnected
             source: "qrc:/ScootUI/assets/icons/librescoot-engine-warning.svg"
+        }
+
+        Image {
+            visible: panel.auxNotCharging
+            width: 32; height: 32
+            sourceSize: Qt.size(width, height)
+            fillMode: Image.PreserveAspectFit
+            source: "qrc:/ScootUI/assets/icons/librescoot-battery-charging-condition.svg"
         }
 
         IndicatorLight {

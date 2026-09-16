@@ -59,6 +59,7 @@
 #include "services/BluetoothHealthMonitor.h"
 #include "services/HandlebarLockMonitor.h"
 #include "services/BackupBatteryMonitor.h"
+#include "services/AuxChargeMonitor.h"
 #include "services/NavigationAvailabilityService.h"
 #include "services/SavedLocationsService.h"
 #include "services/RecentDestinationsService.h"
@@ -632,6 +633,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_backupBatteryMonitor = new BackupBatteryMonitor(battery0Store, battery1Store, cbBatteryStore,
                                                        auxBatteryStore, vehicleStore, m_toastService,
                                                        m_translations, this);
+    m_auxChargeMonitor = new AuxChargeMonitor(battery0Store, auxBatteryStore,
+                                              m_toastService, m_translations, this);
 
     // Battery fault monitoring
     auto refreshFault = [this, settingsStore](BatteryStore *batteryStore) {

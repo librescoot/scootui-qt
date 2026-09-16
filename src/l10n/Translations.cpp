@@ -1494,6 +1494,9 @@ void Translations::initStrings()
     en[QStringLiteral("batteryAuxLowNotCharging")] = QStringLiteral("AUX Battery low and not charging");
     de[QStringLiteral("batteryAuxLowNotCharging")] = QStringLiteral("AUX-Batterie schwach und l\u00E4dt nicht");
 
+    en[QStringLiteral("batteryAuxNotCharging")] = QStringLiteral("AUX Battery not charging");
+    de[QStringLiteral("batteryAuxNotCharging")] = QStringLiteral("AUX-Batterie l\u00E4dt nicht");
+
     en[QStringLiteral("batteryAuxVoltageLow")] = QStringLiteral("AUX Battery voltage low");
     de[QStringLiteral("batteryAuxVoltageLow")] = QStringLiteral("AUX-Batterie Spannung niedrig");
 

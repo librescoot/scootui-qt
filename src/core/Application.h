@@ -24,6 +24,7 @@ class LowTemperatureMonitor;
 class BluetoothHealthMonitor;
 class HandlebarLockMonitor;
 class BackupBatteryMonitor;
+class AuxChargeMonitor;
 class NavigationAvailabilityService;
 class SavedLocationsService;
 class RecentDestinationsService;
@@ -121,6 +122,7 @@ private:
     BluetoothHealthMonitor *m_bleHealthMonitor = nullptr;
     HandlebarLockMonitor *m_handlebarLockMonitor = nullptr;
     BackupBatteryMonitor *m_backupBatteryMonitor = nullptr;
+    AuxChargeMonitor *m_auxChargeMonitor = nullptr;
     NavigationAvailabilityService *m_navAvailability = nullptr;
     SavedLocationsService *m_savedLocationsService = nullptr;
     RecentDestinationsService *m_recentDestinationsService = nullptr;
