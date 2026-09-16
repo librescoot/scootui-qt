@@ -35,6 +35,8 @@ public:
     Q_INVOKABLE void saveCurrentLocation();
     Q_INVOKABLE void deleteLocation(int id);
     Q_INVOKABLE void navigateToLocation(int id);
+    Q_INVOKABLE void setQuickSlot(int id, int slot);
+    Q_INVOKABLE void setQuickIcon(int id, const QString &icon);
 
 signals:
     void locationsChanged();

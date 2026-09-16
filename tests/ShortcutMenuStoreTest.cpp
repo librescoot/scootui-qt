@@ -1,6 +1,10 @@
 #include <QtTest>
 
 #include "repositories/InMemoryMdbRepository.h"
+#include "services/SettingsService.h"
+#include "stores/EngineStore.h"
+#include "stores/ScreenStore.h"
+#include "stores/SettingsStore.h"
 #include "stores/ShortcutMenuStore.h"
 #include "stores/VehicleStore.h"
 
@@ -11,6 +15,9 @@ class ShortcutMenuStoreTest : public QObject
 private slots:
     void raisingKickstandDismissesAndStopsCycling();
     void onlyVisibleWhileReadyToDrive();
+    void releaseStartsThreeSecondConfirmation();
+    void closedMenuDoubleTapTogglesHazards();
+    void viewActionTogglesMapAndCluster();
 };
 
 void ShortcutMenuStoreTest::raisingKickstandDismissesAndStopsCycling()
@@ -21,9 +28,12 @@ void ShortcutMenuStoreTest::raisingKickstandDismissesAndStopsCycling()
     repo.set(QStringLiteral("vehicle"), QStringLiteral("kickstand"),
              QStringLiteral("down"), false);
 
+    EngineStore engine(&repo);
     VehicleStore vehicle(&repo);
+    engine.start();
     vehicle.start();
-    ShortcutMenuStore menu(nullptr, &vehicle, nullptr, nullptr, &repo, nullptr);
+    ShortcutMenuStore menu(&engine, &vehicle, nullptr, nullptr, nullptr, nullptr,
+                           &repo, nullptr);
 
     repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:long-tap"));
     QVERIFY(menu.visible());
@@ -44,9 +54,12 @@ void ShortcutMenuStoreTest::onlyVisibleWhileReadyToDrive()
     repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
              QStringLiteral("parked"), false);
 
+    EngineStore engine(&repo);
     VehicleStore vehicle(&repo);
+    engine.start();
     vehicle.start();
-    ShortcutMenuStore menu(nullptr, &vehicle, nullptr, nullptr, &repo, nullptr);
+    ShortcutMenuStore menu(&engine, &vehicle, nullptr, nullptr, nullptr, nullptr,
+                           &repo, nullptr);
 
     menu.show();
     repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:long-tap"));
@@ -63,6 +76,100 @@ void ShortcutMenuStoreTest::onlyVisibleWhileReadyToDrive()
     QTRY_VERIFY(!menu.visible());
     QTest::qWait(900);
     QCOMPARE(menu.selectedIndex(), 0);
+}
+
+void ShortcutMenuStoreTest::releaseStartsThreeSecondConfirmation()
+{
+    InMemoryMdbRepository repo;
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
+             QStringLiteral("ready-to-drive"), false);
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("kickstand"),
+             QStringLiteral("down"), false);
+
+    EngineStore engine(&repo);
+    VehicleStore vehicle(&repo);
+    engine.start();
+    vehicle.start();
+    ShortcutMenuStore menu(&engine, &vehicle, nullptr, nullptr, nullptr, nullptr,
+                           &repo, nullptr);
+
+    repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:long-tap"));
+    QVERIFY(menu.visible());
+    QCOMPARE(menu.actionCount(), 1);
+    repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:release"));
+    QVERIFY(menu.confirming());
+    QTRY_VERIFY_WITH_TIMEOUT(!menu.visible(), menu.confirmTimeoutMs() + 1500);
+    QVERIFY(!menu.confirming());
+}
+
+void ShortcutMenuStoreTest::closedMenuDoubleTapTogglesHazards()
+{
+    InMemoryMdbRepository repo;
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
+             QStringLiteral("ready-to-drive"), false);
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("blinker:state"),
+             QStringLiteral("off"), false);
+
+    EngineStore engine(&repo);
+    VehicleStore vehicle(&repo);
+    engine.start();
+    vehicle.start();
+    ShortcutMenuStore menu(&engine, &vehicle, nullptr, nullptr, nullptr, nullptr,
+                           &repo, nullptr);
+
+    repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:double-tap"));
+    QCOMPARE(vehicle.blinkerState(), static_cast<int>(ScootEnums::BlinkerState::Both));
+    QVERIFY(!menu.visible());
+
+    repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:double-tap"));
+    QCOMPARE(vehicle.blinkerState(), static_cast<int>(ScootEnums::BlinkerState::Off));
+    QVERIFY(!menu.visible());
+}
+
+void ShortcutMenuStoreTest::viewActionTogglesMapAndCluster()
+{
+    InMemoryMdbRepository repo;
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
+             QStringLiteral("ready-to-drive"), false);
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("kickstand"),
+             QStringLiteral("down"), false);
+    repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.mode"),
+             QStringLiteral("speedometer"), false);
+
+    EngineStore engine(&repo);
+    VehicleStore vehicle(&repo);
+    SettingsStore settings(&repo);
+    ScreenStore screen(&settings, &repo);
+    SettingsService settingsService(&repo, &settings);
+    engine.start();
+    vehicle.start();
+    settings.start();
+    ShortcutMenuStore menu(&engine, &vehicle, &screen, nullptr, nullptr, &settings,
+                           &repo, &settingsService);
+
+    const auto executeView = [&menu, &repo]() {
+        menu.show();
+        menu.confirm();
+        repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
+    };
+
+    executeView();
+    QCOMPARE(screen.currentScreenMode(), ScootEnums::ScreenMode::Map);
+    QCOMPARE(repo.get(QStringLiteral("settings"), QStringLiteral("dashboard.mode")),
+             QStringLiteral("navigation"));
+    QVERIFY(!menu.visible());
+
+    QCOMPARE(vehicle.state(), static_cast<int>(ScootEnums::VehicleState::ReadyToDrive));
+    menu.show();
+    QVERIFY(menu.visible());
+    menu.confirm();
+    QVERIFY(menu.confirming());
+    repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
+    QVERIFY(!menu.visible());
+    QCOMPARE(screen.currentScreenMode(), ScootEnums::ScreenMode::Cluster);
+    QCOMPARE(repo.get(QStringLiteral("settings"), QStringLiteral("dashboard.mode")),
+             QStringLiteral("speedometer"));
+    QVERIFY(!menu.visible());
 }
 
 QTEST_GUILESS_MAIN(ShortcutMenuStoreTest)

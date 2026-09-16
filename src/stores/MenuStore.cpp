@@ -397,6 +397,29 @@ void MenuStore::rebuildMenuTree()
                     close();
                 }));
 
+            const int quickSlot = loc[QStringLiteral("quickSlot")].toInt();
+            locNode->addChild(MenuNode::cycleSetting(
+                QStringLiteral("quick_slot_%1").arg(locId),
+                tr->menuQuickMenu(),
+                {{tr->menuQuickOff(), [this, locId]() { m_savedLocations->setQuickSlot(locId, 0); }},
+                 {tr->menuQuickSlot1(), [this, locId]() { m_savedLocations->setQuickSlot(locId, 1); }},
+                 {tr->menuQuickSlot2(), [this, locId]() { m_savedLocations->setQuickSlot(locId, 2); }}},
+                qBound(0, quickSlot, 2)));
+
+            const QString quickIcon = loc[QStringLiteral("quickIcon")].toString();
+            int iconIndex = 0;
+            if (quickIcon == QLatin1String("home")) iconIndex = 1;
+            else if (quickIcon == QLatin1String("work")) iconIndex = 2;
+            else if (quickIcon == QLatin1String("favorite")) iconIndex = 3;
+            locNode->addChild(MenuNode::cycleSetting(
+                QStringLiteral("quick_icon_%1").arg(locId),
+                tr->menuQuickIcon(),
+                {{tr->menuQuickIconPlace(), [this, locId]() { m_savedLocations->setQuickIcon(locId, QStringLiteral("place")); }},
+                 {tr->menuQuickIconHome(), [this, locId]() { m_savedLocations->setQuickIcon(locId, QStringLiteral("home")); }},
+                 {tr->menuQuickIconWork(), [this, locId]() { m_savedLocations->setQuickIcon(locId, QStringLiteral("work")); }},
+                 {tr->menuQuickIconFavorite(), [this, locId]() { m_savedLocations->setQuickIcon(locId, QStringLiteral("favorite")); }}},
+                iconIndex, [quickSlot]() { return quickSlot > 0; }));
+
             locNode->addChild(MenuNode::action(
                 QStringLiteral("delete_loc_%1").arg(locId),
                 tr->menuDeleteLocation(),

@@ -3,6 +3,9 @@
 #include "core/AppConfig.h"
 
 #include <QDebug>
+#include <QSet>
+
+#include <algorithm>
 
 SavedLocationsService::SavedLocationsService(MdbRepository *repo, QObject *parent)
     : QObject(parent)
@@ -13,6 +16,7 @@ SavedLocationsService::SavedLocationsService(MdbRepository *repo, QObject *paren
 QList<SavedLocation> SavedLocationsService::loadAll() const
 {
     QList<SavedLocation> locations;
+    QSet<int> usedQuickSlots;
     for (int i = 0; i < MaxLocations; ++i) {
         QString lat = m_repo->get(QStringLiteral("settings"), fieldKey(i, QStringLiteral("latitude")));
         QString lng = m_repo->get(QStringLiteral("settings"), fieldKey(i, QStringLiteral("longitude")));
@@ -24,6 +28,18 @@ QList<SavedLocation> SavedLocationsService::loadAll() const
         loc.latitude = lat.toDouble();
         loc.longitude = lng.toDouble();
         loc.label = m_repo->get(QStringLiteral("settings"), fieldKey(i, QStringLiteral("label")));
+        loc.quickSlot = m_repo->get(QStringLiteral("settings"), fieldKey(i, QStringLiteral("quick-slot"))).toInt();
+        if (loc.quickSlot < 0 || loc.quickSlot > 2
+            || (loc.quickSlot > 0 && usedQuickSlots.contains(loc.quickSlot))) {
+            loc.quickSlot = 0;
+        } else if (loc.quickSlot > 0) {
+            usedQuickSlots.insert(loc.quickSlot);
+        }
+        loc.quickIcon = m_repo->get(QStringLiteral("settings"), fieldKey(i, QStringLiteral("quick-icon")));
+        if (loc.quickIcon != QLatin1String("home") && loc.quickIcon != QLatin1String("work")
+            && loc.quickIcon != QLatin1String("favorite")) {
+            loc.quickIcon = QStringLiteral("place");
+        }
         QString createdAt = m_repo->get(QStringLiteral("settings"), fieldKey(i, QStringLiteral("created-at")));
         if (!createdAt.isEmpty())
             loc.createdAt = QDateTime::fromString(createdAt, Qt::ISODate);
@@ -45,17 +61,33 @@ bool SavedLocationsService::save(const SavedLocation &location)
         return false;
     }
 
+    const bool existing = !m_repo->get(QStringLiteral("settings"),
+                                       fieldKey(slot, QStringLiteral("latitude"))).isEmpty();
     m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("latitude")),
                 QString::number(location.latitude, 'f', 7), false);
     m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("longitude")),
                 QString::number(location.longitude, 'f', 7), false);
     m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("label")),
                 location.label, false);
+    if (!existing) {
+        m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("quick-slot")),
+                    QStringLiteral("0"), false);
+    }
+    const QString icon = location.quickIcon == QLatin1String("home")
+                      || location.quickIcon == QLatin1String("work")
+                      || location.quickIcon == QLatin1String("favorite")
+        ? location.quickIcon : QStringLiteral("place");
+    m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("quick-icon")),
+                icon, false);
     m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("created-at")),
                 QDateTime::currentDateTimeUtc().toString(Qt::ISODate), false);
     m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("last-used-at")),
                 QDateTime::currentDateTimeUtc().toString(Qt::ISODate), false);
-    // Notify settings-service so the new location is persisted to TOML
+
+    if (!setQuickSlot(slot, qBound(0, location.quickSlot, 2)))
+        return false;
+    // setQuickSlot() publishes when metadata changes; this publication also
+    // persists the coordinate/label writes when the requested slot was unchanged.
     m_repo->publish(QStringLiteral("settings"),
                     QStringLiteral("%1.%2").arg(QLatin1String(AppConfig::savedLocationsPrefix)).arg(slot));
     return true;
@@ -68,6 +100,7 @@ bool SavedLocationsService::remove(int id)
 
     QStringList fields = {
         QStringLiteral("latitude"), QStringLiteral("longitude"), QStringLiteral("label"),
+        QStringLiteral("quick-slot"), QStringLiteral("quick-icon"),
         QStringLiteral("created-at"), QStringLiteral("last-used-at")
     };
     for (const auto &f : fields) {
@@ -86,6 +119,66 @@ bool SavedLocationsService::updateLastUsed(int id)
 
     m_repo->set(QStringLiteral("settings"), fieldKey(id, QStringLiteral("last-used-at")),
                 QDateTime::currentDateTimeUtc().toString(Qt::ISODate), true);
+    return true;
+}
+
+bool SavedLocationsService::setQuickSlot(int id, int quickSlot)
+{
+    if (quickSlot < 0 || quickSlot > 2)
+        return false;
+
+    QList<SavedLocation> locations = loadAll();
+    auto target = std::find_if(locations.begin(), locations.end(),
+                               [id](const SavedLocation &loc) { return loc.id == id; });
+    if (target == locations.end())
+        return false;
+    const int persistedSlot = m_repo->get(QStringLiteral("settings"),
+                                          fieldKey(id, QStringLiteral("quick-slot"))).toInt();
+    if (target->quickSlot == quickSlot && persistedSlot == quickSlot)
+        return true;
+
+    const int oldSlot = target->quickSlot;
+    auto displaced = quickSlot == 0 ? locations.end()
+                                    : std::find_if(locations.begin(), locations.end(),
+                                        [id, quickSlot](const SavedLocation &loc) {
+                                            return loc.id != id && loc.quickSlot == quickSlot;
+                                        });
+    target->quickSlot = quickSlot;
+    if (displaced != locations.end())
+        displaced->quickSlot = oldSlot >= 1 && oldSlot <= 2 ? oldSlot : 0;
+
+    if (!updateQuickMenu(target->id, target->quickSlot, target->quickIcon))
+        return false;
+    return displaced == locations.end()
+        || updateQuickMenu(displaced->id, displaced->quickSlot, displaced->quickIcon);
+}
+
+bool SavedLocationsService::setQuickIcon(int id, const QString &quickIcon)
+{
+    const QList<SavedLocation> locations = loadAll();
+    const auto target = std::find_if(locations.cbegin(), locations.cend(),
+                                     [id](const SavedLocation &loc) { return loc.id == id; });
+    return target != locations.cend()
+        && updateQuickMenu(id, target->quickSlot, quickIcon);
+}
+
+bool SavedLocationsService::updateQuickMenu(int id, int quickSlot, const QString &quickIcon)
+{
+    if (id < 0 || id >= MaxLocations || quickSlot < 0 || quickSlot > 2)
+        return false;
+    if (m_repo->get(QStringLiteral("settings"), fieldKey(id, QStringLiteral("latitude"))).isEmpty())
+        return false;
+
+    const QString icon = quickIcon == QLatin1String("home")
+                      || quickIcon == QLatin1String("work")
+                      || quickIcon == QLatin1String("favorite")
+        ? quickIcon : QStringLiteral("place");
+    m_repo->set(QStringLiteral("settings"), fieldKey(id, QStringLiteral("quick-slot")),
+                QString::number(quickSlot), false);
+    m_repo->set(QStringLiteral("settings"), fieldKey(id, QStringLiteral("quick-icon")),
+                icon, false);
+    m_repo->publish(QStringLiteral("settings"),
+                    QStringLiteral("%1.%2").arg(QLatin1String(AppConfig::savedLocationsPrefix)).arg(id));
     return true;
 }
 

@@ -584,6 +584,8 @@ if(BUILD_TESTING)
     qt_add_executable(shortcut_menu_store_test
         tests/ShortcutMenuStoreTest.cpp
         src/stores/ShortcutMenuStore.cpp
+        src/stores/EngineStore.cpp
+        src/stores/EngineStore.h
         src/stores/VehicleStore.cpp
         src/stores/ScreenStore.cpp
         src/stores/SettingsStore.cpp
@@ -594,8 +596,21 @@ if(BUILD_TESTING)
         src/repositories/InMemoryMdbRepository.cpp
     )
     target_include_directories(shortcut_menu_store_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-    target_link_libraries(shortcut_menu_store_test PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
+    target_link_libraries(shortcut_menu_store_test PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6::Test)
     add_test(NAME shortcut_menu_store_test COMMAND shortcut_menu_store_test)
+
+    qt_add_executable(saved_locations_service_test
+        tests/SavedLocationsServiceTest.cpp
+        src/services/SavedLocationsService.cpp
+        src/services/SavedLocationsService.h
+        src/models/SavedLocation.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+    )
+    target_include_directories(saved_locations_service_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(saved_locations_service_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME saved_locations_service_test COMMAND saved_locations_service_test)
 
     qt_add_executable(position_estimator_test
         tests/PositionEstimatorTest.cpp

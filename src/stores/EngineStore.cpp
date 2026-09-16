@@ -3,6 +3,12 @@
 EngineStore::EngineStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
+    connect(repo, &MdbRepository::connectionStateChanged, this, [this](bool connected) {
+        if (!connected && m_hasSpeed) {
+            m_hasSpeed = false;
+            emit speedChanged();
+        }
+    });
 }
 
 SyncSettings EngineStore::syncSettings() const
@@ -83,7 +89,11 @@ void EngineStore::applyFieldUpdate(const QString &variable, const QString &value
         if (v != m_rpm) { m_rpm = v; emit rpmChanged(); }
     } else if (variable == QLatin1String("speed")) {
         auto v = value.toDouble();
-        if (v != m_speed) { m_speed = v; emit speedChanged(); }
+        if (v != m_speed || !m_hasSpeed) {
+            m_speed = v;
+            m_hasSpeed = true;
+            emit speedChanged();
+        }
     } else if (variable == QLatin1String("raw-speed")) {
         auto v = value.toDouble();
         if (v != m_rawSpeed || !m_hasRawSpeed) {

@@ -795,7 +795,9 @@ void Application::createStores(QQmlApplicationEngine &engine)
     });
 
     // M5: ShortcutMenuStore
-    auto *shortcutMenuStore = new ShortcutMenuStore(themeStore, vehicleStore, screenStore, dashboardStore, repo, m_settingsService, this);
+    auto *shortcutMenuStore = new ShortcutMenuStore(
+        engineStore, vehicleStore, screenStore, savedLocationsStore,
+        m_navAvailability, settingsStore, repo, m_settingsService, this);
 
     // Input handler: consumes vehicle-service's "input-events" gesture stream
     m_inputHandler = new InputHandler(vehicleStore, repo, this);

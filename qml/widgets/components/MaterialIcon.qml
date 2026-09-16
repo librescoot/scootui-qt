@@ -30,6 +30,9 @@ QtObject {
     readonly property string iconForkRight:       String.fromCodePoint(0xf050c)
     readonly property string iconNavigation:      "\ue41e"
     readonly property string iconPlace:           "\ue4c9"
+    readonly property string iconHome:            "\ue318"
+    readonly property string iconWork:            "\ue6f2"
+    readonly property string iconStar:            "\ue5f9"
     readonly property string iconLocationOff:     "\ue3aa"
     readonly property string iconGpsNotFixed:     "\ue2dd"
 

@@ -276,6 +276,15 @@ class Translations : public QObject
     Q_PROPERTY(QString menuDeleteLocation READ menuDeleteLocation NOTIFY languageChanged)
     Q_PROPERTY(QString menuStartNavigation READ menuStartNavigation NOTIFY languageChanged)
     Q_PROPERTY(QString menuStopNavigation READ menuStopNavigation NOTIFY languageChanged)
+    Q_PROPERTY(QString menuQuickMenu READ menuQuickMenu NOTIFY languageChanged)
+    Q_PROPERTY(QString menuQuickOff READ menuQuickOff NOTIFY languageChanged)
+    Q_PROPERTY(QString menuQuickSlot1 READ menuQuickSlot1 NOTIFY languageChanged)
+    Q_PROPERTY(QString menuQuickSlot2 READ menuQuickSlot2 NOTIFY languageChanged)
+    Q_PROPERTY(QString menuQuickIcon READ menuQuickIcon NOTIFY languageChanged)
+    Q_PROPERTY(QString menuQuickIconPlace READ menuQuickIconPlace NOTIFY languageChanged)
+    Q_PROPERTY(QString menuQuickIconHome READ menuQuickIconHome NOTIFY languageChanged)
+    Q_PROPERTY(QString menuQuickIconWork READ menuQuickIconWork NOTIFY languageChanged)
+    Q_PROPERTY(QString menuQuickIconFavorite READ menuQuickIconFavorite NOTIFY languageChanged)
 
     // Visibility options
     Q_PROPERTY(QString optAlways READ optAlways NOTIFY languageChanged)
@@ -632,6 +641,7 @@ class Translations : public QObject
     Q_PROPERTY(QString shortcutViewCluster READ shortcutViewCluster NOTIFY languageChanged)
     Q_PROPERTY(QString shortcutToggleHazards READ shortcutToggleHazards NOTIFY languageChanged)
     Q_PROPERTY(QString shortcutDebugOverlay READ shortcutDebugOverlay NOTIFY languageChanged)
+    Q_PROPERTY(QString shortcutStartDestination READ shortcutStartDestination NOTIFY languageChanged)
 
 public:
     explicit Translations(QObject *parent = nullptr);
@@ -905,6 +915,15 @@ public:
     QString menuDeleteLocation() const { return lookup("menuDeleteLocation"); }
     QString menuStartNavigation() const { return lookup("menuStartNavigation"); }
     QString menuStopNavigation() const { return lookup("menuStopNavigation"); }
+    QString menuQuickMenu() const { return lookup("menuQuickMenu"); }
+    QString menuQuickOff() const { return lookup("menuQuickOff"); }
+    QString menuQuickSlot1() const { return lookup("menuQuickSlot1"); }
+    QString menuQuickSlot2() const { return lookup("menuQuickSlot2"); }
+    QString menuQuickIcon() const { return lookup("menuQuickIcon"); }
+    QString menuQuickIconPlace() const { return lookup("menuQuickIconPlace"); }
+    QString menuQuickIconHome() const { return lookup("menuQuickIconHome"); }
+    QString menuQuickIconWork() const { return lookup("menuQuickIconWork"); }
+    QString menuQuickIconFavorite() const { return lookup("menuQuickIconFavorite"); }
 
     QString optAlways() const { return lookup("optAlways"); }
     QString optActiveOrError() const { return lookup("optActiveOrError"); }
@@ -1259,6 +1278,7 @@ public:
     QString shortcutViewCluster() const { return lookup("shortcutViewCluster"); }
     QString shortcutToggleHazards() const { return lookup("shortcutToggleHazards"); }
     QString shortcutDebugOverlay() const { return lookup("shortcutDebugOverlay"); }
+    QString shortcutStartDestination() const { return lookup("shortcutStartDestination"); }
 
 signals:
     void languageChanged();

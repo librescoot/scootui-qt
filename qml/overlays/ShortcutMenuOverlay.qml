@@ -10,47 +10,37 @@ Item {
 
     property Item blurSource
     property bool isDark: themeStore.isDark
-
-    // Caption for a slot. The theme and view icons show the state they switch
-    // to rather than the current one, so these name the target as well.
-    function itemLabel(idx) {
-        if (typeof translations === "undefined")
+    readonly property var selectedAction: shortcutMenuStore.actionCount > 0
+                                          ? shortcutMenuStore.actions[shortcutMenuStore.selectedIndex]
+                                          : ({})
+    readonly property string selectedLabel: {
+        if (!selectedAction || selectedAction.kind === undefined)
             return ""
-        switch (idx) {
-        case 0:
-            if (themeStore.isAutoMode) return translations.shortcutThemeDark
-            if (themeStore.isDark) return translations.shortcutThemeLight
-            return translations.shortcutThemeAuto
-        case 1:
+        if (selectedAction.kind === "destination")
+            return selectedAction.label
+        return screenStore.currentScreen === Scooter.ScreenMode.Cluster
+             ? translations.shortcutViewMap : translations.shortcutViewCluster
+    }
+
+    function actionIcon(action) {
+        if (action.kind === "view")
             return screenStore.currentScreen === Scooter.ScreenMode.Cluster
-                   ? translations.shortcutViewMap
-                   : translations.shortcutViewCluster
-        case 2: return translations.shortcutToggleHazards
-        case 3: return translations.shortcutDebugOverlay
-        default: return ""
+                 ? MaterialIcon.iconMap : MaterialIcon.iconSpeed
+        switch (action.quickIcon) {
+        case "home": return MaterialIcon.iconHome
+        case "work": return MaterialIcon.iconWork
+        case "favorite": return MaterialIcon.iconStar
+        default: return MaterialIcon.iconPlace
         }
     }
 
-    readonly property string selectedLabel: itemLabel(shortcutMenuStore.selectedIndex)
-
-    // Main bottom container. Fixed width, inset 40 on each side: sizing it to
-    // the content instead meant the bar grew and shrank by 20 px as the
-    // selection moved, and being centre-anchored it re-centred too, so every
-    // icon slid sideways on each step.
     Item {
         id: containerWrapper
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.leftMargin: 40
-        anchors.rightMargin: 40
+        anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
-        // Sit clear of the confirmation bar rather than at a fixed offset:
-        // hardcoding this let the confirm bar ride up over the caption line.
-        // Derived, so the two never overlap and the icon bar does not jump
-        // when confirmation starts.
         anchors.bottomMargin: confirmBar.anchors.bottomMargin + confirmBar.height + 6
-
-        // 120 plus a caption line for the highlighted slot.
+        width: shortcutMenuStore.actionCount === 1 ? 280
+             : shortcutMenuStore.actionCount === 2 ? 340 : 400
         height: 150
         clip: true
 
@@ -60,13 +50,10 @@ Item {
             sourceOffset: Qt.point(containerWrapper.x, containerWrapper.y)
             blurAmount: 0.5
             radius: themeStore.radiusModal
-            tintColor: isDark
-                ? Qt.rgba(0, 0, 0, 0.5)
-                : Qt.rgba(1, 1, 1, 0.55)
+            tintColor: isDark ? Qt.rgba(0, 0, 0, 0.5) : Qt.rgba(1, 1, 1, 0.55)
         }
 
         Rectangle {
-            id: containerBg
             anchors.fill: parent
             radius: themeStore.radiusModal
             color: "transparent"
@@ -83,12 +70,12 @@ Item {
             height: 80
 
             Repeater {
-                model: 4 // Themes, View, Hazards, Debug
+                model: shortcutMenuStore.actions
 
-                // Equal-width cell per item, so the box can still grow on
-                // selection without displacing its neighbours.
                 Item {
-                    width: contentRow.width / 4
+                    required property var modelData
+                    required property int index
+                    width: contentRow.width / shortcutMenuStore.actionCount
                     height: contentRow.height
 
                     Rectangle {
@@ -96,7 +83,6 @@ Item {
                         anchors.centerIn: parent
                         property bool isSelected: index === shortcutMenuStore.selectedIndex
                         property color itemColor: isSelected ? "#FF9800" : (isDark ? "#FFFFFF" : "#212121")
-
                         width: isSelected ? 80 : 60
                         height: isSelected ? 80 : 60
                         radius: themeStore.radiusModal
@@ -112,22 +98,7 @@ Item {
                             font.family: "Material Icons"
                             font.pixelSize: menuItemRect.isSelected ? 36 : 28
                             color: menuItemRect.itemColor
-                            text: {
-                                switch(index) {
-                                    case 0: // Theme
-                                        if (themeStore.isAutoMode) return MaterialIcon.iconDarkMode
-                                        if (themeStore.isDark) return MaterialIcon.iconLightMode
-                                        return MaterialIcon.iconContrast
-                                    case 1: // View
-                                        return screenStore.currentScreen === Scooter.ScreenMode.Cluster ? MaterialIcon.iconMap : MaterialIcon.iconSpeed
-                                    case 2: // Hazards
-                                        return MaterialIcon.iconWarningAmber
-                                    case 3: // Debug
-                                        return MaterialIcon.iconBugReport
-                                    default: return ""
-                                }
-                            }
-
+                            text: shortcutOverlay.actionIcon(modelData)
                             Behavior on font.pixelSize { NumberAnimation { duration: 200 } }
                         }
                     }
@@ -135,7 +106,6 @@ Item {
             }
         }
 
-        // Caption for the highlighted slot, on its own line under the icons.
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: contentRow.bottom
@@ -143,6 +113,7 @@ Item {
             width: parent.width - 24
             horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideRight
+            maximumLineCount: 1
             text: shortcutOverlay.selectedLabel
             font.pixelSize: themeStore.fontBody
             font.weight: Font.Medium
@@ -150,15 +121,12 @@ Item {
         }
     }
 
-    // Confirmation prompt. Aligned to the icon bar above it rather than its own
-    // width, and the countdown runs flush along the bottom edge instead of
-    // floating as a short centred stub.
     Rectangle {
         id: confirmBar
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 28
-        width: containerWrapper.width
+        width: Math.max(280, containerWrapper.width)
         height: confirmContent.height + 22
         radius: themeStore.radiusModal
         color: isDark ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.95)
@@ -176,7 +144,7 @@ Item {
             spacing: 10
 
             Row {
-                anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width
                 spacing: 10
 
                 TintedImage {
@@ -189,23 +157,25 @@ Item {
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: typeof translations !== "undefined"
-                          ? translations.shortcutToConfirm : "to confirm"
+                    width: parent.width - 32
+                    horizontalAlignment: Text.AlignHCenter
+                    elide: Text.ElideRight
+                    maximumLineCount: 1
+                    text: shortcutOverlay.selectedAction.kind === "destination"
+                          ? translations.shortcutStartDestination.arg(shortcutOverlay.selectedLabel)
+                          : shortcutOverlay.selectedLabel
                     font.pixelSize: themeStore.fontBody
                     font.weight: Font.Bold
                     color: isDark ? "#FFFFFF" : "#000000"
                 }
             }
 
-            // Countdown. Inset with the rest of the content rather than run
-            // flush along the bottom edge, where it was easy to miss.
             Rectangle {
                 width: parent.width
                 height: 6
                 radius: 3
                 color: isDark ? "#3DFFFFFF" : "#1F000000"
 
-                // Drains left to right over the confirm timeout
                 Rectangle {
                     anchors.left: parent.left
                     anchors.top: parent.top
@@ -213,10 +183,6 @@ Item {
                     width: parent.width * (1.0 - confirmProgress)
                     radius: 3
                     color: "#FF9800"
-
-                    // No initialiser: an initial binding here would compete
-                    // with the NumberAnimation value source below. real
-                    // starts at 0.
                     property real confirmProgress
 
                     NumberAnimation on confirmProgress {

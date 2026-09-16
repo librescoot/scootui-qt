@@ -22,6 +22,7 @@ class EngineStore : public SyncableStore
     Q_PROPERTY(double regenExpected READ regenExpected NOTIFY regenExpectedChanged)
     Q_PROPERTY(double rpm READ rpm NOTIFY rpmChanged)
     Q_PROPERTY(double speed READ speed NOTIFY speedChanged)
+    Q_PROPERTY(bool hasSpeed READ hasSpeed NOTIFY speedChanged)
     Q_PROPERTY(double rawSpeed READ rawSpeed NOTIFY rawSpeedChanged)
     Q_PROPERTY(bool hasRawSpeed READ hasRawSpeed NOTIFY rawSpeedChanged)
     Q_PROPERTY(double correctedSpeed READ correctedSpeed NOTIFY correctedSpeedChanged)
@@ -51,6 +52,7 @@ public:
     double regenExpected() const { return m_regenExpected; }
     double rpm() const { return m_rpm; }
     double speed() const { return m_speed; }
+    bool hasSpeed() const { return m_hasSpeed; }
     double rawSpeed() const { return m_rawSpeed; }
     bool hasRawSpeed() const { return m_hasRawSpeed; }
     double correctedSpeed() const { return m_correctedSpeed; }
@@ -102,6 +104,7 @@ private:
     double m_regenExpected = 0;
     double m_rpm = 0;
     double m_speed = 0;
+    bool m_hasSpeed = false;
     double m_rawSpeed = 0;
     bool m_hasRawSpeed = false;
     double m_correctedSpeed = 0;

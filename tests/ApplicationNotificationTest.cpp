@@ -14,12 +14,16 @@
 #include "core/BootGate.h"
 #include "core/EnvConfig.h"
 #include "repositories/InMemoryMdbRepository.h"
+#include "services/NavigationAvailabilityService.h"
 #include "services/NotificationService.h"
 #include "services/SettingsService.h"
 #include "stores/BatteryStore.h"
+#include "stores/EngineStore.h"
 #include "stores/MenuStore.h"
+#include "stores/SavedLocationsStore.h"
 #include "stores/ScreenStore.h"
 #include "stores/SettingsStore.h"
+#include "stores/ShortcutMenuStore.h"
 #define private public
 #include "stores/TripStore.h"
 #undef private
@@ -312,6 +316,73 @@ private slots:
                      QStringLiteral("Trip counter reset"));
         QCOMPARE(notifications->presentation().value("main").toMap().value("kind").toString(),
                  QStringLiteral("success"));
+    }
+
+    void quickDestinationsTrackAssignmentsAndRevalidateConfirmation()
+    {
+        auto *repo = m_application->m_repository.get();
+        auto *engine = context<EngineStore>("engineStore");
+        auto *saved = context<SavedLocationsStore>("savedLocationsStore");
+        auto *shortcuts = context<ShortcutMenuStore>("shortcutMenuStore");
+        auto *screens = context<ScreenStore>("screenStore");
+        auto *availability = context<NavigationAvailabilityService>("navAvailabilityService");
+        QVERIFY(engine && saved && shortcuts && screens && availability);
+
+        repo->set("vehicle", "state", "ready-to-drive");
+        repo->set("vehicle", "kickstand", "down");
+        repo->set("engine-ecu", "speed", "0");
+        availability->setOverride(true, true);
+        QCOMPARE(shortcuts->actionCount(), 1);
+
+        const auto addLocation = [repo](int id, double lat, double lng, const QString &label) {
+            const QString prefix = QStringLiteral("dashboard.saved-locations.%1.").arg(id);
+            repo->set("settings", prefix + "latitude", QString::number(lat, 'f', 7));
+            repo->set("settings", prefix + "longitude", QString::number(lng, 'f', 7));
+            repo->set("settings", prefix + "label", label);
+        };
+        addLocation(0, 52.5, 13.4, QString());
+        saved->setQuickSlot(0, 1);
+        QTRY_COMPARE(shortcuts->actionCount(), 2);
+        QCOMPARE(shortcuts->actions().at(1).toMap().value("label").toString(),
+                 QStringLiteral("52.50000, 13.40000"));
+        addLocation(1, 52.6, 13.5, QStringLiteral("Second address"));
+        saved->setQuickSlot(1, 2);
+        QTRY_COMPARE(shortcuts->actionCount(), 3);
+
+        shortcuts->show();
+        shortcuts->cycle();
+        shortcuts->confirm();
+        QVERIFY(shortcuts->confirming());
+        repo->set("settings", "dashboard.saved-locations.0.label", "Changed address");
+        QTRY_VERIFY(!shortcuts->visible());
+        repo->publish("input-events", "seatbox:press");
+        QVERIFY(repo->get("navigation", "address").isEmpty());
+
+        screens->setScreen(static_cast<int>(ScootEnums::ScreenMode::Cluster));
+        shortcuts->show();
+        shortcuts->cycle();
+        repo->publish("input-events", "seatbox:release");
+        QVERIFY(shortcuts->confirming());
+        repo->publish("input-events", "seatbox:press");
+        QTRY_COMPARE(repo->get("navigation", "address"), QStringLiteral("Changed address"));
+        QCOMPARE(screens->currentScreenMode(), ScootEnums::ScreenMode::Map);
+        QVERIFY(!shortcuts->visible());
+
+        repo->set("navigation", "address", "unchanged");
+        repo->set("engine-ecu", "speed", "0");
+        shortcuts->show();
+        shortcuts->cycle();
+        shortcuts->confirm();
+        repo->set("engine-ecu", "speed", "5");
+        QTRY_VERIFY(!shortcuts->visible());
+        QCOMPARE(shortcuts->actionCount(), 1);
+        repo->publish("input-events", "seatbox:press");
+        QCOMPARE(repo->get("navigation", "address"), QStringLiteral("unchanged"));
+
+        repo->set("engine-ecu", "speed", "0");
+        QTRY_COMPARE(shortcuts->actionCount(), 3);
+        saved->deleteLocation(1);
+        QTRY_COMPARE(shortcuts->actionCount(), 2);
     }
 
     void dualBatteryToggleRefreshesUnchangedSlotOneFault()

@@ -1,26 +1,34 @@
 #include "ShortcutMenuStore.h"
-#include "ThemeStore.h"
+#include "EngineStore.h"
 #include "VehicleStore.h"
 #include "ScreenStore.h"
-#include "DashboardStore.h"
+#include "SavedLocationsStore.h"
+#include "SettingsStore.h"
 #include "../repositories/MdbRepository.h"
+#include "../services/NavigationAvailabilityService.h"
 #include "../services/SettingsService.h"
 #include "../models/Enums.h"
-#include <QDebug>
+
+#include <algorithm>
+#include <cmath>
 
 namespace {
 constexpr char kInputEventsChannel[] = "input-events";
 }
 
-ShortcutMenuStore::ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
-                                     ScreenStore *screen, DashboardStore *dashboard,
-                                     MdbRepository *repo, SettingsService *settingsService,
+ShortcutMenuStore::ShortcutMenuStore(EngineStore *engine, VehicleStore *vehicle,
+                                     ScreenStore *screen, SavedLocationsStore *savedLocations,
+                                     NavigationAvailabilityService *navigationAvailability,
+                                     SettingsStore *settings, MdbRepository *repo,
+                                     SettingsService *settingsService,
                                      QObject *parent)
     : QObject(parent)
-    , m_theme(theme)
+    , m_engine(engine)
     , m_vehicle(vehicle)
     , m_screenStore(screen)
-    , m_dashboardStore(dashboard)
+    , m_savedLocations(savedLocations)
+    , m_navigationAvailability(navigationAvailability)
+    , m_settings(settings)
     , m_repo(repo)
     , m_settingsService(settingsService)
     , m_confirmTimer(new QTimer(this))
@@ -43,14 +51,25 @@ ShortcutMenuStore::ShortcutMenuStore(ThemeStore *theme, VehicleStore *vehicle,
         if (m_visible && !isReadyToDrive())
             resetState();
     });
+    if (m_engine)
+        connect(m_engine, &EngineStore::speedChanged, this, &ShortcutMenuStore::rebuildActions);
+    if (m_savedLocations)
+        connect(m_savedLocations, SIGNAL(locationsChanged()), this, SLOT(rebuildActions()));
+    if (m_navigationAvailability)
+        connect(m_navigationAvailability, SIGNAL(availabilityChanged()),
+                this, SLOT(rebuildActions()));
+    if (m_settings)
+        connect(m_settings, &SettingsStore::mapTypeChanged,
+                this, &ShortcutMenuStore::rebuildActions);
 
     if (m_repo) {
+        connect(m_repo, &MdbRepository::connectionStateChanged,
+                this, &ShortcutMenuStore::rebuildActions);
         m_inputSubscriptionId = m_repo->subscribe(
             QLatin1String(kInputEventsChannel),
-            [this](const QString &, const QString &message) {
-                onInputEvent(message);
-            });
+            [this](const QString &, const QString &message) { onInputEvent(message); });
     }
+    rebuildActions();
 }
 
 ShortcutMenuStore::~ShortcutMenuStore()
@@ -64,10 +83,12 @@ void ShortcutMenuStore::show()
     if (!isReadyToDrive())
         return;
 
+    rebuildActions();
     if (!m_visible) {
         m_visible = true;
         m_selectedIndex = 0;
         m_confirming = false;
+        m_pendingAction.clear();
         emit visibleChanged();
         emit selectionChanged();
         emit confirmingChanged();
@@ -76,26 +97,24 @@ void ShortcutMenuStore::show()
 
 void ShortcutMenuStore::hide()
 {
-    if (m_visible) {
-        m_visible = false;
-        m_confirming = false;
-        m_confirmTimer->stop();
-        m_cycleTimer->stop();
-        emit visibleChanged();
-        emit confirmingChanged();
-    }
+    if (m_visible)
+        resetState();
 }
 
 void ShortcutMenuStore::cycle()
 {
-    m_selectedIndex = (m_selectedIndex + 1) % ITEM_COUNT;
+    if (m_actions.isEmpty())
+        return;
+    m_selectedIndex = (m_selectedIndex + 1) % m_actions.size();
     emit selectionChanged();
 }
 
 void ShortcutMenuStore::confirm()
 {
-    if (!m_visible) return;
+    if (!m_visible || m_actions.isEmpty() || m_selectedIndex >= m_actions.size())
+        return;
 
+    m_pendingAction = m_actions.at(m_selectedIndex).toMap();
     m_confirming = true;
     emit confirmingChanged();
     m_confirmTimer->start();
@@ -103,46 +122,133 @@ void ShortcutMenuStore::confirm()
 
 bool ShortcutMenuStore::isReadyToDrive() const
 {
-    return m_vehicle->state() == static_cast<int>(ScootEnums::VehicleState::ReadyToDrive);
+    return m_vehicle
+        && m_vehicle->state() == static_cast<int>(ScootEnums::VehicleState::ReadyToDrive);
+}
+
+bool ShortcutMenuStore::isStationary() const
+{
+    return m_engine && m_engine->hasSpeed() && std::abs(m_engine->speed()) <= 0.01
+        && m_repo && m_repo->isConnected();
+}
+
+bool ShortcutMenuStore::destinationAvailable() const
+{
+    if (!isStationary() || !m_navigationAvailability || !m_settings)
+        return false;
+    const bool displayAvailable = m_navigationAvailability->property("localDisplayMapsAvailable").toBool()
+        || m_settings->mapType() == static_cast<int>(ScootEnums::MapType::Online);
+    return displayAvailable
+        && m_navigationAvailability->property("routingAvailable").toBool();
+}
+
+QString ShortcutMenuStore::actionKey(const QVariantMap &action)
+{
+    const QString kind = action.value(QStringLiteral("kind")).toString();
+    return kind == QLatin1String("destination")
+        ? kind + QLatin1Char(':') + action.value(QStringLiteral("id")).toString()
+        : kind;
+}
+
+QVariantList ShortcutMenuStore::availableActions() const
+{
+    QVariantList actions;
+    actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("view")}});
+
+    if (!m_savedLocations || !destinationAvailable())
+        return actions;
+
+    QList<QVariantMap> destinations;
+    bool slotUsed[] = {false, false, false};
+    for (const QVariant &value : m_savedLocations->property("locations").toList()) {
+        QVariantMap location = value.toMap();
+        const int slot = location.value(QStringLiteral("quickSlot")).toInt();
+        if (slot < 1 || slot > 2 || slotUsed[slot])
+            continue;
+        slotUsed[slot] = true;
+        if (location.value(QStringLiteral("label")).toString().isEmpty()) {
+            location[QStringLiteral("label")] = QStringLiteral("%1, %2")
+                .arg(location.value(QStringLiteral("latitude")).toDouble(), 0, 'f', 5)
+                .arg(location.value(QStringLiteral("longitude")).toDouble(), 0, 'f', 5);
+        }
+        location[QStringLiteral("kind")] = QStringLiteral("destination");
+        destinations.append(location);
+    }
+    std::sort(destinations.begin(), destinations.end(), [](const QVariantMap &left,
+                                                            const QVariantMap &right) {
+        return left.value(QStringLiteral("quickSlot")).toInt()
+             < right.value(QStringLiteral("quickSlot")).toInt();
+    });
+    for (const auto &destination : destinations)
+        actions.append(destination);
+    return actions;
+}
+
+void ShortcutMenuStore::rebuildActions()
+{
+    const QVariantList next = availableActions();
+    if (m_confirming) {
+        bool pendingStillValid = false;
+        for (const QVariant &value : next) {
+            if (value.toMap() == m_pendingAction) {
+                pendingStillValid = true;
+                break;
+            }
+        }
+        if (!pendingStillValid) {
+            resetState();
+            m_actions = next;
+            emit actionsChanged();
+            return;
+        }
+    }
+
+    QString selectedKey;
+    if (m_selectedIndex >= 0 && m_selectedIndex < m_actions.size())
+        selectedKey = actionKey(m_actions.at(m_selectedIndex).toMap());
+    if (next == m_actions)
+        return;
+
+    m_actions = next;
+    int nextIndex = 0;
+    for (int i = 0; i < m_actions.size(); ++i) {
+        if (actionKey(m_actions.at(i).toMap()) == selectedKey) {
+            nextIndex = i;
+            break;
+        }
+    }
+    const bool selectionMoved = nextIndex != m_selectedIndex;
+    m_selectedIndex = nextIndex;
+    emit actionsChanged();
+    if (selectionMoved)
+        emit selectionChanged();
 }
 
 void ShortcutMenuStore::onInputEvent(const QString &message)
 {
-    // Format: "<source>:<gesture>" — only seatbox is of interest here.
-    QStringList parts = message.split(':');
+    const QStringList parts = message.split(':');
     if (parts.size() != 2 || parts[0] != QLatin1String("seatbox"))
         return;
-
     if (!isReadyToDrive())
         return;
 
     const QString &gesture = parts[1];
-
     if (gesture == QLatin1String("long-tap")) {
-        // Open the menu and begin cycling items while the user keeps holding.
         if (!m_visible) {
             show();
             m_cycleTimer->start();
         }
     } else if (gesture == QLatin1String("release")) {
-        // Release after the menu is shown enters the confirmation window.
         if (m_visible && !m_confirming) {
             m_cycleTimer->stop();
-            m_confirming = true;
-            emit confirmingChanged();
-            m_confirmTimer->start();
+            confirm();
         }
     } else if (gesture == QLatin1String("press")) {
-        // A press while confirming executes the selected action.
-        if (m_confirming) {
-            executeAction(m_selectedIndex);
-            resetState();
-        }
+        if (m_confirming)
+            executePendingAction();
     } else if (gesture == QLatin1String("double-tap")) {
-        // Double-tap with the menu closed is a hazards toggle shortcut.
-        if (!m_visible && !m_confirming) {
+        if (!m_visible && !m_confirming)
             toggleHazards();
-        }
     }
 }
 
@@ -151,57 +257,60 @@ void ShortcutMenuStore::onCycleTimeout()
     cycle();
 }
 
-void ShortcutMenuStore::executeAction(int index)
+void ShortcutMenuStore::executePendingAction()
 {
-    switch (index) {
-    case 0: cycleTheme(); break;
-    case 1: toggleView(); break;
-    case 2: toggleHazards(); break;
-    case 3: toggleDebugOverlay(); break;
+    const QVariantList current = availableActions();
+    bool valid = false;
+    for (const QVariant &value : current) {
+        if (value.toMap() == m_pendingAction) {
+            valid = true;
+            break;
+        }
     }
-}
+    if (!valid) {
+        resetState();
+        return;
+    }
 
-void ShortcutMenuStore::toggleDebugOverlay()
-{
-    if (!m_repo || !m_dashboardStore) return;
+    if (m_pendingAction.value(QStringLiteral("kind")) == QLatin1String("view")) {
+        toggleView();
+        resetState();
+        return;
+    }
 
-    bool isOverlay = (m_dashboardStore->debugMode() == QLatin1String("overlay"));
-    m_repo->set(QStringLiteral("dashboard"), QStringLiteral("debug"),
-                isOverlay ? QStringLiteral("off") : QStringLiteral("overlay"));
+    const int id = m_pendingAction.value(QStringLiteral("id")).toInt();
+    QMetaObject::invokeMethod(m_savedLocations, "navigateToLocation", Q_ARG(int, id));
+    resetState();
+    if (m_screenStore)
+        m_screenStore->setScreen(static_cast<int>(ScootEnums::ScreenMode::Map));
+    if (m_settingsService)
+        m_settingsService->updateMode(QStringLiteral("navigation"));
 }
 
 void ShortcutMenuStore::toggleHazards()
 {
-    if (!m_repo) return;
-
-    bool isBoth = (m_vehicle->blinkerState() == static_cast<int>(ScootEnums::BlinkerState::Both));
-
+    if (!m_repo || !m_vehicle)
+        return;
+    const bool isBoth = m_vehicle->blinkerState()
+        == static_cast<int>(ScootEnums::BlinkerState::Both);
     m_repo->push(QStringLiteral("scooter:blinker"),
                  isBoth ? QStringLiteral("off") : QStringLiteral("both"));
 }
 
 void ShortcutMenuStore::toggleView()
 {
-    if (!m_screenStore) return;
+    if (!m_screenStore)
+        return;
 
     const ScootEnums::ScreenMode current = m_screenStore->currentScreenMode();
     if (current == ScootEnums::ScreenMode::Cluster) {
         m_screenStore->setScreen(static_cast<int>(ScootEnums::ScreenMode::Map));
-        m_settingsService->updateMode(QStringLiteral("navigation"));
+        if (m_settingsService)
+            m_settingsService->updateMode(QStringLiteral("navigation"));
     } else if (current == ScootEnums::ScreenMode::Map) {
         m_screenStore->setScreen(static_cast<int>(ScootEnums::ScreenMode::Cluster));
-        m_settingsService->updateMode(QStringLiteral("speedometer"));
-    }
-}
-
-void ShortcutMenuStore::cycleTheme()
-{
-    if (m_theme->isAutoMode()) {
-        m_settingsService->updateTheme(QStringLiteral("dark"));
-    } else if (m_theme->isDark()) {
-        m_settingsService->updateTheme(QStringLiteral("light"));
-    } else {
-        m_settingsService->updateTheme(QStringLiteral("auto"));
+        if (m_settingsService)
+            m_settingsService->updateMode(QStringLiteral("speedometer"));
     }
 }
 
@@ -210,11 +319,18 @@ void ShortcutMenuStore::resetState()
     m_cycleTimer->stop();
     m_confirmTimer->stop();
 
+    const bool wasVisible = m_visible;
+    const bool wasConfirming = m_confirming;
+    const bool selectionMoved = m_selectedIndex != 0;
     m_visible = false;
     m_confirming = false;
     m_selectedIndex = 0;
+    m_pendingAction.clear();
 
-    emit visibleChanged();
-    emit confirmingChanged();
-    emit selectionChanged();
+    if (wasVisible)
+        emit visibleChanged();
+    if (wasConfirming)
+        emit confirmingChanged();
+    if (selectionMoved)
+        emit selectionChanged();
 }

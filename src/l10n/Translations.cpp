@@ -760,6 +760,25 @@ void Translations::initStrings()
     en[QStringLiteral("menuStopNavigation")] = QStringLiteral("Stop Navigation");
     de[QStringLiteral("menuStopNavigation")] = QStringLiteral("Navigation beenden");
 
+    en[QStringLiteral("menuQuickMenu")] = QStringLiteral("Quick menu");
+    de[QStringLiteral("menuQuickMenu")] = QStringLiteral("Schnellmen\u00FC");
+    en[QStringLiteral("menuQuickOff")] = QStringLiteral("Off");
+    de[QStringLiteral("menuQuickOff")] = QStringLiteral("Aus");
+    en[QStringLiteral("menuQuickSlot1")] = QStringLiteral("Slot 1");
+    de[QStringLiteral("menuQuickSlot1")] = QStringLiteral("Platz 1");
+    en[QStringLiteral("menuQuickSlot2")] = QStringLiteral("Slot 2");
+    de[QStringLiteral("menuQuickSlot2")] = QStringLiteral("Platz 2");
+    en[QStringLiteral("menuQuickIcon")] = QStringLiteral("Icon");
+    de[QStringLiteral("menuQuickIcon")] = QStringLiteral("Symbol");
+    en[QStringLiteral("menuQuickIconPlace")] = QStringLiteral("Place");
+    de[QStringLiteral("menuQuickIconPlace")] = QStringLiteral("Ort");
+    en[QStringLiteral("menuQuickIconHome")] = QStringLiteral("Home");
+    de[QStringLiteral("menuQuickIconHome")] = QStringLiteral("Zuhause");
+    en[QStringLiteral("menuQuickIconWork")] = QStringLiteral("Work");
+    de[QStringLiteral("menuQuickIconWork")] = QStringLiteral("Arbeit");
+    en[QStringLiteral("menuQuickIconFavorite")] = QStringLiteral("Favorite");
+    de[QStringLiteral("menuQuickIconFavorite")] = QStringLiteral("Favorit");
+
     // -----------------------------------------------------------------------
     // Visibility options
     // -----------------------------------------------------------------------
@@ -1781,6 +1800,8 @@ void Translations::initStrings()
     de[QStringLiteral("shortcutToggleHazards")] = QStringLiteral("Warnblinker umschalten");
     en[QStringLiteral("shortcutDebugOverlay")] = QStringLiteral("Debug Overlay");
     de[QStringLiteral("shortcutDebugOverlay")] = QStringLiteral("Debug-Overlay");
+    en[QStringLiteral("shortcutStartDestination")] = QStringLiteral("Start %1");
+    de[QStringLiteral("shortcutStartDestination")] = QStringLiteral("%1 starten");
 
     // -----------------------------------------------------------------------
     // Month abbreviations (status bar date)
