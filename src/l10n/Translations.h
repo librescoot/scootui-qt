@@ -518,6 +518,10 @@ class Translations : public QObject
     Q_PROPERTY(QString otaUpdateError READ otaUpdateError NOTIFY languageChanged)
     Q_PROPERTY(QString otaPreparingUpdate READ otaPreparingUpdate NOTIFY languageChanged)
     Q_PROPERTY(QString otaPendingReboot READ otaPendingReboot NOTIFY languageChanged)
+    // %1 = version. Toast templates.
+    Q_PROPERTY(QString otaDownloadingVersionUpdate READ otaDownloadingVersionUpdate NOTIFY languageChanged)
+    Q_PROPERTY(QString otaInstallingVersionUpdate READ otaInstallingVersionUpdate NOTIFY languageChanged)
+    Q_PROPERTY(QString otaUpdateFailedWithMessage READ otaUpdateFailedWithMessage NOTIFY languageChanged)
     Q_PROPERTY(QString otaScooterWillTurnOff READ otaScooterWillTurnOff NOTIFY languageChanged)
 
     // Battery messages
@@ -1151,6 +1155,9 @@ public:
     QString otaUpdateError() const { return lookup("otaUpdateError"); }
     QString otaPreparingUpdate() const { return lookup("otaPreparingUpdate"); }
     QString otaPendingReboot() const { return lookup("otaPendingReboot"); }
+    QString otaDownloadingVersionUpdate() const { return lookup("otaDownloadingVersionUpdate"); }
+    QString otaInstallingVersionUpdate() const { return lookup("otaInstallingVersionUpdate"); }
+    QString otaUpdateFailedWithMessage() const { return lookup("otaUpdateFailedWithMessage"); }
     QString otaScooterWillTurnOff() const { return lookup("otaScooterWillTurnOff"); }
 
     // Battery messages

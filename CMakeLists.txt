@@ -129,6 +129,7 @@ set(CPP_SOURCES
     src/services/MapStyleMetadata.cpp
     src/services/LowTemperatureMonitor.cpp
     src/services/LowSocMonitor.cpp
+    src/services/OtaMonitor.cpp
     src/services/BluetoothHealthMonitor.cpp
     src/services/HandlebarLockMonitor.cpp
     src/services/BackupBatteryMonitor.cpp
@@ -228,6 +229,7 @@ set(CPP_HEADERS
     src/services/NavigationCadence.h
     src/services/LowTemperatureMonitor.h
     src/services/LowSocMonitor.h
+    src/services/OtaMonitor.h
     src/services/BluetoothHealthMonitor.h
     src/services/HandlebarLockMonitor.h
     src/services/BackupBatteryMonitor.h
@@ -905,6 +907,33 @@ if(BUILD_TESTING)
     target_include_directories(low_soc_monitor_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(low_soc_monitor_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME low_soc_monitor_test COMMAND low_soc_monitor_test)
+
+    qt_add_executable(ota_monitor_test
+        tests/OtaMonitorTest.cpp
+        src/models/Enums.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+        src/stores/SyncableStore.cpp
+        src/stores/SyncableStore.h
+        src/stores/OtaStore.cpp
+        src/stores/OtaStore.h
+        src/services/OtaMonitor.cpp
+        src/services/OtaMonitor.h
+        src/services/ToastService.cpp
+        src/services/ToastService.h
+        src/services/NotificationService.cpp
+        src/services/NotificationService.h
+        src/services/AttentionPolicy.cpp
+        src/services/AttentionPolicy.h
+        src/stores/VehicleStore.cpp
+        src/stores/VehicleStore.h
+        src/l10n/Translations.cpp
+        src/l10n/Translations.h
+    )
+    target_include_directories(ota_monitor_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(ota_monitor_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME ota_monitor_test COMMAND ota_monitor_test)
 
     qt_add_executable(boot_prefetch_test
         tests/BootPrefetchTest.cpp

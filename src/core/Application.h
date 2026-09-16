@@ -22,6 +22,7 @@ class SoundCueService;
 class MapService;
 class LowTemperatureMonitor;
 class LowSocMonitor;
+class OtaMonitor;
 class BluetoothHealthMonitor;
 class HandlebarLockMonitor;
 class BackupBatteryMonitor;
@@ -121,6 +122,7 @@ private:
     MapService *m_mapService = nullptr;
     LowTemperatureMonitor *m_lowTempMonitor = nullptr;
     LowSocMonitor *m_lowSocMonitor = nullptr;
+    OtaMonitor *m_otaMonitor = nullptr;
     BluetoothHealthMonitor *m_bleHealthMonitor = nullptr;
     HandlebarLockMonitor *m_handlebarLockMonitor = nullptr;
     BackupBatteryMonitor *m_backupBatteryMonitor = nullptr;

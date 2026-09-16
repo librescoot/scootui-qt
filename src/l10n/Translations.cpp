@@ -1479,8 +1479,17 @@ void Translations::initStrings()
     en[QStringLiteral("otaPreparingUpdate")] = QStringLiteral("Preparing update...");
     de[QStringLiteral("otaPreparingUpdate")] = QStringLiteral("Update wird vorbereitet...");
 
-    en[QStringLiteral("otaPendingReboot")] = QStringLiteral("Update installed, will apply next time the scooter is started");
-    de[QStringLiteral("otaPendingReboot")] = QStringLiteral("Update installiert, wird beim n\u00E4chsten Start angewendet");
+    en[QStringLiteral("otaPendingReboot")] = QStringLiteral("Update installed, will be applied on next boot.");
+    de[QStringLiteral("otaPendingReboot")] = QStringLiteral("Update installiert, wird beim n\u00E4chsten Start angewendet.");
+
+    en[QStringLiteral("otaDownloadingVersionUpdate")] = QStringLiteral("Downloading Librescoot %1 update");
+    de[QStringLiteral("otaDownloadingVersionUpdate")] = QStringLiteral("Librescoot %1-Update wird heruntergeladen");
+
+    en[QStringLiteral("otaInstallingVersionUpdate")] = QStringLiteral("Installing Librescoot %1 update");
+    de[QStringLiteral("otaInstallingVersionUpdate")] = QStringLiteral("Librescoot %1-Update wird installiert");
+
+    en[QStringLiteral("otaUpdateFailedWithMessage")] = QStringLiteral("Update failed: %1");
+    de[QStringLiteral("otaUpdateFailedWithMessage")] = QStringLiteral("Update fehlgeschlagen: %1");
 
     en[QStringLiteral("otaScooterWillTurnOff")] = QStringLiteral("Your scooter will turn off when done.\nYou can unlock it again at any point.");
     de[QStringLiteral("otaScooterWillTurnOff")] = QStringLiteral("Dein Roller wird danach ausgeschaltet.\nDu kannst ihn jederzeit wieder entsperren.");
