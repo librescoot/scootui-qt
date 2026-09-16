@@ -8,6 +8,27 @@
 #include "stores/ShortcutMenuStore.h"
 #include "stores/VehicleStore.h"
 
+class NavigationStub : public QObject
+{
+    Q_OBJECT
+    Q_PROPERTY(bool hasRoute READ hasRoute NOTIFY routeChanged)
+public:
+    bool hasRoute() const { return m_hasRoute; }
+    Q_INVOKABLE void clearNavigation() { m_hasRoute = false; emit routeChanged(); }
+signals:
+    void routeChanged();
+private:
+    bool m_hasRoute = true;
+};
+
+class MapStub : public QObject
+{
+    Q_OBJECT
+public:
+    Q_INVOKABLE bool showRouteOverview() { ++overviewCalls; return true; }
+    int overviewCalls = 0;
+};
+
 class ShortcutMenuStoreTest : public QObject
 {
     Q_OBJECT
@@ -18,6 +39,7 @@ private slots:
     void releaseStartsThreeSecondConfirmation();
     void closedMenuDoubleTapTogglesHazards();
     void viewActionTogglesMapAndCluster();
+    void activeNavigationOffersOverviewAndStop();
 };
 
 void ShortcutMenuStoreTest::raisingKickstandDismissesAndStopsCycling()
@@ -33,7 +55,7 @@ void ShortcutMenuStoreTest::raisingKickstandDismissesAndStopsCycling()
     engine.start();
     vehicle.start();
     ShortcutMenuStore menu(&engine, &vehicle, nullptr, nullptr, nullptr, nullptr,
-                           &repo, nullptr);
+                           nullptr, nullptr, &repo, nullptr);
 
     repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:long-tap"));
     QVERIFY(menu.visible());
@@ -59,7 +81,7 @@ void ShortcutMenuStoreTest::onlyVisibleWhileReadyToDrive()
     engine.start();
     vehicle.start();
     ShortcutMenuStore menu(&engine, &vehicle, nullptr, nullptr, nullptr, nullptr,
-                           &repo, nullptr);
+                           nullptr, nullptr, &repo, nullptr);
 
     menu.show();
     repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:long-tap"));
@@ -91,7 +113,7 @@ void ShortcutMenuStoreTest::releaseStartsThreeSecondConfirmation()
     engine.start();
     vehicle.start();
     ShortcutMenuStore menu(&engine, &vehicle, nullptr, nullptr, nullptr, nullptr,
-                           &repo, nullptr);
+                           nullptr, nullptr, &repo, nullptr);
 
     repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:long-tap"));
     QVERIFY(menu.visible());
@@ -115,7 +137,7 @@ void ShortcutMenuStoreTest::closedMenuDoubleTapTogglesHazards()
     engine.start();
     vehicle.start();
     ShortcutMenuStore menu(&engine, &vehicle, nullptr, nullptr, nullptr, nullptr,
-                           &repo, nullptr);
+                           nullptr, nullptr, &repo, nullptr);
 
     repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:double-tap"));
     QCOMPARE(vehicle.blinkerState(), static_cast<int>(ScootEnums::BlinkerState::Both));
@@ -144,8 +166,8 @@ void ShortcutMenuStoreTest::viewActionTogglesMapAndCluster()
     engine.start();
     vehicle.start();
     settings.start();
-    ShortcutMenuStore menu(&engine, &vehicle, &screen, nullptr, nullptr, &settings,
-                           &repo, &settingsService);
+    ShortcutMenuStore menu(&engine, &vehicle, &screen, nullptr, nullptr, nullptr,
+                           nullptr, &settings, &repo, &settingsService);
 
     const auto executeView = [&menu, &repo]() {
         menu.show();
@@ -170,6 +192,39 @@ void ShortcutMenuStoreTest::viewActionTogglesMapAndCluster()
     QCOMPARE(repo.get(QStringLiteral("settings"), QStringLiteral("dashboard.mode")),
              QStringLiteral("speedometer"));
     QVERIFY(!menu.visible());
+}
+
+void ShortcutMenuStoreTest::activeNavigationOffersOverviewAndStop()
+{
+    InMemoryMdbRepository repo;
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
+             QStringLiteral("ready-to-drive"), false);
+
+    VehicleStore vehicle(&repo);
+    vehicle.start();
+    NavigationStub navigation;
+    MapStub map;
+    ShortcutMenuStore menu(nullptr, &vehicle, nullptr, nullptr, nullptr,
+                           &navigation, &map, nullptr, &repo, nullptr);
+
+    menu.show();
+    QCOMPARE(menu.actionCount(), 2);
+    QCOMPARE(menu.actions().at(0).toMap().value(QStringLiteral("kind")).toString(),
+             QStringLiteral("route-overview"));
+    QCOMPARE(menu.actions().at(1).toMap().value(QStringLiteral("kind")).toString(),
+             QStringLiteral("stop-navigation"));
+
+    menu.confirm();
+    repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
+    QCOMPARE(map.overviewCalls, 1);
+    QVERIFY(navigation.hasRoute());
+
+    menu.show();
+    menu.cycle();
+    menu.confirm();
+    repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
+    QVERIFY(!navigation.hasRoute());
+    QCOMPARE(menu.actionCount(), 1);
 }
 
 QTEST_GUILESS_MAIN(ShortcutMenuStoreTest)

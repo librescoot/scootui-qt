@@ -145,6 +145,7 @@ public:
     bool debugZoomEnabled() const { return m_debugZoomEnabled; }
     Q_INVOKABLE void debugZoomBy(double delta);
     Q_INVOKABLE void debugResetZoom();
+    Q_INVOKABLE bool showRouteOverview();
 
 signals:
     void mapLatitudeChanged();

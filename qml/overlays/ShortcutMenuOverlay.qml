@@ -18,6 +18,10 @@ Item {
             return ""
         if (selectedAction.kind === "destination")
             return selectedAction.label
+        if (selectedAction.kind === "route-overview")
+            return translations.shortcutRouteOverview
+        if (selectedAction.kind === "stop-navigation")
+            return translations.menuStopNavigation
         return screenStore.currentScreen === Scooter.ScreenMode.Cluster
              ? translations.shortcutViewMap : translations.shortcutViewCluster
     }
@@ -26,6 +30,10 @@ Item {
         if (action.kind === "view")
             return screenStore.currentScreen === Scooter.ScreenMode.Cluster
                  ? MaterialIcon.iconMap : MaterialIcon.iconSpeed
+        if (action.kind === "route-overview")
+            return MaterialIcon.iconMap
+        if (action.kind === "stop-navigation")
+            return MaterialIcon.iconCancel
         switch (action.quickIcon) {
         case "home": return MaterialIcon.iconHome
         case "work": return MaterialIcon.iconWork

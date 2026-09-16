@@ -28,6 +28,7 @@ public:
     explicit ShortcutMenuStore(EngineStore *engine, VehicleStore *vehicle,
                                ScreenStore *screen, SavedLocationsStore *savedLocations,
                                NavigationAvailabilityService *navigationAvailability,
+                               QObject *navigation, QObject *mapService,
                                SettingsStore *settings, MdbRepository *repo,
                                SettingsService *settingsService,
                                QObject *parent = nullptr);
@@ -61,6 +62,8 @@ private:
     void executePendingAction();
     void toggleHazards();
     void toggleView();
+    void stopNavigation();
+    void showRouteOverview();
     void resetState();
     bool isReadyToDrive() const;
     bool isStationary() const;
@@ -72,6 +75,8 @@ private:
     ScreenStore *m_screenStore;
     SavedLocationsStore *m_savedLocations;
     NavigationAvailabilityService *m_navigationAvailability;
+    QObject *m_navigation;
+    QObject *m_mapService;
     SettingsStore *m_settings;
     MdbRepository *m_repo;
     SettingsService *m_settingsService;

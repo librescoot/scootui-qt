@@ -19,6 +19,7 @@ constexpr char kInputEventsChannel[] = "input-events";
 ShortcutMenuStore::ShortcutMenuStore(EngineStore *engine, VehicleStore *vehicle,
                                      ScreenStore *screen, SavedLocationsStore *savedLocations,
                                      NavigationAvailabilityService *navigationAvailability,
+                                     QObject *navigation, QObject *mapService,
                                      SettingsStore *settings, MdbRepository *repo,
                                      SettingsService *settingsService,
                                      QObject *parent)
@@ -28,6 +29,8 @@ ShortcutMenuStore::ShortcutMenuStore(EngineStore *engine, VehicleStore *vehicle,
     , m_screenStore(screen)
     , m_savedLocations(savedLocations)
     , m_navigationAvailability(navigationAvailability)
+    , m_navigation(navigation)
+    , m_mapService(mapService)
     , m_settings(settings)
     , m_repo(repo)
     , m_settingsService(settingsService)
@@ -58,6 +61,8 @@ ShortcutMenuStore::ShortcutMenuStore(EngineStore *engine, VehicleStore *vehicle,
     if (m_navigationAvailability)
         connect(m_navigationAvailability, SIGNAL(availabilityChanged()),
                 this, SLOT(rebuildActions()));
+    if (m_navigation)
+        connect(m_navigation, SIGNAL(routeChanged()), this, SLOT(rebuildActions()));
     if (m_settings)
         connect(m_settings, &SettingsStore::mapTypeChanged,
                 this, &ShortcutMenuStore::rebuildActions);
@@ -153,7 +158,12 @@ QString ShortcutMenuStore::actionKey(const QVariantMap &action)
 QVariantList ShortcutMenuStore::availableActions() const
 {
     QVariantList actions;
-    actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("view")}});
+    if (m_navigation && m_navigation->property("hasRoute").toBool()) {
+        actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("route-overview")}});
+        actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("stop-navigation")}});
+    } else {
+        actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("view")}});
+    }
 
     if (!m_savedLocations || !destinationAvailable())
         return actions;
@@ -272,8 +282,19 @@ void ShortcutMenuStore::executePendingAction()
         return;
     }
 
-    if (m_pendingAction.value(QStringLiteral("kind")) == QLatin1String("view")) {
+    const QString kind = m_pendingAction.value(QStringLiteral("kind")).toString();
+    if (kind == QLatin1String("view")) {
         toggleView();
+        resetState();
+        return;
+    }
+    if (kind == QLatin1String("route-overview")) {
+        showRouteOverview();
+        resetState();
+        return;
+    }
+    if (kind == QLatin1String("stop-navigation")) {
+        stopNavigation();
         resetState();
         return;
     }
@@ -312,6 +333,26 @@ void ShortcutMenuStore::toggleView()
         if (m_settingsService)
             m_settingsService->updateMode(QStringLiteral("speedometer"));
     }
+}
+
+void ShortcutMenuStore::stopNavigation()
+{
+    if (m_navigation && m_navigation->property("hasRoute").toBool())
+        QMetaObject::invokeMethod(m_navigation, "clearNavigation");
+}
+
+void ShortcutMenuStore::showRouteOverview()
+{
+    if (!m_navigation || !m_navigation->property("hasRoute").toBool() || !m_mapService)
+        return;
+    bool shown = false;
+    QMetaObject::invokeMethod(m_mapService, "showRouteOverview", Q_RETURN_ARG(bool, shown));
+    if (!shown)
+        return;
+    if (m_screenStore)
+        m_screenStore->setScreen(static_cast<int>(ScootEnums::ScreenMode::Map));
+    if (m_settingsService)
+        m_settingsService->updateMode(QStringLiteral("navigation"));
 }
 
 void ShortcutMenuStore::resetState()

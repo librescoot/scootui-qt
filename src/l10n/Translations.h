@@ -642,6 +642,7 @@ class Translations : public QObject
     Q_PROPERTY(QString shortcutToggleHazards READ shortcutToggleHazards NOTIFY languageChanged)
     Q_PROPERTY(QString shortcutDebugOverlay READ shortcutDebugOverlay NOTIFY languageChanged)
     Q_PROPERTY(QString shortcutStartDestination READ shortcutStartDestination NOTIFY languageChanged)
+    Q_PROPERTY(QString shortcutRouteOverview READ shortcutRouteOverview NOTIFY languageChanged)
 
 public:
     explicit Translations(QObject *parent = nullptr);
@@ -1279,6 +1280,7 @@ public:
     QString shortcutToggleHazards() const { return lookup("shortcutToggleHazards"); }
     QString shortcutDebugOverlay() const { return lookup("shortcutDebugOverlay"); }
     QString shortcutStartDestination() const { return lookup("shortcutStartDestination"); }
+    QString shortcutRouteOverview() const { return lookup("shortcutRouteOverview"); }
 
 signals:
     void languageChanged();
