@@ -13,7 +13,6 @@ class BluetoothStore : public SyncableStore
     Q_PROPERTY(QString pinCode READ pinCode NOTIFY pinCodeChanged)
     Q_PROPERTY(QString serviceHealth READ serviceHealth NOTIFY serviceHealthChanged)
     Q_PROPERTY(QString serviceError READ serviceError NOTIFY serviceErrorChanged)
-    Q_PROPERTY(QString lastUpdate READ lastUpdate NOTIFY lastUpdateChanged)
     Q_PROPERTY(QList<int> faults READ faults NOTIFY faultsChanged)
 
 public:
@@ -24,7 +23,6 @@ public:
     QString pinCode() const { return m_pinCode; }
     QString serviceHealth() const { return m_serviceHealth; }
     QString serviceError() const { return m_serviceError; }
-    QString lastUpdate() const { return m_lastUpdate; }
     QList<int> faults() const { return m_faults.values(); }
 
 signals:
@@ -33,7 +31,6 @@ signals:
     void pinCodeChanged();
     void serviceHealthChanged();
     void serviceErrorChanged();
-    void lastUpdateChanged();
     void faultsChanged();
 
 protected:
@@ -47,6 +44,5 @@ private:
     QString m_pinCode;
     QString m_serviceHealth;
     QString m_serviceError;
-    QString m_lastUpdate;
     QSet<int> m_faults;
 };

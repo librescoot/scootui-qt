@@ -35,7 +35,7 @@ Rectangle {
 
     // Car-style alternator warning: a main pack is active but the AUX charger
     // reports not-charging. Level-independent; mirrored by the status-bar AUX
-    // warning icon and the AuxChargeMonitor toast. Uses the red UNECE R121 /
+    // warning icon and the ChargingSystemMonitor toast. Uses the red UNECE R121 /
     // ISO 7000-0247 charging-condition telltale.
     readonly property bool auxNotCharging: {
         if (typeof battery0Store === "undefined" || typeof auxBatteryStore === "undefined") return false
@@ -45,17 +45,30 @@ Rectangle {
         return mainActive && auxPresent && auxBatteryStore.chargeStatus === 0
     }
 
+    // Battery mode: slot 1 only counts when the scooter is configured for two
+    // packs, so an inserted-but-unused pack cannot light a telltale.
+    readonly property bool dualBattery: typeof settingsStore !== "undefined" && settingsStore.dualBattery
+
     // Turtle: a present, active pack at or below 20% caps motor power.
     readonly property bool turtle: {
         var b0 = typeof battery0Store !== "undefined" && battery0Store.present
                  && battery0Store.batteryState === 3 && battery0Store.charge <= 20
-        var b1 = typeof battery1Store !== "undefined" && battery1Store.present
+        var b1 = dualBattery && typeof battery1Store !== "undefined" && battery1Store.present
                  && battery1Store.batteryState === 3 && battery1Store.charge <= 20
         return b0 || b1
     }
 
+    // Battery fault: a pack in play reports faults.
+    readonly property bool batteryFault: {
+        var b0 = typeof battery0Store !== "undefined" && battery0Store.present
+                 && battery0Store.faults.length > 0
+        var b1 = dualBattery && typeof battery1Store !== "undefined" && battery1Store.present
+                 && battery1Store.faults.length > 0
+        return b0 || b1
+    }
+
     readonly property bool anyActive: engineFault || usbDisconnected || hazards
-                                      || parked || turtle || auxNotCharging
+                                      || parked || turtle || auxNotCharging || batteryFault
 
     visible: anyActive
     width: telltaleRow.width + 16
@@ -81,6 +94,11 @@ Rectangle {
             sourceSize: Qt.size(width, height)
             fillMode: Image.PreserveAspectFit
             source: "qrc:/ScootUI/assets/icons/librescoot-battery-charging-condition.svg"
+        }
+
+        IndicatorLight {
+            active: panel.batteryFault
+            source: "qrc:/ScootUI/assets/icons/librescoot-propulsion-battery-fault.svg"
         }
 
         IndicatorLight {

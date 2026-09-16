@@ -1015,6 +1015,10 @@ void Translations::initStrings()
     en[QStringLiteral("bluetoothCommError")] = QStringLiteral("Bluetooth service communication error");
     de[QStringLiteral("bluetoothCommError")] = QStringLiteral("Bluetooth-Kommunikationsfehler");
 
+    // %1 = the reported service error (untranslated).
+    en[QStringLiteral("bluetoothError")] = QStringLiteral("Bluetooth: %1");
+    de[QStringLiteral("bluetoothError")] = QStringLiteral("Bluetooth: %1");
+
     en[QStringLiteral("bluetoothPinInstruction")] = QStringLiteral("Use this code to pair your device");
     de[QStringLiteral("bluetoothPinInstruction")] = QStringLiteral("Diesen Code zum Koppeln verwenden");
 
@@ -1514,6 +1518,9 @@ void Translations::initStrings()
 
     en[QStringLiteral("batteryLowPowerReduced")] = QStringLiteral("Battery low. Power reduced. Please recharge battery");
     de[QStringLiteral("batteryLowPowerReduced")] = QStringLiteral("Batterie schwach. Leistung reduziert. Bitte aufladen");
+
+    en[QStringLiteral("batteryLowPowerReducedShort")] = QStringLiteral("Battery low. Power reduced. Recharge battery");
+    de[QStringLiteral("batteryLowPowerReducedShort")] = QStringLiteral("Batterie schwach. Leistung reduziert. Aufladen");
 
     en[QStringLiteral("batterySlot0")] = QStringLiteral("Battery 0");
     de[QStringLiteral("batterySlot0")] = QStringLiteral("Batterie 0");

@@ -361,6 +361,7 @@ class Translations : public QObject
     // Bluetooth
     Q_PROPERTY(QString blePinPrompt READ blePinPrompt NOTIFY languageChanged)
     Q_PROPERTY(QString bluetoothCommError READ bluetoothCommError NOTIFY languageChanged)
+    Q_PROPERTY(QString bluetoothError READ bluetoothError NOTIFY languageChanged)
     Q_PROPERTY(QString bluetoothPinInstruction READ bluetoothPinInstruction NOTIFY languageChanged)
 
     // Hibernation
@@ -530,6 +531,7 @@ class Translations : public QObject
     Q_PROPERTY(QString batteryEmptyRecharge READ batteryEmptyRecharge NOTIFY languageChanged)
     Q_PROPERTY(QString batteryMaxSpeedReduced READ batteryMaxSpeedReduced NOTIFY languageChanged)
     Q_PROPERTY(QString batteryLowPowerReduced READ batteryLowPowerReduced NOTIFY languageChanged)
+    Q_PROPERTY(QString batteryLowPowerReducedShort READ batteryLowPowerReducedShort NOTIFY languageChanged)
     Q_PROPERTY(QString batterySlot0 READ batterySlot0 NOTIFY languageChanged)
     Q_PROPERTY(QString batterySlot1 READ batterySlot1 NOTIFY languageChanged)
 
@@ -998,6 +1000,7 @@ public:
 
     QString blePinPrompt() const { return lookup("blePinPrompt"); }
     QString bluetoothCommError() const { return lookup("bluetoothCommError"); }
+    QString bluetoothError() const { return lookup("bluetoothError"); }
     QString bluetoothPinInstruction() const { return lookup("bluetoothPinInstruction"); }
 
     QString hibernatePrompt() const { return lookup("hibernatePrompt"); }
@@ -1161,6 +1164,7 @@ public:
     QString batteryEmptyRecharge() const { return lookup("batteryEmptyRecharge"); }
     QString batteryMaxSpeedReduced() const { return lookup("batteryMaxSpeedReduced"); }
     QString batteryLowPowerReduced() const { return lookup("batteryLowPowerReduced"); }
+    QString batteryLowPowerReducedShort() const { return lookup("batteryLowPowerReducedShort"); }
     QString batterySlot0() const { return lookup("batterySlot0"); }
     QString batterySlot1() const { return lookup("batterySlot1"); }
 

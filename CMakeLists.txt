@@ -128,10 +128,11 @@ set(CPP_SOURCES
     src/services/MapStyleComposer.h
     src/services/MapStyleMetadata.cpp
     src/services/LowTemperatureMonitor.cpp
+    src/services/LowSocMonitor.cpp
     src/services/BluetoothHealthMonitor.cpp
     src/services/HandlebarLockMonitor.cpp
     src/services/BackupBatteryMonitor.cpp
-    src/services/AuxChargeMonitor.cpp
+    src/services/ChargingSystemMonitor.cpp
     src/services/NavigationAvailabilityService.cpp
     src/services/SavedLocationsService.cpp
     src/services/RecentDestinationsService.cpp
@@ -226,10 +227,11 @@ set(CPP_HEADERS
     src/services/MapCameraPolicy.h
     src/services/NavigationCadence.h
     src/services/LowTemperatureMonitor.h
+    src/services/LowSocMonitor.h
     src/services/BluetoothHealthMonitor.h
     src/services/HandlebarLockMonitor.h
     src/services/BackupBatteryMonitor.h
-    src/services/AuxChargeMonitor.h
+    src/services/ChargingSystemMonitor.h
     src/services/NavigationAvailabilityService.h
     src/services/SavedLocationsService.h
     src/services/ReverseGeocodingService.h
@@ -846,8 +848,8 @@ if(BUILD_TESTING)
     target_link_libraries(backup_battery_monitor_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME backup_battery_monitor_test COMMAND backup_battery_monitor_test)
 
-    qt_add_executable(aux_charge_monitor_test
-        tests/AuxChargeMonitorTest.cpp
+    qt_add_executable(charging_system_monitor_test
+        tests/ChargingSystemMonitorTest.cpp
         src/models/Enums.h
         src/repositories/MdbRepository.h
         src/repositories/InMemoryMdbRepository.cpp
@@ -856,10 +858,12 @@ if(BUILD_TESTING)
         src/stores/SyncableStore.h
         src/stores/BatteryStore.cpp
         src/stores/BatteryStore.h
+        src/stores/CbBatteryStore.cpp
+        src/stores/CbBatteryStore.h
         src/stores/AuxBatteryStore.cpp
         src/stores/AuxBatteryStore.h
-        src/services/AuxChargeMonitor.cpp
-        src/services/AuxChargeMonitor.h
+        src/services/ChargingSystemMonitor.cpp
+        src/services/ChargingSystemMonitor.h
         src/services/ToastService.cpp
         src/services/ToastService.h
         src/services/NotificationService.cpp
@@ -871,9 +875,36 @@ if(BUILD_TESTING)
         src/l10n/Translations.cpp
         src/l10n/Translations.h
     )
-    target_include_directories(aux_charge_monitor_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-    target_link_libraries(aux_charge_monitor_test PRIVATE Qt6::Core Qt6::Test)
-    add_test(NAME aux_charge_monitor_test COMMAND aux_charge_monitor_test)
+    target_include_directories(charging_system_monitor_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(charging_system_monitor_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME charging_system_monitor_test COMMAND charging_system_monitor_test)
+
+    qt_add_executable(low_soc_monitor_test
+        tests/LowSocMonitorTest.cpp
+        src/models/Enums.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+        src/stores/SyncableStore.cpp
+        src/stores/SyncableStore.h
+        src/stores/BatteryStore.cpp
+        src/stores/BatteryStore.h
+        src/services/LowSocMonitor.cpp
+        src/services/LowSocMonitor.h
+        src/services/ToastService.cpp
+        src/services/ToastService.h
+        src/services/NotificationService.cpp
+        src/services/NotificationService.h
+        src/services/AttentionPolicy.cpp
+        src/services/AttentionPolicy.h
+        src/stores/VehicleStore.cpp
+        src/stores/VehicleStore.h
+        src/l10n/Translations.cpp
+        src/l10n/Translations.h
+    )
+    target_include_directories(low_soc_monitor_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(low_soc_monitor_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME low_soc_monitor_test COMMAND low_soc_monitor_test)
 
     qt_add_executable(boot_prefetch_test
         tests/BootPrefetchTest.cpp

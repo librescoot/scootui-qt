@@ -16,6 +16,7 @@ Row {
     readonly property bool gpsHasTimestamp: typeof gpsStore !== "undefined" ? gpsStore.hasTimestamp : false
     readonly property int btStatus: typeof bluetoothStore !== "undefined" ? bluetoothStore.status : 1
     readonly property string btServiceHealth: typeof bluetoothStore !== "undefined" ? bluetoothStore.serviceHealth : ""
+    readonly property var btFaults: typeof bluetoothStore !== "undefined" ? bluetoothStore.faults : []
     readonly property int modemState: typeof internetStore !== "undefined" ? internetStore.modemState : 0
     // Connectivity classification from modem-service: gates whether the internet
     // icon is worth showing at all. "" = unknown (treat as hidden).
@@ -175,7 +176,9 @@ Row {
     readonly property bool gpsIsActive: (gpsState === 0 && gpsRecentFix) || (gpsState === 2 && gpsRecentFix)
     readonly property bool gpsHasError: gpsState === 3
     readonly property bool btIsActive: btStatus === 0
-    readonly property bool btHasError: btServiceHealth === "error"
+    // The service replaced its old ble[last-update] heartbeat with the FaultSet
+    // API (ble:fault), so ill health is service-health == error or a raised fault.
+    readonly property bool btHasError: btServiceHealth === "error" || btFaults.length > 0
     readonly property bool cloudIsActive: hasCloud && cloudStatus === 0
     readonly property bool cloudHasError: hasCloud && cloudStatus === 1
     // Internet icon gating off the connectivity classification (not raw modem-state):
@@ -290,9 +293,11 @@ Row {
             id: btIcon
             anchors.fill: parent
             sourceSize: Qt.size(24, 24)
-            source: btStatus === 0
-                ? "qrc:/ScootUI/assets/icons/librescoot-bluetooth-connected.svg"
-                : "qrc:/ScootUI/assets/icons/librescoot-bluetooth-disconnected.svg"
+            source: btHasError
+                ? "qrc:/ScootUI/assets/icons/librescoot-bluetooth-error.svg"
+                : btStatus === 0
+                    ? "qrc:/ScootUI/assets/icons/librescoot-bluetooth-connected.svg"
+                    : "qrc:/ScootUI/assets/icons/librescoot-bluetooth-disconnected.svg"
             visible: false
             layer.enabled: true
         }

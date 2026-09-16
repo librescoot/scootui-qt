@@ -56,10 +56,11 @@
 #include "services/SoundCuePlayer.h"
 #include "services/MapService.h"
 #include "services/LowTemperatureMonitor.h"
+#include "services/LowSocMonitor.h"
 #include "services/BluetoothHealthMonitor.h"
 #include "services/HandlebarLockMonitor.h"
 #include "services/BackupBatteryMonitor.h"
-#include "services/AuxChargeMonitor.h"
+#include "services/ChargingSystemMonitor.h"
 #include "services/NavigationAvailabilityService.h"
 #include "services/SavedLocationsService.h"
 #include "services/RecentDestinationsService.h"
@@ -628,13 +629,16 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // Monitoring services (B3, B4)
     m_lowTempMonitor = new LowTemperatureMonitor(engineStore, battery0Store,
                                                    cbBatteryStore, m_toastService, m_translations, this);
-    m_bleHealthMonitor = new BluetoothHealthMonitor(bluetoothStore, m_toastService, this);
+    m_bleHealthMonitor = new BluetoothHealthMonitor(bluetoothStore, m_toastService,
+                                                    m_translations, this);
+    m_lowSocMonitor = new LowSocMonitor(battery0Store, m_toastService, m_translations, this);
     m_handlebarLockMonitor = new HandlebarLockMonitor(vehicleStore, m_toastService, m_translations, this);
     m_backupBatteryMonitor = new BackupBatteryMonitor(battery0Store, battery1Store, cbBatteryStore,
                                                        auxBatteryStore, vehicleStore, m_toastService,
                                                        m_translations, this);
-    m_auxChargeMonitor = new AuxChargeMonitor(battery0Store, auxBatteryStore,
-                                              m_toastService, m_translations, this);
+    m_chargingSystemMonitor = new ChargingSystemMonitor(battery0Store, cbBatteryStore,
+                                                       auxBatteryStore, m_toastService,
+                                                       m_translations, this);
 
     // Battery fault monitoring
     auto refreshFault = [this, settingsStore](BatteryStore *batteryStore) {
