@@ -25,8 +25,9 @@ public:
         return {(minLat + maxLat) * 0.5, (minLon + maxLon) * 0.5};
     }
 
+    // Defaults match MapService's overview bounds.
     static double routeOverviewZoom(const QList<LatLng> &shape,
-                                    double minZoom = 11.0,
+                                    double minZoom = 9.0,
                                     double maxZoom = 15.0)
     {
         if (shape.size() < 2)

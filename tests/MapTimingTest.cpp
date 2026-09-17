@@ -10,6 +10,7 @@ class MapTimingTest : public QObject
 private slots:
     void dividersStayOnIntegerRenderTicks();
     void overviewFitsRouteExtent();
+    void overviewZoomCoversScooterRange();
     void overviewCentersBounds();
     void closeSecondTurnExpandsLookahead();
 };
@@ -38,6 +39,20 @@ void MapTimingTest::overviewFitsRouteExtent()
     const double longZoom = MapCameraPolicy::routeOverviewZoom(longRoute);
     QVERIFY(longZoom > 11.0);
     QVERIFY(longZoom < 12.0);
+}
+
+// A full-range (45 km) route must be framed without hitting the floor.
+void MapTimingTest::overviewZoomCoversScooterRange()
+{
+    // 0.405 degrees of latitude is about 45 km.
+    const QList<LatLng> rangeRoute{{52.5, 13.4}, {52.905, 13.4}};
+    const double rangeZoom = MapCameraPolicy::routeOverviewZoom(rangeRoute);
+    QVERIFY(rangeZoom < 11.0);
+    QVERIFY(rangeZoom >= 9.0);
+
+    // Longer routes stop at the floor instead of zooming out forever.
+    const QList<LatLng> countryRoute{{52.0, 13.4}, {53.5, 13.4}};
+    QCOMPARE(MapCameraPolicy::routeOverviewZoom(countryRoute), 9.0);
 }
 
 void MapTimingTest::overviewCentersBounds()

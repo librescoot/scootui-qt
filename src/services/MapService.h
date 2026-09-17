@@ -285,9 +285,14 @@ private:
     static constexpr double MultiTurnLookAheadMeters = 150.0;
 
     // Route overview (zoom out briefly after route calculation)
-    static constexpr double OverviewMinZoom = 11.0;
+    // Floor must frame a full-range trip: a straight 45 km route needs
+    // zoom <= 9.44. The tile set carries z0-z14, so this stays over tiles.
+    static constexpr double OverviewMinZoom = 9.0;
     static constexpr double OverviewMaxZoom = 15.0;
-    static constexpr double OverviewZoomRate = 2.0;
+    // Must cover the full travel to the overview zoom well inside
+    // OverviewHoldMs, or the camera reverts before the route is framed.
+    // Nav zoom (~16) to a long-route overview (~10) is ~6 units.
+    static constexpr double OverviewZoomRate = 6.0;
     static constexpr int OverviewHoldMs = 3000;
 
     // Rotation smoothing
