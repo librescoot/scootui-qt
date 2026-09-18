@@ -91,12 +91,16 @@ void MapPlanGeometryTest::stopsCarryIndexCurrentAndReached()
     QCOMPARE(firstProps.value(QStringLiteral("index")).toInt(), 0);
     QCOMPARE(firstProps.value(QStringLiteral("current")).toInt(), 0);
     QCOMPARE(firstProps.value(QStringLiteral("reached")).toInt(), 1);
+    QCOMPARE(firstProps.value(QStringLiteral("first")).toInt(), 1);
+    QCOMPARE(firstProps.value(QStringLiteral("last")).toInt(), 0);
     QCOMPARE(firstProps.value(QStringLiteral("label")).toString(), QStringLiteral("A"));
 
     QCOMPARE(features.at(1).toObject().value(QStringLiteral("properties")).toObject()
                  .value(QStringLiteral("current")).toInt(), 1);
     QCOMPARE(features.at(2).toObject().value(QStringLiteral("properties")).toObject()
                  .value(QStringLiteral("current")).toInt(), 0);
+    QCOMPARE(features.at(2).toObject().value(QStringLiteral("properties")).toObject()
+                 .value(QStringLiteral("last")).toInt(), 1);
 }
 
 void MapPlanGeometryTest::stopsSkipInvalidCoordinates()

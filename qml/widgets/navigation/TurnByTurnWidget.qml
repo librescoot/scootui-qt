@@ -240,13 +240,10 @@ Item {
                 Layout.topMargin: tbtWidget.compact || tbtWidget.paired ? 6 : 12 + (tbtWidget.maneuver.isStart && timeInfoBar.visible ? timeInfoBar.height : 0)
                 Layout.bottomMargin: tbtWidget.compact || tbtWidget.paired ? 6 : 8
 
-                // Multi-hop progress. Only on the full card; the compact and
-                // paired layouts are short on room and the prompt already names
-                // the stop.
+                // Multi-hop progress, full card only.
                 Text {
                     objectName: "maneuverStopProgress"
                     Layout.fillWidth: true
-                    Layout.columnSpan: 2
                     visible: !tbtWidget.compact && !tbtWidget.paired
                              && tbtWidget.maneuver.hasPlan === true
                     text: (typeof translations !== "undefined")

@@ -6,19 +6,16 @@
 #include <QVariantList>
 
 // GeoJSON for the multi-hop plan overlay: the previewed remaining route drawn
-// dim and dashed under the active route, plus one marker per stop.
-//
-// Kept free of MapService so the encoding can be unit-tested on its own.
+// under the active route, plus one marker per stop. Free of MapService so the
+// encoding can be unit-tested.
 namespace MapPlanGeometry {
 
-// A single LineString feature through the plan's remaining geometry, or an
-// empty FeatureCollection when there is nothing to draw. GeoJSON coordinates
-// are [longitude, latitude].
+// Feature LineString, or an empty FeatureCollection when there is nothing to
+// draw. Coordinates are [longitude, latitude].
 QString lineGeoJson(const QList<LatLng> &points);
 
-// A FeatureCollection with one Point per stop. Each feature carries
-// properties: index, current (1 for the stop being guided to), reached, and
-// label. Accepts the maps NavigationService::planStops() returns.
+// FeatureCollection of stop Points with properties index, current, reached,
+// first, last, label. Accepts NavigationService::planStops().
 QString stopsGeoJson(const QVariantList &stops, int currentStep);
 
 } // namespace MapPlanGeometry

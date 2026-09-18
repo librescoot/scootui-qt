@@ -403,6 +403,15 @@ void Application::createStores(QQmlApplicationEngine &engine)
     connect(m_navigationService, &NavigationService::arrivalReset, this, [this]() {
         m_notificationService->clearEvent(QStringLiteral("navigation-arrived"));
     });
+    // A restored plan resumes on its own; say so, or the rider has no way to
+    // know a trip is waiting.
+    connect(m_navigationService, &NavigationService::planRestored, this,
+            [this](const QString &label, int, int) {
+        if (label.isEmpty())
+            m_toastService->showInfo(m_translations->navRouteRestored());
+        else
+            m_toastService->showInfo(m_translations->navRouteRestoredTo().arg(label));
+    });
     refreshNavigationAttention();
 
     // Show toast on navigation errors so the user knows what went wrong

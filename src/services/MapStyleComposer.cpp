@@ -77,10 +77,8 @@ QJsonObject routeLine(const QString &id, const QString &color,
     return layer;
 }
 
-// The remaining multi-hop plan, drawn under the active route: a dim dashed line
-// through the previewed geometry and a marker per stop. The stop being guided
-// to gets its own brighter marker via a filter, so the plan reads as a sequence
-// without a second source.
+// Remaining plan under the active route: dim dashed line, one marker per stop,
+// with the trip ends and the current stop distinguished by filter.
 QJsonObject planLine(const MapRouteStyle &style)
 {
     QJsonObject layout;
@@ -102,22 +100,30 @@ QJsonObject planLine(const MapRouteStyle &style)
     return layer;
 }
 
-QJsonObject planStop(const QString &id, const QString &color, int radius, bool currentOnly)
+QJsonObject planStop(const QString &id, const QString &color, int radius,
+                     const QString &flag = {}, int value = 0, bool ring = false)
 {
     QJsonObject paint;
-    paint[QStringLiteral("circle-color")] = color;
-    paint[QStringLiteral("circle-radius")] = radius;
-    paint[QStringLiteral("circle-stroke-color")] = QStringLiteral("#ffffff");
-    paint[QStringLiteral("circle-stroke-width")] = currentOnly ? 3 : 2;
+    if (ring) {
+        // Ring, not disc: highlights the stop without hiding a start or end marker.
+        paint[QStringLiteral("circle-color")] = QStringLiteral("rgba(0,0,0,0)");
+        paint[QStringLiteral("circle-radius")] = radius;
+        paint[QStringLiteral("circle-stroke-color")] = color;
+        paint[QStringLiteral("circle-stroke-width")] = 3;
+    } else {
+        paint[QStringLiteral("circle-color")] = color;
+        paint[QStringLiteral("circle-radius")] = radius;
+        paint[QStringLiteral("circle-stroke-color")] = QStringLiteral("#ffffff");
+        paint[QStringLiteral("circle-stroke-width")] = 2;
+    }
 
     QJsonObject layer;
     layer[QStringLiteral("id")] = id;
     layer[QStringLiteral("type")] = QStringLiteral("circle");
     layer[QStringLiteral("source")] = QStringLiteral("plan-stops");
     layer[QStringLiteral("paint")] = paint;
-    if (currentOnly)
-        layer[QStringLiteral("filter")] = QJsonArray{
-            QStringLiteral("=="), QStringLiteral("current"), 1};
+    if (!flag.isEmpty())
+        layer[QStringLiteral("filter")] = QJsonArray{QStringLiteral("=="), flag, value};
     return layer;
 }
 
@@ -131,7 +137,6 @@ void injectRoute(QJsonObject &root, const MapRouteStyle &style)
     routeSource[QStringLiteral("type")] = QStringLiteral("geojson");
     routeSource[QStringLiteral("data")] = featureCollection;
     sources[QStringLiteral("route")] = routeSource;
-    // The plan overlay's sources start empty and are filled from MapService.
     sources[QStringLiteral("plan")] = routeSource;
     sources[QStringLiteral("plan-stops")] = routeSource;
     root[QStringLiteral("sources")] = sources;
@@ -144,6 +149,8 @@ void injectRoute(QJsonObject &root, const MapRouteStyle &style)
             && id != QLatin1String("route-ghost")
             && id != QLatin1String("plan-line")
             && id != QLatin1String("plan-stop")
+            && id != QLatin1String("plan-stop-start")
+            && id != QLatin1String("plan-stop-end")
             && id != QLatin1String("plan-stop-current")) {
             layers.append(value);
         }
@@ -166,9 +173,15 @@ void injectRoute(QJsonObject &root, const MapRouteStyle &style)
     QJsonArray composed;
     const QJsonArray planLayers{
         planLine(style),
-        planStop(QStringLiteral("plan-stop"), style.borderColor, 6, false),
-        planStop(QStringLiteral("plan-stop-current"), style.fillColor, 8, true)};
-    // Plan first, then the active route, so the route being ridden stays on top.
+        planStop(QStringLiteral("plan-stop"), style.borderColor, 6),
+        // Fixed semantic colours for the trip ends, readable in both themes.
+        planStop(QStringLiteral("plan-stop-start"), QStringLiteral("#2E7D32"), 9,
+                 QStringLiteral("first"), 1),
+        planStop(QStringLiteral("plan-stop-end"), QStringLiteral("#C62828"), 9,
+                 QStringLiteral("last"), 1),
+        planStop(QStringLiteral("plan-stop-current"), style.fillColor, 12,
+                 QStringLiteral("current"), 1, true)};
+    // Plan first so the active route draws on top.
     const auto appendPlanAndRoute = [&composed, &planLayers, &style]() {
         for (const QJsonValue &planLayer : planLayers)
             composed.append(planLayer);

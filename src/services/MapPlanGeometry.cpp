@@ -17,7 +17,6 @@ QJsonObject emptyFeatureCollection()
 
 QJsonObject point(double latitude, double longitude)
 {
-    // GeoJSON is [longitude, latitude].
     return QJsonObject{
         {QStringLiteral("type"), QStringLiteral("Point")},
         {QStringLiteral("coordinates"), QJsonArray{longitude, latitude}}};
@@ -56,11 +55,12 @@ QString stopsGeoJson(const QVariantList &stops, int currentStep)
 
         QJsonObject properties;
         properties[QStringLiteral("index")] = i;
-        // Numeric rather than boolean: the layer filter compares a number, which
-        // is unambiguous across MapLibre filter implementations.
+        // Numeric flags: layer filters compare numbers.
         properties[QStringLiteral("current")] = (i == currentStep) ? 1 : 0;
         properties[QStringLiteral("reached")] =
             stop.value(QStringLiteral("reached")).toBool() ? 1 : 0;
+        properties[QStringLiteral("first")] = (i == 0) ? 1 : 0;
+        properties[QStringLiteral("last")] = (i == stops.size() - 1) ? 1 : 0;
         properties[QStringLiteral("label")] = stop.value(QStringLiteral("label")).toString();
 
         features.append(QJsonObject{

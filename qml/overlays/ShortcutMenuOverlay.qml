@@ -28,16 +28,13 @@ Item {
              ? translations.shortcutViewMap : translations.shortcutViewCluster
     }
 
-    // Cells are equal width, so the caption can sit under the highlighted cell.
-    // Centred on the bar it reads as labelling the middle cell once there are
-    // three, whichever one is actually selected.
+    // Equal-width cells; the caption matches its cell so it stays under the icon.
     readonly property real cellWidth: shortcutMenuStore.actionCount > 0
                                       ? contentRow.width / shortcutMenuStore.actionCount
                                       : contentRow.width
-    readonly property real captionWidth: Math.min(containerWrapper.width - 24,
-                                                 Math.max(cellWidth * 1.5, 150))
-    readonly property real selectedCentre: contentRow.x
-                                           + (shortcutMenuStore.selectedIndex + 0.5) * cellWidth
+    readonly property real captionWidth: cellWidth
+    readonly property real captionX: contentRow.x
+                                     + shortcutMenuStore.selectedIndex * cellWidth
 
     function actionIcon(action) {
         if (action.kind === "view")
@@ -62,8 +59,8 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: confirmBar.anchors.bottomMargin + confirmBar.height + 6
-        width: shortcutMenuStore.actionCount === 1 ? 280
-             : shortcutMenuStore.actionCount === 2 ? 340 : 400
+        // Same width for every action count, so the row and confirm bar hold still.
+        width: 400
         height: 150
         clip: true
 
@@ -133,8 +130,7 @@ Item {
             anchors.top: contentRow.bottom
             anchors.topMargin: 6
             width: shortcutOverlay.captionWidth
-            x: Math.max(12, Math.min(shortcutOverlay.selectedCentre - width / 2,
-                                     containerWrapper.width - width - 12))
+            x: shortcutOverlay.captionX
             horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideRight
             maximumLineCount: 1
@@ -150,7 +146,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 28
-        width: Math.max(280, containerWrapper.width)
+        width: containerWrapper.width
         height: confirmContent.height + 22
         radius: themeStore.radiusModal
         color: isDark ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.95)

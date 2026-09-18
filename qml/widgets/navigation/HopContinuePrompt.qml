@@ -2,10 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import "../components"
 
-// Arrival prompt at an intermediate hop. The plan advances on its own when the
-// countdown runs out; the rider can confirm early with a right hold or hold
-// here with a left hold. Parked/hop-on pauses instead and NavigationService
-// stops the countdown.
+// Arrival prompt at an intermediate hop; the plan advances when it counts down.
 Item {
     id: hopPrompt
     anchors.fill: parent

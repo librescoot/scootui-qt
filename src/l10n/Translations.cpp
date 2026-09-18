@@ -1279,6 +1279,10 @@ void Translations::initStrings()
     de[QStringLiteral("navHoldContinue")] = QStringLiteral("Rechts halten: weiter");
     en[QStringLiteral("navHoldStop")] = QStringLiteral("Left hold: stop here");
     de[QStringLiteral("navHoldStop")] = QStringLiteral("Links halten: hier anhalten");
+    en[QStringLiteral("navRouteRestored")] = QStringLiteral("Resuming route");
+    de[QStringLiteral("navRouteRestored")] = QStringLiteral("Route wird fortgesetzt");
+    en[QStringLiteral("navRouteRestoredTo")] = QStringLiteral("Resuming route to %1");
+    de[QStringLiteral("navRouteRestoredTo")] = QStringLiteral("Route wird fortgesetzt nach %1");
     en[QStringLiteral("routeOverviewTitle")] = QStringLiteral("Route");
     de[QStringLiteral("routeOverviewTitle")] = QStringLiteral("Route");
     en[QStringLiteral("routeOverviewCurrentPosition")] = QStringLiteral("Current position");

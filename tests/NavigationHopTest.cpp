@@ -38,7 +38,8 @@ private slots:
     void reorderAndDeleteKeepTheCurrentTarget();
     void jumpToStopRetargetsAndMarksReached();
     void appendAfterFinalArrivalReopensTheTrip();
-    void restoreFromSettingsResumesAsPausedAtReachedHop();
+    void restoreFromSettingsStartsNavigating();
+    void restoreFromReachedStopAdvances();
     void externalPlanPushStartsNavigation();
     void ownWriteEchoDoesNotRestart();
     void externalSingleDestinationReplacesPlan();
@@ -545,16 +546,15 @@ void NavigationHopTest::appendAfterFinalArrivalReopensTheTrip()
     QVERIFY(f.nav.planStops().at(1).toMap().value(QStringLiteral("reached")).toBool());
 }
 
-void NavigationHopTest::restoreFromSettingsResumesAsPausedAtReachedHop()
+// A restored trip navigates on its own instead of waiting for the rider to
+// pick it from the menu again.
+void NavigationHopTest::restoreFromSettingsStartsNavigating()
 {
     InMemoryMdbRepository repo;
 
     RoutePlan plan;
     plan.stops = {stop(52.51, 13.41, QStringLiteral("A")),
                   stop(52.52, 13.42, QStringLiteral("B"))};
-    plan.currentStep = 1;
-    // The current stop was reached, then the trip paused, so resuming advances.
-    plan.stops[1].reached = true;
     RoutePlanService seeded(&repo);
     QVERIFY(seeded.save(plan, true));
 
@@ -571,12 +571,37 @@ void NavigationHopTest::restoreFromSettingsResumesAsPausedAtReachedHop()
     NavigationService nav(&gps, &navStore, &vehicle, &settings, &speed, &repo);
 
     QVERIFY(nav.hasPlan());
-    QCOMPARE(nav.planState(), static_cast<int>(RoutePlanState::Paused));
-    QCOMPARE(nav.currentStep(), 1);
+    QCOMPARE(nav.planState(), static_cast<int>(RoutePlanState::Navigating));
+    QCOMPARE(nav.currentStep(), 0);
+    quiesce(nav);
+}
 
-    // The reached stop was restored, so resuming advances: here the plan is
-    // already on its last stop, so the trip completes.
-    nav.resumePlan();
+// A stop already marked reached means the rider was there, so the restored trip
+// continues at the next stop; when that was the last one, the trip is done.
+void NavigationHopTest::restoreFromReachedStopAdvances()
+{
+    InMemoryMdbRepository repo;
+
+    RoutePlan plan;
+    plan.stops = {stop(52.51, 13.41, QStringLiteral("A")),
+                  stop(52.52, 13.42, QStringLiteral("B"))};
+    plan.currentStep = 1;
+    plan.stops[1].reached = true;
+    RoutePlanService seeded(&repo);
+    QVERIFY(seeded.save(plan, true));
+
+    GpsStore gps(&repo);
+    SpeedLimitStore speed(&repo);
+    NavigationStore navStore(&repo);
+    VehicleStore vehicle(&repo);
+    SettingsStore settings(&repo);
+    gps.start();
+    navStore.start();
+    vehicle.start();
+    settings.start();
+    speed.start();
+    NavigationService nav(&gps, &navStore, &vehicle, &settings, &speed, &repo);
+
     QCOMPARE(nav.planState(), static_cast<int>(RoutePlanState::Complete));
     quiesce(nav);
 }

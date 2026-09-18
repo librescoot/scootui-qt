@@ -128,6 +128,10 @@ void MapStyleComposerTest::preservesOnlineResourcesAndPlacesRoute()
                 .contains(QStringLiteral("line-dasharray")));
     QCOMPARE(layer(style, QStringLiteral("plan-stop-current")).value(QStringLiteral("filter")).toArray(),
              QJsonArray({QStringLiteral("=="), QStringLiteral("current"), 1}));
+    QCOMPARE(layer(style, QStringLiteral("plan-stop-start")).value(QStringLiteral("filter")).toArray(),
+             QJsonArray({QStringLiteral("=="), QStringLiteral("first"), 1}));
+    QCOMPARE(layer(style, QStringLiteral("plan-stop-end")).value(QStringLiteral("filter")).toArray(),
+             QJsonArray({QStringLiteral("=="), QStringLiteral("last"), 1}));
 }
 
 void MapStyleComposerTest::configuresOfflineResourcesWithoutGlyphs()
@@ -212,7 +216,7 @@ void MapStyleComposerTest::compositionIsIdempotent()
             ++planLayers;
     }
     QCOMPARE(routeLayers, 3);
-    QCOMPARE(planLayers, 3);
+    QCOMPARE(planLayers, 5);
 }
 
 QTEST_APPLESS_MAIN(MapStyleComposerTest)

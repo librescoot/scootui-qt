@@ -1159,14 +1159,24 @@ void NavigationService::restorePlan()
         return;
 
     m_plan = stored;
-    // A stop already marked reached means the trip was paused at a hop, so
-    // resuming should advance rather than guide back to it.
-    m_pausedAfterReach = m_plan.currentStop().reached;
-    m_destination = m_plan.currentStop().position;
-    m_destAddress = m_plan.currentStop().label;
-    emit planChanged();
-    emit destinationChanged();
-    setPlanState(RoutePlanState::Paused);
+    // A reached stop means the rider was already there: continue forward.
+    if (m_plan.currentStop().reached) {
+        if (m_plan.atLastStop()) {
+            completePlan();
+            return;
+        }
+        ++m_plan.currentStep;
+    }
+
+    const QString label = m_plan.currentStop().label;
+    const int step = m_plan.currentStep;
+    const int count = m_plan.stopCount();
+    QTimer::singleShot(0, this, [this, label, step, count]() {
+        emit planRestored(label, step, count);
+    });
+
+    // Resuming means navigating, not waiting for the rider to pick it again.
+    beginCurrentHop(ValhallaClient::Reason::Recovery);
 }
 
 void NavigationService::writePlanToNavigationHash()
@@ -1465,11 +1475,9 @@ void NavigationService::onNavigationDataChanged()
     const QList<RouteStop> incomingStops =
         RoutePlanService::parseWaypoints(m_nav->waypoints(), &waypointsOk);
 
-    // Echo guard for the legacy no-plan case: a write whose target already
-    // matches the destination changes nothing. It is either our own write-back
-    // or a route injected with setRoute() (simulator, tests) that never had a
-    // plan. Without this a store reconnect re-arms arrival and fires arrived()
-    // twice.
+    // Echo guard for the legacy no-plan case: our own write-back, or a route
+    // injected with setRoute() that never had a plan. Without it a reconnect
+    // re-arms arrival and fires arrived() twice.
     if (!waypointsOk && hasTarget && m_destination.isValid()
         && incomingTarget == m_destination) {
         return;
@@ -1486,13 +1494,10 @@ void NavigationService::onNavigationDataChanged()
             return;
         }
 
-        // Same stops. Distinguish an external step change, our own echo, and a
-        // single destination that happens to repeat the plan's stop list. The
-        // step change has to be checked first: its target differs from the
-        // current stop, which would otherwise look like a new destination and
-        // collapse the plan.
+        // Same stops: check a step change first. Its target differs from the
+        // current stop and would otherwise look like a new single destination.
         if (!hasTarget)
-            return; // our write-back always carries the target
+            return;
 
         const bool targetIsCurrent = incomingTarget == m_plan.currentStop().position;
         const bool targetIsStepStop = stepValid
@@ -1508,8 +1513,8 @@ void NavigationService::onNavigationDataChanged()
         if (targetIsCurrent)
             return;
 
-        // Same stops but the target moved somewhere outside the plan: a legacy
-        // single destination replaced it.
+        // Same stops but the target moved outside the plan: a legacy single
+        // destination replaced it.
         RouteStop stop;
         stop.position = incomingTarget;
         stop.label = m_nav->address();

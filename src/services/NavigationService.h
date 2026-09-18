@@ -228,6 +228,9 @@ signals:
 
     void planChanged();
     void planStateChanged();
+    // Fired after a persisted plan is restored on startup. Delayed a turn so
+    // listeners connected during Application construction still see it.
+    void planRestored(const QString &label, int step, int stopCount);
     // Fired when an intermediate stop is reached, before the continue prompt.
     // Distinct from arrived(), which stays reserved for the final stop.
     void hopReached(int step, const QString &label);

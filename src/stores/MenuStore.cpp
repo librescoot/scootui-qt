@@ -434,10 +434,10 @@ void MenuStore::rebuildMenuTree()
         }
     }
 
-    // === Active multi-hop plan ===
-    // Only while a plan exists. Stops can be reordered, deleted, jumped to, and
-    // added; the tree is rebuilt from the service on every plan change.
-    if (m_navigationService && m_navigationService->hasPlan()) {
+    // === Multi-hop route ===
+    // Always present so a plan can be started from the scooter. With no plan the
+    // stop list is empty and skip/resume hide themselves, leaving Add stop.
+    if (m_navigationService) {
         auto *routeNode = MenuNode::submenu(QStringLiteral("route_plan"),
                                              tr->menuRoutePlan(),
                                              tr->menuRoutePlanHeader());
