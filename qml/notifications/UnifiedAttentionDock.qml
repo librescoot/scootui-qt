@@ -13,6 +13,13 @@ Item {
 
     readonly property real maximumHeight: 156
 
+    // The overview is a brief look at the whole route, and the turn-by-turn card
+    // covers the part of the map it exists to show.
+    readonly property bool overviewActive: typeof mapService !== "undefined" && mapService !== null
+                                            && mapService.routeOverviewActive
+    readonly property bool hideMainNav: overviewActive && hasMain && main.kind === "nav"
+    readonly property bool hideCompanionNav: overviewActive && hasCompanion && companion.kind === "nav"
+
     width: parent ? parent.width : 480
     height: hasMain ? mainRenderer.height + (hasCompanion ? companionCard.height : 0) : 0
     visible: hasMain
@@ -22,7 +29,7 @@ Item {
         objectName: "attentionMainRenderer"
         width: parent.width
         height: item ? item.implicitHeight : 0
-        active: dock.hasMain
+        active: dock.hasMain && !dock.hideMainNav
         sourceComponent: dock.main.kind === "nav" ? navigationRenderer : notificationRenderer
     }
     Component {
@@ -52,7 +59,7 @@ Item {
         anchors.top: mainRenderer.bottom
         width: parent.width
         height: item ? item.implicitHeight : 0
-        active: dock.hasCompanion
+        active: dock.hasCompanion && !dock.hideCompanionNav
         sourceComponent: dock.companion.kind === "nav" ? compactNavigationRenderer : companionNotificationRenderer
     }
 
