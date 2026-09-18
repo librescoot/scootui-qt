@@ -8,6 +8,9 @@ Item {
     readonly property real motorCurrent: typeof engineStore !== "undefined" ? engineStore.motorCurrent : 0
     readonly property real motorVoltage: typeof engineStore !== "undefined" ? engineStore.motorVoltage : 0
     readonly property bool ecuStale: typeof engineStore !== "undefined" && engineStore.faultCode === 20
+    // Frozen drive telemetry; see SpeedometerDisplay.
+    readonly property bool driveStale: typeof engineStore !== "undefined" && engineStore.dataStale
+                                       && engineStore.speed > 0
 
     // Regen availability, derived by ecu-service. Default to available when the
     // store isn't present so the bar reads solid.
@@ -220,7 +223,7 @@ Item {
             font.pixelSize: themeStore.fontBody
             color: themeStore.textHint
             text: {
-                if (ecuStale) return "—"
+                if (ecuStale || driveStale) return "—"
                 var absVal = Math.abs(displayValue)
                 if (absVal < 0.01) return "0 " + unit
                 if (isAmpsMode) return displayValue.toFixed(0) + " " + unit

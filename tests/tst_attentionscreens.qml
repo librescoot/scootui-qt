@@ -45,6 +45,7 @@ TestCase {
         property real odometer: 0
         property bool regenAvailable: true
         property string regenReason: ""
+        property bool dataStale: false
     }
     QtObject {
         id: vehicleStore

@@ -3,7 +3,9 @@
 #include "SyncableStore.h"
 #include "models/Enums.h"
 
+#include <QHash>
 #include <QSet>
+#include <QTimer>
 
 class EngineStore : public SyncableStore
 {
@@ -37,6 +39,10 @@ class EngineStore : public SyncableStore
     Q_PROPERTY(int faultCode READ faultCode NOTIFY faultCodeChanged)
     Q_PROPERTY(QString faultDescription READ faultDescription NOTIFY faultDescriptionChanged)
     Q_PROPERTY(QList<int> faults READ faults NOTIFY faultsChanged)
+    // True once no engine-ecu value has changed for kDataStaleMs. The poll
+    // re-reads a frozen hash identically, so this is the only signal that the
+    // controller stopped talking.
+    Q_PROPERTY(bool dataStale READ dataStale NOTIFY dataStaleChanged)
 
 public:
     explicit EngineStore(MdbRepository *repo, QObject *parent = nullptr);
@@ -64,6 +70,7 @@ public:
     int faultCode() const { return m_faultCode; }
     QString faultDescription() const { return m_faultDescription; }
     QList<int> faults() const { return m_faults.values(); }
+    bool dataStale() const { return m_dataStale; }
 
 signals:
     void kersChanged();
@@ -86,6 +93,7 @@ signals:
     void faultCodeChanged();
     void faultDescriptionChanged();
     void faultsChanged();
+    void dataStaleChanged();
 
 protected:
     SyncSettings syncSettings() const override;
@@ -93,6 +101,19 @@ protected:
     void applySetUpdate(const QString &name, const QStringList &members) override;
 
 private:
+    void noteActivity();
+
+    // Above the largest gap between engine-ecu writes on a healthy stationary
+    // controller. The UI dashes only a non-zero speed on top of it, so the boot
+    // window and a parked scooter are unaffected.
+    static constexpr int kDataStaleMs = 3000;
+
+    QTimer *m_staleTimer = nullptr;
+    bool m_dataStale = false;
+    // Last value per field, to tell a genuine change from the poll re-reading
+    // the same hash.
+    QHash<QString, QString> m_lastRaw;
+
     ScootEnums::Toggle m_kers = ScootEnums::Toggle::On;
     QString m_kersReasonOff;
     double m_motorVoltage = 0;

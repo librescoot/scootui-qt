@@ -20,6 +20,10 @@ Item {
     readonly property bool ecuStale: typeof engineStore !== "undefined" && engineStore.faultCode === 20
     readonly property bool telemetryTrustLost: typeof notificationService !== "undefined" && notificationService
         && notificationService.telemetryTrustLost
+    // Frozen drive telemetry: only a non-zero speed is dashed, so a correct 0
+    // in the boot window or at a standstill is not reported as missing data.
+    readonly property bool speedStale: typeof engineStore !== "undefined" && engineStore.dataStale
+        && targetSpeed > 0
     readonly property bool isDark: themeStore.isDark
 
     // Internal animated speed
@@ -269,6 +273,7 @@ Item {
         Shape {
             anchors.fill: parent
             visible: speedometer.animatedSpeed > 0 && !speedometer.ecuStale && !speedometer.telemetryTrustLost
+                 && !speedometer.speedStale
             opacity: speedometer.isAccelerating && speedometer.animatedSpeed <= speedometer.overspeedSpeed
                      ? 0.7 + 0.3 * speedometer.accelPulse : 1.0
             preferredRendererType: Shape.CurveRenderer
@@ -345,7 +350,7 @@ Item {
         objectName: "speedometerDigits"
         anchors.horizontalCenter: parent.horizontalCenter
         y: parent.height / 2 - height / 2
-        text: speedometer.ecuStale || speedometer.telemetryTrustLost ? "—" : Math.floor(speedometer.animatedSpeed).toString()
+        text: speedometer.ecuStale || speedometer.telemetryTrustLost || speedometer.speedStale ? "—" : Math.floor(speedometer.animatedSpeed).toString()
         font.pixelSize: themeStore.fontDisplay
         font.weight: Font.Bold
         color: speedometer.isDark ? "#FFFFFF" : "#000000"

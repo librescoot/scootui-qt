@@ -13,6 +13,7 @@ TestCase {
         property bool hasRawSpeed: false
         property int faultCode: 0
         property real odometer: 0
+        property bool dataStale: false
     }
 
     QtObject {
@@ -68,6 +69,21 @@ TestCase {
         notificationService.telemetryTrustLost = true
         compare(speedCenter.displayedSpeed, "—")
         notificationService.telemetryTrustLost = false
+        compare(speedCenter.displayedSpeed, "42")
+    }
+
+    // Only a moving speed is invalidated: a static hash with a correct 0 on
+    // screen is the healthy case at a standstill.
+    function test_staleEngineDataInvalidatesOnlyMovingSpeed() {
+        compare(speedCenter.displayedSpeed, "42")
+        engineStore.dataStale = true
+        compare(speedCenter.displayedSpeed, "—")
+
+        engineStore.speed = 0
+        compare(speedCenter.displayedSpeed, "0")
+
+        engineStore.dataStale = false
+        engineStore.speed = 42
         compare(speedCenter.displayedSpeed, "42")
     }
 

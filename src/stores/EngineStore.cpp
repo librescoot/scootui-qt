@@ -3,6 +3,16 @@
 EngineStore::EngineStore(MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent)
 {
+    m_staleTimer = new QTimer(this);
+    m_staleTimer->setSingleShot(true);
+    m_staleTimer->setInterval(kDataStaleMs);
+    connect(m_staleTimer, &QTimer::timeout, this, [this]() {
+        if (m_dataStale) return;
+        m_dataStale = true;
+        emit dataStaleChanged();
+    });
+    m_staleTimer->start();
+
     connect(repo, &MdbRepository::connectionStateChanged, this, [this](bool connected) {
         if (!connected && m_hasSpeed) {
             m_hasSpeed = false;
@@ -57,8 +67,24 @@ void EngineStore::applySetUpdate(const QString &name, const QStringList &members
     }
 }
 
+void EngineStore::noteActivity()
+{
+    m_staleTimer->start();
+    if (m_dataStale) {
+        m_dataStale = false;
+        emit dataStaleChanged();
+    }
+}
+
 void EngineStore::applyFieldUpdate(const QString &variable, const QString &value)
 {
+    // Only a real change restarts the staleness clock; the poll re-delivers the
+    // whole hash five times a second regardless.
+    if (m_lastRaw.value(variable) != value) {
+        m_lastRaw.insert(variable, value);
+        noteActivity();
+    }
+
     if (variable == QLatin1String("kers")) {
         auto v = ScootEnums::parseToggle(value);
         if (v != m_kers) { m_kers = v; emit kersChanged(); }
