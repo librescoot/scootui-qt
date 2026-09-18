@@ -243,6 +243,15 @@ Rectangle {
                 anchors.leftMargin: 8
                 anchors.bottomMargin: 8
             }
+
+            // Multi-hop plan list, shown while the route overview is active.
+            RouteOverviewPanel {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.topMargin: 8
+                z: 25
+            }
         }
 
         // Bottom status bar with speed center widget (matches Flutter layout)

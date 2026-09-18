@@ -725,6 +725,7 @@ ApplicationWindow {
                             SimButton { text: "Roundabout"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(5) }
                             SimButton { text: "U-turn start"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(6) }
                             SimButton { text: "Roundabout (short arc)"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestRoute(7) }
+                            SimButton { text: "Multi-hop plan"; small: true; Layout.fillWidth: true; onClicked: simulator.loadTestPlan() }
                         }
 
                         SectionHeader {

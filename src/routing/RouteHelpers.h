@@ -152,39 +152,24 @@ inline double remainingDistanceAlongRoute(const LatLng &position,
 }
 
 // Parse Valhalla route response JSON
-inline Route parseRouteResponse(const QByteArray &data)
+// Parse one leg object from a Valhalla /route response into a self-contained
+// Route. Shape indices are relative to the leg's own shape, so the result works
+// with the single-leg helpers unchanged. Shared by the single-leg and
+// multi-leg parsers.
+inline Route parseLegRoute(const QJsonObject &leg)
 {
     Route route;
-    QJsonParseError err;
-    QJsonDocument doc = QJsonDocument::fromJson(data, &err);
-    if (err.error != QJsonParseError::NoError) {
-        qWarning() << "parseRouteResponse: JSON parse error:" << err.errorString();
-        return route;
-    }
-
-    QJsonObject root = doc.object();
-    QJsonObject trip = root[QStringLiteral("trip")].toObject();
-    QJsonArray legs = trip[QStringLiteral("legs")].toArray();
-    if (legs.isEmpty()) {
-        qWarning() << "parseRouteResponse: no legs in JSON";
-        return route;
-    }
-
-    QJsonObject leg = legs[0].toObject();
     QJsonObject summary = leg[QStringLiteral("summary")].toObject();
 
     // Decode shape (polyline, precision 6)
     QString shape = leg[QStringLiteral("shape")].toString();
     route.waypoints = decodePolyline(shape, 6);
-    qDebug() << "parseRouteResponse: decoded waypoints:" << route.waypoints.size();
 
     // Total distance/duration
     route.distance = summary[QStringLiteral("length")].toDouble() * 1000.0; // km → m
     route.duration = summary[QStringLiteral("time")].toDouble();
 
-    // Parse maneuvers
     QJsonArray maneuvers = leg[QStringLiteral("maneuvers")].toArray();
-    qDebug() << "parseRouteResponse: parsing" << maneuvers.size() << "maneuvers";
     for (const auto &m : maneuvers) {
         QJsonObject obj = m.toObject();
         RouteInstruction instr;
@@ -238,6 +223,74 @@ inline Route parseRouteResponse(const QByteArray &data)
     }
 
     return route;
+}
+
+inline Route parseRouteResponse(const QByteArray &data)
+{
+    Route route;
+    QJsonParseError err;
+    QJsonDocument doc = QJsonDocument::fromJson(data, &err);
+    if (err.error != QJsonParseError::NoError) {
+        qWarning() << "parseRouteResponse: JSON parse error:" << err.errorString();
+        return route;
+    }
+
+    QJsonObject root = doc.object();
+    QJsonObject trip = root[QStringLiteral("trip")].toObject();
+    QJsonArray legs = trip[QStringLiteral("legs")].toArray();
+    if (legs.isEmpty()) {
+        qWarning() << "parseRouteResponse: no legs in JSON";
+        return route;
+    }
+
+    route = parseLegRoute(legs[0].toObject());
+    qDebug() << "parseRouteResponse: decoded waypoints:" << route.waypoints.size();
+    return route;
+}
+
+// Parse every leg of a multi-stop /route response (one leg per hop). legs is
+// cleared first. mergedShape, when non-null, receives the concatenated leg
+// shapes with the duplicated joint vertex dropped, for a single continuous
+// overview line. Returns false when no usable leg is present.
+inline bool parseMultiLegRouteResponse(const QByteArray &data,
+                                       QList<Route> &legs,
+                                       QList<LatLng> *mergedShape = nullptr)
+{
+    legs.clear();
+    if (mergedShape)
+        mergedShape->clear();
+
+    QJsonParseError err;
+    QJsonDocument doc = QJsonDocument::fromJson(data, &err);
+    if (err.error != QJsonParseError::NoError) {
+        qWarning() << "parseMultiLegRouteResponse: JSON parse error:" << err.errorString();
+        return false;
+    }
+
+    const QJsonArray legArray = doc.object()[QStringLiteral("trip")].toObject()
+                                    [QStringLiteral("legs")].toArray();
+    if (legArray.isEmpty()) {
+        qWarning() << "parseMultiLegRouteResponse: no legs in JSON";
+        return false;
+    }
+
+    for (const auto &value : legArray) {
+        const Route leg = parseLegRoute(value.toObject());
+        if (!leg.isValid())
+            continue;
+        if (mergedShape) {
+            // Legs share their boundary vertex: leg N's last point equals leg
+            // N+1's first. Drop the duplicate so the line has no zero-length
+            // segment at the joint.
+            if (!mergedShape->isEmpty() && mergedShape->last() == leg.waypoints.first())
+                mergedShape->append(leg.waypoints.mid(1));
+            else
+                mergedShape->append(leg.waypoints);
+        }
+        legs.append(leg);
+    }
+
+    return !legs.isEmpty();
 }
 
 // Parse Valhalla /trace_attributes response into per-shape-segment EdgeAttrs.

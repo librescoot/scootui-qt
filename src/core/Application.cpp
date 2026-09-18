@@ -384,6 +384,9 @@ void Application::createStores(QQmlApplicationEngine &engine)
                         {QStringLiteral("roundabout"), m_navigationService->currentRoundaboutRender()},
                         {QStringLiteral("roundaboutExit"), m_navigationService->roundaboutExitCount()},
                         {QStringLiteral("showNextPreview"), m_navigationService->showNextPreview()},
+                        {QStringLiteral("hasPlan"), m_navigationService->hasPlan()},
+                        {QStringLiteral("currentStep"), m_navigationService->currentStep()},
+                        {QStringLiteral("stopCount"), m_navigationService->stopCount()},
                         {QStringLiteral("error"), m_navigationService->errorMessage()}};
         m_notificationService->setNavigationPayload(nav);
     };

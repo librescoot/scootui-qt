@@ -276,6 +276,17 @@ class Translations : public QObject
     Q_PROPERTY(QString menuDeleteLocation READ menuDeleteLocation NOTIFY languageChanged)
     Q_PROPERTY(QString menuStartNavigation READ menuStartNavigation NOTIFY languageChanged)
     Q_PROPERTY(QString menuStopNavigation READ menuStopNavigation NOTIFY languageChanged)
+    Q_PROPERTY(QString menuRoutePlan READ menuRoutePlan NOTIFY languageChanged)
+    Q_PROPERTY(QString menuRoutePlanHeader READ menuRoutePlanHeader NOTIFY languageChanged)
+    Q_PROPERTY(QString menuRouteAddStop READ menuRouteAddStop NOTIFY languageChanged)
+    Q_PROPERTY(QString menuRouteMoveUp READ menuRouteMoveUp NOTIFY languageChanged)
+    Q_PROPERTY(QString menuRouteMoveDown READ menuRouteMoveDown NOTIFY languageChanged)
+    Q_PROPERTY(QString menuRouteDeleteStop READ menuRouteDeleteStop NOTIFY languageChanged)
+    Q_PROPERTY(QString menuRouteCurrentStop READ menuRouteCurrentStop NOTIFY languageChanged)
+    Q_PROPERTY(QString menuRouteReached READ menuRouteReached NOTIFY languageChanged)
+    Q_PROPERTY(QString menuRouteJumpHere READ menuRouteJumpHere NOTIFY languageChanged)
+    Q_PROPERTY(QString menuRouteSkip READ menuRouteSkip NOTIFY languageChanged)
+    Q_PROPERTY(QString menuRouteResume READ menuRouteResume NOTIFY languageChanged)
     Q_PROPERTY(QString menuQuickMenu READ menuQuickMenu NOTIFY languageChanged)
     Q_PROPERTY(QString menuQuickOff READ menuQuickOff NOTIFY languageChanged)
     Q_PROPERTY(QString menuQuickSlot1 READ menuQuickSlot1 NOTIFY languageChanged)
@@ -447,6 +458,15 @@ class Translations : public QObject
     Q_PROPERTY(QString navEta READ navEta NOTIFY languageChanged)
     Q_PROPERTY(QString navContinue READ navContinue NOTIFY languageChanged)
     Q_PROPERTY(QString navReturnToRoute READ navReturnToRoute NOTIFY languageChanged)
+    Q_PROPERTY(QString navStopReached READ navStopReached NOTIFY languageChanged)
+    Q_PROPERTY(QString navContinueTo READ navContinueTo NOTIFY languageChanged)
+    Q_PROPERTY(QString navAutoContinue READ navAutoContinue NOTIFY languageChanged)
+    Q_PROPERTY(QString navHoldContinue READ navHoldContinue NOTIFY languageChanged)
+    Q_PROPERTY(QString navHoldStop READ navHoldStop NOTIFY languageChanged)
+    Q_PROPERTY(QString routeOverviewTitle READ routeOverviewTitle NOTIFY languageChanged)
+    Q_PROPERTY(QString routeOverviewCurrentPosition READ routeOverviewCurrentPosition NOTIFY languageChanged)
+    Q_PROPERTY(QString routeOverviewCalculating READ routeOverviewCalculating NOTIFY languageChanged)
+    Q_PROPERTY(QString routeOverviewTotal READ routeOverviewTotal NOTIFY languageChanged)
     Q_PROPERTY(QString navCurrentPositionNotAvailable READ navCurrentPositionNotAvailable NOTIFY languageChanged)
     Q_PROPERTY(QString navCouldNotCalculateRoute READ navCouldNotCalculateRoute NOTIFY languageChanged)
     Q_PROPERTY(QString navDestinationUnreachable READ navDestinationUnreachable NOTIFY languageChanged)
@@ -650,6 +670,7 @@ class Translations : public QObject
     Q_PROPERTY(QString shortcutDebugOverlay READ shortcutDebugOverlay NOTIFY languageChanged)
     Q_PROPERTY(QString shortcutStartDestination READ shortcutStartDestination NOTIFY languageChanged)
     Q_PROPERTY(QString shortcutRouteOverview READ shortcutRouteOverview NOTIFY languageChanged)
+    Q_PROPERTY(QString shortcutSkipStop READ shortcutSkipStop NOTIFY languageChanged)
 
 public:
     explicit Translations(QObject *parent = nullptr);
@@ -923,6 +944,17 @@ public:
     QString menuDeleteLocation() const { return lookup("menuDeleteLocation"); }
     QString menuStartNavigation() const { return lookup("menuStartNavigation"); }
     QString menuStopNavigation() const { return lookup("menuStopNavigation"); }
+    QString menuRoutePlan() const { return lookup("menuRoutePlan"); }
+    QString menuRoutePlanHeader() const { return lookup("menuRoutePlanHeader"); }
+    QString menuRouteAddStop() const { return lookup("menuRouteAddStop"); }
+    QString menuRouteMoveUp() const { return lookup("menuRouteMoveUp"); }
+    QString menuRouteMoveDown() const { return lookup("menuRouteMoveDown"); }
+    QString menuRouteDeleteStop() const { return lookup("menuRouteDeleteStop"); }
+    QString menuRouteCurrentStop() const { return lookup("menuRouteCurrentStop"); }
+    QString menuRouteReached() const { return lookup("menuRouteReached"); }
+    QString menuRouteJumpHere() const { return lookup("menuRouteJumpHere"); }
+    QString menuRouteSkip() const { return lookup("menuRouteSkip"); }
+    QString menuRouteResume() const { return lookup("menuRouteResume"); }
     QString menuQuickMenu() const { return lookup("menuQuickMenu"); }
     QString menuQuickOff() const { return lookup("menuQuickOff"); }
     QString menuQuickSlot1() const { return lookup("menuQuickSlot1"); }
@@ -1095,6 +1127,15 @@ public:
     QString navEta() const { return lookup("navEta"); }
     QString navContinue() const { return lookup("navContinue"); }
     QString navReturnToRoute() const { return lookup("navReturnToRoute"); }
+    QString navStopReached() const { return lookup("navStopReached"); }
+    QString navContinueTo() const { return lookup("navContinueTo"); }
+    QString navAutoContinue() const { return lookup("navAutoContinue"); }
+    QString navHoldContinue() const { return lookup("navHoldContinue"); }
+    QString navHoldStop() const { return lookup("navHoldStop"); }
+    QString routeOverviewTitle() const { return lookup("routeOverviewTitle"); }
+    QString routeOverviewCurrentPosition() const { return lookup("routeOverviewCurrentPosition"); }
+    QString routeOverviewCalculating() const { return lookup("routeOverviewCalculating"); }
+    QString routeOverviewTotal() const { return lookup("routeOverviewTotal"); }
     QString navCurrentPositionNotAvailable() const { return lookup("navCurrentPositionNotAvailable"); }
     QString navCouldNotCalculateRoute() const { return lookup("navCouldNotCalculateRoute"); }
     QString navDestinationUnreachable() const { return lookup("navDestinationUnreachable"); }
@@ -1294,6 +1335,7 @@ public:
     QString shortcutDebugOverlay() const { return lookup("shortcutDebugOverlay"); }
     QString shortcutStartDestination() const { return lookup("shortcutStartDestination"); }
     QString shortcutRouteOverview() const { return lookup("shortcutRouteOverview"); }
+    QString shortcutSkipStop() const { return lookup("shortcutSkipStop"); }
 
 signals:
     void languageChanged();

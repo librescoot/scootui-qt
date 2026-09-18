@@ -8,6 +8,7 @@
 #include "routing/RouteModels.h"
 #include "routing/ValhallaClient.h"
 #include "services/NavigationCadence.h"
+#include "services/RoutePlanService.h"
 
 class GpsStore;
 class NavigationStore;
@@ -68,6 +69,26 @@ class NavigationService : public QObject
     // Enter/Exit pair does.
     Q_PROPERTY(QVariantMap currentRoundaboutRender READ currentRoundaboutRender
                NOTIFY roundaboutRenderChanged)
+
+    // Multi-hop plan. planState carries RoutePlanState as an int; QML compares
+    // against the same constants NavigationStatus uses. hopPromptVisible is
+    // true only while the continue prompt is on screen at an intermediate stop.
+    Q_PROPERTY(bool hasPlan READ hasPlan NOTIFY planChanged)
+    Q_PROPERTY(int planState READ planState NOTIFY planStateChanged)
+    Q_PROPERTY(QVariantList planStops READ planStops NOTIFY planChanged)
+    Q_PROPERTY(int currentStep READ currentStep NOTIFY planChanged)
+    Q_PROPERTY(int stopCount READ stopCount NOTIFY planChanged)
+    Q_PROPERTY(QString nextStopLabel READ nextStopLabel NOTIFY planChanged)
+    Q_PROPERTY(bool hopPromptVisible READ hopPromptVisible NOTIFY hopPromptChanged)
+    Q_PROPERTY(int hopPromptSecondsRemaining READ hopPromptSecondsRemaining
+               NOTIFY hopPromptChanged)
+    // Per-hop overview of the remaining plan, from the current position to the
+    // last stop. Each entry: fromIndex (-1 for the current position), toIndex,
+    // fromLabel, toLabel, distance meters, duration seconds, ready. Entries are
+    // present but not ready until the preview request answers.
+    Q_PROPERTY(QVariantList planOverview READ planOverview NOTIFY planOverviewChanged)
+    Q_PROPERTY(double planTotalDistance READ planTotalDistance NOTIFY planOverviewChanged)
+    Q_PROPERTY(double planTotalDuration READ planTotalDuration NOTIFY planOverviewChanged)
 
 public:
     explicit NavigationService(GpsStore *gps, NavigationStore *nav,
@@ -135,6 +156,21 @@ public:
     double remainingDuration() const;
     QString eta() const;
 
+    bool hasPlan() const { return m_plan.isValid(); }
+    int planState() const { return static_cast<int>(m_planState); }
+    QVariantList planStops() const;
+    int currentStep() const { return m_plan.currentStep; }
+    int stopCount() const { return m_plan.stopCount(); }
+    QString nextStopLabel() const { return m_plan.nextStop().label; }
+    bool hopPromptVisible() const { return m_planState == RoutePlanState::AtStop; }
+    int hopPromptSecondsRemaining() const { return m_hopSecondsLeft; }
+    QVariantList planOverview() const { return m_planOverview; }
+    double planTotalDistance() const { return m_planTotalDistance; }
+    double planTotalDuration() const { return m_planTotalDuration; }
+    // Merged preview geometry for the remaining plan, for framing the overview.
+    // Empty until the preview request answers.
+    QList<LatLng> planGeometryWaypoints() const { return m_planGeometry; }
+
     // 1.20 for a local Valhalla whose tiles pre-date the default_speeds.json
     // rollout (see NavigationService.cpp). 1.0 for a remote endpoint or
     // post-rollout tiles. Default-to-pad when /status hasn't succeeded yet.
@@ -143,6 +179,27 @@ public:
     Q_INVOKABLE void setDestination(double lat, double lng, const QString &address = {});
     Q_INVOKABLE void clearNavigation();
     Q_INVOKABLE void setRoute(const Route &route);
+
+    // Replace the plan and start guiding to stops[startStep]. Registered stops
+    // before startStep are marked reached. An empty list clears navigation.
+    // The QVariantList overload takes a list of maps with latitude/longitude
+    // (or lat/lon) and an optional label, which is how QML and the wire format
+    // express stops.
+    Q_INVOKABLE void setRoutePlan(const QVariantList &stops, int startStep = 0);
+    void setRoutePlan(const QList<RouteStop> &stops, int startStep = 0);
+    Q_INVOKABLE void appendStop(double lat, double lng, const QString &label = {});
+    Q_INVOKABLE void removeStop(int index);
+    Q_INVOKABLE void moveStop(int from, int to);
+    // Advance to the next hop now, from any guided or held state. On the last
+    // stop this completes and clears the plan.
+    Q_INVOKABLE void skipCurrentStop();
+    // Re-target the plan to stops[index]: earlier stops are marked reached and
+    // guidance restarts on that hop.
+    Q_INVOKABLE void jumpToStop(int index);
+    Q_INVOKABLE void confirmContinue();
+    Q_INVOKABLE void declineContinue();
+    Q_INVOKABLE void pausePlan();
+    Q_INVOKABLE void resumePlan();
 
     // Wire the MapService after both are constructed (resolves the
     // nav↔map circular dependency). NavigationService subscribes to
@@ -169,6 +226,14 @@ signals:
     void positionChanged();
     void roundaboutRenderChanged();
 
+    void planChanged();
+    void planStateChanged();
+    // Fired when an intermediate stop is reached, before the continue prompt.
+    // Distinct from arrived(), which stays reserved for the final stop.
+    void hopReached(int step, const QString &label);
+    void hopPromptChanged();
+    void planOverviewChanged();
+
 private slots:
     void onGpsChanged();
     void onNavigationDataChanged();
@@ -180,6 +245,8 @@ private slots:
                            ValhallaClient::RejectionCause cause);
     void onRequestDispatched(ValhallaClient::Reason reason);
     void onVehiclePositionChanged();
+    void onPlanPreviewReady(const QList<Route> &legs);
+    void onPlanPreviewFailed(const QString &error);
 
 private:
     void updateNavigationState();
@@ -203,6 +270,26 @@ private:
     RouteOrigin selectRouteOrigin() const;
     bool requestRoute(ValhallaClient::Reason reason);
     void armRerouteRetry();
+
+    // --- Plan and hop state ---
+    void setPlanState(RoutePlanState state);
+    void restorePlan();
+    void persistPlan();
+    // Teardown of the previous hop, then target the current stop and request a
+    // route. Shared by plan creation, hop advance, and resume.
+    void beginCurrentHop(ValhallaClient::Reason reason);
+    void onHopReached();
+    void advanceToNextHop();
+    void completePlan();
+    void startHopAdvanceTimer();
+    void stopHopAdvanceTimer();
+    // Publish the plan's current target and step to the navigation hash so
+    // external readers (and our own ingest guard) see one coherent picture.
+    void writePlanToNavigationHash();
+    // Ask for a fresh per-hop preview of the remaining plan (one multi-stop
+    // request) and rebuild planOverview from the answer.
+    void refreshPlanOverview();
+    void clearPlanOverview();
 
     // Local wall-clock "now" derived from GPS time, formatted for Valhalla's
     // date_time.value, or empty when no trusted GPS time is available. GPS time
@@ -312,4 +399,28 @@ private:
     // ToastService's error duration so the pill and its toast go together.
     static constexpr int ErrorLingerMs = 5000;
     QTimer *m_errorLinger = nullptr;
+
+    // Seconds the continue prompt waits at an intermediate stop before
+    // advancing on its own. The prompt is the only warning the rider gets, so
+    // it must be visible for the whole window.
+    static constexpr int HopAdvanceTimeoutSeconds = 25;
+
+    RoutePlanService m_planService;
+    RoutePlan m_plan;
+    RoutePlanState m_planState = RoutePlanState::None;
+    // Repeating 1 Hz timer that also drives the countdown property; fires
+    // advanceToNextHop() when it reaches zero.
+    QTimer *m_hopAdvance = nullptr;
+    int m_hopSecondsLeft = 0;
+    // True when Paused was entered from AtStop (the hop was reached). Resume
+    // then advances instead of re-guiding to a stop already visited.
+    bool m_pausedAfterReach = false;
+    // True once restorePlan() has looked at the persisted settings once, so the
+    // first settings snapshot retries only a single time.
+    bool m_restoreChecked = false;
+
+    QVariantList m_planOverview;
+    double m_planTotalDistance = 0;
+    double m_planTotalDuration = 0;
+    QList<LatLng> m_planGeometry;
 };

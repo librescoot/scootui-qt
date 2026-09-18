@@ -15,6 +15,8 @@ SyncSettings NavigationStore::syncSettings() const
             {QStringLiteral("address"), QStringLiteral("address"), true},
             {QStringLiteral("timestamp"), QStringLiteral("timestamp"), true},
             {QStringLiteral("destination"), QStringLiteral("destination"), true},
+            {QStringLiteral("waypoints"), QStringLiteral("waypoints"), true},
+            {QStringLiteral("currentStep"), QStringLiteral("current-step"), true},
         },
         {}, {}
     };
@@ -32,6 +34,10 @@ void NavigationStore::applyFieldUpdate(const QString &variable, const QString &v
         if (value != m_timestamp) { m_timestamp = value; emit timestampChanged(); }
     } else if (variable == QLatin1String("destination")) {
         if (value != m_destination) { m_destination = value; emit destinationChanged(); }
+    } else if (variable == QLatin1String("waypoints")) {
+        if (value != m_waypoints) { m_waypoints = value; emit waypointsChanged(); }
+    } else if (variable == QLatin1String("current-step")) {
+        if (value != m_currentStep) { m_currentStep = value; emit currentStepChanged(); }
     }
 }
 

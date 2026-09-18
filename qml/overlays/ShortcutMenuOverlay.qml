@@ -20,6 +20,8 @@ Item {
             return selectedAction.label
         if (selectedAction.kind === "route-overview")
             return translations.shortcutRouteOverview
+        if (selectedAction.kind === "skip-stop")
+            return translations.shortcutSkipStop
         if (selectedAction.kind === "stop-navigation")
             return translations.menuStopNavigation
         return screenStore.currentScreen === Scooter.ScreenMode.Cluster
@@ -43,6 +45,8 @@ Item {
                  ? MaterialIcon.iconMap : MaterialIcon.iconSpeed
         if (action.kind === "route-overview")
             return MaterialIcon.iconMap
+        if (action.kind === "skip-stop")
+            return MaterialIcon.iconArrowForward
         if (action.kind === "stop-navigation")
             return MaterialIcon.iconCancel
         switch (action.quickIcon) {

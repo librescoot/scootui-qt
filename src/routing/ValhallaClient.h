@@ -68,6 +68,13 @@ public:
     // Cancel any pending + in-flight.
     void cancelPending();
 
+    // Multi-stop preview for the plan overview. One request with every stop as
+    // a break; the reply is parsed per leg. Best-effort: skipped (not queued)
+    // while the server is not known healthy, retried when health returns, and
+    // aborted the moment a navigation route request starts.
+    void requestPreviewRoute(const RouteOrigin &from, const QList<LatLng> &stops);
+    void cancelPreview();
+
     // Force an immediate health probe regardless of cache state.
     void checkStatus();
 
@@ -94,6 +101,10 @@ signals:
     // signal won't arrive in that case.
     void routeAttributesReady(const QList<EdgeAttrs> &attrs);
     void routeError(const QString &error);
+    // Per-leg preview for a multi-stop plan. Fires for the whole plan at once;
+    // legs[i] runs to stops[i]. Failure is non-fatal (the overview stays empty).
+    void planPreviewReady(const QList<Route> &legs);
+    void planPreviewFailed(const QString &error);
     void rateLimited();
     void statusChecked(bool available);
     void requestRejected(ValhallaClient::Reason reason, ValhallaClient::RejectionCause cause);
@@ -116,6 +127,14 @@ private:
     DispatchResult canDispatch(Reason reason, RejectionCause &cause) const;
     void sendRouteRequest(const RouteOrigin &from, const LatLng &to);
     void handleRouteReply(QNetworkReply *reply);
+
+    // Shared costing/preference/directions fields, so a preview request honours
+    // the same rider preferences as a navigation request.
+    QJsonObject buildBaseRouteRequest();
+    // Send the queued preview if one is waiting and none is in flight.
+    void dispatchPreview();
+    void sendPreviewRequest();
+    void handlePreviewReply(QNetworkReply *reply);
 
     // Lower-priority follow-up to a successful /route. Yields to any pending
     // or in-flight /route request and to active rate-limit backoff. Failures
@@ -151,6 +170,13 @@ private:
 
     QPointer<QNetworkReply> m_activeReply;
     QPointer<QNetworkReply> m_activeTraceReply;
+
+    // Preview request state. Separate from the navigation request so a preview
+    // can never replace, delay, or be mistaken for the route being ridden.
+    QPointer<QNetworkReply> m_activePreviewReply;
+    bool m_previewPending = false;
+    RouteOrigin m_previewFrom;
+    QList<LatLng> m_previewStops;
 
     // 429 backoff
     int m_rateLimitBackoffMs = 0;

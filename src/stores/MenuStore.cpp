@@ -117,6 +117,11 @@ void MenuStore::setNavigationService(NavigationService *svc)
                 this, &MenuStore::rebuildMenuTree);
         connect(m_navigationService, &NavigationService::routeChanged,
                 this, &MenuStore::rebuildMenuTree);
+        // The route submenu is rebuilt from the plan on every hop change.
+        connect(m_navigationService, &NavigationService::planChanged,
+                this, &MenuStore::rebuildMenuTree);
+        connect(m_navigationService, &NavigationService::planStateChanged,
+                this, &MenuStore::rebuildMenuTree);
     }
     rebuildMenuTree();
 }
@@ -427,6 +432,107 @@ void MenuStore::rebuildMenuTree()
                     m_savedLocations->deleteLocation(locId);
                 }));
         }
+    }
+
+    // === Active multi-hop plan ===
+    // Only while a plan exists. Stops can be reordered, deleted, jumped to, and
+    // added; the tree is rebuilt from the service on every plan change.
+    if (m_navigationService && m_navigationService->hasPlan()) {
+        auto *routeNode = MenuNode::submenu(QStringLiteral("route_plan"),
+                                             tr->menuRoutePlan(),
+                                             tr->menuRoutePlanHeader());
+        navNode->addChild(routeNode);
+
+        const int step = m_navigationService->currentStep();
+        const int count = m_navigationService->stopCount();
+        const QVariantList stops = m_navigationService->planStops();
+        for (int i = 0; i < count && i < stops.size(); ++i) {
+            const QVariantMap stop = stops.at(i).toMap();
+            QString label = stop.value(QStringLiteral("label")).toString();
+            if (label.isEmpty())
+                label = QStringLiteral("%1, %2")
+                    .arg(stop.value(QStringLiteral("latitude")).toDouble(), 0, 'f', 5)
+                    .arg(stop.value(QStringLiteral("longitude")).toDouble(), 0, 'f', 5);
+
+            auto *stopNode = MenuNode::submenu(QStringLiteral("plan_stop_%1").arg(i), label);
+            if (i == step)
+                stopNode->setValueLabel(tr->menuRouteCurrentStop());
+            else if (stop.value(QStringLiteral("reached")).toBool())
+                stopNode->setValueLabel(tr->menuRouteReached());
+            routeNode->addChild(stopNode);
+
+            stopNode->addChild(MenuNode::action(
+                QStringLiteral("plan_stop_%1_up").arg(i), tr->menuRouteMoveUp(),
+                [this, i]() { if (m_navigationService) m_navigationService->moveStop(i, i - 1); },
+                [i]() { return i > 0; }));
+            stopNode->addChild(MenuNode::action(
+                QStringLiteral("plan_stop_%1_down").arg(i), tr->menuRouteMoveDown(),
+                [this, i]() { if (m_navigationService) m_navigationService->moveStop(i, i + 1); },
+                [i, count]() { return i + 1 < count; }));
+            stopNode->addChild(MenuNode::action(
+                QStringLiteral("plan_stop_%1_delete").arg(i), tr->menuRouteDeleteStop(),
+                [this, i]() { if (m_navigationService) m_navigationService->removeStop(i); }));
+            stopNode->addChild(MenuNode::action(
+                QStringLiteral("plan_stop_%1_jump").arg(i), tr->menuRouteJumpHere(),
+                [this, i]() { if (m_navigationService) m_navigationService->jumpToStop(i); },
+                [i, step]() { return i != step; }));
+        }
+
+        // Add a stop: by address, or from a saved place or recent destination.
+        auto *addNode = MenuNode::submenu(QStringLiteral("plan_add"), tr->menuRouteAddStop());
+        routeNode->addChild(addNode);
+        addNode->addChild(MenuNode::action(QStringLiteral("plan_add_address"),
+            tr->menuEnterDestinationCode(), [this]() {
+                closeForScreen();
+                if (m_screenStore) m_screenStore->showAddressSelection(true);
+            }));
+
+        if (m_savedLocations) {
+            for (const auto &locVar : m_savedLocations->locations()) {
+                const QVariantMap loc = locVar.toMap();
+                const double lat = loc.value(QStringLiteral("latitude")).toDouble();
+                const double lng = loc.value(QStringLiteral("longitude")).toDouble();
+                QString label = loc.value(QStringLiteral("label")).toString();
+                if (label.isEmpty())
+                    label = QStringLiteral("%1, %2").arg(lat, 0, 'f', 5).arg(lng, 0, 'f', 5);
+                addNode->addChild(MenuNode::action(
+                    QStringLiteral("plan_add_saved_%1").arg(loc.value(QStringLiteral("id")).toInt()),
+                    label, [this, lat, lng, label]() {
+                        if (m_navigationService) m_navigationService->appendStop(lat, lng, label);
+                        close();
+                    }));
+            }
+        }
+
+        if (m_recentDestinations) {
+            for (const auto &destVar : m_recentDestinations->destinations()) {
+                const QVariantMap dest = destVar.toMap();
+                const double lat = dest.value(QStringLiteral("latitude")).toDouble();
+                const double lng = dest.value(QStringLiteral("longitude")).toDouble();
+                QString label = dest.value(QStringLiteral("label")).toString();
+                if (label.isEmpty())
+                    label = QStringLiteral("%1, %2").arg(lat, 0, 'f', 5).arg(lng, 0, 'f', 5);
+                addNode->addChild(MenuNode::action(
+                    QStringLiteral("plan_add_recent_%1").arg(dest.value(QStringLiteral("id")).toInt()),
+                    label, [this, lat, lng, label]() {
+                        if (m_navigationService) m_navigationService->appendStop(lat, lng, label);
+                        close();
+                    }));
+            }
+        }
+
+        routeNode->addChild(MenuNode::action(QStringLiteral("plan_skip"),
+            tr->menuRouteSkip(),
+            [this]() { if (m_navigationService) m_navigationService->skipCurrentStop(); },
+            [step, count]() { return step + 1 < count; }));
+        routeNode->addChild(MenuNode::action(QStringLiteral("plan_resume"),
+            tr->menuRouteResume(),
+            [this]() { if (m_navigationService) m_navigationService->resumePlan(); },
+            [this]() {
+                const int state = m_navigationService ? m_navigationService->planState() : 0;
+                return state == static_cast<int>(RoutePlanState::Held)
+                    || state == static_cast<int>(RoutePlanState::Paused);
+            }));
     }
 
     // Stop navigation, shown while there's a route to cancel. hasRoute()

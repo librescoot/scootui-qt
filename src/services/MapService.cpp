@@ -2,6 +2,7 @@
 #include "MapCameraPolicy.h"
 #include "MapStyleComposer.h"
 #include "RoadInfoService.h"
+#include "MapPlanGeometry.h"
 #include "NavigationService.h"
 #include "stores/GpsStore.h"
 #include "stores/EngineStore.h"
@@ -251,6 +252,14 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
 
     // --- Route changes ---
     connect(m_navigation, &NavigationService::routeChanged, this, &MapService::onRouteChanged);
+    // The plan overlay: an edit changes the stops, a preview answer changes the
+    // geometry. Both rebuild from NavigationService, and the initial call picks
+    // up a plan restored before this service existed.
+    connect(m_navigation, &NavigationService::planChanged,
+            this, &MapService::updatePlanGeometry);
+    connect(m_navigation, &NavigationService::planOverviewChanged,
+            this, &MapService::updatePlanGeometry);
+    updatePlanGeometry();
 
     // --- Theme changes ---
     // No style reload on theme switch: the map QML recolors existing layers in
@@ -486,6 +495,24 @@ void MapService::updateRouteGeoJson()
     }
 }
 
+void MapService::updatePlanGeometry()
+{
+    if (!m_navigation)
+        return;
+
+    const QString line = MapPlanGeometry::lineGeoJson(m_navigation->planGeometryWaypoints());
+    const QString stops = MapPlanGeometry::stopsGeoJson(m_navigation->planStops(),
+                                                        m_navigation->currentStep());
+    if (line != m_planGeoJson) {
+        m_planGeoJson = line;
+        emit planGeoJsonChanged();
+    }
+    if (stops != m_planStopsGeoJson) {
+        m_planStopsGeoJson = stops;
+        emit planStopsGeoJsonChanged();
+    }
+}
+
 // ---------------------------------------------------------------------------
 // GPS position changed
 // ---------------------------------------------------------------------------
@@ -643,6 +670,13 @@ bool MapService::showRouteOverview()
     shape.reserve(shape.size() + m_routeShape.size() - firstRemainingPoint);
     for (int i = firstRemainingPoint; i < m_routeShape.size(); ++i)
         shape.append({m_routeShape[i].first, m_routeShape[i].second});
+
+    // A multi-hop plan extends past the active hop. Include the previewed
+    // remaining geometry so the overview frames the whole trip, not just the
+    // leg being ridden. Duplicate joint points are harmless for a bounds fit.
+    const QList<LatLng> planGeometry = m_navigation->planGeometryWaypoints();
+    for (const LatLng &point : planGeometry)
+        shape.append(point);
 
     const LatLng center = MapCameraPolicy::routeOverviewCenter(shape);
     m_overviewZoom = MapCameraPolicy::routeOverviewZoom(

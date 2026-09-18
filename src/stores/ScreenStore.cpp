@@ -112,9 +112,13 @@ void ScreenStore::setScreen(int screen)
     publishScreen();
 }
 
-void ScreenStore::showAddressSelection()
+void ScreenStore::showAddressSelection(bool appendToRoute)
 {
     m_screenBeforeAddressSelection = m_currentScreen;
+    if (m_addressSelectionAppend != appendToRoute) {
+        m_addressSelectionAppend = appendToRoute;
+        emit addressSelectionAppendChanged();
+    }
     setScreen(static_cast<int>(ScootEnums::ScreenMode::AddressSelection));
 }
 
@@ -122,6 +126,10 @@ void ScreenStore::showAddressSelection()
 // does not come through here.
 void ScreenStore::closeAddressSelection()
 {
+    if (m_addressSelectionAppend) {
+        m_addressSelectionAppend = false;
+        emit addressSelectionAppendChanged();
+    }
     setScreen(static_cast<int>(m_screenBeforeAddressSelection));
 }
 

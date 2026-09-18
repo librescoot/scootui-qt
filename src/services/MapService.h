@@ -45,6 +45,10 @@ class MapService : public QObject
     Q_PROPERTY(QVariantList mapThemeLayers READ mapThemeLayers CONSTANT)
     Q_PROPERTY(QVariantList routeCoordinates READ routeCoordinates NOTIFY routeCoordinatesChanged)
     Q_PROPERTY(QString routeGeoJson READ routeGeoJson NOTIFY routeGeoJsonChanged)
+    // Remaining multi-hop plan overlay: the previewed geometry drawn under the
+    // active route, and one marker per stop.
+    Q_PROPERTY(QString planGeoJson READ planGeoJson NOTIFY planGeoJsonChanged)
+    Q_PROPERTY(QString planStopsGeoJson READ planStopsGeoJson NOTIFY planStopsGeoJsonChanged)
     Q_PROPERTY(QString routeFillColor READ routeFillColor NOTIFY routeStyleChanged)
     Q_PROPERTY(QString routeBorderColor READ routeBorderColor NOTIFY routeStyleChanged)
     Q_PROPERTY(int routeFillWidth READ routeFillWidth NOTIFY routeStyleChanged)
@@ -108,6 +112,8 @@ public:
     QVariantList mapThemeLayers() const { return m_mapThemeLayers; }
     QVariantList routeCoordinates() const { return m_routeCoordinates; }
     QString routeGeoJson() const { return m_routeGeoJson; }
+    QString planGeoJson() const { return m_planGeoJson; }
+    QString planStopsGeoJson() const { return m_planStopsGeoJson; }
     QString routeFillColor() const { return m_routeStyle.fillColor; }
     QString routeBorderColor() const { return m_routeStyle.borderColor; }
     int routeFillWidth() const { return m_routeStyle.fillWidth; }
@@ -157,6 +163,8 @@ signals:
     void styleJsonChanged();
     void routeCoordinatesChanged();
     void routeGeoJsonChanged();
+    void planGeoJsonChanged();
+    void planStopsGeoJsonChanged();
     void routeStyleChanged();
     void vehicleOffsetYChanged();
     void overviewCameraChanged();
@@ -171,6 +179,9 @@ private slots:
     void onRouteChanged();
     void onMapTypeChanged();
     void onMapViewModeChanged();
+    // Rebuild the plan overlay geometry from NavigationService. Triggered by a
+    // plan edit and by each preview answer.
+    void updatePlanGeometry();
     void onTrafficOverlayChanged();
     void onOverviewTimeout();
 
@@ -383,6 +394,8 @@ private:
     QVariantList m_mapThemeLayers;
     QVariantList m_routeCoordinates;
     QString m_routeGeoJson;
+    QString m_planGeoJson;
+    QString m_planStopsGeoJson;
     MapRouteStyle m_routeStyle;
     double m_vehicleOffsetY = VehicleOffsetPx;
 

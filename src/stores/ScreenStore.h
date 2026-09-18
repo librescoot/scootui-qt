@@ -21,12 +21,17 @@ public:
 
     int currentScreen() const { return static_cast<int>(m_currentScreen); }
     ScootEnums::ScreenMode currentScreenMode() const { return m_currentScreen; }
+    bool addressSelectionAppend() const { return m_addressSelectionAppend; }
 
     Q_PROPERTY(int setupMode READ setupMode NOTIFY setupModeChanged)
     Q_PROPERTY(int systemInfoPage READ systemInfoPage NOTIFY systemInfoPageChanged)
+    // Set when the address picker was opened to add a stop to the existing
+    // plan rather than replace it.
+    Q_PROPERTY(bool addressSelectionAppend READ addressSelectionAppend
+               NOTIFY addressSelectionAppendChanged)
 
     Q_INVOKABLE void setScreen(int screen);
-    Q_INVOKABLE void showAddressSelection();
+    Q_INVOKABLE void showAddressSelection(bool appendToRoute = false);
     Q_INVOKABLE void closeAddressSelection();
     Q_INVOKABLE void showAbout();
     Q_INVOKABLE void closeAbout();
@@ -69,6 +74,7 @@ signals:
     void currentScreenChanged();
     void setupModeChanged();
     void systemInfoPageChanged();
+    void addressSelectionAppendChanged();
     void umsModeRequested();
 
 protected:
@@ -92,6 +98,7 @@ private:
     static bool screenModeFromName(const QString &name, ScootEnums::ScreenMode &out);
 
     ScootEnums::ScreenMode m_currentScreen = ScootEnums::ScreenMode::Cluster;
+    bool m_addressSelectionAppend = false;
     ScootEnums::ScreenMode m_screenBeforeAddressSelection = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeAbout = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeNavSetup = ScootEnums::ScreenMode::Cluster;

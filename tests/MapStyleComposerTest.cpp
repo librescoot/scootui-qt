@@ -112,6 +112,22 @@ void MapStyleComposerTest::preservesOnlineResourcesAndPlacesRoute()
                  .value(QStringLiteral("line-color")).toString(), QStringLiteral("#abcdef"));
     QCOMPARE(layer(style, QStringLiteral("route-border")).value(QStringLiteral("paint")).toObject()
                  .value(QStringLiteral("line-width")).toInt(), 12);
+
+    // The multi-hop plan overlay: both GeoJSON sources exist and its layers sit
+    // under the active route.
+    const QJsonObject sources = style.value(QStringLiteral("sources")).toObject();
+    QVERIFY(sources.contains(QStringLiteral("plan")));
+    QVERIFY(sources.contains(QStringLiteral("plan-stops")));
+    QVERIFY(layerIndex(style, QStringLiteral("plan-line"))
+            < layerIndex(style, QStringLiteral("route-border")));
+    QVERIFY(layerIndex(style, QStringLiteral("plan-stop"))
+            < layerIndex(style, QStringLiteral("route-border")));
+    QCOMPARE(layer(style, QStringLiteral("plan-line")).value(QStringLiteral("source")).toString(),
+             QStringLiteral("plan"));
+    QVERIFY(layer(style, QStringLiteral("plan-line")).value(QStringLiteral("layout")).toObject()
+                .contains(QStringLiteral("line-dasharray")));
+    QCOMPARE(layer(style, QStringLiteral("plan-stop-current")).value(QStringLiteral("filter")).toArray(),
+             QJsonArray({QStringLiteral("=="), QStringLiteral("current"), 1}));
 }
 
 void MapStyleComposerTest::configuresOfflineResourcesWithoutGlyphs()
@@ -187,11 +203,16 @@ void MapStyleComposerTest::compositionIsIdempotent()
     const QJsonObject style = root(second);
 
     int routeLayers = 0;
+    int planLayers = 0;
     for (const QJsonValue &value : style.value(QStringLiteral("layers")).toArray()) {
-        if (value.toObject().value(QStringLiteral("id")).toString().startsWith(QStringLiteral("route-")))
+        const QString id = value.toObject().value(QStringLiteral("id")).toString();
+        if (id.startsWith(QStringLiteral("route-")))
             ++routeLayers;
+        if (id.startsWith(QStringLiteral("plan-")))
+            ++planLayers;
     }
     QCOMPARE(routeLayers, 3);
+    QCOMPARE(planLayers, 3);
 }
 
 QTEST_APPLESS_MAIN(MapStyleComposerTest)

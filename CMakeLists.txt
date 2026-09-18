@@ -124,6 +124,7 @@ set(CPP_SOURCES
     src/services/SoundCuePlayer.cpp
     src/services/SoundCuePlayer.h
     src/services/MapService.cpp
+    src/services/MapPlanGeometry.cpp
     src/services/MapStyleComposer.cpp
     src/services/MapStyleComposer.h
     src/services/MapStyleMetadata.cpp
@@ -137,6 +138,7 @@ set(CPP_SOURCES
     src/services/NavigationAvailabilityService.cpp
     src/services/SavedLocationsService.cpp
     src/services/RecentDestinationsService.cpp
+    src/services/RoutePlanService.cpp
     src/services/ReverseGeocodingService.cpp
     src/services/SerialNumberService.cpp
     src/services/AddressDatabaseService.cpp
@@ -292,6 +294,8 @@ set(QML_FILES
     qml/widgets/navigation/NavigationStatusOverlay.qml
     qml/widgets/navigation/RoundaboutIcon.qml
     qml/widgets/navigation/RoundaboutIconFromMap.qml
+    qml/widgets/navigation/HopContinuePrompt.qml
+    qml/widgets/navigation/RouteOverviewPanel.qml
     qml/widgets/speedometer/SpeedometerDisplay.qml
     qml/widgets/status_bars/TopStatusBar.qml
     qml/widgets/status_bars/ClockDisplay.qml
@@ -664,7 +668,9 @@ if(BUILD_TESTING)
         src/services/TileLoader.cpp
         src/services/VectorTileDecoder.cpp
         src/services/NavigationService.cpp
+        src/services/RoutePlanService.cpp
         src/services/MapService.cpp
+        src/services/MapPlanGeometry.cpp
         src/services/MapStyleComposer.cpp
         src/services/MapStyleMetadata.cpp
         src/routing/ValhallaClient.cpp
@@ -685,6 +691,42 @@ if(BUILD_TESTING)
     target_link_libraries(road_info_service_test PRIVATE Qt6::Quick Qt6::Core Qt6::Gui Qt6::Network Qt6::Sql Qt6::Test ZLIB::ZLIB)
     add_test(NAME road_info_service_test COMMAND road_info_service_test)
     set_tests_properties(road_info_service_test PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+
+    qt_add_executable(navigation_hop_test
+        tests/NavigationHopTest.cpp
+        src/services/RoadInfoService.cpp
+        src/services/StreetQueryDispatcher.cpp
+        src/services/StreetQuery.cpp
+        src/services/RoadMatchDispatcher.cpp
+        src/services/RoadMatcher.cpp
+        src/services/RoadWorkerThreads.cpp
+        src/services/TileLoader.cpp
+        src/services/VectorTileDecoder.cpp
+        src/services/NavigationService.cpp
+        src/services/RoutePlanService.cpp
+        src/services/MapService.cpp
+        src/services/MapPlanGeometry.cpp
+        src/services/MapStyleComposer.cpp
+        src/services/MapStyleMetadata.cpp
+        src/routing/ValhallaClient.cpp
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/stores/SyncableStore.cpp
+        src/stores/SpeedLimitStore.cpp
+        src/stores/GpsStore.cpp
+        src/stores/NavigationStore.cpp
+        src/stores/VehicleStore.cpp
+        src/stores/SettingsStore.cpp
+        src/stores/ThemeStore.cpp
+        src/stores/MotionStore.cpp
+        src/stores/EngineStore.cpp
+    )
+    target_include_directories(navigation_hop_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_compile_definitions(navigation_hop_test PRIVATE SCOOTUI_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(navigation_hop_test PRIVATE Qt6::Quick Qt6::Core Qt6::Gui Qt6::Network Qt6::Sql Qt6::Test ZLIB::ZLIB)
+    add_test(NAME navigation_hop_test COMMAND navigation_hop_test)
+    set_tests_properties(navigation_hop_test PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 90)
 
     qt_add_executable(map_timing_test
         tests/MapTimingTest.cpp
@@ -799,6 +841,40 @@ if(BUILD_TESTING)
     target_include_directories(road_match_search_bounds_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(road_match_search_bounds_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME road_match_search_bounds_test COMMAND road_match_search_bounds_test)
+
+    qt_add_executable(route_plan_test tests/RoutePlanTest.cpp)
+    target_include_directories(route_plan_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(route_plan_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME route_plan_test COMMAND route_plan_test)
+
+    qt_add_executable(route_plan_service_test
+        tests/RoutePlanServiceTest.cpp
+        src/services/RoutePlanService.cpp
+        src/services/RoutePlanService.h
+        src/routing/RouteModels.h
+        src/core/AppConfig.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+    )
+    target_include_directories(route_plan_service_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(route_plan_service_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME route_plan_service_test COMMAND route_plan_service_test)
+
+    qt_add_executable(multi_leg_route_test tests/MultiLegRouteTest.cpp)
+    target_include_directories(multi_leg_route_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(multi_leg_route_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME multi_leg_route_test COMMAND multi_leg_route_test)
+
+    qt_add_executable(map_plan_geometry_test
+        tests/MapPlanGeometryTest.cpp
+        src/services/MapPlanGeometry.cpp
+        src/services/MapPlanGeometry.h
+        src/routing/RouteModels.h
+    )
+    target_include_directories(map_plan_geometry_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(map_plan_geometry_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME map_plan_geometry_test COMMAND map_plan_geometry_test)
 
     qt_add_executable(syncable_store_seed_test
         tests/SyncableStoreSeedTest.cpp
@@ -1058,7 +1134,9 @@ if(BUILD_TESTING)
         src/services/ToastService.cpp
         src/services/ToastService.h
         src/services/NavigationService.cpp
+        src/services/RoutePlanService.cpp
         src/services/MapService.cpp
+        src/services/MapPlanGeometry.cpp
         src/services/MapStyleComposer.cpp
         src/services/MapStyleMetadata.cpp
         src/services/RoadInfoService.cpp

@@ -181,6 +181,10 @@ public:
 
     // Routes
     Q_INVOKABLE void loadTestRoute(int index);
+    // Synthetic multi-hop plan: three stops with straight-line hop routes, so
+    // the hop prompt, auto-advance, and per-hop guidance are exercisable on
+    // desktop without a router.
+    Q_INVOKABLE void loadTestPlan();
 
     // Auto-drive
     Q_INVOKABLE void startAutoDrive(double targetSpeed);
@@ -206,6 +210,9 @@ signals:
 private:
     void autoDriveTick();
     void updateRoadInfo();
+    // Swap in the synthetic route for the plan's current hop when the step
+    // changes (advance, skip, or resume).
+    void onPlanStepChanged();
 
     void setBatteryField(int slot, const QString &field, const QString &value);
 
@@ -231,6 +238,10 @@ private:
     double m_autoDriveBearing = 0;
     Route m_route;
     int m_routeWaypointIndex = 0;
+    // Synthetic per-hop routes for loadTestPlan(), indexed by plan step.
+    QList<Route> m_planRoutes;
+    int m_planRouteIndex = -1;
+    double m_planCruiseSpeed = 25.0;
     QString m_language = QStringLiteral("en");
     double m_batteryCharge0 = 80;
     double m_batteryCharge1 = 80;

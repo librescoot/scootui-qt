@@ -453,7 +453,13 @@ Rectangle {
         addressLabel += ", " + selectedCity
 
         if (typeof navigationService !== "undefined") {
-            navigationService.setDestination(destLat, destLng, addressLabel)
+            // Opened from the route submenu to extend the active plan, or from
+            // the normal entry point to replace it.
+            var append = typeof screenStore !== "undefined" && screenStore.addressSelectionAppend
+            if (append)
+                navigationService.appendStop(destLat, destLng, addressLabel)
+            else
+                navigationService.setDestination(destLat, destLng, addressLabel)
         }
         // A chosen destination hands over to the map rather than backing out,
         // so drop the menu level cancelBack() would have returned to. close()

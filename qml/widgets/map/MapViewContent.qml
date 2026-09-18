@@ -172,6 +172,25 @@ MapView {
             onDataChanged: updateNotify()
         }
 
+        // Multi-hop plan overlay. The layers themselves are added by the style
+        // composer (dim dashed line plus stop markers); only the data changes at
+        // runtime.
+        SourceParameter {
+            id: planSource
+            styleId: "plan"
+            type: "geojson"
+            property string data: typeof mapService !== "undefined" ? mapService.planGeoJson : ""
+            onDataChanged: updateNotify()
+        }
+
+        SourceParameter {
+            id: planStopsSource
+            styleId: "plan-stops"
+            type: "geojson"
+            property string data: typeof mapService !== "undefined" ? mapService.planStopsGeoJson : ""
+            onDataChanged: updateNotify()
+        }
+
         // The composed style already contains these IDs at their intended
         // depth; the parameters update their source data and appearance.
         LayerParameter {

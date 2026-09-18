@@ -53,6 +53,13 @@ SimulatorService::SimulatorService(MdbRepository *repo, NavigationService *nav,
     });
     m_gpsTimestampTimer->start();
 
+    if (m_nav) {
+        // A plan step change means NavigationService has moved to the next hop;
+        // swap the simulator's synthetic route to match.
+        connect(m_nav, &NavigationService::planChanged,
+                this, &SimulatorService::onPlanStepChanged);
+    }
+
     if (seedDefaults)
         applyDefaults();
 }
@@ -969,6 +976,113 @@ void SimulatorService::loadTestRoute(int index)
     }
 }
 
+namespace {
+
+// A straight-line stand-in for one hop. Enough waypoints that auto-drive and
+// the map polyline look continuous, with a start and an arrive maneuver so the
+// turn-by-turn and arrival paths behave as they do for a real route.
+Route straightHopRoute(const LatLng &from, const LatLng &to, double cruiseKph)
+{
+    constexpr int kSegments = 12;
+    Route route;
+    for (int i = 0; i <= kSegments; ++i) {
+        const double t = static_cast<double>(i) / kSegments;
+        route.waypoints.append({from.latitude + (to.latitude - from.latitude) * t,
+                                from.longitude + (to.longitude - from.longitude) * t});
+    }
+
+    const double meters = from.distanceTo(to);
+    RouteInstruction start;
+    start.type = ManeuverType::KeepStraight;
+    start.isStart = true;
+    start.originalShapeIndex = 0;
+    start.location = from;
+    start.streetName = QStringLiteral("Simulator Road");
+    start.distance = meters;
+    start.duration = meters / (cruiseKph / 3.6);
+
+    RouteInstruction arrive;
+    arrive.type = ManeuverType::Arrive;
+    arrive.originalShapeIndex = kSegments;
+    arrive.location = to;
+    arrive.streetName = QStringLiteral("Simulator Road");
+
+    route.instructions = {start, arrive};
+    route.distance = meters;
+    route.duration = start.duration;
+    return route;
+}
+
+} // namespace
+
+void SimulatorService::loadTestPlan()
+{
+    if (!m_nav)
+        return;
+
+    stopAutoDrive();
+    setSpeed(0);
+    setGpsSpeed(0);
+
+    const LatLng origin{52.520143, 13.451456};
+    QList<RouteStop> stops;
+    RouteStop a;
+    a.position = {52.516165, 13.452089};
+    a.label = QStringLiteral("Bersarinplatz");
+    stops.append(a);
+    RouteStop b;
+    b.position = {52.525902, 13.366180};
+    b.label = QStringLiteral("Invalidenstrasse");
+    stops.append(b);
+    RouteStop c;
+    c.position = {52.520008, 13.404954};
+    c.label = QStringLiteral("Alexanderplatz");
+    stops.append(c);
+
+    m_planRoutes.clear();
+    m_planRoutes.append(straightHopRoute(origin, stops[0].position, m_planCruiseSpeed));
+    for (int i = 1; i < stops.size(); ++i)
+        m_planRoutes.append(straightHopRoute(stops[i - 1].position, stops[i].position,
+                                             m_planCruiseSpeed));
+    m_planRouteIndex = -1;
+
+    m_autoDriveLat = origin.latitude;
+    m_autoDriveLng = origin.longitude;
+    setGpsPosition(origin.latitude, origin.longitude);
+    setGpsState(QStringLiteral("fix-established"));
+    m_autoDriveBearing = origin.bearingTo(stops[0].position);
+    setGpsCourse(m_autoDriveBearing);
+
+    // Emits planChanged, which loads m_planRoutes[0] through onPlanStepChanged().
+    m_nav->setRoutePlan(stops, 0);
+
+    startAutoDrive(m_planCruiseSpeed);
+    qDebug() << "Simulator: loaded multi-hop plan with" << stops.size() << "stops";
+}
+
+void SimulatorService::onPlanStepChanged()
+{
+    if (!m_nav || m_planRoutes.isEmpty())
+        return;
+    const int step = m_nav->currentStep();
+    if (step < 0 || step >= m_planRoutes.size())
+        return;
+    if (step == m_planRouteIndex && m_route.isValid())
+        return;
+
+    m_planRouteIndex = step;
+    m_route = m_planRoutes[step];
+    m_routeWaypointIndex = 0;
+    m_currentInstructionIndex = 0;
+
+    // setRoute() cancels any queued network request, so desktop never needs a
+    // router for a simulated plan.
+    m_nav->setRoute(m_route);
+
+    if (m_autoDriveActive && m_autoDriveTargetSpeed <= 0)
+        m_autoDriveTargetSpeed = m_planCruiseSpeed;
+}
+
 // --- Auto-drive ---
 
 void SimulatorService::startAutoDrive(double targetSpeed)
@@ -1067,10 +1181,16 @@ void SimulatorService::autoDriveTick()
             }
         }
 
-        // Stop when we reach the end of the route
+        // Stop when we reach the end of the route. With a multi-hop plan the
+        // rider holds here: NavigationService raises the continue prompt and
+        // onPlanStepChanged() swaps in the next hop's route.
         if (m_routeWaypointIndex >= m_route.waypoints.size() - 1) {
-            qDebug() << "Simulator: reached end of route";
-            m_autoDriveTargetSpeed = 0;
+            const bool planContinues = !m_planRoutes.isEmpty() && m_nav
+                && m_nav->hasPlan() && m_planRouteIndex < m_planRoutes.size() - 1;
+            if (!planContinues) {
+                qDebug() << "Simulator: reached end of route";
+                m_autoDriveTargetSpeed = 0;
+            }
         }
     } else if (!m_route.isValid()) {
         // No route: move along bearing with gentle curve (fallback)

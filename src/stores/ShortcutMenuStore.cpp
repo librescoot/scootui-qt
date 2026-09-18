@@ -63,6 +63,10 @@ ShortcutMenuStore::ShortcutMenuStore(EngineStore *engine, VehicleStore *vehicle,
                 this, SLOT(rebuildActions()));
     if (m_navigation)
         connect(m_navigation, SIGNAL(routeChanged()), this, SLOT(rebuildActions()));
+    if (m_navigation)
+        connect(m_navigation, SIGNAL(planChanged()), this, SLOT(rebuildActions()));
+    if (m_navigation)
+        connect(m_navigation, SIGNAL(planStateChanged()), this, SLOT(rebuildActions()));
     if (m_settings)
         connect(m_settings, &SettingsStore::mapTypeChanged,
                 this, &ShortcutMenuStore::rebuildActions);
@@ -161,6 +165,11 @@ QVariantList ShortcutMenuStore::availableActions() const
     actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("view")}});
     if (m_navigation && m_navigation->property("hasRoute").toBool()) {
         actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("route-overview")}});
+        // Skip is only meaningful while there is a later stop to move to.
+        const int step = m_navigation->property("currentStep").toInt();
+        const int count = m_navigation->property("stopCount").toInt();
+        if (count > 0 && step + 1 < count)
+            actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("skip-stop")}});
         actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("stop-navigation")}});
         return actions;
     }
@@ -293,6 +302,11 @@ void ShortcutMenuStore::executePendingAction()
         resetState();
         return;
     }
+    if (kind == QLatin1String("skip-stop")) {
+        skipCurrentStop();
+        resetState();
+        return;
+    }
     if (kind == QLatin1String("stop-navigation")) {
         stopNavigation();
         resetState();
@@ -339,6 +353,17 @@ void ShortcutMenuStore::stopNavigation()
 {
     if (m_navigation && m_navigation->property("hasRoute").toBool())
         QMetaObject::invokeMethod(m_navigation, "clearNavigation");
+}
+
+void ShortcutMenuStore::skipCurrentStop()
+{
+    if (!m_navigation || !m_navigation->property("hasPlan").toBool())
+        return;
+    QMetaObject::invokeMethod(m_navigation, "skipCurrentStop");
+    if (m_screenStore)
+        m_screenStore->setScreen(static_cast<int>(ScootEnums::ScreenMode::Map));
+    if (m_settingsService)
+        m_settingsService->updateMode(QStringLiteral("navigation"));
 }
 
 void ShortcutMenuStore::showRouteOverview()

@@ -759,6 +759,28 @@ void Translations::initStrings()
 
     en[QStringLiteral("menuStopNavigation")] = QStringLiteral("Stop Navigation");
     de[QStringLiteral("menuStopNavigation")] = QStringLiteral("Navigation beenden");
+    en[QStringLiteral("menuRoutePlan")] = QStringLiteral("Route");
+    de[QStringLiteral("menuRoutePlan")] = QStringLiteral("Route");
+    en[QStringLiteral("menuRoutePlanHeader")] = QStringLiteral("ROUTE");
+    de[QStringLiteral("menuRoutePlanHeader")] = QStringLiteral("ROUTE");
+    en[QStringLiteral("menuRouteAddStop")] = QStringLiteral("Add stop");
+    de[QStringLiteral("menuRouteAddStop")] = QStringLiteral("Stopp hinzufügen");
+    en[QStringLiteral("menuRouteMoveUp")] = QStringLiteral("Move up");
+    de[QStringLiteral("menuRouteMoveUp")] = QStringLiteral("Nach oben");
+    en[QStringLiteral("menuRouteMoveDown")] = QStringLiteral("Move down");
+    de[QStringLiteral("menuRouteMoveDown")] = QStringLiteral("Nach unten");
+    en[QStringLiteral("menuRouteDeleteStop")] = QStringLiteral("Delete stop");
+    de[QStringLiteral("menuRouteDeleteStop")] = QStringLiteral("Stopp löschen");
+    en[QStringLiteral("menuRouteCurrentStop")] = QStringLiteral("Current");
+    de[QStringLiteral("menuRouteCurrentStop")] = QStringLiteral("Aktuell");
+    en[QStringLiteral("menuRouteReached")] = QStringLiteral("Reached");
+    de[QStringLiteral("menuRouteReached")] = QStringLiteral("Erreicht");
+    en[QStringLiteral("menuRouteJumpHere")] = QStringLiteral("Go here next");
+    de[QStringLiteral("menuRouteJumpHere")] = QStringLiteral("Als Nächstes");
+    en[QStringLiteral("menuRouteSkip")] = QStringLiteral("Skip this stop");
+    de[QStringLiteral("menuRouteSkip")] = QStringLiteral("Stopp überspringen");
+    en[QStringLiteral("menuRouteResume")] = QStringLiteral("Resume route");
+    de[QStringLiteral("menuRouteResume")] = QStringLiteral("Route fortsetzen");
 
     en[QStringLiteral("menuQuickMenu")] = QStringLiteral("Quick menu");
     de[QStringLiteral("menuQuickMenu")] = QStringLiteral("Schnellmen\u00FC");
@@ -1247,6 +1269,24 @@ void Translations::initStrings()
 
     en[QStringLiteral("navContinue")] = QStringLiteral("Continue");
     de[QStringLiteral("navContinue")] = QStringLiteral("Weiter");
+    en[QStringLiteral("navStopReached")] = QStringLiteral("Stop %1 of %2");
+    de[QStringLiteral("navStopReached")] = QStringLiteral("Stopp %1 von %2");
+    en[QStringLiteral("navContinueTo")] = QStringLiteral("Continue to %1?");
+    de[QStringLiteral("navContinueTo")] = QStringLiteral("Weiter nach %1?");
+    en[QStringLiteral("navAutoContinue")] = QStringLiteral("Continuing in %1 s");
+    de[QStringLiteral("navAutoContinue")] = QStringLiteral("Weiter in %1 s");
+    en[QStringLiteral("navHoldContinue")] = QStringLiteral("Right hold: continue");
+    de[QStringLiteral("navHoldContinue")] = QStringLiteral("Rechts halten: weiter");
+    en[QStringLiteral("navHoldStop")] = QStringLiteral("Left hold: stop here");
+    de[QStringLiteral("navHoldStop")] = QStringLiteral("Links halten: hier anhalten");
+    en[QStringLiteral("routeOverviewTitle")] = QStringLiteral("Route");
+    de[QStringLiteral("routeOverviewTitle")] = QStringLiteral("Route");
+    en[QStringLiteral("routeOverviewCurrentPosition")] = QStringLiteral("Current position");
+    de[QStringLiteral("routeOverviewCurrentPosition")] = QStringLiteral("Aktuelle Position");
+    en[QStringLiteral("routeOverviewCalculating")] = QStringLiteral("Calculating...");
+    de[QStringLiteral("routeOverviewCalculating")] = QStringLiteral("Wird berechnet...");
+    en[QStringLiteral("routeOverviewTotal")] = QStringLiteral("Total %1, %2");
+    de[QStringLiteral("routeOverviewTotal")] = QStringLiteral("Gesamt %1, %2");
 
     en[QStringLiteral("navReturnToRoute")] = QStringLiteral("Return to the route");
     de[QStringLiteral("navReturnToRoute")] = QStringLiteral("Zur\u00FCck zur Route");
@@ -1823,6 +1863,8 @@ void Translations::initStrings()
     de[QStringLiteral("shortcutStartDestination")] = QStringLiteral("Navigation nach %1");
     en[QStringLiteral("shortcutRouteOverview")] = QStringLiteral("Route overview");
     de[QStringLiteral("shortcutRouteOverview")] = QStringLiteral("Routenübersicht");
+    en[QStringLiteral("shortcutSkipStop")] = QStringLiteral("Skip stop");
+    de[QStringLiteral("shortcutSkipStop")] = QStringLiteral("Stopp überspringen");
 
     // -----------------------------------------------------------------------
     // Month abbreviations (status bar date)

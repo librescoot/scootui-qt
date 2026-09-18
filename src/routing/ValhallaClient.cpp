@@ -138,6 +138,153 @@ void ValhallaClient::requestRoute(const RouteOrigin &from, const LatLng &to, Rea
     m_debounce.start();
 }
 
+void ValhallaClient::requestPreviewRoute(const RouteOrigin &from, const QList<LatLng> &stops)
+{
+    if (!from.isValid() || stops.isEmpty())
+        return;
+    m_previewFrom = from;
+    m_previewStops = stops;
+    m_previewPending = true;
+    dispatchPreview();
+}
+
+void ValhallaClient::cancelPreview()
+{
+    m_previewPending = false;
+    m_previewStops.clear();
+    if (m_activePreviewReply) {
+        m_activePreviewReply->disconnect(this);
+        m_activePreviewReply->abort();
+        m_activePreviewReply->deleteLater();
+        m_activePreviewReply.clear();
+    }
+}
+
+void ValhallaClient::dispatchPreview()
+{
+    if (!m_previewPending)
+        return;
+    // Best-effort: hold the request until the server is known healthy. The next
+    // successful probe retries it, so the preview fills in late rather than
+    // hammering an unreachable endpoint.
+    if (!m_isHealthy)
+        return;
+    m_previewPending = false;
+    sendPreviewRequest();
+}
+
+void ValhallaClient::sendPreviewRequest()
+{
+    // Latest plan wins: abort a preview still in flight for an older one.
+    if (m_activePreviewReply) {
+        m_activePreviewReply->disconnect(this);
+        m_activePreviewReply->abort();
+        m_activePreviewReply->deleteLater();
+        m_activePreviewReply.clear();
+    }
+
+    QJsonObject request = buildBaseRouteRequest();
+    QJsonArray locations;
+    QJsonObject origin{{QStringLiteral("lat"), m_previewFrom.position.latitude},
+                       {QStringLiteral("lon"), m_previewFrom.position.longitude},
+                       {QStringLiteral("radius"), m_previewFrom.radiusMeters}};
+    if (m_previewFrom.heading >= 0.0 && std::isfinite(m_previewFrom.heading)) {
+        origin[QStringLiteral("heading")] = m_previewFrom.heading;
+        origin[QStringLiteral("heading_tolerance")] = m_previewFrom.headingToleranceDegrees;
+    }
+    locations.append(origin);
+    for (const LatLng &stop : m_previewStops) {
+        locations.append(QJsonObject{{QStringLiteral("lat"), stop.latitude},
+                                      {QStringLiteral("lon"), stop.longitude},
+                                      {QStringLiteral("radius"), 150},
+                                      {QStringLiteral("type"), QStringLiteral("break")}});
+    }
+    request[QStringLiteral("locations")] = locations;
+
+    QNetworkRequest req(QUrl(m_endpoint + QStringLiteral("route")));
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+    req.setTransferTimeout(30000);
+    QSslConfiguration ssl = req.sslConfiguration();
+    ssl.setPeerVerifyMode(QSslSocket::VerifyNone);
+    req.setSslConfiguration(ssl);
+
+    auto *reply = m_nam.post(req, QJsonDocument(request).toJson(QJsonDocument::Compact));
+    m_activePreviewReply = reply;
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        handlePreviewReply(reply);
+    });
+}
+
+void ValhallaClient::handlePreviewReply(QNetworkReply *reply)
+{
+    reply->deleteLater();
+    if (m_activePreviewReply == reply)
+        m_activePreviewReply.clear();
+
+    if (reply->error() != QNetworkReply::NoError) {
+        emit planPreviewFailed(reply->errorString());
+        return;
+    }
+
+    QList<Route> legs;
+    if (!RouteHelpers::parseMultiLegRouteResponse(reply->readAll(), legs)) {
+        emit planPreviewFailed(QStringLiteral("No usable legs in preview response"));
+        return;
+    }
+    emit planPreviewReady(legs);
+}
+
+QJsonObject ValhallaClient::buildBaseRouteRequest()
+{
+    QJsonObject request;
+    request[QStringLiteral("costing")] = QStringLiteral("motor_scooter");
+
+    // Rider preferences. avoid_bad_surfaces needs a tileset that classifies
+    // sett and cobblestone separately and a costing that weighs it; on older
+    // tiles or an unpatched server it is simply ignored. Shortest mode returns
+    // raw edge length before any cost factor applies, so the surface weight
+    // would do nothing there and the menu hides the control instead.
+    //
+    // Off sends an explicit 0 rather than omitting the key. Omitting it is not
+    // the same as zero: the server's own kDefaultAvoidBadSurfaces is 0.5, which
+    // is the Medium weight, so a missing key routes Off exactly like Medium.
+    QJsonObject costingOptions;
+    if (m_shortest)
+        costingOptions[QStringLiteral("shortest")] = true;
+    else
+        costingOptions[QStringLiteral("avoid_bad_surfaces")] = m_avoidBadSurfaces;
+    if (!costingOptions.isEmpty()) {
+        request[QStringLiteral("costing_options")] =
+            QJsonObject{{QStringLiteral("motor_scooter"), costingOptions}};
+    }
+
+    request[QStringLiteral("units")] = QStringLiteral("kilometers");
+    request[QStringLiteral("language")] = m_language;
+    request[QStringLiteral("shape_format")] = QStringLiteral("polyline6");
+    QJsonObject dirOpts;
+    dirOpts[QStringLiteral("units")] = QStringLiteral("kilometers");
+    dirOpts[QStringLiteral("language")] = m_language;
+    request[QStringLiteral("directions_options")] = dirOpts;
+
+    // Attach the current time so Valhalla applies time-conditional restrictions
+    // (timed access, turn restrictions, conditional oneways). type 3 = invariant:
+    // the given time is applied to every edge without modelling travel time,
+    // which is what we want for "what's legal right now" on short trips. Omitted
+    // when the provider yields nothing (no trusted time), leaving restrictions
+    // unevaluated rather than evaluated against a wrong clock.
+    if (m_departureTimeProvider) {
+        const QString departLocal = m_departureTimeProvider();
+        if (!departLocal.isEmpty()) {
+            QJsonObject dateTime;
+            dateTime[QStringLiteral("type")] = 3;
+            dateTime[QStringLiteral("value")] = departLocal;
+            request[QStringLiteral("date_time")] = dateTime;
+        }
+    }
+
+    return request;
+}
+
 void ValhallaClient::cancelPending()
 {
     m_hasPending = false;
@@ -256,7 +403,7 @@ void ValhallaClient::sendRouteRequest(const RouteOrigin &from, const LatLng &to)
     // stale route. The next routeCalculated will trigger a fresh trace.
     abortActiveTrace();
 
-    QJsonObject request;
+    QJsonObject request = buildBaseRouteRequest();
     QJsonArray locations;
     QJsonObject origin{{QStringLiteral("lat"), from.position.latitude},
                        {QStringLiteral("lon"), from.position.longitude},
@@ -270,50 +417,6 @@ void ValhallaClient::sendRouteRequest(const RouteOrigin &from, const LatLng &to)
                                   {QStringLiteral("lon"), to.longitude},
                                   {QStringLiteral("radius"), 150}});
     request[QStringLiteral("locations")] = locations;
-    request[QStringLiteral("costing")] = QStringLiteral("motor_scooter");
-
-    // Rider preferences. avoid_bad_surfaces needs a tileset that classifies
-    // sett and cobblestone separately and a costing that weighs it; on older
-    // tiles or an unpatched server it is simply ignored. Shortest mode returns
-    // raw edge length before any cost factor applies, so the surface weight
-    // would do nothing there and the menu hides the control instead.
-    //
-    // Off sends an explicit 0 rather than omitting the key. Omitting it is not
-    // the same as zero: the server's own kDefaultAvoidBadSurfaces is 0.5, which
-    // is the Medium weight, so a missing key routes Off exactly like Medium.
-    QJsonObject costingOptions;
-    if (m_shortest)
-        costingOptions[QStringLiteral("shortest")] = true;
-    else
-        costingOptions[QStringLiteral("avoid_bad_surfaces")] = m_avoidBadSurfaces;
-    if (!costingOptions.isEmpty()) {
-        request[QStringLiteral("costing_options")] =
-            QJsonObject{{QStringLiteral("motor_scooter"), costingOptions}};
-    }
-
-    request[QStringLiteral("units")] = QStringLiteral("kilometers");
-    request[QStringLiteral("language")] = m_language;
-    request[QStringLiteral("shape_format")] = QStringLiteral("polyline6");
-    QJsonObject dirOpts;
-    dirOpts[QStringLiteral("units")] = QStringLiteral("kilometers");
-    dirOpts[QStringLiteral("language")] = m_language;
-    request[QStringLiteral("directions_options")] = dirOpts;
-
-    // Attach the current time so Valhalla applies time-conditional restrictions
-    // (timed access, turn restrictions, conditional oneways). type 3 = invariant:
-    // the given time is applied to every edge without modelling travel time,
-    // which is what we want for "what's legal right now" on short trips. Omitted
-    // when the provider yields nothing (no trusted time), leaving restrictions
-    // unevaluated rather than evaluated against a wrong clock.
-    if (m_departureTimeProvider) {
-        const QString departLocal = m_departureTimeProvider();
-        if (!departLocal.isEmpty()) {
-            QJsonObject dateTime;
-            dateTime[QStringLiteral("type")] = 3;
-            dateTime[QStringLiteral("value")] = departLocal;
-            request[QStringLiteral("date_time")] = dateTime;
-        }
-    }
 
     QNetworkRequest req(QUrl(m_endpoint + QStringLiteral("route")));
     req.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
@@ -406,6 +509,8 @@ void ValhallaClient::handleHealthReply(QNetworkReply *reply, bool /*forced*/)
         // Flush any request that was queued waiting for the first healthy probe.
         if (firstHealthy && m_hasPending)
             dispatchPending();
+        // A plan preview held back while unhealthy goes out now.
+        dispatchPreview();
     } else {
         m_isHealthy = false;
         if (wasHealthy != m_isHealthy)

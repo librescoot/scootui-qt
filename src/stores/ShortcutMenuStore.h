@@ -63,6 +63,7 @@ private:
     void toggleHazards();
     void toggleView();
     void stopNavigation();
+    void skipCurrentStop();
     void showRouteOverview();
     void resetState();
     bool isReadyToDrive() const;

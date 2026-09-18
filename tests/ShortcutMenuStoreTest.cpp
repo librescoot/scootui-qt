@@ -12,13 +12,33 @@ class NavigationStub : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(bool hasRoute READ hasRoute NOTIFY routeChanged)
+    Q_PROPERTY(bool hasPlan READ hasPlan NOTIFY planChanged)
+    Q_PROPERTY(int currentStep READ currentStep NOTIFY planChanged)
+    Q_PROPERTY(int stopCount READ stopCount NOTIFY planChanged)
 public:
     bool hasRoute() const { return m_hasRoute; }
+    bool hasPlan() const { return m_hasPlan; }
+    int currentStep() const { return m_currentStep; }
+    int stopCount() const { return m_stopCount; }
     Q_INVOKABLE void clearNavigation() { m_hasRoute = false; emit routeChanged(); }
+    Q_INVOKABLE void skipCurrentStop() { ++skipCalls; }
+    void setPlan(bool hasPlan, int step, int count)
+    {
+        m_hasPlan = hasPlan;
+        m_currentStep = step;
+        m_stopCount = count;
+        emit planChanged();
+    }
+    int skipCalls = 0;
 signals:
     void routeChanged();
+    void planChanged();
+    void planStateChanged();
 private:
     bool m_hasRoute = true;
+    bool m_hasPlan = false;
+    int m_currentStep = 0;
+    int m_stopCount = 0;
 };
 
 class MapStub : public QObject
@@ -40,6 +60,7 @@ private slots:
     void closedMenuDoubleTapTogglesHazards();
     void viewActionTogglesMapAndCluster();
     void activeNavigationOffersOverviewAndStop();
+    void planNavigationOffersSkipBetweenStops();
 };
 
 void ShortcutMenuStoreTest::raisingKickstandDismissesAndStopsCycling()
@@ -229,6 +250,36 @@ void ShortcutMenuStoreTest::activeNavigationOffersOverviewAndStop()
     repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
     QVERIFY(!navigation.hasRoute());
     QCOMPARE(menu.actionCount(), 1);
+}
+
+void ShortcutMenuStoreTest::planNavigationOffersSkipBetweenStops()
+{
+    InMemoryMdbRepository repo;
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
+             QStringLiteral("ready-to-drive"), false);
+
+    VehicleStore vehicle(&repo);
+    vehicle.start();
+    NavigationStub navigation;
+    MapStub map;
+    ShortcutMenuStore menu(nullptr, &vehicle, nullptr, nullptr, nullptr,
+                           &navigation, &map, nullptr, &repo, nullptr);
+
+    navigation.setPlan(true, 0, 2);
+    menu.show();
+    QCOMPARE(menu.actionCount(), 4);
+    QCOMPARE(menu.actions().at(2).toMap().value(QStringLiteral("kind")).toString(),
+             QStringLiteral("skip-stop"));
+
+    menu.cycle();
+    menu.cycle();
+    menu.confirm();
+    repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
+    QCOMPARE(navigation.skipCalls, 1);
+
+    // There is nothing to skip on the final hop, so the action disappears.
+    navigation.setPlan(true, 1, 2);
+    QCOMPARE(menu.actionCount(), 3);
 }
 
 QTEST_GUILESS_MAIN(ShortcutMenuStoreTest)

@@ -4,6 +4,7 @@
 #include <QStringList>
 #include <QList>
 #include <QVariantList>
+#include <algorithm>
 #include <cmath>
 
 struct LatLng {
@@ -159,6 +160,95 @@ struct Route {
 Q_DECLARE_METATYPE(Route)
 Q_DECLARE_METATYPE(EdgeAttrs)
 Q_DECLARE_METATYPE(QList<EdgeAttrs>)
+
+// --- Multi-hop route plan ---
+//
+// A plan is an ordered list of stops. Guidance is per hop: the rider is routed
+// to stops[currentStep], then offered the next one. currentStep always indexes
+// stops, including stops already passed (reached == true), so the overview and
+// the editor can show the whole trip. Persisting and indexing are done by
+// RoutePlanService; NavigationService owns the live copy.
+
+enum class RoutePlanState {
+    None = 0,   // no plan
+    Planning,   // a preview request is in flight
+    Navigating, // guiding to stops[currentStep]
+    AtStop,     // reached stops[currentStep]; continue prompt active
+    Held,       // rider said no; plan kept, guidance stopped
+    Paused,     // parked or hop-on; plan kept, guidance stopped
+    Complete    // last stop reached, plan about to clear
+};
+
+struct RouteStop {
+    int id = -1;            // stable within a plan; survives reorder
+    LatLng position;
+    QString label;
+    bool reached = false;   // already-passed marker for the overview
+
+    bool isValid() const { return position.isValid(); }
+    bool operator==(const RouteStop &o) const {
+        return id == o.id && position == o.position
+            && label == o.label && reached == o.reached;
+    }
+    bool operator!=(const RouteStop &o) const { return !(*this == o); }
+};
+
+// One leg of a plan. Route is empty until ready; failed marks a leg the router
+// could not compute so the overview can show a gap instead of a stale number.
+struct HopPreview {
+    int fromStopId = -1;    // -1 means "from the live current position" (hop 0)
+    int toStopId = -1;
+    double distance = 0;    // meters
+    double duration = 0;    // seconds
+    Route route;
+    bool ready = false;
+    bool failed = false;
+};
+
+struct RoutePlan {
+    QList<RouteStop> stops;
+    int currentStep = 0;
+    QList<HopPreview> hops;   // size stops.size()-1 once previewed
+
+    bool isValid() const { return !stops.isEmpty(); }
+    int stopCount() const { return stops.size(); }
+    bool atLastStop() const { return !stops.isEmpty() && currentStep >= stops.size() - 1; }
+
+    RouteStop currentStop() const { return stopAt(currentStep); }
+    RouteStop nextStop() const { return stopAt(currentStep + 1); }
+
+    RouteStop stopAt(int index) const {
+        if (index < 0 || index >= stops.size()) return {};
+        return stops.at(index);
+    }
+
+    int indexOfStopId(int id) const {
+        for (int i = 0; i < stops.size(); ++i)
+            if (stops.at(i).id == id) return i;
+        return -1;
+    }
+
+    int nextStopId() const { return nextStop().id; }
+
+    const HopPreview *hopTo(int toStopId) const {
+        for (const auto &h : hops)
+            if (h.toStopId == toStopId) return &h;
+        return nullptr;
+    }
+
+    // Keep currentStep inside the list, including the empty case.
+    void clampStep() {
+        if (stops.isEmpty()) currentStep = 0;
+        else currentStep = std::clamp(currentStep, 0, static_cast<int>(stops.size()) - 1);
+    }
+};
+
+Q_DECLARE_METATYPE(RouteStop)
+Q_DECLARE_METATYPE(QList<RouteStop>)
+Q_DECLARE_METATYPE(HopPreview)
+Q_DECLARE_METATYPE(QList<HopPreview>)
+Q_DECLARE_METATYPE(RoutePlan)
+Q_DECLARE_METATYPE(QList<Route>)
 
 // Decode Google Polyline Algorithm (precision 6 for Valhalla)
 inline QList<LatLng> decodePolyline(const QString &encoded, int precision = 6) {

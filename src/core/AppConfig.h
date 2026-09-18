@@ -26,4 +26,6 @@ struct AppConfig {
     // Settings keys
     static constexpr const char* savedLocationsPrefix = "dashboard.saved-locations";
     static constexpr const char* recentDestinationsPrefix = "dashboard.recent-destinations";
+    // Persisted multi-hop plan. Indexed stops plus the live step pointer.
+    static constexpr const char* routePlanPrefix = "dashboard.route-plan";
 };
