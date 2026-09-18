@@ -26,6 +26,17 @@ Item {
              ? translations.shortcutViewMap : translations.shortcutViewCluster
     }
 
+    // Cells are equal width, so the caption can sit under the highlighted cell.
+    // Centred on the bar it reads as labelling the middle cell once there are
+    // three, whichever one is actually selected.
+    readonly property real cellWidth: shortcutMenuStore.actionCount > 0
+                                      ? contentRow.width / shortcutMenuStore.actionCount
+                                      : contentRow.width
+    readonly property real captionWidth: Math.min(containerWrapper.width - 24,
+                                                 Math.max(cellWidth * 1.5, 150))
+    readonly property real selectedCentre: contentRow.x
+                                           + (shortcutMenuStore.selectedIndex + 0.5) * cellWidth
+
     function actionIcon(action) {
         if (action.kind === "view")
             return screenStore.currentScreen === Scooter.ScreenMode.Cluster
@@ -115,10 +126,11 @@ Item {
         }
 
         Text {
-            anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: contentRow.bottom
             anchors.topMargin: 6
-            width: parent.width - 24
+            width: shortcutOverlay.captionWidth
+            x: Math.max(12, Math.min(shortcutOverlay.selectedCentre - width / 2,
+                                     containerWrapper.width - width - 12))
             horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideRight
             maximumLineCount: 1
