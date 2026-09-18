@@ -42,6 +42,7 @@ private slots:
     void externalPlanPushStartsNavigation();
     void ownWriteEchoDoesNotRestart();
     void externalSingleDestinationReplacesPlan();
+    void externalStepChangeKeepsThePlan();
     void externalClearStopsNavigation();
     void reconnectAfterArrivalDoesNotRearm();
     void planOverviewMapsLegsToRemainingStops();
@@ -379,6 +380,39 @@ void NavigationHopTest::ownWriteEchoDoesNotRestart()
     QCOMPARE(routeSpy.count(), 0);
     QCOMPARE(f.nav.stopCount(), 2);
     QCOMPARE(f.nav.currentStep(), 0);
+    quiesce(f);
+}
+
+// An external step change (CLI `lsc nav plan skip`, or a cloud writer moving
+// current-step) carries the same waypoints with a different target. That target
+// is not the current stop, which made the ingest mistake it for a new single
+// destination and collapse the plan. Found on hardware.
+void NavigationHopTest::externalStepChangeKeepsThePlan()
+{
+    Fixture f;
+    setGps(f, 52.50, 13.40);
+
+    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
+                                    stop(52.52, 13.42, QStringLiteral("B")),
+                                    stop(52.53, 13.43, QStringLiteral("C"))};
+    f.repo.set(QStringLiteral("navigation"), QStringLiteral("waypoints"),
+               RoutePlanService::serializeWaypoints(stops));
+    f.repo.set(QStringLiteral("navigation"), QStringLiteral("current-step"), QStringLiteral("0"));
+    f.repo.set(QStringLiteral("navigation"), QStringLiteral("latitude"), QStringLiteral("52.510000"));
+    f.repo.set(QStringLiteral("navigation"), QStringLiteral("longitude"), QStringLiteral("13.410000"));
+    QTRY_VERIFY_WITH_TIMEOUT(f.nav.hasPlan(), 2000);
+    QCOMPARE(f.nav.stopCount(), 3);
+    quiesce(f);
+
+    // Same waypoints, step 1, target at stop B.
+    f.repo.set(QStringLiteral("navigation"), QStringLiteral("current-step"), QStringLiteral("1"));
+    f.repo.set(QStringLiteral("navigation"), QStringLiteral("latitude"), QStringLiteral("52.520000"));
+    f.repo.set(QStringLiteral("navigation"), QStringLiteral("longitude"), QStringLiteral("13.420000"));
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.currentStep(), 1, 2000);
+    QCOMPARE(f.nav.stopCount(), 3);
+    QCOMPARE(f.nav.destLatitude(), stops[1].position.latitude);
+    QCOMPARE(f.nav.planStops().at(2).toMap().value(QStringLiteral("label")).toString(),
+             QStringLiteral("C"));
     quiesce(f);
 }
 

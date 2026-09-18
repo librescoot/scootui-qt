@@ -1465,53 +1465,55 @@ void NavigationService::onNavigationDataChanged()
     const QList<RouteStop> incomingStops =
         RoutePlanService::parseWaypoints(m_nav->waypoints(), &waypointsOk);
 
-    // Echo guard. A write whose target already matches the active destination
-    // changes nothing: it is either our own hash write-back or a route injected
-    // with setRoute() (simulator, tests) that never had a plan. Without this a
-    // store reconnect would re-arm arrival and fire arrived() twice.
-    if (hasTarget && m_destination.isValid() && incomingTarget == m_destination) {
-        const bool legacyEcho = !waypointsOk;
-        const bool sameExistingPlan = m_plan.isValid()
-            && planStopsEqual(incomingStops, m_plan.stops);
-        const bool singleStopEcho = waypointsOk && incomingStops.size() == 1
-            && incomingStops.first().position == m_destination;
-        if (legacyEcho || sameExistingPlan || singleStopEcho)
-            return;
+    // Echo guard for the legacy no-plan case: a write whose target already
+    // matches the destination changes nothing. It is either our own write-back
+    // or a route injected with setRoute() (simulator, tests) that never had a
+    // plan. Without this a store reconnect re-arms arrival and fires arrived()
+    // twice.
+    if (!waypointsOk && hasTarget && m_destination.isValid()
+        && incomingTarget == m_destination) {
+        return;
     }
 
     if (waypointsOk) {
+        const int step = m_nav->currentStep().toInt();
+        const bool stepValid = step >= 0 && step < incomingStops.size();
+
         if (!planStopsEqual(incomingStops, m_plan.stops)) {
             // A new plan was pushed. The step in the same write may point at a
             // specific hop; setRoutePlan() clamps it.
-            setRoutePlan(incomingStops, m_nav->currentStep().toInt());
+            setRoutePlan(incomingStops, step);
             return;
         }
 
-        const bool targetMatches = hasTarget && incomingTarget == m_plan.currentStop().position;
-        if (!targetMatches) {
-            if (hasTarget) {
-                // Same stops but the pointer moved elsewhere: an external
-                // single destination replaced the plan.
-                RouteStop stop;
-                stop.position = incomingTarget;
-                stop.label = m_nav->address();
-                setRoutePlan(QList<RouteStop>{stop}, 0);
-            } else if (m_plan.isValid()) {
-                clearNavigation();
-            }
-            return;
-        }
+        // Same stops. Distinguish an external step change, our own echo, and a
+        // single destination that happens to repeat the plan's stop list. The
+        // step change has to be checked first: its target differs from the
+        // current stop, which would otherwise look like a new destination and
+        // collapse the plan.
+        if (!hasTarget)
+            return; // our write-back always carries the target
 
-        // Same stops and the target is the current hop: either our own echo or
-        // an external step jump. Honour a valid step change, ignore the echo.
-        const int step = m_nav->currentStep().toInt();
-        if (m_plan.isValid() && step != m_plan.currentStep
-            && step >= 0 && step < m_plan.stopCount()) {
+        const bool targetIsCurrent = incomingTarget == m_plan.currentStop().position;
+        const bool targetIsStepStop = stepValid
+            && incomingTarget == m_plan.stops.at(step).position;
+
+        if (stepValid && step != m_plan.currentStep && targetIsStepStop) {
             m_plan.currentStep = step;
             persistPlan();
             emit planChanged();
             beginCurrentHop(ValhallaClient::Reason::Destination);
+            return;
         }
+        if (targetIsCurrent)
+            return;
+
+        // Same stops but the target moved somewhere outside the plan: a legacy
+        // single destination replaced it.
+        RouteStop stop;
+        stop.position = incomingTarget;
+        stop.label = m_nav->address();
+        setRoutePlan(QList<RouteStop>{stop}, 0);
         return;
     }
 
