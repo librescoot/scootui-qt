@@ -784,6 +784,12 @@ void Translations::initStrings()
 
     en[QStringLiteral("menuQuickMenu")] = QStringLiteral("Quick menu");
     de[QStringLiteral("menuQuickMenu")] = QStringLiteral("Schnellmen\u00FC");
+    en[QStringLiteral("menuQuickNav")] = QStringLiteral("Quick nav");
+    de[QStringLiteral("menuQuickNav")] = QStringLiteral("Schnellnavigation");
+    en[QStringLiteral("menuQuickNavHeader")] = QStringLiteral("QUICK NAV");
+    de[QStringLiteral("menuQuickNavHeader")] = QStringLiteral("SCHNELLNAVIGATION");
+    en[QStringLiteral("menuQuickDestination")] = QStringLiteral("Destination");
+    de[QStringLiteral("menuQuickDestination")] = QStringLiteral("Ziel");
     en[QStringLiteral("menuQuickOff")] = QStringLiteral("Off");
     de[QStringLiteral("menuQuickOff")] = QStringLiteral("Aus");
     en[QStringLiteral("menuQuickSlot1")] = QStringLiteral("Slot 1");

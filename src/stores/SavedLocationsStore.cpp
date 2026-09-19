@@ -120,6 +120,16 @@ void SavedLocationsStore::setQuickIcon(int id, const QString &icon)
         load();
 }
 
+void SavedLocationsStore::clearQuickSlot(int slot)
+{
+    for (const auto &location : m_locations) {
+        if (location.quickSlot == slot) {
+            setQuickSlot(location.id, 0);
+            return;
+        }
+    }
+}
+
 void SavedLocationsStore::navigateToLocation(int id)
 {
     // Snapshot before any external call. updateLastUsed() and

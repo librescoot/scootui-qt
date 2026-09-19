@@ -288,6 +288,9 @@ class Translations : public QObject
     Q_PROPERTY(QString menuRouteSkip READ menuRouteSkip NOTIFY languageChanged)
     Q_PROPERTY(QString menuRouteResume READ menuRouteResume NOTIFY languageChanged)
     Q_PROPERTY(QString menuQuickMenu READ menuQuickMenu NOTIFY languageChanged)
+    Q_PROPERTY(QString menuQuickNav READ menuQuickNav NOTIFY languageChanged)
+    Q_PROPERTY(QString menuQuickNavHeader READ menuQuickNavHeader NOTIFY languageChanged)
+    Q_PROPERTY(QString menuQuickDestination READ menuQuickDestination NOTIFY languageChanged)
     Q_PROPERTY(QString menuQuickOff READ menuQuickOff NOTIFY languageChanged)
     Q_PROPERTY(QString menuQuickSlot1 READ menuQuickSlot1 NOTIFY languageChanged)
     Q_PROPERTY(QString menuQuickSlot2 READ menuQuickSlot2 NOTIFY languageChanged)
@@ -958,6 +961,9 @@ public:
     QString menuRouteSkip() const { return lookup("menuRouteSkip"); }
     QString menuRouteResume() const { return lookup("menuRouteResume"); }
     QString menuQuickMenu() const { return lookup("menuQuickMenu"); }
+    QString menuQuickNav() const { return lookup("menuQuickNav"); }
+    QString menuQuickNavHeader() const { return lookup("menuQuickNavHeader"); }
+    QString menuQuickDestination() const { return lookup("menuQuickDestination"); }
     QString menuQuickOff() const { return lookup("menuQuickOff"); }
     QString menuQuickSlot1() const { return lookup("menuQuickSlot1"); }
     QString menuQuickSlot2() const { return lookup("menuQuickSlot2"); }

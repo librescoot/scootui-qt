@@ -402,29 +402,6 @@ void MenuStore::rebuildMenuTree()
                     close();
                 }));
 
-            const int quickSlot = loc[QStringLiteral("quickSlot")].toInt();
-            locNode->addChild(MenuNode::cycleSetting(
-                QStringLiteral("quick_slot_%1").arg(locId),
-                tr->menuQuickMenu(),
-                {{tr->menuQuickOff(), [this, locId]() { m_savedLocations->setQuickSlot(locId, 0); }},
-                 {tr->menuQuickSlot1(), [this, locId]() { m_savedLocations->setQuickSlot(locId, 1); }},
-                 {tr->menuQuickSlot2(), [this, locId]() { m_savedLocations->setQuickSlot(locId, 2); }}},
-                qBound(0, quickSlot, 2)));
-
-            const QString quickIcon = loc[QStringLiteral("quickIcon")].toString();
-            int iconIndex = 0;
-            if (quickIcon == QLatin1String("home")) iconIndex = 1;
-            else if (quickIcon == QLatin1String("work")) iconIndex = 2;
-            else if (quickIcon == QLatin1String("favorite")) iconIndex = 3;
-            locNode->addChild(MenuNode::cycleSetting(
-                QStringLiteral("quick_icon_%1").arg(locId),
-                tr->menuQuickIcon(),
-                {{tr->menuQuickIconPlace(), [this, locId]() { m_savedLocations->setQuickIcon(locId, QStringLiteral("place")); }},
-                 {tr->menuQuickIconHome(), [this, locId]() { m_savedLocations->setQuickIcon(locId, QStringLiteral("home")); }},
-                 {tr->menuQuickIconWork(), [this, locId]() { m_savedLocations->setQuickIcon(locId, QStringLiteral("work")); }},
-                 {tr->menuQuickIconFavorite(), [this, locId]() { m_savedLocations->setQuickIcon(locId, QStringLiteral("favorite")); }}},
-                iconIndex, [quickSlot]() { return quickSlot > 0; }));
-
             locNode->addChild(MenuNode::action(
                 QStringLiteral("delete_loc_%1").arg(locId),
                 tr->menuDeleteLocation(),
@@ -1116,6 +1093,84 @@ void MenuStore::rebuildMenuTree()
                 {tr->menuOnline(), [svc]() { svc->updateValhallaEndpoint(QLatin1String(AppConfig::valhallaOnlineEndpoint)); }},
                 {tr->menuOffline(), [svc]() { svc->updateValhallaEndpoint(QLatin1String(AppConfig::valhallaOnDeviceEndpoint)); }},
             }, isOnlineRouting ? 0 : 1));
+    }
+
+    // Quick nav: the two shortcuts a held seatbox tap shows, edited by slot so
+    // replacing a holder is explicit rather than a side effect of scrolling.
+    {
+        auto *quickNavNode = MenuNode::submenu(QStringLiteral("settings_quick_nav"),
+                                               tr->menuQuickNav(),
+                                               tr->menuQuickNavHeader());
+        mapNavNode->addChild(quickNavNode);
+
+        const QVariantList locations = m_savedLocations ? m_savedLocations->locations()
+                                                        : QVariantList{};
+        for (int slot = 1; slot <= 2; ++slot) {
+            int holderId = -1;
+            QString holderLabel;
+            QString holderIcon;
+            for (const auto &locVar : locations) {
+                const QVariantMap loc = locVar.toMap();
+                if (loc.value(QStringLiteral("quickSlot")).toInt() != slot)
+                    continue;
+                holderId = loc.value(QStringLiteral("id")).toInt();
+                holderLabel = loc.value(QStringLiteral("label")).toString();
+                holderIcon = loc.value(QStringLiteral("quickIcon")).toString();
+                break;
+            }
+            if (holderLabel.isEmpty() && holderId >= 0)
+                holderLabel = QString::number(holderId);
+
+            auto *slotNode = MenuNode::submenu(
+                QStringLiteral("quick_slot_%1").arg(slot),
+                slot == 1 ? tr->menuQuickSlot1() : tr->menuQuickSlot2());
+            slotNode->setValueLabel(holderId >= 0 ? holderLabel : tr->menuQuickOff());
+            quickNavNode->addChild(slotNode);
+
+            auto *destNode = MenuNode::submenu(
+                QStringLiteral("quick_slot_%1_dest").arg(slot), tr->menuQuickDestination());
+            slotNode->addChild(destNode);
+            destNode->addChild(MenuNode::action(
+                QStringLiteral("quick_slot_%1_off").arg(slot), tr->menuQuickOff(),
+                [this, slot]() { if (m_savedLocations) m_savedLocations->clearQuickSlot(slot); }));
+            for (const auto &locVar : locations) {
+                const QVariantMap loc = locVar.toMap();
+                const int locId = loc.value(QStringLiteral("id")).toInt();
+                QString label = loc.value(QStringLiteral("label")).toString();
+                if (label.isEmpty())
+                    label = QStringLiteral("%1, %2")
+                        .arg(loc.value(QStringLiteral("latitude")).toDouble(), 0, 'f', 5)
+                        .arg(loc.value(QStringLiteral("longitude")).toDouble(), 0, 'f', 5);
+                auto *entry = MenuNode::action(
+                    QStringLiteral("quick_slot_%1_loc_%2").arg(slot).arg(locId), label,
+                    [this, slot, locId]() {
+                        if (m_savedLocations) m_savedLocations->setQuickSlot(locId, slot);
+                    });
+                if (locId == holderId)
+                    entry->setValueLabel(tr->menuRouteCurrentStop());
+                destNode->addChild(entry);
+            }
+
+            if (holderId < 0)
+                continue;
+            auto *iconNode = MenuNode::submenu(
+                QStringLiteral("quick_slot_%1_icon").arg(slot), tr->menuQuickIcon());
+            slotNode->addChild(iconNode);
+            const auto addIcon = [&](const QString &title, const QString &icon) {
+                auto *entry = MenuNode::action(
+                    QStringLiteral("quick_slot_%1_icon_%2").arg(slot).arg(icon), title,
+                    [this, holderId, icon]() {
+                        if (m_savedLocations) m_savedLocations->setQuickIcon(holderId, icon);
+                    });
+                if (holderIcon == icon)
+                    entry->setValueLabel(tr->menuRouteCurrentStop());
+                iconNode->addChild(entry);
+            };
+            addIcon(tr->menuQuickIconPlace(), QStringLiteral("place"));
+            addIcon(tr->menuQuickIconHome(), QStringLiteral("home"));
+            addIcon(tr->menuQuickIconWork(), QStringLiteral("work"));
+            addIcon(tr->menuQuickIconFavorite(), QStringLiteral("favorite"));
+        }
     }
 
     // Blinkers: on-screen style plus the physical LED on the DBC board. Both

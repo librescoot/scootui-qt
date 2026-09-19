@@ -11,6 +11,8 @@ private slots:
     void persistsMetadataAndResolvesSlotConflicts();
     void saveResolvesConflictWithoutHiddenReactivation();
     void deletionClearsQuickMetadata();
+    void movingSlotSwapsWithTheHolder();
+    void clearingSlotLeavesOthersAlone();
 };
 
 static SavedLocation location(double latitude, double longitude, const QString &label)
@@ -76,6 +78,61 @@ void SavedLocationsServiceTest::saveResolvesConflictWithoutHiddenReactivation()
     QCOMPARE(remaining.size(), 1);
     QCOMPARE(remaining[0].id, 0);
     QCOMPARE(remaining[0].quickSlot, 0);
+}
+
+int idOf(const QList<SavedLocation> &locations, const QString &label)
+{
+    for (const auto &entry : locations)
+        if (entry.label == label)
+            return entry.id;
+    return -1;
+}
+
+int slotOf(const QList<SavedLocation> &locations, const QString &label)
+{
+    for (const auto &entry : locations)
+        if (entry.label == label)
+            return entry.quickSlot;
+    return -1;
+}
+
+// Choosing the holder of slot 2 for slot 1 swaps them rather than dropping one.
+void SavedLocationsServiceTest::movingSlotSwapsWithTheHolder()
+{
+    InMemoryMdbRepository repo;
+    SavedLocationsService service(&repo);
+    QVERIFY(service.save(location(52.5, 13.4, QStringLiteral("Home"))));
+    QVERIFY(service.save(location(52.6, 13.5, QStringLiteral("Work"))));
+
+    QList<SavedLocation> saved = service.loadAll();
+    const int home = idOf(saved, QStringLiteral("Home"));
+    const int work = idOf(saved, QStringLiteral("Work"));
+    QVERIFY(home >= 0 && work >= 0);
+    QVERIFY(service.setQuickSlot(home, 1));
+    QVERIFY(service.setQuickSlot(work, 2));
+
+    QVERIFY(service.setQuickSlot(work, 1));
+    saved = service.loadAll();
+    QCOMPARE(slotOf(saved, QStringLiteral("Work")), 1);
+    QCOMPARE(slotOf(saved, QStringLiteral("Home")), 2);
+}
+
+void SavedLocationsServiceTest::clearingSlotLeavesOthersAlone()
+{
+    InMemoryMdbRepository repo;
+    SavedLocationsService service(&repo);
+    QVERIFY(service.save(location(52.5, 13.4, QStringLiteral("Home"))));
+    QVERIFY(service.save(location(52.6, 13.5, QStringLiteral("Work"))));
+
+    const int home = idOf(service.loadAll(), QStringLiteral("Home"));
+    const int work = idOf(service.loadAll(), QStringLiteral("Work"));
+    QVERIFY(service.setQuickSlot(home, 1));
+    QVERIFY(service.setQuickSlot(work, 2));
+
+    QVERIFY(service.setQuickSlot(home, 0));
+    const QList<SavedLocation> saved = service.loadAll();
+    QCOMPARE(slotOf(saved, QStringLiteral("Home")), 0);
+    QCOMPARE(slotOf(saved, QStringLiteral("Work")), 2);
 }
 
 void SavedLocationsServiceTest::deletionClearsQuickMetadata()
