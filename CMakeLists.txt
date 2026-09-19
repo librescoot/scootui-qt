@@ -371,6 +371,10 @@ set(SOUND_CUE_FILES
     assets/sounds/toast-success.wav
     assets/sounds/toast-warning.wav
     assets/sounds/toast-error.wav
+    assets/sounds/nav-start.wav
+    assets/sounds/nav-hop.wav
+    assets/sounds/nav-arrive.wav
+    assets/sounds/nav-stop.wav
 )
 
 qt_add_qml_module(scootui

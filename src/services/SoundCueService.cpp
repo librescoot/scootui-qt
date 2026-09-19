@@ -60,6 +60,10 @@ QString cueFileName(SoundCue cue)
     case SoundCue::Success: return QStringLiteral("toast-success.wav");
     case SoundCue::Warning: return QStringLiteral("toast-warning.wav");
     case SoundCue::Error: return QStringLiteral("toast-error.wav");
+    case SoundCue::NavStart: return QStringLiteral("nav-start.wav");
+    case SoundCue::NavHop: return QStringLiteral("nav-hop.wav");
+    case SoundCue::NavArrive: return QStringLiteral("nav-arrive.wav");
+    case SoundCue::NavStop: return QStringLiteral("nav-stop.wav");
     case SoundCue::None: return {};
     }
     return {};
@@ -70,6 +74,9 @@ bool isStateCue(SoundCue cue)
     return cue == SoundCue::Wake || cue == SoundCue::Ready
         || cue == SoundCue::Parked || cue == SoundCue::Shutdown;
 }
+
+// Last concrete cue; the loader walks the enum up to and including it.
+constexpr SoundCue kLastCue = SoundCue::NavStop;
 
 QAudioDevice selectAudioOutput()
 {
@@ -199,6 +206,10 @@ SoundCue SoundCueMapping::cueForEvent(SoundEvent event)
     case SoundEvent::NotificationSuccess: return SoundCue::Success;
     case SoundEvent::NotificationWarning: return SoundCue::Warning;
     case SoundEvent::NotificationError: return SoundCue::Error;
+    case SoundEvent::NavigationStart: return SoundCue::NavStart;
+    case SoundEvent::NavigationHop: return SoundCue::NavHop;
+    case SoundEvent::NavigationArrive: return SoundCue::NavArrive;
+    case SoundEvent::NavigationStop: return SoundCue::NavStop;
     case SoundEvent::None: return SoundCue::None;
     }
     return SoundCue::None;
@@ -361,7 +372,7 @@ void QtSoundCueBackend::initialize(const QString &assetRoot)
 
 void QtSoundCueBackend::loadNextCue()
 {
-    if (!m_audioAvailable || m_nextCue > static_cast<int>(SoundCue::Error))
+    if (!m_audioAvailable || m_nextCue > static_cast<int>(kLastCue))
         return;
 
     const auto cue = static_cast<SoundCue>(m_nextCue++);
@@ -384,7 +395,7 @@ void QtSoundCueBackend::loadNextCue()
         }
     }
 
-    if (m_nextCue <= static_cast<int>(SoundCue::Error))
+    if (m_nextCue <= static_cast<int>(kLastCue))
         QTimer::singleShot(kCueLoadIntervalMs, this, &QtSoundCueBackend::loadNextCue);
 }
 
@@ -405,6 +416,12 @@ void QtSoundCueBackend::disableAudio(const QString &reason)
 void SoundCueService::playEvent(SoundEvent event)
 {
     m_player->play(SoundCueMapping::cueForEvent(event));
+}
+
+void SoundCueService::play(SoundEvent event)
+{
+    if (m_armed)
+        playEvent(event);
 }
 
 void SoundCueService::stop()

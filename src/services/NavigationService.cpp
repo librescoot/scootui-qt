@@ -1344,6 +1344,7 @@ void NavigationService::clearNavigation()
     if (!m_plan.isValid() && !m_destination.isValid() && m_status == NavigationStatus::Idle)
         return;
 
+    const bool wasArrived = m_wasArrived;
     m_valhalla->cancelPending();
     stopHopAdvanceTimer();
     m_route = Route();
@@ -1390,6 +1391,9 @@ void NavigationService::clearNavigation()
     m_repo->set(QStringLiteral("navigation"), QStringLiteral("waypoints"), QString());
     m_repo->set(QStringLiteral("navigation"), QStringLiteral("current-step"), QString());
     m_repo->publish(QStringLiteral("navigation"), QStringLiteral("cleared"));
+
+    if (!wasArrived)
+        emit navigationStopped();
 }
 
 void NavigationService::setRoute(const Route &route)

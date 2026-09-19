@@ -169,6 +169,18 @@ private slots:
                  cueValue(SoundCue::None));
     }
 
+    void mapsNavigationCues()
+    {
+        QCOMPARE(cueValue(SoundCueMapping::cueForEvent(SoundEvent::NavigationStart)),
+                 cueValue(SoundCue::NavStart));
+        QCOMPARE(cueValue(SoundCueMapping::cueForEvent(SoundEvent::NavigationHop)),
+                 cueValue(SoundCue::NavHop));
+        QCOMPARE(cueValue(SoundCueMapping::cueForEvent(SoundEvent::NavigationArrive)),
+                 cueValue(SoundCue::NavArrive));
+        QCOMPARE(cueValue(SoundCueMapping::cueForEvent(SoundEvent::NavigationStop)),
+                 cueValue(SoundCue::NavStop));
+    }
+
     void generatedAssetsMeetFormat()
     {
         const QStringList names = {
@@ -186,6 +198,10 @@ private slots:
             QStringLiteral("toast-success.wav"),
             QStringLiteral("toast-warning.wav"),
             QStringLiteral("toast-error.wav"),
+            QStringLiteral("nav-start.wav"),
+            QStringLiteral("nav-hop.wav"),
+            QStringLiteral("nav-arrive.wav"),
+            QStringLiteral("nav-stop.wav"),
         };
         for (const QString &name : names) {
             const QString path = QStringLiteral(SOUND_ASSET_DIR) + QLatin1Char('/') + name;

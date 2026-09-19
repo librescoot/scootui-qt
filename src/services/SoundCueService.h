@@ -27,6 +27,10 @@ enum class SoundEvent {
     NotificationSuccess,
     NotificationWarning,
     NotificationError,
+    NavigationStart,
+    NavigationHop,
+    NavigationArrive,
+    NavigationStop,
 };
 
 enum class SoundCue {
@@ -45,6 +49,10 @@ enum class SoundCue {
     Success,
     Warning,
     Error,
+    NavStart,
+    NavHop,
+    NavArrive,
+    NavStop,
 };
 
 namespace SoundCueMapping {
@@ -71,6 +79,8 @@ public:
 
     static bool validateWaveFile(const QString &path, QString *error = nullptr);
     void arm();
+    // Runtime cue from a signal this service does not own, such as navigation.
+    void play(SoundEvent event);
     void setNotificationService(NotificationService *service);
     void stop();
 

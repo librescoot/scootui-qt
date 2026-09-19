@@ -274,6 +274,23 @@ def main() -> None:
     error = add_chime(error, 0.38, 320, 0.23, 1.05, 0.015, 4.5, 0.16)
     write_stereo("toast-error.wav", add_reverb(error))
 
+    # Navigation cues use the same chime voice as the notification set, with
+    # intervals that read as start, hop, arrive and stop.
+    nav_start = add_chime([], 0, 440.0, 0.28, 0.68, 0.03, 4.0)
+    nav_start = add_chime(nav_start, 0.22, 587.33, 0.55, 0.86, 0.04, 3.4)
+    write_stereo("nav-start.wav", add_reverb(nav_start))
+
+    write_stereo("nav-hop.wav", add_reverb(add_chime([], 0, 659.25, 0.30, 0.72, 0.02, 5.2)))
+
+    nav_arrive = add_chime([], 0, 523.25, 0.26, 0.62, 0.03, 4.2)
+    nav_arrive = add_chime(nav_arrive, 0.20, 659.25, 0.30, 0.76, 0.03, 4.0)
+    nav_arrive = add_chime(nav_arrive, 0.44, 783.99, 0.72, 0.90, 0.05, 3.0)
+    write_stereo("nav-arrive.wav", add_reverb(nav_arrive))
+
+    nav_stop = add_chime([], 0, 493.88, 0.26, 0.70, 0.03, 4.2)
+    nav_stop = add_chime(nav_stop, 0.22, 329.63, 0.62, 0.86, 0.05, 3.2)
+    write_stereo("nav-stop.wav", add_reverb(nav_stop))
+
 
 if __name__ == "__main__":
     main()

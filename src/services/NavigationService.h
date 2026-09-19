@@ -228,6 +228,9 @@ signals:
 
     void planChanged();
     void planStateChanged();
+    // Navigation ended without reaching the destination: rider stop, external
+    // clear, or leaving early.
+    void navigationStopped();
     // Fired after a persisted plan is restored on startup. Delayed a turn so
     // listeners connected during Application construction still see it.
     void planRestored(const QString &label, int step, int stopCount);

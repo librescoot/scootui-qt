@@ -412,6 +412,24 @@ void Application::createStores(QQmlApplicationEngine &engine)
         else
             m_toastService->showInfo(m_translations->navRouteRestoredTo().arg(label));
     });
+    connect(m_navigationService, &NavigationService::destinationRequested, this,
+            [this](double, double, const QString &) {
+        m_soundCueService->play(SoundEvent::NavigationStart);
+    });
+    connect(m_navigationService, &NavigationService::planRestored, this,
+            [this](const QString &, int, int) {
+        m_soundCueService->play(SoundEvent::NavigationStart);
+    });
+    connect(m_navigationService, &NavigationService::hopReached, this,
+            [this](int, const QString &) {
+        m_soundCueService->play(SoundEvent::NavigationHop);
+    });
+    connect(m_navigationService, &NavigationService::arrived, this, [this]() {
+        m_soundCueService->play(SoundEvent::NavigationArrive);
+    });
+    connect(m_navigationService, &NavigationService::navigationStopped, this, [this]() {
+        m_soundCueService->play(SoundEvent::NavigationStop);
+    });
     refreshNavigationAttention();
 
     // Show toast on navigation errors so the user knows what went wrong
