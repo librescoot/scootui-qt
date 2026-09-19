@@ -148,6 +148,9 @@ SyncSettings SettingsStore::syncSettings() const
             {QStringLiteral("speedometerMaxSpeed"), QStringLiteral("dashboard.speedometer.max-speed")},
             {QStringLiteral("speedometerWarnSpeed"), QStringLiteral("dashboard.speedometer.warn-speed")},
             {QStringLiteral("speedometerOverspeed"), QStringLiteral("dashboard.speedometer.overspeed")},
+            {QStringLiteral("speedometerBaseColor"), QStringLiteral("dashboard.speedometer.base-color")},
+            {QStringLiteral("speedometerWarnColor"), QStringLiteral("dashboard.speedometer.warn-color")},
+            {QStringLiteral("speedometerOverspeedColor"), QStringLiteral("dashboard.speedometer.overspeed-color")},
             {QStringLiteral("batteryDisplayMode"), QStringLiteral("dashboard.battery-display-mode")},
             {QStringLiteral("mapType"), QStringLiteral("dashboard.map.type")},
             {QStringLiteral("mapViewMode"), QStringLiteral("dashboard.map.view-mode")},
@@ -211,6 +214,12 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
         if (value != m_speedometerWarnSpeed) { m_speedometerWarnSpeed = value; emit speedometerWarnSpeedChanged(); }
     } else if (variable == QLatin1String("dashboard.speedometer.overspeed")) {
         if (value != m_speedometerOverspeed) { m_speedometerOverspeed = value; emit speedometerOverspeedChanged(); }
+    } else if (variable == QLatin1String("dashboard.speedometer.base-color")) {
+        if (value != m_speedometerBaseColor) { m_speedometerBaseColor = value; emit speedometerBaseColorChanged(); }
+    } else if (variable == QLatin1String("dashboard.speedometer.warn-color")) {
+        if (value != m_speedometerWarnColor) { m_speedometerWarnColor = value; emit speedometerWarnColorChanged(); }
+    } else if (variable == QLatin1String("dashboard.speedometer.overspeed-color")) {
+        if (value != m_speedometerOverspeedColor) { m_speedometerOverspeedColor = value; emit speedometerOverspeedColorChanged(); }
     } else if (variable == QLatin1String("dashboard.battery-display-mode")) {
         if (value != m_batteryDisplayMode) { m_batteryDisplayMode = value; emit batteryDisplayModeChanged(); }
     } else if (variable == QLatin1String("dashboard.map.type")) {

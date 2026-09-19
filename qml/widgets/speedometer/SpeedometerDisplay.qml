@@ -90,13 +90,21 @@ Item {
     readonly property color errorColor: "#F44336"
     // lerpColor reads .r/.g/.b/.a, so these have to be color properties rather
     // than string literals passed straight into the call.
-    readonly property color lowSpeedColor: "#90CAF9"     // Material Blue 200
-    readonly property color normalSpeedColor: "#2196F3"  // Material Blue 500
-    readonly property color overspeedLowColor: "#9C27B0"
-    readonly property color overspeedHighColor: "#E91E63"
+    // The ramp is configurable through the advanced dashboard.speedometer.*
+    // colour settings; the store falls back to the shipped hex when a
+    // configured value does not parse.
+    readonly property color baseSpeedColor: hasSettings ? settingsStore.speedometerBaseColor : "#2196F3"
+    readonly property color warnSpeedColor: hasSettings ? settingsStore.speedometerWarnColor : "#9C27B0"
+    readonly property color overspeedColor: hasSettings ? settingsStore.speedometerOverspeedColor : "#E91E63"
+    // Bottom of the ramp: the base colour lightened halfway towards white.
+    // With the shipped base this is #90CAF9, the Material Blue 200 the arc used
+    // before the colours became configurable. The top is a property, not a
+    // literal: lerpColor reads .r/.g/.b, which a bare string does not carry.
+    readonly property color whiteColor: "#FFFFFF"
+    readonly property color lowSpeedColor: lerpColor(baseSpeedColor, whiteColor, 0.5)
 
-    // Speed at which the blue reaches full intensity, and where the ramp
-    // towards purple starts.
+    // Speed at which the fill reaches the base colour, and where the ramp
+    // towards the warning colour starts.
     readonly property real fullIntensitySpeed: hasSettings
         ? Math.min(settingsStore.speedometerWarnSpeed, overspeedSpeed) : 55
 
@@ -106,13 +114,13 @@ Item {
 
     readonly property color speedFillColor: {
         if (animatedSpeed > overspeedSpeed)
-            return lerpColor(overspeedLowColor, overspeedHighColor, overspeedPulse)
+            return lerpColor(warnSpeedColor, overspeedColor, overspeedPulse)
         if (animatedSpeed > fullIntensitySpeed)
-            return lerpColor(normalSpeedColor, overspeedLowColor,
+            return lerpColor(baseSpeedColor, warnSpeedColor,
                              overspeedSpeed > fullIntensitySpeed
                              ? (animatedSpeed - fullIntensitySpeed) / (overspeedSpeed - fullIntensitySpeed)
                              : 1)
-        return lerpColor(lowSpeedColor, normalSpeedColor, animatedSpeed / fullIntensitySpeed)
+        return lerpColor(lowSpeedColor, baseSpeedColor, animatedSpeed / fullIntensitySpeed)
     }
 
     readonly property real fillSweep:
@@ -143,7 +151,7 @@ Item {
         }
     }
 
-    // Overspeed: purple <-> pink, 800 ms cycle
+    // Overspeed: warning <-> overspeed colour, 800 ms cycle
     SequentialAnimation {
         running: speedometer.animatedSpeed > speedometer.overspeedSpeed
         loops: Animation.Infinite

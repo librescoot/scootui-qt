@@ -13,6 +13,9 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(int speedometerMaxSpeed READ speedometerMaxSpeed NOTIFY speedometerMaxSpeedChanged)
     Q_PROPERTY(int speedometerWarnSpeed READ speedometerWarnSpeed NOTIFY speedometerWarnSpeedChanged)
     Q_PROPERTY(int speedometerOverspeed READ speedometerOverspeed NOTIFY speedometerOverspeedChanged)
+    Q_PROPERTY(QString speedometerBaseColor READ speedometerBaseColor NOTIFY speedometerBaseColorChanged)
+    Q_PROPERTY(QString speedometerWarnColor READ speedometerWarnColor NOTIFY speedometerWarnColorChanged)
+    Q_PROPERTY(QString speedometerOverspeedColor READ speedometerOverspeedColor NOTIFY speedometerOverspeedColorChanged)
     Q_PROPERTY(QString batteryDisplayMode READ batteryDisplayMode NOTIFY batteryDisplayModeChanged)
     Q_PROPERTY(int mapType READ mapType NOTIFY mapTypeChanged)
     Q_PROPERTY(int mapViewMode READ mapViewMode NOTIFY mapViewModeChanged)
@@ -80,6 +83,11 @@ public:
     int speedometerMaxSpeed() const { return intSetting(m_speedometerMaxSpeed, 60, 20, 200); }
     int speedometerWarnSpeed() const { return intSetting(m_speedometerWarnSpeed, 55, 1, 200); }
     int speedometerOverspeed() const { return intSetting(m_speedometerOverspeed, 60, 1, 200); }
+    // Speedometer fill colours: #RRGGBB or #AARRGGBB. Anything else falls back
+    // to the shipped ramp (blue to full at 55, purple by 60, pulse pink).
+    QString speedometerBaseColor() const { return colorSetting(m_speedometerBaseColor, QStringLiteral("#2196F3")); }
+    QString speedometerWarnColor() const { return colorSetting(m_speedometerWarnColor, QStringLiteral("#9C27B0")); }
+    QString speedometerOverspeedColor() const { return colorSetting(m_speedometerOverspeedColor, QStringLiteral("#E91E63")); }
     QString batteryDisplayMode() const { return m_batteryDisplayMode; }
     int mapType() const { return static_cast<int>(m_mapType); }
     int mapViewMode() const { return static_cast<int>(m_mapViewMode); }
@@ -117,6 +125,26 @@ public:
     QString tripExpunge() const { return m_tripExpunge; }
     bool tripExpungeAvailable() const { return m_tripExpungeAvailable; }
 
+    // Accepts #RRGGBB and #AARRGGBB only. Named colours and malformed hex are
+    // rejected so a bad settings.toml cannot silently change what the rider
+    // sees on the arc.
+    static bool isValidHexColor(const QString &value)
+    {
+        if (value.size() != 7 && value.size() != 9)
+            return false;
+        if (!value.startsWith(QLatin1Char('#')))
+            return false;
+        for (qsizetype i = 1; i < value.size(); ++i) {
+            const QChar c = value.at(i);
+            const bool hex = (c >= QLatin1Char('0') && c <= QLatin1Char('9'))
+                || (c >= QLatin1Char('a') && c <= QLatin1Char('f'))
+                || (c >= QLatin1Char('A') && c <= QLatin1Char('F'));
+            if (!hex)
+                return false;
+        }
+        return true;
+    }
+
     static QString defaultTripExpunge() { return QStringLiteral("age:365d"); }
     static bool isValidTripExpunge(const QString &value);
     static QString tripExpungePolicy(const QString &value);
@@ -144,6 +172,9 @@ signals:
     void speedometerMaxSpeedChanged();
     void speedometerWarnSpeedChanged();
     void speedometerOverspeedChanged();
+    void speedometerBaseColorChanged();
+    void speedometerWarnColorChanged();
+    void speedometerOverspeedColorChanged();
     void batteryDisplayModeChanged();
     void mapTypeChanged();
     void mapViewModeChanged();
@@ -200,12 +231,23 @@ private:
     QString m_speedometerMaxSpeed;
     QString m_speedometerWarnSpeed;
     QString m_speedometerOverspeed;
+    // @schema dashboard.speedometer.base-color
+    QString m_speedometerBaseColor;
+    // @schema dashboard.speedometer.warn-color
+    QString m_speedometerWarnColor;
+    // @schema dashboard.speedometer.overspeed-color
+    QString m_speedometerOverspeedColor;
 
     static int intSetting(const QString &raw, int fallback, int lo, int hi)
     {
         bool ok = false;
         const int v = raw.toInt(&ok);
         return (ok && v >= lo && v <= hi) ? v : fallback;
+    }
+
+    static QString colorSetting(const QString &raw, const QString &fallback)
+    {
+        return isValidHexColor(raw) ? raw : fallback;
     }
     // @schema dashboard.battery-display-mode
     QString m_batteryDisplayMode = QStringLiteral("percentage");

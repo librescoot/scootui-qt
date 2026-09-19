@@ -563,6 +563,21 @@ if(BUILD_TESTING)
     target_link_libraries(gps_store_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME gps_store_test COMMAND gps_store_test)
 
+    qt_add_executable(settings_store_color_test
+        tests/SettingsStoreColorTest.cpp
+        src/stores/SettingsStore.cpp
+        src/stores/SettingsStore.h
+        src/stores/SyncableStore.cpp
+        src/stores/SyncableStore.h
+        src/models/Enums.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+    )
+    target_include_directories(settings_store_color_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(settings_store_color_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME settings_store_color_test COMMAND settings_store_color_test)
+
     qt_add_executable(keycard_store_test
         tests/KeycardStoreTest.cpp
         src/stores/KeycardStore.cpp
