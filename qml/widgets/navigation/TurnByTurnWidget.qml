@@ -240,21 +240,6 @@ Item {
                 Layout.topMargin: tbtWidget.compact || tbtWidget.paired ? 6 : 12 + (tbtWidget.maneuver.isStart && timeInfoBar.visible ? timeInfoBar.height : 0)
                 Layout.bottomMargin: tbtWidget.compact || tbtWidget.paired ? 6 : 8
 
-                // Multi-hop progress, full card only.
-                Text {
-                    objectName: "maneuverStopProgress"
-                    Layout.fillWidth: true
-                    visible: !tbtWidget.compact && !tbtWidget.paired
-                             && tbtWidget.maneuver.hasPlan === true
-                    text: (typeof translations !== "undefined")
-                          ? translations.navStopReached
-                                .arg((tbtWidget.maneuver.currentStep || 0) + 1)
-                                .arg(tbtWidget.maneuver.stopCount || 0)
-                          : ""
-                    font.pixelSize: themeStore.fontCaption
-                    color: isDark ? Qt.rgba(1, 1, 1, 0.6) : Qt.rgba(0, 0, 0, 0.6)
-                }
-
                 // Distance indicator. Hidden for kStart-family ("head on X")
                 // because the rider is AT the start and 0 m is noise.
                 Text {
@@ -358,6 +343,21 @@ Item {
                 // Larger gap between the three metric groups so the eye reads
                 // them as separate. Inner icon→value gap stays tight (2 px).
                 spacing: 14
+
+                // Current stop, only when a route has multiple stops.
+                Row {
+                    objectName: "maneuverTripStopProgress"
+                    visible: tbtWidget.maneuver.hasPlan === true
+                             && (tbtWidget.maneuver.stopCount || 0) > 1
+                    spacing: 2
+                    Text { text: MaterialIcon.iconNavigation; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
+                    Text {
+                        objectName: "maneuverTripStopProgressText"
+                        text: ((tbtWidget.maneuver.currentStep || 0) + 1) + " of "
+                              + (tbtWidget.maneuver.stopCount || 0)
+                        font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
+                    }
+                }
 
                 // Distance remaining
                 Row {

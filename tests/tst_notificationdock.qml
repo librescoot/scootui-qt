@@ -180,6 +180,25 @@ TestCase {
         }
     }
 
+    function test_multiHopProgressUsesTripSummary() {
+        const base = {kind: "nav", status: 2, distance: 80, maneuverType: 5,
+                      instruction: "Turn right onto Main Street", remainingDuration: 720,
+                      distanceToDestination: 8500, eta: "12:30", hasPlan: true,
+                      currentStep: 0, stopCount: 1}
+        show(base)
+        verify(!findChild(dock, "maneuverTripStopProgress").visible)
+        verify(findChild(dock, "maneuverStopProgress") === null)
+
+        show({kind: "nav", status: 2, distance: 80, maneuverType: 5,
+              instruction: "Turn right onto Main Street", remainingDuration: 720,
+              distanceToDestination: 8500, eta: "12:30", hasPlan: true,
+              currentStep: 1, stopCount: 4})
+        const progress = findChild(dock, "maneuverTripStopProgress")
+        verify(progress.visible)
+        compare(findChild(dock, "maneuverTripStopProgressText").text, "2 of 4")
+        fits(progress, findChild(dock, "maneuverTripSummary"))
+    }
+
     function test_compactTextAndBaseline() {
         for (const dark of [true, false]) {
             dock.isDark = dark
