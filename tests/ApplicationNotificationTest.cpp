@@ -74,7 +74,7 @@ private slots:
         QNetworkProxy::setApplicationProxy(QNetworkProxy(QNetworkProxy::HttpProxy, "127.0.0.1", 1));
         EnvConfig::initialize();
         g_bootTimer.start();
-        for (const auto *font : {"Roboto-Regular.ttf", "Roboto-Bold.ttf", "Roboto-Medium.ttf", "MaterialIcons-Regular.otf"})
+        for (const auto *font : {"Roboto-Regular.ttf", "Roboto-Bold.ttf", "Roboto-Medium.ttf", "MaterialIcons-Regular.otf", "MaterialSymbolsOutlined-route.ttf"})
             QVERIFY(QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/subset/") + font) >= 0);
         QGuiApplication::setFont(QFont("Roboto"));
     }

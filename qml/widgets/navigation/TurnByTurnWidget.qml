@@ -453,18 +453,12 @@ Item {
                 // Distance remaining
                 Row {
                     spacing: 2
-                    Item {
-                        width: 13
-                        height: 15
-                        TintedImage {
-                            anchors.centerIn: parent
-                            anchors.verticalCenterOffset: 1
-                            width: 13
-                            height: 13
-                            sourceSize: Qt.size(24, 24)
-                            source: "qrc:/ScootUI/assets/icons/material-route.svg"
-                            tintColor: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54)
-                        }
+                    Text {
+                        text: MaterialSymbol.iconRoute
+                        font.family: "Material Symbols Outlined"
+                        font.pixelSize: 13
+                        topPadding: 1
+                        color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54)
                     }
                     Text {
                         text: formatDistance(tbtWidget.maneuver.distanceToDestination || 0)

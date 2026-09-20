@@ -109,6 +109,8 @@ int main(int argc, char *argv[])
     BOOT_MARK("font: RobotoCondensed-Regular");
     QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/subset/MaterialIcons-Regular.otf"));
     BOOT_MARK("font: MaterialIcons");
+    QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/subset/MaterialSymbolsOutlined-route.ttf"));
+    BOOT_MARK("font: MaterialSymbolsOutlined");
     // Symbol fallback for glyphs Roboto lacks; see scripts/subset-fonts.sh.
     QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/subset/ScootUISymbols.ttf"));
     BOOT_MARK("font: ScootUISymbols");
