@@ -843,6 +843,8 @@ void SimulatorService::loadPreset(const QString &name)
         loadPreset(QStringLiteral("parked"));
         setVehicleState(QStringLiteral("ready-to-drive"));
         setKickstand(QStringLiteral("up"));
+        setSeatboxLock(QStringLiteral("closed"));
+        setUnableToDrive(false);
         setMainPower(true);
         setMotorPower(true);
         setKers(true);

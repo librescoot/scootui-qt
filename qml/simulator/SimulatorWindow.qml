@@ -50,13 +50,21 @@ ApplicationWindow {
                 text: "Cluster"; small: true; fixedWidth: 54
                 ButtonGroup.group: screenGroup
                 checkable: true; checked: true
-                onClicked: screenStore.setScreen(Scooter.ScreenMode.Cluster)
+                onClicked: {
+                    if (typeof settingsService !== "undefined")
+                        settingsService.updateMode("speedometer")
+                    screenStore.setScreen(Scooter.ScreenMode.Cluster)
+                }
             }
             SimButton {
                 text: "Map"; small: true; fixedWidth: 54
                 ButtonGroup.group: screenGroup
                 checkable: true
-                onClicked: screenStore.setScreen(Scooter.ScreenMode.Map)
+                onClicked: {
+                    if (typeof settingsService !== "undefined")
+                        settingsService.updateMode("navigation")
+                    screenStore.setScreen(Scooter.ScreenMode.Map)
+                }
             }
             SimButton {
                 text: "About"; small: true; fixedWidth: 54

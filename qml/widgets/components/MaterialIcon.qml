@@ -1,84 +1,74 @@
 pragma Singleton
 import QtQuick
 
-// Central Material Icons codepoint registry.
-//
-// Single source of truth for Material Icons glyphs used across the UI.
-// Every QML file should reference these instead of inlining "\ueXXX" literals —
-// raw codepoints silently rot across font revisions (that's how we ended up
-// rendering a cigarette for arrow_forward).
-//
-// To verify or regenerate, run:
-//   python3 -c "from fontTools.ttLib import TTFont; \
-//     print({v: hex(k) for k,v in TTFont('assets/fonts/MaterialIcons-Regular.otf').getBestCmap().items()})"
-//
-// Font: assets/fonts/MaterialIcons-Regular.otf
+// Central Material Symbols codepoint registry.
 QtObject {
     // Navigation / Turn-by-turn
-    // Supplementary-plane (U+F0XXX) — \uXXXX can't encode these, so use fromCodePoint.
-    readonly property string iconTurnLeft:        String.fromCodePoint(0xf058f)
-    readonly property string iconTurnRight:       String.fromCodePoint(0xf0590)
-    readonly property string iconTurnSharpLeft:   String.fromCodePoint(0xf0591)
-    readonly property string iconTurnSharpRight:  String.fromCodePoint(0xf0592)
-    readonly property string iconTurnSlightLeft:  String.fromCodePoint(0xf0593)
-    readonly property string iconTurnSlightRight: String.fromCodePoint(0xf0594)
-    readonly property string iconUTurnLeft:       String.fromCodePoint(0xf0595)
-    readonly property string iconUTurnRight:      String.fromCodePoint(0xf0596)
-    readonly property string iconStraight:        String.fromCodePoint(0xf0574)
-    readonly property string iconMerge:           String.fromCodePoint(0xf053b)
-    readonly property string iconForkLeft:        String.fromCodePoint(0xf050b)
-    readonly property string iconForkRight:       String.fromCodePoint(0xf050c)
-    readonly property string iconNavigation:      "\ue41e"
-    readonly property string iconPlace:           "\ue4c9"
-    readonly property string iconHome:            "\ue318"
-    readonly property string iconWork:            "\ue6f2"
-    readonly property string iconStar:            "\ue5f9"
-    readonly property string iconLocationOff:     "\ue3aa"
-    readonly property string iconGpsNotFixed:     "\ue2dd"
+    readonly property string iconTurnLeft:        "\ueba6"
+    readonly property string iconTurnRight:       "\uebab"
+    readonly property string iconTurnSharpLeft:   "\ueba7"
+    readonly property string iconTurnSharpRight:  "\uebaa"
+    readonly property string iconTurnSlightLeft:  "\ueba4"
+    readonly property string iconTurnSlightRight: "\ueb9a"
+    readonly property string iconUTurnLeft:       "\ueba1"
+    readonly property string iconUTurnRight:      "\ueba2"
+    readonly property string iconStraight:        "\ueb95"
+    readonly property string iconMerge:           "\ueb98"
+    readonly property string iconForkLeft:        "\ueba0"
+    readonly property string iconForkRight:       "\uebac"
+    readonly property string iconNavigation:      "\ue55d"
+    readonly property string iconRoute:           "\ueacd"
+    readonly property string iconPlace:           "\uf1db"
+    readonly property string iconHome:            "\ue9b2"
+    readonly property string iconWork:            "\ue943"
+    readonly property string iconStar:            "\uf09a"
+    readonly property string iconLocationOff:     "\ue0c7"
+    readonly property string iconGpsNotFixed:     "\ue1b7"
 
     // Arrows
-    readonly property string iconArrowBack:       "\ue092"
-    readonly property string iconArrowForward:    "\ue09b"
-    readonly property string iconChevronLeft:     "\ue15e"
-    readonly property string iconChevronRight:    "\ue15f"
-    readonly property string iconKeyboardArrowDown: "\ue353"
-    readonly property string iconKeyboardArrowUp:   "\ue356"
+    readonly property string iconArrowBack:       "\ue5c4"
+    readonly property string iconArrowForward:    "\ue5c8"
+    readonly property string iconChevronLeft:     "\ue5cb"
+    readonly property string iconChevronRight:    "\ue5cc"
+    readonly property string iconKeyboardArrowDown: "\ue313"
+    readonly property string iconKeyboardArrowUp:   "\ue316"
 
     // Actions / Controls
-    readonly property string iconCheck:           "\ue156"
-    readonly property string iconClose:           "\ue16a"
-    readonly property string iconCancel:          "\ue139"
-    readonly property string iconCheckCircleOutline: "\ue15a"
-    readonly property string iconRefresh:         "\ue514"
-    readonly property string iconPowerSettingsNew: "\ue4e3"
-    readonly property string iconLock:            "\ue3ae"
+    readonly property string iconCheck:           "\ue668"
+    readonly property string iconClose:           "\ue5cd"
+    readonly property string iconCancel:          "\ue888"
+    readonly property string iconCheckCircleOutline: "\uf0be"
+    readonly property string iconRefresh:         "\ue5d5"
+    readonly property string iconPowerSettingsNew: "\uf8c7"
+    readonly property string iconLock:            "\ue899"
 
     // Status / Info
-    readonly property string iconInfoOutline:     "\ue33d"
-    readonly property string iconErrorOutline:    "\ue238"
-    readonly property string iconWarningAmber:    "\ue6cc"
-    readonly property string iconSnowflake:       "\ue037" // legacy "ac_unit" \u2014 same glyph
-    readonly property string iconSevereCold:      String.fromCodePoint(0xf07c2)
-    readonly property string iconHeat:            "\ue392" // local_fire_department \u2014 "too hot" counterpart to the snowflake
-    readonly property string iconBatteryFull:     String.fromCodePoint(0xe0d2) // battery_full \u2014 regen unavailable, pack at cap
-    readonly property string iconBatteryAlert:    "\ue0d0" // battery_alert_baseline \u2014 BMS low-soc flag on the battery info rows
-    readonly property string iconAutorenew:       "\ue0c1" // autorenew_baseline \u2014 cycle count on the battery health row
-    readonly property string iconSpeed:           "\ue5e0"
-    readonly property string iconTimer:           "\ue662"
-    readonly property string iconFlag:            "\ue28e"
-    readonly property string iconLinkOff:         "\ue381"
-    readonly property string iconUsb:             "\ue697"
+    readonly property string iconInfoOutline:     "\ue88e"
+    readonly property string iconErrorOutline:    "\uf8b6"
+    readonly property string iconWarningAmber:    "\uf083"
+    readonly property string iconSnowflake:       "\ueb3b"
+    readonly property string iconSevereCold:      "\uebd3"
+    readonly property string iconHeat:            "\uef55"
+    readonly property string iconBatteryFull:     "\ue1a5"
+    readonly property string iconBatteryAlert:    "\ue19c"
+    readonly property string iconAutorenew:       "\ue863"
+    readonly property string iconSpeed:           "\ue9e4"
+    readonly property string iconTimer:           "\ue425"
+    readonly property string iconSchedule:        "\uefd6"
+    readonly property string iconFlag:            "\uf0c6"
+    readonly property string iconLinkOff:         "\ue16f"
+    readonly property string iconUsb:             "\ue1e0"
 
     // Theme / Display
-    readonly property string iconLightMode:       "\ue37a"
-    readonly property string iconDarkMode:        "\ue1b0"
-    readonly property string iconContrast:        String.fromCodePoint(0xf04d8)
-    readonly property string iconMap:             "\uf1ae" // map_outlined
+    readonly property string iconLightMode:       "\ue518"
+    readonly property string iconDarkMode:        "\ue51c"
+    readonly property string iconContrast:        "\ueb37"
+    readonly property string iconMap:             "\ue55b"
 
     // Updates
-    readonly property string iconUpdate:          "\ue692"
-    readonly property string iconCloudDownload:   "\ue172"
+    readonly property string iconUpdate:          "\ue923"
+    readonly property string iconCloudDownload:   "\ue2c0"
 
     // Misc
-    readonly property string iconBugReport:       "\ue115"
+    readonly property string iconBugReport:       "\ue868"
 }

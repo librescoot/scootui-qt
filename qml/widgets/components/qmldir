@@ -1,5 +1,4 @@
 singleton MaterialIcon 1.0 MaterialIcon.qml
-singleton MaterialSymbol 1.0 MaterialSymbol.qml
 BalancedText 1.0 BalancedText.qml
 ControlHints 1.0 ControlHints.qml
 FrostedGlass 1.0 FrostedGlass.qml

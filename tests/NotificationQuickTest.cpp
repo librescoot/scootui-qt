@@ -209,8 +209,9 @@ public slots:
     {
         qmlRegisterType<NativeAttentionHarness>("ScootUITest", 1, 0, "NativeAttentionHarness");
         for (const auto *font : {"Roboto-Regular.ttf", "Roboto-Bold.ttf", "Roboto-Medium.ttf",
-                                 "MaterialIcons-Regular.otf", "MaterialSymbolsOutlined-route.ttf"})
+                                 "MaterialSymbolsOutlined-Filled.ttf"})
             QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/subset/") + font);
+        QFont::insertSubstitution(QStringLiteral("Material Icons"), QStringLiteral("Material Symbols Outlined"));
         QGuiApplication::setFont(QFont(QStringLiteral("Roboto")));
     }
 

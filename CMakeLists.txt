@@ -323,7 +323,6 @@ set(QML_FILES
     qml/widgets/components/OtaStatusIcon.qml
     qml/widgets/components/ControlHints.qml
     qml/widgets/components/MaterialIcon.qml
-    qml/widgets/components/MaterialSymbol.qml
     qml/widgets/components/TintedImage.qml
     qml/widgets/components/OverflowChip.qml
     qml/widgets/components/FrostedGlass.qml
@@ -358,7 +357,6 @@ set(QML_FILES
 
 set_source_files_properties(
     qml/widgets/components/MaterialIcon.qml
-    qml/widgets/components/MaterialSymbol.qml
     PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
 set(SOUND_CUE_FILES
@@ -489,8 +487,7 @@ qt_add_qml_module(scootui
         assets/fonts/subset/Roboto-Light.ttf
         assets/fonts/subset/RobotoCondensed-Bold.ttf
         assets/fonts/subset/RobotoCondensed-Regular.ttf
-        assets/fonts/subset/MaterialIcons-Regular.otf
-        assets/fonts/subset/MaterialSymbolsOutlined-route.ttf
+        assets/fonts/subset/MaterialSymbolsOutlined-Filled.ttf
         assets/fonts/subset/ScootUISymbols.ttf
         assets/styles/mapdark.json
         assets/styles/maplight.json
@@ -1209,8 +1206,7 @@ if(BUILD_TESTING)
               assets/fonts/subset/Roboto-Regular.ttf
               assets/fonts/subset/Roboto-Bold.ttf
               assets/fonts/subset/Roboto-Medium.ttf
-              assets/fonts/subset/MaterialIcons-Regular.otf
-              assets/fonts/subset/MaterialSymbolsOutlined-route.ttf
+              assets/fonts/subset/MaterialSymbolsOutlined-Filled.ttf
               assets/fonts/subset/ScootUISymbols.ttf)
     add_test(NAME notification_qml_tests
         COMMAND notification_qml_test -input ${CMAKE_CURRENT_SOURCE_DIR}/tests -o -,txt)
