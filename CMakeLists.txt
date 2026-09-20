@@ -112,6 +112,7 @@ set(CPP_SOURCES
     src/stores/SavedLocationsStore.cpp
     src/stores/RecentDestinationsStore.cpp
     src/services/SettingsService.cpp
+    src/services/BootThemeService.cpp
     src/services/AutoThemeService.cpp
     src/services/GestureSynth.cpp
     src/services/InputHandler.cpp
@@ -216,6 +217,7 @@ set(CPP_HEADERS
     src/stores/DashboardStore.h
     src/stores/SavedLocationsStore.h
     src/services/SettingsService.h
+    src/services/BootThemeService.h
     src/services/AutoThemeService.h
     src/services/GestureSynth.h
     src/services/InputHandler.h
@@ -577,6 +579,18 @@ if(BUILD_TESTING)
     target_include_directories(settings_store_color_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(settings_store_color_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME settings_store_color_test COMMAND settings_store_color_test)
+
+    qt_add_executable(boot_theme_service_test
+        tests/BootThemeServiceTest.cpp
+        src/services/BootThemeService.cpp
+        src/services/BootThemeService.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+    )
+    target_include_directories(boot_theme_service_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(boot_theme_service_test PRIVATE Qt6::Core Qt6::Multimedia Qt6::Test)
+    add_test(NAME boot_theme_service_test COMMAND boot_theme_service_test)
 
     qt_add_executable(keycard_store_test
         tests/KeycardStoreTest.cpp
