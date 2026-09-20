@@ -11,6 +11,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QRandomGenerator>
 #include <QStandardPaths>
 #include <QTextStream>
 #include <QTimer>
@@ -268,6 +269,7 @@ void OdometerMilestoneService::onOdometerChanged()
         if (prevKm >= 0.0 && prevKm < egg.km && odoKm >= egg.km) {
             markEasterEggFired(tag);
             qDebug() << "OdometerMilestone: easter egg" << tag << "at" << egg.km << "km";
+            emit firedEasterEggsChanged();
             enqueueAndCross(egg.km, egg.intensity, tag);
             return;  // one crossing at a time
         }
@@ -336,6 +338,28 @@ void OdometerMilestoneService::advanceCelebration()
         return;
     }
     startNextCelebration();
+}
+
+void OdometerMilestoneService::celebrateRandomEasterEgg()
+{
+    constexpr int count = static_cast<int>(sizeof(kEasterEggs) / sizeof(kEasterEggs[0]));
+    if (count <= 0)
+        return;
+    const EasterEgg &egg = kEasterEggs[QRandomGenerator::global()->bounded(count)];
+    qDebug() << "OdometerMilestone: easter-egg demo" << egg.tag;
+    // enqueueAndCross rather than a bare emit: it is the same path a real
+    // crossing takes, so the queue and m_celebrating stay consistent, and it
+    // deliberately leaves the fired set alone.
+    enqueueAndCross(egg.km, egg.intensity, QString::fromLatin1(egg.tag));
+}
+
+void OdometerMilestoneService::resetEasterEggs()
+{
+    if (m_firedEasterEggs.isEmpty())
+        return;
+    m_firedEasterEggs.clear();
+    saveFiredEasterEggs();
+    emit firedEasterEggsChanged();
 }
 
 bool OdometerMilestoneService::celebrationsEnabled() const

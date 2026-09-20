@@ -13,6 +13,8 @@
 #include "FaultsStore.h"
 #include "l10n/Translations.h"
 #include "services/ToastService.h"
+#include "services/BootThemeService.h"
+#include "services/OdometerMilestoneService.h"
 #include "services/SettingsService.h"
 #include "services/NavigationService.h"
 #include "services/NavigationAvailabilityService.h"
@@ -213,6 +215,40 @@ void MenuStore::setFaultsStore(FaultsStore *store)
 void MenuStore::setToastService(ToastService *svc)
 {
     m_toastService = svc;
+}
+
+void MenuStore::setBootThemeService(BootThemeService *svc)
+{
+    m_bootTheme = svc;
+    if (m_bootTheme) {
+        // The service only reports a change after fw_setenv has succeeded, so
+        // these rebuilds show the value the environment actually holds.
+        connect(m_bootTheme, &BootThemeService::themeChanged,
+                this, &MenuStore::rebuildMenuTree);
+        connect(m_bootTheme, &BootThemeService::soundChanged,
+                this, &MenuStore::rebuildMenuTree);
+        connect(m_bootTheme, &BootThemeService::themesChanged,
+                this, &MenuStore::rebuildMenuTree);
+        connect(m_bootTheme, &BootThemeService::applyFailed, this,
+                [this](const QString &reason) {
+                    if (m_toastService)
+                        m_toastService->showError(
+                            QStringLiteral("Boot setting failed: %1").arg(reason));
+                });
+    }
+    rebuildMenuTree();
+}
+
+void MenuStore::setOdometerMilestoneService(OdometerMilestoneService *svc)
+{
+    m_odometerMilestone = svc;
+    if (m_odometerMilestone) {
+        connect(m_odometerMilestone, &OdometerMilestoneService::easterEggsEnabledChanged,
+                this, &MenuStore::rebuildMenuTree);
+        connect(m_odometerMilestone, &OdometerMilestoneService::firedEasterEggsChanged,
+                this, &MenuStore::rebuildMenuTree);
+    }
+    rebuildMenuTree();
 }
 
 void MenuStore::setUpdateChannelService(UpdateChannelService *svc)
@@ -1647,6 +1683,8 @@ void MenuStore::rebuildMenuTree()
         }));
     }
 
+    buildEasterEggs();
+
     m_rootNode->addChild(MenuNode::action(QStringLiteral("exit"), tr->menuExit(), [this]() {
         close();
     }));
@@ -1691,6 +1729,134 @@ void MenuStore::rebuildMenuTree()
     rememberSelection();
 
     emitMenuChanged();
+}
+
+// The easter-egg level is a normal submenu so it reuses the menu's rendering,
+// cycling and navigation unchanged; it is simply hidden until the About
+// screen's brake sequence has been entered. Every row re-derives its state
+// from a service, so the rebuild after any change redraws the whole level.
+void MenuStore::buildEasterEggs()
+{
+    auto *node = MenuNode::submenu(QStringLiteral("easter_eggs"),
+                                   QStringLiteral("Easter eggs"),
+                                   QStringLiteral("EASTER EGGS"),
+                                   [this]() { return m_easterEggUnlocked; });
+    m_rootNode->addChild(node);
+
+    // Boot theme: one name drives the userspace animation and the kernel
+    // splash together, so the two cannot disagree.
+    if (m_bootTheme) {
+        const QStringList themes = m_bootTheme->themes();
+        const QString current = m_bootTheme->theme();
+        QList<CycleOption> options;
+        for (const QString &id : themes) {
+            options.append({m_bootTheme->displayName(id), [this, id]() {
+                if (!m_bootTheme->setTheme(id)) {
+                    if (m_toastService)
+                        m_toastService->showError(QStringLiteral("Could not set the boot theme"));
+                    return;
+                }
+                // fw_setenv is asynchronous; this only says what was asked
+                // for. A failed write arrives as an error toast later.
+                if (m_toastService)
+                    m_toastService->showInfo(QStringLiteral("Boot theme: %1 — takes effect on the next boot")
+                                                 .arg(m_bootTheme->displayName(id)));
+            }});
+        }
+        if (!options.isEmpty()) {
+            node->addChild(MenuNode::cycleSetting(QStringLiteral("egg_boot_theme"),
+                                                  QStringLiteral("Boot logo & animation"),
+                                                  options, qMax(0, themes.indexOf(current))));
+        }
+
+        const bool sound = m_bootTheme->soundEnabled();
+        node->addChild(MenuNode::cycleSetting(QStringLiteral("egg_boot_sound"),
+            QStringLiteral("Boot sound"),
+            {
+                {QStringLiteral("On"), [this]() {
+                    if (m_bootTheme && !m_bootTheme->setSoundEnabled(true) && m_toastService)
+                        m_toastService->showError(QStringLiteral("Could not change the boot sound"));
+                }},
+                {QStringLiteral("Off"), [this]() {
+                    if (m_bootTheme && !m_bootTheme->setSoundEnabled(false) && m_toastService)
+                        m_toastService->showError(QStringLiteral("Could not change the boot sound"));
+                }},
+            }, sound ? 0 : 1));
+
+        // Sound test: one row per installed theme, playing the file the boot
+        // launcher would use. The real thing plays before the dashboard
+        // exists, so this is the only place it can be heard on demand.
+        auto *sounds = MenuNode::submenu(QStringLiteral("egg_sounds"),
+                                         QStringLiteral("Play startup sounds"),
+                                         QStringLiteral("STARTUP SOUNDS"));
+        for (const QString &id : themes) {
+            sounds->addChild(MenuNode::action(QStringLiteral("egg_play_") + id,
+                                              m_bootTheme->displayName(id),
+                                              [this, id]() { m_bootTheme->playSound(id); }));
+        }
+        node->addChild(sounds);
+    }
+
+    if (m_odometerMilestone) {
+        const bool eggs = m_odometerMilestone->easterEggsEnabled();
+        node->addChild(MenuNode::cycleSetting(QStringLiteral("egg_milestone_eggs"),
+            QStringLiteral("Milestone easter eggs"),
+            {
+                {QStringLiteral("On"), [this]() { m_odometerMilestone->setEasterEggsEnabled(true); }},
+                {QStringLiteral("Off"), [this]() { m_odometerMilestone->setEasterEggsEnabled(false); }},
+            }, eggs ? 0 : 1));
+
+        node->addChild(MenuNode::action(QStringLiteral("egg_fire_random"),
+            QStringLiteral("Fire a random easter egg"),
+            [this]() { m_odometerMilestone->celebrateRandomEasterEgg(); }));
+
+        auto *reset = MenuNode::action(QStringLiteral("egg_reset"),
+            QStringLiteral("Reset fired easter eggs"),
+            [this]() {
+                m_odometerMilestone->resetEasterEggs();
+                if (m_toastService)
+                    m_toastService->showSuccess(QStringLiteral("Easter eggs reset"));
+            });
+        const int fired = m_odometerMilestone->firedEasterEggCount();
+        if (fired > 0)
+            reset->setValueLabel(QString::number(fired));
+        node->addChild(reset);
+    }
+
+    // The master switch: the service celebrates nothing while this is off.
+    if (m_settings && m_settingsService) {
+        const bool celebrations = m_settings->milestoneCelebrations();
+        node->addChild(MenuNode::cycleSetting(QStringLiteral("egg_celebrations"),
+            QStringLiteral("Confetti & banners"),
+            {
+                {QStringLiteral("On"), [this]() { m_settingsService->updateMilestoneCelebrations(true); }},
+                {QStringLiteral("Off"), [this]() { m_settingsService->updateMilestoneCelebrations(false); }},
+            }, celebrations ? 0 : 1));
+    }
+}
+
+void MenuStore::openEasterEggs()
+{
+    // Unhide before navigating: rebuildMenuTree() replays the path against the
+    // tree it has just built, so a still-hidden level would drop the request
+    // back at the root.
+    m_easterEggUnlocked = true;
+
+    // Re-read the DBC's published boot state now: lsc may have changed it, and
+    // nothing pushes a notification when it does.
+    if (m_bootTheme)
+        m_bootTheme->refresh();
+
+    if (m_isOpen) {
+        m_pathStack = {QStringLiteral("easter_eggs")};
+        m_indexStack = {0};
+        m_selectedIndex = 0;
+        m_selectedId.clear();
+        rebuildMenuTree();
+        emitMenuChanged();
+        return;
+    }
+    openAt({QStringLiteral("easter_eggs")}, {0}, 0);
 }
 
 void MenuStore::rememberSelection()

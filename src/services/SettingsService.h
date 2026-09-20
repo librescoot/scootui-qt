@@ -51,7 +51,6 @@ public:
     Q_INVOKABLE void updateMilestoneCelebrations(bool enabled);
     Q_INVOKABLE void updateTripCounterReset(const QString &policy);
     Q_INVOKABLE void updateTripExpunge(const QString &policy, const QString &value = {});
-    Q_INVOKABLE QString toggleBootAnimation();
 
     // OTA settings apply to the whole scooter, so each of these writes the
     // MDB and the DBC key together. Splitting them would let the two boards

@@ -11,6 +11,7 @@ class SettingsStore;
 class InternetStore;
 class AutoThemeService;
 class SettingsService;
+class BootThemeService;
 class NavigationService;
 class Translations;
 class InputHandler;
@@ -111,6 +112,7 @@ private:
     std::unique_ptr<MdbRepository> m_repository;
     AutoThemeService *m_autoThemeService = nullptr;
     SettingsService *m_settingsService = nullptr;
+    BootThemeService *m_bootThemeService = nullptr;
     NavigationService *m_navigationService = nullptr;
     Translations *m_translations = nullptr;
     InputHandler *m_inputHandler = nullptr;

@@ -26,6 +26,8 @@ class FaultsStore;
 class ToastService;
 class UpdateChannelService;
 class KeycardStore;
+class BootThemeService;
+class OdometerMilestoneService;
 
 class MenuStore : public QObject
 {
@@ -63,6 +65,8 @@ public:
     void setToastService(ToastService *svc);
     void setUpdateChannelService(UpdateChannelService *svc);
     void setKeycardStore(KeycardStore *store);
+    void setBootThemeService(BootThemeService *svc);
+    void setOdometerMilestoneService(OdometerMilestoneService *svc);
     ~MenuStore() override;
 
     bool isOpen() const { return m_isOpen; }
@@ -87,6 +91,9 @@ public:
     Q_INVOKABLE void goBack();
     // Runs the selected row's primary child without entering it.
     Q_INVOKABLE void activatePrimary();
+    // Reveals the easter-egg level and opens the menu on it. Called from the
+    // About screen once the secret brake sequence has been entered.
+    Q_INVOKABLE void openEasterEggs();
 
 signals:
     void isOpenChanged();
@@ -101,6 +108,7 @@ private:
     void rememberSelection();
     void clearResume();
     void rebuildMenuTree();
+    void buildEasterEggs();
     QString lastMapCheckLabel() const;
     QString lastCheckLabel(const QString &iso) const;
     MenuNode *findCurrentNode() const;
@@ -127,6 +135,8 @@ private:
     ToastService *m_toastService = nullptr;
     UpdateChannelService *m_updateChannel = nullptr;
     KeycardStore *m_keycard = nullptr;
+    BootThemeService *m_bootTheme = nullptr;
+    OdometerMilestoneService *m_odometerMilestone = nullptr;
 
     std::unique_ptr<MenuNode> m_rootNode;
     bool m_isOpen = false;
@@ -142,6 +152,9 @@ private:
     int m_resumeIndex = 0;
     bool m_resumeArmed = false;
     bool m_executingAction = false; // guard against reentrant rebuilds
+    // Set once the About screen's sequence has been entered. Session-only on
+    // purpose: it is an easter egg, not a setting.
+    bool m_easterEggUnlocked = false;
 
     // vehicle-service emits "tap" right before "double-tap" on a double-tap.
     // The trailing tap races with menu open and would shift selection off

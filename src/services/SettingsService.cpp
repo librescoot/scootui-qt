@@ -3,9 +3,6 @@
 #include "stores/SettingsStore.h"
 #include "core/AppConfig.h"
 
-#include <QDebug>
-#include <QProcess>
-
 SettingsService::SettingsService(MdbRepository *repo, SettingsStore *settings,
                                  QObject *parent)
     : QObject(parent)
@@ -280,29 +277,6 @@ void SettingsService::updateTripExpunge(const QString &policy, const QString &va
         writeSetting(QStringLiteral("trip.expunge"), composed);
 }
 
-QString SettingsService::toggleBootAnimation()
-{
-#ifdef Q_OS_LINUX
-    QProcess readProc;
-    readProc.start(QStringLiteral("fw_printenv"), {QStringLiteral("-n"), QStringLiteral("boot_animation")});
-    readProc.waitForFinished(2000);
-    QString current = QString::fromUtf8(readProc.readAllStandardOutput()).trimmed();
-    if (current.isEmpty())
-        current = QStringLiteral("librescoot");
-
-    QString next = (current == QLatin1String("windowsxp"))
-        ? QStringLiteral("librescoot") : QStringLiteral("windowsxp");
-
-    QProcess writeProc;
-    writeProc.start(QStringLiteral("fw_setenv"), {QStringLiteral("boot_animation"), next});
-    writeProc.waitForFinished(2000);
-    if (writeProc.exitCode() != 0)
-        qWarning() << "fw_setenv boot_animation failed:" << writeProc.readAllStandardError();
-    else
-        qDebug() << "boot_animation toggled to:" << next;
-
-    return next;
-#else
-    return {};
-#endif
-}
+// The About-screen boot-animation toggle used to live here. It now belongs to
+// BootThemeService, which owns both boot_animation and boot_sound and does
+// the environment access asynchronously.

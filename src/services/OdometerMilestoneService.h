@@ -34,8 +34,18 @@ public:
     // request the next queued milestone (if any).
     Q_INVOKABLE void advanceCelebration();
 
+    // Easter-egg menu test actions. celebrateRandomEasterEgg() queues one of
+    // the one-shot eggs so the confetti, banner and toast can be seen without
+    // riding 666 km, and deliberately does not consume it: it is a demo, not a
+    // crossing. resetEasterEggs() forgets which eggs have fired so they can be
+    // earned again.
+    Q_INVOKABLE void celebrateRandomEasterEgg();
+    Q_INVOKABLE void resetEasterEggs();
+    Q_INVOKABLE int firedEasterEggCount() const { return m_firedEasterEggs.size(); }
+
 signals:
     void easterEggsEnabledChanged();
+    void firedEasterEggsChanged();
 
     // Fired the instant a milestone is crossed during a ride. Drives the
     // small in-ride toast only. No queueing; one event per crossing.

@@ -46,6 +46,7 @@
 #include "stores/SavedLocationsStore.h"
 #include "stores/RecentDestinationsStore.h"
 #include "services/SettingsService.h"
+#include "services/BootThemeService.h"
 #include "services/AutoThemeService.h"
 #include "services/InputHandler.h"
 #include "services/NavigationService.h"
@@ -303,6 +304,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // M5: Services
     m_settingsService = new SettingsService(repo, settingsStore, this);
+    m_bootThemeService = new BootThemeService(this);
+    m_bootThemeService->setRepository(repo);
     m_translations = new Translations(this);
     m_translations->setLanguage(localeStore->language());
     m_autoThemeService = new AutoThemeService(repo, themeStore, this);
@@ -805,6 +808,11 @@ void Application::createStores(QQmlApplicationEngine &engine)
                                          faultEventStore, m_translations, this);
     menuStore->setFaultsStore(faultsStore);
     menuStore->setToastService(m_toastService);
+    // The boot-animation theme/sound pair and the odometer milestone state
+    // are the easter-egg level's dependencies; supplying them here keeps the
+    // level out of the main menu until it is unlocked.
+    menuStore->setBootThemeService(m_bootThemeService);
+    menuStore->setOdometerMilestoneService(m_odometerMilestoneService);
 
     // Release-channel switching: asks both update-service instances what a
     // switch would download, then applies it on confirmation.
@@ -880,6 +888,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("shortcutMenuStore"), shortcutMenuStore);
     ctx->setContextProperty(QStringLiteral("translations"), m_translations);
     ctx->setContextProperty(QStringLiteral("settingsService"), m_settingsService);
+    ctx->setContextProperty(QStringLiteral("bootThemeService"), m_bootThemeService);
     ctx->setContextProperty(QStringLiteral("navigationService"), m_navigationService);
 
     // New context properties

@@ -94,34 +94,22 @@ Rectangle {
     }
 
     function closeScreen() {
-        if (eggStep === eggSeq.length) {
-            if (typeof settingsService !== "undefined") {
-                var next = settingsService.toggleBootAnimation()
-                if (typeof toastService !== "undefined" && next !== "") {
-                    if (next === "windowsxp")
-                        toastService.showSuccess(typeof translations !== "undefined"
-                            ? translations.aboutGenuineAdvantage : "Genuine Advantage activated.")
-                    else
-                        toastService.showInfo(typeof translations !== "undefined"
-                            ? translations.aboutBootThemeRestored : "Boot theme: Librescoot restored.")
-                }
-            }
-        }
-        if (milestoneEggStep === milestoneEggSeq.length) {
-            if (typeof odometerMilestoneService !== "undefined") {
-                var enabled = !odometerMilestoneService.easterEggsEnabled
-                odometerMilestoneService.easterEggsEnabled = enabled
-                if (typeof toastService !== "undefined") {
-                    toastService.showInfo(enabled
-                        ? "Milestone easter eggs unlocked"
-                        : "Milestone easter eggs locked")
-                }
-            }
-        }
-        if (typeof screenStore !== "undefined") {
+        // Either secret sequence opens the same level. Making them two doors
+        // to one submenu, rather than two invisible toggles, is what lets the
+        // easter egg grow rows without adding a gesture each.
+        var unlocked = eggStep === eggSeq.length || milestoneEggStep === milestoneEggSeq.length
+        // Reset either way. The counters were left at the end of the sequence
+        // before, so every later close ran the easter egg again instead of
+        // just leaving the page.
+        eggStep = 0
+        milestoneEggStep = 0
+        if (typeof screenStore !== "undefined")
             screenStore.closeAbout()
-        }
-        if (typeof menuStore !== "undefined")
+        if (typeof menuStore === "undefined")
+            return
+        if (unlocked)
+            menuStore.openEasterEggs()
+        else
             menuStore.resume()
     }
 
