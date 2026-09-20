@@ -11,8 +11,10 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(QString backlightMode READ backlightMode NOTIFY backlightModeChanged)
     Q_PROPERTY(bool showRawSpeed READ showRawSpeed NOTIFY showRawSpeedChanged)
     Q_PROPERTY(int speedometerMaxSpeed READ speedometerMaxSpeed NOTIFY speedometerMaxSpeedChanged)
+    Q_PROPERTY(int speedometerNormalSpeed READ speedometerNormalSpeed NOTIFY speedometerNormalSpeedChanged)
     Q_PROPERTY(int speedometerWarnSpeed READ speedometerWarnSpeed NOTIFY speedometerWarnSpeedChanged)
     Q_PROPERTY(int speedometerOverspeed READ speedometerOverspeed NOTIFY speedometerOverspeedChanged)
+    Q_PROPERTY(QString speedometerOriginColor READ speedometerOriginColor NOTIFY speedometerOriginColorChanged)
     Q_PROPERTY(QString speedometerBaseColor READ speedometerBaseColor NOTIFY speedometerBaseColorChanged)
     Q_PROPERTY(QString speedometerWarnColor READ speedometerWarnColor NOTIFY speedometerWarnColorChanged)
     Q_PROPERTY(QString speedometerOverspeedColor READ speedometerOverspeedColor NOTIFY speedometerOverspeedColorChanged)
@@ -78,13 +80,15 @@ public:
     QString mode() const { return m_mode; }
     QString backlightMode() const { return m_backlightMode; }
     bool showRawSpeed() const { return m_showRawSpeed == QLatin1String("true"); }
-    // Speedometer scale and thresholds, km/h. Unparseable or out-of-range
-    // values fall back to the shipped arc (0-60, purple from 55, pulse past 60).
+    // Speedometer scale and colour stops, km/h. Unparseable or out-of-range
+    // values fall back to the shipped configuration.
     int speedometerMaxSpeed() const { return intSetting(m_speedometerMaxSpeed, 60, 20, 200); }
+    int speedometerNormalSpeed() const { return intSetting(m_speedometerNormalSpeed, 30, 1, 200); }
     int speedometerWarnSpeed() const { return intSetting(m_speedometerWarnSpeed, 55, 1, 200); }
     int speedometerOverspeed() const { return intSetting(m_speedometerOverspeed, 60, 1, 200); }
     // Speedometer fill colours: #RRGGBB or #AARRGGBB. Anything else falls back
-    // to the shipped ramp (blue to full at 55, purple by 60, pulse pink).
+    // to the shipped four-stop ramp.
+    QString speedometerOriginColor() const { return colorSetting(m_speedometerOriginColor, QStringLiteral("#90CAF9")); }
     QString speedometerBaseColor() const { return colorSetting(m_speedometerBaseColor, QStringLiteral("#2196F3")); }
     QString speedometerWarnColor() const { return colorSetting(m_speedometerWarnColor, QStringLiteral("#9C27B0")); }
     QString speedometerOverspeedColor() const { return colorSetting(m_speedometerOverspeedColor, QStringLiteral("#E91E63")); }
@@ -170,8 +174,10 @@ signals:
     void backlightModeChanged();
     void showRawSpeedChanged();
     void speedometerMaxSpeedChanged();
+    void speedometerNormalSpeedChanged();
     void speedometerWarnSpeedChanged();
     void speedometerOverspeedChanged();
+    void speedometerOriginColorChanged();
     void speedometerBaseColorChanged();
     void speedometerWarnColorChanged();
     void speedometerOverspeedColorChanged();
@@ -228,9 +234,16 @@ private:
     // @schema dashboard.backlight-mode
     QString m_backlightMode = QStringLiteral("auto");
     QString m_showRawSpeed = QStringLiteral("false");
+    // @schema dashboard.speedometer.max-speed
     QString m_speedometerMaxSpeed;
+    // @schema dashboard.speedometer.normal-speed
+    QString m_speedometerNormalSpeed;
+    // @schema dashboard.speedometer.warn-speed
     QString m_speedometerWarnSpeed;
+    // @schema dashboard.speedometer.overspeed
     QString m_speedometerOverspeed;
+    // @schema dashboard.speedometer.origin-color
+    QString m_speedometerOriginColor;
     // @schema dashboard.speedometer.base-color
     QString m_speedometerBaseColor;
     // @schema dashboard.speedometer.warn-color

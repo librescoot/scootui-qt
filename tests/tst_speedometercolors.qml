@@ -2,9 +2,8 @@ import QtQuick
 import QtTest
 import "../qml/widgets/speedometer"
 
-// The fill ramp is driven by the three advanced colour settings. This checks
-// that the configured hex reaches the arc and that no setting leaves the
-// shipped ramp in place.
+// The fill ramp has configurable origin, normal, warning and overspeed stops.
+// These checks keep each configured colour attached to its named speed.
 TestCase {
     name: "SpeedometerColors"
     when: windowShown
@@ -23,8 +22,10 @@ TestCase {
         id: settingsStore
         property bool showRawSpeed: false
         property int speedometerMaxSpeed: 60
+        property int speedometerNormalSpeed: 30
         property int speedometerWarnSpeed: 55
         property int speedometerOverspeed: 60
+        property string speedometerOriginColor: "#90CAF9"
         property string speedometerBaseColor: "#2196F3"
         property string speedometerWarnColor: "#9C27B0"
         property string speedometerOverspeedColor: "#E91E63"
@@ -65,33 +66,46 @@ TestCase {
 
     function init() {
         settingsStore.speedometerMaxSpeed = 60
+        settingsStore.speedometerNormalSpeed = 30
+        settingsStore.speedometerWarnSpeed = 55
+        settingsStore.speedometerOverspeed = 60
+        settingsStore.speedometerOriginColor = "#90CAF9"
         settingsStore.speedometerBaseColor = "#2196F3"
         settingsStore.speedometerWarnColor = "#9C27B0"
         settingsStore.speedometerOverspeedColor = "#E91E63"
         engineStore.speed = 0
         speedometer.animatedSpeed = 0
+        speedometer.overspeedPulse = 1
     }
 
-    function test_shippedRampReachesBaseAtWarnSpeed() {
-        speedometer.animatedSpeed = settingsStore.speedometerWarnSpeed
+    function test_shippedColorsReachNamedStops() {
+        speedometer.animatedSpeed = 0
+        compare(speedometer.speedFillColor.toString(), "#90caf9")
+
+        speedometer.animatedSpeed = settingsStore.speedometerNormalSpeed
         compare(speedometer.speedFillColor.toString(), "#2196f3")
-    }
 
-    function test_shippedRampReachesWarnColorAtOverspeed() {
-        speedometer.animatedSpeed = settingsStore.speedometerOverspeed
+        speedometer.animatedSpeed = settingsStore.speedometerWarnSpeed
         compare(speedometer.speedFillColor.toString(), "#9c27b0")
+
+        speedometer.animatedSpeed = settingsStore.speedometerOverspeed
+        compare(speedometer.speedFillColor.toString(), "#e91e63")
     }
 
     function test_configuredColorsReachTheArc() {
+        settingsStore.speedometerOriginColor = "#010203"
         settingsStore.speedometerBaseColor = "#123456"
         settingsStore.speedometerWarnColor = "#FFDE21"
         settingsStore.speedometerOverspeedColor = "#00FF00"
 
-        speedometer.animatedSpeed = settingsStore.speedometerWarnSpeed
+        speedometer.animatedSpeed = 0
+        compare(speedometer.speedFillColor.toString(), "#010203")
+        speedometer.animatedSpeed = settingsStore.speedometerNormalSpeed
         compare(speedometer.speedFillColor.toString(), "#123456")
-
-        speedometer.animatedSpeed = settingsStore.speedometerOverspeed
+        speedometer.animatedSpeed = settingsStore.speedometerWarnSpeed
         compare(speedometer.speedFillColor.toString(), "#ffde21")
+        speedometer.animatedSpeed = settingsStore.speedometerOverspeed
+        compare(speedometer.speedFillColor.toString(), "#00ff00")
     }
 
     function test_hyperspaceStartsPastConfiguredMaximum() {
@@ -121,26 +135,26 @@ TestCase {
         compare(speedometer.speedFillColor.toString(), "#00ff00")
     }
 
-    // The bottom of the ramp follows the base hue instead of staying blue.
-    function test_lowEndFollowsBaseHue() {
-        settingsStore.speedometerBaseColor = "#123456"
-        var base = speedometer.baseSpeedColor
-        var low = speedometer.lowSpeedColor
-        verify(low.r > base.r)
-        verify(low.g > base.g)
-        verify(low.b > base.b)
+    function test_interpolatesBetweenStops() {
+        settingsStore.speedometerOriginColor = "#000000"
+        settingsStore.speedometerBaseColor = "#202020"
+        settingsStore.speedometerWarnColor = "#404040"
+        settingsStore.speedometerOverspeedColor = "#606060"
+
+        speedometer.animatedSpeed = settingsStore.speedometerNormalSpeed / 2
+        compare(speedometer.speedFillColor.toString(), "#101010")
+
+        speedometer.animatedSpeed = (settingsStore.speedometerNormalSpeed
+                                     + settingsStore.speedometerWarnSpeed) / 2
+        compare(speedometer.speedFillColor.toString(), "#303030")
     }
 
-    // The shipped base still lands on the Material Blue 200 the arc used before
-    // the colours became configurable, give or take rounding.
-    function test_lowEndPreservesShippedBlue() {
-        var low = speedometer.lowSpeedColor
-        verify(near(Math.round(low.r * 255), 0x90))
-        verify(near(Math.round(low.g * 255), 0xCA))
-        verify(near(Math.round(low.b * 255), 0xF9))
-    }
+    function test_outOfOrderSpeedsCollapseSafely() {
+        settingsStore.speedometerNormalSpeed = 80
+        settingsStore.speedometerWarnSpeed = 70
+        settingsStore.speedometerOverspeed = 60
 
-    function near(actual, expected) {
-        return Math.abs(actual - expected) <= 1
+        compare(speedometer.normalSpeed, 60)
+        compare(speedometer.warningSpeed, 60)
     }
 }

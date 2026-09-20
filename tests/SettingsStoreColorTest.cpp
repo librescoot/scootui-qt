@@ -12,6 +12,7 @@ class SettingsStoreColorTest : public QObject
 
 private slots:
     void unsetFallsBackToShippedColors();
+    void speedStopsApplyAndFallBack();
     void acceptsRgbAndArgbHex();
     void rejectsMalformedValues();
     void runtimeUpdateAppliesAndFallsBack();
@@ -24,9 +25,25 @@ void SettingsStoreColorTest::unsetFallsBackToShippedColors()
     SettingsStore store(&repo);
     store.start();
 
+    QCOMPARE(store.speedometerOriginColor(), QStringLiteral("#90CAF9"));
     QCOMPARE(store.speedometerBaseColor(), QStringLiteral("#2196F3"));
     QCOMPARE(store.speedometerWarnColor(), QStringLiteral("#9C27B0"));
     QCOMPARE(store.speedometerOverspeedColor(), QStringLiteral("#E91E63"));
+}
+
+void SettingsStoreColorTest::speedStopsApplyAndFallBack()
+{
+    InMemoryMdbRepository repo;
+    repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.speedometer.normal-speed"),
+             QStringLiteral("35"), false);
+
+    SettingsStore store(&repo);
+    store.start();
+
+    QCOMPARE(store.speedometerNormalSpeed(), 35);
+    repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.speedometer.normal-speed"),
+             QStringLiteral("invalid"));
+    QCOMPARE(store.speedometerNormalSpeed(), 30);
 }
 
 void SettingsStoreColorTest::acceptsRgbAndArgbHex()
@@ -53,6 +70,8 @@ void SettingsStoreColorTest::rejectsMalformedValues()
 void SettingsStoreColorTest::runtimeUpdateAppliesAndFallsBack()
 {
     InMemoryMdbRepository repo;
+    repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.speedometer.origin-color"),
+             QStringLiteral("#010203"), false);
     repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.speedometer.base-color"),
              QStringLiteral("#111111"), false);
     repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.speedometer.warn-color"),
@@ -63,6 +82,7 @@ void SettingsStoreColorTest::runtimeUpdateAppliesAndFallsBack()
     SettingsStore store(&repo);
     store.start();
 
+    QCOMPARE(store.speedometerOriginColor(), QStringLiteral("#010203"));
     QCOMPARE(store.speedometerBaseColor(), QStringLiteral("#111111"));
     QCOMPARE(store.speedometerWarnColor(), QStringLiteral("#FFDE21"));
     QCOMPARE(store.speedometerOverspeedColor(), QStringLiteral("#80E91E63"));

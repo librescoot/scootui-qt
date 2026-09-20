@@ -146,8 +146,10 @@ SyncSettings SettingsStore::syncSettings() const
             {QStringLiteral("backlightMode"), QStringLiteral("dashboard.backlight-mode")},
             {QStringLiteral("showRawSpeed"), QStringLiteral("dashboard.show-raw-speed")},
             {QStringLiteral("speedometerMaxSpeed"), QStringLiteral("dashboard.speedometer.max-speed")},
+            {QStringLiteral("speedometerNormalSpeed"), QStringLiteral("dashboard.speedometer.normal-speed")},
             {QStringLiteral("speedometerWarnSpeed"), QStringLiteral("dashboard.speedometer.warn-speed")},
             {QStringLiteral("speedometerOverspeed"), QStringLiteral("dashboard.speedometer.overspeed")},
+            {QStringLiteral("speedometerOriginColor"), QStringLiteral("dashboard.speedometer.origin-color")},
             {QStringLiteral("speedometerBaseColor"), QStringLiteral("dashboard.speedometer.base-color")},
             {QStringLiteral("speedometerWarnColor"), QStringLiteral("dashboard.speedometer.warn-color")},
             {QStringLiteral("speedometerOverspeedColor"), QStringLiteral("dashboard.speedometer.overspeed-color")},
@@ -210,10 +212,14 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
         if (value != m_showRawSpeed) { m_showRawSpeed = value; emit showRawSpeedChanged(); }
     } else if (variable == QLatin1String("dashboard.speedometer.max-speed")) {
         if (value != m_speedometerMaxSpeed) { m_speedometerMaxSpeed = value; emit speedometerMaxSpeedChanged(); }
+    } else if (variable == QLatin1String("dashboard.speedometer.normal-speed")) {
+        if (value != m_speedometerNormalSpeed) { m_speedometerNormalSpeed = value; emit speedometerNormalSpeedChanged(); }
     } else if (variable == QLatin1String("dashboard.speedometer.warn-speed")) {
         if (value != m_speedometerWarnSpeed) { m_speedometerWarnSpeed = value; emit speedometerWarnSpeedChanged(); }
     } else if (variable == QLatin1String("dashboard.speedometer.overspeed")) {
         if (value != m_speedometerOverspeed) { m_speedometerOverspeed = value; emit speedometerOverspeedChanged(); }
+    } else if (variable == QLatin1String("dashboard.speedometer.origin-color")) {
+        if (value != m_speedometerOriginColor) { m_speedometerOriginColor = value; emit speedometerOriginColorChanged(); }
     } else if (variable == QLatin1String("dashboard.speedometer.base-color")) {
         if (value != m_speedometerBaseColor) { m_speedometerBaseColor = value; emit speedometerBaseColorChanged(); }
     } else if (variable == QLatin1String("dashboard.speedometer.warn-color")) {

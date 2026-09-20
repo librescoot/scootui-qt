@@ -41,7 +41,7 @@ Item {
     // Animation state
     property bool isRegenerating: motorCurrent < 0
     property bool isAccelerating: motorCurrent > 0
-    property real overspeedPulse: 0
+    property real overspeedPulse: 1
     property real accelPulse: 0
     property real errorPulse: 0
 
@@ -90,38 +90,41 @@ Item {
     readonly property color majorLabelColor: isDark ? "#CCFFFFFF" : "#4D000000"
     readonly property color errorColor: "#F44336"
     // lerpColor reads .r/.g/.b/.a, so these have to be color properties rather
-    // than string literals passed straight into the call.
-    // The ramp is configurable through the advanced dashboard.speedometer.*
-    // colour settings; the store falls back to the shipped hex when a
-    // configured value does not parse.
+    // than string literals passed straight into the call. The four configurable
+    // stops are origin, normal range, warning and overspeed.
+    readonly property color originSpeedColor: hasSettings ? settingsStore.speedometerOriginColor : "#90CAF9"
     readonly property color baseSpeedColor: hasSettings ? settingsStore.speedometerBaseColor : "#2196F3"
     readonly property color warnSpeedColor: hasSettings ? settingsStore.speedometerWarnColor : "#9C27B0"
     readonly property color overspeedColor: hasSettings ? settingsStore.speedometerOverspeedColor : "#E91E63"
-    // Bottom of the ramp: the base colour lightened halfway towards white.
-    // With the shipped base this is #90CAF9, the Material Blue 200 the arc used
-    // before the colours became configurable. The top is a property, not a
-    // literal: lerpColor reads .r/.g/.b, which a bare string does not carry.
-    readonly property color whiteColor: "#FFFFFF"
-    readonly property color lowSpeedColor: lerpColor(baseSpeedColor, whiteColor, 0.5)
 
-    // Speed at which the fill reaches the base colour, and where the ramp
-    // towards the warning colour starts.
-    readonly property real fullIntensitySpeed: hasSettings
+    // Clamp malformed cross-setting combinations into ascending stops. Each
+    // individual value is range-checked by SettingsStore, but the schema cannot
+    // express ordering constraints between separate settings.
+    readonly property real warningSpeed: hasSettings
         ? Math.min(settingsStore.speedometerWarnSpeed, overspeedSpeed) : 55
+    readonly property real normalSpeed: hasSettings
+        ? Math.min(settingsStore.speedometerNormalSpeed, warningSpeed) : 30
 
     readonly property color trackColor: regenTransition > 0
         ? lerpColor(trackBaseColor, regenTintColor, regenTransition)
         : trackBaseColor
 
     readonly property color speedFillColor: {
-        if (animatedSpeed > overspeedSpeed)
+        var speed = Math.max(0, animatedSpeed)
+        if (speed > overspeedSpeed)
             return lerpColor(warnSpeedColor, overspeedColor, overspeedPulse)
-        if (animatedSpeed > fullIntensitySpeed)
-            return lerpColor(baseSpeedColor, warnSpeedColor,
-                             overspeedSpeed > fullIntensitySpeed
-                             ? (animatedSpeed - fullIntensitySpeed) / (overspeedSpeed - fullIntensitySpeed)
+        if (speed > warningSpeed)
+            return lerpColor(warnSpeedColor, overspeedColor,
+                             overspeedSpeed > warningSpeed
+                             ? (speed - warningSpeed) / (overspeedSpeed - warningSpeed)
                              : 1)
-        return lerpColor(lowSpeedColor, baseSpeedColor, animatedSpeed / fullIntensitySpeed)
+        if (speed > normalSpeed)
+            return lerpColor(baseSpeedColor, warnSpeedColor,
+                             warningSpeed > normalSpeed
+                             ? (speed - normalSpeed) / (warningSpeed - normalSpeed)
+                             : 1)
+        return lerpColor(originSpeedColor, baseSpeedColor,
+                         normalSpeed > 0 ? speed / normalSpeed : 1)
     }
 
     readonly property real fillSweep:
@@ -152,18 +155,19 @@ Item {
         }
     }
 
-    // Overspeed: warning <-> overspeed colour, 800 ms cycle
+    // Overspeed: overspeed <-> warning colour, 800 ms cycle. Starting at 1
+    // keeps the colour continuous as speed crosses the overspeed threshold.
     SequentialAnimation {
         running: speedometer.animatedSpeed > speedometer.overspeedSpeed
         loops: Animation.Infinite
-        onRunningChanged: if (!running) speedometer.overspeedPulse = 0
-        NumberAnimation {
-            target: speedometer; property: "overspeedPulse"
-            from: 0; to: 1; duration: 400; easing.type: Easing.InOutSine
-        }
+        onRunningChanged: if (!running) speedometer.overspeedPulse = 1
         NumberAnimation {
             target: speedometer; property: "overspeedPulse"
             from: 1; to: 0; duration: 400; easing.type: Easing.InOutSine
+        }
+        NumberAnimation {
+            target: speedometer; property: "overspeedPulse"
+            from: 0; to: 1; duration: 400; easing.type: Easing.InOutSine
         }
     }
 
