@@ -88,13 +88,18 @@ protected:
     SyncSettings syncSettings() const override;
     void applyFieldUpdate(const QString &variable, const QString &value) override;
 
+private slots:
+    void onErrorStreamFetched(const QString &key, const QVariantList &entries);
+
 private:
+    void refreshErrorHistory();
     QString m_dbcStatus = QStringLiteral("idle");
     QString m_dbcUpdateVersion;
     QString m_dbcUpdateMethod;
     QString m_dbcError;
     QString m_dbcErrorMessage;
     QString m_dbcErrorHistory;
+    QString m_dbcErrorEvent;
     int m_dbcDownloadProgress = 0;
     int m_dbcInstallProgress = 0;
     QString m_mdbStatus = QStringLiteral("idle");
@@ -103,6 +108,7 @@ private:
     QString m_mdbError;
     QString m_mdbErrorMessage;
     QString m_mdbErrorHistory;
+    QString m_mdbErrorEvent;
     int m_mdbDownloadProgress = 0;
     int m_mdbInstallProgress = 0;
     QString m_dbcPreviewChannel;
