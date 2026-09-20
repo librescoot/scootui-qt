@@ -1005,6 +1005,18 @@ if(BUILD_TESTING)
     target_link_libraries(charging_system_monitor_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME charging_system_monitor_test COMMAND charging_system_monitor_test)
 
+    qt_add_executable(system_info_service_test
+        tests/SystemInfoServiceTest.cpp
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+        src/services/SystemInfoService.cpp
+        src/services/SystemInfoService.h
+    )
+    target_include_directories(system_info_service_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(system_info_service_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME system_info_service_test COMMAND system_info_service_test)
+
     qt_add_executable(low_soc_monitor_test
         tests/LowSocMonitorTest.cpp
         src/models/Enums.h
