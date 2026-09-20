@@ -54,11 +54,11 @@ bool ScreenStore::screenModeFromName(const QString &name, ScootEnums::ScreenMode
     return ok;
 }
 
-void ScreenStore::publishScreen()
+void ScreenStore::publishScreen(ScootEnums::ScreenMode mode)
 {
     if (!m_repo) return;
     m_repo->set(QStringLiteral("dashboard"), QStringLiteral("remote-screen"),
-                screenName(m_currentScreen));
+                screenName(mode));
 }
 
 void ScreenStore::applyScreenLocally(ScootEnums::ScreenMode mode)
@@ -108,8 +108,13 @@ void ScreenStore::setScreen(int screen)
 {
     auto mode = static_cast<ScootEnums::ScreenMode>(screen);
     if (mode == m_currentScreen) return;
+
+    // Publish the target before publishMenuOpen() writes another field in the
+    // same hash. In-memory repositories emit the complete hash after each
+    // write, so leaving the old remote-screen value there would immediately
+    // replay and restore the previous screen.
+    publishScreen(mode);
     applyScreenLocally(mode);
-    publishScreen();
 }
 
 void ScreenStore::showAddressSelection(bool appendToRoute)

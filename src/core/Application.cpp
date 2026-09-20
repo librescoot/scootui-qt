@@ -921,6 +921,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
         // that instance had already put there, so it becomes a button in the
         // panel instead of something launching the app does to you.
         m_simulatorService = new SimulatorService(repo, m_navigationService,
+                                                  screenStore, m_settingsService,
                                                   m_inMemoryBackend, this);
         ctx->setContextProperty(QStringLiteral("simulator"), m_simulatorService);
         // The panel writes into whatever backs it, so it says what that is.

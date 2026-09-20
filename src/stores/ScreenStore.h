@@ -89,10 +89,10 @@ private:
     // or the simulator panel driving a real bench unit - sees and can steer
     // the same screen. Distinct from settings.dashboard.mode, which is the
     // persisted boot-time preference (applyMode() below).
-    void publishScreen();
+    void publishScreen(ScootEnums::ScreenMode mode);
     // Applies a screen transition without touching Redis. Shared by
-    // setScreen() (publishes afterwards) and applyFieldUpdate() (reacting to
-    // a value already in Redis, so publishing it back would just echo).
+    // setScreen() and applyFieldUpdate() (reacting to a value already in
+    // Redis, so publishing it back would just echo).
     void applyScreenLocally(ScootEnums::ScreenMode mode);
     static QString screenName(ScootEnums::ScreenMode mode);
     static bool screenModeFromName(const QString &name, ScootEnums::ScreenMode &out);

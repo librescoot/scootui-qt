@@ -1,7 +1,10 @@
 #include "SimulatorService.h"
 #include "repositories/MdbRepository.h"
 #include "services/NavigationService.h"
+#include "services/SettingsService.h"
 #include "services/GestureSynth.h"
+#include "stores/ScreenStore.h"
+#include "models/Enums.h"
 #include "routing/RouteHelpers.h"
 #include "core/AppConfig.h"
 
@@ -18,10 +21,13 @@
 #include <QDebug>
 
 SimulatorService::SimulatorService(MdbRepository *repo, NavigationService *nav,
+                                   ScreenStore *screenStore, SettingsService *settingsService,
                                    bool seedDefaults, QObject *parent)
     : QObject(parent)
     , m_repo(repo)
     , m_nav(nav)
+    , m_screenStore(screenStore)
+    , m_settingsService(settingsService)
 {
     // Stand in for vehicle-service's gesture detector: synthesize
     // "input-events" messages from the button edges we publish, so
@@ -736,6 +742,18 @@ void SimulatorService::resetAutoStandbyTimerIfActive()
 }
 
 // --- Presets ---
+
+void SimulatorService::selectDashboard(const QString &mode)
+{
+    const bool navigation = mode == QLatin1String("navigation");
+    const auto screen = navigation ? ScootEnums::ScreenMode::Map
+                                   : ScootEnums::ScreenMode::Cluster;
+    if (m_settingsService)
+        m_settingsService->updateMode(navigation ? QStringLiteral("navigation")
+                                                 : QStringLiteral("speedometer"));
+    if (m_screenStore)
+        m_screenStore->setScreen(static_cast<int>(screen));
+}
 
 void SimulatorService::loadPreset(const QString &name)
 {

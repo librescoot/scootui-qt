@@ -6,6 +6,8 @@
 
 class MdbRepository;
 class NavigationService;
+class ScreenStore;
+class SettingsService;
 class GestureSynth;
 
 class SimulatorService : public QObject
@@ -23,6 +25,7 @@ public:
     // what makes the simulator usable on a desktop and what would trample a
     // real Redis, so the caller decides, and the panel can ask for it later.
     explicit SimulatorService(MdbRepository *repo, NavigationService *nav,
+                              ScreenStore *screenStore, SettingsService *settingsService,
                               bool seedDefaults, QObject *parent = nullptr);
 
     bool autoDriveActive() const { return m_autoDriveActive; }
@@ -41,6 +44,7 @@ public:
     // Seed a full vehicle state. Called at construction only when the caller
     // said it is safe; otherwise the panel offers it as an explicit action.
     Q_INVOKABLE void applyDefaults();
+    Q_INVOKABLE void selectDashboard(const QString &mode);
 
     Q_INVOKABLE void setVehicleState(const QString &state);
     Q_INVOKABLE void setKickstand(const QString &state);
@@ -226,6 +230,8 @@ private:
 
     MdbRepository *m_repo;
     NavigationService *m_nav;
+    ScreenStore *m_screenStore;
+    SettingsService *m_settingsService;
     GestureSynth *m_gestures = nullptr;
     QTimer *m_autoDriveTimer = nullptr;
     QTimer *m_gpsTimestampTimer = nullptr;

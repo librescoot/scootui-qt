@@ -47,48 +47,37 @@ ApplicationWindow {
             }
             Item { Layout.preferredWidth: 8 }
 
-            ButtonGroup { id: screenGroup; exclusive: true }
             SimButton {
                 text: "Cluster"; small: true; fixedWidth: 54
-                ButtonGroup.group: screenGroup
-                checkable: true
-                checked: screenStore.currentScreen === Scooter.ScreenMode.Cluster
-                onClicked: {
-                    screenStore.setScreen(Scooter.ScreenMode.Cluster)
-                    if (typeof settingsService !== "undefined")
-                        settingsService.updateMode("speedometer")
-                }
+                color: screenStore.currentScreen === Scooter.ScreenMode.Cluster
+                       ? "#1976D2" : "#555"
+                onClicked: simulator.selectDashboard("speedometer")
             }
             SimButton {
                 text: "Map"; small: true; fixedWidth: 54
-                ButtonGroup.group: screenGroup
-                checkable: true
-                checked: screenStore.currentScreen === Scooter.ScreenMode.Map
-                onClicked: {
-                    screenStore.setScreen(Scooter.ScreenMode.Map)
-                    if (typeof settingsService !== "undefined")
-                        settingsService.updateMode("navigation")
-                }
+                color: screenStore.currentScreen === Scooter.ScreenMode.Map
+                       ? "#1976D2" : "#555"
+                onClicked: simulator.selectDashboard("navigation")
             }
             SimButton {
                 text: "About"; small: true; fixedWidth: 54
-                ButtonGroup.group: screenGroup
-                checkable: true
-                onClicked: screenStore.setScreen(Scooter.ScreenMode.About)
+                color: screenStore.currentScreen === Scooter.ScreenMode.About
+                       ? "#1976D2" : "#555"
+                onPressed: screenStore.setScreen(Scooter.ScreenMode.About)
             }
             SimButton {
                 text: "SysInfo"; small: true; fixedWidth: 54
-                ButtonGroup.group: screenGroup
-                checkable: true
-                onClicked: screenStore.showSystemInfo(
+                color: screenStore.currentScreen === Scooter.ScreenMode.SystemInfo
+                       ? "#1976D2" : "#555"
+                onPressed: screenStore.showSystemInfo(
                     screenStore.currentScreen === Scooter.ScreenMode.SystemInfo
                         ? (screenStore.systemInfoPage + 1) % 3 : 0)
             }
             SimButton {
                 text: "Debug"; small: true; fixedWidth: 54
-                ButtonGroup.group: screenGroup
-                checkable: true
-                onClicked: screenStore.setScreen(Scooter.ScreenMode.Debug)
+                color: screenStore.currentScreen === Scooter.ScreenMode.Debug
+                       ? "#1976D2" : "#555"
+                onPressed: screenStore.setScreen(Scooter.ScreenMode.Debug)
             }
 
             Item { Layout.fillWidth: true }
