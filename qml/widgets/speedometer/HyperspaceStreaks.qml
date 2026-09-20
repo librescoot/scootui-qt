@@ -15,13 +15,15 @@ Item {
     property real elapsed: 0
     property bool stopping: false
     property real stopElapsed: 0
+    property real peakSpeedExcess: 0
+    property int heldStreakCount: 64
 
     readonly property var streakColors: dark
         ? ["#F6FBFF", "#BBDEFB", "#E1BEE7", "#B2DFDB"]
         : ["#1565C0", "#7B1FA2", "#00897B", "#EF6C00"]
     readonly property int baseStreakCount: 64
-    readonly property int streakCount: baseStreakCount
-                                      + Math.min(56, Math.floor(Math.max(0, speedExcess - 1) * 3))
+    readonly property int desiredStreakCount: baseStreakCount
+                                             + Math.min(156, Math.floor(Math.max(0, speedExcess - 1) * 5))
 
     opacity: active || stopping ? 1 : 0
     visible: opacity > 0
@@ -30,8 +32,15 @@ Item {
         NumberAnimation { duration: 450; easing.type: Easing.InOutQuad }
     }
 
+    onSpeedExcessChanged: if (active) {
+        peakSpeedExcess = speedExcess
+        heldStreakCount = desiredStreakCount
+    }
+
     onActiveChanged: {
         if (active) {
+            peakSpeedExcess = speedExcess
+            heldStreakCount = desiredStreakCount
             stopping = false
             stopTimer.stop()
         } else if (opacity > 0 || stopping) {
@@ -59,7 +68,7 @@ Item {
     }
 
     Repeater {
-        model: root.streakCount
+        model: root.active ? root.desiredStreakCount : root.heldStreakCount
 
         Shape {
             id: streak
@@ -68,7 +77,11 @@ Item {
             readonly property real angle: root.arcStartAngle
                                           + root.arcSweepAngle * root.random(index, 1)
             readonly property real launchOffset: root.random(index, 2)
-            readonly property real travelRate: 1.8 + root.random(index, 3) * 2.7
+            readonly property real flightSpeedExcess: root.stopping
+                                                     ? root.peakSpeedExcess : root.speedExcess
+            readonly property real speedMultiplier: 1
+                                                  + Math.min(1.75, Math.max(0, flightSpeedExcess - 1) * 0.045)
+            readonly property real travelRate: (1.8 + root.random(index, 3) * 2.7) * speedMultiplier
             readonly property real activeProgress: (root.elapsed * travelRate + launchOffset) % 1
             readonly property real stopProgress: (root.stopElapsed * travelRate + launchOffset) % 1
             readonly property real progress: root.stopping
