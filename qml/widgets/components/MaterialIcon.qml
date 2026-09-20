@@ -29,7 +29,7 @@ QtObject {
     readonly property string iconForkLeft:        String.fromCodePoint(0xf050b)
     readonly property string iconForkRight:       String.fromCodePoint(0xf050c)
     readonly property string iconNavigation:      "\ue41e"
-    readonly property string iconRoute:           "\ue080"
+    readonly property string iconStraighten:      "\ue60e"
     readonly property string iconPlace:           "\ue4c9"
     readonly property string iconHome:            "\ue318"
     readonly property string iconWork:            "\ue6f2"

@@ -453,7 +453,7 @@ Item {
                 // Distance remaining
                 Row {
                     spacing: 2
-                    Text { text: MaterialIcon.iconRoute; font.family: "Material Icons"; font.pixelSize: 13; topPadding: 1; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
+                    Text { text: MaterialIcon.iconStraighten; font.family: "Material Icons"; font.pixelSize: 13; topPadding: 1; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
                         text: formatDistance(tbtWidget.maneuver.distanceToDestination || 0)
                         font.pixelSize: 13; bottomPadding: 2; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
@@ -463,7 +463,7 @@ Item {
                 // Time remaining
                 Row {
                     spacing: 2
-                    Text { text: MaterialIcon.iconTimer; font.family: "Material Icons"; font.pixelSize: 13; topPadding: 1; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
+                    Text { text: MaterialIcon.iconTimer; font.family: "Material Icons"; font.pixelSize: 13; topPadding: 2; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
                         text: formatRemainingTime(tbtWidget.maneuver.remainingDuration || 0)
                         font.pixelSize: 13; bottomPadding: 2; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
