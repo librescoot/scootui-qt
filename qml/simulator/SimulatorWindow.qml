@@ -209,6 +209,8 @@ ApplicationWindow {
                             SimButton { text: "Ready"; small: true; Layout.fillWidth: true; onClicked: simulator.loadPreset("ready") }
                             SimButton { text: "Driving"; small: true; Layout.fillWidth: true; onClicked: simulator.loadPreset("driving") }
                             SimButton { text: "Fast"; small: true; Layout.fillWidth: true; onClicked: simulator.loadPreset("driving-fast") }
+                            SimButton { text: "Hyperspace"; small: true; color: "#4FC3F7"; Layout.fillWidth: true
+                                        onClicked: simulator.setSpeed(settingsStore.speedometerMaxSpeed + 1) }
                             SimButton { text: "LowBatt"; small: true; color: "#ff6b35"; Layout.fillWidth: true; onClicked: simulator.loadPreset("low-battery") }
                             SimButton { text: "Updating"; small: true; color: "#9c27b0"; Layout.fillWidth: true; onClicked: simulator.loadPreset("updating") }
                             SimButton { text: "NoGPS"; small: true; Layout.fillWidth: true; onClicked: simulator.loadPreset("no-gps") }

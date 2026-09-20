@@ -299,6 +299,7 @@ set(QML_FILES
     qml/widgets/navigation/HopContinuePrompt.qml
     qml/widgets/navigation/RouteOverviewPanel.qml
     qml/widgets/speedometer/SpeedometerDisplay.qml
+    qml/widgets/speedometer/HyperspaceStreaks.qml
     qml/widgets/status_bars/TopStatusBar.qml
     qml/widgets/status_bars/ClockDisplay.qml
     qml/widgets/status_bars/BatteryDisplay.qml

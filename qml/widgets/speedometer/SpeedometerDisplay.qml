@@ -33,6 +33,7 @@ Item {
     // the labels and where the colours turn.
     readonly property bool hasSettings: typeof settingsStore !== "undefined"
     readonly property real maxArcSpeed: hasSettings ? settingsStore.speedometerMaxSpeed : 60
+    readonly property bool hyperspaceActive: targetSpeed > maxArcSpeed
     // Pulse from here. Kept at or below the arc max only for the colour ramp
     // below; the pulse itself triggers on the raw threshold.
     readonly property real overspeedSpeed: hasSettings ? settingsStore.speedometerOverspeed : 60
@@ -220,6 +221,17 @@ Item {
         // requesting frames forever: a parked cluster goes from 1 fps to 43,
         // so the display never idles. The per-frame Shape cost is the cheaper
         // problem.
+
+        HyperspaceStreaks {
+            anchors.fill: parent
+            active: speedometer.hyperspaceActive
+            dark: speedometer.isDark
+            arcStartAngle: speedometer.arcStartAngle
+            arcSweepAngle: speedometer.arcSweepAngle
+            arcRadius: speedometer.arcRadius
+            centerX: speedometer.centerX
+            centerY: speedometer.centerY
+        }
 
         // Background arc
         Shape {

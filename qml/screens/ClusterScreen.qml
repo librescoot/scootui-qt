@@ -8,7 +8,13 @@ import "../notifications"
 import "../widgets/components"
 Rectangle {
     id: clusterScreen
-    color: themeStore.backgroundColor
+    color: speedometer.hyperspaceActive
+           ? (themeStore.isDark ? "#000000" : "#FFFFFF")
+           : themeStore.backgroundColor
+
+    Behavior on color {
+        ColorAnimation { duration: 450; easing.type: Easing.InOutQuad }
+    }
 
     Component.onCompleted: if (typeof bootTimer !== "undefined")
         console.log("[boot +" + bootTimer.elapsed() + "ms] ClusterScreen completed")

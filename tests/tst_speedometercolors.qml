@@ -64,9 +64,11 @@ TestCase {
     }
 
     function init() {
+        settingsStore.speedometerMaxSpeed = 60
         settingsStore.speedometerBaseColor = "#2196F3"
         settingsStore.speedometerWarnColor = "#9C27B0"
         settingsStore.speedometerOverspeedColor = "#E91E63"
+        engineStore.speed = 0
         speedometer.animatedSpeed = 0
     }
 
@@ -90,6 +92,21 @@ TestCase {
 
         speedometer.animatedSpeed = settingsStore.speedometerOverspeed
         compare(speedometer.speedFillColor.toString(), "#ffde21")
+    }
+
+    function test_hyperspaceStartsPastConfiguredMaximum() {
+        engineStore.speed = settingsStore.speedometerMaxSpeed
+        verify(!speedometer.hyperspaceActive)
+
+        engineStore.speed += 1
+        verify(speedometer.hyperspaceActive)
+
+        settingsStore.speedometerMaxSpeed = 75
+        engineStore.speed = 75
+        verify(!speedometer.hyperspaceActive)
+
+        engineStore.speed = 76
+        verify(speedometer.hyperspaceActive)
     }
 
     // The overspeed pulse spans the two configured colours.
