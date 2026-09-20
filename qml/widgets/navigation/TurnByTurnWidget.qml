@@ -16,7 +16,9 @@ Item {
     // A start instruction has no distance row, so leave room for the trip summary above it.
     implicitHeight: compact ? Math.max(contentCol.implicitHeight + 12, 48)
                    : navigating ? Math.max(contentCol.implicitHeight + (paired ? 12 : 24)
-                                          + (maneuver.isStart && timeInfoBar.visible ? timeInfoBar.height : 0), counts.height, 96) : Math.max(counts.height, 96)
+                                          + Math.max(tbtWidget.maneuver.isStart && timeInfoBar.visible ? timeInfoBar.height : 0,
+                                                     destinationInfoBar.visible ? destinationInfoBar.height : 0),
+                                          counts.height, 96) : Math.max(counts.height, 96)
 
     property bool isDark: (typeof themeStore !== "undefined" && themeStore)
                           ? themeStore.isDark : true
@@ -149,7 +151,10 @@ Item {
             visible: tbtWidget.navigating || tbtWidget.loading
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
+            anchors.top: parent.top
+            anchors.topMargin: Math.max(tbtWidget.maneuver.isStart && timeInfoBar.visible ? timeInfoBar.height : 0,
+                                        destinationInfoBar.visible ? destinationInfoBar.height : 0)
+            anchors.bottom: parent.bottom
             anchors.rightMargin: counts.hasCounts ? counts.width + 8 : 0
             spacing: 0
 
@@ -237,7 +242,7 @@ Item {
                 Layout.fillWidth: true
                 Layout.leftMargin: 8
                 Layout.rightMargin: 8
-                Layout.topMargin: tbtWidget.compact || tbtWidget.paired ? 6 : 12 + (tbtWidget.maneuver.isStart && timeInfoBar.visible ? timeInfoBar.height : 0)
+                Layout.topMargin: tbtWidget.compact || tbtWidget.paired ? 6 : 12
                 Layout.bottomMargin: tbtWidget.compact || tbtWidget.paired ? 6 : 8
 
                 // Distance indicator. Hidden for kStart-family ("head on X")
@@ -319,6 +324,92 @@ Item {
 
         }
 
+        // Current destination, paired with the trip summary on the right.
+        Rectangle {
+            id: destinationInfoBar
+            objectName: "maneuverDestinationSummary"
+            visible: tbtWidget.navigating && !tbtWidget.arrived && !tbtWidget.compact
+                     && !tbtWidget.paired && !!tbtWidget.maneuver.destination
+            z: 1
+            anchors.top: parent.top
+            anchors.left: parent.left
+            readonly property real availableWidth: parent.width
+                                                  - (timeInfoBar.visible ? timeInfoBar.width + 8 : 0)
+            width: Math.max(0, Math.min(destinationMetrics.width + 34, availableWidth))
+            implicitHeight: destinationRow.height + 8
+            color: isDark ? Qt.rgba(0, 0, 0, 0.95) : Qt.rgba(1, 1, 1, 0.98)
+            radius: themeStore.radiusCard
+
+            // Right and bottom borders
+            Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: isDark ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.12) }
+            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: isDark ? Qt.rgba(1, 1, 1, 0.1) : Qt.rgba(0, 0, 0, 0.12) }
+
+            TextMetrics {
+                id: destinationMetrics
+                text: tbtWidget.maneuver.destination || ""
+                font.pixelSize: 13
+            }
+
+            Row {
+                id: destinationRow
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.leftMargin: 8
+                anchors.rightMargin: 8
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 2
+
+                Text {
+                    id: destinationIcon
+                    text: MaterialIcon.iconPlace
+                    font.family: "Material Icons"
+                    font.pixelSize: 13
+                    topPadding: 1
+                    color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54)
+                }
+                Item {
+                    id: destinationTextViewport
+                    width: Math.max(0, destinationRow.width - destinationIcon.implicitWidth - destinationRow.spacing)
+                    height: Math.max(destinationIcon.implicitHeight, destinationText.implicitHeight)
+                    clip: true
+                    readonly property real overflow: Math.max(0, destinationText.implicitWidth - width)
+
+                    Text {
+                        id: destinationText
+                        objectName: "maneuverDestination"
+                        text: tbtWidget.maneuver.destination || ""
+                        font.pixelSize: 13
+                        bottomPadding: 2
+                        color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
+                    }
+
+                    SequentialAnimation {
+                        id: destinationScroll
+                        running: destinationInfoBar.visible && destinationTextViewport.overflow > 0
+                        loops: Animation.Infinite
+                        PauseAnimation { duration: 1400 }
+                        NumberAnimation {
+                            target: destinationText
+                            property: "x"
+                            from: 0
+                            to: -destinationTextViewport.overflow
+                            duration: Math.max(4000, destinationTextViewport.overflow * 55)
+                            easing.type: Easing.Linear
+                        }
+                        PauseAnimation { duration: 1400 }
+                        NumberAnimation {
+                            target: destinationText
+                            property: "x"
+                            to: 0
+                            duration: 700
+                            easing.type: Easing.OutQuad
+                        }
+                        onRunningChanged: if (!running) destinationText.x = 0
+                    }
+                }
+            }
+        }
+
         // Compact trip summary, above the instruction.
         Rectangle {
             id: timeInfoBar
@@ -350,42 +441,42 @@ Item {
                     visible: tbtWidget.maneuver.hasPlan === true
                              && (tbtWidget.maneuver.stopCount || 0) > 1
                     spacing: 2
-                    Text { text: MaterialIcon.iconNavigation; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
+                    Text { text: MaterialIcon.iconNavigation; font.family: "Material Icons"; font.pixelSize: 13; topPadding: 1; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
                         objectName: "maneuverTripStopProgressText"
                         text: ((tbtWidget.maneuver.currentStep || 0) + 1) + " of "
                               + (tbtWidget.maneuver.stopCount || 0)
-                        font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
+                        font.pixelSize: 13; bottomPadding: 2; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
                 }
 
                 // Distance remaining
                 Row {
                     spacing: 2
-                    Text { text: MaterialIcon.iconSpeed; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
+                    Text { text: MaterialIcon.iconRoute; font.family: "Material Icons"; font.pixelSize: 13; topPadding: 1; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
                         text: formatDistance(tbtWidget.maneuver.distanceToDestination || 0)
-                        font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
+                        font.pixelSize: 13; bottomPadding: 2; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
                 }
 
                 // Time remaining
                 Row {
                     spacing: 2
-                    Text { text: MaterialIcon.iconTimer; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
+                    Text { text: MaterialIcon.iconTimer; font.family: "Material Icons"; font.pixelSize: 13; topPadding: 1; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
                         text: formatRemainingTime(tbtWidget.maneuver.remainingDuration || 0)
-                        font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
+                        font.pixelSize: 13; bottomPadding: 2; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
                 }
 
                 // ETA
                 Row {
                     spacing: 2
-                    Text { text: MaterialIcon.iconFlag; font.family: "Material Icons"; font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
+                    Text { text: MaterialIcon.iconFlag; font.family: "Material Icons"; font.pixelSize: 13; topPadding: 1; color: isDark ? Qt.rgba(1, 1, 1, 0.54) : Qt.rgba(0, 0, 0, 0.54) }
                     Text {
                         text: tbtWidget.maneuver.eta || ""
-                        font.pixelSize: 13; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
+                        font.pixelSize: 13; bottomPadding: 2; color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     }
                 }
             }

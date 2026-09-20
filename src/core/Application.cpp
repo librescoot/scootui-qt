@@ -380,6 +380,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
                         {QStringLiteral("distanceToDestination"), m_navigationService->distanceToDestination()},
                         {QStringLiteral("remainingDuration"), m_navigationService->remainingDuration()},
                         {QStringLiteral("eta"), m_navigationService->eta()},
+                        {QStringLiteral("destination"), m_navigationService->destAddress()},
                         {QStringLiteral("nextType"), m_navigationService->nextManeuverType()},
                         {QStringLiteral("nextStreet"), m_navigationService->nextStreetName()},
                         {QStringLiteral("nextDistance"), m_navigationService->nextManeuverDistance()},
@@ -398,6 +399,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
     connect(m_navigationService, &NavigationService::instructionChanged, this, refreshNavigationAttention);
     connect(m_navigationService, &NavigationService::positionChanged, this, refreshNavigationAttention);
     connect(m_navigationService, &NavigationService::roundaboutRenderChanged, this, refreshNavigationAttention);
+    connect(m_navigationService, &NavigationService::destinationChanged, this, refreshNavigationAttention);
+    connect(m_navigationService, &NavigationService::planChanged, this, refreshNavigationAttention);
     connect(m_navigationService, &NavigationService::errorChanged, this, refreshNavigationAttention);
     connect(m_navigationService, &NavigationService::arrived, this, [this]() {
         m_notificationService->publishEvent(QStringLiteral("navigation-arrived"), QStringLiteral("navigation"),

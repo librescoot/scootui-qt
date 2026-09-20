@@ -165,14 +165,18 @@ TestCase {
         for (const start of [true, false]) {
             show({kind: "nav", status: 2, isStart: start, distance: 0, maneuverType: 5,
                   instruction: instruction, street: "Street only", showNextPreview: true,
-                  nextType: 20, remainingDuration: 7200, distanceToDestination: 18000, eta: "15:30"})
+                  nextType: 20, remainingDuration: 7200, distanceToDestination: 18000, eta: "15:30",
+                  destination: "Karl-Liebknecht-Straße 8, Berlin"})
             const widget = findChild(dock, "attentionTurnByTurn")
             const text = findChild(dock, "maneuverInstruction")
             compare(text.text, instruction)
             verify(text.lineCount <= 3)
             fits(text, widget)
             const summary = findChild(dock, "maneuverTripSummary")
-            verify(text.mapToItem(widget, 0, 0).y >= summary.height)
+            const destination = findChild(dock, "maneuverDestinationSummary")
+            compare(findChild(destination, "maneuverDestination").text, "Karl-Liebknecht-Straße 8, Berlin")
+            verify(text.mapToItem(widget, 0, 0).y >= Math.max(summary.height, destination.height))
+            fits(destination, widget)
             fits(summary, widget)
             fits(findChild(dock, "maneuverNextPreview"), widget)
             compare(findChild(dock, "maneuverDistance").visible, !start)
