@@ -390,6 +390,7 @@ qt_add_qml_module(scootui
         qml/screens/MapDownloadPolicy.js
         assets/icons/librescoot-turn-left.svg
         assets/icons/librescoot-turn-right.svg
+        assets/icons/material-route.svg
         assets/icons/librescoot-keep-left.svg
         assets/icons/librescoot-keep-left-light.svg
         assets/icons/librescoot-keep-right.svg
