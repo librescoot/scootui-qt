@@ -226,6 +226,7 @@ Item {
             anchors.fill: parent
             active: speedometer.hyperspaceActive
             dark: speedometer.isDark
+            speedExcess: speedometer.targetSpeed - speedometer.maxArcSpeed
             arcStartAngle: speedometer.arcStartAngle
             arcSweepAngle: speedometer.arcSweepAngle
             arcRadius: speedometer.arcRadius

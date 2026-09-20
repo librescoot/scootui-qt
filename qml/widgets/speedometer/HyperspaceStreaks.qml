@@ -6,6 +6,7 @@ Item {
 
     property bool active: false
     property bool dark: true
+    property real speedExcess: 0
     property real arcStartAngle: 150
     property real arcSweepAngle: 240
     property real arcRadius: 150
@@ -16,6 +17,9 @@ Item {
     readonly property var streakColors: dark
         ? ["#F6FBFF", "#BBDEFB", "#E1BEE7", "#B2DFDB"]
         : ["#1565C0", "#7B1FA2", "#00897B", "#EF6C00"]
+    readonly property int baseStreakCount: 64
+    readonly property int streakCount: baseStreakCount
+                                      + Math.min(56, Math.floor(Math.max(0, speedExcess - 1) * 1.2))
 
     opacity: active ? 1 : 0
     visible: opacity > 0
@@ -36,7 +40,7 @@ Item {
     }
 
     Repeater {
-        model: 64
+        model: root.streakCount
 
         Shape {
             id: streak
@@ -48,8 +52,8 @@ Item {
             readonly property real travelRate: 1.8 + root.random(index, 3) * 2.7
             readonly property real progress: (root.elapsed * travelRate + launchOffset) % 1
             readonly property real length: 8 + root.random(index, 4) * 92 + progress * 24
-            readonly property real innerWidth: 0.75 + root.random(index, 5) * 1.25
-            readonly property real outerWidth: innerWidth + 0.8 + root.random(index, 6) * 1.7
+            readonly property real innerWidth: 1.1 + root.random(index, 5) * 1.4
+            readonly property real outerWidth: innerWidth + 1.1 + root.random(index, 6) * 1.8
             readonly property real radius: root.arcRadius + 8 + progress * 450
 
             width: outerWidth
