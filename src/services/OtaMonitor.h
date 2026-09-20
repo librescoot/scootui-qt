@@ -10,10 +10,10 @@ class Translations;
 // state transition once (downloading / installing / pending-reboot / error).
 // Progress ticks do not change the status, so they never re-announce.
 //
-// Only the component actually updating speaks, matching the status-bar OTA
-// indicator: the DBC while it is busy, otherwise the MDB. An update already in
-// flight when the dashboard starts up is announced too, which is the point -
-// otherwise a scooter that boots busy looks stuck.
+// Each component is tracked independently. This matters for failures: MDB and
+// DBC updates can fail at the same time, and neither error may hide the other.
+// An update already in flight when the dashboard starts up is announced too,
+// which is the point - otherwise a scooter that boots busy looks stuck.
 class OtaMonitor : public QObject
 {
     Q_OBJECT
@@ -28,14 +28,15 @@ private slots:
 private:
     enum class Component { Dbc, Mdb };
 
-    Component activeComponent() const;
+    void evaluateComponent(Component component);
     QString statusFor(Component component) const;
     QString versionFor(Component component) const;
     QString errorMessageFor(Component component) const;
+    QString componentName(Component component) const;
 
     OtaStore *m_ota;
     ToastService *m_toast;
     Translations *m_translations;
-    // component + status + error of the last announced state.
-    QString m_lastKey;
+    QString m_lastDbcKey;
+    QString m_lastMdbKey;
 };

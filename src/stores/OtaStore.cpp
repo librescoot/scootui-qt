@@ -20,6 +20,7 @@ SyncSettings OtaStore::syncSettings() const
             {QStringLiteral("dbcUpdateMethod"), QStringLiteral("update-method:dbc")},
             {QStringLiteral("dbcError"), QStringLiteral("error:dbc")},
             {QStringLiteral("dbcErrorMessage"), QStringLiteral("error-message:dbc")},
+            {QStringLiteral("dbcErrorHistory"), QStringLiteral("error-history:dbc")},
             {QStringLiteral("dbcDownloadProgress"), QStringLiteral("download-progress:dbc")},
             {QStringLiteral("dbcInstallProgress"), QStringLiteral("install-progress:dbc")},
             {QStringLiteral("mdbStatus"), QStringLiteral("status:mdb")},
@@ -27,6 +28,7 @@ SyncSettings OtaStore::syncSettings() const
             {QStringLiteral("mdbUpdateMethod"), QStringLiteral("update-method:mdb")},
             {QStringLiteral("mdbError"), QStringLiteral("error:mdb")},
             {QStringLiteral("mdbErrorMessage"), QStringLiteral("error-message:mdb")},
+            {QStringLiteral("mdbErrorHistory"), QStringLiteral("error-history:mdb")},
             {QStringLiteral("mdbDownloadProgress"), QStringLiteral("download-progress:mdb")},
             {QStringLiteral("mdbInstallProgress"), QStringLiteral("install-progress:mdb")},
             {QStringLiteral("dbcPreviewChannel"), QStringLiteral("preview-channel:dbc")},
@@ -56,6 +58,8 @@ void OtaStore::applyFieldUpdate(const QString &variable, const QString &value)
         if (value != m_dbcError) { m_dbcError = value; emit dbcErrorChanged(); }
     } else if (variable == QLatin1String("error-message:dbc")) {
         if (value != m_dbcErrorMessage) { m_dbcErrorMessage = value; emit dbcErrorMessageChanged(); }
+    } else if (variable == QLatin1String("error-history:dbc")) {
+        if (value != m_dbcErrorHistory) { m_dbcErrorHistory = value; emit dbcErrorHistoryChanged(); }
     } else if (variable == QLatin1String("download-progress:dbc")) {
         int v = value.toInt();
         if (v != m_dbcDownloadProgress) { m_dbcDownloadProgress = v; emit dbcDownloadProgressChanged(); }
@@ -72,6 +76,8 @@ void OtaStore::applyFieldUpdate(const QString &variable, const QString &value)
         if (value != m_mdbError) { m_mdbError = value; emit mdbErrorChanged(); }
     } else if (variable == QLatin1String("error-message:mdb")) {
         if (value != m_mdbErrorMessage) { m_mdbErrorMessage = value; emit mdbErrorMessageChanged(); }
+    } else if (variable == QLatin1String("error-history:mdb")) {
+        if (value != m_mdbErrorHistory) { m_mdbErrorHistory = value; emit mdbErrorHistoryChanged(); }
     } else if (variable == QLatin1String("download-progress:mdb")) {
         int v = value.toInt();
         if (v != m_mdbDownloadProgress) { m_mdbDownloadProgress = v; emit mdbDownloadProgressChanged(); }
