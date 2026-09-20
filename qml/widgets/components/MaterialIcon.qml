@@ -68,6 +68,7 @@ QtObject {
     // Updates
     readonly property string iconUpdate:          "\ue923"
     readonly property string iconCloudDownload:   "\ue2c0"
+    readonly property string iconPhotoCamera:     "\ue412"
 
     // Misc
     readonly property string iconBugReport:       "\ue868"

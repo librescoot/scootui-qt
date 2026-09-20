@@ -37,10 +37,12 @@ ApplicationWindow {
             spacing: 4
 
             SimButton {
-                text: "📸"
+                text: MaterialIcon.iconPhotoCamera
                 small: true
                 color: "#607D8B"
                 fixedWidth: 30
+                font.family: "Material Icons"
+                font.pixelSize: 16
                 onClicked: simulator.takeScreenshot()
             }
             Item { Layout.preferredWidth: 8 }
@@ -49,21 +51,23 @@ ApplicationWindow {
             SimButton {
                 text: "Cluster"; small: true; fixedWidth: 54
                 ButtonGroup.group: screenGroup
-                checkable: true; checked: true
+                checkable: true
+                checked: screenStore.currentScreen === Scooter.ScreenMode.Cluster
                 onClicked: {
+                    screenStore.setScreen(Scooter.ScreenMode.Cluster)
                     if (typeof settingsService !== "undefined")
                         settingsService.updateMode("speedometer")
-                    screenStore.setScreen(Scooter.ScreenMode.Cluster)
                 }
             }
             SimButton {
                 text: "Map"; small: true; fixedWidth: 54
                 ButtonGroup.group: screenGroup
                 checkable: true
+                checked: screenStore.currentScreen === Scooter.ScreenMode.Map
                 onClicked: {
+                    screenStore.setScreen(Scooter.ScreenMode.Map)
                     if (typeof settingsService !== "undefined")
                         settingsService.updateMode("navigation")
-                    screenStore.setScreen(Scooter.ScreenMode.Map)
                 }
             }
             SimButton {
