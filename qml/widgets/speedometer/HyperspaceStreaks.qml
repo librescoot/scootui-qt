@@ -47,9 +47,9 @@ Item {
             readonly property real launchOffset: root.random(index, 2)
             readonly property real travelRate: 1.8 + root.random(index, 3) * 2.7
             readonly property real progress: (root.elapsed * travelRate + launchOffset) % 1
-            readonly property real length: 10 + progress * (38 + root.random(index, 4) * 70)
-            readonly property real innerWidth: 1 + root.random(index, 5) * 2
-            readonly property real outerWidth: innerWidth + 2 + root.random(index, 6) * 5
+            readonly property real length: 8 + root.random(index, 4) * 92 + progress * 24
+            readonly property real innerWidth: 0.75 + root.random(index, 5) * 1.25
+            readonly property real outerWidth: innerWidth + 0.8 + root.random(index, 6) * 1.7
             readonly property real radius: root.arcRadius + 8 + progress * 450
 
             width: outerWidth
