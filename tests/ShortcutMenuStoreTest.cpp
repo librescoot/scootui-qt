@@ -191,11 +191,14 @@ void ShortcutMenuStoreTest::themeActionCyclesTheme()
 
     const auto executeTheme = [&menu, &repo]() {
         menu.show();
+        menu.cycle();
         menu.confirm();
         repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
     };
 
     QCOMPARE(menu.actions().at(0).toMap().value(QStringLiteral("kind")).toString(),
+             QStringLiteral("view"));
+    QCOMPARE(menu.actions().at(1).toMap().value(QStringLiteral("kind")).toString(),
              QStringLiteral("theme"));
     executeTheme();
     QTRY_COMPARE(settings.theme(), QStringLiteral("dark"));
@@ -228,7 +231,6 @@ void ShortcutMenuStoreTest::viewActionTogglesMapAndCluster()
 
     const auto executeView = [&menu, &repo]() {
         menu.show();
-        menu.cycle();
         menu.confirm();
         repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
     };
@@ -242,7 +244,6 @@ void ShortcutMenuStoreTest::viewActionTogglesMapAndCluster()
     QCOMPARE(vehicle.state(), static_cast<int>(ScootEnums::VehicleState::ReadyToDrive));
     menu.show();
     QVERIFY(menu.visible());
-    menu.cycle();
     menu.confirm();
     QVERIFY(menu.confirming());
     repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));

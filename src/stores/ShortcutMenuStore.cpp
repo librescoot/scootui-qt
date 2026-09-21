@@ -165,9 +165,9 @@ QString ShortcutMenuStore::actionKey(const QVariantMap &action)
 QVariantList ShortcutMenuStore::availableActions() const
 {
     QVariantList actions;
+    actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("view")}});
     if (m_settings && m_settingsService)
         actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("theme")}});
-    actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("view")}});
     if (m_settings && m_settings->developerMode()) {
         actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("debug-overlay")}});
         actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("motion-debug")}});
