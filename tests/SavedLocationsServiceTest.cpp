@@ -11,7 +11,6 @@ class SavedLocationsServiceTest : public QObject
 private slots:
     void saveRoundTripsWithoutQuickSlotWrites();
     void deletionClearsAllRecordFields();
-    void migratesExistingLocationUuid();
     void legacyQuickAssignmentsOrderBySlot();
     void removePrunesDestinationItem();
 };
@@ -76,25 +75,6 @@ void SavedLocationsServiceTest::deletionClearsAllRecordFields()
     QCOMPARE(saved.size(), 1);
     QCOMPARE(saved[0].id, 0);
     QVERIFY(saved[0].uuid != oldUuid);
-}
-
-void SavedLocationsServiceTest::migratesExistingLocationUuid()
-{
-    InMemoryMdbRepository repo;
-    repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.saved-locations.4.latitude"),
-             QStringLiteral("52.5200000"), false);
-    repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.saved-locations.4.longitude"),
-             QStringLiteral("13.4050000"), false);
-
-    SavedLocationsService service(&repo);
-    const QList<SavedLocation> first = service.loadAll();
-    QCOMPARE(first.size(), 1);
-    QVERIFY(!first[0].uuid.isEmpty());
-    QCOMPARE(repo.get(QStringLiteral("settings"),
-                      QStringLiteral("dashboard.saved-locations.4.uuid")), first[0].uuid);
-
-    const QList<SavedLocation> second = service.loadAll();
-    QCOMPARE(second.at(0).uuid, first[0].uuid);
 }
 
 void SavedLocationsServiceTest::legacyQuickAssignmentsOrderBySlot()

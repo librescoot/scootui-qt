@@ -1,7 +1,28 @@
 #include "InMemoryMdbRepository.h"
+#include "services/DestinationRpc.h"
+#include "services/SavedLocationsService.h"
 
 #include <QDebug>
+#include <QDateTime>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QRandomGenerator>
+#include <QUuid>
+
+namespace {
+
+QString destinationRecordPrefix(int id)
+{
+    return QStringLiteral("dashboard.saved-locations.%1").arg(id);
+}
+
+QString destinationTimestamp()
+{
+    return QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
+}
+
+} // namespace
 
 InMemoryMdbRepository::InMemoryMdbRepository(QObject *parent)
     : MdbRepository(parent)
@@ -103,6 +124,10 @@ void InMemoryMdbRepository::unsubscribe(const QString &channel, SubscriptionId i
 
 void InMemoryMdbRepository::push(const QString &channel, const QString &command)
 {
+    if (channel == QLatin1String(DestinationRpc::RequestChannel)) {
+        handleDestinationCall(command);
+        return;
+    }
     // Simulate MDB command handling
     if (channel == QLatin1String("scooter:blinker")) {
         set(QStringLiteral("vehicle"), QStringLiteral("blinker:state"), command);
@@ -168,4 +193,167 @@ void InMemoryMdbRepository::notifySubscribers(const QString &channel, const QStr
         for (const auto &entry : entries)
             entry.callback(channel, variable);
     }
+}
+
+void InMemoryMdbRepository::handleDestinationCall(const QString &envelopeJson)
+{
+    const QJsonObject envelope = QJsonDocument::fromJson(envelopeJson.toUtf8()).object();
+    const QString replyChannel = envelope.value(QStringLiteral("reply_channel")).toString();
+    const qint64 deadline = qint64(envelope.value(QStringLiteral("deadline")).toDouble());
+    // Expired requests are dropped without a reply, like the Go dispatcher.
+    if (deadline > 0 && QDateTime::currentMSecsSinceEpoch() > deadline)
+        return;
+
+    const QString method = envelope.value(QStringLiteral("method")).toString();
+    const QJsonObject payload = envelope.value(QStringLiteral("payload")).toObject();
+    bool ok = false;
+    QVariantMap result;
+    QString error;
+    if (method == QLatin1String("destination.save")) {
+        ok = destinationSave(payload, result, error);
+    } else if (method == QLatin1String("destination.delete")) {
+        ok = destinationDelete(payload, error);
+    } else if (method == QLatin1String("destination.touch")) {
+        ok = destinationTouch(payload, error);
+    } else {
+        error = QStringLiteral("unknown method: %1").arg(method);
+    }
+
+    QJsonObject reply;
+    reply.insert(QStringLiteral("ok"), ok);
+    if (ok)
+        reply.insert(QStringLiteral("payload"), QJsonObject::fromVariantMap(result));
+    else
+        reply.insert(QStringLiteral("error"), error);
+    publish(replyChannel,
+            QString::fromUtf8(QJsonDocument(reply).toJson(QJsonDocument::Compact)));
+}
+
+bool InMemoryMdbRepository::destinationSave(const QJsonObject &payload, QVariantMap &result,
+                                            QString &error)
+{
+    int slot = -1;
+    if (payload.contains(QStringLiteral("id"))) {
+        slot = payload.value(QStringLiteral("id")).toInt(-1);
+        if (slot < 0 || slot >= SavedLocationsService::MaxLocations) {
+            error = QStringLiteral("location id %1 out of range").arg(slot);
+            return false;
+        }
+    }
+
+    FieldMap &settings = m_storage[QStringLiteral("settings")];
+    if (slot < 0) {
+        for (int i = 0; i < SavedLocationsService::MaxLocations; ++i) {
+            if (settings.value(destinationRecordPrefix(i) + QStringLiteral(".latitude")).isEmpty()) {
+                slot = i;
+                break;
+            }
+        }
+        if (slot < 0) {
+            error = QStringLiteral("all saved-location slots are full");
+            return false;
+        }
+    }
+
+    const QString prefix = destinationRecordPrefix(slot);
+    QString uuid = settings.value(prefix + QStringLiteral(".uuid"));
+    if (QUuid(uuid).isNull())
+        uuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    const QString now = destinationTimestamp();
+    QString createdAt = settings.value(prefix + QStringLiteral(".created-at"));
+    if (createdAt.isEmpty())
+        createdAt = now;
+
+    settings.insert(prefix + QStringLiteral(".latitude"),
+                    QString::number(payload.value(QStringLiteral("latitude")).toDouble(), 'f', 7));
+    settings.insert(prefix + QStringLiteral(".longitude"),
+                    QString::number(payload.value(QStringLiteral("longitude")).toDouble(), 'f', 7));
+    settings.insert(prefix + QStringLiteral(".label"),
+                    payload.value(QStringLiteral("label")).toString());
+    settings.insert(prefix + QStringLiteral(".uuid"), uuid);
+    settings.insert(prefix + QStringLiteral(".created-at"), createdAt);
+    settings.insert(prefix + QStringLiteral(".last-used-at"), now);
+    publish(QStringLiteral("settings"), prefix);
+
+    result.insert(QStringLiteral("id"), slot);
+    result.insert(QStringLiteral("uuid"), uuid);
+    return true;
+}
+
+bool InMemoryMdbRepository::destinationDelete(const QJsonObject &payload, QString &error)
+{
+    const int slot = payload.value(QStringLiteral("id")).toInt(-1);
+    if (slot < 0 || slot >= SavedLocationsService::MaxLocations) {
+        error = QStringLiteral("location id %1 out of range").arg(slot);
+        return false;
+    }
+
+    FieldMap &settings = m_storage[QStringLiteral("settings")];
+    const QString prefix = destinationRecordPrefix(slot);
+    const QString uuid = settings.value(prefix + QStringLiteral(".uuid"));
+    if (!uuid.isEmpty()) {
+        // Drop every destination token for this record from the shortcut-menu
+        // items list; the token shape mirrors settings-service's validator.
+        const QString itemsKey = QStringLiteral("dashboard.shortcut-menu.items");
+        const QString raw = settings.value(itemsKey);
+        const QJsonDocument doc = QJsonDocument::fromJson(raw.toUtf8());
+        if (!raw.isEmpty() && doc.isArray()) {
+            QStringList items;
+            bool allStrings = true;
+            for (const QJsonValue &value : doc.array()) {
+                if (!value.isString()) {
+                    allStrings = false;
+                    break;
+                }
+                items.append(value.toString());
+            }
+            if (allStrings) {
+                QStringList kept;
+                for (const QString &item : items) {
+                    const QStringList parts = item.split(QLatin1Char(':'));
+                    if (parts.size() == 3 && parts.at(0) == QLatin1String("destination")
+                        && parts.at(1).compare(uuid, Qt::CaseInsensitive) == 0) {
+                        continue;
+                    }
+                    kept.append(item);
+                }
+                if (kept.size() != items.size()) {
+                    settings.insert(itemsKey, QString::fromUtf8(
+                        QJsonDocument(QJsonArray::fromStringList(kept))
+                            .toJson(QJsonDocument::Compact)));
+                    publish(QStringLiteral("settings"), itemsKey);
+                }
+            }
+        }
+    }
+
+    const QString recordLead = prefix + QLatin1Char('.');
+    for (auto it = settings.begin(); it != settings.end();) {
+        if (it.key().startsWith(recordLead))
+            it = settings.erase(it);
+        else
+            ++it;
+    }
+    publish(QStringLiteral("settings"), prefix);
+    return true;
+}
+
+bool InMemoryMdbRepository::destinationTouch(const QJsonObject &payload, QString &error)
+{
+    const int slot = payload.value(QStringLiteral("id")).toInt(-1);
+    if (slot < 0 || slot >= SavedLocationsService::MaxLocations) {
+        error = QStringLiteral("location id %1 out of range").arg(slot);
+        return false;
+    }
+
+    FieldMap &settings = m_storage[QStringLiteral("settings")];
+    const QString prefix = destinationRecordPrefix(slot);
+    if (settings.value(prefix + QStringLiteral(".latitude")).isEmpty()) {
+        error = QStringLiteral("location %1 not found").arg(slot);
+        return false;
+    }
+    const QString field = prefix + QStringLiteral(".last-used-at");
+    settings.insert(field, destinationTimestamp());
+    publish(QStringLiteral("settings"), field);
+    return true;
 }

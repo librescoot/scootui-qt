@@ -1,7 +1,7 @@
 #include "SavedLocationsService.h"
+#include "DestinationRpc.h"
 #include "repositories/MdbRepository.h"
 #include "core/AppConfig.h"
-#include "core/ShortcutMenuItems.h"
 
 #include <QDebug>
 #include <QSet>
@@ -16,16 +16,12 @@ bool isUuid(const QString &value)
     return !QUuid(value).isNull();
 }
 
-QString newUuid()
-{
-    return QUuid::createUuid().toString(QUuid::WithoutBraces);
-}
-
 } // namespace
 
 SavedLocationsService::SavedLocationsService(MdbRepository *repo, QObject *parent)
     : QObject(parent)
     , m_repo(repo)
+    , m_rpc(new DestinationRpc(repo, this))
 {
 }
 
@@ -40,7 +36,7 @@ QList<SavedLocation> SavedLocationsService::loadAll()
 
         SavedLocation loc;
         loc.id = i;
-        loc.uuid = ensureUuid(i);
+        loc.uuid = m_repo->get(QStringLiteral("settings"), fieldKey(i, QStringLiteral("uuid")));
         loc.latitude = lat.toDouble();
         loc.longitude = lng.toDouble();
         loc.label = m_repo->get(QStringLiteral("settings"), fieldKey(i, QStringLiteral("label")));
@@ -59,32 +55,18 @@ QList<SavedLocation> SavedLocationsService::loadAll()
 
 bool SavedLocationsService::save(const SavedLocation &location)
 {
-    int slot = (location.id >= 0 && location.id < MaxLocations) ? location.id : findFreeSlot();
-    if (slot < 0) {
-        qWarning() << "SavedLocationsService: No free slot available";
+    QVariantMap args;
+    if (location.id >= 0 && location.id < MaxLocations)
+        args.insert(QStringLiteral("id"), location.id);
+    args.insert(QStringLiteral("latitude"), location.latitude);
+    args.insert(QStringLiteral("longitude"), location.longitude);
+    args.insert(QStringLiteral("label"), location.label);
+
+    QVariantMap reply;
+    if (!m_rpc->call(QStringLiteral("destination.save"), args, &reply)) {
+        qWarning() << "SavedLocationsService: destination save failed";
         return false;
     }
-
-    const bool existing = !m_repo->get(QStringLiteral("settings"),
-                                       fieldKey(slot, QStringLiteral("latitude"))).isEmpty();
-    m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("latitude")),
-                QString::number(location.latitude, 'f', 7), false);
-    m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("longitude")),
-                QString::number(location.longitude, 'f', 7), false);
-    m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("label")),
-                location.label, false);
-    const QString uuid = existing
-        ? ensureUuid(slot)
-        : isUuid(location.uuid) ? location.uuid : newUuid();
-    m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("uuid")), uuid, false);
-    m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("created-at")),
-                QDateTime::currentDateTimeUtc().toString(Qt::ISODate), false);
-    m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("last-used-at")),
-                QDateTime::currentDateTimeUtc().toString(Qt::ISODate), false);
-
-    // The record-prefix publication persists the coordinate and label writes.
-    m_repo->publish(QStringLiteral("settings"),
-                    QStringLiteral("%1.%2").arg(QLatin1String(AppConfig::savedLocationsPrefix)).arg(slot));
     return true;
 }
 
@@ -93,20 +75,12 @@ bool SavedLocationsService::remove(int id)
     if (id < 0 || id >= MaxLocations)
         return false;
 
-    const QString uuid = m_repo->get(QStringLiteral("settings"), fieldKey(id, QStringLiteral("uuid")));
-    QStringList fields = {
-        QStringLiteral("latitude"), QStringLiteral("longitude"), QStringLiteral("label"),
-        QStringLiteral("quick-slot"), QStringLiteral("quick-icon"), QStringLiteral("uuid"),
-        QStringLiteral("created-at"), QStringLiteral("last-used-at")
-    };
-    for (const auto &f : fields) {
-        m_repo->hdel(QStringLiteral("settings"), fieldKey(id, f));
+    QVariantMap reply;
+    if (!m_rpc->call(QStringLiteral("destination.delete"),
+                     {{QStringLiteral("id"), id}}, &reply)) {
+        qWarning() << "SavedLocationsService: destination delete failed";
+        return false;
     }
-    // Notify settings-service so the deletion is persisted to TOML
-    m_repo->publish(QStringLiteral("settings"),
-                    QStringLiteral("%1.%2").arg(QLatin1String(AppConfig::savedLocationsPrefix)).arg(id));
-    if (!uuid.isEmpty())
-        pruneDestinationItem(uuid);
     return true;
 }
 
@@ -115,8 +89,12 @@ bool SavedLocationsService::updateLastUsed(int id)
     if (id < 0 || id >= MaxLocations)
         return false;
 
-    m_repo->set(QStringLiteral("settings"), fieldKey(id, QStringLiteral("last-used-at")),
-                QDateTime::currentDateTimeUtc().toString(Qt::ISODate), true);
+    QVariantMap reply;
+    if (!m_rpc->call(QStringLiteral("destination.touch"),
+                     {{QStringLiteral("id"), id}}, &reply)) {
+        qWarning() << "SavedLocationsService: destination touch failed";
+        return false;
+    }
     return true;
 }
 
@@ -153,48 +131,10 @@ QList<LegacyQuickAssignment> SavedLocationsService::loadLegacyQuickAssignments()
     return assignments;
 }
 
-void SavedLocationsService::pruneDestinationItem(const QString &uuid)
-{
-    bool ok = false;
-    const QStringList items = ShortcutMenuItems::parse(
-        m_repo->get(QStringLiteral("settings"), QLatin1String(ShortcutMenuItems::SettingsKey)), &ok);
-    if (!ok)
-        return;
-    const QStringList pruned = ShortcutMenuItems::withoutDestination(items, uuid);
-    if (pruned.size() == items.size())
-        return;
-    m_repo->set(QStringLiteral("settings"), QLatin1String(ShortcutMenuItems::SettingsKey),
-                ShortcutMenuItems::serialize(pruned));
-}
-
-QString SavedLocationsService::ensureUuid(int id)
-{
-    const QString current = m_repo->get(QStringLiteral("settings"),
-                                        fieldKey(id, QStringLiteral("uuid")));
-    if (isUuid(current))
-        return current;
-
-    const QString uuid = newUuid();
-    m_repo->set(QStringLiteral("settings"), fieldKey(id, QStringLiteral("uuid")), uuid, false);
-    m_repo->publish(QStringLiteral("settings"),
-                    QStringLiteral("%1.%2").arg(QLatin1String(AppConfig::savedLocationsPrefix)).arg(id));
-    return uuid;
-}
-
 QString SavedLocationsService::fieldKey(int id, const QString &field) const
 {
     return QStringLiteral("%1.%2.%3")
         .arg(QLatin1String(AppConfig::savedLocationsPrefix))
         .arg(id)
         .arg(field);
-}
-
-int SavedLocationsService::findFreeSlot() const
-{
-    for (int i = 0; i < MaxLocations; ++i) {
-        QString lat = m_repo->get(QStringLiteral("settings"), fieldKey(i, QStringLiteral("latitude")));
-        if (lat.isEmpty())
-            return i;
-    }
-    return -1;
 }

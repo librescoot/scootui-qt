@@ -74,6 +74,7 @@ set(CPP_SOURCES
     src/core/Application.cpp
     src/core/BootGate.cpp
     src/core/ShortcutMenuItems.cpp
+    src/services/DestinationRpc.cpp
     src/repositories/InMemoryMdbRepository.cpp
     src/repositories/RedisMdbRepository.cpp
     src/repositories/HiredisWorker.cpp
@@ -169,6 +170,7 @@ set(CPP_SOURCES
 set(CPP_HEADERS
     src/core/AppConfig.h
     src/core/ShortcutMenuItems.h
+    src/services/DestinationRpc.h
     src/core/EnvConfig.h
     src/core/DataPartition.h
     src/core/HmiLatencyMonitor.h
@@ -668,6 +670,8 @@ if(BUILD_TESTING)
         tests/SavedLocationsServiceTest.cpp
         src/services/SavedLocationsService.cpp
         src/services/SavedLocationsService.h
+        src/services/DestinationRpc.cpp
+        src/services/DestinationRpc.h
         src/core/ShortcutMenuItems.cpp
         src/models/SavedLocation.h
         src/repositories/MdbRepository.h

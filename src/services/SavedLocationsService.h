@@ -5,6 +5,7 @@
 #include "models/SavedLocation.h"
 
 class MdbRepository;
+class DestinationRpc;
 
 // A quick-nav assignment left in the indexed record fields. Seeded into
 // dashboard.shortcut-menu.items once; the fields themselves are write-free
@@ -16,6 +17,10 @@ struct LegacyQuickAssignment {
     QString uuid;
 };
 
+// Saved-location records are managed by settings-service: saves, deletions,
+// and timestamp touches travel over its destination RPC, which owns slot
+// allocation, UUID assignment, and whole-record field sets. Reads stay on the
+// settings hash.
 class SavedLocationsService : public QObject
 {
     Q_OBJECT
@@ -32,10 +37,8 @@ public:
     static constexpr int MaxLocations = 30;
 
 private:
-    QString ensureUuid(int id);
-    void pruneDestinationItem(const QString &uuid);
     QString fieldKey(int id, const QString &field) const;
-    int findFreeSlot() const;
 
     MdbRepository *m_repo;
+    DestinationRpc *m_rpc;
 };

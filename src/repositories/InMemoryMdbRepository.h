@@ -4,6 +4,7 @@
 
 #include <QTimer>
 #include <QHash>
+#include <QJsonObject>
 #include <QSet>
 #include <QRandomGenerator>
 
@@ -42,6 +43,13 @@ public:
 private:
     void startBrightnessSimulation();
     void notifySubscribers(const QString &channel, const QString &variable);
+
+    // In-process stand-in for settings-service's destination CallServer so
+    // the dashboard's RPC path runs against this repository unchanged.
+    void handleDestinationCall(const QString &envelopeJson);
+    bool destinationSave(const QJsonObject &payload, QVariantMap &result, QString &error);
+    bool destinationDelete(const QJsonObject &payload, QString &error);
+    bool destinationTouch(const QJsonObject &payload, QString &error);
 
     struct SubscriptionEntry {
         SubscriptionId id;

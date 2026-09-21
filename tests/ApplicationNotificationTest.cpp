@@ -339,20 +339,24 @@ private slots:
         availability->setOverride(true, true);
         QCOMPARE(shortcuts->actionCount(), 2);
 
-        const auto addLocation = [repo](int id, double lat, double lng, const QString &label) {
+        const auto addLocation = [repo](int id, double lat, double lng, const QString &label,
+                                        const QString &uuid) {
             const QString prefix = QStringLiteral("dashboard.saved-locations.%1.").arg(id);
             repo->set("settings", prefix + "latitude", QString::number(lat, 'f', 7));
             repo->set("settings", prefix + "longitude", QString::number(lng, 'f', 7));
             repo->set("settings", prefix + "label", label);
+            repo->set("settings", prefix + "uuid", uuid);
         };
         // The first location enters through the record-field migration.
-        addLocation(0, 52.5, 13.4, QString());
+        addLocation(0, 52.5, 13.4, QString(),
+                    QStringLiteral("3fa85f64-5717-4562-b3fc-2c963f66afa6"));
         repo->set("settings", "dashboard.saved-locations.0.quick-slot", "1");
         QTRY_COMPARE(shortcuts->actionCount(), 3);
         QCOMPARE(shortcuts->actions().at(2).toMap().value("label").toString(),
                  QStringLiteral("52.50000, 13.40000"));
         // The second enters through an explicit items configuration.
-        addLocation(1, 52.6, 13.5, QStringLiteral("Second address"));
+        addLocation(1, 52.6, 13.5, QStringLiteral("Second address"),
+                    QStringLiteral("0d6c21f0-0000-4000-8000-000000000001"));
         QTRY_COMPARE(saved->count(), 2);
         const QString secondUuid = saved->locations().at(1).toMap().value("uuid").toString();
         QVERIFY(!secondUuid.isEmpty());
