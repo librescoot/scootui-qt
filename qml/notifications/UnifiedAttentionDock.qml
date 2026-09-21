@@ -48,6 +48,11 @@ Item {
         TurnByTurnWidget {
             objectName: "attentionTurnByTurn"
             paired: dock.hasCompanion
+            // The companion card yields height to the main card, so only the
+            // unpaired card needs the dock budget to stay clear of the speed
+            // readout below. A budget here would also loop with the
+            // companion's own budget, which depends on this card's height.
+            maximumHeight: dock.hasCompanion ? Infinity : dock.maximumHeight
             queuedCounts: dock.presentation.queuedCounts || ({})
             maneuver: dock.main
             isDark: dock.isDark

@@ -10,15 +10,22 @@ Item {
     property bool compact: false
     property bool paired: false
     property var queuedCounts: ({})
+    // Height budget from the attention dock; uncapped by default so compact
+    // and paired instances keep their natural size.
+    property real maximumHeight: Infinity
     readonly property bool arrived: maneuver.status === 4
     readonly property bool navigating: maneuver.status === 2 || arrived
     readonly property bool loading: maneuver.status === 1 || maneuver.status === 3
     // A start instruction has no distance row, so leave room for the trip summary above it.
-    implicitHeight: compact ? Math.max(contentCol.implicitHeight + 12, 48)
+    implicitHeight: Math.min(maximumHeight,
+                     compact ? Math.max(contentCol.implicitHeight + 12, 48)
                    : navigating ? Math.max(contentCol.implicitHeight + (paired ? 12 : 24)
                                           + Math.max(tbtWidget.maneuver.isStart && timeInfoBar.visible ? timeInfoBar.height : 0,
                                                      destinationInfoBar.visible ? destinationInfoBar.height : 0),
-                                          counts.height, 96) : Math.max(counts.height, 96)
+                                          counts.height, 96) : Math.max(counts.height, 96))
+    // The dock's height budget can clip the tail of the instruction stack;
+    // nothing may paint past the card edge into the speed readout below.
+    clip: true
 
     property bool isDark: (typeof themeStore !== "undefined" && themeStore)
                           ? themeStore.isDark : true
@@ -261,7 +268,9 @@ Item {
                 }
 
                 // Main instruction text (verbal) — wraps up to 3 lines so a
-                // runaway instruction can't blow out the banner height.
+                // runaway instruction can't blow out the banner height. With
+                // the destination summary strip taking the top of the card,
+                // the budget only fits two lines.
                 Text {
                     Layout.fillWidth: true
                     objectName: "maneuverInstruction"
@@ -278,7 +287,8 @@ Item {
                     font.weight: isDark ? Font.Normal : Font.Medium
                     color: isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     wrapMode: Text.WordWrap
-                    maximumLineCount: tbtWidget.compact ? 1 : tbtWidget.paired ? 2 : 3
+                    maximumLineCount: tbtWidget.compact ? 1 : tbtWidget.paired ? 2
+                                      : destinationInfoBar.visible ? 2 : 3
                     elide: Text.ElideRight
                     lineHeight: 1.2
                 }
