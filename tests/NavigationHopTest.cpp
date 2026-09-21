@@ -48,7 +48,7 @@ private slots:
     void reconnectAfterArrivalDoesNotRearm();
     void planOverviewMapsLegsToRemainingStops();
     void heldRouteRequestRetriesWhenOriginBecomesUsable();
-    void heldRouteRequestExpiresOnLock();
+    void heldRouteRequestExpiresOnShutdown();
     void establishedRouteSurvivesLock();
 
 private:
@@ -689,7 +689,7 @@ void NavigationHopTest::heldRouteRequestRetriesWhenOriginBecomesUsable()
     QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Navigating));
 }
 
-void NavigationHopTest::heldRouteRequestExpiresOnLock()
+void NavigationHopTest::heldRouteRequestExpiresOnShutdown()
 {
     Fixture f;
     setGpsWithEph(f, 52.50, 13.40, 60.0);
@@ -697,12 +697,20 @@ void NavigationHopTest::heldRouteRequestExpiresOnLock()
     QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::WaitingForPosition));
     QVERIFY(f.nav.hasPlan());
 
+    // Hop-on and stand-by must not drop the request.
+    setVehicleState(f, QStringLiteral("hop-on"));
+    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::WaitingForPosition));
+    QVERIFY(f.nav.hasPlan());
     setVehicleState(f, QStringLiteral("stand-by"));
+    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::WaitingForPosition));
+    QVERIFY(f.nav.hasPlan());
+
+    setVehicleState(f, QStringLiteral("shutting-down"));
     QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Idle));
     QVERIFY(!f.nav.hasPlan());
     quiesce(f);
 
-    // A usable fix after the lock must not silently restart the request.
+    // A usable fix after shutdown must not silently restart the request.
     setGpsWithEph(f, 52.50, 13.40, 5.0);
     QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Idle));
     QVERIFY(!f.nav.hasPlan());

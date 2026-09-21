@@ -1580,10 +1580,10 @@ void NavigationService::onVehicleStateChanged()
     if (!isLeaving)
         return;
 
-    // No route was ever produced, so there is nothing to resume on wake.
-    if (!m_route.isValid()) {
+    // Only a full shutdown ends a request that never produced a route.
+    if (m_vehicle->isShuttingDown() && !m_route.isValid()) {
         if (m_destination.isValid() || m_plan.isValid() || m_pendingRoute) {
-            qDebug() << "NavigationService: clearing navigation (leaving with no established route)";
+            qDebug() << "NavigationService: clearing navigation (shutting down with no established route)";
             clearNavigation();
         }
         return;
