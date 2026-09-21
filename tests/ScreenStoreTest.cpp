@@ -14,6 +14,7 @@ class ScreenStoreTest : public QObject
 private slots:
     void closesEveryParkedOnlyScreen();
     void returnsToOpeningScreen();
+    void nestedParkedScreenFallsBackToCluster();
     void leavesRidingScreensAlone();
 };
 
@@ -52,6 +53,23 @@ void ScreenStoreTest::closesEveryParkedOnlyScreen()
         QCOMPARE(repo.get(QStringLiteral("dashboard"), QStringLiteral("menu-open")),
                  QStringLiteral("false"));
     }
+}
+
+void ScreenStoreTest::nestedParkedScreenFallsBackToCluster()
+{
+    InMemoryMdbRepository repo;
+    SettingsStore settings(&repo);
+    settings.start();
+    ScreenStore store(&settings, &repo);
+
+    store.showAbout();
+    store.showSystemInfo();
+    QCOMPARE(store.currentScreenMode(), ScootEnums::ScreenMode::SystemInfo);
+
+    store.closeParkedScreens();
+    QCOMPARE(store.currentScreenMode(), ScootEnums::ScreenMode::Cluster);
+    QCOMPARE(repo.get(QStringLiteral("dashboard"), QStringLiteral("menu-open")),
+             QStringLiteral("false"));
 }
 
 void ScreenStoreTest::returnsToOpeningScreen()

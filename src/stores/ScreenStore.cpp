@@ -36,6 +36,11 @@ bool ScreenStore::isBrakeNavigated(ScootEnums::ScreenMode mode)
 
 void ScreenStore::closeParkedScreens()
 {
+    // isBrakeNavigated() is the parked-only set, the same screens the menu
+    // mirrors into dashboard:menu-open.
+    if (!isBrakeNavigated(m_currentScreen))
+        return;
+
     switch (m_currentScreen) {
     case ScootEnums::ScreenMode::About:
         closeAbout();
@@ -67,6 +72,12 @@ void ScreenStore::closeParkedScreens()
     default:
         break;
     }
+
+    // close*() returns to the screen the overlay was opened from, which can
+    // itself be a parked screen. A parked screen with no case above lands here
+    // too. Either way, riding must not stay on an overlay.
+    if (isBrakeNavigated(m_currentScreen))
+        setScreen(static_cast<int>(ScootEnums::ScreenMode::Cluster));
 }
 
 void ScreenStore::publishMenuOpen()
