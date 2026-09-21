@@ -760,6 +760,42 @@ ApplicationWindow {
                             }
                         }
 
+                        SectionHeader {
+                            text: "Faults"
+                            SimButton {
+                                text: "Clear all"; small: true; color: "#f44336"; fixedWidth: 58
+                                onClicked: simulator.clearActiveFaults()
+                            }
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 4
+                            SimCombo {
+                                id: activeFaultSource
+                                Layout.fillWidth: true
+                                model: ["engine-ecu", "battery:0", "battery:1",
+                                        "vehicle", "ble", "internet"]
+                            }
+                            SimField {
+                                id: activeFaultCode
+                                Layout.preferredWidth: 52
+                                text: "35"
+                                placeholderText: "code"
+                            }
+                            SimButton {
+                                text: "Add"; small: true; fixedWidth: 40
+                                onClicked: simulator.setActiveFault(
+                                    activeFaultSource.currentText,
+                                    parseInt(activeFaultCode.text) || 0, true)
+                            }
+                            SimButton {
+                                text: "Remove"; small: true; fixedWidth: 54
+                                onClicked: simulator.setActiveFault(
+                                    activeFaultSource.currentText,
+                                    parseInt(activeFaultCode.text) || 0, false)
+                            }
+                        }
+
                         SectionHeader { text: "GPS" }
                         RowLayout {
                             Layout.fillWidth: true

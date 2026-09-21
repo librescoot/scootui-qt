@@ -20,6 +20,21 @@
 #include <QJsonArray>
 #include <QDebug>
 
+namespace {
+const QStringList &simulatedFaultSets()
+{
+    static const QStringList keys = {
+        QStringLiteral("engine-ecu:fault"),
+        QStringLiteral("battery:0:fault"),
+        QStringLiteral("battery:1:fault"),
+        QStringLiteral("vehicle:fault"),
+        QStringLiteral("ble:fault"),
+        QStringLiteral("internet:fault"),
+    };
+    return keys;
+}
+}
+
 SimulatorService::SimulatorService(MdbRepository *repo, NavigationService *nav,
                                    ScreenStore *screenStore, SettingsService *settingsService,
                                    bool seedDefaults, QObject *parent)
@@ -29,6 +44,14 @@ SimulatorService::SimulatorService(MdbRepository *repo, NavigationService *nav,
     , m_screenStore(screenStore)
     , m_settingsService(settingsService)
 {
+    connect(m_repo, &MdbRepository::setMembersFetched, this,
+            [this](const QString &key, const QStringList &members) {
+        if (!m_faultSetsToClear.remove(key))
+            return;
+        for (const QString &member : members)
+            m_repo->removeFromSet(key, member);
+    });
+
     // Stand in for vehicle-service's gesture detector: synthesize
     // "input-events" messages from the button edges we publish, so
     // InputHandler and other consumers behave identically under the
@@ -46,6 +69,20 @@ SimulatorService::SimulatorService(MdbRepository *repo, NavigationService *nav,
     // production modem-service.
     m_autoDriveTimer->setInterval(1000); // 1 Hz — matches production modem-service
     connect(m_autoDriveTimer, &QTimer::timeout, this, &SimulatorService::autoDriveTick);
+
+    // A manually selected non-zero speed would otherwise leave an identical
+    // engine hash for long enough to look like frozen ECU telemetry. Small
+    // current ripple models a live motor controller without visibly moving the
+    // power display.
+    m_engineTelemetryTimer = new QTimer(this);
+    m_engineTelemetryTimer->setInterval(1000);
+    connect(m_engineTelemetryTimer, &QTimer::timeout, this, [this]() {
+        if (m_engineSpeed <= 0)
+            return;
+        m_engineCurrentRipple = -m_engineCurrentRipple;
+        setMotorCurrent(m_engineSpeed * 200 + m_engineCurrentRipple);
+    });
+    m_engineTelemetryTimer->start();
 
     // Keep GPS timestamp fresh so hasRecentFix stays true while parked
     m_gpsTimestampTimer = new QTimer(this);
@@ -212,8 +249,11 @@ void SimulatorService::setMainPower(bool on)
 
 void SimulatorService::setSpeed(double speed)
 {
+    m_engineSpeed = speed;
     m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("speed"),
                 QString::number(speed, 'f', 1));
+    setMotorVoltage(48000);
+    setMotorCurrent(speed > 0 ? speed * 200 : 0);
 }
 
 void SimulatorService::setOdometer(double km)
@@ -306,6 +346,26 @@ void SimulatorService::setEngineFault(int code, const QString &description)
                 QString::number(code));
     m_repo->set(QStringLiteral("engine-ecu"), QStringLiteral("fault:description"),
                 description);
+}
+
+void SimulatorService::setActiveFault(const QString &source, int code, bool active)
+{
+    const QString key = source + QStringLiteral(":fault");
+    if (code <= 0 || !simulatedFaultSets().contains(key))
+        return;
+    if (active)
+        m_repo->addToSet(key, QString::number(code));
+    else
+        m_repo->removeFromSet(key, QString::number(code));
+}
+
+void SimulatorService::clearActiveFaults()
+{
+    setEngineFault(0, QString());
+    for (const QString &key : simulatedFaultSets()) {
+        m_faultSetsToClear.insert(key);
+        m_repo->requestSetMembers(key);
+    }
 }
 
 // --- Battery ---
@@ -758,6 +818,7 @@ void SimulatorService::selectDashboard(const QString &mode)
 void SimulatorService::loadPreset(const QString &name)
 {
     if (name == QLatin1String("parked")) {
+        clearActiveFaults();
         setVehicleState(QStringLiteral("parked"));
         setKickstand(QStringLiteral("down"));
         setHandlebarLock(QStringLiteral("unlocked"));

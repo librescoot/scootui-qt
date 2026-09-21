@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QSet>
 #include <QTimer>
 #include "routing/RouteModels.h"
 
@@ -85,6 +86,8 @@ public:
     Q_INVOKABLE void setRawSpeed(double speed);
     Q_INVOKABLE void setEngineFwVersion(const QString &v);
     Q_INVOKABLE void setEngineFault(int code, const QString &description);
+    Q_INVOKABLE void setActiveFault(const QString &source, int code, bool active);
+    Q_INVOKABLE void clearActiveFaults();
 
     // Battery (slot 0 or 1)
     Q_INVOKABLE void setBatteryCharge(int slot, int percent);
@@ -234,8 +237,12 @@ private:
     SettingsService *m_settingsService;
     GestureSynth *m_gestures = nullptr;
     QTimer *m_autoDriveTimer = nullptr;
+    QTimer *m_engineTelemetryTimer = nullptr;
     QTimer *m_gpsTimestampTimer = nullptr;
     bool m_autoDriveActive = false;
+    double m_engineSpeed = 0;
+    int m_engineCurrentRipple = 25;
+    QSet<QString> m_faultSetsToClear;
     double m_autoDriveSpeed = 0;
     double m_autoDriveTargetSpeed = 25;
     double m_autoDriveTimeScale = 1.0;
