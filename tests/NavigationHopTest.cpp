@@ -48,6 +48,8 @@ private slots:
     void reconnectAfterArrivalDoesNotRearm();
     void planOverviewMapsLegsToRemainingStops();
     void heldRouteRequestRetriesWhenOriginBecomesUsable();
+    void heldRouteRequestExpiresOnLock();
+    void establishedRouteSurvivesLock();
 
 private:
     struct Fixture {
@@ -685,6 +687,40 @@ void NavigationHopTest::heldRouteRequestRetriesWhenOriginBecomesUsable()
     // And a route arriving completes the transition.
     f.nav.setRoute(simpleRoute({52.50, 13.40}, {52.51, 13.41}));
     QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Navigating));
+}
+
+void NavigationHopTest::heldRouteRequestExpiresOnLock()
+{
+    Fixture f;
+    setGpsWithEph(f, 52.50, 13.40, 60.0);
+    f.nav.setRoutePlan(QList<RouteStop>{stop(52.51, 13.41, QStringLiteral("dest"))}, 0);
+    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::WaitingForPosition));
+    QVERIFY(f.nav.hasPlan());
+
+    setVehicleState(f, QStringLiteral("stand-by"));
+    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Idle));
+    QVERIFY(!f.nav.hasPlan());
+    quiesce(f);
+
+    // A usable fix after the lock must not silently restart the request.
+    setGpsWithEph(f, 52.50, 13.40, 5.0);
+    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Idle));
+    QVERIFY(!f.nav.hasPlan());
+}
+
+void NavigationHopTest::establishedRouteSurvivesLock()
+{
+    Fixture f;
+    setGps(f, 52.50, 13.40);
+    f.nav.setRoutePlan(QList<RouteStop>{stop(52.60, 13.50, QStringLiteral("far"))}, 0);
+    quiesce(f);
+    f.nav.setRoute(simpleRoute({52.50, 13.40}, {52.60, 13.50}));
+    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Navigating));
+
+    setVehicleState(f, QStringLiteral("stand-by"));
+    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Navigating));
+    QVERIFY(f.nav.hasPlan());
+    QVERIFY(f.nav.hasRoute());
 }
 
 QTEST_MAIN(NavigationHopTest)

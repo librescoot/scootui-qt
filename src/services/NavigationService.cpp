@@ -1580,6 +1580,15 @@ void NavigationService::onVehicleStateChanged()
     if (!isLeaving)
         return;
 
+    // No route was ever produced, so there is nothing to resume on wake.
+    if (!m_route.isValid()) {
+        if (m_destination.isValid() || m_plan.isValid() || m_pendingRoute) {
+            qDebug() << "NavigationService: clearing navigation (leaving with no established route)";
+            clearNavigation();
+        }
+        return;
+    }
+
     // An intermediate stop only pauses a multi-hop trip. The plan, its step,
     // and the prompt survive the stop so the rider can continue later.
     if (m_plan.isValid() && !m_plan.atLastStop()) {
