@@ -13,7 +13,7 @@ class SavedLocationsService : public QObject
 public:
     explicit SavedLocationsService(MdbRepository *repo, QObject *parent = nullptr);
 
-    QList<SavedLocation> loadAll() const;
+    QList<SavedLocation> loadAll();
     bool save(const SavedLocation &location);
     bool remove(int id);
     bool updateLastUsed(int id);
@@ -24,6 +24,7 @@ public:
 
 private:
     bool updateQuickMenu(int id, int quickSlot, const QString &quickIcon);
+    QString ensureUuid(int id);
     QString fieldKey(int id, const QString &field) const;
     int findFreeSlot() const;
 

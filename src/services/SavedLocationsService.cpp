@@ -4,8 +4,23 @@
 
 #include <QDebug>
 #include <QSet>
+#include <QUuid>
 
 #include <algorithm>
+
+namespace {
+
+bool isUuid(const QString &value)
+{
+    return !QUuid(value).isNull();
+}
+
+QString newUuid()
+{
+    return QUuid::createUuid().toString(QUuid::WithoutBraces);
+}
+
+} // namespace
 
 SavedLocationsService::SavedLocationsService(MdbRepository *repo, QObject *parent)
     : QObject(parent)
@@ -13,7 +28,7 @@ SavedLocationsService::SavedLocationsService(MdbRepository *repo, QObject *paren
 {
 }
 
-QList<SavedLocation> SavedLocationsService::loadAll() const
+QList<SavedLocation> SavedLocationsService::loadAll()
 {
     QList<SavedLocation> locations;
     QSet<int> usedQuickSlots;
@@ -25,6 +40,7 @@ QList<SavedLocation> SavedLocationsService::loadAll() const
 
         SavedLocation loc;
         loc.id = i;
+        loc.uuid = ensureUuid(i);
         loc.latitude = lat.toDouble();
         loc.longitude = lng.toDouble();
         loc.label = m_repo->get(QStringLiteral("settings"), fieldKey(i, QStringLiteral("label")));
@@ -73,6 +89,10 @@ bool SavedLocationsService::save(const SavedLocation &location)
         m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("quick-slot")),
                     QStringLiteral("0"), false);
     }
+    const QString uuid = existing
+        ? ensureUuid(slot)
+        : isUuid(location.uuid) ? location.uuid : newUuid();
+    m_repo->set(QStringLiteral("settings"), fieldKey(slot, QStringLiteral("uuid")), uuid, false);
     const QString icon = location.quickIcon == QLatin1String("home")
                       || location.quickIcon == QLatin1String("work")
                       || location.quickIcon == QLatin1String("favorite")
@@ -100,7 +120,7 @@ bool SavedLocationsService::remove(int id)
 
     QStringList fields = {
         QStringLiteral("latitude"), QStringLiteral("longitude"), QStringLiteral("label"),
-        QStringLiteral("quick-slot"), QStringLiteral("quick-icon"),
+        QStringLiteral("quick-slot"), QStringLiteral("quick-icon"), QStringLiteral("uuid"),
         QStringLiteral("created-at"), QStringLiteral("last-used-at")
     };
     for (const auto &f : fields) {
@@ -180,6 +200,20 @@ bool SavedLocationsService::updateQuickMenu(int id, int quickSlot, const QString
     m_repo->publish(QStringLiteral("settings"),
                     QStringLiteral("%1.%2").arg(QLatin1String(AppConfig::savedLocationsPrefix)).arg(id));
     return true;
+}
+
+QString SavedLocationsService::ensureUuid(int id)
+{
+    const QString current = m_repo->get(QStringLiteral("settings"),
+                                        fieldKey(id, QStringLiteral("uuid")));
+    if (isUuid(current))
+        return current;
+
+    const QString uuid = newUuid();
+    m_repo->set(QStringLiteral("settings"), fieldKey(id, QStringLiteral("uuid")), uuid, false);
+    m_repo->publish(QStringLiteral("settings"),
+                    QStringLiteral("%1.%2").arg(QLatin1String(AppConfig::savedLocationsPrefix)).arg(id));
+    return uuid;
 }
 
 QString SavedLocationsService::fieldKey(int id, const QString &field) const

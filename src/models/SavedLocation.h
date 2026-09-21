@@ -5,6 +5,7 @@
 
 struct SavedLocation {
     int id = -1;
+    QString uuid;
     double latitude = 0;
     double longitude = 0;
     QString label;

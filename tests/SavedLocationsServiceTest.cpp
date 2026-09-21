@@ -13,6 +13,7 @@ private slots:
     void deletionClearsQuickMetadata();
     void movingSlotSwapsWithTheHolder();
     void clearingSlotLeavesOthersAlone();
+    void migratesExistingLocationUuid();
 };
 
 static SavedLocation location(double latitude, double longitude, const QString &label)
@@ -140,6 +141,8 @@ void SavedLocationsServiceTest::deletionClearsQuickMetadata()
     InMemoryMdbRepository repo;
     SavedLocationsService service(&repo);
     QVERIFY(service.save(location(52.5, 13.4, QStringLiteral("Old"))));
+    const QString oldUuid = service.loadAll().at(0).uuid;
+    QVERIFY(!oldUuid.isEmpty());
     QVERIFY(service.setQuickSlot(0, 1));
     QVERIFY(service.setQuickIcon(0, QStringLiteral("favorite")));
     QVERIFY(service.remove(0));
@@ -148,6 +151,8 @@ void SavedLocationsServiceTest::deletionClearsQuickMetadata()
                      QStringLiteral("dashboard.saved-locations.0.quick-slot")).isEmpty());
     QVERIFY(repo.get(QStringLiteral("settings"),
                      QStringLiteral("dashboard.saved-locations.0.quick-icon")).isEmpty());
+    QVERIFY(repo.get(QStringLiteral("settings"),
+                     QStringLiteral("dashboard.saved-locations.0.uuid")).isEmpty());
 
     QVERIFY(service.save(location(51.0, 12.0, QStringLiteral("New"))));
     const auto saved = service.loadAll();
@@ -155,6 +160,26 @@ void SavedLocationsServiceTest::deletionClearsQuickMetadata()
     QCOMPARE(saved[0].id, 0);
     QCOMPARE(saved[0].quickSlot, 0);
     QCOMPARE(saved[0].quickIcon, QStringLiteral("place"));
+    QVERIFY(saved[0].uuid != oldUuid);
+}
+
+void SavedLocationsServiceTest::migratesExistingLocationUuid()
+{
+    InMemoryMdbRepository repo;
+    repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.saved-locations.4.latitude"),
+             QStringLiteral("52.5200000"), false);
+    repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.saved-locations.4.longitude"),
+             QStringLiteral("13.4050000"), false);
+
+    SavedLocationsService service(&repo);
+    const QList<SavedLocation> first = service.loadAll();
+    QCOMPARE(first.size(), 1);
+    QVERIFY(!first[0].uuid.isEmpty());
+    QCOMPARE(repo.get(QStringLiteral("settings"),
+                      QStringLiteral("dashboard.saved-locations.4.uuid")), first[0].uuid);
+
+    const QList<SavedLocation> second = service.loadAll();
+    QCOMPARE(second.at(0).uuid, first[0].uuid);
 }
 
 QTEST_GUILESS_MAIN(SavedLocationsServiceTest)

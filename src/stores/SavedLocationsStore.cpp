@@ -42,6 +42,7 @@ QVariantList SavedLocationsStore::locations() const
     for (const auto &loc : m_locations) {
         QVariantMap m;
         m[QStringLiteral("id")] = loc.id;
+        m[QStringLiteral("uuid")] = loc.uuid;
         m[QStringLiteral("latitude")] = loc.latitude;
         m[QStringLiteral("longitude")] = loc.longitude;
         m[QStringLiteral("label")] = loc.label;
