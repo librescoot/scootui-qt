@@ -5,6 +5,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QSaveFile>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -1150,14 +1151,18 @@ static BuildResult buildFromTiles(AddressDatabaseService *service, const QString
         root[QStringLiteral("mapHash")] = result.mapHash;
         root[QStringLiteral("streets")] = arr;
 
-        QString tmpPath = AddressDatabaseService::CachePath + QStringLiteral(".tmp");
-        QFile file(tmpPath);
-        if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-            file.write(QJsonDocument(root).toJson(QJsonDocument::Compact));
-            file.close();
-            QFile::remove(AddressDatabaseService::CachePath);
-            QFile::rename(tmpPath, AddressDatabaseService::CachePath);
-            qDebug() << "AddressDatabase: saved cache with" << arr.size() << "streets";
+        QSaveFile file(AddressDatabaseService::CachePath);
+        if (!file.open(QIODevice::WriteOnly)) {
+            qWarning() << "AddressDatabase: failed to open cache for writing";
+        } else {
+            const QByteArray contents = QJsonDocument(root).toJson(QJsonDocument::Compact);
+            if (file.write(contents) != contents.size()) {
+                qWarning() << "AddressDatabase: failed to write cache";
+            } else if (!file.commit()) {
+                qWarning() << "AddressDatabase: failed to commit cache";
+            } else {
+                qDebug() << "AddressDatabase: saved cache with" << arr.size() << "streets";
+            }
         }
     }
 

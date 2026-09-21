@@ -16,6 +16,7 @@
 #include <QTextStream>
 #include <QTimer>
 
+#include <cstdio>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -72,13 +73,16 @@ bool writeFileAtomic(const QString &path, const QByteArray &contents)
             return false;
         }
         // flush() only clears Qt's buffer; this is what reaches the device.
-        if (::fsync(f.handle()) != 0)
+        if (::fsync(f.handle()) != 0) {
             qWarning() << "OdometerMilestone: fsync failed for" << tmp;
+            f.close();
+            QFile::remove(tmp);
+            return false;
+        }
     }
     // rename(2) over an existing path is atomic, so a reader sees either the
     // old contents or the new ones, never a truncated file.
-    QFile::remove(path);
-    if (!QFile::rename(tmp, path)) {
+    if (::rename(QFile::encodeName(tmp).constData(), QFile::encodeName(path).constData()) != 0) {
         qWarning() << "OdometerMilestone: failed to rename" << tmp << "to" << path;
         QFile::remove(tmp);
         return false;
@@ -88,12 +92,15 @@ bool writeFileAtomic(const QString &path, const QByteArray &contents)
     // can be lost to a power cut while the data survives. modem-service's
     // data-usage counter does the same.
     const int dirFd = ::open(QFile::encodeName(fi.absolutePath()).constData(), O_RDONLY);
-    if (dirFd >= 0) {
-        if (::fsync(dirFd) != 0)
-            qWarning() << "OdometerMilestone: fsync failed for" << fi.absolutePath();
-        ::close(dirFd);
+    if (dirFd < 0) {
+        qWarning() << "OdometerMilestone: failed to open" << fi.absolutePath() << "for sync";
+        return false;
     }
-    return true;
+    const bool synced = ::fsync(dirFd) == 0;
+    if (!synced)
+        qWarning() << "OdometerMilestone: fsync failed for" << fi.absolutePath();
+    ::close(dirFd);
+    return synced;
 }
 
 }  // namespace
