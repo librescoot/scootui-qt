@@ -9,8 +9,6 @@ struct SavedLocation {
     double latitude = 0;
     double longitude = 0;
     QString label;
-    int quickSlot = 0;
-    QString quickIcon = QStringLiteral("place");
     QDateTime createdAt;
     QDateTime lastUsedAt;
 

@@ -2,6 +2,10 @@
 #include "repositories/MdbRepository.h"
 #include "stores/SettingsStore.h"
 #include "core/AppConfig.h"
+#include "core/ShortcutMenuItems.h"
+
+#include <QJsonArray>
+#include <QJsonDocument>
 
 SettingsService::SettingsService(MdbRepository *repo, SettingsStore *settings,
                                  QObject *parent)
@@ -77,6 +81,15 @@ void SettingsService::updateMode(const QString &mode)
 void SettingsService::updateTheme(const QString &theme)
 {
     writeSetting(QStringLiteral("dashboard.theme"), theme);
+}
+
+void SettingsService::updateShortcutMenuItems(const QStringList &items)
+{
+    const QJsonDocument doc(QJsonArray::fromStringList(items));
+    const QString value = QString::fromUtf8(doc.toJson(QJsonDocument::Compact));
+    writeSetting(QLatin1String(ShortcutMenuItems::SettingsKey), value);
+    if (m_settings)
+        m_settings->applyLocalWrite(QLatin1String(ShortcutMenuItems::SettingsKey), value);
 }
 
 void SettingsService::updateAutoTheme(bool enabled)

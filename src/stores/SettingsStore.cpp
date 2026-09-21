@@ -142,6 +142,7 @@ SyncSettings SettingsStore::syncSettings() const
         QStringLiteral("settings"), 5000,
         {
             {QStringLiteral("theme"), QStringLiteral("dashboard.theme")},
+            {QStringLiteral("shortcutMenuItems"), QStringLiteral("dashboard.shortcut-menu.items")},
             {QStringLiteral("mode"), QStringLiteral("dashboard.mode")},
             {QStringLiteral("developerMode"), QStringLiteral("scooter.developer-mode")},
             {QStringLiteral("backlightMode"), QStringLiteral("dashboard.backlight-mode")},
@@ -205,6 +206,8 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
 {
     if (variable == QLatin1String("dashboard.theme")) {
         if (value != m_theme) { m_theme = value; emit themeChanged(); }
+    } else if (variable == QLatin1String("dashboard.shortcut-menu.items")) {
+        if (value != m_shortcutMenuItems) { m_shortcutMenuItems = value; emit shortcutMenuItemsChanged(); }
     } else if (variable == QLatin1String("dashboard.mode")) {
         if (value != m_mode) { m_mode = value; emit modeChanged(); }
     } else if (variable == QLatin1String("scooter.developer-mode")) {

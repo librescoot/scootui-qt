@@ -8,6 +8,7 @@
 #include "../services/NavigationAvailabilityService.h"
 #include "../services/SettingsService.h"
 #include "../models/Enums.h"
+#include "core/ShortcutMenuItems.h"
 
 #include <algorithm>
 #include <cmath>
@@ -57,7 +58,8 @@ ShortcutMenuStore::ShortcutMenuStore(EngineStore *engine, VehicleStore *vehicle,
     if (m_engine)
         connect(m_engine, &EngineStore::speedChanged, this, &ShortcutMenuStore::rebuildActions);
     if (m_savedLocations)
-        connect(m_savedLocations, SIGNAL(locationsChanged()), this, SLOT(rebuildActions()));
+        connect(m_savedLocations, SIGNAL(locationsChanged()),
+                this, SLOT(onLocationsChanged()));
     if (m_navigationAvailability)
         connect(m_navigationAvailability, SIGNAL(availabilityChanged()),
                 this, SLOT(rebuildActions()));
@@ -72,6 +74,10 @@ ShortcutMenuStore::ShortcutMenuStore(EngineStore *engine, VehicleStore *vehicle,
                 this, &ShortcutMenuStore::rebuildActions);
         connect(m_settings, &SettingsStore::developerModeChanged,
                 this, &ShortcutMenuStore::rebuildActions);
+        connect(m_settings, &SettingsStore::shortcutMenuItemsChanged, this, [this]() {
+            maybeMigrateLegacyQuickItems();
+            rebuildActions();
+        });
     }
 
     if (m_repo) {
@@ -81,6 +87,7 @@ ShortcutMenuStore::ShortcutMenuStore(EngineStore *engine, VehicleStore *vehicle,
             QLatin1String(kInputEventsChannel),
             [this](const QString &, const QString &message) { onInputEvent(message); });
     }
+    maybeMigrateLegacyQuickItems();
     rebuildActions();
 }
 
@@ -165,51 +172,133 @@ QString ShortcutMenuStore::actionKey(const QVariantMap &action)
 QVariantList ShortcutMenuStore::availableActions() const
 {
     QVariantList actions;
-    actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("view")}});
-    if (m_settings && m_settingsService)
-        actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("theme")}});
-    if (m_settings && m_settings->developerMode()) {
-        actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("debug-overlay")}});
-        actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("motion-debug")}});
-    }
-    if (m_navigation && m_navigation->property("hasRoute").toBool()) {
-        actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("route-overview")}});
-        // Skip is only meaningful while there is a later stop to move to.
-        const int step = m_navigation->property("currentStep").toInt();
-        const int count = m_navigation->property("stopCount").toInt();
-        if (count > 0 && step + 1 < count)
-            actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("skip-stop")}});
-        actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("stop-navigation")}});
-        return actions;
-    }
+    const bool hasRoute = m_navigation && m_navigation->property("hasRoute").toBool();
+    const bool developerMode = m_settings && m_settings->developerMode();
+    const bool showDestinations = !hasRoute && m_savedLocations && destinationAvailable();
 
-    if (!m_savedLocations || !destinationAvailable())
-        return actions;
+    QVariantList locations;
+    if (showDestinations)
+        locations = m_savedLocations->property("locations").toList();
 
-    QList<QVariantMap> destinations;
-    bool slotUsed[] = {false, false, false};
-    for (const QVariant &value : m_savedLocations->property("locations").toList()) {
-        QVariantMap location = value.toMap();
-        const int slot = location.value(QStringLiteral("quickSlot")).toInt();
-        if (slot < 1 || slot > 2 || slotUsed[slot])
+    for (const QString &item : currentItems()) {
+        QString uuid, icon;
+        if (ShortcutMenuItems::isDestination(item, &uuid, &icon)) {
+            if (!showDestinations)
+                continue;
+            for (const QVariant &value : locations) {
+                QVariantMap location = value.toMap();
+                if (!ShortcutMenuItems::uuidEquals(
+                        location.value(QStringLiteral("uuid")).toString(), uuid))
+                    continue;
+                if (location.value(QStringLiteral("label")).toString().isEmpty()) {
+                    location[QStringLiteral("label")] = QStringLiteral("%1, %2")
+                        .arg(location.value(QStringLiteral("latitude")).toDouble(), 0, 'f', 5)
+                        .arg(location.value(QStringLiteral("longitude")).toDouble(), 0, 'f', 5);
+                }
+                location[QStringLiteral("kind")] = QStringLiteral("destination");
+                location[QStringLiteral("icon")] = icon;
+                actions.append(location);
+            }
             continue;
-        slotUsed[slot] = true;
-        if (location.value(QStringLiteral("label")).toString().isEmpty()) {
-            location[QStringLiteral("label")] = QStringLiteral("%1, %2")
-                .arg(location.value(QStringLiteral("latitude")).toDouble(), 0, 'f', 5)
-                .arg(location.value(QStringLiteral("longitude")).toDouble(), 0, 'f', 5);
         }
-        location[QStringLiteral("kind")] = QStringLiteral("destination");
-        destinations.append(location);
+        if (item == QLatin1String("view")) {
+            actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("view")}});
+        } else if (item == QLatin1String("theme")) {
+            if (m_settings && m_settingsService)
+                actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("theme")}});
+        } else if (item == QLatin1String("debug-overlay")
+                   || item == QLatin1String("motion-debug")) {
+            if (developerMode)
+                actions.append(QVariantMap{{QStringLiteral("kind"), item}});
+        } else if (item == QLatin1String("route-overview")) {
+            if (hasRoute)
+                actions.append(QVariantMap{{QStringLiteral("kind"), item}});
+        } else if (item == QLatin1String("skip-stop")) {
+            if (!hasRoute)
+                continue;
+            // Skip is only meaningful while there is a later stop to move to.
+            const int step = m_navigation->property("currentStep").toInt();
+            const int count = m_navigation->property("stopCount").toInt();
+            if (count > 0 && step + 1 < count)
+                actions.append(QVariantMap{{QStringLiteral("kind"), item}});
+        } else if (item == QLatin1String("stop-navigation")) {
+            if (hasRoute)
+                actions.append(QVariantMap{{QStringLiteral("kind"), item}});
+        }
     }
-    std::sort(destinations.begin(), destinations.end(), [](const QVariantMap &left,
-                                                            const QVariantMap &right) {
-        return left.value(QStringLiteral("quickSlot")).toInt()
-             < right.value(QStringLiteral("quickSlot")).toInt();
-    });
-    for (const auto &destination : destinations)
-        actions.append(destination);
     return actions;
+}
+
+QStringList ShortcutMenuStore::currentItems() const
+{
+    if (m_settings) {
+        const QString raw = m_settings->shortcutMenuItems();
+        if (!raw.isEmpty()) {
+            bool ok = false;
+            const QStringList configured = ShortcutMenuItems::parse(raw, &ok);
+            if (ok)
+                return configured;
+        }
+    }
+    return ShortcutMenuItems::defaultItems();
+}
+
+// Seeds dashboard.shortcut-menu.items from quick-nav assignments still held in
+// the indexed record fields. Runs until a rider configuration exists; the
+// write itself makes the configuration present, so it happens once.
+void ShortcutMenuStore::maybeMigrateLegacyQuickItems()
+{
+    if (m_migrationSettled || !m_settings || !m_settingsService || !m_savedLocations)
+        return;
+
+    const QStringList defaults = ShortcutMenuItems::defaultItems();
+    const QString raw = m_settings->shortcutMenuItems();
+    if (!raw.isEmpty()) {
+        bool ok = false;
+        const QStringList configured = ShortcutMenuItems::parse(raw, &ok);
+        if (ok && configured != defaults) {
+            m_migrationSettled = true;
+            return;
+        }
+    }
+
+    QVariantList legacy;
+    if (!QMetaObject::invokeMethod(m_savedLocations, "legacyQuickAssignments",
+                                   Qt::DirectConnection,
+                                   Q_RETURN_ARG(QVariantList, legacy))) {
+        m_migrationSettled = true;
+        return;
+    }
+    if (legacy.isEmpty())
+        return;
+
+    QList<QVariantMap> sorted;
+    for (const QVariant &value : legacy)
+        sorted.append(value.toMap());
+    std::sort(sorted.begin(), sorted.end(), [](const QVariantMap &left, const QVariantMap &right) {
+        return left.value(QStringLiteral("slot")).toInt()
+             < right.value(QStringLiteral("slot")).toInt();
+    });
+
+    QStringList items = defaults;
+    for (const QVariantMap &entry : sorted) {
+        const QString uuid = entry.value(QStringLiteral("uuid")).toString();
+        if (uuid.isEmpty())
+            continue;
+        bool seen = false;
+        for (const QString &existing : ShortcutMenuItems::destinationUuids(items)) {
+            if (ShortcutMenuItems::uuidEquals(existing, uuid)) {
+                seen = true;
+                break;
+            }
+        }
+        if (seen)
+            continue;
+        items.append(ShortcutMenuItems::destinationToken(
+            uuid, entry.value(QStringLiteral("icon")).toString()));
+    }
+    m_migrationSettled = true;
+    m_settingsService->updateShortcutMenuItems(items);
 }
 
 void ShortcutMenuStore::rebuildActions()
@@ -278,6 +367,12 @@ void ShortcutMenuStore::onInputEvent(const QString &message)
         if (!m_visible && !m_confirming)
             toggleHazards();
     }
+}
+
+void ShortcutMenuStore::onLocationsChanged()
+{
+    maybeMigrateLegacyQuickItems();
+    rebuildActions();
 }
 
 void ShortcutMenuStore::onCycleTimeout()

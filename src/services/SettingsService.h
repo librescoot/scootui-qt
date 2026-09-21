@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QStringList>
 
 class MdbRepository;
 class SettingsStore;
@@ -16,6 +17,7 @@ public:
 
     Q_INVOKABLE void updateMode(const QString &mode);
     Q_INVOKABLE void updateTheme(const QString &theme);
+    Q_INVOKABLE void updateShortcutMenuItems(const QStringList &items);
     Q_INVOKABLE void updateAutoTheme(bool enabled);
     Q_INVOKABLE void updateBacklightMode(const QString &mode);
     Q_INVOKABLE void updateLanguage(const QString &lang);

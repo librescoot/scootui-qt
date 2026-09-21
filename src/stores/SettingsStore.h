@@ -7,6 +7,7 @@ class SettingsStore : public SyncableStore
 {
     Q_OBJECT
     Q_PROPERTY(QString theme READ theme NOTIFY themeChanged)
+    Q_PROPERTY(QString shortcutMenuItems READ shortcutMenuItems NOTIFY shortcutMenuItemsChanged)
     Q_PROPERTY(QString mode READ mode NOTIFY modeChanged)
     Q_PROPERTY(bool developerMode READ developerMode NOTIFY developerModeChanged)
     Q_PROPERTY(QString backlightMode READ backlightMode NOTIFY backlightModeChanged)
@@ -78,6 +79,7 @@ public:
     explicit SettingsStore(MdbRepository *repo, QObject *parent = nullptr);
 
     QString theme() const { return m_theme; }
+    QString shortcutMenuItems() const { return m_shortcutMenuItems; }
     QString mode() const { return m_mode; }
     bool developerMode() const { return m_developerMode == QLatin1String("true"); }
     QString backlightMode() const { return m_backlightMode; }
@@ -172,6 +174,7 @@ public:
 
 signals:
     void themeChanged();
+    void shortcutMenuItemsChanged();
     void modeChanged();
     void developerModeChanged();
     void backlightModeChanged();
@@ -232,6 +235,8 @@ protected:
 private:
     // @schema dashboard.theme
     QString m_theme = QStringLiteral("auto");
+    // @schema dashboard.shortcut-menu.items
+    QString m_shortcutMenuItems;
     // @schema dashboard.mode
     QString m_mode = QStringLiteral("speedometer");
     // @schema scooter.developer-mode

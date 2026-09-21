@@ -46,8 +46,6 @@ QVariantList SavedLocationsStore::locations() const
         m[QStringLiteral("latitude")] = loc.latitude;
         m[QStringLiteral("longitude")] = loc.longitude;
         m[QStringLiteral("label")] = loc.label;
-        m[QStringLiteral("quickSlot")] = loc.quickSlot;
-        m[QStringLiteral("quickIcon")] = loc.quickIcon;
         m[QStringLiteral("createdAt")] = loc.createdAt.toString(Qt::ISODate);
         m[QStringLiteral("lastUsedAt")] = loc.lastUsedAt.toString(Qt::ISODate);
         list.append(m);
@@ -109,28 +107,6 @@ void SavedLocationsStore::deleteLocation(int id)
     }
 }
 
-void SavedLocationsStore::setQuickSlot(int id, int slot)
-{
-    if (m_service->setQuickSlot(id, slot))
-        load();
-}
-
-void SavedLocationsStore::setQuickIcon(int id, const QString &icon)
-{
-    if (m_service->setQuickIcon(id, icon))
-        load();
-}
-
-void SavedLocationsStore::clearQuickSlot(int slot)
-{
-    for (const auto &location : m_locations) {
-        if (location.quickSlot == slot) {
-            setQuickSlot(location.id, 0);
-            return;
-        }
-    }
-}
-
 void SavedLocationsStore::navigateToLocation(int id)
 {
     // Snapshot before any external call. updateLastUsed() and
@@ -154,4 +130,19 @@ void SavedLocationsStore::navigateToLocation(int id)
     m_service->updateLastUsed(id);
     m_nav->setDestination(lat, lng, label);
     load();
+}
+
+QVariantList SavedLocationsStore::legacyQuickAssignments() const
+{
+    QVariantList list;
+    const auto assignments = m_service->loadLegacyQuickAssignments();
+    for (const auto &assignment : assignments) {
+        QVariantMap map;
+        map[QStringLiteral("id")] = assignment.id;
+        map[QStringLiteral("slot")] = assignment.slot;
+        map[QStringLiteral("icon")] = assignment.icon;
+        map[QStringLiteral("uuid")] = assignment.uuid;
+        list.append(map);
+    }
+    return list;
 }

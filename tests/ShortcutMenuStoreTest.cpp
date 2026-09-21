@@ -1,5 +1,6 @@
 #include <QtTest>
 
+#include "core/ShortcutMenuItems.h"
 #include "repositories/InMemoryMdbRepository.h"
 #include "services/SettingsService.h"
 #include "stores/EngineStore.h"
@@ -63,6 +64,9 @@ private slots:
     void developerModeOffersDebugOverlay();
     void activeNavigationOffersOverviewAndStop();
     void planNavigationOffersSkipBetweenStops();
+    void configuredOrderIsPreservedAndUnavailableItemsHidden();
+    void destinationTokenHiddenWithoutAvailability();
+    void destinationSlotEditsFollowSwapSemantics();
 };
 
 void ShortcutMenuStoreTest::raisingKickstandDismissesAndStopsCycling()
@@ -387,6 +391,101 @@ void ShortcutMenuStoreTest::planNavigationOffersSkipBetweenStops()
     // There is nothing to skip on the final hop, so the action disappears.
     navigation.setPlan(true, 1, 2);
     QCOMPARE(menu.actionCount(), 3);
+}
+
+void ShortcutMenuStoreTest::configuredOrderIsPreservedAndUnavailableItemsHidden()
+{
+    InMemoryMdbRepository repo;
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
+             QStringLiteral("ready-to-drive"), false);
+    repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.shortcut-menu.items"),
+             QStringLiteral("[\"skip-stop\",\"theme\",\"debug-overlay\",\"view\"]"), false);
+
+    EngineStore engine(&repo);
+    VehicleStore vehicle(&repo);
+    SettingsStore settings(&repo);
+    SettingsService settingsService(&repo, &settings);
+    engine.start();
+    vehicle.start();
+    settings.start();
+    ShortcutMenuStore menu(&engine, &vehicle, nullptr, nullptr, nullptr, nullptr,
+                           nullptr, &settings, &repo, &settingsService);
+
+    menu.show();
+    // skip-stop needs an active route and debug-overlay needs developer mode;
+    // the configured order holds for what remains.
+    QCOMPARE(menu.actionCount(), 2);
+    QCOMPARE(menu.actions().at(0).toMap().value(QStringLiteral("kind")).toString(),
+             QStringLiteral("theme"));
+    QCOMPARE(menu.actions().at(1).toMap().value(QStringLiteral("kind")).toString(),
+             QStringLiteral("view"));
+}
+
+void ShortcutMenuStoreTest::destinationTokenHiddenWithoutAvailability()
+{
+    InMemoryMdbRepository repo;
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
+             QStringLiteral("ready-to-drive"), false);
+    repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.shortcut-menu.items"),
+             QStringLiteral("[\"view\",\"destination:3fa85f64-5717-4562-b3fc-2c963f66afa6:home\",\"theme\"]"),
+             false);
+
+    EngineStore engine(&repo);
+    VehicleStore vehicle(&repo);
+    SettingsStore settings(&repo);
+    SettingsService settingsService(&repo, &settings);
+    engine.start();
+    vehicle.start();
+    settings.start();
+    ShortcutMenuStore menu(&engine, &vehicle, nullptr, nullptr, nullptr, nullptr,
+                           nullptr, &settings, &repo, &settingsService);
+
+    menu.show();
+    // No saved-locations store, so the destination cannot resolve.
+    QCOMPARE(menu.actionCount(), 2);
+    QCOMPARE(menu.actions().at(0).toMap().value(QStringLiteral("kind")).toString(),
+             QStringLiteral("view"));
+    QCOMPARE(menu.actions().at(1).toMap().value(QStringLiteral("kind")).toString(),
+             QStringLiteral("theme"));
+}
+
+void ShortcutMenuStoreTest::destinationSlotEditsFollowSwapSemantics()
+{
+    const QString a = QStringLiteral("3fa85f64-5717-4562-b3fc-2c963f66afa6");
+    const QString b = QStringLiteral("0d6c21f0-0000-4000-8000-000000000001");
+    QStringList items = ShortcutMenuItems::defaultItems();
+
+    items = ShortcutMenuItems::setDestinationSlot(items, a, 1);
+    QCOMPARE(ShortcutMenuItems::destinationUuids(items), QStringList{a});
+    QCOMPARE(items.last(), QStringLiteral("destination:%1:place").arg(a));
+
+    items = ShortcutMenuItems::setDestinationSlot(items, b, 2);
+    QCOMPARE(ShortcutMenuItems::destinationUuids(items), (QStringList{a, b}));
+
+    // Assigning b to slot 1 swaps with a rather than dropping it.
+    items = ShortcutMenuItems::setDestinationSlot(items, b, 1);
+    QCOMPARE(ShortcutMenuItems::destinationUuids(items), (QStringList{b, a}));
+
+    // Re-assigning a destination to its current slot keeps one token.
+    items = ShortcutMenuItems::setDestinationSlot(items, b, 1);
+    QCOMPARE(ShortcutMenuItems::destinationUuids(items), (QStringList{b, a}));
+
+    items = ShortcutMenuItems::clearDestinationSlot(items, 1);
+    QCOMPARE(ShortcutMenuItems::destinationUuids(items), QStringList{a});
+
+    items = ShortcutMenuItems::setDestinationIcon(items, a, QStringLiteral("home"));
+    QVERIFY(items.last().endsWith(QStringLiteral(":home")));
+    items = ShortcutMenuItems::setDestinationIcon(items, a, QStringLiteral("bogus"));
+    QVERIFY(items.last().endsWith(QStringLiteral(":place")));
+
+    // A new destination taking an occupied slot replaces the holder.
+    items = ShortcutMenuItems::setDestinationSlot(items, b, 1);
+    QCOMPARE(ShortcutMenuItems::destinationUuids(items), QStringList{b});
+
+    // Pruning leaves other destinations untouched.
+    items = ShortcutMenuItems::setDestinationSlot(items, a, 2);
+    items = ShortcutMenuItems::withoutDestination(items, b);
+    QCOMPARE(ShortcutMenuItems::destinationUuids(items), QStringList{a});
 }
 
 QTEST_GUILESS_MAIN(ShortcutMenuStoreTest)

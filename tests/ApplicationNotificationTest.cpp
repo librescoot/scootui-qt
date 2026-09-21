@@ -13,6 +13,7 @@
 #undef private
 #include "core/BootGate.h"
 #include "core/EnvConfig.h"
+#include "core/ShortcutMenuItems.h"
 #include "repositories/InMemoryMdbRepository.h"
 #include "services/NavigationAvailabilityService.h"
 #include "services/NotificationService.h"
@@ -327,13 +328,16 @@ private slots:
         auto *shortcuts = context<ShortcutMenuStore>("shortcutMenuStore");
         auto *screens = context<ScreenStore>("screenStore");
         auto *availability = context<NavigationAvailabilityService>("navAvailabilityService");
-        QVERIFY(engine && saved && shortcuts && screens && availability);
+        auto *settingsService = context<SettingsService>("settingsService");
+        auto *settingsStore = context<SettingsStore>("settingsStore");
+        QVERIFY(engine && saved && shortcuts && screens && availability && settingsService
+                && settingsStore);
 
         repo->set("vehicle", "state", "ready-to-drive");
         repo->set("vehicle", "kickstand", "down");
         repo->set("engine-ecu", "speed", "0");
         availability->setOverride(true, true);
-        QCOMPARE(shortcuts->actionCount(), 1);
+        QCOMPARE(shortcuts->actionCount(), 2);
 
         const auto addLocation = [repo](int id, double lat, double lng, const QString &label) {
             const QString prefix = QStringLiteral("dashboard.saved-locations.%1.").arg(id);
@@ -341,16 +345,23 @@ private slots:
             repo->set("settings", prefix + "longitude", QString::number(lng, 'f', 7));
             repo->set("settings", prefix + "label", label);
         };
+        // The first location enters through the record-field migration.
         addLocation(0, 52.5, 13.4, QString());
-        saved->setQuickSlot(0, 1);
-        QTRY_COMPARE(shortcuts->actionCount(), 2);
-        QCOMPARE(shortcuts->actions().at(1).toMap().value("label").toString(),
-                 QStringLiteral("52.50000, 13.40000"));
-        addLocation(1, 52.6, 13.5, QStringLiteral("Second address"));
-        saved->setQuickSlot(1, 2);
+        repo->set("settings", "dashboard.saved-locations.0.quick-slot", "1");
         QTRY_COMPARE(shortcuts->actionCount(), 3);
+        QCOMPARE(shortcuts->actions().at(2).toMap().value("label").toString(),
+                 QStringLiteral("52.50000, 13.40000"));
+        // The second enters through an explicit items configuration.
+        addLocation(1, 52.6, 13.5, QStringLiteral("Second address"));
+        QTRY_COMPARE(saved->count(), 2);
+        const QString secondUuid = saved->locations().at(1).toMap().value("uuid").toString();
+        QVERIFY(!secondUuid.isEmpty());
+        settingsService->updateShortcutMenuItems(ShortcutMenuItems::setDestinationSlot(
+            ShortcutMenuItems::parse(settingsStore->shortcutMenuItems()), secondUuid, 2));
+        QTRY_COMPARE(shortcuts->actionCount(), 4);
 
         shortcuts->show();
+        shortcuts->cycle();
         shortcuts->cycle();
         shortcuts->confirm();
         QVERIFY(shortcuts->confirming());
@@ -361,6 +372,7 @@ private slots:
 
         screens->setScreen(static_cast<int>(ScootEnums::ScreenMode::Cluster));
         shortcuts->show();
+        shortcuts->cycle();
         shortcuts->cycle();
         repo->publish("input-events", "seatbox:release");
         QVERIFY(shortcuts->confirming());
@@ -373,17 +385,18 @@ private slots:
         repo->set("engine-ecu", "speed", "0");
         shortcuts->show();
         shortcuts->cycle();
+        shortcuts->cycle();
         shortcuts->confirm();
         repo->set("engine-ecu", "speed", "5");
         QTRY_VERIFY(!shortcuts->visible());
-        QCOMPARE(shortcuts->actionCount(), 1);
+        QCOMPARE(shortcuts->actionCount(), 2);
         repo->publish("input-events", "seatbox:press");
         QCOMPARE(repo->get("navigation", "address"), QStringLiteral("unchanged"));
 
         repo->set("engine-ecu", "speed", "0");
-        QTRY_COMPARE(shortcuts->actionCount(), 3);
+        QTRY_COMPARE(shortcuts->actionCount(), 4);
         saved->deleteLocation(1);
-        QTRY_COMPARE(shortcuts->actionCount(), 2);
+        QTRY_COMPARE(shortcuts->actionCount(), 3);
     }
 
     void dualBatteryToggleRefreshesUnchangedSlotOneFault()

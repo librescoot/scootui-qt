@@ -22,6 +22,7 @@
 #include "services/UpdateChannelService.h"
 #include "repositories/MdbRepository.h"
 #include "core/AppConfig.h"
+#include "core/ShortcutMenuItems.h"
 
 #include <QDateTime>
 #include <QLocale>
@@ -1131,7 +1132,7 @@ void MenuStore::rebuildMenuTree()
             }, isOnlineRouting ? 0 : 1));
     }
 
-    // Quick nav: the two shortcuts a held seatbox tap shows, edited by slot so
+    // Quick nav: the destinations a held seatbox tap offers, edited by slot so
     // replacing a holder is explicit rather than a side effect of scrolling.
     {
         auto *quickNavNode = MenuNode::submenu(QStringLiteral("settings_quick_nav"),
@@ -1141,18 +1142,28 @@ void MenuStore::rebuildMenuTree()
 
         const QVariantList locations = m_savedLocations ? m_savedLocations->locations()
                                                         : QVariantList{};
+        const QStringList items = ShortcutMenuItems::parse(settings->shortcutMenuItems());
+        const QStringList holderUuids = ShortcutMenuItems::destinationUuids(items);
         for (int slot = 1; slot <= 2; ++slot) {
             int holderId = -1;
+            QString holderUuid;
             QString holderLabel;
             QString holderIcon;
-            for (const auto &locVar : locations) {
-                const QVariantMap loc = locVar.toMap();
-                if (loc.value(QStringLiteral("quickSlot")).toInt() != slot)
-                    continue;
-                holderId = loc.value(QStringLiteral("id")).toInt();
-                holderLabel = loc.value(QStringLiteral("label")).toString();
-                holderIcon = loc.value(QStringLiteral("quickIcon")).toString();
-                break;
+            if (slot <= holderUuids.size()) {
+                holderUuid = holderUuids.at(slot - 1);
+                QString icon;
+                if (ShortcutMenuItems::isDestination(
+                        ShortcutMenuItems::destinationTokenAt(items, slot), nullptr, &icon))
+                    holderIcon = icon;
+                for (const auto &locVar : locations) {
+                    const QVariantMap loc = locVar.toMap();
+                    if (!ShortcutMenuItems::uuidEquals(
+                            loc.value(QStringLiteral("uuid")).toString(), holderUuid))
+                        continue;
+                    holderId = loc.value(QStringLiteral("id")).toInt();
+                    holderLabel = loc.value(QStringLiteral("label")).toString();
+                    break;
+                }
             }
             if (holderLabel.isEmpty() && holderId >= 0)
                 holderLabel = QString::number(holderId);
@@ -1168,10 +1179,14 @@ void MenuStore::rebuildMenuTree()
             slotNode->addChild(destNode);
             destNode->addChild(MenuNode::action(
                 QStringLiteral("quick_slot_%1_off").arg(slot), tr->menuQuickOff(),
-                [this, slot]() { if (m_savedLocations) m_savedLocations->clearQuickSlot(slot); }));
+                [items, svc, slot]() {
+                    svc->updateShortcutMenuItems(
+                        ShortcutMenuItems::clearDestinationSlot(items, slot));
+                }));
             for (const auto &locVar : locations) {
                 const QVariantMap loc = locVar.toMap();
                 const int locId = loc.value(QStringLiteral("id")).toInt();
+                const QString locUuid = loc.value(QStringLiteral("uuid")).toString();
                 QString label = loc.value(QStringLiteral("label")).toString();
                 if (label.isEmpty())
                     label = QStringLiteral("%1, %2")
@@ -1179,15 +1194,16 @@ void MenuStore::rebuildMenuTree()
                         .arg(loc.value(QStringLiteral("longitude")).toDouble(), 0, 'f', 5);
                 auto *entry = MenuNode::action(
                     QStringLiteral("quick_slot_%1_loc_%2").arg(slot).arg(locId), label,
-                    [this, slot, locId]() {
-                        if (m_savedLocations) m_savedLocations->setQuickSlot(locId, slot);
+                    [items, svc, locUuid, slot]() {
+                        svc->updateShortcutMenuItems(
+                            ShortcutMenuItems::setDestinationSlot(items, locUuid, slot));
                     });
                 if (locId == holderId)
                     entry->setValueLabel(tr->menuRouteCurrentStop());
                 destNode->addChild(entry);
             }
 
-            if (holderId < 0)
+            if (holderUuid.isEmpty())
                 continue;
             auto *iconNode = MenuNode::submenu(
                 QStringLiteral("quick_slot_%1_icon").arg(slot), tr->menuQuickIcon());
@@ -1195,8 +1211,9 @@ void MenuStore::rebuildMenuTree()
             const auto addIcon = [&](const QString &title, const QString &icon) {
                 auto *entry = MenuNode::action(
                     QStringLiteral("quick_slot_%1_icon_%2").arg(slot).arg(icon), title,
-                    [this, holderId, icon]() {
-                        if (m_savedLocations) m_savedLocations->setQuickIcon(holderId, icon);
+                    [items, svc, holderUuid, icon]() {
+                        svc->updateShortcutMenuItems(
+                            ShortcutMenuItems::setDestinationIcon(items, holderUuid, icon));
                     });
                 if (holderIcon == icon)
                     entry->setValueLabel(tr->menuRouteCurrentStop());

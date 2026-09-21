@@ -71,7 +71,7 @@ Item {
             return MaterialIcon.iconBugReport
         if (action.kind === "motion-debug")
             return MaterialIcon.iconNavigation
-        switch (action.quickIcon) {
+        switch (action.icon) {
         case "home": return MaterialIcon.iconHome
         case "work": return MaterialIcon.iconWork
         case "favorite": return MaterialIcon.iconStar

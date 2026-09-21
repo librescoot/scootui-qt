@@ -4,6 +4,7 @@
 #include <QTimer>
 #include <QVariantList>
 #include <QVariantMap>
+#include <QStringList>
 
 class EngineStore;
 class VehicleStore;
@@ -55,10 +56,13 @@ signals:
 private slots:
     void onCycleTimeout();
     void rebuildActions();
+    void onLocationsChanged();
 
 private:
     void onInputEvent(const QString &message);
     QVariantList availableActions() const;
+    QStringList currentItems() const;
+    void maybeMigrateLegacyQuickItems();
     void executePendingAction();
     void toggleHazards();
     void toggleDebugOverlay();
@@ -87,6 +91,8 @@ private:
 
     QTimer *m_confirmTimer;
     QTimer *m_cycleTimer;
+
+    bool m_migrationSettled = false;
 
     QVariantList m_actions;
     QVariantMap m_pendingAction;

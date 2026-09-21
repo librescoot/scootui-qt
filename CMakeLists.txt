@@ -73,6 +73,7 @@ set(CPP_SOURCES
     src/core/HmiLatencyMonitor.cpp
     src/core/Application.cpp
     src/core/BootGate.cpp
+    src/core/ShortcutMenuItems.cpp
     src/repositories/InMemoryMdbRepository.cpp
     src/repositories/RedisMdbRepository.cpp
     src/repositories/HiredisWorker.cpp
@@ -167,6 +168,7 @@ set(CPP_SOURCES
 
 set(CPP_HEADERS
     src/core/AppConfig.h
+    src/core/ShortcutMenuItems.h
     src/core/EnvConfig.h
     src/core/DataPartition.h
     src/core/HmiLatencyMonitor.h
@@ -653,6 +655,7 @@ if(BUILD_TESTING)
         src/stores/SettingsStore.cpp
         src/stores/SyncableStore.cpp
         src/services/SettingsService.cpp
+        src/core/ShortcutMenuItems.cpp
         src/models/Enums.h
         src/repositories/MdbRepository.h
         src/repositories/InMemoryMdbRepository.cpp
@@ -665,6 +668,7 @@ if(BUILD_TESTING)
         tests/SavedLocationsServiceTest.cpp
         src/services/SavedLocationsService.cpp
         src/services/SavedLocationsService.h
+        src/core/ShortcutMenuItems.cpp
         src/models/SavedLocation.h
         src/repositories/MdbRepository.h
         src/repositories/InMemoryMdbRepository.cpp
