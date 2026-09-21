@@ -165,6 +165,8 @@ QString ShortcutMenuStore::actionKey(const QVariantMap &action)
 QVariantList ShortcutMenuStore::availableActions() const
 {
     QVariantList actions;
+    if (m_settings && m_settingsService)
+        actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("theme")}});
     actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("view")}});
     if (m_settings && m_settings->developerMode()) {
         actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("debug-overlay")}});
@@ -299,6 +301,16 @@ void ShortcutMenuStore::executePendingAction()
     }
 
     const QString kind = m_pendingAction.value(QStringLiteral("kind")).toString();
+    if (kind == QLatin1String("theme")) {
+        if (m_settings->theme() == QLatin1String("auto"))
+            m_settingsService->updateTheme(QStringLiteral("dark"));
+        else if (m_settings->theme() == QLatin1String("dark"))
+            m_settingsService->updateTheme(QStringLiteral("light"));
+        else
+            m_settingsService->updateTheme(QStringLiteral("auto"));
+        resetState();
+        return;
+    }
     if (kind == QLatin1String("view")) {
         toggleView();
         resetState();

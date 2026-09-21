@@ -58,6 +58,7 @@ private slots:
     void onlyVisibleWhileReadyToDrive();
     void releaseStartsThreeSecondConfirmation();
     void closedMenuDoubleTapTogglesHazards();
+    void themeActionCyclesTheme();
     void viewActionTogglesMapAndCluster();
     void developerModeOffersDebugOverlay();
     void activeNavigationOffersOverviewAndStop();
@@ -170,6 +171,40 @@ void ShortcutMenuStoreTest::closedMenuDoubleTapTogglesHazards()
     QVERIFY(!menu.visible());
 }
 
+void ShortcutMenuStoreTest::themeActionCyclesTheme()
+{
+    InMemoryMdbRepository repo;
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
+             QStringLiteral("ready-to-drive"), false);
+    repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.theme"),
+             QStringLiteral("auto"), false);
+
+    EngineStore engine(&repo);
+    VehicleStore vehicle(&repo);
+    SettingsStore settings(&repo);
+    SettingsService settingsService(&repo, &settings);
+    engine.start();
+    vehicle.start();
+    settings.start();
+    ShortcutMenuStore menu(&engine, &vehicle, nullptr, nullptr, nullptr, nullptr,
+                           nullptr, &settings, &repo, &settingsService);
+
+    const auto executeTheme = [&menu, &repo]() {
+        menu.show();
+        menu.confirm();
+        repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
+    };
+
+    QCOMPARE(menu.actions().at(0).toMap().value(QStringLiteral("kind")).toString(),
+             QStringLiteral("theme"));
+    executeTheme();
+    QTRY_COMPARE(settings.theme(), QStringLiteral("dark"));
+    executeTheme();
+    QTRY_COMPARE(settings.theme(), QStringLiteral("light"));
+    executeTheme();
+    QTRY_COMPARE(settings.theme(), QStringLiteral("auto"));
+}
+
 void ShortcutMenuStoreTest::viewActionTogglesMapAndCluster()
 {
     InMemoryMdbRepository repo;
@@ -193,6 +228,7 @@ void ShortcutMenuStoreTest::viewActionTogglesMapAndCluster()
 
     const auto executeView = [&menu, &repo]() {
         menu.show();
+        menu.cycle();
         menu.confirm();
         repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
     };
@@ -206,6 +242,7 @@ void ShortcutMenuStoreTest::viewActionTogglesMapAndCluster()
     QCOMPARE(vehicle.state(), static_cast<int>(ScootEnums::VehicleState::ReadyToDrive));
     menu.show();
     QVERIFY(menu.visible());
+    menu.cycle();
     menu.confirm();
     QVERIFY(menu.confirming());
     repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
@@ -247,12 +284,13 @@ void ShortcutMenuStoreTest::developerModeOffersDebugOverlay()
                            nullptr, &settings, &repo, &settingsService);
 
     menu.show();
-    QCOMPARE(menu.actionCount(), 3);
-    QCOMPARE(menu.actions().at(1).toMap().value(QStringLiteral("kind")).toString(),
-             QStringLiteral("debug-overlay"));
+    QCOMPARE(menu.actionCount(), 4);
     QCOMPARE(menu.actions().at(2).toMap().value(QStringLiteral("kind")).toString(),
+             QStringLiteral("debug-overlay"));
+    QCOMPARE(menu.actions().at(3).toMap().value(QStringLiteral("kind")).toString(),
              QStringLiteral("motion-debug"));
 
+    menu.cycle();
     menu.cycle();
     menu.confirm();
     repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
@@ -261,12 +299,14 @@ void ShortcutMenuStoreTest::developerModeOffersDebugOverlay()
 
     menu.show();
     menu.cycle();
+    menu.cycle();
     menu.confirm();
     repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
     QCOMPARE(repo.get(QStringLiteral("dashboard"), QStringLiteral("debug")),
              QStringLiteral("off"));
 
     menu.show();
+    menu.cycle();
     menu.cycle();
     menu.cycle();
     menu.confirm();

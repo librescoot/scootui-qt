@@ -18,6 +18,13 @@ Item {
             return ""
         if (selectedAction.kind === "destination")
             return selectedAction.label
+        if (selectedAction.kind === "theme") {
+            if (themeStore.isAutoMode)
+                return translations.shortcutThemeDark
+            if (themeStore.isDark)
+                return translations.shortcutThemeLight
+            return translations.shortcutThemeAuto
+        }
         if (selectedAction.kind === "route-overview")
             return translations.shortcutRouteOverview
         if (selectedAction.kind === "skip-stop")
@@ -44,6 +51,13 @@ Item {
                                        * (cellWidth + contentRow.spacing)
 
     function actionIcon(action) {
+        if (action.kind === "theme") {
+            if (themeStore.isAutoMode)
+                return MaterialIcon.iconDarkMode
+            if (themeStore.isDark)
+                return MaterialIcon.iconLightMode
+            return MaterialIcon.iconContrast
+        }
         if (action.kind === "view")
             return screenStore.currentScreen === Scooter.ScreenMode.Cluster
                  ? MaterialIcon.iconMap : MaterialIcon.iconSpeed
