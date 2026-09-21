@@ -143,15 +143,17 @@ Window {
         }
     }
 
-    // Cancel startup timer when vehicle state becomes known;
-    // auto-close parked-only screens when riding starts
+    // Cancel startup timer when vehicle state becomes known; close parked-only
+    // screens as soon as the scooter leaves the parked family, the same rule
+    // MenuStore uses.
     Connections {
         target: typeof vehicleStore !== "undefined" ? vehicleStore : null
         function onStateChanged() {
             if (vehicleStore.state !== Scooter.VehicleState.Unknown) {
                 startupTimer.stop()
             }
-            if (vehicleStore.state === Scooter.VehicleState.ReadyToDrive
+            if (vehicleStore.state !== Scooter.VehicleState.Unknown
+                    && !vehicleStore.parked
                     && typeof screenStore !== "undefined") {
                 if (screenStore.currentScreen === Scooter.ScreenMode.KeycardEnrollInfo)
                     root.closeKeycardEnrollment()
