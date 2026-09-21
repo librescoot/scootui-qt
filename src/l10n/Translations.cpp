@@ -1869,6 +1869,8 @@ void Translations::initStrings()
     de[QStringLiteral("shortcutToggleHazards")] = QStringLiteral("Warnblinker umschalten");
     en[QStringLiteral("shortcutDebugOverlay")] = QStringLiteral("Debug Overlay");
     de[QStringLiteral("shortcutDebugOverlay")] = QStringLiteral("Debug-Overlay");
+    en[QStringLiteral("shortcutMotionDebug")] = QStringLiteral("Motion Debug");
+    de[QStringLiteral("shortcutMotionDebug")] = QStringLiteral("Bewegungs-Debug");
     en[QStringLiteral("shortcutStartDestination")] = QStringLiteral("Navigate to %1");
     de[QStringLiteral("shortcutStartDestination")] = QStringLiteral("Navigation nach %1");
     en[QStringLiteral("shortcutRouteOverview")] = QStringLiteral("Route overview");

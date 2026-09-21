@@ -26,17 +26,22 @@ Item {
             return translations.menuStopNavigation
         if (selectedAction.kind === "debug-overlay")
             return translations.shortcutDebugOverlay
+        if (selectedAction.kind === "motion-debug")
+            return translations.shortcutMotionDebug
         return screenStore.currentScreen === Scooter.ScreenMode.Cluster
              ? translations.shortcutViewMap : translations.shortcutViewCluster
     }
 
-    // Equal-width cells; the caption matches its cell so it stays under the icon.
+    // Equal-width cells; every tile scales to its cell, leaving a fixed gap.
     readonly property real cellWidth: shortcutMenuStore.actionCount > 0
-                                      ? contentRow.width / shortcutMenuStore.actionCount
+                                      ? (contentRow.width
+                                         - Math.max(0, shortcutMenuStore.actionCount - 1)
+                                           * contentRow.spacing) / shortcutMenuStore.actionCount
                                       : contentRow.width
     readonly property real captionWidth: cellWidth
     readonly property real captionX: contentRow.x
-                                     + shortcutMenuStore.selectedIndex * cellWidth
+                                     + shortcutMenuStore.selectedIndex
+                                       * (cellWidth + contentRow.spacing)
 
     function actionIcon(action) {
         if (action.kind === "view")
@@ -50,6 +55,8 @@ Item {
             return MaterialIcon.iconCancel
         if (action.kind === "debug-overlay")
             return MaterialIcon.iconBugReport
+        if (action.kind === "motion-debug")
+            return MaterialIcon.iconNavigation
         switch (action.quickIcon) {
         case "home": return MaterialIcon.iconHome
         case "work": return MaterialIcon.iconWork
@@ -92,6 +99,7 @@ Item {
             anchors.top: parent.top
             anchors.margins: 20
             height: 80
+            spacing: 4
 
             Repeater {
                 model: shortcutMenuStore.actions
@@ -99,7 +107,7 @@ Item {
                 Item {
                     required property var modelData
                     required property int index
-                    width: contentRow.width / shortcutMenuStore.actionCount
+                    width: shortcutOverlay.cellWidth
                     height: contentRow.height
 
                     Rectangle {
@@ -107,8 +115,10 @@ Item {
                         anchors.centerIn: parent
                         property bool isSelected: index === shortcutMenuStore.selectedIndex
                         property color itemColor: isSelected ? "#FF9800" : (isDark ? "#FFFFFF" : "#212121")
-                        width: isSelected ? 80 : 60
-                        height: isSelected ? 80 : 60
+                        readonly property real selectedTileSize: Math.min(80, shortcutOverlay.cellWidth)
+                        readonly property real unselectedTileSize: Math.min(60, selectedTileSize * 0.75)
+                        width: isSelected ? selectedTileSize : unselectedTileSize
+                        height: isSelected ? selectedTileSize : unselectedTileSize
                         radius: themeStore.radiusModal
                         color: isSelected ? Qt.rgba(1, 0.6, 0, 0.15) : "transparent"
                         border.width: isSelected ? 4 : 2
@@ -120,7 +130,8 @@ Item {
                         Text {
                             anchors.centerIn: parent
                             font.family: "Material Icons"
-                            font.pixelSize: menuItemRect.isSelected ? 36 : 28
+                            font.pixelSize: Math.max(16, menuItemRect.width
+                                                     * (menuItemRect.isSelected ? 0.45 : 0.47))
                             color: menuItemRect.itemColor
                             text: shortcutOverlay.actionIcon(modelData)
                             Behavior on font.pixelSize { NumberAnimation { duration: 200 } }

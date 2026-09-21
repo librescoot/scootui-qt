@@ -673,6 +673,7 @@ class Translations : public QObject
     Q_PROPERTY(QString shortcutViewCluster READ shortcutViewCluster NOTIFY languageChanged)
     Q_PROPERTY(QString shortcutToggleHazards READ shortcutToggleHazards NOTIFY languageChanged)
     Q_PROPERTY(QString shortcutDebugOverlay READ shortcutDebugOverlay NOTIFY languageChanged)
+    Q_PROPERTY(QString shortcutMotionDebug READ shortcutMotionDebug NOTIFY languageChanged)
     Q_PROPERTY(QString shortcutStartDestination READ shortcutStartDestination NOTIFY languageChanged)
     Q_PROPERTY(QString shortcutRouteOverview READ shortcutRouteOverview NOTIFY languageChanged)
     Q_PROPERTY(QString shortcutSkipStop READ shortcutSkipStop NOTIFY languageChanged)
@@ -1343,6 +1344,7 @@ public:
     QString shortcutViewCluster() const { return lookup("shortcutViewCluster"); }
     QString shortcutToggleHazards() const { return lookup("shortcutToggleHazards"); }
     QString shortcutDebugOverlay() const { return lookup("shortcutDebugOverlay"); }
+    QString shortcutMotionDebug() const { return lookup("shortcutMotionDebug"); }
     QString shortcutStartDestination() const { return lookup("shortcutStartDestination"); }
     QString shortcutRouteOverview() const { return lookup("shortcutRouteOverview"); }
     QString shortcutSkipStop() const { return lookup("shortcutSkipStop"); }

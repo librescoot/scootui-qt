@@ -97,6 +97,7 @@ private:
     static QString screenName(ScootEnums::ScreenMode mode);
     static bool screenModeFromName(const QString &name, ScootEnums::ScreenMode &out);
 
+    SettingsStore *m_settings = nullptr;
     ScootEnums::ScreenMode m_currentScreen = ScootEnums::ScreenMode::Cluster;
     bool m_addressSelectionAppend = false;
     ScootEnums::ScreenMode m_screenBeforeAddressSelection = ScootEnums::ScreenMode::Cluster;

@@ -5,10 +5,13 @@
 #include <QMetaEnum>
 
 ScreenStore::ScreenStore(SettingsStore *settings, MdbRepository *repo, QObject *parent)
-    : SyncableStore(repo, parent)
+    : SyncableStore(repo, parent), m_settings(settings)
 {
     applyMode(settings->mode());
     connect(settings, &SettingsStore::modeChanged, this, [this, settings]() {
+        applyMode(settings->mode());
+    });
+    connect(settings, &SettingsStore::developerModeChanged, this, [this, settings]() {
         applyMode(settings->mode());
     });
 }
@@ -63,6 +66,9 @@ void ScreenStore::publishScreen()
 
 void ScreenStore::applyScreenLocally(ScootEnums::ScreenMode mode)
 {
+    if (mode == ScootEnums::ScreenMode::MotionDebug
+        && (!m_settings || !m_settings->developerMode()))
+        return;
     if (mode == m_currentScreen) return;
     m_currentScreen = mode;
     publishMenuOpen();
@@ -98,7 +104,8 @@ void ScreenStore::applyMode(const QString &mode)
         target = ScootEnums::ScreenMode::Map;
     else if (mode == QLatin1String("debug"))
         target = ScootEnums::ScreenMode::Debug;
-    else if (mode == QLatin1String("motion-debug"))
+    else if (mode == QLatin1String("motion-debug")
+             && m_settings && m_settings->developerMode())
         target = ScootEnums::ScreenMode::MotionDebug;
 
     setScreen(static_cast<int>(target));
