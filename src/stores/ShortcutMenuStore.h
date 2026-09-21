@@ -62,6 +62,7 @@ private:
     void executePendingAction();
     void toggleHazards();
     void toggleDebugOverlay();
+    void showMotionDebug();
     void toggleView();
     void stopNavigation();
     void skipCurrentStop();

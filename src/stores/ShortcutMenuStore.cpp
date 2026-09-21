@@ -166,8 +166,10 @@ QVariantList ShortcutMenuStore::availableActions() const
 {
     QVariantList actions;
     actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("view")}});
-    if (m_settings && m_settings->developerMode())
+    if (m_settings && m_settings->developerMode()) {
         actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("debug-overlay")}});
+        actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("motion-debug")}});
+    }
     if (m_navigation && m_navigation->property("hasRoute").toBool()) {
         actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("route-overview")}});
         // Skip is only meaningful while there is a later stop to move to.
@@ -307,6 +309,11 @@ void ShortcutMenuStore::executePendingAction()
         resetState();
         return;
     }
+    if (kind == QLatin1String("motion-debug")) {
+        showMotionDebug();
+        resetState();
+        return;
+    }
     if (kind == QLatin1String("route-overview")) {
         showRouteOverview();
         resetState();
@@ -350,6 +357,14 @@ void ShortcutMenuStore::toggleDebugOverlay()
     m_repo->set(QStringLiteral("dashboard"), QStringLiteral("debug"),
                 current == QLatin1String("overlay") ? QStringLiteral("off")
                                                     : QStringLiteral("overlay"));
+}
+
+void ShortcutMenuStore::showMotionDebug()
+{
+    if (m_screenStore)
+        m_screenStore->setScreen(static_cast<int>(ScootEnums::ScreenMode::MotionDebug));
+    if (m_settingsService)
+        m_settingsService->updateMode(QStringLiteral("motion-debug"));
 }
 
 void ShortcutMenuStore::toggleView()

@@ -234,7 +234,7 @@ private:
     QString m_theme = QStringLiteral("auto");
     // @schema dashboard.mode
     QString m_mode = QStringLiteral("speedometer");
-    // @schema dashboard.developer-mode
+    // @schema scooter.developer-mode
     QString m_developerMode = QStringLiteral("false");
     // @schema dashboard.backlight-mode
     QString m_backlightMode = QStringLiteral("auto");

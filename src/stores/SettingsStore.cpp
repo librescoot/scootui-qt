@@ -143,7 +143,7 @@ SyncSettings SettingsStore::syncSettings() const
         {
             {QStringLiteral("theme"), QStringLiteral("dashboard.theme")},
             {QStringLiteral("mode"), QStringLiteral("dashboard.mode")},
-            {QStringLiteral("developerMode"), QStringLiteral("dashboard.developer-mode")},
+            {QStringLiteral("developerMode"), QStringLiteral("scooter.developer-mode")},
             {QStringLiteral("backlightMode"), QStringLiteral("dashboard.backlight-mode")},
             {QStringLiteral("showRawSpeed"), QStringLiteral("dashboard.show-raw-speed")},
             {QStringLiteral("speedometerMaxSpeed"), QStringLiteral("dashboard.speedometer.max-speed")},
@@ -207,7 +207,7 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
         if (value != m_theme) { m_theme = value; emit themeChanged(); }
     } else if (variable == QLatin1String("dashboard.mode")) {
         if (value != m_mode) { m_mode = value; emit modeChanged(); }
-    } else if (variable == QLatin1String("dashboard.developer-mode")) {
+    } else if (variable == QLatin1String("scooter.developer-mode")) {
         if (value != m_developerMode) { m_developerMode = value; emit developerModeChanged(); }
     } else if (variable == QLatin1String("dashboard.backlight-mode")) {
         if (value != m_backlightMode) { m_backlightMode = value; emit backlightModeChanged(); }
