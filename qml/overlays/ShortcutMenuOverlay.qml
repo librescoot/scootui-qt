@@ -24,6 +24,8 @@ Item {
             return translations.shortcutSkipStop
         if (selectedAction.kind === "stop-navigation")
             return translations.menuStopNavigation
+        if (selectedAction.kind === "debug-overlay")
+            return translations.shortcutDebugOverlay
         return screenStore.currentScreen === Scooter.ScreenMode.Cluster
              ? translations.shortcutViewMap : translations.shortcutViewCluster
     }
@@ -46,6 +48,8 @@ Item {
             return MaterialIcon.iconArrowForward
         if (action.kind === "stop-navigation")
             return MaterialIcon.iconCancel
+        if (action.kind === "debug-overlay")
+            return MaterialIcon.iconBugReport
         switch (action.quickIcon) {
         case "home": return MaterialIcon.iconHome
         case "work": return MaterialIcon.iconWork

@@ -67,9 +67,12 @@ ShortcutMenuStore::ShortcutMenuStore(EngineStore *engine, VehicleStore *vehicle,
         connect(m_navigation, SIGNAL(planChanged()), this, SLOT(rebuildActions()));
     if (m_navigation)
         connect(m_navigation, SIGNAL(planStateChanged()), this, SLOT(rebuildActions()));
-    if (m_settings)
+    if (m_settings) {
         connect(m_settings, &SettingsStore::mapTypeChanged,
                 this, &ShortcutMenuStore::rebuildActions);
+        connect(m_settings, &SettingsStore::developerModeChanged,
+                this, &ShortcutMenuStore::rebuildActions);
+    }
 
     if (m_repo) {
         connect(m_repo, &MdbRepository::connectionStateChanged,
@@ -163,6 +166,8 @@ QVariantList ShortcutMenuStore::availableActions() const
 {
     QVariantList actions;
     actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("view")}});
+    if (m_settings && m_settings->developerMode())
+        actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("debug-overlay")}});
     if (m_navigation && m_navigation->property("hasRoute").toBool()) {
         actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("route-overview")}});
         // Skip is only meaningful while there is a later stop to move to.
@@ -297,6 +302,11 @@ void ShortcutMenuStore::executePendingAction()
         resetState();
         return;
     }
+    if (kind == QLatin1String("debug-overlay")) {
+        toggleDebugOverlay();
+        resetState();
+        return;
+    }
     if (kind == QLatin1String("route-overview")) {
         showRouteOverview();
         resetState();
@@ -330,6 +340,16 @@ void ShortcutMenuStore::toggleHazards()
         == static_cast<int>(ScootEnums::BlinkerState::Both);
     m_repo->push(QStringLiteral("scooter:blinker"),
                  isBoth ? QStringLiteral("off") : QStringLiteral("both"));
+}
+
+void ShortcutMenuStore::toggleDebugOverlay()
+{
+    if (!m_repo)
+        return;
+    const QString current = m_repo->get(QStringLiteral("dashboard"), QStringLiteral("debug"));
+    m_repo->set(QStringLiteral("dashboard"), QStringLiteral("debug"),
+                current == QLatin1String("overlay") ? QStringLiteral("off")
+                                                    : QStringLiteral("overlay"));
 }
 
 void ShortcutMenuStore::toggleView()
