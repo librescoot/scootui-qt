@@ -1580,8 +1580,15 @@ void NavigationService::onVehicleStateChanged()
     if (!isLeaving)
         return;
 
-    // Only a full shutdown ends a request that never produced a route.
+    // Only a full shutdown ends a request that never produced a route, and
+    // only for a single destination. A multi-hop plan is a persisted trip:
+    // pause it so the remaining hops survive even when the current hop has no
+    // route yet.
     if (m_vehicle->isShuttingDown() && !m_route.isValid()) {
+        if (m_plan.isValid() && m_plan.stopCount() > 1) {
+            pausePlan();
+            return;
+        }
         if (m_destination.isValid() || m_plan.isValid() || m_pendingRoute) {
             qDebug() << "NavigationService: clearing navigation (shutting down with no established route)";
             clearNavigation();

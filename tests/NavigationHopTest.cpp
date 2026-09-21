@@ -49,6 +49,7 @@ private slots:
     void planOverviewMapsLegsToRemainingStops();
     void heldRouteRequestRetriesWhenOriginBecomesUsable();
     void heldRouteRequestExpiresOnShutdown();
+    void multiHopPlanSurvivesShutdownWithoutRoute();
     void establishedRouteSurvivesLock();
 
 private:
@@ -714,6 +715,23 @@ void NavigationHopTest::heldRouteRequestExpiresOnShutdown()
     setGpsWithEph(f, 52.50, 13.40, 5.0);
     QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Idle));
     QVERIFY(!f.nav.hasPlan());
+}
+
+void NavigationHopTest::multiHopPlanSurvivesShutdownWithoutRoute()
+{
+    Fixture f;
+    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
+                                    stop(52.52, 13.42, QStringLiteral("B"))};
+    setGpsWithEph(f, 52.50, 13.40, 60.0);
+    f.nav.setRoutePlan(stops, 0);
+    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::WaitingForPosition));
+    QVERIFY(f.nav.hasPlan());
+
+    setVehicleState(f, QStringLiteral("shutting-down"));
+    QVERIFY(f.nav.hasPlan());
+    QCOMPARE(f.nav.stopCount(), 2);
+    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Paused));
+    quiesce(f);
 }
 
 void NavigationHopTest::establishedRouteSurvivesLock()
