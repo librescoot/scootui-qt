@@ -153,12 +153,10 @@ Window {
             }
             if (vehicleStore.state === Scooter.VehicleState.ReadyToDrive
                     && typeof screenStore !== "undefined") {
-                if (screenStore.currentScreen === Scooter.ScreenMode.About)
-                    screenStore.closeAbout()
-                else if (screenStore.currentScreen === Scooter.ScreenMode.Faults)
-                    screenStore.closeFaults()
-                else if (screenStore.currentScreen === Scooter.ScreenMode.SystemInfo)
-                    screenStore.closeSystemInfo()
+                if (screenStore.currentScreen === Scooter.ScreenMode.KeycardEnrollInfo)
+                    root.closeKeycardEnrollment()
+                else
+                    screenStore.closeParkedScreens()
             }
         }
     }

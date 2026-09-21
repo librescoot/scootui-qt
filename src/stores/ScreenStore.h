@@ -19,6 +19,10 @@ public:
     // vehicle-service suppresses brake-light LED cues for the navigation taps.
     static bool isBrakeNavigated(ScootEnums::ScreenMode mode);
 
+    // Closes whichever parked-only screen is up, back to the screen it was
+    // opened from. Called when riding starts.
+    Q_INVOKABLE void closeParkedScreens();
+
     int currentScreen() const { return static_cast<int>(m_currentScreen); }
     ScootEnums::ScreenMode currentScreenMode() const { return m_currentScreen; }
     bool addressSelectionAppend() const { return m_addressSelectionAppend; }

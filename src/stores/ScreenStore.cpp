@@ -34,6 +34,41 @@ bool ScreenStore::isBrakeNavigated(ScootEnums::ScreenMode mode)
     }
 }
 
+void ScreenStore::closeParkedScreens()
+{
+    switch (m_currentScreen) {
+    case ScootEnums::ScreenMode::About:
+        closeAbout();
+        break;
+    case ScootEnums::ScreenMode::AddressSelection:
+        closeAddressSelection();
+        break;
+    case ScootEnums::ScreenMode::NavigationSetup:
+        closeNavigationSetup();
+        break;
+    case ScootEnums::ScreenMode::Faults:
+        closeFaults();
+        break;
+    case ScootEnums::ScreenMode::SystemInfo:
+        closeSystemInfo();
+        break;
+    case ScootEnums::ScreenMode::UpdateModeInfo:
+        closeUpdateModeInfo();
+        break;
+    case ScootEnums::ScreenMode::UpdateChannel:
+        closeUpdateChannel();
+        break;
+    case ScootEnums::ScreenMode::HopOnInfo:
+        closeHopOnInfo();
+        break;
+    case ScootEnums::ScreenMode::KeycardEnrollInfo:
+        closeKeycardEnrollInfo();
+        break;
+    default:
+        break;
+    }
+}
+
 void ScreenStore::publishMenuOpen()
 {
     if (!m_repo) return;
