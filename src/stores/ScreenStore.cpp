@@ -41,43 +41,15 @@ void ScreenStore::closeParkedScreens()
     if (!isBrakeNavigated(m_currentScreen))
         return;
 
-    switch (m_currentScreen) {
-    case ScootEnums::ScreenMode::About:
-        closeAbout();
-        break;
-    case ScootEnums::ScreenMode::AddressSelection:
-        closeAddressSelection();
-        break;
-    case ScootEnums::ScreenMode::NavigationSetup:
-        closeNavigationSetup();
-        break;
-    case ScootEnums::ScreenMode::Faults:
-        closeFaults();
-        break;
-    case ScootEnums::ScreenMode::SystemInfo:
-        closeSystemInfo();
-        break;
-    case ScootEnums::ScreenMode::UpdateModeInfo:
-        closeUpdateModeInfo();
-        break;
-    case ScootEnums::ScreenMode::UpdateChannel:
-        closeUpdateChannel();
-        break;
-    case ScootEnums::ScreenMode::HopOnInfo:
-        closeHopOnInfo();
-        break;
-    case ScootEnums::ScreenMode::KeycardEnrollInfo:
-        closeKeycardEnrollInfo();
-        break;
-    default:
-        break;
+    // AddressSelection is the one overlay holding state beyond the screen.
+    if (m_addressSelectionAppend) {
+        m_addressSelectionAppend = false;
+        emit addressSelectionAppendChanged();
     }
 
-    // close*() returns to the screen the overlay was opened from, which can
-    // itself be a parked screen. A parked screen with no case above lands here
-    // too. Either way, riding must not stay on an overlay.
-    if (isBrakeNavigated(m_currentScreen))
-        setScreen(static_cast<int>(ScootEnums::ScreenMode::Cluster));
+    // Overlays can be opened from other overlays, so m_screenBeforeX is not
+    // always somewhere a rider should be left; the main screen always is.
+    setScreen(static_cast<int>(m_mainScreen));
 }
 
 void ScreenStore::publishMenuOpen()
@@ -117,6 +89,8 @@ void ScreenStore::applyScreenLocally(ScootEnums::ScreenMode mode)
         return;
     if (mode == m_currentScreen) return;
     m_currentScreen = mode;
+    if (!isBrakeNavigated(mode))
+        m_mainScreen = mode;
     publishMenuOpen();
     emit currentScreenChanged();
 }

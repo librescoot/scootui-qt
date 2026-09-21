@@ -14,7 +14,7 @@ class ScreenStoreTest : public QObject
 private slots:
     void closesEveryParkedOnlyScreen();
     void returnsToOpeningScreen();
-    void nestedParkedScreenFallsBackToCluster();
+    void nestedParkedScreenReturnsToMainScreen();
     void leavesRidingScreensAlone();
 };
 
@@ -55,19 +55,22 @@ void ScreenStoreTest::closesEveryParkedOnlyScreen()
     }
 }
 
-void ScreenStoreTest::nestedParkedScreenFallsBackToCluster()
+void ScreenStoreTest::nestedParkedScreenReturnsToMainScreen()
 {
+    // Opened from the map, so the map must be what riding lands on even though
+    // the overlay on top was opened from another overlay.
     InMemoryMdbRepository repo;
     SettingsStore settings(&repo);
     settings.start();
     ScreenStore store(&settings, &repo);
 
+    store.setScreen(static_cast<int>(ScootEnums::ScreenMode::Map));
     store.showAbout();
     store.showSystemInfo();
     QCOMPARE(store.currentScreenMode(), ScootEnums::ScreenMode::SystemInfo);
 
     store.closeParkedScreens();
-    QCOMPARE(store.currentScreenMode(), ScootEnums::ScreenMode::Cluster);
+    QCOMPARE(store.currentScreenMode(), ScootEnums::ScreenMode::Map);
     QCOMPARE(repo.get(QStringLiteral("dashboard"), QStringLiteral("menu-open")),
              QStringLiteral("false"));
 }

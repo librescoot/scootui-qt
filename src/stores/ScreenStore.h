@@ -19,8 +19,8 @@ public:
     // vehicle-service suppresses brake-light LED cues for the navigation taps.
     static bool isBrakeNavigated(ScootEnums::ScreenMode mode);
 
-    // Closes whichever parked-only screen is up, back to the screen it was
-    // opened from. Called when riding starts.
+    // Closes whichever parked-only screen is up, back to the main screen the
+    // rider had (Cluster, Map, ...). Called when riding starts.
     Q_INVOKABLE void closeParkedScreens();
 
     int currentScreen() const { return static_cast<int>(m_currentScreen); }
@@ -103,6 +103,9 @@ private:
 
     SettingsStore *m_settings = nullptr;
     ScootEnums::ScreenMode m_currentScreen = ScootEnums::ScreenMode::Cluster;
+    // Last non-overlay screen. Overlays can be opened from other overlays, so
+    // the per-screen m_screenBeforeX values cannot answer what to land on.
+    ScootEnums::ScreenMode m_mainScreen = ScootEnums::ScreenMode::Cluster;
     bool m_addressSelectionAppend = false;
     ScootEnums::ScreenMode m_screenBeforeAddressSelection = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeAbout = ScootEnums::ScreenMode::Cluster;
