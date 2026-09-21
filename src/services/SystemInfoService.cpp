@@ -52,21 +52,13 @@ static QString decodeLinkBaud(const FieldMap &ble)
     return QString::number(baud / 1000) + QLatin1String(" kbit/s");
 }
 
-// Capability bitmask from bluetooth-service: bit 0 = 1 Mbaud operation,
-// bit 1 = OTA tunnel forwarding. Unknown bits are ignored, and an all-zero
-// or absent mask yields an empty string so the row gets dropped.
+// Capability bitmask from bluetooth-service: bit 0 describes the baud rate,
+// which is already shown separately. Bit 1 indicates OTA tunnel forwarding.
 static QString decodeLinkCaps(const FieldMap &ble)
 {
     bool ok = false;
     const int caps = ble.value(QStringLiteral("link-caps")).toInt(&ok);
-    if (!ok || caps <= 0)
-        return QString();
-    QStringList decoded;
-    if (caps & 0x01)
-        decoded << QLatin1String("1 Mbit/s");
-    if (caps & 0x02)
-        decoded << QLatin1String("OTA tunnel");
-    return decoded.join(QLatin1String(" \u00b7 "));
+    return ok && (caps & 0x02) ? QLatin1String("OTA tunnel") : QString();
 }
 
 void SystemInfoService::recomputeVersions()

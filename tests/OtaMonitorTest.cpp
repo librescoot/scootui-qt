@@ -16,6 +16,8 @@ private slots:
     void installingAnnouncesVersion();
     void pendingRebootIsInfo();
     void errorAnnouncesMessage();
+    void cumulativeErrorsAreAllVisible();
+    void simultaneousComponentErrorsAreBothShown();
     void progressTicksDoNotRepeat();
     void mdbSpeaksWhenDbcIdle();
 
@@ -112,8 +114,61 @@ void OtaMonitorTest::errorAnnouncesMessage()
                QStringLiteral("checksum mismatch"));
 
     QCOMPARE(f.toast.toasts().size(), 2);
-    QCOMPARE(messages(f.toast).last(), QStringLiteral("Update failed: checksum mismatch"));
+    QCOMPARE(messages(f.toast).last(), QStringLiteral("Update failed: DBC: checksum mismatch"));
     QCOMPARE(typeOf(f.toast, 1), QStringLiteral("error"));
+}
+
+void OtaMonitorTest::cumulativeErrorsAreAllVisible()
+{
+    Fixture f;
+    f.start();
+    OtaMonitor monitor(&f.ota, &f.toast, &f.translations);
+
+    f.repo.set(QStringLiteral("ota"), QStringLiteral("error-message:dbc"),
+               QStringLiteral("full image download timed out"));
+    f.repo.set(QStringLiteral("ota"), QStringLiteral("status:dbc"), QStringLiteral("error"));
+
+    const auto entry = [](const QString &event, const QString &component,
+                          const QString &message = QString()) {
+        QVariantMap fields{{QStringLiteral("event"), event},
+                           {QStringLiteral("component"), component}};
+        if (!message.isEmpty())
+            fields.insert(QStringLiteral("message"), message);
+        return QVariant(QVariantMap{{QStringLiteral("fields"), fields}});
+    };
+    // XREVRANGE is newest first. The reset bounds the current operation and
+    // keeps the older failure out of the rider-facing history.
+    const QVariantList stream{
+        entry(QStringLiteral("error"), QStringLiteral("dbc"),
+              QStringLiteral("full image download timed out")),
+        entry(QStringLiteral("error"), QStringLiteral("dbc"),
+              QStringLiteral("delta checksum mismatch")),
+        entry(QStringLiteral("reset"), QStringLiteral("dbc")),
+        entry(QStringLiteral("error"), QStringLiteral("dbc"),
+              QStringLiteral("old operation failure")),
+    };
+    f.repo.streamFetched(QStringLiteral("ota:errors"), stream);
+
+    QCOMPARE(messages(f.toast).last(),
+             QStringLiteral("Update failed: DBC: delta checksum mismatch\nfull image download timed out"));
+}
+
+void OtaMonitorTest::simultaneousComponentErrorsAreBothShown()
+{
+    Fixture f;
+    f.start();
+    OtaMonitor monitor(&f.ota, &f.toast, &f.translations);
+
+    f.repo.set(QStringLiteral("ota"), QStringLiteral("error-message:dbc"),
+               QStringLiteral("network unavailable"));
+    f.repo.set(QStringLiteral("ota"), QStringLiteral("status:dbc"), QStringLiteral("error"));
+    f.repo.set(QStringLiteral("ota"), QStringLiteral("error-message:mdb"),
+               QStringLiteral("network unavailable"));
+    f.repo.set(QStringLiteral("ota"), QStringLiteral("status:mdb"), QStringLiteral("error"));
+
+    QCOMPARE(f.toast.toasts().size(), 2);
+    QCOMPARE(messages(f.toast).at(0), QStringLiteral("Update failed: DBC: network unavailable"));
+    QCOMPARE(messages(f.toast).at(1), QStringLiteral("Update failed: MDB: network unavailable"));
 }
 
 void OtaMonitorTest::progressTicksDoNotRepeat()

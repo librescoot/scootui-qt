@@ -59,6 +59,7 @@ private slots:
     void releaseStartsThreeSecondConfirmation();
     void closedMenuDoubleTapTogglesHazards();
     void viewActionTogglesMapAndCluster();
+    void developerModeOffersDebugOverlay();
     void activeNavigationOffersOverviewAndStop();
     void planNavigationOffersSkipBetweenStops();
 };
@@ -213,6 +214,44 @@ void ShortcutMenuStoreTest::viewActionTogglesMapAndCluster()
     QCOMPARE(repo.get(QStringLiteral("settings"), QStringLiteral("dashboard.mode")),
              QStringLiteral("speedometer"));
     QVERIFY(!menu.visible());
+}
+
+void ShortcutMenuStoreTest::developerModeOffersDebugOverlay()
+{
+    InMemoryMdbRepository repo;
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
+             QStringLiteral("ready-to-drive"), false);
+    repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.developer-mode"),
+             QStringLiteral("true"), false);
+    repo.set(QStringLiteral("dashboard"), QStringLiteral("debug"),
+             QStringLiteral("off"), false);
+
+    EngineStore engine(&repo);
+    VehicleStore vehicle(&repo);
+    SettingsStore settings(&repo);
+    engine.start();
+    vehicle.start();
+    settings.start();
+    ShortcutMenuStore menu(&engine, &vehicle, nullptr, nullptr, nullptr, nullptr,
+                           nullptr, &settings, &repo, nullptr);
+
+    menu.show();
+    QCOMPARE(menu.actionCount(), 2);
+    QCOMPARE(menu.actions().at(1).toMap().value(QStringLiteral("kind")).toString(),
+             QStringLiteral("debug-overlay"));
+
+    menu.cycle();
+    menu.confirm();
+    repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
+    QCOMPARE(repo.get(QStringLiteral("dashboard"), QStringLiteral("debug")),
+             QStringLiteral("overlay"));
+
+    menu.show();
+    menu.cycle();
+    menu.confirm();
+    repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
+    QCOMPARE(repo.get(QStringLiteral("dashboard"), QStringLiteral("debug")),
+             QStringLiteral("off"));
 }
 
 void ShortcutMenuStoreTest::activeNavigationOffersOverviewAndStop()

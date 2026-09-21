@@ -8,6 +8,7 @@ class SettingsStore : public SyncableStore
     Q_OBJECT
     Q_PROPERTY(QString theme READ theme NOTIFY themeChanged)
     Q_PROPERTY(QString mode READ mode NOTIFY modeChanged)
+    Q_PROPERTY(bool developerMode READ developerMode NOTIFY developerModeChanged)
     Q_PROPERTY(QString backlightMode READ backlightMode NOTIFY backlightModeChanged)
     Q_PROPERTY(bool showRawSpeed READ showRawSpeed NOTIFY showRawSpeedChanged)
     Q_PROPERTY(int speedometerMaxSpeed READ speedometerMaxSpeed NOTIFY speedometerMaxSpeedChanged)
@@ -78,6 +79,7 @@ public:
 
     QString theme() const { return m_theme; }
     QString mode() const { return m_mode; }
+    bool developerMode() const { return m_developerMode == QLatin1String("true"); }
     QString backlightMode() const { return m_backlightMode; }
     bool showRawSpeed() const { return m_showRawSpeed == QLatin1String("true"); }
     // Speedometer scale and colour stops, km/h. Unparseable or out-of-range
@@ -171,6 +173,7 @@ public:
 signals:
     void themeChanged();
     void modeChanged();
+    void developerModeChanged();
     void backlightModeChanged();
     void showRawSpeedChanged();
     void speedometerMaxSpeedChanged();
@@ -231,6 +234,8 @@ private:
     QString m_theme = QStringLiteral("auto");
     // @schema dashboard.mode
     QString m_mode = QStringLiteral("speedometer");
+    // @schema dashboard.developer-mode
+    QString m_developerMode = QStringLiteral("false");
     // @schema dashboard.backlight-mode
     QString m_backlightMode = QStringLiteral("auto");
     QString m_showRawSpeed = QStringLiteral("false");

@@ -61,6 +61,7 @@ private:
     QVariantList availableActions() const;
     void executePendingAction();
     void toggleHazards();
+    void toggleDebugOverlay();
     void toggleView();
     void stopNavigation();
     void skipCurrentStop();
