@@ -12,6 +12,7 @@
 #include "services/PositionEstimator.h"
 #include "services/RoadMatchPolicy.h"
 #include "services/MapStyleMetadata.h"
+#include "routing/RouteModels.h"
 
 class GpsStore;
 class EngineStore;
@@ -260,7 +261,7 @@ private:
     // that is many seconds old along today's heading is worse than leaving it
     // stale and letting uncertainty/reroute policy handle it.
     static constexpr double MaxGpsProjectionAgeMs = 2000.0;
-    static constexpr double MaxEstimatorEphMeters = 50.0;
+    static constexpr double MaxEstimatorEphMeters = MaxRouteOriginEphMeters;
     static constexpr double DefaultGpsUncertaintyMeters = 15.0;
     static constexpr double MaxPositionUncertaintyMeters = 500.0;
 

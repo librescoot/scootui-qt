@@ -26,6 +26,7 @@ class NavigationService : public QObject
     Q_PROPERTY(int status READ status NOTIFY statusChanged)
     Q_PROPERTY(bool isNavigating READ isNavigating NOTIFY statusChanged)
     Q_PROPERTY(bool isRerouting READ isRerouting NOTIFY statusChanged)
+    Q_PROPERTY(bool isWaitingForPosition READ isWaitingForPosition NOTIFY statusChanged)
     Q_PROPERTY(bool hasRoute READ hasRoute NOTIFY routeChanged)
     Q_PROPERTY(QString errorMessage READ errorMessage NOTIFY errorChanged)
 
@@ -99,6 +100,12 @@ public:
     int status() const { return static_cast<int>(m_status); }
     bool isNavigating() const { return m_status == NavigationStatus::Navigating; }
     bool isRerouting() const { return m_status == NavigationStatus::Rerouting; }
+    // True while a route request is held because no position is accurate
+    // enough to route from. The request is retried automatically; this exists
+    // so the UI can show why the route has not appeared yet.
+    bool isWaitingForPosition() const {
+        return m_status == NavigationStatus::WaitingForPosition;
+    }
     bool hasRoute() const { return m_route.isValid(); }
     bool lastRouteWasReroute() const {
         return m_activeRouteReason == ValhallaClient::Reason::Reroute;
@@ -275,6 +282,15 @@ private:
     LatLng currentGpsPosition() const;
     RouteOrigin selectRouteOrigin() const;
     bool requestRoute(ValhallaClient::Reason reason);
+    // Hold a route request that cannot be dispatched yet because no origin
+    // passes the accuracy gates, instead of dropping it. The request is
+    // retried from onGpsChanged()/onVehiclePositionChanged() as soon as an
+    // origin becomes usable.
+    void deferRouteForPosition(ValhallaClient::Reason reason);
+    // Re-issue a held request once an origin is usable. No-op when nothing is
+    // pending or the plan has since been paused/cleared/completed.
+    void retryPendingRoute();
+    void clearPendingRoute();
     void armRerouteRetry();
 
     // --- Plan and hop state ---
@@ -400,6 +416,13 @@ private:
     RerouteEpisodeGate m_rerouteGate;
     QTimer *m_rerouteRetry = nullptr;
     ValhallaClient::Reason m_activeRouteReason = ValhallaClient::Reason::Initial;
+
+    // A user-visible route request that is waiting for a usable origin. Reason
+    // is kept so the retry re-issues the same kind of request; pendingHopId
+    // lets a plan change supersede it. Only one request is ever held.
+    bool m_pendingRoute = false;
+    ValhallaClient::Reason m_pendingRouteReason = ValhallaClient::Reason::Initial;
+    int m_pendingRouteHopId = -1;
 
     // How long the error pill stays up before it drops itself. Matches
     // ToastService's error duration so the pill and its toast go together.

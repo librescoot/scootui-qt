@@ -13,6 +13,8 @@ private slots:
     void routeDistanceUsesAuthoritativeThresholds();
     void oneRequestPerDeviationEpisode();
     void coordinatesRequireFiniteGeographicRange();
+    void coarseFixInsideOldDeadZoneStillRoutes();
+    void originGateMatchesMapAcceptance();
 };
 
 void ReroutePolicyTest::certainEstimateResistsParallelRoadGpsJump()
@@ -99,6 +101,44 @@ void ReroutePolicyTest::coordinatesRequireFiniteGeographicRange()
     QVERIFY((!LatLng{91.0, 13.0}.isValid()));
     QVERIFY((!LatLng{52.0, 181.0}.isValid()));
     QVERIFY((!LatLng{std::nan(""), 13.0}.isValid()));
+}
+
+// Regression for a route request dropped while the map still showed a
+// position: the router accepted GPS only at EPH <= 35 m and the estimator only
+// at uncertainty <= 40 m, while MapService accepts EPH up to 50 m. A 45 m fix
+// fell into that gap and produced no origin at all.
+void ReroutePolicyTest::coarseFixInsideOldDeadZoneStillRoutes()
+{
+    RerouteOriginSelector::Input input;
+    input.gps = {52.5, 13.4, 90.0, 36.0, 45.0, 3.2,
+                 QStringLiteral("2026-09-21T09:24:49Z"),
+                 ScootEnums::GpsState::FixEstablished};
+    input.gpsAgeMs = 700;
+    input.physicalEstimate = {52.5004, 13.4004};
+    input.physicalUncertaintyMeters = 45.0;
+
+    const RouteOrigin origin = RerouteOriginSelector::select(input);
+    QVERIFY(origin.isValid());
+    QCOMPARE(origin.position, input.physicalEstimate);
+    QVERIFY(origin.radiusMeters >= 15);
+    QVERIFY(origin.radiusMeters <= 60);
+}
+
+// The route-origin gate must open exactly where MapService starts exposing a
+// position, so there is no accuracy band where both gates reject at once.
+void ReroutePolicyTest::originGateMatchesMapAcceptance()
+{
+    RerouteOriginSelector::Input input;
+    input.gps = {52.5, 13.4, 90.0, 36.0, MaxRouteOriginEphMeters, 1.0,
+                 QStringLiteral("2026-09-21T09:24:49Z"),
+                 ScootEnums::GpsState::FixEstablished};
+    input.gpsAgeMs = 500;
+    input.physicalUncertaintyMeters = 500.0;  // estimator intentionally unusable
+
+    QVERIFY(RerouteOriginSelector::select(input).isValid());
+
+    input.gps.ephMeters = MaxRouteOriginEphMeters + 0.5;
+    QVERIFY(!RerouteOriginSelector::select(input).isValid());
 }
 
 QTEST_APPLESS_MAIN(ReroutePolicyTest)

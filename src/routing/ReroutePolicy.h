@@ -104,8 +104,10 @@ private:
     }
 
     static constexpr qint64 MaxGpsAgeMs = 2500;
-    static constexpr double MaxGpsEphMeters = 35.0;
-    static constexpr double MaxEstimatorUncertaintyMeters = 40.0;
+    // Router-side accuracy gates. Values come from RouteModels.h so they stay
+    // aligned with the gates MapService applies before it exposes a position.
+    static constexpr double MaxGpsEphMeters = MaxRouteOriginEphMeters;
+    static constexpr double MaxEstimatorUncertaintyMeters = MaxRouteOriginUncertaintyMeters;
     static constexpr double ReceiverBufferMs = 300.0;
     static constexpr double MaxProjectionMs = 2000.0;
     static constexpr double MinCourseSpeedKmh = 3.0;

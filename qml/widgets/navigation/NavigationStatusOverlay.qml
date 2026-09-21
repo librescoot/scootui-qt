@@ -12,11 +12,13 @@ Item {
     readonly property int statusNavigating: 2
     readonly property int statusRerouting: 3
     readonly property int statusArrived: 4
+    readonly property int statusWaitingForPosition: 6
 
     property int navStatus: typeof navigationService !== "undefined"
                             ? navigationService.status : 0
 
     visible: navStatus === statusCalculating ||
+             navStatus === statusWaitingForPosition ||
              navStatus === statusRerouting ||
              navStatus === statusArrived
 
@@ -31,6 +33,7 @@ Item {
         color: {
             switch (navStatusOverlay.navStatus) {
                 case statusCalculating:
+                case statusWaitingForPosition:
                 case statusRerouting: return themeStore.statusNeutral
                 case statusArrived: return themeStore.statusSuccess
                 default: return "transparent"
@@ -53,6 +56,7 @@ Item {
                 border.color: "white"
                 border.width: 2
                 visible: navStatusOverlay.navStatus === statusCalculating ||
+                         navStatusOverlay.navStatus === statusWaitingForPosition ||
                          navStatusOverlay.navStatus === statusRerouting
 
                 Rectangle {
@@ -61,6 +65,7 @@ Item {
                     color: {
                         switch (navStatusOverlay.navStatus) {
                             case statusCalculating:
+                            case statusWaitingForPosition:
                             case statusRerouting: return themeStore.statusNeutral
                             default: return "transparent"
                         }
@@ -90,6 +95,7 @@ Item {
                 text: {
                     switch (navStatusOverlay.navStatus) {
                         case statusCalculating: return translations.navCalculating
+                        case statusWaitingForPosition: return translations.navWaitingForGpsRoute
                         case statusRerouting: return translations.navRecalculating
                         case statusArrived: return translations.navArrived
                         default: return ""

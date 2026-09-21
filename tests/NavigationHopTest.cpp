@@ -47,6 +47,7 @@ private slots:
     void externalClearStopsNavigation();
     void reconnectAfterArrivalDoesNotRearm();
     void planOverviewMapsLegsToRemainingStops();
+    void heldRouteRequestRetriesWhenOriginBecomesUsable();
 
 private:
     struct Fixture {
@@ -82,10 +83,15 @@ private:
 
     static void setGps(Fixture &f, double lat, double lon)
     {
+        setGpsWithEph(f, lat, lon, 4.5);
+    }
+
+    static void setGpsWithEph(Fixture &f, double lat, double lon, double eph)
+    {
         const QString json = QStringLiteral(
             "{\"latitude\":\"%1\",\"longitude\":\"%2\",\"course\":\"90\",\"speed\":\"20\","
-            "\"eph\":\"4.5\",\"state\":\"fix-established\",\"timestamp\":\"%3\"}")
-            .arg(lat, 0, 'f', 7).arg(lon, 0, 'f', 7)
+            "\"eph\":\"%3\",\"state\":\"fix-established\",\"timestamp\":\"%4\"}")
+            .arg(lat, 0, 'f', 7).arg(lon, 0, 'f', 7).arg(eph, 0, 'f', 1)
             .arg(QDateTime::currentDateTimeUtc().toString(Qt::ISODate));
         f.repo.publish(QStringLiteral("gps:tpv"), json);
     }
@@ -650,6 +656,35 @@ void NavigationHopTest::planOverviewMapsLegsToRemainingStops()
     f.nav.clearNavigation();
     QVERIFY(f.nav.planOverview().isEmpty());
     QCOMPARE(f.nav.planTotalDistance(), 0.0);
+}
+
+// A route request must never disappear just because the fix is currently too
+// coarse to route from. It is held, surfaced as WaitingForPosition, and
+// re-issued automatically once a usable origin appears.
+void NavigationHopTest::heldRouteRequestRetriesWhenOriginBecomesUsable()
+{
+    Fixture f;
+
+    // 60 m EPH is above the route-origin gate (50 m). With no MapService in
+    // this fixture there is no estimator fallback, so no origin is usable.
+    setGpsWithEph(f, 52.50, 13.40, 60.0);
+    f.nav.setRoutePlan(QList<RouteStop>{stop(52.51, 13.41, QStringLiteral("dest"))}, 0);
+
+    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::WaitingForPosition));
+    QVERIFY(f.nav.isWaitingForPosition());
+    QVERIFY(!f.nav.hasRoute());
+    quiesce(f);
+
+    // A usable fix releases the held request with no further user action.
+    setGpsWithEph(f, 52.50, 13.40, 5.0);
+
+    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Calculating));
+    QVERIFY(!f.nav.isWaitingForPosition());
+    quiesce(f);
+
+    // And a route arriving completes the transition.
+    f.nav.setRoute(simpleRoute({52.50, 13.40}, {52.51, 13.41}));
+    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Navigating));
 }
 
 QTEST_MAIN(NavigationHopTest)

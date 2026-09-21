@@ -7,6 +7,15 @@
 #include <algorithm>
 #include <cmath>
 
+// Route-origin accuracy gates shared by the map/estimator (MapService) and the
+// routing origin selector (RerouteOriginSelector). They must agree: a position
+// that is good enough to display must be good enough to route from, otherwise
+// a route request can be dropped while the map still shows a valid position.
+inline constexpr double MaxRouteOriginEphMeters = 50.0;
+// Kept >= MaxRouteOriginEphMeters so any fix the estimator accepts yields a
+// usable origin rather than falling into a gap between the two gates.
+inline constexpr double MaxRouteOriginUncertaintyMeters = 50.0;
+
 struct LatLng {
     double latitude = 0;
     double longitude = 0;
@@ -93,7 +102,12 @@ enum class NavigationStatus {
     Navigating,
     Rerouting,
     Arrived,
-    Error
+    Error,
+    // A route was requested but no position is accurate enough to route from.
+    // The request is held and retried until an origin passes the same
+    // accuracy gates the map uses, so it can never be dropped silently.
+    // Appended last: the earlier values are hard-coded in QML and Application.
+    WaitingForPosition
 };
 
 struct RouteInstruction {

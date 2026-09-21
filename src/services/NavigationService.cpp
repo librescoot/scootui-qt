@@ -211,6 +211,11 @@ void NavigationService::setMapService(MapService *map)
 
 void NavigationService::onVehiclePositionChanged()
 {
+    // Dead-reckoning keeps advancing through a GPS gap, so this is also the
+    // path that releases a held route request once the estimator is usable
+    // again.
+    retryPendingRoute();
+
     if (m_status != NavigationStatus::Navigating &&
         m_status != NavigationStatus::Rerouting &&
         m_status != NavigationStatus::Arrived)
@@ -950,6 +955,7 @@ void NavigationService::declineContinue()
     if (m_planState != RoutePlanState::AtStop)
         return;
     stopHopAdvanceTimer();
+    clearPendingRoute();
     setStatus(NavigationStatus::Idle);
     setPlanState(RoutePlanState::Held);
 }
@@ -965,6 +971,7 @@ void NavigationService::pausePlan()
 
     stopHopAdvanceTimer();
     m_valhalla->cancelPending();
+    clearPendingRoute();
     persistPlan();
     setStatus(NavigationStatus::Idle);
     setPlanState(RoutePlanState::Paused);
@@ -1054,9 +1061,13 @@ void NavigationService::beginCurrentHop(ValhallaClient::Reason reason)
     refreshPlanOverview();
 
     if (!selectRouteOrigin().isValid()) {
-        qDebug() << "NavigationService: waiting for a trustworthy position before calculating route";
+        // No position we can route from yet. Hold the request and show the
+        // waiting state; retryPendingRoute() re-issues it as soon as the fix
+        // or the estimator is usable again.
+        deferRouteForPosition(reason);
         return;
     }
+    clearPendingRoute();
     setStatus(NavigationStatus::Calculating);
     requestRoute(reason);
 }
@@ -1114,6 +1125,7 @@ void NavigationService::completePlan()
     stopHopAdvanceTimer();
     m_valhalla->cancelPending();
     m_valhalla->cancelPreview();
+    clearPendingRoute();
     clearPlanOverview();
     m_planService.clear();
     setStatus(NavigationStatus::Idle);
@@ -1357,6 +1369,7 @@ void NavigationService::clearNavigation()
     m_isOffRoute = false;
     m_rerouteGate.reset();
     m_rerouteRetry->stop();
+    clearPendingRoute();
     m_navigationCadence.reset();
     m_wasArrived = false;
     m_pausedAfterReach = false;
@@ -1401,6 +1414,7 @@ void NavigationService::setRoute(const Route &route)
     // An injected route supersedes any real request still queued, so a late
     // dispatch cannot clobber it (simulator and tests inject routes).
     m_valhalla->cancelPending();
+    clearPendingRoute();
     m_wasArrived = false;
     emit arrivalReset();
     // A plan supplies the target; only an injected standalone route derives it
@@ -1434,14 +1448,20 @@ void NavigationService::onGpsChanged()
         updateNavigationState();
     }
 
+    // Release a route request that was held for lack of a usable origin.
+    // This is the 1 Hz GPS path; onVehiclePositionChanged covers the DR ticks.
+    retryPendingRoute();
+
     // Recovery: destination loaded but route not yet calculated (GPS wasn't
     // ready). Never runs for a held, paused, or finished plan: those keep their
-    // route or deliberately have none, and must not silently resume.
+    // route or deliberately have none, and must not silently resume. A request
+    // already held by retryPendingRoute() is left to that path.
     const bool planGuiding = m_planState == RoutePlanState::None
                           || m_planState == RoutePlanState::Planning
                           || m_planState == RoutePlanState::Navigating;
-    if (planGuiding && m_destination.isValid() && !m_route.isValid() &&
-        (m_status == NavigationStatus::Idle || m_status == NavigationStatus::Error)) {
+    if (!m_pendingRoute && planGuiding && m_destination.isValid() && !m_route.isValid()
+        && (m_status == NavigationStatus::Idle || m_status == NavigationStatus::Error
+            || m_status == NavigationStatus::WaitingForPosition)) {
         if (selectRouteOrigin().isValid()) {
             LatLng pos = currentPosition();
             double dist = pos.distanceTo(m_destination);
@@ -1453,6 +1473,8 @@ void NavigationService::onGpsChanged()
             } else {
                 requestRoute(ValhallaClient::Reason::Recovery);
             }
+        } else {
+            deferRouteForPosition(ValhallaClient::Reason::Recovery);
         }
     }
 }
@@ -1599,6 +1621,7 @@ void NavigationService::onRouteCalculated(const Route &route)
     m_isOffRoute = false;
     m_rerouteGate.reset();
     m_rerouteRetry->stop();
+    clearPendingRoute();
     m_navigationCadence.reset();
 
     if (!m_destination.isValid() && !route.waypoints.isEmpty()) {
@@ -2029,10 +2052,64 @@ bool NavigationService::requestRoute(ValhallaClient::Reason reason)
     if (!m_destination.isValid())
         return false;
     const RouteOrigin origin = selectRouteOrigin();
-    if (!origin.isValid())
+    if (!origin.isValid()) {
+        deferRouteForPosition(reason);
         return false;
+    }
+    clearPendingRoute();
     m_valhalla->requestRoute(origin, m_destination, reason);
     return true;
+}
+
+void NavigationService::deferRouteForPosition(ValhallaClient::Reason reason)
+{
+    m_pendingRoute = true;
+    m_pendingRouteReason = reason;
+    m_pendingRouteHopId = m_plan.isValid() ? m_plan.currentStop().id : -1;
+
+    // Only the no-route case needs the dedicated waiting state. When a route is
+    // already on screen (a preference/language recalculation), keep showing it
+    // and let the retry refresh it in the background.
+    if (!m_route.isValid()) {
+        qDebug() << "NavigationService: holding route request for a trustworthy position";
+        setStatus(NavigationStatus::WaitingForPosition);
+    }
+}
+
+void NavigationService::retryPendingRoute()
+{
+    if (!m_pendingRoute)
+        return;
+
+    // A held request belongs to the hop it was issued for. A paused, held, or
+    // finished plan, a different hop having become current, or a cleared
+    // destination all supersede it.
+    const bool hopSuperseded = m_plan.isValid()
+        && m_plan.currentStop().id != m_pendingRouteHopId;
+    const bool planGuiding = m_planState == RoutePlanState::None
+                          || m_planState == RoutePlanState::Planning
+                          || m_planState == RoutePlanState::Navigating;
+    if (hopSuperseded || !planGuiding || !m_destination.isValid()) {
+        clearPendingRoute();
+        return;
+    }
+
+    if (!selectRouteOrigin().isValid())
+        return;
+
+    const ValhallaClient::Reason reason = m_pendingRouteReason;
+    if (!requestRoute(reason)) {
+        // Still not dispatchable (e.g. destination cleared by the caller).
+        return;
+    }
+    if (!m_route.isValid())
+        setStatus(NavigationStatus::Calculating);
+}
+
+void NavigationService::clearPendingRoute()
+{
+    m_pendingRoute = false;
+    m_pendingRouteHopId = -1;
 }
 
 void NavigationService::armRerouteRetry()

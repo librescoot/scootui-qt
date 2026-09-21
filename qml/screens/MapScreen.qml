@@ -15,6 +15,7 @@ Rectangle {
     // Navigation status enum values
     readonly property int statusNavigating: 2
     readonly property int statusArrived: 4
+    readonly property int statusWaitingForPosition: 6
 
     property int navStatus: typeof navigationService !== "undefined"
                             ? navigationService.status : 0
@@ -35,8 +36,11 @@ Rectangle {
     // Full-screen "waiting for GPS" takes over only when there's no position
     // we can do anything useful with: no recent fix AND no route to dead-
     // reckon along. If we have a route, we keep the map and DR along it —
-    // the vehicle marker grays out on its own (via hasRecentFix).
-    property bool showWaitingForGps: !hasRecentFix && !hasRoute
+    // the vehicle marker grays out on its own (via hasRecentFix). A route
+    // request held because no position is accurate enough also lands here, so
+    // the rider sees why the route has not appeared yet.
+    property bool waitingForPosition: navStatus === statusWaitingForPosition
+    property bool showWaitingForGps: (!hasRecentFix && !hasRoute) || waitingForPosition
 
     ColumnLayout {
         anchors.fill: parent
@@ -70,8 +74,15 @@ Rectangle {
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: typeof translations !== "undefined"
-                          ? translations.mapWaitingForGps : "Waiting for GPS fix"
+                    text: {
+                        if (typeof translations === "undefined")
+                            return mapScreen.waitingForPosition
+                                 ? "Waiting for recent GPS fix to calculate route."
+                                 : "Waiting for GPS fix"
+                        return mapScreen.waitingForPosition
+                             ? translations.navWaitingForGpsRoute
+                             : translations.mapWaitingForGps
+                    }
                     font.pixelSize: themeStore.fontBody
                     color: typeof themeStore !== "undefined" && themeStore.isDark
                            ? "#FFFFFF" : "#000000"
