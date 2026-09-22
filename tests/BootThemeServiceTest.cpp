@@ -63,8 +63,8 @@ void BootThemeServiceTest::themesInDirFiltersAndOrders()
     QVERIFY(bad.open(QIODevice::WriteOnly));
     bad.write("{}");
     bad.close();
-    // A symlink alias is a theme under its own name, which is what librescoot-xp
-    // is on the device.
+    // A symlink alias is still a theme under its own name: discovery must not
+    // require a regular file.
     QVERIFY(QFile::link(dir + QStringLiteral("/windowsxp.json"),
                         dir + QStringLiteral("/librescoot-xp.json")));
 
