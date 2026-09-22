@@ -437,6 +437,29 @@ Row {
                 source: otaIcon
                 colorization: 1.0
                 colorizationColor: statusIndicators.iconColor
+                opacity: otaPulseAnimation.running ? otaPulseAnimation.pulseValue : 1.0
+            }
+
+            // In-flight states breathe so an update registers at a glance;
+            // pending-reboot and error stay static.
+            SequentialAnimation {
+                id: otaPulseAnimation
+                running: statusIndicators.otaShown && statusIndicators.otaProgressActive
+                loops: Animation.Infinite
+
+                property real pulseValue: 1
+
+                NumberAnimation {
+                    target: otaPulseAnimation; property: "pulseValue"
+                    from: 1.0; to: 0.35; duration: 500
+                    easing.type: Easing.InOutExpo
+                }
+                NumberAnimation {
+                    target: otaPulseAnimation; property: "pulseValue"
+                    from: 0.35; to: 1.0; duration: 500
+                    easing.type: Easing.InOutExpo
+                }
+                PauseAnimation { duration: 200 }
             }
         }
 

@@ -12,6 +12,33 @@ Item {
     // unchanged; a theme-aware caller passes its own foreground.
     property color tintColor: "#FFFFFF"
 
+    readonly property bool inFlight: status === "downloading"
+                                     || status === "preparing"
+                                     || status === "installing"
+
+    // Same breath as the status-bar icon; every other state stays static.
+    opacity: otaPulse.running ? otaPulse.pulseValue : 1.0
+
+    SequentialAnimation {
+        id: otaPulse
+        running: root.inFlight && root.visible
+        loops: Animation.Infinite
+
+        property real pulseValue: 1
+
+        NumberAnimation {
+            target: otaPulse; property: "pulseValue"
+            from: 1.0; to: 0.35; duration: 500
+            easing.type: Easing.InOutExpo
+        }
+        NumberAnimation {
+            target: otaPulse; property: "pulseValue"
+            from: 0.35; to: 1.0; duration: 500
+            easing.type: Easing.InOutExpo
+        }
+        PauseAnimation { duration: 200 }
+    }
+
     width: size
     height: size
 
