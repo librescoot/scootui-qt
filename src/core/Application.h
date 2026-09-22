@@ -76,10 +76,11 @@ public:
 
 private:
     void fadeInOverlay();
-    // dashboard[ready] is published when the link is up, every boot hash has
-    // been fetched over it, a frame has been swapped, and the cluster exists
-    // so a switch to it costs one frame. Re-evaluated on every edge and
-    // published again after a reconnect once the data is re-seeded.
+    // dashboard[ready] is published as soon as the repository link is up, and
+    // re-published after every reconnect: vehicle-service gates ready-to-drive
+    // on it, so it must not wait for the UI to finish booting. The remaining
+    // boot conditions (data seeded, frame, warm cluster) are logged alongside
+    // for diagnostics but do not hold the publish back.
     void evaluateReadyGate(const char *edge);
     void publishDashboardReady();
     void startAddressDatabase();

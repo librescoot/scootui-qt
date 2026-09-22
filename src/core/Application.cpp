@@ -997,6 +997,9 @@ void Application::createStores(QQmlApplicationEngine &engine)
     });
     connect(repo, &MdbRepository::dataSeeded, this, [this]() { evaluateReadyGate("data seeded"); });
     publishIdentity();
+    // The worker may already be connected before this handler was attached;
+    // evaluate once here so the link edge is not missed.
+    evaluateReadyGate("stores created");
 
     qDebug() << "All stores created and started (M5: menu, settings, translations, auto-theme, toast, map, nav-availability, saved-locations, serial-number)";
 }
@@ -1138,7 +1141,11 @@ void Application::evaluateReadyGate(const char *edge)
     const bool cluster = m_bootGate && m_bootGate->clusterWarm();
     qDebug().noquote() << QStringLiteral("ready gate (%1): link=%2 data=%3 frame=%4 cluster=%5")
         .arg(QLatin1String(edge)).arg(link).arg(data).arg(m_uiPresented).arg(cluster);
-    if (!(link && data && m_uiPresented && cluster) || m_readyPublished)
+    // The link is the only condition: vehicle-service turns the kickstand-up
+    // event into ready-to-drive on this flag, and the ECU throttles nothing
+    // until that happens. Holding it for frame and cluster made drive mode
+    // wait on the dashboard's boot; the boot conditions stay in the log only.
+    if (!link || m_readyPublished)
         return;
     m_readyPublished = true;
     publishDashboardReady();
