@@ -2,7 +2,32 @@
 
 #include "core/ShortcutMenuItems.h"
 #include "repositories/InMemoryMdbRepository.h"
+#include "services/DestinationRpc.h"
 #include "services/SavedLocationsService.h"
+
+#include <QElapsedTimer>
+#include <QJsonDocument>
+#include <QJsonObject>
+
+// Captures the envelope DestinationRpc pushes and answers on the reply
+// channel, so tests can assert the exact bytes settings-service consumes.
+class CapturingRepository : public InMemoryMdbRepository
+{
+public:
+    using InMemoryMdbRepository::InMemoryMdbRepository;
+
+    QString lastChannel;
+    QString lastCommand;
+    QString autoReply;
+
+    void push(const QString &channel, const QString &command) override
+    {
+        lastChannel = channel;
+        lastCommand = command;
+        if (!autoReply.isEmpty())
+            publish(QLatin1String(DestinationRpc::ReplyChannel), autoReply);
+    }
+};
 
 class SavedLocationsServiceTest : public QObject
 {
@@ -13,6 +38,8 @@ private slots:
     void deletionClearsAllRecordFields();
     void legacyQuickAssignmentsOrderBySlot();
     void removePrunesDestinationItem();
+    void rpcEnvelopeMatchesServerContract();
+    void rpcSurfacesErrorsAndTimeout();
 };
 
 static SavedLocation location(double latitude, double longitude, const QString &label)
@@ -144,6 +171,55 @@ void SavedLocationsServiceTest::removePrunesDestinationItem()
     QVERIFY(ok);
     QCOMPARE(ShortcutMenuItems::destinationUuids(afterRemove),
              QStringList{saved[1].uuid});
+}
+
+void SavedLocationsServiceTest::rpcEnvelopeMatchesServerContract()
+{
+    CapturingRepository repo;
+    repo.autoReply = QStringLiteral(
+        R"({"ok":true,"payload":{"id":3,"uuid":"3fa85f64-5717-4562-b3fc-2c963f66afa6"}})");
+    DestinationRpc rpc(&repo);
+
+    QVariantMap reply;
+    const QVariantMap args{{QStringLiteral("latitude"), 52.5},
+                           {QStringLiteral("longitude"), 13.4},
+                           {QStringLiteral("label"), QStringLiteral("Home")}};
+    QVERIFY(rpc.call(QStringLiteral("destination.save"), args, &reply));
+    QCOMPARE(reply.value(QStringLiteral("id")).toInt(), 3);
+    QCOMPARE(reply.value(QStringLiteral("uuid")).toString(),
+             QStringLiteral("3fa85f64-5717-4562-b3fc-2c963f66afa6"));
+
+    QCOMPARE(repo.lastChannel, QStringLiteral("settings:destinations"));
+    const QJsonObject envelope = QJsonDocument::fromJson(repo.lastCommand.toUtf8()).object();
+    QCOMPARE(envelope.value(QStringLiteral("method")).toString(),
+             QStringLiteral("destination.save"));
+    QCOMPARE(envelope.value(QStringLiteral("reply_channel")).toString(),
+             QLatin1String(DestinationRpc::ReplyChannel));
+    QVERIFY(!envelope.value(QStringLiteral("id")).toString().isEmpty());
+    QVERIFY(envelope.value(QStringLiteral("deadline")).toDouble()
+            > double(QDateTime::currentMSecsSinceEpoch()));
+    const QJsonObject payload = envelope.value(QStringLiteral("payload")).toObject();
+    QCOMPARE(payload.value(QStringLiteral("latitude")).toDouble(), 52.5);
+    QCOMPARE(payload.value(QStringLiteral("longitude")).toDouble(), 13.4);
+    QCOMPARE(payload.value(QStringLiteral("label")).toString(), QStringLiteral("Home"));
+    QVERIFY(!payload.contains(QStringLiteral("id")));
+}
+
+void SavedLocationsServiceTest::rpcSurfacesErrorsAndTimeout()
+{
+    CapturingRepository repo;
+    repo.autoReply = QStringLiteral(R"({"ok":false,"error":"boom"})");
+    DestinationRpc failing(&repo);
+    QVERIFY(!failing.call(QStringLiteral("destination.touch"),
+                          {{QStringLiteral("id"), 1}}, nullptr));
+    QVERIFY(repo.lastCommand.contains(QStringLiteral("destination.touch")));
+
+    CapturingRepository silent;
+    DestinationRpc timing(&silent);
+    QElapsedTimer timer;
+    timer.start();
+    QVERIFY(!timing.call(QStringLiteral("destination.save"), {}, nullptr, 60));
+    QVERIFY(timer.elapsed() >= 50);
 }
 
 QTEST_GUILESS_MAIN(SavedLocationsServiceTest)
