@@ -666,6 +666,7 @@ class Translations : public QObject
     // state they switch to, so their captions name that target, not the
     // current one.
     Q_PROPERTY(QString shortcutToConfirm READ shortcutToConfirm NOTIFY languageChanged)
+    Q_PROPERTY(QString shortcutReleaseHint READ shortcutReleaseHint NOTIFY languageChanged)
     Q_PROPERTY(QString shortcutThemeAuto READ shortcutThemeAuto NOTIFY languageChanged)
     Q_PROPERTY(QString shortcutThemeDark READ shortcutThemeDark NOTIFY languageChanged)
     Q_PROPERTY(QString shortcutThemeLight READ shortcutThemeLight NOTIFY languageChanged)
@@ -1337,6 +1338,7 @@ public:
     // Shortcut menu
     QString shortcutPressToConfirm() const { return lookup("shortcutPressToConfirm"); }
     QString shortcutToConfirm() const { return lookup("shortcutToConfirm"); }
+    QString shortcutReleaseHint() const { return lookup("shortcutReleaseHint"); }
     QString shortcutThemeAuto() const { return lookup("shortcutThemeAuto"); }
     QString shortcutThemeDark() const { return lookup("shortcutThemeDark"); }
     QString shortcutThemeLight() const { return lookup("shortcutThemeLight"); }

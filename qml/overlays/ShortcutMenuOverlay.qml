@@ -45,10 +45,6 @@ Item {
                                          - Math.max(0, shortcutMenuStore.actionCount - 1)
                                            * contentRow.spacing) / shortcutMenuStore.actionCount
                                       : contentRow.width
-    readonly property real captionWidth: cellWidth
-    readonly property real captionX: contentRow.x
-                                     + shortcutMenuStore.selectedIndex
-                                       * (cellWidth + contentRow.spacing)
 
     function actionIcon(action) {
         if (action.kind === "theme") {
@@ -86,7 +82,7 @@ Item {
         anchors.bottomMargin: confirmBar.anchors.bottomMargin + confirmBar.height + 6
         // Same width for every action count, so the row and confirm bar hold still.
         width: 400
-        height: 150
+        height: 110
         clip: true
 
         FrostedGlass {
@@ -154,19 +150,63 @@ Item {
                 }
             }
         }
+    }
 
-        Text {
-            anchors.top: contentRow.bottom
-            anchors.topMargin: 6
-            width: shortcutOverlay.captionWidth
-            x: shortcutOverlay.captionX
-            horizontalAlignment: Text.AlignHCenter
-            elide: Text.ElideRight
-            maximumLineCount: 1
-            text: shortcutOverlay.selectedLabel
-            font.pixelSize: themeStore.fontBody
-            font.weight: Font.Medium
-            color: isDark ? "#FFFFFF" : "#212121"
+    // Same slot as the confirm bar: the full item name and how to activate it
+    // sit exactly where the countdown appears, so the two swap in place.
+    Rectangle {
+        id: hintBar
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: confirmBar.anchors.bottomMargin
+        width: confirmBar.width
+        height: confirmBar.height
+        radius: themeStore.radiusModal
+        color: isDark ? Qt.rgba(0, 0, 0, 0.9) : Qt.rgba(1, 1, 1, 0.95)
+        border.width: 2
+        border.color: "#FF9800"
+        visible: !shortcutMenuStore.confirming
+                 && shortcutMenuStore.actionCount > 0
+
+        Column {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
+            spacing: 4
+
+            Text {
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+                maximumLineCount: 1
+                text: shortcutOverlay.selectedLabel
+                font.pixelSize: themeStore.fontBody
+                font.weight: Font.Bold
+                color: isDark ? "#FFFFFF" : "#000000"
+            }
+
+            Row {
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 6
+
+                TintedImage {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 16
+                    height: 16
+                    source: "qrc:/ScootUI/assets/icons/librescoot-seatbox-button.svg"
+                    tintColor: "#FF9800"
+                }
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: translations.shortcutReleaseHint
+                    font.pixelSize: themeStore.fontCaption
+                    color: isDark ? "#FFFFFF" : "#000000"
+                    opacity: 0.8
+                }
+            }
         }
     }
 

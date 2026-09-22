@@ -1855,6 +1855,9 @@ void Translations::initStrings()
     en[QStringLiteral("shortcutToConfirm")] = QStringLiteral("to confirm");
     de[QStringLiteral("shortcutToConfirm")] = QStringLiteral("zum Best\u00E4tigen");
 
+    en[QStringLiteral("shortcutReleaseHint")] = QStringLiteral("Release to select, press to confirm");
+    de[QStringLiteral("shortcutReleaseHint")] = QStringLiteral("Loslassen zum Ausw\u00E4hlen, dr\u00FCcken zum Best\u00E4tigen");
+
     en[QStringLiteral("shortcutThemeAuto")] = QStringLiteral("Auto Theme");
     de[QStringLiteral("shortcutThemeAuto")] = QStringLiteral("Automatisches Design");
     en[QStringLiteral("shortcutThemeDark")] = QStringLiteral("Dark Theme");
