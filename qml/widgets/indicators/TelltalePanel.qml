@@ -34,15 +34,20 @@ Rectangle {
     readonly property bool parked: vehicleState === 4
 
     // Car-style alternator warning: a main pack is active but the AUX charger
-    // reports not-charging. Level-independent; mirrored by the status-bar AUX
-    // warning icon and the ChargingSystemMonitor toast. Uses the red UNECE R121 /
-    // ISO 7000-0247 charging-condition telltale.
+    // reports not-charging below the charging ceiling, so the battery is not
+    // simply full. Also the status-bar AUX icon and the ChargingSystemMonitor
+    // toast; silenced by scooter.aux-battery.charging-system-warning. Red UNECE
+    // R121 / ISO 7000-0247 charging-condition telltale.
+    readonly property int auxChargeCeilingMv: 14500
+
     readonly property bool auxNotCharging: {
         if (typeof battery0Store === "undefined" || typeof auxBatteryStore === "undefined") return false
+        if (typeof settingsStore !== "undefined" && settingsStore.suppressAuxChargingWarning) return false
         var mainActive = battery0Store.present && battery0Store.charge > 0
                          && battery0Store.batteryState === 3
         var auxPresent = auxBatteryStore.voltageValid || auxBatteryStore.chargeValid
-        return mainActive && auxPresent && auxBatteryStore.chargeStatus === 0
+        var belowCeiling = auxBatteryStore.voltageValid && auxBatteryStore.voltage < auxChargeCeilingMv
+        return mainActive && auxPresent && auxBatteryStore.chargeStatus === 0 && belowCeiling
     }
 
     // Battery mode: slot 1 only counts when the scooter is configured for two

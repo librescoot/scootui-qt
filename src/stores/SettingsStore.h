@@ -41,6 +41,8 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(QString showTemperature READ showTemperature NOTIFY showTemperatureChanged)
     Q_PROPERTY(QString showCbBattery READ showCbBattery NOTIFY showCbBatteryChanged)
     Q_PROPERTY(QString showAuxBattery READ showAuxBattery NOTIFY showAuxBatteryChanged)
+    Q_PROPERTY(bool suppressAuxChargingWarning READ suppressAuxChargingWarning NOTIFY suppressAuxChargingWarningChanged)
+    Q_PROPERTY(bool suppressCbChargingWarning READ suppressCbChargingWarning NOTIFY suppressCbChargingWarningChanged)
     Q_PROPERTY(QString showRoadName READ showRoadName NOTIFY showRoadNameChanged)
     Q_PROPERTY(QString showSpeedLimit READ showSpeedLimit NOTIFY showSpeedLimitChanged)
     Q_PROPERTY(bool hornWhenSeatboxOpen READ hornWhenSeatboxOpen NOTIFY hornWhenSeatboxOpenChanged)
@@ -118,6 +120,9 @@ public:
     QString showTemperature() const { return m_showTemperature; }
     QString showCbBattery() const { return m_showCbBattery; }
     QString showAuxBattery() const { return m_showAuxBattery; }
+    // scooter.{aux,cb}-battery.charging-system-warning (show | suppress).
+    bool suppressAuxChargingWarning() const { return m_auxBatteryChargingSystemWarning == QLatin1String("suppress"); }
+    bool suppressCbChargingWarning() const { return m_cbBatteryChargingSystemWarning == QLatin1String("suppress"); }
     QString showRoadName() const { return m_showRoadName; }
     QString showSpeedLimit() const { return m_showSpeedLimit; }
     bool alarmEnabled() const { return m_alarmEnabled == QLatin1String("true"); }
@@ -208,6 +213,8 @@ signals:
     void showTemperatureChanged();
     void showCbBatteryChanged();
     void showAuxBatteryChanged();
+    void suppressAuxChargingWarningChanged();
+    void suppressCbChargingWarningChanged();
     void showRoadNameChanged();
     void showSpeedLimitChanged();
     void hornWhenSeatboxOpenChanged();
@@ -320,6 +327,10 @@ private:
     // @schema dashboard.show-aux-battery
     // Icon-only indicator. Values: "always", "warning" (SoC <= 50%), "never".
     QString m_showAuxBattery = QStringLiteral("warning");
+    // @schema scooter.aux-battery.charging-system-warning
+    QString m_auxBatteryChargingSystemWarning = QStringLiteral("show");
+    // @schema scooter.cb-battery.charging-system-warning
+    QString m_cbBatteryChargingSystemWarning = QStringLiteral("show");
     // @schema dashboard.show-road-name
     // Road-name pill visibility. Values: "always", "map" (map screen only,
     // cluster stays clean), "navigating" (only while a route is active),

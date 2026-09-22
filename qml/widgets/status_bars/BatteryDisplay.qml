@@ -104,7 +104,7 @@ Row {
 
     // --- Optional CBB / AUX charge indicators (icon-only) ---
     // One setting per battery: visibility (always / warning / never, default
-    // warning). "warning" means the pack reads low: CBB by SoC < 50% (it has a
+    // warning). "warning" means the battery reads low: CBB by SoC < 50% (it has a
     // real fuel gauge), AUX by voltage (no gauge, see the aux thresholds below).
     // Detailed charge/voltage is available via the hold-both-brakes parked view,
     // so the status bar stays icon-only.
@@ -120,11 +120,11 @@ Row {
     readonly property bool auxChargeValid: typeof auxBatteryStore !== "undefined" && auxBatteryStore.chargeValid
     readonly property int auxVoltageMv: typeof auxBatteryStore !== "undefined" ? auxBatteryStore.voltage : 0
     readonly property bool auxVoltageValid: typeof auxBatteryStore !== "undefined" && auxBatteryStore.voltageValid
-    // The AUX pack has no `present` field in redis (unlike CBB), so treat it as
+    // AUX has no `present` field in redis (unlike CBB), so treat it as
     // present once the nRF52 has reported anything about it.
     readonly property bool auxPresent: auxVoltageValid || auxChargeValid
 
-    // AUX 12V thresholds, in mV. The AUX pack has no fuel gauge: mdb-nrf52
+    // AUX 12V thresholds, in mV. AUX has no fuel gauge: mdb-nrf52
     // quantizes this same voltage into 5 SoC buckets (0/25/50/75/100), so SoC
     // carries strictly less information than the voltage it is derived from.
     // Drive every aux low/warning/critical decision from voltage; SoC is kept
@@ -137,6 +137,15 @@ Row {
     readonly property int auxLowVoltageMv: 11700
     readonly property int auxWarnVoltageMv: 11495
     readonly property int auxCriticalVoltageMv: 11000
+    // At or above this, not-charging means the battery is full. Mirrors
+    // AuxChargeCeilingMv in ChargingSystemMonitor.h.
+    readonly property int auxChargeCeilingMv: 14500
+
+    // scooter.{aux,cb}-battery.charging-system-warning.
+    readonly property bool suppressAuxChargingWarning: typeof settingsStore !== "undefined"
+                                                       && settingsStore.suppressAuxChargingWarning
+    readonly property bool suppressCbChargingWarning: typeof settingsStore !== "undefined"
+                                                      && settingsStore.suppressCbChargingWarning
 
     readonly property bool auxLow: auxVoltageValid && auxVoltageMv < auxLowVoltageMv
 
@@ -263,6 +272,7 @@ Row {
     readonly property bool cbWarningCondition: {
         if (typeof cbBatteryStore === "undefined" || typeof vehicleStore === "undefined") return false
         if (!cbBatteryStore.present) return false
+        if (suppressCbChargingWarning) return false
         return cbBatteryStore.charge < 50
             && cbBatteryStore.chargeStatus !== csCharging
             && present0 && charge0 > 0 && battState0 === bsActive
@@ -285,15 +295,17 @@ Row {
             && vehicleStore.seatboxLock === slClosed
     }
     // AUX "alternator" warning: a main pack is active, so the 12V system should
-    // be charging, but the charger reports not-charging. Level-independent -
-    // this is the charging path, not the pack's state of charge. Mirrored by
-    // the telltale panel (red UNECE charging-condition telltale) and the
-    // AuxChargeMonitor toast; here it reuses the monochrome AUX warning icon.
+    // be charging, but the charger reports not-charging below the charging
+    // ceiling. Silenced by scooter.aux-battery.charging-system-warning. Mirrored
+    // by the telltale panel and the ChargingSystemMonitor toast; reuses the
+    // monochrome AUX warning icon here.
     readonly property bool auxNotChargingCondition: {
         if (typeof auxBatteryStore === "undefined" || typeof battery0Store === "undefined") return false
+        if (suppressAuxChargingWarning) return false
         return present0 && charge0 > 0 && battState0 === bsActive
             && auxPresent
             && auxBatteryStore.chargeStatus === acsNotCharging
+            && auxVoltageValid && auxVoltageMv < auxChargeCeilingMv
     }
 
     // --- "Stranded" warnings: backup battery low while NO main battery is inserted ---

@@ -675,8 +675,8 @@ void Application::createStores(QQmlApplicationEngine &engine)
                                                        auxBatteryStore, vehicleStore, m_toastService,
                                                        m_translations, this);
     m_chargingSystemMonitor = new ChargingSystemMonitor(battery0Store, cbBatteryStore,
-                                                       auxBatteryStore, m_toastService,
-                                                       m_translations, this);
+                                                       auxBatteryStore, settingsStore,
+                                                       m_toastService, m_translations, this);
 
     // Battery fault monitoring
     auto refreshFault = [this, settingsStore](BatteryStore *batteryStore) {

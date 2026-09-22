@@ -177,6 +177,8 @@ SyncSettings SettingsStore::syncSettings() const
             {QStringLiteral("showTemperature"), QStringLiteral("dashboard.show-temperature")},
             {QStringLiteral("showCbBattery"), QStringLiteral("dashboard.show-cb-battery")},
             {QStringLiteral("showAuxBattery"), QStringLiteral("dashboard.show-aux-battery")},
+            {QStringLiteral("suppressAuxChargingWarning"), QStringLiteral("scooter.aux-battery.charging-system-warning")},
+            {QStringLiteral("suppressCbChargingWarning"), QStringLiteral("scooter.cb-battery.charging-system-warning")},
             {QStringLiteral("showRoadName"), QStringLiteral("dashboard.show-road-name")},
             {QStringLiteral("showSpeedLimit"), QStringLiteral("dashboard.show-speed-limit")},
             {QStringLiteral("alarmEnabled"), QStringLiteral("alarm.enabled")},
@@ -280,6 +282,10 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
         if (value != m_showCbBattery) { m_showCbBattery = value; emit showCbBatteryChanged(); }
     } else if (variable == QLatin1String("dashboard.show-aux-battery")) {
         if (value != m_showAuxBattery) { m_showAuxBattery = value; emit showAuxBatteryChanged(); }
+    } else if (variable == QLatin1String("scooter.aux-battery.charging-system-warning")) {
+        if (value != m_auxBatteryChargingSystemWarning) { m_auxBatteryChargingSystemWarning = value; emit suppressAuxChargingWarningChanged(); }
+    } else if (variable == QLatin1String("scooter.cb-battery.charging-system-warning")) {
+        if (value != m_cbBatteryChargingSystemWarning) { m_cbBatteryChargingSystemWarning = value; emit suppressCbChargingWarningChanged(); }
     } else if (variable == QLatin1String("dashboard.show-road-name")) {
         if (value != m_showRoadName) { m_showRoadName = value; emit showRoadNameChanged(); }
     } else if (variable == QLatin1String("dashboard.show-speed-limit")) {

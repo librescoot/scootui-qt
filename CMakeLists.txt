@@ -1014,6 +1014,8 @@ if(BUILD_TESTING)
         src/stores/CbBatteryStore.h
         src/stores/AuxBatteryStore.cpp
         src/stores/AuxBatteryStore.h
+        src/stores/SettingsStore.cpp
+        src/stores/SettingsStore.h
         src/services/ChargingSystemMonitor.cpp
         src/services/ChargingSystemMonitor.h
         src/services/ToastService.cpp

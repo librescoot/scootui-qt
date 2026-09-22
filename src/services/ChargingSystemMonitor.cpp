@@ -3,6 +3,7 @@
 #include "stores/BatteryStore.h"
 #include "stores/CbBatteryStore.h"
 #include "stores/AuxBatteryStore.h"
+#include "stores/SettingsStore.h"
 #include "models/Enums.h"
 #include "l10n/Translations.h"
 
@@ -23,13 +24,14 @@ void ChargingSystemMonitor::evaluateChannel(Channel &channel, bool conditionMet)
 }
 
 ChargingSystemMonitor::ChargingSystemMonitor(BatteryStore *battery0, CbBatteryStore *cbBattery,
-                                             AuxBatteryStore *auxBattery, ToastService *toast,
-                                             Translations *translations, QObject *parent,
-                                             int debounceMs)
+                                             AuxBatteryStore *auxBattery, SettingsStore *settings,
+                                             ToastService *toast, Translations *translations,
+                                             QObject *parent, int debounceMs)
     : QObject(parent)
     , m_battery0(battery0)
     , m_cbBattery(cbBattery)
     , m_auxBattery(auxBattery)
+    , m_settings(settings)
     , m_toast(toast)
     , m_translations(translations)
 {
@@ -70,6 +72,13 @@ ChargingSystemMonitor::ChargingSystemMonitor(BatteryStore *battery0, CbBatterySt
     connect(m_cbBattery, &CbBatteryStore::chargeValidChanged, this, &ChargingSystemMonitor::evaluateCb);
     connect(m_cbBattery, &CbBatteryStore::chargeStatusChanged, this, &ChargingSystemMonitor::evaluateCb);
 
+    // A suppression change re-evaluates that battery: unsilencing announces a
+    // fault already in progress, silencing drops a pending toast.
+    connect(m_settings, &SettingsStore::suppressAuxChargingWarningChanged,
+            this, &ChargingSystemMonitor::evaluateAux);
+    connect(m_settings, &SettingsStore::suppressCbChargingWarningChanged,
+            this, &ChargingSystemMonitor::evaluateCb);
+
     // The stores may already hold the failing state when the monitor is wired up
     // (services are created after the stores start), so evaluate once.
     evaluateAux();
@@ -88,7 +97,10 @@ bool ChargingSystemMonitor::auxConditionMet() const
     const bool auxPresent = m_auxBattery->voltageValid() || m_auxBattery->chargeValid();
     const bool auxNotCharging = m_auxBattery->chargeStatus()
         == static_cast<int>(ScootEnums::AuxChargeStatus::NotCharging);
-    return mainActive() && auxPresent && auxNotCharging;
+    const bool belowCeiling = m_auxBattery->voltageValid()
+        && m_auxBattery->voltage() < AuxChargeCeilingMv;
+    return mainActive() && auxPresent && auxNotCharging && belowCeiling
+        && !m_settings->suppressAuxChargingWarning();
 }
 
 bool ChargingSystemMonitor::cbConditionMet() const
@@ -98,7 +110,8 @@ bool ChargingSystemMonitor::cbConditionMet() const
         && m_cbBattery->chargeValid()
         && m_cbBattery->charge() < CbChargeThreshold
         && m_cbBattery->chargeStatus()
-           != static_cast<int>(ScootEnums::ChargeStatus::Charging);
+           != static_cast<int>(ScootEnums::ChargeStatus::Charging)
+        && !m_settings->suppressCbChargingWarning();
 }
 
 void ChargingSystemMonitor::evaluateAux()

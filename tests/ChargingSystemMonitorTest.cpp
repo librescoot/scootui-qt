@@ -7,10 +7,11 @@
 #include "stores/AuxBatteryStore.h"
 #include "stores/BatteryStore.h"
 #include "stores/CbBatteryStore.h"
+#include "stores/SettingsStore.h"
 
-// Car-style charging-system warnings: main pack active and a backup charger
-// reporting not-charging. AUX is level-independent; CBB reuses its SoC gate.
-// Each pack announces one transient toast per off->on transition.
+// Car-style charging-system warnings: main pack active and a supplementary
+// battery reporting not-charging. AUX is gated on voltage; CBB reuses its SoC
+// gate. Each battery announces one transient toast per off->on transition.
 class ChargingSystemMonitorTest : public QObject
 {
     Q_OBJECT
@@ -18,11 +19,16 @@ class ChargingSystemMonitorTest : public QObject
 private slots:
     void warnsWhenAuxNotCharging();
     void staysSilentWhenAuxCharging();
+    void staysSilentWhenAuxWarningSuppressed();
+    void announcesWhenAuxWarningUnsuppressed();
+    void warnsBelowAuxChargingCeiling();
+    void staysSilentAtAuxChargingCeiling();
     void staysSilentWithoutReportedAux();
     void staysSilentWhenMainInactive();
     void auxDebounceCancelsWhenChargingStarts();
     void auxWarnsAgainAfterConditionClears();
     void warnsWhenCbLowAndNotCharging();
+    void staysSilentWhenCbWarningSuppressed();
     void staysSilentWhenCbCharging();
     void staysSilentWhenCbHealthy();
     void auxAndCbAnnounceIndependently();
@@ -33,6 +39,7 @@ private:
         BatteryStore battery0{&repo, QStringLiteral("0")};
         CbBatteryStore cbBattery{&repo};
         AuxBatteryStore auxBattery{&repo};
+        SettingsStore settings{&repo};
         ToastService toast;
         Translations translations;
 
@@ -42,6 +49,8 @@ private:
     static void seedMainActive(Fixture &f);
     static void seedAuxNotCharging(Fixture &f);
     static void seedCbNotCharging(Fixture &f, int charge = 20);
+    static void seedChargingSystemWarning(Fixture &f, const QString &battery,
+                                          const QString &value, bool notify = false);
 };
 
 void ChargingSystemMonitorTest::Fixture::start()
@@ -49,6 +58,7 @@ void ChargingSystemMonitorTest::Fixture::start()
     battery0.start();
     cbBattery.start();
     auxBattery.start();
+    settings.start();
 }
 
 void ChargingSystemMonitorTest::seedMainActive(Fixture &f)
@@ -73,6 +83,15 @@ void ChargingSystemMonitorTest::seedCbNotCharging(Fixture &f, int charge)
                QStringLiteral("not-charging"), false);
 }
 
+void ChargingSystemMonitorTest::seedChargingSystemWarning(Fixture &f, const QString &battery,
+                                                          const QString &value, bool notify)
+{
+    f.repo.set(QStringLiteral("settings"),
+               QStringLiteral("scooter.") + battery
+                   + QStringLiteral("-battery.charging-system-warning"),
+               value, notify);
+}
+
 void ChargingSystemMonitorTest::warnsWhenAuxNotCharging()
 {
     Fixture f;
@@ -81,6 +100,7 @@ void ChargingSystemMonitorTest::warnsWhenAuxNotCharging()
     f.start();
 
     ChargingSystemMonitor monitor(&f.battery0, &f.cbBattery, &f.auxBattery,
+                                  &f.settings,
                                   &f.toast, &f.translations, nullptr, 100);
 
     QTRY_COMPARE_WITH_TIMEOUT(f.toast.toasts().size(), 1, 2000);
@@ -100,6 +120,77 @@ void ChargingSystemMonitorTest::staysSilentWhenAuxCharging()
     f.start();
 
     ChargingSystemMonitor monitor(&f.battery0, &f.cbBattery, &f.auxBattery,
+                                  &f.settings,
+                                  &f.toast, &f.translations, nullptr, 100);
+
+    QTest::qWait(500);
+    QCOMPARE(f.toast.toasts().size(), 0);
+}
+
+void ChargingSystemMonitorTest::staysSilentWhenAuxWarningSuppressed()
+{
+    Fixture f;
+    seedMainActive(f);
+    seedAuxNotCharging(f);
+    seedChargingSystemWarning(f, QStringLiteral("aux"), QStringLiteral("suppress"));
+    f.start();
+
+    ChargingSystemMonitor monitor(&f.battery0, &f.cbBattery, &f.auxBattery,
+                                  &f.settings,
+                                  &f.toast, &f.translations, nullptr, 100);
+
+    QTest::qWait(500);
+    QCOMPARE(f.toast.toasts().size(), 0);
+}
+
+void ChargingSystemMonitorTest::announcesWhenAuxWarningUnsuppressed()
+{
+    Fixture f;
+    seedMainActive(f);
+    seedAuxNotCharging(f);
+    seedChargingSystemWarning(f, QStringLiteral("aux"), QStringLiteral("suppress"));
+    f.start();
+
+    ChargingSystemMonitor monitor(&f.battery0, &f.cbBattery, &f.auxBattery,
+                                  &f.settings,
+                                  &f.toast, &f.translations, nullptr, 100);
+
+    QTest::qWait(500);
+    QCOMPARE(f.toast.toasts().size(), 0);
+
+    seedChargingSystemWarning(f, QStringLiteral("aux"), QStringLiteral("show"), true);
+    QTRY_COMPARE_WITH_TIMEOUT(f.toast.toasts().size(), 1, 2000);
+}
+
+void ChargingSystemMonitorTest::warnsBelowAuxChargingCeiling()
+{
+    Fixture f;
+    seedMainActive(f);
+    f.repo.set(QStringLiteral("aux-battery"), QStringLiteral("voltage"),
+               QStringLiteral("14499"), false);
+    f.repo.set(QStringLiteral("aux-battery"), QStringLiteral("charge-status"),
+               QStringLiteral("not-charging"), false);
+    f.start();
+
+    ChargingSystemMonitor monitor(&f.battery0, &f.cbBattery, &f.auxBattery,
+                                  &f.settings,
+                                  &f.toast, &f.translations, nullptr, 100);
+
+    QTRY_COMPARE_WITH_TIMEOUT(f.toast.toasts().size(), 1, 2000);
+}
+
+void ChargingSystemMonitorTest::staysSilentAtAuxChargingCeiling()
+{
+    Fixture f;
+    seedMainActive(f);
+    f.repo.set(QStringLiteral("aux-battery"), QStringLiteral("voltage"),
+               QStringLiteral("14500"), false);
+    f.repo.set(QStringLiteral("aux-battery"), QStringLiteral("charge-status"),
+               QStringLiteral("not-charging"), false);
+    f.start();
+
+    ChargingSystemMonitor monitor(&f.battery0, &f.cbBattery, &f.auxBattery,
+                                  &f.settings,
                                   &f.toast, &f.translations, nullptr, 100);
 
     QTest::qWait(500);
@@ -109,12 +200,13 @@ void ChargingSystemMonitorTest::staysSilentWhenAuxCharging()
 void ChargingSystemMonitorTest::staysSilentWithoutReportedAux()
 {
     // Main is active but the nRF52 has never reported anything about the AUX
-    // pack, so "not-charging" would be a default, not a reading.
+    // battery, so "not-charging" would be a default, not a reading.
     Fixture f;
     seedMainActive(f);
     f.start();
 
     ChargingSystemMonitor monitor(&f.battery0, &f.cbBattery, &f.auxBattery,
+                                  &f.settings,
                                   &f.toast, &f.translations, nullptr, 100);
 
     QTest::qWait(500);
@@ -132,6 +224,7 @@ void ChargingSystemMonitorTest::staysSilentWhenMainInactive()
     f.start();
 
     ChargingSystemMonitor monitor(&f.battery0, &f.cbBattery, &f.auxBattery,
+                                  &f.settings,
                                   &f.toast, &f.translations, nullptr, 100);
 
     QTest::qWait(500);
@@ -145,6 +238,7 @@ void ChargingSystemMonitorTest::auxDebounceCancelsWhenChargingStarts()
     f.start();
 
     ChargingSystemMonitor monitor(&f.battery0, &f.cbBattery, &f.auxBattery,
+                                  &f.settings,
                                   &f.toast, &f.translations, nullptr, 400);
 
     // AUX starts reporting not-charging, then the charger picks up before the
@@ -168,6 +262,7 @@ void ChargingSystemMonitorTest::auxWarnsAgainAfterConditionClears()
     f.start();
 
     ChargingSystemMonitor monitor(&f.battery0, &f.cbBattery, &f.auxBattery,
+                                  &f.settings,
                                   &f.toast, &f.translations, nullptr, 100);
 
     QTRY_COMPARE_WITH_TIMEOUT(f.toast.toasts().size(), 1, 2000);
@@ -191,9 +286,26 @@ void ChargingSystemMonitorTest::warnsWhenCbLowAndNotCharging()
     f.start();
 
     ChargingSystemMonitor monitor(&f.battery0, &f.cbBattery, &f.auxBattery,
+                                  &f.settings,
                                   &f.toast, &f.translations, nullptr, 100);
 
     QTRY_COMPARE_WITH_TIMEOUT(f.toast.toasts().size(), 1, 2000);
+}
+
+void ChargingSystemMonitorTest::staysSilentWhenCbWarningSuppressed()
+{
+    Fixture f;
+    seedMainActive(f);
+    seedCbNotCharging(f, 20);
+    seedChargingSystemWarning(f, QStringLiteral("cb"), QStringLiteral("suppress"));
+    f.start();
+
+    ChargingSystemMonitor monitor(&f.battery0, &f.cbBattery, &f.auxBattery,
+                                  &f.settings,
+                                  &f.toast, &f.translations, nullptr, 100);
+
+    QTest::qWait(500);
+    QCOMPARE(f.toast.toasts().size(), 0);
 }
 
 void ChargingSystemMonitorTest::staysSilentWhenCbCharging()
@@ -206,6 +318,7 @@ void ChargingSystemMonitorTest::staysSilentWhenCbCharging()
     f.start();
 
     ChargingSystemMonitor monitor(&f.battery0, &f.cbBattery, &f.auxBattery,
+                                  &f.settings,
                                   &f.toast, &f.translations, nullptr, 100);
 
     QTest::qWait(500);
@@ -222,6 +335,7 @@ void ChargingSystemMonitorTest::staysSilentWhenCbHealthy()
     f.start();
 
     ChargingSystemMonitor monitor(&f.battery0, &f.cbBattery, &f.auxBattery,
+                                  &f.settings,
                                   &f.toast, &f.translations, nullptr, 100);
 
     QTest::qWait(500);
@@ -237,6 +351,7 @@ void ChargingSystemMonitorTest::auxAndCbAnnounceIndependently()
     f.start();
 
     ChargingSystemMonitor monitor(&f.battery0, &f.cbBattery, &f.auxBattery,
+                                  &f.settings,
                                   &f.toast, &f.translations, nullptr, 100);
 
     QTRY_COMPARE_WITH_TIMEOUT(f.toast.toasts().size(), 2, 2000);
