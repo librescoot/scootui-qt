@@ -21,18 +21,27 @@ KeycardStore::~KeycardStore()
 SyncSettings KeycardStore::syncSettings() const
 {
     return {QStringLiteral("system"), 5000,
-            {{QStringLiteral("keycard-learn-state"), QStringLiteral("keycard-learn-state"), true}},
+            {{QStringLiteral("keycard-learn-state"), QStringLiteral("keycard-learn-state"), true},
+             {QStringLiteral("keycard-last-used-uid"), QStringLiteral("keycard-last-used-uid"), true}},
             {{QStringLiteral("keycard:authorized"), QStringLiteral("keycard:authorized"), 5000},
-             {QStringLiteral("keycard:masters"), QStringLiteral("keycard:masters"), 5000}}, {}};
+             {QStringLiteral("keycard:masters"), QStringLiteral("keycard:masters"), 5000},
+             {QStringLiteral("keycard:phones"), QStringLiteral("keycard:phones"), 5000}}, {}};
 }
 
 void KeycardStore::applyFieldUpdate(const QString &variable, const QString &value)
 {
-    if (variable != QLatin1String("keycard-learn-state")) return;
-    const QString state = value.isEmpty() ? QStringLiteral("idle") : value;
-    if (state == m_learnState) return;
-    m_learnState = state;
-    emit learnStateChanged();
+    if (variable == QLatin1String("keycard-last-used-uid")) {
+        if (value == m_lastUsedUid) return;
+        m_lastUsedUid = value;
+        emit lastUsedUidChanged();
+        return;
+    }
+    if (variable == QLatin1String("keycard-learn-state")) {
+        const QString state = value.isEmpty() ? QStringLiteral("idle") : value;
+        if (state == m_learnState) return;
+        m_learnState = state;
+        emit learnStateChanged();
+    }
 }
 
 void KeycardStore::applySetUpdate(const QString &name, const QStringList &members)
@@ -45,6 +54,9 @@ void KeycardStore::applySetUpdate(const QString &name, const QStringList &member
     } else if (name == QLatin1String("keycard:masters") && sorted != m_masterCards) {
         m_masterCards = sorted;
         emit masterCardsChanged();
+    } else if (name == QLatin1String("keycard:phones") && sorted != m_phoneKeys) {
+        m_phoneKeys = sorted;
+        emit phoneKeysChanged();
     }
 }
 
@@ -119,3 +131,5 @@ void KeycardStore::skipMasterBootstrap()
 void KeycardStore::removeCard(const QString &uid) { if (m_repo) m_repo->push("scooter:keycard", "remove:" + uid); }
 void KeycardStore::removeCardForced(const QString &uid) { if (m_repo) m_repo->push("scooter:keycard", "remove:" + uid + ":force"); }
 void KeycardStore::removeMaster(const QString &uid) { if (m_repo) m_repo->push("scooter:keycard", "master:remove:" + uid); }
+void KeycardStore::removePhone(const QString &fingerprint) { if (m_repo) m_repo->push("scooter:keycard", "phone:remove:" + fingerprint); }
+void KeycardStore::removePhoneForced(const QString &fingerprint) { if (m_repo) m_repo->push("scooter:keycard", "phone:remove:" + fingerprint + ":force"); }

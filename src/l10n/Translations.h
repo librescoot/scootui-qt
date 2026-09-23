@@ -70,6 +70,11 @@ class Translations : public QObject
     Q_PROPERTY(QString keycardSkip READ keycardSkip NOTIFY languageChanged)
     Q_PROPERTY(QString keycardDone READ keycardDone NOTIFY languageChanged)
     Q_PROPERTY(QString keycardUnlockCard READ keycardUnlockCard NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardLastUsed READ keycardLastUsed NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardPhoneName READ keycardPhoneName NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardRemovePhone READ keycardRemovePhone NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardConfirmRemoveLastPhone READ keycardConfirmRemoveLastPhone NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardRemoveLastPhone READ keycardRemoveLastPhone NOTIFY languageChanged)
     Q_PROPERTY(QString keycardTeachInCard READ keycardTeachInCard NOTIFY languageChanged)
     Q_PROPERTY(QString keycardRemoveUnlockCard READ keycardRemoveUnlockCard NOTIFY languageChanged)
     Q_PROPERTY(QString keycardRemoveLastUnlockCard READ keycardRemoveLastUnlockCard NOTIFY languageChanged)
@@ -746,6 +751,11 @@ public:
     QString keycardSkip() const { return lookup("keycardSkip"); }
     QString keycardDone() const { return lookup("keycardDone"); }
     QString keycardUnlockCard() const { return lookup("keycardUnlockCard"); }
+    QString keycardLastUsed() const { return lookup("keycardLastUsed"); }
+    QString keycardPhoneName() const { return lookup("keycardPhoneName"); }
+    QString keycardRemovePhone() const { return lookup("keycardRemovePhone"); }
+    QString keycardConfirmRemoveLastPhone() const { return lookup("keycardConfirmRemoveLastPhone"); }
+    QString keycardRemoveLastPhone() const { return lookup("keycardRemoveLastPhone"); }
     QString keycardTeachInCard() const { return lookup("keycardTeachInCard"); }
     QString keycardRemoveUnlockCard() const { return lookup("keycardRemoveUnlockCard"); }
     QString keycardRemoveLastUnlockCard() const { return lookup("keycardRemoveLastUnlockCard"); }

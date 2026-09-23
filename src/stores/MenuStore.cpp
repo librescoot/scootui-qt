@@ -189,6 +189,10 @@ void MenuStore::setKeycardStore(KeycardStore *store)
                 this, &MenuStore::rebuildMenuTree);
         connect(m_keycard, &KeycardStore::masterCardsChanged,
                 this, &MenuStore::rebuildMenuTree);
+        connect(m_keycard, &KeycardStore::phoneKeysChanged,
+                this, &MenuStore::rebuildMenuTree);
+        connect(m_keycard, &KeycardStore::lastUsedUidChanged,
+                this, &MenuStore::rebuildMenuTree);
     }
     rebuildMenuTree();
 }
@@ -1332,7 +1336,8 @@ void MenuStore::rebuildMenuTree()
                 QStringLiteral("keycard_unlock_%1").arg(uid), uid,
                 lastUnlockCard ? tr->keycardConfirmRemoveLast()
                                : tr->keycardUnlockCard()));
-            cardNode->setValueLabel(tr->keycardUnlockCard());
+            cardNode->setValueLabel(uid == m_keycard->lastUsedUid()
+                                    ? tr->keycardLastUsed() : tr->keycardUnlockCard());
             if (lastUnlockCard) {
                 cardNode->setCaution(true);
                 cardNode->addChild(MenuNode::action(
@@ -1347,6 +1352,29 @@ void MenuStore::rebuildMenuTree()
                 [this, uid, lastUnlockCard]() {
                     if (lastUnlockCard) m_keycard->removeCardForced(uid);
                     else m_keycard->removeCard(uid);
+                }));
+            removeNode->setCaution(true);
+        }
+
+        const QStringList phoneKeys = m_keycard->phoneKeys();
+        for (const QString &fingerprint : phoneKeys) {
+            const bool lastUnlockCredential = unlockCards.isEmpty() && phoneKeys.size() == 1;
+            auto *phoneNode = keycardsNode->addChild(MenuNode::submenu(
+                QStringLiteral("keycard_phone_%1").arg(fingerprint),
+                tr->keycardPhoneName().arg(fingerprint.right(8)),
+                lastUnlockCredential ? tr->keycardConfirmRemoveLastPhone() : fingerprint));
+            if (lastUnlockCredential) {
+                phoneNode->setCaution(true);
+                phoneNode->addChild(MenuNode::action(
+                    QStringLiteral("keycard_phone_remove_cancel_%1").arg(fingerprint),
+                    tr->controlCancel(), [this]() { goBack(); }));
+            }
+            auto *removeNode = phoneNode->addChild(MenuNode::action(
+                QStringLiteral("keycard_phone_remove_%1").arg(fingerprint),
+                lastUnlockCredential ? tr->keycardRemoveLastPhone() : tr->keycardRemovePhone(),
+                [this, fingerprint, lastUnlockCredential]() {
+                    if (lastUnlockCredential) m_keycard->removePhoneForced(fingerprint);
+                    else m_keycard->removePhone(fingerprint);
                 }));
             removeNode->setCaution(true);
         }

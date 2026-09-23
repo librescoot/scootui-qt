@@ -46,12 +46,16 @@ void KeycardStoreTest::hydratesSortedSnapshotsAndMode()
     repo.addToSet("keycard:authorized", "B");
     repo.addToSet("keycard:authorized", "A");
     repo.addToSet("keycard:masters", "D");
+    repo.addToSet("keycard:phones", "F7C6A7D0309ED723119742DE3F197846");
     repo.set("system", "keycard-learn-state", "master-bootstrap", false);
+    repo.set("system", "keycard-last-used-uid", "B", false);
     KeycardStore store(&repo);
     QSignalSpy stateChanged(&store, &KeycardStore::learnStateChanged);
     store.start();
     QCOMPARE(store.unlockCards(), QStringList({"A", "B"}));
     QCOMPARE(store.masterCards(), QStringList({"D"}));
+    QCOMPARE(store.phoneKeys(), QStringList({"F7C6A7D0309ED723119742DE3F197846"}));
+    QCOMPARE(store.lastUsedUid(), QStringLiteral("B"));
     QVERIFY(store.masterBootstrap());
     QVERIFY(store.enrollActive());
     repo.set("system", "keycard-learn-state", "learn");
@@ -66,10 +70,19 @@ void KeycardStoreTest::refreshesSetOnSystemNotification()
     KeycardStore store(&repo);
     store.start();
     QSignalSpy changed(&store, &KeycardStore::unlockCardsChanged);
+    QSignalSpy phonesChanged(&store, &KeycardStore::phoneKeysChanged);
+    QSignalSpy lastUsedChanged(&store, &KeycardStore::lastUsedUidChanged);
     repo.addToSet("keycard:authorized", "CAFE");
     repo.publish("system", "keycard:authorized");
     QCOMPARE(store.unlockCards(), QStringList({"CAFE"}));
     QCOMPARE(changed.count(), 1);
+    repo.addToSet("keycard:phones", "F7C6A7D0309ED723119742DE3F197846");
+    repo.publish("system", "keycard:phones");
+    QCOMPARE(store.phoneKeys(), QStringList({"F7C6A7D0309ED723119742DE3F197846"}));
+    QCOMPARE(phonesChanged.count(), 1);
+    repo.set("system", "keycard-last-used-uid", "CAFE");
+    QCOMPARE(store.lastUsedUid(), QStringLiteral("CAFE"));
+    QCOMPARE(lastUsedChanged.count(), 1);
 }
 
 void KeycardStoreTest::appliesDelayedSetResult()
@@ -126,12 +139,16 @@ void KeycardStoreTest::emitsCurrentCommandVocabulary()
     store.removeCard("AA");
     store.removeCardForced("BB");
     store.removeMaster("CC");
+    store.removePhone("F7C6A7D0309ED723119742DE3F197846");
+    store.removePhoneForced("D7C6A7D0309ED723119742DE3F197846");
     const QList<QPair<QString, QString>> expected = {
         {"scooter:keycard", "learn:start"}, {"scooter:keycard", "learn:stop"},
         {"scooter:keycard", "learn:master:start"}, {"scooter:keycard", "learn:master:stop"},
         {"scooter:keycard", "set-master:NONE"}, {"scooter:keycard", "learn:start"},
         {"scooter:keycard", "remove:AA"}, {"scooter:keycard", "remove:BB:force"},
-        {"scooter:keycard", "master:remove:CC"}
+        {"scooter:keycard", "master:remove:CC"},
+        {"scooter:keycard", "phone:remove:F7C6A7D0309ED723119742DE3F197846"},
+        {"scooter:keycard", "phone:remove:D7C6A7D0309ED723119742DE3F197846:force"}
     };
     QCOMPARE(repo.pushed, expected);
 }

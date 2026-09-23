@@ -192,6 +192,16 @@ void Translations::initStrings()
     de[QStringLiteral("keycardDone")] = QStringLiteral("Fertig");
     en[QStringLiteral("keycardUnlockCard")] = QStringLiteral("Unlock card");
     de[QStringLiteral("keycardUnlockCard")] = QStringLiteral("Entsperrkarte");
+    en[QStringLiteral("keycardLastUsed")] = QStringLiteral("Last used");
+    de[QStringLiteral("keycardLastUsed")] = QStringLiteral("Zuletzt verwendet");
+    en[QStringLiteral("keycardPhoneName")] = QStringLiteral("Phone %1");
+    de[QStringLiteral("keycardPhoneName")] = QStringLiteral("Handy %1");
+    en[QStringLiteral("keycardRemovePhone")] = QStringLiteral("Remove phone key");
+    de[QStringLiteral("keycardRemovePhone")] = QStringLiteral("Handyschlüssel entfernen");
+    en[QStringLiteral("keycardConfirmRemoveLastPhone")] = QStringLiteral("Remove the final unlock phone?");
+    de[QStringLiteral("keycardConfirmRemoveLastPhone")] = QStringLiteral("Letztes Entsperrhandy entfernen?");
+    en[QStringLiteral("keycardRemoveLastPhone")] = QStringLiteral("Remove final phone key");
+    de[QStringLiteral("keycardRemoveLastPhone")] = QStringLiteral("Letzten Handyschlüssel entfernen");
     en[QStringLiteral("keycardTeachInCard")] = QStringLiteral("Teach-in card");
     de[QStringLiteral("keycardTeachInCard")] = QStringLiteral("Anlernkarte");
     en[QStringLiteral("keycardRemoveUnlockCard")] = QStringLiteral("Remove unlock card");

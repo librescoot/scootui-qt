@@ -15,6 +15,8 @@ class KeycardStore : public SyncableStore
     Q_PROPERTY(bool enrollActive READ enrollActive NOTIFY learnStateChanged)
     Q_PROPERTY(QStringList unlockCards READ unlockCards NOTIFY unlockCardsChanged)
     Q_PROPERTY(QStringList masterCards READ masterCards NOTIFY masterCardsChanged)
+    Q_PROPERTY(QStringList phoneKeys READ phoneKeys NOTIFY phoneKeysChanged)
+    Q_PROPERTY(QString lastUsedUid READ lastUsedUid NOTIFY lastUsedUidChanged)
     Q_PROPERTY(int unlockCardCount READ unlockCardCount NOTIFY unlockCardsChanged)
     Q_PROPERTY(int sessionCardCount READ sessionCardCount NOTIFY enrollmentFeedbackChanged)
     Q_PROPERTY(QString lastScannedUid READ lastScannedUid NOTIFY enrollmentFeedbackChanged)
@@ -30,6 +32,8 @@ public:
     bool enrollActive() const { return learning() || masterTeachIn() || masterBootstrap(); }
     QStringList unlockCards() const { return m_unlockCards; }
     QStringList masterCards() const { return m_masterCards; }
+    QStringList phoneKeys() const { return m_phoneKeys; }
+    QString lastUsedUid() const { return m_lastUsedUid; }
     int unlockCardCount() const { return m_unlockCards.size(); }
     int sessionCardCount() const { return m_sessionCards.size(); }
     QString lastScannedUid() const { return m_lastScannedUid; }
@@ -43,11 +47,15 @@ public:
     Q_INVOKABLE void removeCard(const QString &uid);
     Q_INVOKABLE void removeCardForced(const QString &uid);
     Q_INVOKABLE void removeMaster(const QString &uid);
+    Q_INVOKABLE void removePhone(const QString &fingerprint);
+    Q_INVOKABLE void removePhoneForced(const QString &fingerprint);
 
 signals:
     void learnStateChanged();
     void unlockCardsChanged();
     void masterCardsChanged();
+    void phoneKeysChanged();
+    void lastUsedUidChanged();
     void enrollmentFeedbackChanged();
 
 protected:
@@ -63,6 +71,8 @@ private:
     QString m_learnState = QStringLiteral("idle");
     QStringList m_unlockCards;
     QStringList m_masterCards;
+    QStringList m_phoneKeys;
+    QString m_lastUsedUid;
     QStringList m_sessionCards;
     QString m_lastScannedUid;
     QString m_scanStatus;
