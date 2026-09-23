@@ -5,6 +5,8 @@
 #include <QJsonObject>
 #include <QVariantMap>
 
+#include <algorithm>
+
 namespace {
 
 QJsonObject emptyFeatureCollection()
@@ -68,6 +70,41 @@ QString stopsGeoJson(const QVariantList &stops, int currentStep)
             {QStringLiteral("geometry"), point(latitude, longitude)},
             {QStringLiteral("properties"), properties}});
     }
+
+    QJsonObject collection = emptyFeatureCollection();
+    collection[QStringLiteral("features")] = features;
+    return QString::fromUtf8(QJsonDocument(collection).toJson(QJsonDocument::Compact));
+}
+
+QString traveledGeoJson(const QList<LatLng> &route, int segment,
+                        const LatLng &matchedPosition)
+{
+    if (route.size() < 2 || segment < 0)
+        return lineGeoJson({});
+
+    QList<LatLng> traveled = route.mid(0, std::min<qsizetype>(segment + 1, route.size()));
+    if (segment < route.size() - 1 && matchedPosition.isValid()
+        && (traveled.isEmpty() || traveled.last() != matchedPosition)) {
+        traveled.append(matchedPosition);
+    }
+    return lineGeoJson(traveled);
+}
+
+QString overviewMarkersGeoJson(const LatLng &start, const LatLng &finish,
+                               const LatLng &currentPosition)
+{
+    QJsonArray features;
+    const auto addMarker = [&features](const LatLng &position, const QString &kind) {
+        if (!position.isValid())
+            return;
+        features.append(QJsonObject{
+            {QStringLiteral("type"), QStringLiteral("Feature")},
+            {QStringLiteral("geometry"), point(position.latitude, position.longitude)},
+            {QStringLiteral("properties"), QJsonObject{{QStringLiteral("kind"), kind}}}});
+    };
+    addMarker(start, QStringLiteral("start"));
+    addMarker(finish, QStringLiteral("finish"));
+    addMarker(currentPosition, QStringLiteral("current"));
 
     QJsonObject collection = emptyFeatureCollection();
     collection[QStringLiteral("features")] = features;

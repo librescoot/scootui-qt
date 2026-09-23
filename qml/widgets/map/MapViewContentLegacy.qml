@@ -148,6 +148,20 @@ MapView {
             onDataChanged: updateNotify()
         }
 
+        SourceParameter {
+            styleId: "overview-traveled"
+            type: "geojson"
+            property string data: typeof mapService !== "undefined" ? mapService.overviewTraveledGeoJson : ""
+            onDataChanged: updateNotify()
+        }
+
+        SourceParameter {
+            styleId: "overview-markers"
+            type: "geojson"
+            property string data: typeof mapService !== "undefined" ? mapService.overviewMarkersGeoJson : ""
+            onDataChanged: updateNotify()
+        }
+
         LayerParameter {
             styleId: "route-border"
             type: "line"

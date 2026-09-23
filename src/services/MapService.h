@@ -50,6 +50,8 @@ class MapService : public QObject
     // active route, and one marker per stop.
     Q_PROPERTY(QString planGeoJson READ planGeoJson NOTIFY planGeoJsonChanged)
     Q_PROPERTY(QString planStopsGeoJson READ planStopsGeoJson NOTIFY planStopsGeoJsonChanged)
+    Q_PROPERTY(QString overviewTraveledGeoJson READ overviewTraveledGeoJson NOTIFY overviewGeometryChanged)
+    Q_PROPERTY(QString overviewMarkersGeoJson READ overviewMarkersGeoJson NOTIFY overviewGeometryChanged)
     Q_PROPERTY(QString routeFillColor READ routeFillColor NOTIFY routeStyleChanged)
     Q_PROPERTY(QString routeBorderColor READ routeBorderColor NOTIFY routeStyleChanged)
     Q_PROPERTY(int routeFillWidth READ routeFillWidth NOTIFY routeStyleChanged)
@@ -115,6 +117,8 @@ public:
     QString routeGeoJson() const { return m_routeGeoJson; }
     QString planGeoJson() const { return m_planGeoJson; }
     QString planStopsGeoJson() const { return m_planStopsGeoJson; }
+    QString overviewTraveledGeoJson() const { return m_overviewTraveledGeoJson; }
+    QString overviewMarkersGeoJson() const { return m_overviewMarkersGeoJson; }
     QString routeFillColor() const { return m_routeStyle.fillColor; }
     QString routeBorderColor() const { return m_routeStyle.borderColor; }
     int routeFillWidth() const { return m_routeStyle.fillWidth; }
@@ -166,6 +170,7 @@ signals:
     void routeGeoJsonChanged();
     void planGeoJsonChanged();
     void planStopsGeoJsonChanged();
+    void overviewGeometryChanged();
     void routeStyleChanged();
     void vehicleOffsetYChanged();
     void overviewCameraChanged();
@@ -216,6 +221,7 @@ private:
     void updateTiltForZoom();
     // Route GeoJSON for native MapLibre layer
     void updateRouteGeoJson();
+    void updateOverviewGeometry();
 
     // Coverage bounds checking
     void loadMbtilesBounds();
@@ -396,6 +402,8 @@ private:
     QString m_routeGeoJson;
     QString m_planGeoJson;
     QString m_planStopsGeoJson;
+    QString m_overviewTraveledGeoJson;
+    QString m_overviewMarkersGeoJson;
     MapRouteStyle m_routeStyle;
     double m_vehicleOffsetY = VehicleOffsetPx;
 

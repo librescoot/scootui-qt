@@ -1297,6 +1297,12 @@ void Translations::initStrings()
     de[QStringLiteral("routeOverviewCalculating")] = QStringLiteral("Wird berechnet...");
     en[QStringLiteral("routeOverviewTotal")] = QStringLiteral("Total %1, %2");
     de[QStringLiteral("routeOverviewTotal")] = QStringLiteral("Gesamt %1, %2");
+    en[QStringLiteral("routeOverviewStart")] = QStringLiteral("Start");
+    de[QStringLiteral("routeOverviewStart")] = QStringLiteral("Start");
+    en[QStringLiteral("routeOverviewFinish")] = QStringLiteral("Finish");
+    de[QStringLiteral("routeOverviewFinish")] = QStringLiteral("Ziel");
+    en[QStringLiteral("routeOverviewYou")] = QStringLiteral("You");
+    de[QStringLiteral("routeOverviewYou")] = QStringLiteral("Du");
 
     en[QStringLiteral("navReturnToRoute")] = QStringLiteral("Return to the route");
     de[QStringLiteral("navReturnToRoute")] = QStringLiteral("Zur\u00FCck zur Route");

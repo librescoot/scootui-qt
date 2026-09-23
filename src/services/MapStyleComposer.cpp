@@ -127,6 +127,23 @@ QJsonObject planStop(const QString &id, const QString &color, int radius,
     return layer;
 }
 
+QJsonObject overviewMarker(const QString &id, const QString &kind,
+                           const QString &color, int radius)
+{
+    QJsonObject layer;
+    layer[QStringLiteral("id")] = id;
+    layer[QStringLiteral("type")] = QStringLiteral("circle");
+    layer[QStringLiteral("source")] = QStringLiteral("overview-markers");
+    layer[QStringLiteral("filter")] = QJsonArray{QStringLiteral("=="),
+                                                   QStringLiteral("kind"), kind};
+    layer[QStringLiteral("paint")] = QJsonObject{
+        {QStringLiteral("circle-color"), color},
+        {QStringLiteral("circle-radius"), radius},
+        {QStringLiteral("circle-stroke-color"), QStringLiteral("#ffffff")},
+        {QStringLiteral("circle-stroke-width"), 2}};
+    return layer;
+}
+
 void injectRoute(QJsonObject &root, const MapRouteStyle &style)
 {
     QJsonObject sources = root.value(QStringLiteral("sources")).toObject();
@@ -139,6 +156,8 @@ void injectRoute(QJsonObject &root, const MapRouteStyle &style)
     sources[QStringLiteral("route")] = routeSource;
     sources[QStringLiteral("plan")] = routeSource;
     sources[QStringLiteral("plan-stops")] = routeSource;
+    sources[QStringLiteral("overview-traveled")] = routeSource;
+    sources[QStringLiteral("overview-markers")] = routeSource;
     root[QStringLiteral("sources")] = sources;
 
     QJsonArray layers;
@@ -151,7 +170,11 @@ void injectRoute(QJsonObject &root, const MapRouteStyle &style)
             && id != QLatin1String("plan-stop")
             && id != QLatin1String("plan-stop-start")
             && id != QLatin1String("plan-stop-end")
-            && id != QLatin1String("plan-stop-current")) {
+            && id != QLatin1String("plan-stop-current")
+            && id != QLatin1String("overview-traveled")
+            && id != QLatin1String("overview-start")
+            && id != QLatin1String("overview-finish")
+            && id != QLatin1String("overview-current")) {
             layers.append(value);
         }
     }
@@ -189,6 +212,16 @@ void injectRoute(QJsonObject &root, const MapRouteStyle &style)
                                   style.borderWidth, 1.0));
         composed.append(routeLine(QStringLiteral("route-fill"), style.fillColor,
                                   style.fillWidth, 1.0));
+        QJsonObject traveled = routeLine(QStringLiteral("overview-traveled"),
+                                         QStringLiteral("#888888"), style.fillWidth + 1, 0.85);
+        traveled[QStringLiteral("source")] = QStringLiteral("overview-traveled");
+        composed.append(traveled);
+        composed.append(overviewMarker(QStringLiteral("overview-start"),
+                                       QStringLiteral("start"), QStringLiteral("#2E7D32"), 9));
+        composed.append(overviewMarker(QStringLiteral("overview-finish"),
+                                       QStringLiteral("finish"), QStringLiteral("#C62828"), 9));
+        composed.append(overviewMarker(QStringLiteral("overview-current"),
+                                       QStringLiteral("current"), style.fillColor, 11));
     };
     for (int i = 0; i < layers.size(); ++i) {
         if (i == firstExtrusion || (firstExtrusion < 0 && i == firstSymbol))

@@ -18,6 +18,8 @@ private slots:
     void stopsCarryIndexCurrentAndReached();
     void stopsSkipInvalidCoordinates();
     void emptyStopsIsAnEmptyCollection();
+    void traveledLineEndsAtMatchedPosition();
+    void overviewMarkersIdentifyTripEndpointsAndRider();
 };
 
 namespace {
@@ -121,6 +123,43 @@ void MapPlanGeometryTest::emptyStopsIsAnEmptyCollection()
     const QJsonObject root = parse(MapPlanGeometry::stopsGeoJson({}, 0));
     QCOMPARE(root.value(QStringLiteral("type")).toString(), QStringLiteral("FeatureCollection"));
     QVERIFY(root.value(QStringLiteral("features")).toArray().isEmpty());
+}
+
+void MapPlanGeometryTest::traveledLineEndsAtMatchedPosition()
+{
+    const QList<LatLng> route = {{52.50, 13.40}, {52.51, 13.41},
+                                 {52.52, 13.42}, {52.53, 13.43}};
+    const QJsonArray points = parse(MapPlanGeometry::traveledGeoJson(route, 1, {52.515, 13.415}))
+                                  .value(QStringLiteral("geometry")).toObject()
+                                  .value(QStringLiteral("coordinates")).toArray();
+    QCOMPARE(points.size(), 3);
+    QCOMPARE(points.last().toArray(), QJsonArray({13.415, 52.515}));
+    const QJsonObject beforeStart = parse(MapPlanGeometry::traveledGeoJson(route, -1, {}));
+    QVERIFY(beforeStart.value(QStringLiteral("features")).toArray().isEmpty());
+    const QJsonObject atFirstVertex = parse(MapPlanGeometry::traveledGeoJson(route, 0, {}));
+    QVERIFY(atFirstVertex.value(QStringLiteral("features")).toArray().isEmpty());
+    const QJsonArray atFinish = parse(MapPlanGeometry::traveledGeoJson(route, 9, {}))
+                                .value(QStringLiteral("geometry")).toObject()
+                                .value(QStringLiteral("coordinates")).toArray();
+    QCOMPARE(atFinish.size(), route.size());
+}
+
+void MapPlanGeometryTest::overviewMarkersIdentifyTripEndpointsAndRider()
+{
+    const QJsonArray markers = parse(MapPlanGeometry::overviewMarkersGeoJson(
+                                      {52.50, 13.40}, {52.52, 13.42}, {52.51, 13.41}))
+                                   .value(QStringLiteral("features")).toArray();
+    QCOMPARE(markers.size(), 3);
+    QCOMPARE(markers.at(0).toObject().value(QStringLiteral("properties")).toObject()
+                 .value(QStringLiteral("kind")).toString(), QStringLiteral("start"));
+    QCOMPARE(markers.at(1).toObject().value(QStringLiteral("properties")).toObject()
+                 .value(QStringLiteral("kind")).toString(), QStringLiteral("finish"));
+    QCOMPARE(markers.at(2).toObject().value(QStringLiteral("geometry")).toObject()
+                 .value(QStringLiteral("coordinates")).toArray(), QJsonArray({13.41, 52.51}));
+    const QJsonArray withoutFix = parse(MapPlanGeometry::overviewMarkersGeoJson(
+                                     {52.50, 13.40}, {52.52, 13.42}, {}))
+                                  .value(QStringLiteral("features")).toArray();
+    QCOMPARE(withoutFix.size(), 2);
 }
 
 QTEST_MAIN(MapPlanGeometryTest)

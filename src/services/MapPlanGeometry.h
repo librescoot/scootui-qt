@@ -18,4 +18,13 @@ QString lineGeoJson(const QList<LatLng> &points);
 // first, last, label. Accepts NavigationService::planStops().
 QString stopsGeoJson(const QVariantList &stops, int currentStep);
 
+// The completed portion of the active route, through the matched segment.
+// A valid matchedPosition clips the line within that segment.
+QString traveledGeoJson(const QList<LatLng> &route, int segment,
+                        const LatLng &matchedPosition);
+
+// Markers displayed only while the extent-aware route overview is open.
+QString overviewMarkersGeoJson(const LatLng &start, const LatLng &finish,
+                               const LatLng &currentPosition);
+
 } // namespace MapPlanGeometry

@@ -472,6 +472,9 @@ class Translations : public QObject
     Q_PROPERTY(QString routeOverviewCurrentPosition READ routeOverviewCurrentPosition NOTIFY languageChanged)
     Q_PROPERTY(QString routeOverviewCalculating READ routeOverviewCalculating NOTIFY languageChanged)
     Q_PROPERTY(QString routeOverviewTotal READ routeOverviewTotal NOTIFY languageChanged)
+    Q_PROPERTY(QString routeOverviewStart READ routeOverviewStart NOTIFY languageChanged)
+    Q_PROPERTY(QString routeOverviewFinish READ routeOverviewFinish NOTIFY languageChanged)
+    Q_PROPERTY(QString routeOverviewYou READ routeOverviewYou NOTIFY languageChanged)
     Q_PROPERTY(QString navCurrentPositionNotAvailable READ navCurrentPositionNotAvailable NOTIFY languageChanged)
     Q_PROPERTY(QString navCouldNotCalculateRoute READ navCouldNotCalculateRoute NOTIFY languageChanged)
     Q_PROPERTY(QString navDestinationUnreachable READ navDestinationUnreachable NOTIFY languageChanged)
@@ -1148,6 +1151,9 @@ public:
     QString routeOverviewCurrentPosition() const { return lookup("routeOverviewCurrentPosition"); }
     QString routeOverviewCalculating() const { return lookup("routeOverviewCalculating"); }
     QString routeOverviewTotal() const { return lookup("routeOverviewTotal"); }
+    QString routeOverviewStart() const { return lookup("routeOverviewStart"); }
+    QString routeOverviewFinish() const { return lookup("routeOverviewFinish"); }
+    QString routeOverviewYou() const { return lookup("routeOverviewYou"); }
     QString navCurrentPositionNotAvailable() const { return lookup("navCurrentPositionNotAvailable"); }
     QString navCouldNotCalculateRoute() const { return lookup("navCouldNotCalculateRoute"); }
     QString navDestinationUnreachable() const { return lookup("navDestinationUnreachable"); }

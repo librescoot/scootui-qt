@@ -132,6 +132,17 @@ void MapStyleComposerTest::preservesOnlineResourcesAndPlacesRoute()
              QJsonArray({QStringLiteral("=="), QStringLiteral("first"), 1}));
     QCOMPARE(layer(style, QStringLiteral("plan-stop-end")).value(QStringLiteral("filter")).toArray(),
              QJsonArray({QStringLiteral("=="), QStringLiteral("last"), 1}));
+
+    QVERIFY(sources.contains(QStringLiteral("overview-traveled")));
+    QVERIFY(sources.contains(QStringLiteral("overview-markers")));
+    QVERIFY(layerIndex(style, QStringLiteral("overview-traveled"))
+            > layerIndex(style, QStringLiteral("route-fill")));
+    QCOMPARE(layer(style, QStringLiteral("overview-traveled")).value(QStringLiteral("source")).toString(),
+             QStringLiteral("overview-traveled"));
+    QCOMPARE(layer(style, QStringLiteral("overview-current")).value(QStringLiteral("filter")).toArray(),
+             QJsonArray({QStringLiteral("=="), QStringLiteral("kind"), QStringLiteral("current")}));
+    QVERIFY(layerIndex(style, QStringLiteral("overview-current"))
+            < layerIndex(style, QStringLiteral("buildings")));
 }
 
 void MapStyleComposerTest::configuresOfflineResourcesWithoutGlyphs()
@@ -208,15 +219,19 @@ void MapStyleComposerTest::compositionIsIdempotent()
 
     int routeLayers = 0;
     int planLayers = 0;
+    int overviewLayers = 0;
     for (const QJsonValue &value : style.value(QStringLiteral("layers")).toArray()) {
         const QString id = value.toObject().value(QStringLiteral("id")).toString();
         if (id.startsWith(QStringLiteral("route-")))
             ++routeLayers;
         if (id.startsWith(QStringLiteral("plan-")))
             ++planLayers;
+        if (id.startsWith(QStringLiteral("overview-")))
+            ++overviewLayers;
     }
     QCOMPARE(routeLayers, 3);
     QCOMPARE(planLayers, 5);
+    QCOMPARE(overviewLayers, 4);
 }
 
 QTEST_APPLESS_MAIN(MapStyleComposerTest)
