@@ -1300,22 +1300,9 @@ void MenuStore::rebuildMenuTree()
     auto *systemNode = MenuNode::submenu(QStringLiteral("settings_system"), tr->menuSystem());
     settingsNode->addChild(systemNode);
 
-    auto *serviceModeNode = systemNode->addChild(MenuNode::submenu(
-        QStringLiteral("service_mode"), tr->menuServiceMode(), {}, [this]() {
-            return m_keycard || !(m_settings && m_settings->serviceActive() == QLatin1String("true"));
-        }));
-    serviceModeNode->addChild(MenuNode::action(QStringLiteral("enable_service_mode"),
-        tr->menuEnableServiceMode(), [this, repo]() {
-            repo->push(QStringLiteral("settings:overlay"), QStringLiteral("apply:service"));
-            close();
-        }, [this]() {
-            return !(m_settings && m_settings->serviceActive() == QLatin1String("true"));
-        }));
-
-    // Credential management remains available while service mode is active.
+    std::unique_ptr<MenuNode> keycardsNode;
     if (m_keycard) {
-        auto *keycardsNode = serviceModeNode->addChild(MenuNode::submenu(
-            QStringLiteral("keycards"), tr->menuKeycards()));
+        keycardsNode.reset(MenuNode::submenu(QStringLiteral("keycards"), tr->menuKeycards()));
 
         if (m_keycard->enrollActive()) {
             keycardsNode->addChild(MenuNode::action(
@@ -1439,6 +1426,16 @@ void MenuStore::rebuildMenuTree()
         if (m_screenStore)
             m_screenStore->showUpdateModeInfo();
     }));
+
+    systemNode->addChild(MenuNode::action(QStringLiteral("enable_service_mode"),
+        tr->menuServiceMode(), [this, repo]() {
+            repo->push(QStringLiteral("settings:overlay"), QStringLiteral("apply:service"));
+            close();
+        }, [this]() {
+            return !(m_settings && m_settings->serviceActive() == QLatin1String("true"));
+        }));
+    if (keycardsNode)
+        systemNode->addChild(keycardsNode.release());
 
     // Clearing paired phones is the only way to reclaim a scooter's bond list:
     // the firmware accepts a single-bond delete and does nothing with it, so

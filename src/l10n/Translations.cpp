@@ -493,8 +493,6 @@ void Translations::initStrings()
     de[QStringLiteral("menuHornSeatboxOpen")] = QStringLiteral("Hupe bei offener Sitzbank");
     en[QStringLiteral("menuServiceMode")] = QStringLiteral("Service Mode");
     de[QStringLiteral("menuServiceMode")] = QStringLiteral("Servicemodus");
-    en[QStringLiteral("menuEnableServiceMode")] = QStringLiteral("Enable Service Mode");
-    de[QStringLiteral("menuEnableServiceMode")] = QStringLiteral("Servicemodus aktivieren");
     en[QStringLiteral("menuDisableServiceMode")] = QStringLiteral("Disable Service Mode");
     de[QStringLiteral("menuDisableServiceMode")] = QStringLiteral("Servicemodus deaktivieren");
     en[QStringLiteral("serviceModeActive")] = QStringLiteral("Service Mode Active");
