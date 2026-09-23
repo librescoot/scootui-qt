@@ -244,6 +244,7 @@ class Translations : public QObject
     Q_PROPERTY(QString menuDbcBlinkerLed READ menuDbcBlinkerLed NOTIFY languageChanged)
     Q_PROPERTY(QString menuHornSeatboxOpen READ menuHornSeatboxOpen NOTIFY languageChanged)
     Q_PROPERTY(QString menuServiceMode READ menuServiceMode NOTIFY languageChanged)
+    Q_PROPERTY(QString menuEnableServiceMode READ menuEnableServiceMode NOTIFY languageChanged)
     Q_PROPERTY(QString menuDisableServiceMode READ menuDisableServiceMode NOTIFY languageChanged)
     Q_PROPERTY(QString serviceModeActive READ serviceModeActive NOTIFY languageChanged)
 
@@ -927,6 +928,7 @@ public:
     QString menuDbcBlinkerLed() const { return lookup("menuDbcBlinkerLed"); }
     QString menuHornSeatboxOpen() const { return lookup("menuHornSeatboxOpen"); }
     QString menuServiceMode() const { return lookup("menuServiceMode"); }
+    QString menuEnableServiceMode() const { return lookup("menuEnableServiceMode"); }
     QString menuDisableServiceMode() const { return lookup("menuDisableServiceMode"); }
     QString serviceModeActive() const { return lookup("serviceModeActive"); }
 
