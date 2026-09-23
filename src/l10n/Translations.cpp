@@ -1277,14 +1277,12 @@ void Translations::initStrings()
     de[QStringLiteral("navContinue")] = QStringLiteral("Weiter");
     en[QStringLiteral("navStopReached")] = QStringLiteral("Stop %1 of %2");
     de[QStringLiteral("navStopReached")] = QStringLiteral("Stopp %1 von %2");
-    en[QStringLiteral("navContinueTo")] = QStringLiteral("Continue to %1?");
-    de[QStringLiteral("navContinueTo")] = QStringLiteral("Weiter nach %1?");
-    en[QStringLiteral("navAutoContinue")] = QStringLiteral("Continuing in %1 s");
-    de[QStringLiteral("navAutoContinue")] = QStringLiteral("Weiter in %1 s");
-    en[QStringLiteral("navHoldContinue")] = QStringLiteral("Right hold: continue");
-    de[QStringLiteral("navHoldContinue")] = QStringLiteral("Rechts halten: weiter");
-    en[QStringLiteral("navHoldStop")] = QStringLiteral("Left hold: stop here");
-    de[QStringLiteral("navHoldStop")] = QStringLiteral("Links halten: hier anhalten");
+    en[QStringLiteral("navAutoContinue")] = QStringLiteral("Next stop in %1 s");
+    de[QStringLiteral("navAutoContinue")] = QStringLiteral("Nächster Stopp in %1 s");
+    en[QStringLiteral("navNextUnlock")] = QStringLiteral("Next stop on unlock");
+    de[QStringLiteral("navNextUnlock")] = QStringLiteral("Nächster Stopp beim Entsperren");
+    en[QStringLiteral("navKeepStopHint")] = QStringLiteral("Seatbox menu: Keep this stop");
+    de[QStringLiteral("navKeepStopHint")] = QStringLiteral("Sitzbank-Menü: Bei diesem Stopp bleiben");
     en[QStringLiteral("navRouteRestored")] = QStringLiteral("Resuming route");
     de[QStringLiteral("navRouteRestored")] = QStringLiteral("Route wird fortgesetzt");
     en[QStringLiteral("navRouteRestoredTo")] = QStringLiteral("Resuming route to %1");
@@ -1886,6 +1884,8 @@ void Translations::initStrings()
     de[QStringLiteral("shortcutRouteOverview")] = QStringLiteral("Routenübersicht");
     en[QStringLiteral("shortcutSkipStop")] = QStringLiteral("Skip stop");
     de[QStringLiteral("shortcutSkipStop")] = QStringLiteral("Stopp überspringen");
+    en[QStringLiteral("shortcutKeepStop")] = QStringLiteral("Keep this stop");
+    de[QStringLiteral("shortcutKeepStop")] = QStringLiteral("Bei diesem Stopp bleiben");
 
     // -----------------------------------------------------------------------
     // Month abbreviations (status bar date)

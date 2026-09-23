@@ -101,12 +101,16 @@ RoutePlan RoutePlanService::load()
     const QString stepRaw = m_repo->get(
         kSettings, QStringLiteral("%1.current-step").arg(prefix()));
     plan.currentStep = stepRaw.toInt();
+    plan.keepCurrentStop = m_repo->get(
+        kSettings, QStringLiteral("%1.keep-current-stop").arg(prefix())) == QLatin1String("true");
 
     m_loadedActive = m_repo->get(
         kSettings, QStringLiteral("%1.active").arg(prefix())) == QLatin1String("true");
 
     assignIds(plan.stops);
     plan.clampStep();
+    if (plan.atLastStop())
+        plan.keepCurrentStop = false;
     return plan;
 }
 
@@ -135,10 +139,13 @@ bool RoutePlanService::save(const RoutePlan &plan, bool active)
 
     const QString stepKey = QStringLiteral("%1.current-step").arg(prefix());
     const QString activeKey = QStringLiteral("%1.active").arg(prefix());
+    const QString keepKey = QStringLiteral("%1.keep-current-stop").arg(prefix());
     const QString updatedKey = QStringLiteral("%1.updated-at").arg(prefix());
     m_repo->set(kSettings, stepKey, QString::number(p.currentStep), false);
     m_repo->set(kSettings, activeKey,
                 active ? QStringLiteral("true") : QStringLiteral("false"), false);
+    m_repo->set(kSettings, keepKey,
+                p.keepCurrentStop ? QStringLiteral("true") : QStringLiteral("false"), false);
     m_repo->set(kSettings, updatedKey,
                 QDateTime::currentDateTimeUtc().toString(Qt::ISODate), false);
 
@@ -148,6 +155,7 @@ bool RoutePlanService::save(const RoutePlan &plan, bool active)
         m_repo->publish(kSettings, QStringLiteral("%1.%2").arg(prefix()).arg(i));
     m_repo->publish(kSettings, stepKey);
     m_repo->publish(kSettings, activeKey);
+    m_repo->publish(kSettings, keepKey);
     m_repo->publish(kSettings, updatedKey);
     return true;
 }
@@ -159,7 +167,7 @@ bool RoutePlanService::clear()
     m_savedCount = 0;
 
     for (const auto &suffix : {QStringLiteral("current-step"), QStringLiteral("active"),
-                               QStringLiteral("updated-at")}) {
+                               QStringLiteral("keep-current-stop"), QStringLiteral("updated-at")}) {
         const QString key = QStringLiteral("%1.%2").arg(prefix()).arg(suffix);
         m_repo->hdel(kSettings, key);
         m_repo->publish(kSettings, key);

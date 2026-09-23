@@ -187,8 +187,8 @@ enum class RoutePlanState {
     None = 0,   // no plan
     Planning,   // a preview request is in flight
     Navigating, // guiding to stops[currentStep]
-    AtStop,     // reached stops[currentStep]; continue prompt active
-    Held,       // rider said no; plan kept, guidance stopped
+    AtStop,     // reached stops[currentStep]; drive-mode countdown active
+    Held,       // plan retained without guidance until resumed
     Paused,     // parked or hop-on; plan kept, guidance stopped
     Complete    // last stop reached, plan about to clear
 };
@@ -222,6 +222,7 @@ struct HopPreview {
 struct RoutePlan {
     QList<RouteStop> stops;
     int currentStep = 0;
+    bool keepCurrentStop = false; // suppress drive-mode arrival until dismount at this stop
     QList<HopPreview> hops;   // size stops.size()-1 once previewed
 
     bool isValid() const { return !stops.isEmpty(); }

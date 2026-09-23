@@ -67,8 +67,10 @@ ShortcutMenuStore::ShortcutMenuStore(EngineStore *engine, VehicleStore *vehicle,
         connect(m_navigation, SIGNAL(routeChanged()), this, SLOT(rebuildActions()));
     if (m_navigation)
         connect(m_navigation, SIGNAL(planChanged()), this, SLOT(rebuildActions()));
-    if (m_navigation)
+    if (m_navigation) {
         connect(m_navigation, SIGNAL(planStateChanged()), this, SLOT(rebuildActions()));
+        connect(m_navigation, SIGNAL(hopPromptChanged()), this, SLOT(rebuildActions()));
+    }
     if (m_settings) {
         connect(m_settings, &SettingsStore::mapTypeChanged,
                 this, &ShortcutMenuStore::rebuildActions);
@@ -105,6 +107,8 @@ void ShortcutMenuStore::show()
     rebuildActions();
     if (!m_visible) {
         m_visible = true;
+        if (m_navigation)
+            QMetaObject::invokeMethod(m_navigation, "setHopMenuOpen", Q_ARG(bool, true));
         m_selectedIndex = 0;
         m_confirming = false;
         m_pendingAction.clear();
@@ -172,6 +176,8 @@ QString ShortcutMenuStore::actionKey(const QVariantMap &action)
 QVariantList ShortcutMenuStore::availableActions() const
 {
     QVariantList actions;
+    if (m_navigation && m_navigation->property("hopPromptVisible").toBool())
+        actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("keep-stop")}});
     const bool hasRoute = m_navigation && m_navigation->property("hasRoute").toBool();
     const bool developerMode = m_settings && m_settings->developerMode();
     const bool showDestinations = !hasRoute && m_savedLocations && destinationAvailable();
@@ -421,6 +427,11 @@ void ShortcutMenuStore::executePendingAction()
         resetState();
         return;
     }
+    if (kind == QLatin1String("keep-stop")) {
+        QMetaObject::invokeMethod(m_navigation, "keepCurrentStop");
+        resetState();
+        return;
+    }
     if (kind == QLatin1String("route-overview")) {
         showRouteOverview();
         resetState();
@@ -528,6 +539,8 @@ void ShortcutMenuStore::resetState()
     m_confirmTimer->stop();
 
     const bool wasVisible = m_visible;
+    if (wasVisible && m_navigation)
+        QMetaObject::invokeMethod(m_navigation, "setHopMenuOpen", Q_ARG(bool, false));
     const bool wasConfirming = m_confirming;
     const bool selectionMoved = m_selectedIndex != 0;
     m_visible = false;

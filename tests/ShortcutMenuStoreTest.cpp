@@ -16,11 +16,23 @@ class NavigationStub : public QObject
     Q_PROPERTY(bool hasPlan READ hasPlan NOTIFY planChanged)
     Q_PROPERTY(int currentStep READ currentStep NOTIFY planChanged)
     Q_PROPERTY(int stopCount READ stopCount NOTIFY planChanged)
+    Q_PROPERTY(bool hopPromptVisible READ hopPromptVisible NOTIFY hopPromptChanged)
 public:
     bool hasRoute() const { return m_hasRoute; }
     bool hasPlan() const { return m_hasPlan; }
     int currentStep() const { return m_currentStep; }
     int stopCount() const { return m_stopCount; }
+    bool hopPromptVisible() const { return m_hopPromptVisible; }
+    Q_INVOKABLE void setHopMenuOpen(bool open) { menuOpen = open; }
+    Q_INVOKABLE void keepCurrentStop() {
+        ++keepCalls;
+        m_hopPromptVisible = false;
+        emit hopPromptChanged();
+    }
+    void setHopPromptVisible(bool visible) {
+        m_hopPromptVisible = visible;
+        emit hopPromptChanged();
+    }
     Q_INVOKABLE void clearNavigation() { m_hasRoute = false; emit routeChanged(); }
     Q_INVOKABLE void skipCurrentStop() { ++skipCalls; }
     void setPlan(bool hasPlan, int step, int count)
@@ -31,12 +43,16 @@ public:
         emit planChanged();
     }
     int skipCalls = 0;
+    int keepCalls = 0;
+    bool menuOpen = false;
 signals:
     void routeChanged();
     void planChanged();
     void planStateChanged();
+    void hopPromptChanged();
 private:
     bool m_hasRoute = true;
+    bool m_hopPromptVisible = false;
     bool m_hasPlan = false;
     int m_currentStep = 0;
     int m_stopCount = 0;
@@ -64,6 +80,7 @@ private slots:
     void developerModeOffersDebugOverlay();
     void activeNavigationOffersOverviewAndStop();
     void planNavigationOffersSkipBetweenStops();
+    void pendingHopOffersKeepStopFirst();
     void configuredOrderIsPreservedAndUnavailableItemsHidden();
     void destinationTokenHiddenWithoutAvailability();
     void destinationSlotEditsFollowSwapSemantics();
@@ -391,6 +408,36 @@ void ShortcutMenuStoreTest::planNavigationOffersSkipBetweenStops()
     // There is nothing to skip on the final hop, so the action disappears.
     navigation.setPlan(true, 1, 2);
     QCOMPARE(menu.actionCount(), 3);
+}
+
+void ShortcutMenuStoreTest::pendingHopOffersKeepStopFirst()
+{
+    InMemoryMdbRepository repo;
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
+             QStringLiteral("ready-to-drive"), false);
+    repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.shortcut-menu.items"),
+             QStringLiteral("[\"view\"]"), false);
+    VehicleStore vehicle(&repo);
+    SettingsStore settings(&repo);
+    vehicle.start();
+    settings.start();
+    NavigationStub navigation;
+    navigation.setPlan(true, 0, 2);
+    navigation.setHopPromptVisible(true);
+    ShortcutMenuStore menu(nullptr, &vehicle, nullptr, nullptr, nullptr,
+                           &navigation, nullptr, &settings, &repo, nullptr);
+    QCOMPARE(menu.actions().first().toMap().value(QStringLiteral("kind")).toString(),
+             QStringLiteral("keep-stop"));
+    repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:long-tap"));
+    QVERIFY(menu.visible());
+    QVERIFY(navigation.menuOpen);
+    repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:release"));
+    repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
+    QCOMPARE(navigation.keepCalls, 1);
+    QVERIFY(!navigation.menuOpen);
+    QVERIFY(!menu.visible());
+    QCOMPARE(menu.actions().first().toMap().value(QStringLiteral("kind")).toString(),
+             QStringLiteral("view"));
 }
 
 void ShortcutMenuStoreTest::configuredOrderIsPreservedAndUnavailableItemsHidden()

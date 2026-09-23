@@ -427,7 +427,8 @@ Window {
         anchors.fill: parent
         z: 150
         asynchronous: true
-        active: typeof navigationService !== "undefined" && navigationService.hopPromptVisible
+        active: typeof navigationService !== "undefined"
+                && (navigationService.hopPromptVisible || navigationService.hopParkedNoticeVisible)
         sourceComponent: Component { HopContinuePrompt { anchors.fill: parent } }
     }
 

@@ -163,9 +163,8 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
             refreshPlanOverview();
     });
 
-    // The continue prompt doubles as its own countdown display: one timer tick
-    // per second, advancing automatically when it reaches zero. Parked/hop-on
-    // pauses instead, so the rider never rolls into the next hop from a stop.
+    // Auto-advance only in drive mode. A dismount cancels the countdown and
+    // queues the next hop for the next unlock.
     m_hopAdvance = new QTimer(this);
     m_hopAdvance->setInterval(1000);
     connect(m_hopAdvance, &QTimer::timeout, this, [this]() {
@@ -173,11 +172,12 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
             stopHopAdvanceTimer();
             return;
         }
-        if (m_vehicle && (m_vehicle->isShuttingDown() || m_vehicle->isStandBy()
-                          || m_vehicle->hopOnActive())) {
+        if (!m_vehicle || !m_vehicle->isReadyToDrive()) {
             pausePlan();
             return;
         }
+        if (m_hopMenuOpen)
+            return;
         if (m_hopSecondsLeft > 0) {
             --m_hopSecondsLeft;
             emit hopPromptChanged();
@@ -870,6 +870,8 @@ void NavigationService::removeStop(int index)
         return;
 
     m_plan.stops.removeAt(index);
+    if (m_plan.atLastStop())
+        m_plan.keepCurrentStop = false;
 
     if (m_plan.stops.isEmpty()) {
         clearNavigation();
@@ -884,6 +886,7 @@ void NavigationService::removeStop(int index)
     }
 
     if (index == m_plan.currentStep) {
+        m_plan.keepCurrentStop = false;
         if (m_plan.currentStep >= m_plan.stopCount()) {
             // Removed the last stop while guiding to it: the trip ends here.
             m_plan.currentStep = m_plan.stopCount() - 1;
@@ -916,6 +919,8 @@ void NavigationService::moveStop(int from, int to)
     const bool targetMoved = newIndex >= 0 && newIndex != m_plan.currentStep;
     if (newIndex >= 0)
         m_plan.currentStep = newIndex;
+    if (m_plan.atLastStop())
+        m_plan.keepCurrentStop = false;
 
     persistPlan();
     emit planChanged();
@@ -936,6 +941,7 @@ void NavigationService::jumpToStop(int index)
         return;
     stopHopAdvanceTimer();
     m_plan.currentStep = index;
+    m_plan.keepCurrentStop = false;
     for (int i = 0; i < m_plan.stopCount(); ++i)
         m_plan.stops[i].reached = (i < index);
     persistPlan();
@@ -958,6 +964,32 @@ void NavigationService::declineContinue()
     clearPendingRoute();
     setStatus(NavigationStatus::Idle);
     setPlanState(RoutePlanState::Held);
+}
+
+void NavigationService::keepCurrentStop()
+{
+    if (m_planState != RoutePlanState::AtStop || !m_plan.isValid())
+        return;
+    stopHopAdvanceTimer();
+    m_plan.keepCurrentStop = true;
+    m_plan.stops[m_plan.currentStep].reached = false;
+    persistPlan();
+    emit planChanged();
+    beginCurrentHop(ValhallaClient::Reason::Recovery);
+}
+
+void NavigationService::setHopMenuOpen(bool open)
+{
+    if (m_hopMenuOpen == open)
+        return;
+    m_hopMenuOpen = open;
+    if (open) {
+        if (m_hopAdvance)
+            m_hopAdvance->stop();
+    } else if (m_planState == RoutePlanState::AtStop && m_hopSecondsLeft > 0
+               && m_vehicle && m_vehicle->isReadyToDrive()) {
+        m_hopAdvance->start();
+    }
 }
 
 void NavigationService::pausePlan()
@@ -1116,7 +1148,15 @@ void NavigationService::advanceToNextHop()
         return;
     }
     ++m_plan.currentStep;
-    beginCurrentHop(ValhallaClient::Reason::Destination);
+    m_plan.keepCurrentStop = false;
+    persistPlan();
+    if (m_vehicle && !m_vehicle->isReadyToDrive()) {
+        m_pausedAfterReach = false;
+        setStatus(NavigationStatus::Idle);
+        setPlanState(RoutePlanState::Paused);
+    } else {
+        beginCurrentHop(ValhallaClient::Reason::Destination);
+    }
     emit planChanged();
 }
 
@@ -1137,7 +1177,12 @@ void NavigationService::startHopAdvanceTimer()
 {
     m_hopSecondsLeft = HopAdvanceTimeoutSeconds;
     emit hopPromptChanged();
-    m_hopAdvance->start();
+    if (m_vehicle && m_vehicle->isReadyToDrive()) {
+        if (!m_hopMenuOpen)
+            m_hopAdvance->start();
+    } else {
+        pausePlan();
+    }
 }
 
 void NavigationService::stopHopAdvanceTimer()
@@ -1171,14 +1216,11 @@ void NavigationService::restorePlan()
         return;
 
     m_plan = stored;
-    // A reached stop means the rider was already there: continue forward.
-    if (m_plan.currentStop().reached) {
-        if (m_plan.atLastStop()) {
-            completePlan();
-            return;
-        }
-        ++m_plan.currentStep;
+    if (m_plan.currentStop().reached && m_plan.atLastStop()) {
+        completePlan();
+        return;
     }
+    m_pausedAfterReach = m_plan.currentStop().reached;
 
     const QString label = m_plan.currentStop().label;
     const int step = m_plan.currentStep;
@@ -1187,8 +1229,18 @@ void NavigationService::restorePlan()
         emit planRestored(label, step, count);
     });
 
-    // Resuming means navigating, not waiting for the rider to pick it again.
-    beginCurrentHop(ValhallaClient::Reason::Recovery);
+    setPlanState(RoutePlanState::Paused);
+    if (m_pausedAfterReach && m_vehicle && m_vehicle->isReadyToDrive()) {
+        m_pausedAfterReach = false;
+        setStatus(NavigationStatus::Arrived);
+        setPlanState(RoutePlanState::AtStop);
+        startHopAdvanceTimer();
+    } else if (m_pausedAfterReach && (!m_vehicle ||
+               m_vehicle->state() == static_cast<int>(ScootEnums::VehicleState::Unknown))) {
+        m_restoreReachedAwaitingVehicleState = true;
+    } else if (m_vehicle && m_vehicle->isReadyToDrive()) {
+        resumePlan();
+    }
 }
 
 void NavigationService::writePlanToNavigationHash()
@@ -1465,7 +1517,7 @@ void NavigationService::onGpsChanged()
         if (selectRouteOrigin().isValid()) {
             LatLng pos = currentPosition();
             double dist = pos.distanceTo(m_destination);
-            if (dist < ArrivalProximity) {
+            if (dist < ArrivalProximity && !m_plan.keepCurrentStop) {
                 if (m_plan.isValid() && !m_plan.atLastStop())
                     onHopReached();
                 else
@@ -1572,13 +1624,36 @@ void NavigationService::onVehicleStateChanged()
 {
     if (!m_vehicle) return;
 
+    if (m_vehicle->isReadyToDrive()) {
+        if (m_restoreReachedAwaitingVehicleState) {
+            m_restoreReachedAwaitingVehicleState = false;
+            m_pausedAfterReach = false;
+            setStatus(NavigationStatus::Arrived);
+            setPlanState(RoutePlanState::AtStop);
+            startHopAdvanceTimer();
+        } else if (m_planState == RoutePlanState::Paused) {
+            resumePlan();
+        }
+        return;
+    }
+
     // Leaving the scooter (full lock, standby, or hop-on) ends a single trip.
     // HopOnLearning is excluded: the rider is still present, teaching the
     // scooter the combo.
     bool isLeaving = m_vehicle->isShuttingDown() || m_vehicle->isStandBy()
-                  || m_vehicle->hopOnActive();
+                  || m_vehicle->hopOnActive()
+                  || m_vehicle->state() == static_cast<int>(ScootEnums::VehicleState::Parked);
     if (!isLeaving)
         return;
+    m_restoreReachedAwaitingVehicleState = false;
+
+    if (m_plan.isValid() && !m_plan.atLastStop()
+        && m_planState == RoutePlanState::Navigating
+        && selectRouteOrigin().isValid()
+        && currentPosition().distanceTo(m_plan.currentStop().position) < ArrivalProximity) {
+        m_plan.keepCurrentStop = false;
+        onHopReached();
+    }
 
     // Only a full shutdown ends a request that never produced a route, and
     // only for a single destination. A multi-hop plan is a persisted trip:
@@ -1596,8 +1671,7 @@ void NavigationService::onVehicleStateChanged()
         return;
     }
 
-    // An intermediate stop only pauses a multi-hop trip. The plan, its step,
-    // and the prompt survive the stop so the rider can continue later.
+    // Dismounting at a reached intermediate stop queues the next hop for unlock.
     if (m_plan.isValid() && !m_plan.atLastStop()) {
         if (m_planState == RoutePlanState::Navigating || m_planState == RoutePlanState::AtStop) {
             qDebug() << "NavigationService: pausing plan at hop" << m_plan.currentStep;
@@ -1786,7 +1860,7 @@ void NavigationService::updateNavigationState()
 
     // Use the actual final maneuver, even if the proximity threshold was crossed
     // between GPS ticks before the upcoming-instruction walker reached it.
-    if (straightLineToDestination < ArrivalProximity) {
+    if (straightLineToDestination < ArrivalProximity && !m_plan.keepCurrentStop) {
         // An intermediate hop is not the end of the trip: it hands over to the
         // continue prompt and the plan keeps its step.
         if (m_plan.isValid() && !m_plan.atLastStop()) {

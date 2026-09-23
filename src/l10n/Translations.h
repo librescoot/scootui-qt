@@ -462,10 +462,9 @@ class Translations : public QObject
     Q_PROPERTY(QString navContinue READ navContinue NOTIFY languageChanged)
     Q_PROPERTY(QString navReturnToRoute READ navReturnToRoute NOTIFY languageChanged)
     Q_PROPERTY(QString navStopReached READ navStopReached NOTIFY languageChanged)
-    Q_PROPERTY(QString navContinueTo READ navContinueTo NOTIFY languageChanged)
     Q_PROPERTY(QString navAutoContinue READ navAutoContinue NOTIFY languageChanged)
-    Q_PROPERTY(QString navHoldContinue READ navHoldContinue NOTIFY languageChanged)
-    Q_PROPERTY(QString navHoldStop READ navHoldStop NOTIFY languageChanged)
+    Q_PROPERTY(QString navNextUnlock READ navNextUnlock NOTIFY languageChanged)
+    Q_PROPERTY(QString navKeepStopHint READ navKeepStopHint NOTIFY languageChanged)
     Q_PROPERTY(QString navRouteRestored READ navRouteRestored NOTIFY languageChanged)
     Q_PROPERTY(QString navRouteRestoredTo READ navRouteRestoredTo NOTIFY languageChanged)
     Q_PROPERTY(QString routeOverviewTitle READ routeOverviewTitle NOTIFY languageChanged)
@@ -681,6 +680,7 @@ class Translations : public QObject
     Q_PROPERTY(QString shortcutStartDestination READ shortcutStartDestination NOTIFY languageChanged)
     Q_PROPERTY(QString shortcutRouteOverview READ shortcutRouteOverview NOTIFY languageChanged)
     Q_PROPERTY(QString shortcutSkipStop READ shortcutSkipStop NOTIFY languageChanged)
+    Q_PROPERTY(QString shortcutKeepStop READ shortcutKeepStop NOTIFY languageChanged)
 
 public:
     explicit Translations(QObject *parent = nullptr);
@@ -1141,10 +1141,9 @@ public:
     QString navContinue() const { return lookup("navContinue"); }
     QString navReturnToRoute() const { return lookup("navReturnToRoute"); }
     QString navStopReached() const { return lookup("navStopReached"); }
-    QString navContinueTo() const { return lookup("navContinueTo"); }
     QString navAutoContinue() const { return lookup("navAutoContinue"); }
-    QString navHoldContinue() const { return lookup("navHoldContinue"); }
-    QString navHoldStop() const { return lookup("navHoldStop"); }
+    QString navNextUnlock() const { return lookup("navNextUnlock"); }
+    QString navKeepStopHint() const { return lookup("navKeepStopHint"); }
     QString navRouteRestored() const { return lookup("navRouteRestored"); }
     QString navRouteRestoredTo() const { return lookup("navRouteRestoredTo"); }
     QString routeOverviewTitle() const { return lookup("routeOverviewTitle"); }
@@ -1356,6 +1355,7 @@ public:
     QString shortcutStartDestination() const { return lookup("shortcutStartDestination"); }
     QString shortcutRouteOverview() const { return lookup("shortcutRouteOverview"); }
     QString shortcutSkipStop() const { return lookup("shortcutSkipStop"); }
+    QString shortcutKeepStop() const { return lookup("shortcutKeepStop"); }
 
 signals:
     void languageChanged();

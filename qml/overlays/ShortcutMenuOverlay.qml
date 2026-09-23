@@ -25,6 +25,8 @@ Item {
                 return translations.shortcutThemeLight
             return translations.shortcutThemeAuto
         }
+        if (selectedAction.kind === "keep-stop")
+            return translations.shortcutKeepStop
         if (selectedAction.kind === "route-overview")
             return translations.shortcutRouteOverview
         if (selectedAction.kind === "skip-stop")
@@ -57,6 +59,8 @@ Item {
         if (action.kind === "view")
             return screenStore.currentScreen === Scooter.ScreenMode.Cluster
                  ? MaterialIcon.iconMap : MaterialIcon.iconSpeed
+        if (action.kind === "keep-stop")
+            return MaterialIcon.iconPlace
         if (action.kind === "route-overview")
             return MaterialIcon.iconMap
         if (action.kind === "skip-stop")

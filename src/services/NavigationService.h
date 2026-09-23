@@ -73,7 +73,7 @@ class NavigationService : public QObject
 
     // Multi-hop plan. planState carries RoutePlanState as an int; QML compares
     // against the same constants NavigationStatus uses. hopPromptVisible is
-    // true only while the continue prompt is on screen at an intermediate stop.
+    // true during the drive-mode countdown at an intermediate stop.
     Q_PROPERTY(bool hasPlan READ hasPlan NOTIFY planChanged)
     Q_PROPERTY(int planState READ planState NOTIFY planStateChanged)
     Q_PROPERTY(QVariantList planStops READ planStops NOTIFY planChanged)
@@ -81,6 +81,7 @@ class NavigationService : public QObject
     Q_PROPERTY(int stopCount READ stopCount NOTIFY planChanged)
     Q_PROPERTY(QString nextStopLabel READ nextStopLabel NOTIFY planChanged)
     Q_PROPERTY(bool hopPromptVisible READ hopPromptVisible NOTIFY hopPromptChanged)
+    Q_PROPERTY(bool hopParkedNoticeVisible READ hopParkedNoticeVisible NOTIFY planStateChanged)
     Q_PROPERTY(int hopPromptSecondsRemaining READ hopPromptSecondsRemaining
                NOTIFY hopPromptChanged)
     // Per-hop overview of the remaining plan, from the current position to the
@@ -170,6 +171,9 @@ public:
     int stopCount() const { return m_plan.stopCount(); }
     QString nextStopLabel() const { return m_plan.nextStop().label; }
     bool hopPromptVisible() const { return m_planState == RoutePlanState::AtStop; }
+    bool hopParkedNoticeVisible() const {
+        return m_planState == RoutePlanState::Paused && m_pausedAfterReach;
+    }
     int hopPromptSecondsRemaining() const { return m_hopSecondsLeft; }
     QVariantList planOverview() const { return m_planOverview; }
     double planTotalDistance() const { return m_planTotalDistance; }
@@ -205,6 +209,8 @@ public:
     Q_INVOKABLE void jumpToStop(int index);
     Q_INVOKABLE void confirmContinue();
     Q_INVOKABLE void declineContinue();
+    Q_INVOKABLE void keepCurrentStop();
+    Q_INVOKABLE void setHopMenuOpen(bool open);
     Q_INVOKABLE void pausePlan();
     Q_INVOKABLE void resumePlan();
 
@@ -429,10 +435,9 @@ private:
     static constexpr int ErrorLingerMs = 5000;
     QTimer *m_errorLinger = nullptr;
 
-    // Seconds the continue prompt waits at an intermediate stop before
-    // advancing on its own. The prompt is the only warning the rider gets, so
-    // it must be visible for the whole window.
-    static constexpr int HopAdvanceTimeoutSeconds = 25;
+    // Seconds the drive-mode arrival notice shows before advancing. Opening
+    // the seatbox Shortcut menu suspends the countdown while choosing Keep.
+    static constexpr int HopAdvanceTimeoutSeconds = 30;
 
     RoutePlanService m_planService;
     RoutePlan m_plan;
@@ -441,9 +446,10 @@ private:
     // advanceToNextHop() when it reaches zero.
     QTimer *m_hopAdvance = nullptr;
     int m_hopSecondsLeft = 0;
-    // True when Paused was entered from AtStop (the hop was reached). Resume
-    // then advances instead of re-guiding to a stop already visited.
+    bool m_hopMenuOpen = false;
+    // True when dismount finished the current hop. Unlock advances to the next.
     bool m_pausedAfterReach = false;
+    bool m_restoreReachedAwaitingVehicleState = false;
     // True once restorePlan() has looked at the persisted settings once, so the
     // first settings snapshot retries only a single time.
     bool m_restoreChecked = false;
