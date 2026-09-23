@@ -37,6 +37,14 @@ Rectangle {
 
     function feedbackText() {
         if (typeof keycardStore === "undefined") return ""
+        if (keycardStore.lastScannedKind === "phone") {
+            switch (keycardStore.scanStatus) {
+            case "accepted": return translations.keycardPhoneAccepted
+            case "duplicate": return translations.keycardPhoneDuplicate
+            case "rejected": return translations.keycardPhoneRejected
+            case "error": return translations.keycardPhoneError
+            }
+        }
         switch (keycardStore.scanStatus) {
         case "accepted": return flow === "unlock" ? translations.keycardScanAccepted
                                                    : translations.keycardMasterSaved
@@ -170,6 +178,7 @@ Rectangle {
                     width: bodyColumn.width - 48
                     visible: screen.learning
                     text: translations.keycardDetectedCount.arg(keycardStore.sessionCardCount)
+                                                       .arg(keycardStore.sessionPhoneCount)
                     color: screen.textPrimary
                     font.pixelSize: themeStore.fontBody
                     font.weight: Font.Medium
@@ -180,7 +189,9 @@ Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
                     width: bodyColumn.width - 48
                     visible: keycardStore.lastScannedUid !== ""
-                    text: translations.keycardLastCard.arg(keycardStore.lastScannedUid)
+                    text: keycardStore.lastScannedKind === "phone"
+                          ? translations.keycardLastPhone.arg(keycardStore.lastScannedUid.slice(-8))
+                          : translations.keycardLastCard.arg(keycardStore.lastScannedUid)
                     color: screen.textPrimary
                     font.pixelSize: themeStore.fontBody
                     font.weight: Font.Medium

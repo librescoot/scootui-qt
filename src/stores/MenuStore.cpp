@@ -193,6 +193,8 @@ void MenuStore::setKeycardStore(KeycardStore *store)
                 this, &MenuStore::rebuildMenuTree);
         connect(m_keycard, &KeycardStore::lastUsedUidChanged,
                 this, &MenuStore::rebuildMenuTree);
+        connect(m_keycard, &KeycardStore::aliasesChanged,
+                this, &MenuStore::rebuildMenuTree);
     }
     rebuildMenuTree();
 }
@@ -1330,65 +1332,85 @@ void MenuStore::rebuildMenuTree()
         }
 
         const QStringList unlockCards = m_keycard->unlockCards();
-        for (const QString &uid : unlockCards) {
-            const bool lastUnlockCard = unlockCards.size() == 1;
-            auto *cardNode = keycardsNode->addChild(MenuNode::submenu(
-                QStringLiteral("keycard_unlock_%1").arg(uid), uid,
-                lastUnlockCard ? tr->keycardConfirmRemoveLast()
-                               : tr->keycardUnlockCard()));
-            cardNode->setValueLabel(uid == m_keycard->lastUsedUid()
-                                    ? tr->keycardLastUsed() : tr->keycardUnlockCard());
-            if (lastUnlockCard) {
-                cardNode->setCaution(true);
-                cardNode->addChild(MenuNode::action(
-                    QStringLiteral("keycard_remove_cancel_%1").arg(uid),
-                    tr->controlCancel(), [this]() { goBack(); }));
+        if (!unlockCards.isEmpty()) {
+            auto *unlockGroup = keycardsNode->addChild(MenuNode::submenu(
+                QStringLiteral("keycards_unlock_group"), tr->keycardUnlockGroup()));
+            unlockGroup->setValueLabel(QString::number(unlockCards.size()));
+            for (const QString &uid : unlockCards) {
+                const bool lastUnlockCard = unlockCards.size() == 1;
+                const QString alias = m_keycard->aliasForCard(uid);
+                auto *cardNode = unlockGroup->addChild(MenuNode::submenu(
+                    QStringLiteral("keycard_unlock_%1").arg(uid),
+                    alias.isEmpty() ? tr->keycardUnlockCard() : alias,
+                    lastUnlockCard ? tr->keycardConfirmRemoveLast() : uid));
+                cardNode->setValueLabel(uid.right(8) +
+                    (uid == m_keycard->lastUsedUid()
+                         ? QStringLiteral(" · ") + tr->keycardLastUsed() : QString()));
+                if (lastUnlockCard) {
+                    cardNode->setCaution(true);
+                    cardNode->addChild(MenuNode::action(
+                        QStringLiteral("keycard_remove_cancel_%1").arg(uid),
+                        tr->controlCancel(), [this]() { goBack(); }));
+                }
+                auto *removeNode = cardNode->addChild(MenuNode::action(
+                    QStringLiteral("keycard_remove_%1").arg(uid),
+                    lastUnlockCard ? tr->keycardRemoveLastUnlockCard()
+                                   : tr->keycardRemoveUnlockCard(),
+                    [this, uid, lastUnlockCard]() {
+                        if (lastUnlockCard) m_keycard->removeCardForced(uid);
+                        else m_keycard->removeCard(uid);
+                    }));
+                removeNode->setCaution(true);
             }
-
-            auto *removeNode = cardNode->addChild(MenuNode::action(
-                QStringLiteral("keycard_remove_%1").arg(uid),
-                lastUnlockCard ? tr->keycardRemoveLastUnlockCard()
-                               : tr->keycardRemoveUnlockCard(),
-                [this, uid, lastUnlockCard]() {
-                    if (lastUnlockCard) m_keycard->removeCardForced(uid);
-                    else m_keycard->removeCard(uid);
-                }));
-            removeNode->setCaution(true);
         }
 
         const QStringList phoneKeys = m_keycard->phoneKeys();
-        for (const QString &fingerprint : phoneKeys) {
-            const bool lastUnlockCredential = unlockCards.isEmpty() && phoneKeys.size() == 1;
-            auto *phoneNode = keycardsNode->addChild(MenuNode::submenu(
-                QStringLiteral("keycard_phone_%1").arg(fingerprint),
-                tr->keycardPhoneName().arg(fingerprint.right(8)),
-                lastUnlockCredential ? tr->keycardConfirmRemoveLastPhone() : fingerprint));
-            if (lastUnlockCredential) {
-                phoneNode->setCaution(true);
-                phoneNode->addChild(MenuNode::action(
-                    QStringLiteral("keycard_phone_remove_cancel_%1").arg(fingerprint),
-                    tr->controlCancel(), [this]() { goBack(); }));
+        if (!phoneKeys.isEmpty()) {
+            auto *phoneGroup = keycardsNode->addChild(MenuNode::submenu(
+                QStringLiteral("keycards_phone_group"), tr->keycardPhoneGroup()));
+            phoneGroup->setValueLabel(QString::number(phoneKeys.size()));
+            for (const QString &fingerprint : phoneKeys) {
+                const bool lastUnlockCredential = unlockCards.isEmpty() && phoneKeys.size() == 1;
+                const QString alias = m_keycard->aliasForPhone(fingerprint);
+                auto *phoneNode = phoneGroup->addChild(MenuNode::submenu(
+                    QStringLiteral("keycard_phone_%1").arg(fingerprint),
+                    alias.isEmpty() ? tr->keycardPhoneName().arg(fingerprint.right(8)) : alias,
+                    lastUnlockCredential ? tr->keycardConfirmRemoveLastPhone() : fingerprint));
+                if (!alias.isEmpty()) phoneNode->setValueLabel(fingerprint.right(8));
+                if (lastUnlockCredential) {
+                    phoneNode->setCaution(true);
+                    phoneNode->addChild(MenuNode::action(
+                        QStringLiteral("keycard_phone_remove_cancel_%1").arg(fingerprint),
+                        tr->controlCancel(), [this]() { goBack(); }));
+                }
+                auto *removeNode = phoneNode->addChild(MenuNode::action(
+                    QStringLiteral("keycard_phone_remove_%1").arg(fingerprint),
+                    lastUnlockCredential ? tr->keycardRemoveLastPhone() : tr->keycardRemovePhone(),
+                    [this, fingerprint, lastUnlockCredential]() {
+                        if (lastUnlockCredential) m_keycard->removePhoneForced(fingerprint);
+                        else m_keycard->removePhone(fingerprint);
+                    }));
+                removeNode->setCaution(true);
             }
-            auto *removeNode = phoneNode->addChild(MenuNode::action(
-                QStringLiteral("keycard_phone_remove_%1").arg(fingerprint),
-                lastUnlockCredential ? tr->keycardRemoveLastPhone() : tr->keycardRemovePhone(),
-                [this, fingerprint, lastUnlockCredential]() {
-                    if (lastUnlockCredential) m_keycard->removePhoneForced(fingerprint);
-                    else m_keycard->removePhone(fingerprint);
-                }));
-            removeNode->setCaution(true);
         }
 
-        for (const QString &uid : m_keycard->masterCards()) {
-            auto *cardNode = keycardsNode->addChild(MenuNode::submenu(
-                QStringLiteral("keycard_master_%1").arg(uid), uid,
-                tr->keycardTeachInCard()));
-            cardNode->setValueLabel(tr->keycardTeachInCard());
-            auto *removeNode = cardNode->addChild(MenuNode::action(
-                QStringLiteral("keycard_master_remove_%1").arg(uid),
-                tr->keycardRemoveTeachInCard(),
-                [this, uid]() { m_keycard->removeMaster(uid); }));
-            removeNode->setCaution(true);
+        const QStringList masterCards = m_keycard->masterCards();
+        if (!masterCards.isEmpty()) {
+            auto *masterGroup = keycardsNode->addChild(MenuNode::submenu(
+                QStringLiteral("keycards_master_group"), tr->keycardMasterGroup()));
+            masterGroup->setValueLabel(QString::number(masterCards.size()));
+            for (const QString &uid : masterCards) {
+                const QString alias = m_keycard->aliasForCard(uid);
+                auto *cardNode = masterGroup->addChild(MenuNode::submenu(
+                    QStringLiteral("keycard_master_%1").arg(uid),
+                    alias.isEmpty() ? tr->keycardTeachInCard() : alias, uid));
+                cardNode->setValueLabel(uid.right(8));
+                auto *removeNode = cardNode->addChild(MenuNode::action(
+                    QStringLiteral("keycard_master_remove_%1").arg(uid),
+                    tr->keycardRemoveTeachInCard(),
+                    [this, uid]() { m_keycard->removeMaster(uid); }));
+                removeNode->setCaution(true);
+            }
         }
     }
 

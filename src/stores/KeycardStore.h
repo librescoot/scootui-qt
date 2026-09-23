@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QHash>
 #include <QStringList>
 
 #include "SyncableStore.h"
@@ -19,6 +20,8 @@ class KeycardStore : public SyncableStore
     Q_PROPERTY(QString lastUsedUid READ lastUsedUid NOTIFY lastUsedUidChanged)
     Q_PROPERTY(int unlockCardCount READ unlockCardCount NOTIFY unlockCardsChanged)
     Q_PROPERTY(int sessionCardCount READ sessionCardCount NOTIFY enrollmentFeedbackChanged)
+    Q_PROPERTY(int sessionPhoneCount READ sessionPhoneCount NOTIFY enrollmentFeedbackChanged)
+    Q_PROPERTY(QString lastScannedKind READ lastScannedKind NOTIFY enrollmentFeedbackChanged)
     Q_PROPERTY(QString lastScannedUid READ lastScannedUid NOTIFY enrollmentFeedbackChanged)
     Q_PROPERTY(QString scanStatus READ scanStatus NOTIFY enrollmentFeedbackChanged)
 
@@ -36,7 +39,11 @@ public:
     QString lastUsedUid() const { return m_lastUsedUid; }
     int unlockCardCount() const { return m_unlockCards.size(); }
     int sessionCardCount() const { return m_sessionCards.size(); }
+    int sessionPhoneCount() const { return m_sessionPhones.size(); }
+    QString lastScannedKind() const { return m_lastScannedKind; }
     QString lastScannedUid() const { return m_lastScannedUid; }
+    QString aliasForCard(const QString &uid) const { return m_aliases.value(QStringLiteral("card:") + uid); }
+    QString aliasForPhone(const QString &id) const { return m_aliases.value(QStringLiteral("phone:") + id); }
     QString scanStatus() const { return m_scanStatus; }
 
     Q_INVOKABLE void startEnroll();
@@ -56,6 +63,7 @@ signals:
     void masterCardsChanged();
     void phoneKeysChanged();
     void lastUsedUidChanged();
+    void aliasesChanged();
     void enrollmentFeedbackChanged();
 
 protected:
@@ -66,14 +74,17 @@ protected:
 private:
     void onKeycardEvent(const QString &message);
     void clearEnrollmentFeedback();
-    void setEnrollmentFeedback(const QString &uid, const QString &status);
+    void setEnrollmentFeedback(const QString &kind, const QString &uid, const QString &status);
 
     QString m_learnState = QStringLiteral("idle");
     QStringList m_unlockCards;
     QStringList m_masterCards;
     QStringList m_phoneKeys;
+    QHash<QString, QString> m_aliases;
     QString m_lastUsedUid;
     QStringList m_sessionCards;
+    QStringList m_sessionPhones;
+    QString m_lastScannedKind;
     QString m_lastScannedUid;
     QString m_scanStatus;
     SubscriptionId m_eventSubscriptionId = 0;

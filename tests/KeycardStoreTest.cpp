@@ -37,6 +37,7 @@ private slots:
     void refreshesSetOnSystemNotification();
     void appliesDelayedSetResult();
     void tracksEnrollmentFeedback();
+    void tracksNamesAcrossSnapshotRefresh();
     void emitsCurrentCommandVocabulary();
 };
 
@@ -113,7 +114,19 @@ void KeycardStoreTest::tracksEnrollmentFeedback()
 
     repo.publish("keycard:events", "card-duplicate:CAFE");
     QCOMPARE(store.sessionCardCount(), 1);
+    QCOMPARE(store.lastScannedKind(), QStringLiteral("card"));
     QCOMPARE(store.scanStatus(), QStringLiteral("duplicate"));
+
+    repo.publish("keycard:events", "phone-learned:F7C6A7D0309ED723119742DE3F197846");
+    QCOMPARE(store.sessionPhoneCount(), 1);
+    QCOMPARE(store.lastScannedKind(), QStringLiteral("phone"));
+    repo.publish("keycard:events", "phone-duplicate:F7C6A7D0309ED723119742DE3F197846");
+    QCOMPARE(store.sessionPhoneCount(), 1);
+    QCOMPARE(store.scanStatus(), QStringLiteral("duplicate"));
+    repo.publish("keycard:events", "phone-rejected");
+    QCOMPARE(store.lastScannedKind(), QStringLiteral("phone"));
+    QVERIFY(store.lastScannedUid().isEmpty());
+    QCOMPARE(store.scanStatus(), QStringLiteral("rejected"));
 
     repo.publish("keycard:events", "rejected:already-authorized:BEEF");
     QCOMPARE(store.lastScannedUid(), QStringLiteral("BEEF"));
@@ -121,9 +134,37 @@ void KeycardStoreTest::tracksEnrollmentFeedback()
 
     repo.publish("keycard:events", "mode-entered:master");
     QCOMPARE(store.sessionCardCount(), 0);
+    QCOMPARE(store.sessionPhoneCount(), 0);
+    QVERIFY(store.lastScannedKind().isEmpty());
     QVERIFY(store.lastScannedUid().isEmpty());
     QVERIFY(store.scanStatus().isEmpty());
     QVERIFY(changed.count() >= 4);
+}
+
+void KeycardStoreTest::tracksNamesAcrossSnapshotRefresh()
+{
+    RecordingRepository repo;
+    repo.addToSet("keycard:aliases", "card:CAFE:Spare: card");
+    repo.addToSet("keycard:aliases", "phone:F7C6A7D0309ED723119742DE3F197846:My phone");
+    KeycardStore store(&repo);
+    QSignalSpy changed(&store, &KeycardStore::aliasesChanged);
+    store.start();
+    QCOMPARE(store.aliasForCard("CAFE"), QStringLiteral("Spare: card"));
+    QCOMPARE(store.aliasForPhone("F7C6A7D0309ED723119742DE3F197846"), QStringLiteral("My phone"));
+    QCOMPARE(changed.count(), 1);
+
+    repo.removeFromSet("keycard:aliases", "card:CAFE:Spare: card");
+    repo.addToSet("keycard:aliases", "card:CAFE:Workshop");
+    repo.addToSet("keycard:aliases", "card:BEEF:bad\nname");
+    repo.publish("system", "keycard:aliases");
+    QCOMPARE(store.aliasForCard("CAFE"), QStringLiteral("Workshop"));
+    QVERIFY(store.aliasForCard("BEEF").isEmpty());
+    QCOMPARE(changed.count(), 2);
+
+    repo.removeFromSet("keycard:aliases", "card:CAFE:Workshop");
+    repo.publish("system", "keycard:aliases");
+    QVERIFY(store.aliasForCard("CAFE").isEmpty());
+    QCOMPARE(changed.count(), 3);
 }
 
 void KeycardStoreTest::emitsCurrentCommandVocabulary()

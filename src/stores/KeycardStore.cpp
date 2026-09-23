@@ -25,7 +25,8 @@ SyncSettings KeycardStore::syncSettings() const
              {QStringLiteral("keycard-last-used-uid"), QStringLiteral("keycard-last-used-uid"), true}},
             {{QStringLiteral("keycard:authorized"), QStringLiteral("keycard:authorized"), 5000},
              {QStringLiteral("keycard:masters"), QStringLiteral("keycard:masters"), 5000},
-             {QStringLiteral("keycard:phones"), QStringLiteral("keycard:phones"), 5000}}, {}};
+             {QStringLiteral("keycard:phones"), QStringLiteral("keycard:phones"), 5000},
+             {QStringLiteral("keycard:aliases"), QStringLiteral("keycard:aliases"), 5000}}, {}};
 }
 
 void KeycardStore::applyFieldUpdate(const QString &variable, const QString &value)
@@ -46,6 +47,30 @@ void KeycardStore::applyFieldUpdate(const QString &variable, const QString &valu
 
 void KeycardStore::applySetUpdate(const QString &name, const QStringList &members)
 {
+    if (name == QLatin1String("keycard:aliases")) {
+        QHash<QString, QString> aliases;
+        for (const QString &entry : members) {
+            const qsizetype first = entry.indexOf(QLatin1Char(':'));
+            const qsizetype second = entry.indexOf(QLatin1Char(':'), first + 1);
+            if (first < 0 || second < 0) continue;
+            const QString kind = entry.left(first);
+            const QString id = entry.mid(first + 1, second - first - 1);
+            const QString alias = entry.mid(second + 1);
+            if ((kind != QLatin1String("card") && kind != QLatin1String("phone"))
+                || id.isEmpty() || alias.isEmpty() || alias != alias.trimmed()
+                || alias.toUtf8().size() > 32) continue;
+            bool printable = true;
+            for (const QChar c : alias) {
+                if (!c.isPrint()) { printable = false; break; }
+            }
+            if (printable) aliases.insert(kind + QLatin1Char(':') + id, alias);
+        }
+        if (aliases != m_aliases) {
+            m_aliases = aliases;
+            emit aliasesChanged();
+        }
+        return;
+    }
     QStringList sorted = members;
     sorted.sort();
     if (name == QLatin1String("keycard:authorized") && sorted != m_unlockCards) {
@@ -62,16 +87,20 @@ void KeycardStore::applySetUpdate(const QString &name, const QStringList &member
 
 void KeycardStore::clearEnrollmentFeedback()
 {
-    if (m_sessionCards.isEmpty() && m_lastScannedUid.isEmpty() && m_scanStatus.isEmpty())
+    if (m_sessionCards.isEmpty() && m_sessionPhones.isEmpty()
+        && m_lastScannedKind.isEmpty() && m_lastScannedUid.isEmpty() && m_scanStatus.isEmpty())
         return;
     m_sessionCards.clear();
+    m_sessionPhones.clear();
+    m_lastScannedKind.clear();
     m_lastScannedUid.clear();
     m_scanStatus.clear();
     emit enrollmentFeedbackChanged();
 }
 
-void KeycardStore::setEnrollmentFeedback(const QString &uid, const QString &status)
+void KeycardStore::setEnrollmentFeedback(const QString &kind, const QString &uid, const QString &status)
 {
+    m_lastScannedKind = kind;
     m_lastScannedUid = uid;
     m_scanStatus = status;
     emit enrollmentFeedbackChanged();
@@ -91,22 +120,32 @@ void KeycardStore::onKeycardEvent(const QString &message)
         clearEnrollmentFeedback();
         return;
     }
+    if (event == QLatin1String("phone-rejected") || event == QLatin1String("phone-error")) {
+        setEnrollmentFeedback(QStringLiteral("phone"), {},
+                              event == QLatin1String("phone-error") ? QStringLiteral("error")
+                                                                  : QStringLiteral("rejected"));
+        return;
+    }
     if (parts.size() < 2) return;
 
     const QString &uid = parts.last();
     if (event == QLatin1String("card-learned")) {
-        if (!m_sessionCards.contains(uid))
-            m_sessionCards.append(uid);
-        setEnrollmentFeedback(uid, QStringLiteral("accepted"));
-    } else if (event == QLatin1String("card-duplicate")) {
-        setEnrollmentFeedback(uid, QStringLiteral("duplicate"));
+        if (!m_sessionCards.contains(uid)) m_sessionCards.append(uid);
+        setEnrollmentFeedback(QStringLiteral("card"), uid, QStringLiteral("accepted"));
+    } else if (event == QLatin1String("phone-learned")) {
+        if (!m_sessionPhones.contains(uid)) m_sessionPhones.append(uid);
+        setEnrollmentFeedback(QStringLiteral("phone"), uid, QStringLiteral("accepted"));
+    } else if (event == QLatin1String("card-duplicate") || event == QLatin1String("phone-duplicate")) {
+        setEnrollmentFeedback(event == QLatin1String("phone-duplicate") ? QStringLiteral("phone")
+                                                                        : QStringLiteral("card"),
+                              uid, QStringLiteral("duplicate"));
     } else if (event == QLatin1String("rejected")) {
-        setEnrollmentFeedback(uid, QStringLiteral("rejected"));
+        setEnrollmentFeedback(QStringLiteral("card"), uid, QStringLiteral("rejected"));
     } else if (event == QLatin1String("error")) {
-        setEnrollmentFeedback(uid, QStringLiteral("error"));
+        setEnrollmentFeedback(QStringLiteral("card"), uid, QStringLiteral("error"));
     } else if (event == QLatin1String("master-learned")
                || (event == QLatin1String("master-added") && parts.size() >= 3)) {
-        setEnrollmentFeedback(parts[1], QStringLiteral("accepted"));
+        setEnrollmentFeedback(QStringLiteral("card"), parts[1], QStringLiteral("accepted"));
     }
 }
 

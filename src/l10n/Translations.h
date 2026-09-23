@@ -72,6 +72,9 @@ class Translations : public QObject
     Q_PROPERTY(QString keycardUnlockCard READ keycardUnlockCard NOTIFY languageChanged)
     Q_PROPERTY(QString keycardLastUsed READ keycardLastUsed NOTIFY languageChanged)
     Q_PROPERTY(QString keycardPhoneName READ keycardPhoneName NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardUnlockGroup READ keycardUnlockGroup NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardPhoneGroup READ keycardPhoneGroup NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardMasterGroup READ keycardMasterGroup NOTIFY languageChanged)
     Q_PROPERTY(QString keycardRemovePhone READ keycardRemovePhone NOTIFY languageChanged)
     Q_PROPERTY(QString keycardConfirmRemoveLastPhone READ keycardConfirmRemoveLastPhone NOTIFY languageChanged)
     Q_PROPERTY(QString keycardRemoveLastPhone READ keycardRemoveLastPhone NOTIFY languageChanged)
@@ -82,11 +85,16 @@ class Translations : public QObject
     Q_PROPERTY(QString keycardEnrollDetail READ keycardEnrollDetail NOTIFY languageChanged)
     Q_PROPERTY(QString keycardDetectedCount READ keycardDetectedCount NOTIFY languageChanged)
     Q_PROPERTY(QString keycardLastCard READ keycardLastCard NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardLastPhone READ keycardLastPhone NOTIFY languageChanged)
     Q_PROPERTY(QString keycardScanAccepted READ keycardScanAccepted NOTIFY languageChanged)
     Q_PROPERTY(QString keycardMasterSaved READ keycardMasterSaved NOTIFY languageChanged)
     Q_PROPERTY(QString keycardScanDuplicate READ keycardScanDuplicate NOTIFY languageChanged)
     Q_PROPERTY(QString keycardScanRejected READ keycardScanRejected NOTIFY languageChanged)
     Q_PROPERTY(QString keycardScanError READ keycardScanError NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardPhoneAccepted READ keycardPhoneAccepted NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardPhoneDuplicate READ keycardPhoneDuplicate NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardPhoneRejected READ keycardPhoneRejected NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardPhoneError READ keycardPhoneError NOTIFY languageChanged)
     Q_PROPERTY(QString menuCaptureLogs READ menuCaptureLogs NOTIFY languageChanged)
     Q_PROPERTY(QString captureLogsToastStarted READ captureLogsToastStarted NOTIFY languageChanged)
     Q_PROPERTY(QString captureLogsToastDone READ captureLogsToastDone NOTIFY languageChanged)
@@ -753,6 +761,9 @@ public:
     QString keycardUnlockCard() const { return lookup("keycardUnlockCard"); }
     QString keycardLastUsed() const { return lookup("keycardLastUsed"); }
     QString keycardPhoneName() const { return lookup("keycardPhoneName"); }
+    QString keycardUnlockGroup() const { return lookup("keycardUnlockGroup"); }
+    QString keycardPhoneGroup() const { return lookup("keycardPhoneGroup"); }
+    QString keycardMasterGroup() const { return lookup("keycardMasterGroup"); }
     QString keycardRemovePhone() const { return lookup("keycardRemovePhone"); }
     QString keycardConfirmRemoveLastPhone() const { return lookup("keycardConfirmRemoveLastPhone"); }
     QString keycardRemoveLastPhone() const { return lookup("keycardRemoveLastPhone"); }
@@ -763,11 +774,16 @@ public:
     QString keycardEnrollDetail() const { return lookup("keycardEnrollDetail"); }
     QString keycardDetectedCount() const { return lookup("keycardDetectedCount"); }
     QString keycardLastCard() const { return lookup("keycardLastCard"); }
+    QString keycardLastPhone() const { return lookup("keycardLastPhone"); }
     QString keycardScanAccepted() const { return lookup("keycardScanAccepted"); }
     QString keycardMasterSaved() const { return lookup("keycardMasterSaved"); }
     QString keycardScanDuplicate() const { return lookup("keycardScanDuplicate"); }
     QString keycardScanRejected() const { return lookup("keycardScanRejected"); }
     QString keycardScanError() const { return lookup("keycardScanError"); }
+    QString keycardPhoneAccepted() const { return lookup("keycardPhoneAccepted"); }
+    QString keycardPhoneDuplicate() const { return lookup("keycardPhoneDuplicate"); }
+    QString keycardPhoneRejected() const { return lookup("keycardPhoneRejected"); }
+    QString keycardPhoneError() const { return lookup("keycardPhoneError"); }
     QString menuCaptureLogs() const { return lookup("menuCaptureLogs"); }
     QString captureLogsToastStarted() const { return lookup("captureLogsToastStarted"); }
     QString captureLogsToastDone() const { return lookup("captureLogsToastDone"); }
