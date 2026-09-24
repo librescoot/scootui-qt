@@ -84,6 +84,11 @@ public:
     QString shortcutMenuItems() const { return m_shortcutMenuItems; }
     QString mode() const { return m_mode; }
     bool developerMode() const { return m_developerMode == QLatin1String("true"); }
+    bool debugActionsAllowed() const {
+        return developerMode() || (!otaChannelDiverged()
+            && (m_otaChannel == QLatin1String("testing")
+                || m_otaChannel == QLatin1String("nightly")));
+    }
     QString backlightMode() const { return m_backlightMode; }
     bool showRawSpeed() const { return m_showRawSpeed == QLatin1String("true"); }
     // Speedometer scale and colour stops, km/h. Unparseable or out-of-range

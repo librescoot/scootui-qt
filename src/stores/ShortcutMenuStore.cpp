@@ -76,6 +76,8 @@ ShortcutMenuStore::ShortcutMenuStore(EngineStore *engine, VehicleStore *vehicle,
                 this, &ShortcutMenuStore::rebuildActions);
         connect(m_settings, &SettingsStore::developerModeChanged,
                 this, &ShortcutMenuStore::rebuildActions);
+        connect(m_settings, &SettingsStore::otaChannelChanged,
+                this, &ShortcutMenuStore::rebuildActions);
         connect(m_settings, &SettingsStore::shortcutMenuItemsChanged, this, [this]() {
             maybeMigrateLegacyQuickItems();
             rebuildActions();
@@ -179,7 +181,7 @@ QVariantList ShortcutMenuStore::availableActions() const
     if (m_navigation && m_navigation->property("hopPromptVisible").toBool())
         actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("keep-stop")}});
     const bool hasRoute = m_navigation && m_navigation->property("hasRoute").toBool();
-    const bool developerMode = m_settings && m_settings->developerMode();
+    const bool debugActionsAllowed = m_settings && m_settings->debugActionsAllowed();
     const bool showDestinations = !hasRoute && m_savedLocations && destinationAvailable();
 
     QVariantList locations;
@@ -214,7 +216,7 @@ QVariantList ShortcutMenuStore::availableActions() const
                 actions.append(QVariantMap{{QStringLiteral("kind"), QStringLiteral("theme")}});
         } else if (item == QLatin1String("debug-overlay")
                    || item == QLatin1String("motion-debug")) {
-            if (developerMode)
+            if (debugActionsAllowed)
                 actions.append(QVariantMap{{QStringLiteral("kind"), item}});
         } else if (item == QLatin1String("route-overview")) {
             if (hasRoute)

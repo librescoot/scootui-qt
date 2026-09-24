@@ -14,6 +14,9 @@ ScreenStore::ScreenStore(SettingsStore *settings, MdbRepository *repo, QObject *
     connect(settings, &SettingsStore::developerModeChanged, this, [this, settings]() {
         applyMode(settings->mode());
     });
+    connect(settings, &SettingsStore::otaChannelChanged, this, [this, settings]() {
+        applyMode(settings->mode());
+    });
 }
 
 bool ScreenStore::isBrakeNavigated(ScootEnums::ScreenMode mode)
@@ -85,7 +88,7 @@ void ScreenStore::publishScreen(ScootEnums::ScreenMode mode)
 void ScreenStore::applyScreenLocally(ScootEnums::ScreenMode mode)
 {
     if (mode == ScootEnums::ScreenMode::MotionDebug
-        && (!m_settings || !m_settings->developerMode()))
+        && (!m_settings || !m_settings->debugActionsAllowed()))
         return;
     if (mode == m_currentScreen) return;
     m_currentScreen = mode;
@@ -125,7 +128,7 @@ void ScreenStore::applyMode(const QString &mode)
     else if (mode == QLatin1String("debug"))
         target = ScootEnums::ScreenMode::Debug;
     else if (mode == QLatin1String("motion-debug")
-             && m_settings && m_settings->developerMode())
+             && m_settings && m_settings->debugActionsAllowed())
         target = ScootEnums::ScreenMode::MotionDebug;
 
     setScreen(static_cast<int>(target));

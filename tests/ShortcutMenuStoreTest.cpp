@@ -78,6 +78,7 @@ private slots:
     void themeActionCyclesTheme();
     void viewActionTogglesMapAndCluster();
     void developerModeOffersDebugOverlay();
+    void testingAndNightlyOfferDebugActions();
     void activeNavigationOffersOverviewAndStop();
     void planNavigationOffersSkipBetweenStops();
     void pendingHopOffersKeepStopFirst();
@@ -340,6 +341,76 @@ void ShortcutMenuStoreTest::developerModeOffersDebugOverlay()
     repo.set(QStringLiteral("settings"), QStringLiteral("scooter.developer-mode"),
              QStringLiteral("false"));
     QTRY_VERIFY(!settings.developerMode());
+    QTRY_COMPARE(screen.currentScreenMode(), ScootEnums::ScreenMode::Cluster);
+}
+
+void ShortcutMenuStoreTest::testingAndNightlyOfferDebugActions()
+{
+    InMemoryMdbRepository repo;
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
+             QStringLiteral("ready-to-drive"), false);
+    repo.set(QStringLiteral("settings"), QStringLiteral("scooter.developer-mode"),
+             QStringLiteral("false"), false);
+    repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.mode"),
+             QStringLiteral("speedometer"), false);
+    repo.set(QStringLiteral("settings"), QStringLiteral("updates.mdb.channel"),
+             QStringLiteral("stable"), false);
+    repo.set(QStringLiteral("settings"), QStringLiteral("updates.dbc.channel"),
+             QStringLiteral("stable"), false);
+
+    EngineStore engine(&repo);
+    VehicleStore vehicle(&repo);
+    SettingsStore settings(&repo);
+    ScreenStore screen(&settings, &repo);
+    SettingsService settingsService(&repo, &settings);
+    engine.start();
+    vehicle.start();
+    settings.start();
+    ShortcutMenuStore menu(&engine, &vehicle, &screen, nullptr, nullptr, nullptr,
+                           nullptr, &settings, &repo, &settingsService);
+
+    const auto hasAction = [&menu](const QString &kind) {
+        for (const auto &action : menu.actions()) {
+            if (action.toMap().value(QStringLiteral("kind")).toString() == kind)
+                return true;
+        }
+        return false;
+    };
+    QVERIFY(!hasAction(QStringLiteral("debug-overlay")));
+    QVERIFY(!hasAction(QStringLiteral("motion-debug")));
+    screen.setScreen(static_cast<int>(ScootEnums::ScreenMode::MotionDebug));
+    QCOMPARE(screen.currentScreenMode(), ScootEnums::ScreenMode::Cluster);
+
+    for (const auto &channel : {QStringLiteral("testing"), QStringLiteral("nightly")}) {
+        repo.set(QStringLiteral("settings"), QStringLiteral("updates.mdb.channel"), channel);
+        repo.set(QStringLiteral("settings"), QStringLiteral("updates.dbc.channel"), channel);
+        QTRY_VERIFY(hasAction(QStringLiteral("debug-overlay")));
+        QTRY_VERIFY(hasAction(QStringLiteral("motion-debug")));
+        screen.setScreen(static_cast<int>(ScootEnums::ScreenMode::MotionDebug));
+        QCOMPARE(screen.currentScreenMode(), ScootEnums::ScreenMode::MotionDebug);
+        screen.setScreen(static_cast<int>(ScootEnums::ScreenMode::Cluster));
+    }
+
+    repo.set(QStringLiteral("settings"), QStringLiteral("updates.dbc.channel"),
+             QStringLiteral("stable"));
+    QTRY_VERIFY(!hasAction(QStringLiteral("motion-debug")));
+    screen.setScreen(static_cast<int>(ScootEnums::ScreenMode::MotionDebug));
+    QCOMPARE(screen.currentScreenMode(), ScootEnums::ScreenMode::Cluster);
+
+    repo.set(QStringLiteral("settings"), QStringLiteral("updates.mdb.channel"),
+             QStringLiteral("stable"));
+    QTRY_VERIFY(!hasAction(QStringLiteral("debug-overlay")));
+
+    repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.mode"),
+             QStringLiteral("motion-debug"));
+    QCOMPARE(screen.currentScreenMode(), ScootEnums::ScreenMode::Cluster);
+    repo.set(QStringLiteral("settings"), QStringLiteral("updates.mdb.channel"),
+             QStringLiteral("testing"));
+    repo.set(QStringLiteral("settings"), QStringLiteral("updates.dbc.channel"),
+             QStringLiteral("testing"));
+    QTRY_COMPARE(screen.currentScreenMode(), ScootEnums::ScreenMode::MotionDebug);
+    repo.set(QStringLiteral("settings"), QStringLiteral("updates.mdb.channel"),
+             QStringLiteral("stable"));
     QTRY_COMPARE(screen.currentScreenMode(), ScootEnums::ScreenMode::Cluster);
 }
 
