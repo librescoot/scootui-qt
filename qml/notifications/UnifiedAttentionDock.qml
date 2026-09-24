@@ -14,7 +14,7 @@ Item {
     readonly property real maximumHeight: 156
 
     readonly property bool overviewActive: typeof mapService !== "undefined" && mapService !== null
-                                            && mapService.routeOverviewActive
+                                            && mapService.routeOverviewActive === true
 
     width: parent ? parent.width : 480
     height: hasMain ? mainRenderer.height + (hasCompanion ? companionCard.height : 0) : 0
@@ -44,7 +44,7 @@ Item {
         TurnByTurnWidget {
             objectName: "attentionTurnByTurn"
             paired: dock.hasCompanion
-            overviewOnly: dock.overviewActive
+            overviewOnly: dock.overviewActive && dock.main.status === 2
             // The companion card yields height to the main card, so only the
             // unpaired card needs the dock budget to stay clear of the speed
             // readout below. A budget here would also loop with the
@@ -70,7 +70,7 @@ Item {
         TurnByTurnWidget {
             objectName: "attentionCompanion"
             compact: true
-            overviewOnly: dock.overviewActive
+            overviewOnly: dock.overviewActive && dock.companion.status === 2
             maneuver: dock.companion
             isDark: dock.isDark
         }

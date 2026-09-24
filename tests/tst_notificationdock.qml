@@ -25,7 +25,11 @@ TestCase {
         property int hopPromptSecondsRemaining: 30
         property int hopPromptTimeoutSeconds: 30
     }
-    QtObject { id: translations; property string navAutoContinue: "Next stop in %1 s" }
+    QtObject {
+        id: translations
+        property string navAutoContinue: "Next stop in %1 s"
+        property string navThen: "Then"
+    }
     UnifiedAttentionDock { id: dock; width: 480; service: service }
 
     function init() {
