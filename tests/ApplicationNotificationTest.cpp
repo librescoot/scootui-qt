@@ -157,6 +157,42 @@ private slots:
         QTRY_COMPARE(mainId(), QString("map-coverage"));
     }
 
+    void keycardsAreDirectSettingsEntry()
+    {
+        auto *menu = context<MenuStore>("menuStore");
+        QVERIFY(menu);
+        menu->open();
+        QTest::qWait(160);
+
+        const auto select = [menu](const QString &id) {
+            const auto items = menu->currentItems();
+            for (int i = 0; i < items.size(); ++i) {
+                if (items.at(i).toMap().value("id").toString() != id)
+                    continue;
+                while (menu->selectedIndex() != i)
+                    menu->navigateDown();
+                menu->selectItem();
+                return true;
+            }
+            return false;
+        };
+        const auto hasItem = [menu](const QString &id) {
+            for (const QVariant &item : menu->currentItems()) {
+                if (item.toMap().value("id").toString() == id)
+                    return true;
+            }
+            return false;
+        };
+
+        QVERIFY(select(QStringLiteral("settings")));
+        QVERIFY(hasItem(QStringLiteral("keycards")));
+        QVERIFY(select(QStringLiteral("settings_system")));
+        QVERIFY(!hasItem(QStringLiteral("keycards")));
+        menu->goBack();
+        QVERIFY(select(QStringLiteral("keycards")));
+        QVERIFY(hasItem(QStringLiteral("keycards_add_unlock")));
+    }
+
     void tripCounterMenuUsesPersistentCapabilityAndCancelFirst()
     {
         auto *repo = m_application->m_repository.get();

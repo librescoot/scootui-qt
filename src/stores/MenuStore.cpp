@@ -670,10 +670,6 @@ void MenuStore::rebuildMenuTree()
                                            tr->menuSettings());
     m_rootNode->addChild(settingsNode);
 
-    // Settings groups by topic. Ten flat entries did not fit the screen and
-    // mixed cosmetic set-once toggles in with the features riders look for,
-    // so everything hangs off four groups instead. The group nodes are
-    // declared up front; each block below files itself under one of them.
     auto *appearanceNode = MenuNode::submenu(QStringLiteral("settings_appearance"),
                                              tr->menuAppearance(),
                                              tr->menuAppearance().toUpper());
@@ -1297,11 +1293,6 @@ void MenuStore::rebuildMenuTree()
             }, durIdx));
     }
 
-    // System — rarely-touched knobs (Language, Battery Mode) live here
-    // alongside the service entries (Update Mode, Faults).
-    auto *systemNode = MenuNode::submenu(QStringLiteral("settings_system"), tr->menuSystem());
-    settingsNode->addChild(systemNode);
-
     std::unique_ptr<MenuNode> keycardsNode;
     if (m_keycard) {
         keycardsNode.reset(MenuNode::submenu(QStringLiteral("keycards"), tr->menuKeycards()));
@@ -1414,6 +1405,12 @@ void MenuStore::rebuildMenuTree()
         }
     }
 
+    if (keycardsNode)
+        settingsNode->addChild(keycardsNode.release());
+
+    auto *systemNode = MenuNode::submenu(QStringLiteral("settings_system"), tr->menuSystem());
+    settingsNode->addChild(systemNode);
+
     // Language (inline cycle: English → Deutsch)
     {
         int langIdx = (currentLang == QLatin1String("de")) ? 1 : 0;
@@ -1456,9 +1453,6 @@ void MenuStore::rebuildMenuTree()
         }, [this]() {
             return !(m_settings && m_settings->serviceActive() == QLatin1String("true"));
         }));
-    if (keycardsNode)
-        systemNode->addChild(keycardsNode.release());
-
     // Clearing paired phones is the only way to reclaim a scooter's bond list:
     // the firmware accepts a single-bond delete and does nothing with it, so
     // this is all or nothing. Marked caution because it unpairs every phone
