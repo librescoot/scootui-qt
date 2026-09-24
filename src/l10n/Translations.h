@@ -477,7 +477,7 @@ class Translations : public QObject
     Q_PROPERTY(QString navStopReached READ navStopReached NOTIFY languageChanged)
     Q_PROPERTY(QString navAutoContinue READ navAutoContinue NOTIFY languageChanged)
     Q_PROPERTY(QString navNextUnlock READ navNextUnlock NOTIFY languageChanged)
-    Q_PROPERTY(QString navKeepStopHint READ navKeepStopHint NOTIFY languageChanged)
+    Q_PROPERTY(QString navPauseHint READ navPauseHint NOTIFY languageChanged)
     Q_PROPERTY(QString navRouteRestored READ navRouteRestored NOTIFY languageChanged)
     Q_PROPERTY(QString navRouteRestoredTo READ navRouteRestoredTo NOTIFY languageChanged)
     Q_PROPERTY(QString routeOverviewTitle READ routeOverviewTitle NOTIFY languageChanged)
@@ -1169,7 +1169,7 @@ public:
     QString navStopReached() const { return lookup("navStopReached"); }
     QString navAutoContinue() const { return lookup("navAutoContinue"); }
     QString navNextUnlock() const { return lookup("navNextUnlock"); }
-    QString navKeepStopHint() const { return lookup("navKeepStopHint"); }
+    QString navPauseHint() const { return lookup("navPauseHint"); }
     QString navRouteRestored() const { return lookup("navRouteRestored"); }
     QString navRouteRestoredTo() const { return lookup("navRouteRestoredTo"); }
     QString routeOverviewTitle() const { return lookup("routeOverviewTitle"); }

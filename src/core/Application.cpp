@@ -402,6 +402,31 @@ void Application::createStores(QQmlApplicationEngine &engine)
     connect(m_navigationService, &NavigationService::destinationChanged, this, refreshNavigationAttention);
     connect(m_navigationService, &NavigationService::planChanged, this, refreshNavigationAttention);
     connect(m_navigationService, &NavigationService::errorChanged, this, refreshNavigationAttention);
+    const auto refreshHopAttention = [this]() {
+        if (m_navigationService->hopPromptVisible()) {
+            m_notificationService->publishCondition(
+                QStringLiteral("navigation-hop"), QStringLiteral("navigation"),
+                m_translations->navStopReached().arg(m_navigationService->currentStep() + 1)
+                    .arg(m_navigationService->stopCount()),
+                m_translations->navPauseHint(), 2, QStringLiteral("warning"));
+        } else {
+            m_notificationService->resolveCondition(QStringLiteral("navigation-hop"));
+        }
+    };
+    connect(m_navigationService, &NavigationService::planStateChanged, this, refreshHopAttention);
+    connect(m_navigationService, &NavigationService::planChanged, this, refreshHopAttention);
+    connect(m_navigationService, &NavigationService::planStateChanged, this, [this]() {
+        if (m_navigationService->hopParkedNoticeVisible()) {
+            m_notificationService->publishEvent(
+                QStringLiteral("navigation-hop-parked"), QStringLiteral("navigation"),
+                m_translations->navStopReached().arg(m_navigationService->currentStep() + 1)
+                    .arg(m_navigationService->stopCount()),
+                m_translations->navNextUnlock(), 3, QStringLiteral("info"), 5000);
+        } else {
+            m_notificationService->clearEvent(QStringLiteral("navigation-hop-parked"));
+        }
+    });
+    refreshHopAttention();
     connect(m_navigationService, &NavigationService::arrived, this, [this]() {
         m_notificationService->publishEvent(QStringLiteral("navigation-arrived"), QStringLiteral("navigation"),
                                             m_translations->navArrived(), {}, 3, QStringLiteral("success"), 10000);

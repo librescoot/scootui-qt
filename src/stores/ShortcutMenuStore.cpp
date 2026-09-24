@@ -371,6 +371,9 @@ void ShortcutMenuStore::onInputEvent(const QString &message)
     } else if (gesture == QLatin1String("press")) {
         if (m_confirming)
             executePendingAction();
+        else if (!m_visible && m_navigation
+                 && m_navigation->property("hopPromptVisible").toBool())
+            QMetaObject::invokeMethod(m_navigation, "pausePlan");
     } else if (gesture == QLatin1String("double-tap")) {
         if (!m_visible && !m_confirming)
             toggleHazards();

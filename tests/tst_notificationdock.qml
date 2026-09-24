@@ -18,10 +18,21 @@ TestCase {
         property int radiusCard: 8
     }
     QtObject { id: service; property var presentation: ({}) }
+    QtObject { id: mapService; property bool routeOverviewActive: false }
+    QtObject {
+        id: navigationService
+        property bool hopPromptVisible: false
+        property int hopPromptSecondsRemaining: 30
+        property int hopPromptTimeoutSeconds: 30
+    }
+    QtObject { id: translations; property string navAutoContinue: "Next stop in %1 s" }
     UnifiedAttentionDock { id: dock; width: 480; service: service }
 
     function init() {
         dock.isDark = true
+        mapService.routeOverviewActive = false
+        navigationService.hopPromptVisible = false
+        navigationService.hopPromptSecondsRemaining = 30
         service.presentation = ({})
     }
 
@@ -37,6 +48,32 @@ TestCase {
         verify(top.x >= 0 && top.y >= 0, item.objectName + " top " + top)
         verify(bottom.x <= container.width + 1 && bottom.y <= container.height + 1,
                item.objectName + " bottom " + bottom + " container height " + container.height)
+    }
+
+    function test_overviewKeepsDestinationStripWithoutManeuver() {
+        mapService.routeOverviewActive = true
+        show({kind: "nav", status: 2, destination: "Next stop", hasPlan: true,
+              currentStep: 0, stopCount: 8, distanceToDestination: 1500,
+              instruction: "Turn right onto Main Street", maneuverType: 5})
+        const summary = findChild(dock, "maneuverDestinationSummary")
+        verify(summary.visible)
+        compare(findChild(dock, "maneuverDestination").text, "Next stop")
+        verify(!findChild(dock, "maneuverInstruction").visible)
+        verify(dock.height < 48)
+    }
+
+    function test_hopCountdownUpdatesAndLeavesDock() {
+        navigationService.hopPromptVisible = true
+        show({id: "navigation-hop", kind: "warning", priority: 2,
+              title: "Stop 1 of 8", body: "Press the seatbox button to pause routing"})
+        compare(findChild(dock, "notificationBody").text,
+                "Next stop in 30 s\nPress the seatbox button to pause routing")
+        navigationService.hopPromptSecondsRemaining = 29
+        compare(findChild(dock, "notificationBody").text,
+                "Next stop in 29 s\nPress the seatbox button to pause routing")
+        navigationService.hopPromptVisible = false
+        show({})
+        verify(!dock.visible)
     }
 
     function test_idle() {

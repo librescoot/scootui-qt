@@ -7,6 +7,7 @@
 #include <QQuickWindow>
 #include <QStandardPaths>
 #include <QTemporaryDir>
+#include <algorithm>
 
 #define private public
 #include "core/Application.h"
@@ -16,6 +17,9 @@
 #include "core/ShortcutMenuItems.h"
 #include "repositories/InMemoryMdbRepository.h"
 #include "services/NavigationAvailabilityService.h"
+#define private public
+#include "services/NavigationService.h"
+#undef private
 #include "services/NotificationService.h"
 #include "services/SettingsService.h"
 #include "stores/BatteryStore.h"
@@ -437,6 +441,42 @@ private slots:
         QTRY_COMPARE(shortcuts->actionCount(), 4);
         saved->deleteLocation(1);
         QTRY_COMPARE(shortcuts->actionCount(), 3);
+    }
+
+    void hopPromptUsesAttentionAndSeatboxPause()
+    {
+        auto *repo = m_application->m_repository.get();
+        auto *navigation = context<NavigationService>("navigationService");
+        auto *notifications = context<NotificationService>("notificationService");
+        QVERIFY(navigation && notifications);
+        repo->set("vehicle", "state", "ready-to-drive");
+        RouteStop first;
+        first.position = {52.5, 13.4};
+        first.label = QStringLiteral("First");
+        RouteStop second;
+        second.position = {52.51, 13.41};
+        second.label = QStringLiteral("Second");
+        navigation->m_plan.stops = {first, second};
+        navigation->m_hopSecondsLeft = navigation->hopPromptTimeoutSeconds();
+        navigation->setPlanState(RoutePlanState::AtStop);
+        QTRY_COMPARE(mainId(), QStringLiteral("navigation-hop"));
+        const auto active = notifications->active();
+        const auto hop = std::find_if(active.cbegin(), active.cend(), [](const QVariant &entry) {
+            return entry.toMap().value("id") == QStringLiteral("navigation-hop");
+        });
+        QVERIFY(hop != active.cend());
+        QCOMPARE(hop->toMap().value("revision").toInt(), 1);
+        QVERIFY(hop->toMap().value("body").toString().contains("seatbox button"));
+        --navigation->m_hopSecondsLeft;
+        emit navigation->hopPromptChanged();
+        QCOMPARE(notifications->active().size(), active.size());
+        QCOMPARE(notifications->active().first().toMap().value("revision").toInt(), 1);
+
+        repo->publish("input-events", "seatbox:press");
+        QTRY_VERIFY(!navigation->hopPromptVisible());
+        QTRY_COMPARE(mainId(), QStringLiteral("navigation-hop-parked"));
+        navigation->setPlanState(RoutePlanState::Navigating);
+        QTRY_VERIFY(mainId() != QStringLiteral("navigation-hop-parked"));
     }
 
     void dualBatteryToggleRefreshesUnchangedSlotOneFault()

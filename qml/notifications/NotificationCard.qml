@@ -9,6 +9,9 @@ Rectangle {
     property bool isDark: true
     property bool compact: false
     property bool secondary: false
+    readonly property bool hopCountdown: entry.id === "navigation-hop"
+                                          && typeof navigationService !== "undefined"
+                                          && navigationService.hopPromptVisible
     readonly property color ink: (entry.priority === 0 || entry.kind === "error") ? (isDark ? "#fff4f3" : "#8f1717")
                                 : entry.priority === 2 ? (isDark ? "#ffe0a3" : "#6b4300")
                                 : (isDark ? "#f3f6f8" : "#1e2930")
@@ -93,12 +96,23 @@ Rectangle {
                     textFormat: Text.PlainText
                     width: parent.width
                     visible: !!card.entry.body
-                    text: card.entry.body || ""
+                    text: card.hopCountdown
+                          ? translations.navAutoContinue.arg(navigationService.hopPromptSecondsRemaining)
+                            + "\n" + (card.entry.body || "")
+                          : card.entry.body || ""
                     color: card.isDark ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(0, 0, 0, 0.87)
                     font.pixelSize: 18
                     wrapMode: Text.Wrap
                     lineHeightMode: Text.FixedHeight
                     lineHeight: 20
+                }
+                CountdownBar {
+                    width: parent.width
+                    height: 6
+                    visible: card.hopCountdown
+                    remainingFraction: card.hopCountdown
+                                       ? navigationService.hopPromptSecondsRemaining
+                                         / navigationService.hopPromptTimeoutSeconds : 1
                 }
             }
             Text {

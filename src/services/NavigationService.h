@@ -84,6 +84,7 @@ class NavigationService : public QObject
     Q_PROPERTY(bool hopParkedNoticeVisible READ hopParkedNoticeVisible NOTIFY planStateChanged)
     Q_PROPERTY(int hopPromptSecondsRemaining READ hopPromptSecondsRemaining
                NOTIFY hopPromptChanged)
+    Q_PROPERTY(int hopPromptTimeoutSeconds READ hopPromptTimeoutSeconds CONSTANT)
     // Per-hop overview of the remaining plan, from the current position to the
     // last stop. Each entry: fromIndex (-1 for the current position), toIndex,
     // fromLabel, toLabel, distance meters, duration seconds, ready. Entries are
@@ -175,6 +176,7 @@ public:
         return m_planState == RoutePlanState::Paused && m_pausedAfterReach;
     }
     int hopPromptSecondsRemaining() const { return m_hopSecondsLeft; }
+    int hopPromptTimeoutSeconds() const { return HopAdvanceTimeoutSeconds; }
     QVariantList planOverview() const { return m_planOverview; }
     double planTotalDistance() const { return m_planTotalDistance; }
     double planTotalDuration() const { return m_planTotalDuration; }

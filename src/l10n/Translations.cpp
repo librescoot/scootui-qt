@@ -1307,8 +1307,8 @@ void Translations::initStrings()
     de[QStringLiteral("navAutoContinue")] = QStringLiteral("Nächster Stopp in %1 s");
     en[QStringLiteral("navNextUnlock")] = QStringLiteral("Next stop on unlock");
     de[QStringLiteral("navNextUnlock")] = QStringLiteral("Nächster Stopp beim Entsperren");
-    en[QStringLiteral("navKeepStopHint")] = QStringLiteral("Seatbox menu: Keep this stop");
-    de[QStringLiteral("navKeepStopHint")] = QStringLiteral("Sitzbank-Menü: Bei diesem Stopp bleiben");
+    en[QStringLiteral("navPauseHint")] = QStringLiteral("Press the seatbox button to pause routing");
+    de[QStringLiteral("navPauseHint")] = QStringLiteral("Sitzbankknopf drücken, um die Route zu pausieren");
     en[QStringLiteral("navRouteRestored")] = QStringLiteral("Resuming route");
     de[QStringLiteral("navRouteRestored")] = QStringLiteral("Route wird fortgesetzt");
     en[QStringLiteral("navRouteRestoredTo")] = QStringLiteral("Resuming route to %1");

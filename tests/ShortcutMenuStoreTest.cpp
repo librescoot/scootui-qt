@@ -24,6 +24,7 @@ public:
     int stopCount() const { return m_stopCount; }
     bool hopPromptVisible() const { return m_hopPromptVisible; }
     Q_INVOKABLE void setHopMenuOpen(bool open) { menuOpen = open; }
+    Q_INVOKABLE void pausePlan() { ++pauseCalls; m_hopPromptVisible = false; emit hopPromptChanged(); }
     Q_INVOKABLE void keepCurrentStop() {
         ++keepCalls;
         m_hopPromptVisible = false;
@@ -44,6 +45,7 @@ public:
     }
     int skipCalls = 0;
     int keepCalls = 0;
+    int pauseCalls = 0;
     bool menuOpen = false;
 signals:
     void routeChanged();
@@ -82,6 +84,7 @@ private slots:
     void activeNavigationOffersOverviewAndStop();
     void planNavigationOffersSkipBetweenStops();
     void pendingHopOffersKeepStopFirst();
+    void seatboxPressPausesHopCountdown();
     void configuredOrderIsPreservedAndUnavailableItemsHidden();
     void destinationTokenHiddenWithoutAvailability();
     void destinationSlotEditsFollowSwapSemantics();
@@ -509,6 +512,24 @@ void ShortcutMenuStoreTest::pendingHopOffersKeepStopFirst()
     QVERIFY(!menu.visible());
     QCOMPARE(menu.actions().first().toMap().value(QStringLiteral("kind")).toString(),
              QStringLiteral("view"));
+}
+
+void ShortcutMenuStoreTest::seatboxPressPausesHopCountdown()
+{
+    InMemoryMdbRepository repo;
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
+             QStringLiteral("ready-to-drive"), false);
+    VehicleStore vehicle(&repo);
+    vehicle.start();
+    NavigationStub navigation;
+    navigation.setHopPromptVisible(true);
+    ShortcutMenuStore menu(nullptr, &vehicle, nullptr, nullptr, nullptr,
+                           &navigation, nullptr, nullptr, &repo, nullptr);
+
+    repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
+    QCOMPARE(navigation.pauseCalls, 1);
+    repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
+    QCOMPARE(navigation.pauseCalls, 1);
 }
 
 void ShortcutMenuStoreTest::configuredOrderIsPreservedAndUnavailableItemsHidden()

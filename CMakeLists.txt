@@ -300,7 +300,6 @@ set(QML_FILES
     qml/widgets/navigation/NavigationStatusOverlay.qml
     qml/widgets/navigation/RoundaboutIcon.qml
     qml/widgets/navigation/RoundaboutIconFromMap.qml
-    qml/widgets/navigation/HopContinuePrompt.qml
     qml/widgets/speedometer/SpeedometerDisplay.qml
     qml/widgets/speedometer/HyperspaceStreaks.qml
     qml/widgets/status_bars/TopStatusBar.qml
@@ -325,6 +324,7 @@ set(QML_FILES
     qml/widgets/components/SvgIcon.qml
     qml/widgets/components/OtaStatusIcon.qml
     qml/widgets/components/ControlHints.qml
+    qml/widgets/components/CountdownBar.qml
     qml/widgets/components/MaterialIcon.qml
     qml/widgets/components/TintedImage.qml
     qml/widgets/components/OverflowChip.qml

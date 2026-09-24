@@ -263,35 +263,12 @@ Item {
                 }
             }
 
-            Rectangle {
+            CountdownBar {
                 width: parent.width
                 height: 6
-                radius: 3
-                color: isDark ? "#3DFFFFFF" : "#1F000000"
-
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    width: parent.width * (1.0 - confirmProgress)
-                    radius: 3
-                    color: "#FF9800"
-                    property real confirmProgress
-
-                    NumberAnimation on confirmProgress {
-                        id: confirmAnim
-                        from: 0
-                        to: 1
-                        duration: shortcutMenuStore.confirmTimeoutMs
-                    }
-                }
-            }
-        }
-
-        onVisibleChanged: {
-            if (visible) {
-                confirmAnim.stop()
-                confirmAnim.start()
+                transitionMs: shortcutMenuStore.confirmTimeoutMs
+                active: shortcutMenuStore.confirming
+                remainingFraction: active ? 0 : 1
             }
         }
     }

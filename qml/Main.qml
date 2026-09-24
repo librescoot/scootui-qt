@@ -425,15 +425,6 @@ Window {
 
     Loader {
         anchors.fill: parent
-        z: 150
-        asynchronous: true
-        active: typeof navigationService !== "undefined"
-                && (navigationService.hopPromptVisible || navigationService.hopParkedNoticeVisible)
-        sourceComponent: Component { HopContinuePrompt { anchors.fill: parent } }
-    }
-
-    Loader {
-        anchors.fill: parent
         z: 200
         asynchronous: true
         sourceComponent: Component {
