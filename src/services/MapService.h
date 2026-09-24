@@ -222,6 +222,7 @@ private:
     // Route GeoJSON for native MapLibre layer
     void updateRouteGeoJson();
     void updateOverviewGeometry();
+    void updateOverviewCamera();
 
     // Coverage bounds checking
     void loadMbtilesBounds();

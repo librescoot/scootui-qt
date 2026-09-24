@@ -255,10 +255,16 @@ MapService::MapService(GpsStore *gps, EngineStore *engine,
     // The plan overlay: an edit changes the stops, a preview answer changes the
     // geometry. Both rebuild from NavigationService, and the initial call picks
     // up a plan restored before this service existed.
-    connect(m_navigation, &NavigationService::planChanged,
-            this, &MapService::updatePlanGeometry);
-    connect(m_navigation, &NavigationService::planOverviewChanged,
-            this, &MapService::updatePlanGeometry);
+    connect(m_navigation, &NavigationService::planChanged, this, [this]() {
+        updatePlanGeometry();
+        if (m_routeOverviewActive)
+            updateOverviewCamera();
+    });
+    connect(m_navigation, &NavigationService::planOverviewChanged, this, [this]() {
+        updatePlanGeometry();
+        if (m_routeOverviewActive)
+            updateOverviewCamera();
+    });
     updatePlanGeometry();
 
     // --- Theme changes ---
@@ -692,11 +698,8 @@ void MapService::onGpsPositionChanged()
 // Route changed
 // ---------------------------------------------------------------------------
 
-bool MapService::showRouteOverview()
+void MapService::updateOverviewCamera()
 {
-    if (!m_navigation->hasRoute() || m_routeShape.size() < 2)
-        return false;
-
     QList<LatLng> shape;
     shape.reserve(m_routeShape.size());
     for (const auto &point : m_routeShape)
@@ -710,16 +713,32 @@ bool MapService::showRouteOverview()
     const QList<LatLng> planGeometry = m_navigation->planGeometryWaypoints();
     for (const LatLng &point : planGeometry)
         shape.append(point);
+    const QVariantList stops = m_navigation->planStops();
+    for (int i = std::max(0, m_navigation->currentStep()); i < stops.size(); ++i) {
+        const QVariantMap stop = stops.at(i).toMap();
+        const LatLng point{stop.value(QStringLiteral("latitude")).toDouble(),
+                           stop.value(QStringLiteral("longitude")).toDouble()};
+        if (point.isValid())
+            shape.append(point);
+    }
 
     const LatLng center = MapCameraPolicy::routeOverviewCenter(shape);
     m_overviewZoom = MapCameraPolicy::routeOverviewZoom(
         shape, OverviewMinZoom, OverviewMaxZoom);
     m_routeOverviewLatitude = center.latitude;
     m_routeOverviewLongitude = center.longitude;
+    emit overviewCameraChanged();
+}
+
+bool MapService::showRouteOverview()
+{
+    if (!m_navigation->hasRoute() || m_routeShape.size() < 2)
+        return false;
+
     m_routeOverviewActive = true;
     m_overviewTimer->start();
+    updateOverviewCamera();
     updateOverviewGeometry();
-    emit overviewCameraChanged();
     return true;
 }
 
