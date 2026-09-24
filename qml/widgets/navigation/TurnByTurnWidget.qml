@@ -9,6 +9,7 @@ Item {
     property var maneuver: ({})
     property bool compact: false
     property bool paired: false
+    property bool overviewOnly: false
     property var queuedCounts: ({})
     // Height budget from the attention dock; uncapped by default so compact
     // and paired instances keep their natural size.
@@ -18,7 +19,8 @@ Item {
     readonly property bool loading: maneuver.status === 1 || maneuver.status === 3
     // A start instruction has no distance row, so leave room for the trip summary above it.
     implicitHeight: Math.min(maximumHeight,
-                     compact ? Math.max(contentCol.implicitHeight + 12, 48)
+                     overviewOnly ? destinationInfoBar.implicitHeight
+                   : compact ? Math.max(contentCol.implicitHeight + 12, 48)
                    : navigating ? Math.max(contentCol.implicitHeight + (paired ? 12 : 24)
                                           + Math.max(tbtWidget.maneuver.isStart && timeInfoBar.visible ? timeInfoBar.height : 0,
                                                      destinationInfoBar.visible ? destinationInfoBar.height : 0),
@@ -155,7 +157,7 @@ Item {
 
         RowLayout {
             id: contentRow
-            visible: tbtWidget.navigating || tbtWidget.loading
+            visible: !tbtWidget.overviewOnly && (tbtWidget.navigating || tbtWidget.loading)
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
@@ -338,8 +340,8 @@ Item {
         Rectangle {
             id: destinationInfoBar
             objectName: "maneuverDestinationSummary"
-            visible: tbtWidget.navigating && !tbtWidget.arrived && !tbtWidget.compact
-                     && !tbtWidget.paired
+            visible: tbtWidget.navigating && !tbtWidget.arrived
+                     && (tbtWidget.overviewOnly || (!tbtWidget.compact && !tbtWidget.paired))
             z: 1
             anchors.top: parent.top
             anchors.left: parent.left

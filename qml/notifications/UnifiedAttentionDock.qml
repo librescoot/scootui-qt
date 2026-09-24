@@ -13,12 +13,8 @@ Item {
 
     readonly property real maximumHeight: 156
 
-    // The overview is a brief look at the whole route, and the turn-by-turn card
-    // covers the part of the map it exists to show.
     readonly property bool overviewActive: typeof mapService !== "undefined" && mapService !== null
                                             && mapService.routeOverviewActive
-    readonly property bool hideMainNav: overviewActive && hasMain && main.kind === "nav"
-    readonly property bool hideCompanionNav: overviewActive && hasCompanion && companion.kind === "nav"
 
     width: parent ? parent.width : 480
     height: hasMain ? mainRenderer.height + (hasCompanion ? companionCard.height : 0) : 0
@@ -29,7 +25,7 @@ Item {
         objectName: "attentionMainRenderer"
         width: parent.width
         height: item ? item.implicitHeight : 0
-        active: dock.hasMain && !dock.hideMainNav
+        active: dock.hasMain
         sourceComponent: dock.main.kind === "nav" ? navigationRenderer : notificationRenderer
     }
     Component {
@@ -48,6 +44,7 @@ Item {
         TurnByTurnWidget {
             objectName: "attentionTurnByTurn"
             paired: dock.hasCompanion
+            overviewOnly: dock.overviewActive
             // The companion card yields height to the main card, so only the
             // unpaired card needs the dock budget to stay clear of the speed
             // readout below. A budget here would also loop with the
@@ -64,7 +61,7 @@ Item {
         anchors.top: mainRenderer.bottom
         width: parent.width
         height: item ? item.implicitHeight : 0
-        active: dock.hasCompanion && !dock.hideCompanionNav
+        active: dock.hasCompanion
         sourceComponent: dock.companion.kind === "nav" ? compactNavigationRenderer : companionNotificationRenderer
     }
 
@@ -73,6 +70,7 @@ Item {
         TurnByTurnWidget {
             objectName: "attentionCompanion"
             compact: true
+            overviewOnly: dock.overviewActive
             maneuver: dock.companion
             isDark: dock.isDark
         }

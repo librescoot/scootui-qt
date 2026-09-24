@@ -301,7 +301,6 @@ set(QML_FILES
     qml/widgets/navigation/RoundaboutIcon.qml
     qml/widgets/navigation/RoundaboutIconFromMap.qml
     qml/widgets/navigation/HopContinuePrompt.qml
-    qml/widgets/navigation/RouteOverviewPanel.qml
     qml/widgets/speedometer/SpeedometerDisplay.qml
     qml/widgets/speedometer/HyperspaceStreaks.qml
     qml/widgets/status_bars/TopStatusBar.qml

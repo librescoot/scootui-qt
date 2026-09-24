@@ -47,19 +47,14 @@ public:
         const double height = (maxLat - minLat) * M_PI / 180.0 * EarthRadius;
         const double width = (maxLon - minLon) * M_PI / 180.0 * EarthRadius
             * std::max(0.01, std::cos(centerLat));
-        // The overview centers the route bounds, so reserve only a small
-        // margin around the larger axis.
         const double extent = std::max(width, height) * 1.1;
         if (extent < 1.0)
             return maxZoom;
 
-        // Web-Mercator ground resolution at z0 is 156543 m/px. Reserve a square
-        // the size of the real map area: the display is 480 wide and the map
-        // strip between the status bar and the bottom bar is ~376 tall, so 360
-        // fits with a little margin. The previous 240 assumed barely half the
-        // screen and cost most of a zoom level for nothing.
+        // Keep markers clear of the destination strip above the map and the
+        // road-name overlay at its bottom edge (map viewport is ~376 px tall).
         constexpr double GroundResolutionZ0 = 156543.03392;
-        constexpr double ViewportPixels = 360.0;
+        constexpr double ViewportPixels = 280.0;
         const double zoom = std::log2(
             GroundResolutionZ0 * std::max(0.01, std::cos(centerLat))
             * ViewportPixels / extent);
