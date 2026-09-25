@@ -174,6 +174,10 @@ void PubsubWorker::onReply(redisAsyncContext *ctx, void *reply, void *privdata)
     if (r->type != REDIS_REPLY_ARRAY || r->elements < 3) return;
 
     const QString type = QString::fromUtf8(r->element[0]->str, r->element[0]->len);
+    if (type == QLatin1String("subscribe")) {
+        emit self->subscribed(QString::fromUtf8(r->element[1]->str, r->element[1]->len));
+        return;
+    }
     if (type != QLatin1String("message")) return;
 
     emit self->message(QString::fromUtf8(r->element[1]->str, r->element[1]->len),

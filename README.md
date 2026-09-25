@@ -39,6 +39,24 @@ and a Valhalla endpoint for routing. The application also listens on the
 Use the normal dashboard UI or platform tooling for routine operations. The
 commands above are intended for controlled operational automation.
 
+## Route plans
+
+The MDB settings-service owns the route plan. The dashboard reads complete JSON
+snapshots from `navigation[plan]` (including `id`, `revision`, `stops` with
+opaque stop IDs and `reached`, and zero-based `current_step`). It uses the
+nonblocking redis-ipc CallMethod protocol on `settings:route-plan` for
+`plan.get`, `plan.replace` (`stops`, optional `start_step`), `plan.append`
+(`stop`), `plan.remove` (`index`, `expected_revision`), `plan.move`
+(`from_index`, `to_index`, `expected_revision`), `plan.jump` (`index`,
+`expected_revision`), `plan.unreach`, `plan.reached`, `plan.advance` (each
+`expected_plan_id` and `expected_stop_id`), `plan.set-keep-current`
+(`expected_plan_id`, `expected_stop_id`, `keep:false`), and `plan.clear`
+(optional `expected_plan_id`). Every response is the committed plan. Stale requests and
+service timeouts are shown as errors; the dashboard does not write navigation
+plan fields or persist a second copy. The snapshot also includes `keep_current_stop`, which persists the rider's
+choice to suppress proximity arrival until dismount. A reached final stop
+remains completed across reboots until cleared or extended with another stop.
+
 ## Configuration
 
 ### Environment

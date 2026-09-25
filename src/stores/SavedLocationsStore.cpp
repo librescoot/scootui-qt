@@ -109,10 +109,8 @@ void SavedLocationsStore::deleteLocation(int id)
 
 void SavedLocationsStore::navigateToLocation(int id)
 {
-    // Snapshot before any external call. updateLastUsed() and
-    // setDestination() both publish on the settings/navigation channels,
-    // which fires fieldsUpdated synchronously and re-enters load() — that
-    // reassigns m_locations, invalidating `loc`. COW-copy the QString first.
+    // updateLastUsed() can synchronously re-enter load() and invalidate loc.
+    // Copy the fields before calling it.
     double lat = 0, lng = 0;
     QString label;
     bool found = false;

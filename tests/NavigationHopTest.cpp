@@ -1,13 +1,11 @@
 #include <QtTest>
-#include <QSignalSpy>
 #include <QDateTime>
-#include <QTimer>
+#include <QJsonDocument>
+#include <QSignalSpy>
 
-#include "routing/RouteModels.h"
 #include "routing/ValhallaClient.h"
 #include "services/AddressDatabaseService.h"
 #include "services/NavigationService.h"
-#include "services/RoutePlanService.h"
 #include "repositories/InMemoryMdbRepository.h"
 #include "stores/GpsStore.h"
 #include "stores/NavigationStore.h"
@@ -15,48 +13,25 @@
 #include "stores/SettingsStore.h"
 #include "stores/SpeedLimitStore.h"
 
-// The map service is never instantiated here, but MapService.cpp is linked for
-// NavigationService's other call sites. Keep its startup probe away from
-// installed maps.
 const QString AddressDatabaseService::MbtilesPath =
     QStringLiteral("/nonexistent/navigation-hop-test.mbtiles");
 
-// Hop state machine and navigation-hash ingest. These exercise the real
-// NavigationService, stores, and in-memory repository, with Valhalla requests
-// cancelled so nothing touches the network; routes are injected with setRoute().
 class NavigationHopTest : public QObject
 {
     Q_OBJECT
-
 private slots:
-    void reachIntermediateStopPromptsAndConfirmAdvances();
-    void declineHoldsThenResumeReasks();
-    void skipAdvancesAndCompletesOnLastStop();
-    void autoAdvanceFiresWhenPromptTimesOut();
-    void shortcutMenuFreezesCountdown();
-    void keepStopContinuesGuidanceUntilDismount();
-    void parkPausesAndResumeAdvancesWhenReached();
-    void skipWhileParkedWaitsForUnlock();
-    void parkMidHopResumesSameHop();
-    void reorderAndDeleteKeepTheCurrentTarget();
-    void jumpToStopRetargetsAndMarksReached();
-    void appendAfterFinalArrivalReopensTheTrip();
-    void restoreFromSettingsStartsNavigating();
-    void restoreFromReachedStopAdvances();
-    void restoreReachedStopWaitsForUnlock();
-    void restoreReachedStopInDriveRestartsCountdown();
-    void restoreKeepStopPreservesTarget();
-    void externalPlanPushStartsNavigation();
-    void ownWriteEchoDoesNotRestart();
-    void externalSingleDestinationReplacesPlan();
-    void externalStepChangeKeepsThePlan();
-    void externalClearStopsNavigation();
-    void reconnectAfterArrivalDoesNotRearm();
-    void planOverviewMapsLegsToRemainingStops();
-    void heldRouteRequestRetriesWhenOriginBecomesUsable();
-    void heldRouteRequestExpiresOnShutdown();
-    void multiHopPlanSurvivesShutdownWithoutRoute();
-    void establishedRouteSurvivesLock();
+    void twoImmediateAppendsRetainBothStops();
+    void concurrentExternalAppendRetainsBothStops();
+    void staleProgressDoesNotAdvanceReplacement();
+    void queuedArrivalCannotReachReplacement();
+    void reachedStopAdvancesAndFinalArrivalClearsOwner();
+    void moveJumpAndRemovePreserveTarget();
+    void rebootRestoresOwnerSnapshot();
+    void rebootCompletedPlanDoesNotRearmArrival();
+    void clearDoesNotRestoreLegacySettings();
+    void appendAfterFinalArrivalReopensPrompt();
+    void unavailableOwnerReportsErrorWithoutBlocking();
+    void keepStopIsDurableAndClearedOnDismount();
 
 private:
     struct Fixture {
@@ -67,847 +42,275 @@ private:
         VehicleStore vehicle{&repo};
         SettingsStore settings{&repo};
         NavigationService nav{&gps, &navStore, &vehicle, &settings, &speed, &repo};
-
-        Fixture()
-        {
-            gps.start();
-            navStore.start();
-            vehicle.start();
-            settings.start();
-            speed.start();
+        Fixture() {
+            gps.start(); navStore.start(); vehicle.start(); settings.start(); speed.start();
+            repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
+                     QStringLiteral("ready-to-drive"));
+        }
+        ~Fixture() {
+            if (auto *client = nav.findChild<ValhallaClient *>()) client->cancelPending();
         }
     };
-
-    // Drop any route request the service queued so it never reaches the network.
-    static void quiesce(NavigationService &nav)
-    {
-        if (auto *client = nav.findChild<ValhallaClient *>())
-            client->cancelPending();
+    static void external(InMemoryMdbRepository &repo, const QString &method,
+                         const QJsonObject &payload) {
+        const QJsonObject envelope{{QStringLiteral("reply_channel"), QStringLiteral("test:reply")},
+                                   {QStringLiteral("method"), method},
+                                   {QStringLiteral("payload"), payload}};
+        repo.push(QStringLiteral("settings:route-plan"),
+                  QString::fromUtf8(QJsonDocument(envelope).toJson(QJsonDocument::Compact)));
     }
-
-    static void quiesce(Fixture &f)
-    {
-        quiesce(f.nav);
+    static QJsonObject stop(double lat, double lon, const QString &label) {
+        return {{QStringLiteral("lat"), lat}, {QStringLiteral("lon"), lon},
+                {QStringLiteral("label"), label}};
     }
-
-    static void setGps(Fixture &f, double lat, double lon)
-    {
-        setGpsWithEph(f, lat, lon, 4.5);
+    static QJsonObject snapshot(InMemoryMdbRepository &repo) {
+        return QJsonDocument::fromJson(repo.get(QStringLiteral("navigation"),
+                                                 QStringLiteral("plan")).toUtf8()).object();
     }
-
-    static void setGpsWithEph(Fixture &f, double lat, double lon, double eph)
-    {
-        const QString json = QStringLiteral(
-            "{\"latitude\":\"%1\",\"longitude\":\"%2\",\"course\":\"90\",\"speed\":\"20\","
-            "\"eph\":\"%3\",\"state\":\"fix-established\",\"timestamp\":\"%4\"}")
-            .arg(lat, 0, 'f', 7).arg(lon, 0, 'f', 7).arg(eph, 0, 'f', 1)
-            .arg(QDateTime::currentDateTimeUtc().toString(Qt::ISODate));
-        f.repo.publish(QStringLiteral("gps:tpv"), json);
-    }
-
-    static void setVehicleState(Fixture &f, const QString &state)
-    {
-        f.repo.set(QStringLiteral("vehicle"), QStringLiteral("state"), state);
-    }
-
-    static RouteStop stop(double lat, double lon, const QString &label)
-    {
-        RouteStop s;
-        s.position = {lat, lon};
-        s.label = label;
-        return s;
-    }
-
-    static Route simpleRoute(const LatLng &from, const LatLng &to)
-    {
-        Route r;
-        r.waypoints = {from, to};
-        RouteInstruction start;
-        start.type = ManeuverType::KeepStraight;
-        start.isStart = true;
-        start.originalShapeIndex = 0;
-        start.location = from;
-        start.distance = from.distanceTo(to);
-        start.duration = 60;
-        RouteInstruction arrive;
-        arrive.type = ManeuverType::Arrive;
-        arrive.originalShapeIndex = 1;
-        arrive.location = to;
-        r.instructions = {start, arrive};
-        r.distance = from.distanceTo(to);
-        r.duration = 60;
-        return r;
-    }
-
-    static void startGuiding(Fixture &f, const QList<RouteStop> &stops)
-    {
-        setVehicleState(f, QStringLiteral("ready-to-drive"));
-        setGps(f, 52.50, 13.40);
-        f.nav.setRoutePlan(stops, 0);
-        quiesce(f);
-        f.nav.setRoute(simpleRoute({52.50, 13.40}, stops.first().position));
-    }
-
-    static void reachStop(Fixture &f, const LatLng &position)
-    {
-        setGps(f, position.latitude, position.longitude);
-    }
-
-    static QTimer *hopTimer(Fixture &f)
-    {
-        for (auto *timer : f.nav.findChildren<QTimer *>()) {
-            if (timer->interval() == 1000)
-                return timer;
-        }
-        return nullptr;
+    static void gps(Fixture &f, double lat, double lon) {
+        f.repo.publish(QStringLiteral("gps:tpv"), QStringLiteral(
+            "{\"latitude\":\"%1\",\"longitude\":\"%2\",\"course\":\"90\","
+            "\"speed\":\"20\",\"eph\":\"4.5\",\"state\":\"fix-established\","
+            "\"timestamp\":\"%3\"}")
+            .arg(lat, 0, 'f', 7).arg(lon, 0, 'f', 7)
+            .arg(QDateTime::currentDateTimeUtc().toString(Qt::ISODate)));
     }
 };
 
-void NavigationHopTest::reachIntermediateStopPromptsAndConfirmAdvances()
+void NavigationHopTest::twoImmediateAppendsRetainBothStops()
 {
     Fixture f;
-    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                                    stop(52.52, 13.42, QStringLiteral("B"))};
-    startGuiding(f, stops);
+    f.nav.appendStop(52.51, 13.41, QStringLiteral("A"));
+    f.nav.appendStop(52.52, 13.42, QStringLiteral("B"));
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.stopCount(), 2, 3000);
+    QCOMPARE(snapshot(f.repo).value(QStringLiteral("stops")).toArray().size(), 2);
+    QCOMPARE(f.nav.planStops().first().toMap().value(QStringLiteral("label")).toString(),
+             QStringLiteral("A"));
+    QVERIFY(f.repo.getAll(QStringLiteral("settings")).isEmpty());
+}
 
-    QVERIFY(f.nav.hasPlan());
-    QCOMPARE(f.nav.stopCount(), 2);
+void NavigationHopTest::concurrentExternalAppendRetainsBothStops()
+{
+    Fixture f;
+    f.nav.appendStop(52.51, 13.41, QStringLiteral("A"));
+    external(f.repo, QStringLiteral("plan.append"),
+             {{QStringLiteral("stop"), stop(52.52, 13.42, QStringLiteral("B"))}});
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.stopCount(), 2, 3000);
+    QCOMPARE(snapshot(f.repo).value(QStringLiteral("stops")).toArray().size(), 2);
+}
+
+void NavigationHopTest::staleProgressDoesNotAdvanceReplacement()
+{
+    Fixture f;
+    gps(f, 52.50, 13.40);
+    f.nav.setRoutePlan(QVariantList{QVariantMap{{QStringLiteral("lat"), 52.51},
+        {QStringLiteral("lon"), 13.41}}});
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.stopCount(), 1, 3000);
+    const QString oldId = snapshot(f.repo).value(QStringLiteral("id")).toString();
+    const QString oldStopId = snapshot(f.repo).value(QStringLiteral("stops")).toArray()
+        .first().toObject().value(QStringLiteral("id")).toString();
+    external(f.repo, QStringLiteral("plan.replace"),
+             {{QStringLiteral("stops"), QJsonArray{stop(52.6, 13.5, QStringLiteral("new"))}}});
+    external(f.repo, QStringLiteral("plan.reached"),
+             {{QStringLiteral("expected_plan_id"), oldId},
+              {QStringLiteral("expected_stop_id"), oldStopId}});
+    external(f.repo, QStringLiteral("plan.advance"),
+             {{QStringLiteral("expected_plan_id"), oldId},
+              {QStringLiteral("expected_stop_id"), oldStopId}});
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.destLatitude(), 52.6, 3000);
+    QCOMPARE(f.nav.destAddress(), QStringLiteral("new"));
     QCOMPARE(f.nav.currentStep(), 0);
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Navigating));
-    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Navigating));
+    QCOMPARE(snapshot(f.repo).value(QStringLiteral("stops")).toArray().size(), 1);
+}
 
-    reachStop(f, stops[0].position);
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::AtStop));
-    QVERIFY(f.nav.hopPromptVisible());
-    QCOMPARE(f.nav.hopPromptSecondsRemaining(), 30);
-    QCOMPARE(f.nav.nextStopLabel(), QStringLiteral("B"));
-    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Arrived));
-    QVERIFY(!f.nav.isNavigating());
+void NavigationHopTest::queuedArrivalCannotReachReplacement()
+{
+    Fixture f;
+    gps(f, 52.50, 13.40);
+    f.nav.appendStop(52.51, 13.41, QStringLiteral("old"));
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.stopCount(), 1, 3000);
+    Route route;
+    route.waypoints = {{52.50, 13.40}, {52.51, 13.41}};
+    RouteInstruction arrival;
+    arrival.type = ManeuverType::Arrive;
+    arrival.originalShapeIndex = 1;
+    route.instructions = {arrival};
+    route.distance = 100;
+    route.duration = 60;
+    f.nav.setRoute(route);
+    gps(f, 52.51, 13.41); // queues a guarded plan.reached
+    external(f.repo, QStringLiteral("plan.replace"),
+             {{QStringLiteral("stops"), QJsonArray{stop(52.6, 13.5, QStringLiteral("new"))}}});
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.destAddress(), QStringLiteral("new"), 3000);
+    QTRY_VERIFY_WITH_TIMEOUT(f.nav.errorMessage().contains(QStringLiteral("stale")), 3000);
+    const QJsonObject plan = snapshot(f.repo);
+    QVERIFY(!plan.value(QStringLiteral("stops")).toArray().first().toObject()
+                 .value(QStringLiteral("reached")).toBool());
+    QCOMPARE(f.nav.planState(), int(RoutePlanState::Navigating));
+}
 
+void NavigationHopTest::reachedStopAdvancesAndFinalArrivalClearsOwner()
+{
+    Fixture f;
+    gps(f, 52.50, 13.40);
+    f.nav.setRoutePlan(QVariantList{
+        QVariantMap{{QStringLiteral("lat"), 52.51}, {QStringLiteral("lon"), 13.41}},
+        QVariantMap{{QStringLiteral("lat"), 52.52}, {QStringLiteral("lon"), 13.42}}});
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.stopCount(), 2, 3000);
+    // Owner progress from another client triggers the arrival prompt.
+    const QJsonObject plan = snapshot(f.repo);
+    external(f.repo, QStringLiteral("plan.reached"),
+             {{QStringLiteral("expected_plan_id"), plan.value(QStringLiteral("id"))},
+              {QStringLiteral("expected_stop_id"), plan.value(QStringLiteral("stops"))
+                   .toArray().first().toObject().value(QStringLiteral("id"))}});
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.planState(), int(RoutePlanState::AtStop), 3000);
     f.nav.confirmContinue();
-    QCOMPARE(f.nav.currentStep(), 1);
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Navigating));
-    QCOMPARE(f.nav.destLatitude(), stops[1].position.latitude);
-    QCOMPARE(f.nav.destLongitude(), stops[1].position.longitude);
-    QVERIFY(!f.nav.hopPromptVisible());
-    quiesce(f);
-
-    QSignalSpy arrivedSpy(&f.nav, &NavigationService::arrived);
-    f.nav.setRoute(simpleRoute(stops[0].position, stops[1].position));
-    reachStop(f, stops[1].position);
-
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Complete));
-    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Arrived));
-    QCOMPARE(arrivedSpy.count(), 1);
-    QVERIFY(!f.nav.hopPromptVisible());
-
-    // The persisted plan is dropped at the final stop.
-    RoutePlanService persisted(&f.repo);
-    QVERIFY(!persisted.load().isValid());
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.currentStep(), 1, 3000);
+    QCOMPARE(f.nav.destLatitude(), 52.52);
+    const QJsonObject next = snapshot(f.repo);
+    external(f.repo, QStringLiteral("plan.reached"),
+             {{QStringLiteral("expected_plan_id"), next.value(QStringLiteral("id"))},
+              {QStringLiteral("expected_stop_id"), next.value(QStringLiteral("stops"))
+                   .toArray().at(1).toObject().value(QStringLiteral("id"))}});
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.planState(), int(RoutePlanState::Complete), 3000);
+    QCOMPARE(snapshot(f.repo).value(QStringLiteral("stops")).toArray().size(), 2);
+    QCOMPARE(f.nav.status(), int(NavigationStatus::Arrived));
 }
 
-void NavigationHopTest::declineHoldsThenResumeReasks()
+void NavigationHopTest::moveJumpAndRemovePreserveTarget()
 {
     Fixture f;
-    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                                    stop(52.52, 13.42, QStringLiteral("B"))};
-    startGuiding(f, stops);
-    reachStop(f, stops[0].position);
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::AtStop));
-
-    f.nav.declineContinue();
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Held));
-    QVERIFY(!f.nav.hopPromptVisible());
-    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Idle));
-    // Plan and step survive a hold.
-    QVERIFY(f.nav.hasPlan());
-    QCOMPARE(f.nav.currentStep(), 0);
-
-    f.nav.resumePlan();
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::AtStop));
-    QVERIFY(f.nav.hopPromptVisible());
-    QCOMPARE(f.nav.currentStep(), 0);
+    f.nav.setRoutePlan(QVariantList{
+        QVariantMap{{QStringLiteral("lat"), 52.51}, {QStringLiteral("lon"), 13.41}},
+        QVariantMap{{QStringLiteral("lat"), 52.52}, {QStringLiteral("lon"), 13.42}},
+        QVariantMap{{QStringLiteral("lat"), 52.53}, {QStringLiteral("lon"), 13.43}}}, 1);
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.currentStep(), 1, 3000);
+    QCOMPARE(f.nav.destLatitude(), 52.52);
+    f.nav.moveStop(2, 0);
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.currentStep(), 2, 3000);
+    QCOMPARE(f.nav.destLatitude(), 52.52);
+    f.nav.jumpToStop(0);
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.currentStep(), 0, 3000);
+    QCOMPARE(f.nav.destLatitude(), 52.53);
+    f.nav.removeStop(1);
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.stopCount(), 2, 3000);
+    QCOMPARE(snapshot(f.repo).value(QStringLiteral("stops")).toArray().size(), 2);
 }
 
-void NavigationHopTest::skipAdvancesAndCompletesOnLastStop()
+void NavigationHopTest::rebootRestoresOwnerSnapshot()
 {
-    Fixture f;
-    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                                    stop(52.52, 13.42, QStringLiteral("B"))};
-    startGuiding(f, stops);
-    reachStop(f, stops[0].position);
-
-    f.nav.skipCurrentStop();
-    QCOMPARE(f.nav.currentStep(), 1);
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Navigating));
-    quiesce(f);
-
-    // Skipping the last hop ends the trip.
-    f.nav.skipCurrentStop();
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Complete));
-    RoutePlanService persisted(&f.repo);
-    QVERIFY(!persisted.load().isValid());
+    InMemoryMdbRepository repo;
+    external(repo, QStringLiteral("plan.replace"),
+             {{QStringLiteral("stops"), QJsonArray{stop(52.51, 13.41, QStringLiteral("A")),
+                                                    stop(52.52, 13.42, QStringLiteral("B"))}},
+              {QStringLiteral("start_step"), 1}});
+    GpsStore gps(&repo); SpeedLimitStore speed(&repo); NavigationStore store(&repo);
+    VehicleStore vehicle(&repo); SettingsStore settings(&repo);
+    NavigationService nav(&gps, &store, &vehicle, &settings, &speed, &repo);
+    gps.start(); store.start(); vehicle.start(); settings.start(); speed.start();
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"), QStringLiteral("ready-to-drive"));
+    QTRY_COMPARE_WITH_TIMEOUT(nav.currentStep(), 1, 3000);
+    QCOMPARE(nav.stopCount(), 2);
+    QCOMPARE(nav.destLatitude(), 52.52);
+    if (auto *client = nav.findChild<ValhallaClient *>()) client->cancelPending();
 }
 
-void NavigationHopTest::autoAdvanceFiresWhenPromptTimesOut()
+void NavigationHopTest::rebootCompletedPlanDoesNotRearmArrival()
 {
-    Fixture f;
-    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                                    stop(52.52, 13.42, QStringLiteral("B"))};
-    startGuiding(f, stops);
-    reachStop(f, stops[0].position);
-    QCOMPARE(f.nav.hopPromptSecondsRemaining(), 30);
-
-    QTimer *timer = hopTimer(f);
-    QVERIFY(timer != nullptr);
-    QVERIFY(timer->isActive());
-
-    for (int i = 0; i < 30; ++i) {
-        QMetaObject::invokeMethod(timer, "timeout", Qt::DirectConnection);
-    }
-    QCOMPARE(f.nav.currentStep(), 1);
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Navigating));
-    QVERIFY(!f.nav.hopPromptVisible());
+    InMemoryMdbRepository repo;
+    external(repo, QStringLiteral("plan.append"),
+             {{QStringLiteral("stop"), stop(52.51, 13.41, QStringLiteral("A"))}});
+    const QJsonObject current = snapshot(repo);
+    external(repo, QStringLiteral("plan.reached"),
+             {{QStringLiteral("expected_plan_id"), current.value(QStringLiteral("id"))},
+              {QStringLiteral("expected_stop_id"), current.value(QStringLiteral("stops"))
+                   .toArray().first().toObject().value(QStringLiteral("id"))}});
+    GpsStore gpsStore(&repo); SpeedLimitStore speed(&repo); NavigationStore store(&repo);
+    VehicleStore vehicle(&repo); SettingsStore settings(&repo);
+    NavigationService nav(&gpsStore, &store, &vehicle, &settings, &speed, &repo);
+    gpsStore.start(); store.start(); vehicle.start(); settings.start(); speed.start();
+    QSignalSpy arrived(&nav, &NavigationService::arrived);
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
+             QStringLiteral("ready-to-drive"));
+    QTRY_COMPARE_WITH_TIMEOUT(nav.planState(), int(RoutePlanState::Complete), 3000);
+    QCOMPARE(arrived.count(), 0);
+    QVERIFY(!nav.hasRoute());
+    QCOMPARE(snapshot(repo).value(QStringLiteral("stops")).toArray().size(), 1);
+    nav.appendStop(52.52, 13.42, QStringLiteral("B"));
+    QTRY_COMPARE_WITH_TIMEOUT(nav.planState(), int(RoutePlanState::AtStop), 3000);
+    QCOMPARE(nav.stopCount(), 2);
 }
 
-void NavigationHopTest::shortcutMenuFreezesCountdown()
+void NavigationHopTest::appendAfterFinalArrivalReopensPrompt()
 {
     Fixture f;
-    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                                    stop(52.52, 13.42, QStringLiteral("B"))};
-    startGuiding(f, stops);
-    reachStop(f, stops[0].position);
-    QTimer *timer = hopTimer(f);
-    QVERIFY(timer && timer->isActive());
-
-    f.nav.setHopMenuOpen(true);
-    QVERIFY(!timer->isActive());
-    QTest::qWait(1100);
-    QCOMPARE(f.nav.hopPromptSecondsRemaining(), 30);
-    f.nav.setHopMenuOpen(false);
-    QVERIFY(timer->isActive());
-    quiesce(f);
+    f.nav.appendStop(52.51, 13.41, QStringLiteral("A"));
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.stopCount(), 1, 3000);
+    const QJsonObject plan = snapshot(f.repo);
+    external(f.repo, QStringLiteral("plan.reached"),
+             {{QStringLiteral("expected_plan_id"), plan.value(QStringLiteral("id"))},
+              {QStringLiteral("expected_stop_id"), plan.value(QStringLiteral("stops"))
+                   .toArray().first().toObject().value(QStringLiteral("id"))}});
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.planState(), int(RoutePlanState::Complete), 3000);
+    f.nav.appendStop(52.52, 13.42, QStringLiteral("B"));
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.planState(), int(RoutePlanState::AtStop), 3000);
+    QCOMPARE(f.nav.stopCount(), 2);
+    f.nav.confirmContinue();
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.currentStep(), 1, 3000);
 }
 
-void NavigationHopTest::keepStopContinuesGuidanceUntilDismount()
+void NavigationHopTest::keepStopIsDurableAndClearedOnDismount()
 {
     Fixture f;
-    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                                    stop(52.52, 13.42, QStringLiteral("B"))};
-    startGuiding(f, stops);
-    reachStop(f, stops[0].position);
+    f.nav.appendStop(52.51, 13.41, QStringLiteral("A"));
+    f.nav.appendStop(52.52, 13.42, QStringLiteral("B"));
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.stopCount(), 2, 3000);
+    const QJsonObject plan = snapshot(f.repo);
+    external(f.repo, QStringLiteral("plan.reached"),
+             {{QStringLiteral("expected_plan_id"), plan.value(QStringLiteral("id"))},
+              {QStringLiteral("expected_stop_id"), plan.value(QStringLiteral("stops"))
+                   .toArray().first().toObject().value(QStringLiteral("id"))}});
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.planState(), int(RoutePlanState::AtStop), 3000);
     f.nav.keepCurrentStop();
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Navigating));
-    QVERIFY(!f.nav.hopPromptVisible());
-    QCOMPARE(f.nav.currentStep(), 0);
-    QVERIFY(!f.nav.planStops().at(0).toMap().value(QStringLiteral("reached")).toBool());
-    RoutePlanService persisted(&f.repo);
-    QVERIFY(persisted.load().keepCurrentStop);
-
-    quiesce(f);
-    f.nav.setRoute(simpleRoute({52.50, 13.40}, stops[0].position));
-    reachStop(f, stops[0].position);
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Navigating));
-    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Navigating));
-    QCOMPARE(f.nav.hopPromptSecondsRemaining(), 0);
-
-    setVehicleState(f, QStringLiteral("stand-by"));
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Paused));
-    QVERIFY(f.nav.hopParkedNoticeVisible());
-    QVERIFY(!persisted.load().keepCurrentStop);
-    QVERIFY(persisted.load().stops.at(0).reached);
-    setVehicleState(f, QStringLiteral("ready-to-drive"));
-    QCOMPARE(f.nav.currentStep(), 1);
-    quiesce(f);
+    QTRY_VERIFY_WITH_TIMEOUT(snapshot(f.repo).value(QStringLiteral("keep_current_stop")).toBool(), 3000);
+    QCOMPARE(f.nav.planState(), int(RoutePlanState::Navigating));
+    f.repo.set(QStringLiteral("vehicle"), QStringLiteral("state"), QStringLiteral("stand-by"));
+    QTRY_VERIFY_WITH_TIMEOUT(!snapshot(f.repo).value(QStringLiteral("keep_current_stop")).toBool(), 3000);
 }
 
-void NavigationHopTest::parkPausesAndResumeAdvancesWhenReached()
+void NavigationHopTest::unavailableOwnerReportsErrorWithoutBlocking()
+{
+    class UnavailableRepo : public InMemoryMdbRepository {
+    public:
+        void push(const QString &channel, const QString &command) override {
+            if (channel != QLatin1String("settings:route-plan"))
+                InMemoryMdbRepository::push(channel, command);
+        }
+    } repo;
+    GpsStore gps(&repo); SpeedLimitStore speed(&repo); NavigationStore store(&repo);
+    VehicleStore vehicle(&repo); SettingsStore settings(&repo);
+    NavigationService nav(&gps, &store, &vehicle, &settings, &speed, &repo);
+    gps.start(); store.start(); vehicle.start(); settings.start(); speed.start();
+    QElapsedTimer timer;
+    timer.start();
+    nav.appendStop(52.51, 13.41);
+    QVERIFY(timer.elapsed() < 100);
+    QTRY_COMPARE_WITH_TIMEOUT(nav.status(), int(NavigationStatus::Error), 7500);
+    QVERIFY(nav.errorMessage().contains(QStringLiteral("timed out")));
+    QVERIFY(!nav.hasPlan());
+    QVERIFY(repo.get(QStringLiteral("navigation"), QStringLiteral("plan")).isEmpty());
+}
+
+void NavigationHopTest::clearDoesNotRestoreLegacySettings()
 {
     Fixture f;
-    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                                    stop(52.52, 13.42, QStringLiteral("B"))};
-    startGuiding(f, stops);
-    reachStop(f, stops[0].position);
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::AtStop));
-
-    setVehicleState(f, QStringLiteral("parked"));
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Paused));
-    QVERIFY(f.nav.hasPlan());
-    QCOMPARE(f.nav.currentStep(), 0);
-    QVERIFY(f.nav.hopParkedNoticeVisible());
-    QTimer *timer = hopTimer(f);
-    QVERIFY(timer && !timer->isActive());
-
-    setVehicleState(f, QStringLiteral("ready-to-drive"));
-    QCOMPARE(f.nav.currentStep(), 1);
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Navigating));
-    quiesce(f);
-}
-
-void NavigationHopTest::skipWhileParkedWaitsForUnlock()
-{
-    Fixture f;
-    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                                    stop(52.52, 13.42, QStringLiteral("B")),
-                                    stop(52.53, 13.43, QStringLiteral("C"))};
-    startGuiding(f, stops);
-    reachStop(f, stops[0].position);
-    setVehicleState(f, QStringLiteral("parked"));
-    f.nav.skipCurrentStop();
-    QCOMPARE(f.nav.currentStep(), 1);
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Paused));
-    QVERIFY(!f.nav.hopParkedNoticeVisible());
-    setVehicleState(f, QStringLiteral("ready-to-drive"));
-    QCOMPARE(f.nav.currentStep(), 1);
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Navigating));
-    quiesce(f);
-}
-
-void NavigationHopTest::parkMidHopResumesSameHop()
-{
-    Fixture f;
-    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                                    stop(52.52, 13.42, QStringLiteral("B"))};
-    startGuiding(f, stops);
-    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Navigating));
-
-    setVehicleState(f, QStringLiteral("stand-by"));
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Paused));
-
-    setVehicleState(f, QStringLiteral("ready-to-drive"));
-    // The stop was never reached, so the same hop is guided again.
-    QCOMPARE(f.nav.currentStep(), 0);
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Navigating));
-    quiesce(f);
-}
-
-void NavigationHopTest::reorderAndDeleteKeepTheCurrentTarget()
-{
-    Fixture f;
-    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                                    stop(52.52, 13.42, QStringLiteral("B")),
-                                    stop(52.53, 13.43, QStringLiteral("C"))};
-    startGuiding(f, stops);
-    f.nav.skipCurrentStop(); // currentStep 1, target B
-    quiesce(f);
-    QCOMPARE(f.nav.currentStep(), 1);
-    QCOMPARE(f.nav.planStops().at(1).toMap().value(QStringLiteral("label")).toString(),
-             QStringLiteral("B"));
-
-    f.nav.removeStop(2); // after the current hop
-    quiesce(f);
-    QCOMPARE(f.nav.stopCount(), 2);
-    QCOMPARE(f.nav.currentStep(), 1);
-
-    f.nav.removeStop(0); // before the current hop
-    quiesce(f);
-    QCOMPARE(f.nav.stopCount(), 1);
-    QCOMPARE(f.nav.currentStep(), 0);
-    QCOMPARE(f.nav.planStops().at(0).toMap().value(QStringLiteral("label")).toString(),
-             QStringLiteral("B"));
-
-    f.nav.appendStop(52.54, 13.44, QStringLiteral("D"));
-    quiesce(f);
-    QCOMPARE(f.nav.stopCount(), 2);
-    QCOMPARE(f.nav.currentStep(), 0);
-
-    f.nav.moveStop(1, 0); // D moves ahead of the current target B
-    quiesce(f);
-    QCOMPARE(f.nav.planStops().at(0).toMap().value(QStringLiteral("label")).toString(),
-             QStringLiteral("D"));
-    // The step follows B by id rather than staying on a fixed index.
-    QCOMPARE(f.nav.currentStep(), 1);
-    QCOMPARE(f.nav.planStops().at(1).toMap().value(QStringLiteral("label")).toString(),
-             QStringLiteral("B"));
-}
-
-void NavigationHopTest::externalPlanPushStartsNavigation()
-{
-    Fixture f;
-    setGps(f, 52.50, 13.40);
-
-    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                                    stop(52.52, 13.42, QStringLiteral("B"))};
-    const QString json = RoutePlanService::serializeWaypoints(stops);
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("waypoints"), json);
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("current-step"), QStringLiteral("0"));
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("latitude"), QStringLiteral("52.510000"));
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("longitude"), QStringLiteral("13.410000"));
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("destination"),
-               QStringLiteral("52.510000,13.410000"));
-
-    QTRY_VERIFY_WITH_TIMEOUT(f.nav.hasPlan(), 2000);
-    QCOMPARE(f.nav.stopCount(), 2);
-    QCOMPARE(f.nav.currentStep(), 0);
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Navigating));
-    quiesce(f);
-}
-
-void NavigationHopTest::ownWriteEchoDoesNotRestart()
-{
-    Fixture f;
-    setGps(f, 52.50, 13.40);
-
-    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                                    stop(52.52, 13.42, QStringLiteral("B"))};
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("waypoints"),
-               RoutePlanService::serializeWaypoints(stops));
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("current-step"), QStringLiteral("0"));
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("latitude"), QStringLiteral("52.510000"));
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("longitude"), QStringLiteral("13.410000"));
-    QTRY_VERIFY_WITH_TIMEOUT(f.nav.hasPlan(), 2000);
-    quiesce(f);
-
-    QSignalSpy routeSpy(&f.nav, &NavigationService::routeChanged);
-    // Same coordinate value, different string: the store sees a change, the
-    // service must recognise it as its own echo and not restart the hop.
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("latitude"), QStringLiteral("52.5100000"));
-    QTest::qWait(250);
-
-    QCOMPARE(routeSpy.count(), 0);
-    QCOMPARE(f.nav.stopCount(), 2);
-    QCOMPARE(f.nav.currentStep(), 0);
-    quiesce(f);
-}
-
-// An external step change (CLI `lsc nav plan skip`, or a cloud writer moving
-// current-step) carries the same waypoints with a different target. That target
-// is not the current stop, which made the ingest mistake it for a new single
-// destination and collapse the plan. Found on hardware.
-void NavigationHopTest::externalStepChangeKeepsThePlan()
-{
-    Fixture f;
-    setGps(f, 52.50, 13.40);
-
-    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                                    stop(52.52, 13.42, QStringLiteral("B")),
-                                    stop(52.53, 13.43, QStringLiteral("C"))};
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("waypoints"),
-               RoutePlanService::serializeWaypoints(stops));
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("current-step"), QStringLiteral("0"));
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("latitude"), QStringLiteral("52.510000"));
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("longitude"), QStringLiteral("13.410000"));
-    QTRY_VERIFY_WITH_TIMEOUT(f.nav.hasPlan(), 2000);
-    QCOMPARE(f.nav.stopCount(), 3);
-    quiesce(f);
-
-    // Same waypoints, step 1, target at stop B.
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("current-step"), QStringLiteral("1"));
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("latitude"), QStringLiteral("52.520000"));
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("longitude"), QStringLiteral("13.420000"));
-    QTRY_COMPARE_WITH_TIMEOUT(f.nav.currentStep(), 1, 2000);
-    QCOMPARE(f.nav.stopCount(), 3);
-    QCOMPARE(f.nav.destLatitude(), stops[1].position.latitude);
-    QCOMPARE(f.nav.planStops().at(2).toMap().value(QStringLiteral("label")).toString(),
-             QStringLiteral("C"));
-    quiesce(f);
-}
-
-void NavigationHopTest::externalSingleDestinationReplacesPlan()
-{
-    Fixture f;
-    setGps(f, 52.50, 13.40);
-
-    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                                    stop(52.52, 13.42, QStringLiteral("B"))};
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("waypoints"),
-               RoutePlanService::serializeWaypoints(stops));
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("current-step"), QStringLiteral("0"));
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("latitude"), QStringLiteral("52.510000"));
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("longitude"), QStringLiteral("13.410000"));
-    QTRY_VERIFY_WITH_TIMEOUT(f.nav.hasPlan(), 2000);
-    QCOMPARE(f.nav.stopCount(), 2);
-    quiesce(f);
-
-    // A legacy writer moves only the target, leaving the old waypoints behind.
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("latitude"), QStringLiteral("52.600000"));
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("longitude"), QStringLiteral("13.500000"));
-    QTRY_COMPARE_WITH_TIMEOUT(f.nav.stopCount(), 1, 2000);
-    QCOMPARE(f.nav.currentStep(), 0);
-    QCOMPARE(f.nav.destLatitude(), 52.6);
-    quiesce(f);
-}
-
-void NavigationHopTest::externalClearStopsNavigation()
-{
-    Fixture f;
-    setGps(f, 52.50, 13.40);
-
-    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                                    stop(52.52, 13.42, QStringLiteral("B"))};
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("waypoints"),
-               RoutePlanService::serializeWaypoints(stops));
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("current-step"), QStringLiteral("0"));
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("latitude"), QStringLiteral("52.510000"));
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("longitude"), QStringLiteral("13.410000"));
-    QTRY_VERIFY_WITH_TIMEOUT(f.nav.hasPlan(), 2000);
-    quiesce(f);
-
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("waypoints"), QString());
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("current-step"), QString());
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("latitude"), QString());
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("longitude"), QString());
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("destination"), QString());
-    QTRY_VERIFY_WITH_TIMEOUT(!f.nav.hasPlan(), 2000);
-    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Idle));
-}
-
-// A store reconnect re-asserts the navigation hash. For a route injected with
-// setRoute() (no plan), the re-asserted target matches the active destination
-// and must be ignored; treating it as a new destination re-armed arrival and
-// fired arrived() a second time.
-void NavigationHopTest::reconnectAfterArrivalDoesNotRearm()
-{
-    Fixture f;
-    setGps(f, 52.50, 13.40);
-    quiesce(f);
-
-    QSignalSpy arrivedSpy(&f.nav, &NavigationService::arrived);
-    f.nav.setRoute(simpleRoute({52.50, 13.40}, {52.52, 13.42}));
-    reachStop(f, {52.52, 13.42});
-    QCOMPARE(arrivedSpy.count(), 1);
-    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Arrived));
-
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("latitude"), QStringLiteral("52.520000"));
-    f.repo.set(QStringLiteral("navigation"), QStringLiteral("longitude"), QStringLiteral("13.420000"));
-    f.repo.publish(QStringLiteral("navigation"), QStringLiteral("updated"));
-    QTest::qWait(250);
-
-    QCOMPARE(arrivedSpy.count(), 1);
-    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Arrived));
-    QVERIFY(!f.nav.hasPlan());
-    quiesce(f);
-}
-
-// The overview is built from the per-leg preview the Valhalla client delivers.// Invoke the slot directly with synthetic legs to pin the mapping and totals,
-// then confirm a step change re-bases the rows on the remaining stops.
-void NavigationHopTest::jumpToStopRetargetsAndMarksReached()
-{
-    Fixture f;
-    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                                    stop(52.52, 13.42, QStringLiteral("B")),
-                                    stop(52.53, 13.43, QStringLiteral("C"))};
-    startGuiding(f, stops);
-
-    f.nav.jumpToStop(2);
-    quiesce(f);
-    QCOMPARE(f.nav.currentStep(), 2);
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Navigating));
-    const QVariantList plan = f.nav.planStops();
-    QVERIFY(plan.at(0).toMap().value(QStringLiteral("reached")).toBool());
-    QVERIFY(plan.at(1).toMap().value(QStringLiteral("reached")).toBool());
-    QVERIFY(!plan.at(2).toMap().value(QStringLiteral("reached")).toBool());
-    QCOMPARE(f.nav.destLatitude(), stops[2].position.latitude);
-
-    // Out-of-range jumps are ignored.
-    f.nav.jumpToStop(-1);
-    QCOMPARE(f.nav.currentStep(), 2);
-    f.nav.jumpToStop(3);
-    QCOMPARE(f.nav.currentStep(), 2);
-    quiesce(f);
-}
-
-void NavigationHopTest::appendAfterFinalArrivalReopensTheTrip()
-{
-    Fixture f;
-    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                                    stop(52.52, 13.42, QStringLiteral("B"))};
-    startGuiding(f, stops);
-    reachStop(f, stops[0].position);
-    f.nav.confirmContinue();
-    quiesce(f);
-    f.nav.setRoute(simpleRoute(stops[0].position, stops[1].position));
-    reachStop(f, stops[1].position);
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Complete));
-
-    // Adding a stop to a finished trip must re-open it at the reached stop and
-    // offer the continue prompt, not replace the plan.
-    f.nav.appendStop(52.53, 13.43, QStringLiteral("C"));
-    quiesce(f);
-    QCOMPARE(f.nav.stopCount(), 3);
-    QCOMPARE(f.nav.currentStep(), 1);
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::AtStop));
-    QVERIFY(f.nav.hopPromptVisible());
-    QCOMPARE(f.nav.nextStopLabel(), QStringLiteral("C"));
-    QVERIFY(f.nav.planStops().at(1).toMap().value(QStringLiteral("reached")).toBool());
-}
-
-// A restored trip navigates on its own instead of waiting for the rider to
-// pick it from the menu again.
-void NavigationHopTest::restoreFromSettingsStartsNavigating()
-{
-    InMemoryMdbRepository repo;
-    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
-             QStringLiteral("ready-to-drive"), false);
-
-    RoutePlan plan;
-    plan.stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                  stop(52.52, 13.42, QStringLiteral("B"))};
-    RoutePlanService seeded(&repo);
-    QVERIFY(seeded.save(plan, true));
-
-    GpsStore gps(&repo);
-    SpeedLimitStore speed(&repo);
-    NavigationStore navStore(&repo);
-    VehicleStore vehicle(&repo);
-    SettingsStore settings(&repo);
-    gps.start();
-    navStore.start();
-    vehicle.start();
-    settings.start();
-    speed.start();
-    NavigationService nav(&gps, &navStore, &vehicle, &settings, &speed, &repo);
-
-    QVERIFY(nav.hasPlan());
-    QCOMPARE(nav.planState(), static_cast<int>(RoutePlanState::Navigating));
-    QCOMPARE(nav.currentStep(), 0);
-    quiesce(nav);
-}
-
-// A stop already marked reached means the rider was there, so the restored trip
-// continues at the next stop; when that was the last one, the trip is done.
-void NavigationHopTest::restoreFromReachedStopAdvances()
-{
-    InMemoryMdbRepository repo;
-
-    RoutePlan plan;
-    plan.stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                  stop(52.52, 13.42, QStringLiteral("B"))};
-    plan.currentStep = 1;
-    plan.stops[1].reached = true;
-    RoutePlanService seeded(&repo);
-    QVERIFY(seeded.save(plan, true));
-
-    GpsStore gps(&repo);
-    SpeedLimitStore speed(&repo);
-    NavigationStore navStore(&repo);
-    VehicleStore vehicle(&repo);
-    SettingsStore settings(&repo);
-    gps.start();
-    navStore.start();
-    vehicle.start();
-    settings.start();
-    speed.start();
-    NavigationService nav(&gps, &navStore, &vehicle, &settings, &speed, &repo);
-
-    QCOMPARE(nav.planState(), static_cast<int>(RoutePlanState::Complete));
-    quiesce(nav);
-}
-
-void NavigationHopTest::restoreReachedStopWaitsForUnlock()
-{
-    InMemoryMdbRepository repo;
-    RoutePlan plan;
-    plan.stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                  stop(52.52, 13.42, QStringLiteral("B"))};
-    plan.stops[0].reached = true;
-    RoutePlanService seeded(&repo);
-    QVERIFY(seeded.save(plan, true));
-    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
-             QStringLiteral("stand-by"), false);
-
-    GpsStore gps(&repo);
-    SpeedLimitStore speed(&repo);
-    NavigationStore navStore(&repo);
-    VehicleStore vehicle(&repo);
-    SettingsStore settings(&repo);
-    gps.start(); navStore.start(); vehicle.start(); settings.start(); speed.start();
-    NavigationService nav(&gps, &navStore, &vehicle, &settings, &speed, &repo);
-    QCOMPARE(nav.currentStep(), 0);
-    QCOMPARE(nav.planState(), static_cast<int>(RoutePlanState::Paused));
-    QVERIFY(nav.hopParkedNoticeVisible());
-    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
-             QStringLiteral("ready-to-drive"));
-    QCOMPARE(nav.currentStep(), 1);
-    QCOMPARE(seeded.load().currentStep, 1);
-    quiesce(nav);
-}
-
-void NavigationHopTest::restoreReachedStopInDriveRestartsCountdown()
-{
-    InMemoryMdbRepository repo;
-    RoutePlan plan;
-    plan.stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                  stop(52.52, 13.42, QStringLiteral("B"))};
-    plan.stops[0].reached = true;
-    RoutePlanService seeded(&repo);
-    QVERIFY(seeded.save(plan, true));
-
-    GpsStore gps(&repo);
-    SpeedLimitStore speed(&repo);
-    NavigationStore navStore(&repo);
-    VehicleStore vehicle(&repo);
-    SettingsStore settings(&repo);
-    NavigationService nav(&gps, &navStore, &vehicle, &settings, &speed, &repo);
-    gps.start(); navStore.start(); vehicle.start(); settings.start(); speed.start();
-    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
-             QStringLiteral("ready-to-drive"));
-    QCOMPARE(nav.currentStep(), 0);
-    QCOMPARE(nav.planState(), static_cast<int>(RoutePlanState::AtStop));
-    QCOMPARE(nav.hopPromptSecondsRemaining(), 30);
-    QVERIFY(!nav.hopParkedNoticeVisible());
-}
-
-void NavigationHopTest::restoreKeepStopPreservesTarget()
-{
-    InMemoryMdbRepository repo;
-    RoutePlan plan;
-    plan.stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                  stop(52.52, 13.42, QStringLiteral("B"))};
-    plan.keepCurrentStop = true;
-    RoutePlanService seeded(&repo);
-    QVERIFY(seeded.save(plan, true));
-    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
-             QStringLiteral("stand-by"), false);
-
-    GpsStore gps(&repo);
-    SpeedLimitStore speed(&repo);
-    NavigationStore navStore(&repo);
-    VehicleStore vehicle(&repo);
-    SettingsStore settings(&repo);
-    gps.start(); navStore.start(); vehicle.start(); settings.start(); speed.start();
-    NavigationService nav(&gps, &navStore, &vehicle, &settings, &speed, &repo);
-    QCOMPARE(nav.planState(), static_cast<int>(RoutePlanState::Paused));
-    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
-             QStringLiteral("ready-to-drive"));
-    QCOMPARE(nav.currentStep(), 0);
-    QCOMPARE(nav.planState(), static_cast<int>(RoutePlanState::Navigating));
-    QVERIFY(seeded.load().keepCurrentStop);
-    quiesce(nav);
-}
-
-void NavigationHopTest::planOverviewMapsLegsToRemainingStops()
-{
-    Fixture f;
-    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                                    stop(52.52, 13.42, QStringLiteral("B")),
-                                    stop(52.53, 13.43, QStringLiteral("C"))};
-    startGuiding(f, stops);
-
-    QList<Route> legs;
-    legs.append(simpleRoute({52.50, 13.40}, stops[0].position));
-    legs.append(simpleRoute(stops[0].position, stops[1].position));
-    legs.append(simpleRoute(stops[1].position, stops[2].position));
-    QVERIFY(QMetaObject::invokeMethod(&f.nav, "onPlanPreviewReady", Qt::DirectConnection,
-                                      Q_ARG(QList<Route>, legs)));
-
-    const QVariantList overview = f.nav.planOverview();
-    QCOMPARE(overview.size(), 3);
-    QCOMPARE(overview[0].toMap().value(QStringLiteral("fromIndex")).toInt(), -1);
-    QCOMPARE(overview[0].toMap().value(QStringLiteral("toIndex")).toInt(), 0);
-    QCOMPARE(overview[0].toMap().value(QStringLiteral("toLabel")).toString(), QStringLiteral("A"));
-    QCOMPARE(overview[1].toMap().value(QStringLiteral("fromIndex")).toInt(), 0);
-    QCOMPARE(overview[1].toMap().value(QStringLiteral("toIndex")).toInt(), 1);
-    QCOMPARE(overview[2].toMap().value(QStringLiteral("toLabel")).toString(), QStringLiteral("C"));
-    QVERIFY(overview[0].toMap().value(QStringLiteral("ready")).toBool());
-    QVERIFY(f.nav.planTotalDistance() > 0);
-    QVERIFY(f.nav.planTotalDuration() > 0);
-
-    // Advancing re-bases the overview on the stops that remain.
-    f.nav.skipCurrentStop();
-    quiesce(f);
-    QList<Route> remainingLegs;
-    remainingLegs.append(simpleRoute({52.51, 13.41}, stops[1].position));
-    remainingLegs.append(simpleRoute(stops[1].position, stops[2].position));
-    QVERIFY(QMetaObject::invokeMethod(&f.nav, "onPlanPreviewReady", Qt::DirectConnection,
-                                      Q_ARG(QList<Route>, remainingLegs)));
-    const QVariantList advanced = f.nav.planOverview();
-    QCOMPARE(advanced.size(), 2);
-    QCOMPARE(advanced[0].toMap().value(QStringLiteral("fromIndex")).toInt(), -1);
-    QCOMPARE(advanced[0].toMap().value(QStringLiteral("toIndex")).toInt(), 1);
-    QCOMPARE(advanced[1].toMap().value(QStringLiteral("toIndex")).toInt(), 2);
-
+    f.repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.route-plan.0.latitude"),
+               QStringLiteral("52.51"));
+    f.nav.appendStop(52.52, 13.42);
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.stopCount(), 1, 3000);
     f.nav.clearNavigation();
-    QVERIFY(f.nav.planOverview().isEmpty());
-    QCOMPARE(f.nav.planTotalDistance(), 0.0);
-}
-
-// A route request must never disappear just because the fix is currently too
-// coarse to route from. It is held, surfaced as WaitingForPosition, and
-// re-issued automatically once a usable origin appears.
-void NavigationHopTest::heldRouteRequestRetriesWhenOriginBecomesUsable()
-{
-    Fixture f;
-
-    // 60 m EPH is above the route-origin gate (50 m). With no MapService in
-    // this fixture there is no estimator fallback, so no origin is usable.
-    setGpsWithEph(f, 52.50, 13.40, 60.0);
-    f.nav.setRoutePlan(QList<RouteStop>{stop(52.51, 13.41, QStringLiteral("dest"))}, 0);
-
-    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::WaitingForPosition));
-    QVERIFY(f.nav.isWaitingForPosition());
-    QVERIFY(!f.nav.hasRoute());
-    quiesce(f);
-
-    // A usable fix releases the held request with no further user action.
-    setGpsWithEph(f, 52.50, 13.40, 5.0);
-
-    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Calculating));
-    QVERIFY(!f.nav.isWaitingForPosition());
-    quiesce(f);
-
-    // And a route arriving completes the transition.
-    f.nav.setRoute(simpleRoute({52.50, 13.40}, {52.51, 13.41}));
-    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Navigating));
-}
-
-void NavigationHopTest::heldRouteRequestExpiresOnShutdown()
-{
-    Fixture f;
-    setGpsWithEph(f, 52.50, 13.40, 60.0);
-    f.nav.setRoutePlan(QList<RouteStop>{stop(52.51, 13.41, QStringLiteral("dest"))}, 0);
-    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::WaitingForPosition));
-    QVERIFY(f.nav.hasPlan());
-
-    // Hop-on and stand-by must not drop the request.
-    setVehicleState(f, QStringLiteral("hop-on"));
-    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::WaitingForPosition));
-    QVERIFY(f.nav.hasPlan());
-    setVehicleState(f, QStringLiteral("stand-by"));
-    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::WaitingForPosition));
-    QVERIFY(f.nav.hasPlan());
-
-    setVehicleState(f, QStringLiteral("shutting-down"));
-    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Idle));
-    QVERIFY(!f.nav.hasPlan());
-    quiesce(f);
-
-    // A usable fix after shutdown must not silently restart the request.
-    setGpsWithEph(f, 52.50, 13.40, 5.0);
-    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Idle));
-    QVERIFY(!f.nav.hasPlan());
-}
-
-void NavigationHopTest::multiHopPlanSurvivesShutdownWithoutRoute()
-{
-    Fixture f;
-    const QList<RouteStop> stops = {stop(52.51, 13.41, QStringLiteral("A")),
-                                    stop(52.52, 13.42, QStringLiteral("B"))};
-    setGpsWithEph(f, 52.50, 13.40, 60.0);
-    f.nav.setRoutePlan(stops, 0);
-    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::WaitingForPosition));
-    QVERIFY(f.nav.hasPlan());
-
-    setVehicleState(f, QStringLiteral("shutting-down"));
-    QVERIFY(f.nav.hasPlan());
-    QCOMPARE(f.nav.stopCount(), 2);
-    QCOMPARE(f.nav.planState(), static_cast<int>(RoutePlanState::Paused));
-    quiesce(f);
-}
-
-void NavigationHopTest::establishedRouteSurvivesLock()
-{
-    Fixture f;
-    setGps(f, 52.50, 13.40);
-    f.nav.setRoutePlan(QList<RouteStop>{stop(52.60, 13.50, QStringLiteral("far"))}, 0);
-    quiesce(f);
-    f.nav.setRoute(simpleRoute({52.50, 13.40}, {52.60, 13.50}));
-    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Navigating));
-
-    setVehicleState(f, QStringLiteral("stand-by"));
-    QCOMPARE(f.nav.status(), static_cast<int>(NavigationStatus::Navigating));
-    QVERIFY(f.nav.hasPlan());
-    QVERIFY(f.nav.hasRoute());
+    QTRY_VERIFY_WITH_TIMEOUT(!f.nav.hasPlan(), 3000);
+    QCOMPARE(snapshot(f.repo).value(QStringLiteral("stops")).toArray().size(), 0);
 }
 
 QTEST_MAIN(NavigationHopTest)

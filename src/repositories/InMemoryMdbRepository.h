@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <QHash>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <QSet>
 #include <QRandomGenerator>
 
@@ -47,6 +48,8 @@ private:
     // In-process stand-in for settings-service's destination CallServer so
     // the dashboard's RPC path runs against this repository unchanged.
     void handleDestinationCall(const QString &envelopeJson);
+    void handleRoutePlanCall(const QString &envelopeJson);
+    void publishRoutePlan();
     bool destinationSave(const QJsonObject &payload, QVariantMap &result, QString &error);
     bool destinationDelete(const QJsonObject &payload, QString &error);
     bool destinationTouch(const QJsonObject &payload, QString &error);
@@ -62,4 +65,9 @@ private:
     QHash<QString, QList<SubscriptionEntry>> m_subscribers;
     SubscriptionId m_nextSubscriptionId = 1;
     QTimer *m_brightnessTimer = nullptr;
+    QJsonObject m_routePlan{{QStringLiteral("id"), QString()},
+                            {QStringLiteral("revision"), 0},
+                            {QStringLiteral("stops"), QJsonArray{}},
+                            {QStringLiteral("current_step"), 0},
+                            {QStringLiteral("keep_current_stop"), false}};
 };

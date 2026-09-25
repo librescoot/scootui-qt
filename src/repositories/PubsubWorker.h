@@ -48,6 +48,7 @@ public slots:
 signals:
     // One published message. Queued to the GUI thread for dispatch.
     void message(const QString &channel, const QString &payload);
+    void subscribed(const QString &channel);
     // Raised once a subscription set is live again. The repository re-reads
     // every subscribed hash on this, because anything published while there
     // was no subscription was missed.

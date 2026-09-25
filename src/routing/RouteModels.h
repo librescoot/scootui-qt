@@ -180,8 +180,8 @@ Q_DECLARE_METATYPE(QList<EdgeAttrs>)
 // A plan is an ordered list of stops. Guidance is per hop: the rider is routed
 // to stops[currentStep], then offered the next one. currentStep always indexes
 // stops, including stops already passed (reached == true), so the overview and
-// the editor can show the whole trip. Persisting and indexing are done by
-// RoutePlanService; NavigationService owns the live copy.
+// the editor can show the whole trip. The MDB route-plan RPC owns the plan;
+// NavigationService keeps the transient guidance view.
 
 enum class RoutePlanState {
     None = 0,   // no plan

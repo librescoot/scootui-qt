@@ -119,6 +119,7 @@ set(CPP_SOURCES
     src/services/GestureSynth.cpp
     src/services/InputHandler.cpp
     src/services/NavigationService.cpp
+    src/services/RoutePlanRpc.cpp
     src/services/ToastService.cpp
     src/services/AttentionPolicy.cpp
     src/services/NotificationService.cpp
@@ -726,6 +727,7 @@ if(BUILD_TESTING)
         src/services/TileLoader.cpp
         src/services/VectorTileDecoder.cpp
         src/services/NavigationService.cpp
+        src/services/RoutePlanRpc.cpp
         src/services/RoutePlanService.cpp
         src/services/MapService.cpp
         src/services/MapPlanGeometry.cpp
@@ -761,6 +763,7 @@ if(BUILD_TESTING)
         src/services/TileLoader.cpp
         src/services/VectorTileDecoder.cpp
         src/services/NavigationService.cpp
+        src/services/RoutePlanRpc.cpp
         src/services/RoutePlanService.cpp
         src/services/MapService.cpp
         src/services/MapPlanGeometry.cpp
@@ -1206,6 +1209,7 @@ if(BUILD_TESTING)
         src/services/ToastService.cpp
         src/services/ToastService.h
         src/services/NavigationService.cpp
+        src/services/RoutePlanRpc.cpp
         src/services/RoutePlanService.cpp
         src/services/MapService.cpp
         src/services/MapPlanGeometry.cpp

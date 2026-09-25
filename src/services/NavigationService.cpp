@@ -11,6 +11,8 @@
 #include "core/AppConfig.h"
 
 #include <QDebug>
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <QDateTime>
 #include <QTimeZone>
 #include <QPointF>
@@ -37,22 +39,6 @@ namespace {
 constexpr double kDurationPadFactor = 1.20;
 const QDateTime kPadCutoffUtc =
     QDateTime(QDate(2026, 4, 24), QTime(0, 0), QTimeZone::UTC);
-
-// Compare plan stop lists by what the wire format carries (position and label).
-// Ids and the reached flag are session state and are deliberately excluded, so
-// our own write-back parses back equal and is ignored on ingest.
-bool planStopsEqual(const QList<RouteStop> &a, const QList<RouteStop> &b)
-{
-    if (a.size() != b.size())
-        return false;
-    for (int i = 0; i < a.size(); ++i) {
-        if (a.at(i).position != b.at(i).position)
-            return false;
-        if (a.at(i).label != b.at(i).label)
-            return false;
-    }
-    return true;
-}
 }
 
 NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
@@ -65,8 +51,7 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
     , m_vehicle(vehicle)
     , m_settings(settings)
     , m_speedLimit(speedLimit)
-    , m_repo(repo)
-    , m_planService(repo)
+    , m_planRpc(repo, this)
 {
     m_valhalla = new ValhallaClient(this);
     m_valhalla->setDepartureTimeProvider([this]() { return gpsDepartureTimeLocal(); });
@@ -99,14 +84,6 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
     // Listen to GPS updates
     connect(gps, &GpsStore::sampleChanged, this, &NavigationService::onGpsChanged);
 
-    // Listen to navigation store (destination set externally via Redis)
-    // Debounce: lat/lng/destination signals may fire individually from doHgetall,
-    // so coalesce into a single handler call to avoid partial-data route requests
-    m_navDataDebounce = new QTimer(this);
-    m_navDataDebounce->setSingleShot(true);
-    m_navDataDebounce->setInterval(100);
-    connect(m_navDataDebounce, &QTimer::timeout, this, &NavigationService::onNavigationDataChanged);
-
     m_errorLinger = new QTimer(this);
     m_errorLinger->setSingleShot(true);
     m_errorLinger->setInterval(ErrorLingerMs);
@@ -122,12 +99,7 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
         updateNavigationState();
     });
 
-    auto debounceNav = [this]() { m_navDataDebounce->start(); };
-    connect(nav, &NavigationStore::latitudeChanged, this, debounceNav);
-    connect(nav, &NavigationStore::longitudeChanged, this, debounceNav);
-    connect(nav, &NavigationStore::destinationChanged, this, debounceNav);
-    connect(nav, &NavigationStore::waypointsChanged, this, debounceNav);
-    connect(nav, &NavigationStore::currentStepChanged, this, debounceNav);
+    connect(nav, &NavigationStore::planChanged, this, &NavigationService::onNavigationDataChanged);
 
     // Listen to vehicle state (for shutdown-based navigation clearing)
     connect(vehicle, &VehicleStore::stateChanged,
@@ -188,15 +160,6 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
     });
 
     restorePlan();
-
-    // The plan lives in the settings hash, which settings-service may populate
-    // a moment after this service is built. Retry once on the first settings
-    // snapshot so a reboot resume does not depend on constructor ordering.
-    connect(m_repo, &MdbRepository::fieldsUpdated, this,
-            [this](const QString &channel, const FieldMap &) {
-        if (channel == QLatin1String("settings") && !m_restoreChecked && !m_plan.isValid())
-            restorePlan();
-    });
 }
 
 void NavigationService::setMapService(MapService *map)
@@ -795,137 +758,61 @@ void NavigationService::setRoutePlan(const QVariantList &stops, int startStep)
 
 void NavigationService::setRoutePlan(const QList<RouteStop> &stops, int startStep)
 {
-    QList<RouteStop> cleaned;
-    cleaned.reserve(stops.size());
-    for (const RouteStop &stop : stops) {
-        if (stop.position.isValid())
-            cleaned.append(stop);
-    }
-    if (cleaned.isEmpty()) {
+    if (stops.isEmpty()) {
         clearNavigation();
         return;
     }
-
-    m_valhalla->cancelPending();
-    stopHopAdvanceTimer();
-    m_plan = RoutePlan();
-    m_plan.stops = cleaned;
-    RoutePlanService::assignIds(m_plan.stops);
-    m_plan.currentStep = startStep;
-    m_plan.clampStep();
-    for (int i = 0; i < m_plan.currentStep; ++i)
-        m_plan.stops[i].reached = true;
-
-    persistPlan();
-
-    // Recents track the trip's final stop, not each hop, so a multi-hop plan
-    // adds one entry rather than one per intermediate stop.
-    const RouteStop finalStop = m_plan.stops.last();
-    emit destinationRequested(finalStop.position.latitude, finalStop.position.longitude,
-                              finalStop.label);
-    emit planChanged();
-    beginCurrentHop(ValhallaClient::Reason::Destination);
+    QJsonArray entries;
+    for (const RouteStop &stop : stops) {
+        if (!stop.position.isValid()) {
+            raiseError(QStringLiteral("Invalid route plan stop"));
+            return;
+        }
+        entries.append(QJsonObject{{QStringLiteral("lat"), stop.position.latitude},
+                                   {QStringLiteral("lon"), stop.position.longitude},
+                                   {QStringLiteral("label"), stop.label}});
+    }
+    if (startStep < 0 || startStep >= stops.size()) {
+        raiseError(QStringLiteral("Invalid route plan step"));
+        return;
+    }
+    requestPlan(QStringLiteral("plan.replace"),
+                {{QStringLiteral("stops"), entries}, {QStringLiteral("start_step"), startStep}},
+                [this, last = stops.last()]() {
+        emit destinationRequested(last.position.latitude, last.position.longitude, last.label);
+    });
 }
 
 void NavigationService::appendStop(double lat, double lng, const QString &label)
 {
-    RouteStop stop;
-    stop.position = {lat, lng};
-    stop.label = label;
-    if (!stop.position.isValid())
-        return;
-
-    if (!m_plan.isValid()) {
-        setRoutePlan(QList<RouteStop>{stop}, 0);
+    const LatLng point{lat, lng};
+    if (!point.isValid()) {
+        raiseError(QStringLiteral("Invalid route plan stop"));
         return;
     }
-
-    int maxId = 0;
-    for (const RouteStop &existing : m_plan.stops)
-        maxId = std::max(maxId, existing.id);
-    stop.id = maxId + 1;
-    m_plan.stops.append(stop);
-    emit destinationRequested(stop.position.latitude, stop.position.longitude, stop.label);
-
-    // A finished trip is re-opened by the new stop. When the rider had already
-    // arrived at what was the last stop, that stop becomes a hop and the
-    // continue prompt reappears instead of the addition sitting inert behind an
-    // arrival.
-    if (m_wasArrived && !m_plan.atLastStop()) {
-        onHopReached();
-        return;
-    }
-    if (m_planState == RoutePlanState::Complete) {
-        beginCurrentHop(ValhallaClient::Reason::Destination);
-        return;
-    }
-
-    persistPlan();
-    emit planChanged();
+    requestPlan(QStringLiteral("plan.append"),
+                {{QStringLiteral("stop"), QJsonObject{{QStringLiteral("lat"), lat},
+                    {QStringLiteral("lon"), lng}, {QStringLiteral("label"), label}}}},
+                [this, lat, lng, label]() {
+        emit destinationRequested(lat, lng, label);
+    });
 }
 
 void NavigationService::removeStop(int index)
 {
-    if (index < 0 || index >= m_plan.stopCount())
-        return;
-
-    m_plan.stops.removeAt(index);
-    if (m_plan.atLastStop())
-        m_plan.keepCurrentStop = false;
-
-    if (m_plan.stops.isEmpty()) {
-        clearNavigation();
-        return;
-    }
-
-    if (index < m_plan.currentStep) {
-        --m_plan.currentStep;
-        persistPlan();
-        emit planChanged();
-        return;
-    }
-
-    if (index == m_plan.currentStep) {
-        m_plan.keepCurrentStop = false;
-        if (m_plan.currentStep >= m_plan.stopCount()) {
-            // Removed the last stop while guiding to it: the trip ends here.
-            m_plan.currentStep = m_plan.stopCount() - 1;
-            completePlan();
-            return;
-        }
-        persistPlan();
-        emit planChanged();
-        beginCurrentHop(ValhallaClient::Reason::Destination);
-        return;
-    }
-
-    persistPlan();
-    emit planChanged();
+    if (index < 0 || index >= m_plan.stopCount()) return;
+    requestPlan(QStringLiteral("plan.remove"),
+                {{QStringLiteral("index"), index},
+                 {QStringLiteral("expected_revision"), double(m_planRevision)}});
 }
 
 void NavigationService::moveStop(int from, int to)
 {
-    if (from < 0 || from >= m_plan.stopCount())
-        return;
-    if (to < 0 || to >= m_plan.stopCount())
-        return;
-    if (from == to)
-        return;
-
-    // Follow the current target by id so a reorder never silently retargets.
-    const int currentId = m_plan.currentStop().id;
-    m_plan.stops.move(from, to);
-    const int newIndex = m_plan.indexOfStopId(currentId);
-    const bool targetMoved = newIndex >= 0 && newIndex != m_plan.currentStep;
-    if (newIndex >= 0)
-        m_plan.currentStep = newIndex;
-    if (m_plan.atLastStop())
-        m_plan.keepCurrentStop = false;
-
-    persistPlan();
-    emit planChanged();
-    if (targetMoved)
-        beginCurrentHop(ValhallaClient::Reason::Destination);
+    if (from < 0 || from >= m_plan.stopCount() || to < 0 || to >= m_plan.stopCount()
+        || from == to) return;
+    requestPlan(QStringLiteral("plan.move"),
+                {{QStringLiteral("from_index"), from}, {QStringLiteral("to_index"), to},
+                 {QStringLiteral("expected_revision"), double(m_planRevision)}});
 }
 
 void NavigationService::skipCurrentStop()
@@ -937,16 +824,10 @@ void NavigationService::skipCurrentStop()
 
 void NavigationService::jumpToStop(int index)
 {
-    if (index < 0 || index >= m_plan.stopCount())
-        return;
-    stopHopAdvanceTimer();
-    m_plan.currentStep = index;
-    m_plan.keepCurrentStop = false;
-    for (int i = 0; i < m_plan.stopCount(); ++i)
-        m_plan.stops[i].reached = (i < index);
-    persistPlan();
-    emit planChanged();
-    beginCurrentHop(ValhallaClient::Reason::Destination);
+    if (index < 0 || index >= m_plan.stopCount()) return;
+    requestPlan(QStringLiteral("plan.jump"),
+                {{QStringLiteral("index"), index},
+                 {QStringLiteral("expected_revision"), double(m_planRevision)}});
 }
 
 void NavigationService::confirmContinue()
@@ -968,14 +849,11 @@ void NavigationService::declineContinue()
 
 void NavigationService::keepCurrentStop()
 {
-    if (m_planState != RoutePlanState::AtStop || !m_plan.isValid())
-        return;
-    stopHopAdvanceTimer();
-    m_plan.keepCurrentStop = true;
-    m_plan.stops[m_plan.currentStep].reached = false;
-    persistPlan();
-    emit planChanged();
-    beginCurrentHop(ValhallaClient::Reason::Recovery);
+    if (m_planState != RoutePlanState::AtStop || !m_plan.isValid()) return;
+    requestPlan(QStringLiteral("plan.unreach"), progressArgs(), [this]() {
+        stopHopAdvanceTimer();
+        beginCurrentHop(ValhallaClient::Reason::Recovery);
+    });
 }
 
 void NavigationService::setHopMenuOpen(bool open)
@@ -998,13 +876,10 @@ void NavigationService::pausePlan()
         return;
 
     m_pausedAfterReach = (m_planState == RoutePlanState::AtStop);
-    if (m_pausedAfterReach && m_plan.currentStep < m_plan.stopCount())
-        m_plan.stops[m_plan.currentStep].reached = true;
 
     stopHopAdvanceTimer();
     m_valhalla->cancelPending();
     clearPendingRoute();
-    persistPlan();
     setStatus(NavigationStatus::Idle);
     setPlanState(RoutePlanState::Paused);
 }
@@ -1037,16 +912,171 @@ void NavigationService::resumePlan()
         return;
     }
 
-    if (m_planState == RoutePlanState::None || m_planState == RoutePlanState::Complete)
+    if (m_planState == RoutePlanState::None)
         beginCurrentHop(ValhallaClient::Reason::Recovery);
 }
 
-void NavigationService::persistPlan()
+void NavigationService::requestPlan(const QString &method, const QJsonObject &payload,
+                                    std::function<void()> accepted)
 {
-    if (m_plan.isValid())
-        m_planService.save(m_plan, true);
-    else
-        m_planService.clear();
+    if (method != QLatin1String("plan.get")) ++m_pendingPlanMutations;
+    m_planRpc.call(method, payload, [this, method, accepted = std::move(accepted)](
+                       const QJsonObject &snapshot, const QString &error) {
+        if (method != QLatin1String("plan.get")) --m_pendingPlanMutations;
+        if (!error.isEmpty()) {
+            if (m_progressPending && method == QLatin1String("plan.reached"))
+                m_progressPending = false;
+            raiseError(error);
+            // An owner conflict or lost reply may mean our view is stale.
+            if (method == QLatin1String("plan.get")) {
+                m_restorePending = false;
+                return;
+            }
+            m_planRpc.call(QStringLiteral("plan.get"), {}, [this](const QJsonObject &fresh,
+                                                                   const QString &getError) {
+                if (getError.isEmpty()) applyPlanSnapshot(fresh);
+                else raiseError(getError);
+            });
+            return;
+        }
+        const quint64 revision = snapshot.value(QStringLiteral("revision")).toVariant().toULongLong();
+        if (revision < m_planRevision) {
+            if (method == QLatin1String("plan.reached") && accepted)
+                accepted();
+            return;
+        }
+        applyPlanSnapshot(snapshot);
+        if (method == QLatin1String("plan.get") && m_restorePending) {
+            m_restorePending = false;
+            if (m_plan.isValid() && m_planState != RoutePlanState::Complete) {
+                const QString label = m_plan.currentStop().label;
+                const int step = m_plan.currentStep;
+                const int count = m_plan.stopCount();
+                QTimer::singleShot(0, this, [this, label, step, count]() {
+                    emit planRestored(label, step, count);
+                });
+            }
+        }
+        if (accepted) accepted();
+    });
+}
+
+QJsonObject NavigationService::progressArgs() const
+{
+    if (!m_plan.isValid() || m_plan.currentStep >= m_stopIds.size()) return {};
+    return {{QStringLiteral("expected_plan_id"), m_planId},
+            {QStringLiteral("expected_stop_id"), m_stopIds.at(m_plan.currentStep)}};
+}
+
+void NavigationService::applyPlanSnapshot(const QJsonObject &snapshot)
+{
+    const QJsonValue revisionValue = snapshot.value(QStringLiteral("revision"));
+    if (!revisionValue.isDouble() || !snapshot.value(QStringLiteral("stops")).isArray()
+        || !snapshot.value(QStringLiteral("id")).isString()
+        || !snapshot.value(QStringLiteral("current_step")).isDouble()) {
+        raiseError(QStringLiteral("Invalid route plan snapshot"));
+        return;
+    }
+    const quint64 revision = revisionValue.toVariant().toULongLong();
+    if (revision < m_planRevision) return;
+    const QString id = snapshot.value(QStringLiteral("id")).toString();
+    const QJsonArray entries = snapshot.value(QStringLiteral("stops")).toArray();
+    const int step = snapshot.value(QStringLiteral("current_step")).toInt(-1);
+    if ((entries.isEmpty() && (!id.isEmpty() || step != 0))
+        || (!entries.isEmpty() && (id.isEmpty() || step < 0 || step >= entries.size()))) {
+        raiseError(QStringLiteral("Invalid route plan snapshot"));
+        return;
+    }
+    RoutePlan plan;
+    QStringList ids;
+    for (const QJsonValue &entry : entries) {
+        const QJsonObject item = entry.toObject();
+        const QString stopId = item.value(QStringLiteral("id")).toString();
+        RouteStop stop;
+        stop.position = {item.value(QStringLiteral("lat")).toDouble(),
+                         item.value(QStringLiteral("lon")).toDouble()};
+        if (stopId.isEmpty() || !stop.position.isValid() || ids.contains(stopId)) {
+            raiseError(QStringLiteral("Invalid route plan snapshot"));
+            return;
+        }
+        ids.append(stopId);
+        if (!m_numericStopIds.contains(stopId))
+            m_numericStopIds.insert(stopId, m_nextStopId++);
+        stop.id = m_numericStopIds.value(stopId);
+        stop.label = item.value(QStringLiteral("label")).toString();
+        stop.reached = item.value(QStringLiteral("reached")).toBool();
+        plan.stops.append(stop);
+    }
+    plan.currentStep = step;
+    plan.keepCurrentStop = snapshot.value(QStringLiteral("keep_current_stop")).toBool();
+    const QString oldTarget = m_plan.isValid() && m_plan.currentStep < m_stopIds.size()
+        ? m_stopIds.at(m_plan.currentStep) : QString();
+    const bool targetChanged = id != m_planId || (plan.isValid() && ids.at(step) != oldTarget);
+    const bool becameReached = plan.isValid() && !targetChanged
+        && !m_plan.currentStop().reached && plan.currentStop().reached;
+    const bool stopsChanged = plan.stops != m_plan.stops;
+    const bool reopened = plan.isValid() && !targetChanged && m_planState == RoutePlanState::Complete
+        && !plan.atLastStop() && plan.currentStop().reached;
+    if (revision == m_planRevision && id == m_planId && plan.stops == m_plan.stops
+        && plan.currentStep == m_plan.currentStep
+        && plan.keepCurrentStop == m_plan.keepCurrentStop) return;
+    m_planRevision = revision;
+    m_planId = id;
+    m_stopIds = ids;
+    if (!plan.isValid()) {
+        clearLocalNavigation();
+        return;
+    }
+    m_plan = plan;
+    emit planChanged();
+    if (targetChanged) {
+        stopHopAdvanceTimer();
+        m_restoreReachedAwaitingVehicleState = false;
+        if (plan.currentStop().reached) {
+            m_pausedAfterReach = true;
+            m_valhalla->cancelPending();
+            m_valhalla->cancelPreview();
+            clearPendingRoute();
+            m_route = Route();
+            m_wasArrived = false;
+            emit arrivalReset();
+            emit routeChanged();
+            m_destination = plan.currentStop().position;
+            m_destAddress = plan.currentStop().label;
+            emit destinationChanged();
+            if (plan.atLastStop()) {
+                setPlanState(RoutePlanState::Complete);
+                setStatus(NavigationStatus::Idle);
+            } else if (m_vehicle && m_vehicle->isReadyToDrive()) showHopReached();
+            else {
+                m_restoreReachedAwaitingVehicleState = m_vehicle
+                    && m_vehicle->state() == static_cast<int>(ScootEnums::VehicleState::Unknown);
+                setPlanState(RoutePlanState::Paused);
+            }
+        } else if (m_vehicle && m_vehicle->isReadyToDrive()) {
+            beginCurrentHop(ValhallaClient::Reason::Destination);
+        } else {
+            m_valhalla->cancelPending();
+            m_valhalla->cancelPreview();
+            clearPendingRoute();
+            m_route = Route();
+            m_wasArrived = false;
+            emit arrivalReset();
+            emit routeChanged();
+            m_destination = plan.currentStop().position;
+            m_destAddress = plan.currentStop().label;
+            emit destinationChanged();
+            setStatus(NavigationStatus::Idle);
+            setPlanState(RoutePlanState::Paused);
+        }
+    } else if ((becameReached && !m_progressPending) || reopened) {
+        showHopReached();
+    } else if (!plan.currentStop().reached && m_planState == RoutePlanState::Complete
+               && m_vehicle && m_vehicle->isReadyToDrive()) {
+        beginCurrentHop(ValhallaClient::Reason::Destination);
+    } else if (stopsChanged) {
+        refreshPlanOverview();
+    }
 }
 
 void NavigationService::beginCurrentHop(ValhallaClient::Reason reason)
@@ -1088,7 +1118,6 @@ void NavigationService::beginCurrentHop(ValhallaClient::Reason reason)
     m_destination = target.position;
     m_destAddress = target.label;
     setPlanState(RoutePlanState::Navigating);
-    writePlanToNavigationHash();
     emit destinationChanged();
     refreshPlanOverview();
 
@@ -1106,14 +1135,27 @@ void NavigationService::beginCurrentHop(ValhallaClient::Reason reason)
 
 void NavigationService::onHopReached()
 {
+    if (!m_plan.isValid() || m_progressPending || m_plan.currentStop().reached) return;
+    m_progressPending = true;
+    const QString expectedPlanId = m_planId;
+    const QString expectedStopId = m_stopIds.value(m_plan.currentStep);
+    requestPlan(QStringLiteral("plan.reached"), progressArgs(),
+                [this, expectedPlanId, expectedStopId]() {
+        m_progressPending = false;
+        if (m_planId == expectedPlanId && m_stopIds.value(m_plan.currentStep) == expectedStopId
+            && m_plan.isValid() && m_plan.currentStop().reached)
+            showHopReached();
+    });
+}
+
+void NavigationService::showHopReached()
+{
+    if (!m_plan.isValid()) return;
     RouteInstruction arrival;
     arrival.type = ManeuverType::Arrive;
     for (auto it = m_route.instructions.crbegin(); it != m_route.instructions.crend(); ++it) {
         if (it->type == ManeuverType::Arrive || it->type == ManeuverType::ArriveLeft
-            || it->type == ManeuverType::ArriveRight) {
-            arrival = *it;
-            break;
-        }
+            || it->type == ManeuverType::ArriveRight) { arrival = *it; break; }
     }
     arrival.distance = 0;
     m_upcomingInstructions = {arrival};
@@ -1123,16 +1165,15 @@ void NavigationService::onHopReached()
     m_isOffRoute = false;
     m_rerouteRetry->stop();
     m_valhalla->cancelPending();
-
-    if (m_plan.currentStep < m_plan.stopCount())
-        m_plan.stops[m_plan.currentStep].reached = true;
-    persistPlan();
-
     setStatus(NavigationStatus::Arrived);
     emit instructionChanged();
     emit positionChanged();
     updateRoundaboutRender();
-    emit planChanged();
+    if (m_plan.atLastStop()) {
+        setPlanState(RoutePlanState::Complete);
+        emit arrived();
+        return;
+    }
     setPlanState(RoutePlanState::AtStop);
     emit hopReached(m_plan.currentStep, m_plan.currentStop().label);
     startHopAdvanceTimer();
@@ -1140,37 +1181,18 @@ void NavigationService::onHopReached()
 
 void NavigationService::advanceToNextHop()
 {
+    if (!m_plan.isValid()) return;
     stopHopAdvanceTimer();
-    if (!m_plan.isValid())
-        return;
     if (m_plan.atLastStop()) {
-        completePlan();
+        clearNavigation();
         return;
     }
-    ++m_plan.currentStep;
-    m_plan.keepCurrentStop = false;
-    persistPlan();
-    if (m_vehicle && !m_vehicle->isReadyToDrive()) {
-        m_pausedAfterReach = false;
-        setStatus(NavigationStatus::Idle);
-        setPlanState(RoutePlanState::Paused);
-    } else {
-        beginCurrentHop(ValhallaClient::Reason::Destination);
-    }
-    emit planChanged();
+    requestPlan(QStringLiteral("plan.advance"), progressArgs());
 }
 
 void NavigationService::completePlan()
 {
-    stopHopAdvanceTimer();
-    m_valhalla->cancelPending();
-    m_valhalla->cancelPreview();
-    clearPendingRoute();
-    clearPlanOverview();
-    m_planService.clear();
-    setStatus(NavigationStatus::Idle);
-    setPlanState(RoutePlanState::Complete);
-    emit planChanged();
+    clearNavigation();
 }
 
 void NavigationService::startHopAdvanceTimer()
@@ -1205,64 +1227,7 @@ void NavigationService::setPlanState(RoutePlanState state)
 
 void NavigationService::restorePlan()
 {
-    if (m_plan.isValid()) {
-        m_restoreChecked = true;
-        return;
-    }
-
-    RoutePlan stored = m_planService.load();
-    m_restoreChecked = true;
-    if (!stored.isValid() || !m_planService.loadedActive())
-        return;
-
-    m_plan = stored;
-    if (m_plan.currentStop().reached && m_plan.atLastStop()) {
-        completePlan();
-        return;
-    }
-    m_pausedAfterReach = m_plan.currentStop().reached;
-
-    const QString label = m_plan.currentStop().label;
-    const int step = m_plan.currentStep;
-    const int count = m_plan.stopCount();
-    QTimer::singleShot(0, this, [this, label, step, count]() {
-        emit planRestored(label, step, count);
-    });
-
-    setPlanState(RoutePlanState::Paused);
-    if (m_pausedAfterReach && m_vehicle && m_vehicle->isReadyToDrive()) {
-        m_pausedAfterReach = false;
-        setStatus(NavigationStatus::Arrived);
-        setPlanState(RoutePlanState::AtStop);
-        startHopAdvanceTimer();
-    } else if (m_pausedAfterReach && (!m_vehicle ||
-               m_vehicle->state() == static_cast<int>(ScootEnums::VehicleState::Unknown))) {
-        m_restoreReachedAwaitingVehicleState = true;
-    } else if (m_vehicle && m_vehicle->isReadyToDrive()) {
-        resumePlan();
-    }
-}
-
-void NavigationService::writePlanToNavigationHash()
-{
-    if (!m_plan.isValid())
-        return;
-
-    const RouteStop target = m_plan.currentStop();
-    const QString lat = QString::number(target.position.latitude, 'f', 6);
-    const QString lon = QString::number(target.position.longitude, 'f', 6);
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("latitude"), lat);
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("longitude"), lon);
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("address"), target.label);
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("timestamp"),
-                QDateTime::currentDateTimeUtc().toString(Qt::ISODate));
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("destination"),
-                lat + QLatin1Char(',') + lon);
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("waypoints"),
-                RoutePlanService::serializeWaypoints(m_plan.stops));
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("current-step"),
-                QString::number(m_plan.currentStep));
-    m_repo->publish(QStringLiteral("navigation"), QStringLiteral("updated"));
+    requestPlan(QStringLiteral("plan.get"), {});
 }
 
 void NavigationService::clearPlanOverview()
@@ -1403,11 +1368,20 @@ QVariantList NavigationService::planStops() const
 
 void NavigationService::clearNavigation()
 {
-    // Ingest calls this on an external clear. Nothing to do when already idle
-    // with no plan, which also stops an echo from re-entering.
+    if (m_planId.isEmpty()) {
+        const bool ownerUnknown = m_restorePending || m_pendingPlanMutations > 0;
+        clearLocalNavigation();
+        if (!ownerUnknown) return;
+    }
+    requestPlan(QStringLiteral("plan.clear"),
+                m_planId.isEmpty() ? QJsonObject{} :
+                QJsonObject{{QStringLiteral("expected_plan_id"), m_planId}});
+}
+
+void NavigationService::clearLocalNavigation()
+{
     if (!m_plan.isValid() && !m_destination.isValid() && m_status == NavigationStatus::Idle)
         return;
-
     const bool wasArrived = m_wasArrived;
     m_valhalla->cancelPending();
     stopHopAdvanceTimer();
@@ -1425,15 +1399,14 @@ void NavigationService::clearNavigation()
     m_navigationCadence.reset();
     m_wasArrived = false;
     m_pausedAfterReach = false;
+    m_progressPending = false;
     emit arrivalReset();
     m_currentSegmentIndex = 0;
     m_hasLastPassedManeuver = false;
     m_prevLeadingShapeIdx = -1;
     m_plan = RoutePlan();
-
     m_valhalla->cancelPreview();
     clearPlanOverview();
-    m_planService.clear();
     setStatus(NavigationStatus::Idle);
     clearError();
     emit routeChanged();
@@ -1443,22 +1416,7 @@ void NavigationService::clearNavigation()
     updateRoundaboutRender();
     emit planChanged();
     setPlanState(RoutePlanState::None);
-
-    // Clear Redis. Set fields to "" rather than HDEL: HiredisWorker::doHdel
-    // does not publish a notification, so subscribers (bluetooth-service's
-    // HashWatcher, our own SyncableStore pub/sub path) never wake up and
-    // would only learn of the clear via the 5-second HGETALL poll.
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("latitude"), QString());
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("longitude"), QString());
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("address"), QString());
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("timestamp"), QString());
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("destination"), QString());
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("waypoints"), QString());
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("current-step"), QString());
-    m_repo->publish(QStringLiteral("navigation"), QStringLiteral("cleared"));
-
-    if (!wasArrived)
-        emit navigationStopped();
+    if (!wasArrived) emit navigationStopped();
 }
 
 void NavigationService::setRoute(const Route &route)
@@ -1518,7 +1476,7 @@ void NavigationService::onGpsChanged()
             LatLng pos = currentPosition();
             double dist = pos.distanceTo(m_destination);
             if (dist < ArrivalProximity && !m_plan.keepCurrentStop) {
-                if (m_plan.isValid() && !m_plan.atLastStop())
+                if (m_plan.isValid())
                     onHopReached();
                 else
                     clearNavigation();
@@ -1534,90 +1492,8 @@ void NavigationService::onGpsChanged()
 void NavigationService::onNavigationDataChanged()
 {
     if (!m_nav) return;
-
-    // Legacy target fields. They are both the single-destination request path
-    // and the pointer to the current hop of a plan.
-    double lat = m_nav->latitude().toDouble();
-    double lng = m_nav->longitude().toDouble();
-    if (lat == 0 && lng == 0 && !m_nav->destination().isEmpty()) {
-        QStringList parts = m_nav->destination().split(QLatin1Char(','));
-        if (parts.size() == 2) {
-            lat = parts[0].toDouble();
-            lng = parts[1].toDouble();
-        }
-    }
-    const LatLng incomingTarget{lat, lng};
-    const bool hasTarget = incomingTarget.isValid();
-
-    bool waypointsOk = false;
-    const QList<RouteStop> incomingStops =
-        RoutePlanService::parseWaypoints(m_nav->waypoints(), &waypointsOk);
-
-    // Echo guard for the legacy no-plan case: our own write-back, or a route
-    // injected with setRoute() that never had a plan. Without it a reconnect
-    // re-arms arrival and fires arrived() twice.
-    if (!waypointsOk && hasTarget && m_destination.isValid()
-        && incomingTarget == m_destination) {
-        return;
-    }
-
-    if (waypointsOk) {
-        const int step = m_nav->currentStep().toInt();
-        const bool stepValid = step >= 0 && step < incomingStops.size();
-
-        if (!planStopsEqual(incomingStops, m_plan.stops)) {
-            // A new plan was pushed. The step in the same write may point at a
-            // specific hop; setRoutePlan() clamps it.
-            setRoutePlan(incomingStops, step);
-            return;
-        }
-
-        // Same stops: check a step change first. Its target differs from the
-        // current stop and would otherwise look like a new single destination.
-        if (!hasTarget)
-            return;
-
-        const bool targetIsCurrent = incomingTarget == m_plan.currentStop().position;
-        const bool targetIsStepStop = stepValid
-            && incomingTarget == m_plan.stops.at(step).position;
-
-        if (stepValid && step != m_plan.currentStep && targetIsStepStop) {
-            m_plan.currentStep = step;
-            persistPlan();
-            emit planChanged();
-            beginCurrentHop(ValhallaClient::Reason::Destination);
-            return;
-        }
-        if (targetIsCurrent)
-            return;
-
-        // Same stops but the target moved outside the plan: a legacy single
-        // destination replaced it.
-        RouteStop stop;
-        stop.position = incomingTarget;
-        stop.label = m_nav->address();
-        setRoutePlan(QList<RouteStop>{stop}, 0);
-        return;
-    }
-
-    // No plan payload: the legacy single-destination path.
-    if (!hasTarget) {
-        if (m_plan.isValid() || m_destination.isValid())
-            clearNavigation();
-        return;
-    }
-
-    // Echo of our own hop write, which also sets the legacy fields.
-    if (m_plan.isValid() && incomingTarget == m_plan.currentStop().position)
-        return;
-
-    // Capture externally-pushed destinations (cloud / bluetooth / wwan, all of
-    // which land on the navigation channel) as recents, same as locally-chosen
-    // ones. setRoutePlan() emits destinationRequested for the plan's final stop.
-    RouteStop stop;
-    stop.position = incomingTarget;
-    stop.label = m_nav->address();
-    setRoutePlan(QList<RouteStop>{stop}, 0);
+    const QJsonDocument document = QJsonDocument::fromJson(m_nav->plan().toUtf8());
+    if (document.isObject()) applyPlanSnapshot(document.object());
 }
 
 void NavigationService::onVehicleStateChanged()
@@ -1627,10 +1503,7 @@ void NavigationService::onVehicleStateChanged()
     if (m_vehicle->isReadyToDrive()) {
         if (m_restoreReachedAwaitingVehicleState) {
             m_restoreReachedAwaitingVehicleState = false;
-            m_pausedAfterReach = false;
-            setStatus(NavigationStatus::Arrived);
-            setPlanState(RoutePlanState::AtStop);
-            startHopAdvanceTimer();
+            showHopReached();
         } else if (m_planState == RoutePlanState::Paused) {
             resumePlan();
         }
@@ -1646,12 +1519,17 @@ void NavigationService::onVehicleStateChanged()
     if (!isLeaving)
         return;
     m_restoreReachedAwaitingVehicleState = false;
+    if (m_plan.isValid() && m_plan.keepCurrentStop) {
+        requestPlan(QStringLiteral("plan.set-keep-current"),
+                    {{QStringLiteral("expected_plan_id"), m_planId},
+                     {QStringLiteral("expected_stop_id"), m_stopIds.value(m_plan.currentStep)},
+                     {QStringLiteral("keep"), false}});
+    }
 
     if (m_plan.isValid() && !m_plan.atLastStop()
         && m_planState == RoutePlanState::Navigating
         && selectRouteOrigin().isValid()
         && currentPosition().distanceTo(m_plan.currentStop().position) < ArrivalProximity) {
-        m_plan.keepCurrentStop = false;
         onHopReached();
     }
 
@@ -1861,44 +1739,16 @@ void NavigationService::updateNavigationState()
     // Use the actual final maneuver, even if the proximity threshold was crossed
     // between GPS ticks before the upcoming-instruction walker reached it.
     if (straightLineToDestination < ArrivalProximity && !m_plan.keepCurrentStop) {
-        // An intermediate hop is not the end of the trip: it hands over to the
-        // continue prompt and the plan keeps its step.
-        if (m_plan.isValid() && !m_plan.atLastStop()) {
+        if (m_plan.isValid()) {
             onHopReached();
             return;
         }
-
-        RouteInstruction arrival;
-        arrival.type = ManeuverType::Arrive;
-        for (auto it = m_route.instructions.crbegin(); it != m_route.instructions.crend(); ++it) {
-            if (it->type == ManeuverType::Arrive || it->type == ManeuverType::ArriveLeft
-                || it->type == ManeuverType::ArriveRight) {
-                arrival = *it;
-                break;
-            }
-        }
-        arrival.distance = 0;
-        m_upcomingInstructions = {arrival};
-        m_hasLastPassedManeuver = false;
         m_wasArrived = true;
-        m_remainingDuration = 0;
-        m_isOffRoute = false;
-        m_rerouteRetry->stop();
-        m_valhalla->cancelPending();
         setStatus(NavigationStatus::Arrived);
-        emit instructionChanged();
-        emit positionChanged();
-        updateRoundaboutRender();
-        if (m_plan.isValid()) {
-            // Final stop: the trip is done, so drop the persisted plan. The
-            // in-memory plan stays until the rider leaves, keeping the arrival
-            // card and the leave-near-destination check intact.
-            m_planService.clear();
-            setPlanState(RoutePlanState::Complete);
-        }
         emit arrived();
         return;
     }
+
 
     // Off-route detection with hysteresis to prevent boundary oscillation.
     // Presentation deliberately stays route-snapped until this authoritative

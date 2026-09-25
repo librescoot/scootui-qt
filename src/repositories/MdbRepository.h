@@ -74,6 +74,7 @@ public:
     void notifyConnectionState() { emit connectionStateChanged(isConnected()); }
 
 signals:
+    void subscriptionReady(const QString &channel);
     void connectionStateChanged(bool connected);
     void dataSeeded();
     void prolongedDisconnect(bool disconnected);

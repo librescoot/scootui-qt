@@ -158,6 +158,8 @@ void RedisMdbRepository::startWorker()
 
     connect(m_pubsub, &PubsubWorker::message,
             this, &RedisMdbRepository::dispatchPubsubMessage, Qt::QueuedConnection);
+    connect(m_pubsub, &PubsubWorker::subscribed,
+            this, &MdbRepository::subscriptionReady, Qt::QueuedConnection);
     connect(m_pubsub, &PubsubWorker::subscriptionsLive,
             this, &RedisMdbRepository::refreshSubscribedChannels, Qt::QueuedConnection);
 

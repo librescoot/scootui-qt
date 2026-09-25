@@ -17,6 +17,7 @@ SyncSettings NavigationStore::syncSettings() const
             {QStringLiteral("destination"), QStringLiteral("destination"), true},
             {QStringLiteral("waypoints"), QStringLiteral("waypoints"), true},
             {QStringLiteral("currentStep"), QStringLiteral("current-step"), true},
+            {QStringLiteral("plan"), QStringLiteral("plan"), true},
         },
         {}, {}
     };
@@ -38,18 +39,7 @@ void NavigationStore::applyFieldUpdate(const QString &variable, const QString &v
         if (value != m_waypoints) { m_waypoints = value; emit waypointsChanged(); }
     } else if (variable == QLatin1String("current-step")) {
         if (value != m_currentStep) { m_currentStep = value; emit currentStepChanged(); }
+    } else if (variable == QLatin1String("plan")) {
+        if (value != m_plan) { m_plan = value; emit planChanged(); }
     }
-}
-
-void NavigationStore::setDestination(const QString &dest)
-{
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("destination"), dest);
-}
-
-void NavigationStore::clearDestination()
-{
-    // Use set("") instead of HDEL — HiredisWorker::doHdel does not publish,
-    // so subscribers (bluetooth-service, our own SyncableStore) miss the
-    // change and would only catch it via the slow HGETALL poll.
-    m_repo->set(QStringLiteral("navigation"), QStringLiteral("destination"), QString());
 }

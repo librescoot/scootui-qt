@@ -8,7 +8,9 @@
 #include "routing/RouteModels.h"
 #include "routing/ValhallaClient.h"
 #include "services/NavigationCadence.h"
-#include "services/RoutePlanService.h"
+#include "services/RoutePlanRpc.h"
+#include <QJsonObject>
+#include <QHash>
 
 class GpsStore;
 class NavigationStore;
@@ -304,7 +306,12 @@ private:
     // --- Plan and hop state ---
     void setPlanState(RoutePlanState state);
     void restorePlan();
-    void persistPlan();
+    void requestPlan(const QString &method, const QJsonObject &payload,
+                     std::function<void()> accepted = {});
+    void applyPlanSnapshot(const QJsonObject &snapshot);
+    QJsonObject progressArgs() const;
+    void clearLocalNavigation();
+    void showHopReached();
     // Teardown of the previous hop, then target the current stop and request a
     // route. Shared by plan creation, hop advance, and resume.
     void beginCurrentHop(ValhallaClient::Reason reason);
@@ -313,9 +320,6 @@ private:
     void completePlan();
     void startHopAdvanceTimer();
     void stopHopAdvanceTimer();
-    // Publish the plan's current target and step to the navigation hash so
-    // external readers (and our own ingest guard) see one coherent picture.
-    void writePlanToNavigationHash();
     // Ask for a fresh per-hop preview of the remaining plan (one multi-stop
     // request) and rebuild planOverview from the answer.
     void refreshPlanOverview();
@@ -359,7 +363,6 @@ private:
     VehicleStore *m_vehicle;
     SettingsStore *m_settings;
     SpeedLimitStore *m_speedLimit;
-    MdbRepository *m_repo;
     ValhallaClient *m_valhalla;
     MapService *m_map = nullptr;
 
@@ -416,8 +419,6 @@ private:
     int m_roundaboutEnterShape = -1;
     int m_roundaboutExitShape = -1;
 
-    QTimer *m_navDataDebounce = nullptr;
-
     // A deviation is allowed one queued reroute until it is either dispatched
     // or explicitly retried after the client's cooldown. This keeps the 5 Hz
     // navigation update from continually replacing the pending request.
@@ -441,7 +442,15 @@ private:
     // the seatbox Shortcut menu suspends the countdown while choosing Keep.
     static constexpr int HopAdvanceTimeoutSeconds = 30;
 
-    RoutePlanService m_planService;
+    RoutePlanRpc m_planRpc;
+    QString m_planId;
+    QStringList m_stopIds;
+    QHash<QString, int> m_numericStopIds;
+    int m_nextStopId = 1;
+    quint64 m_planRevision = 0;
+    bool m_progressPending = false;
+    bool m_restorePending = true;
+    int m_pendingPlanMutations = 0;
     RoutePlan m_plan;
     RoutePlanState m_planState = RoutePlanState::None;
     // Repeating 1 Hz timer that also drives the countdown property; fires
@@ -452,9 +461,6 @@ private:
     // True when dismount finished the current hop. Unlock advances to the next.
     bool m_pausedAfterReach = false;
     bool m_restoreReachedAwaitingVehicleState = false;
-    // True once restorePlan() has looked at the persisted settings once, so the
-    // first settings snapshot retries only a single time.
-    bool m_restoreChecked = false;
 
     QVariantList m_planOverview;
     double m_planTotalDistance = 0;

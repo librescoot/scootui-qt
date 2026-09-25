@@ -1031,12 +1031,7 @@ void SimulatorService::loadTestRoute(int index)
             setRoadType(QStringLiteral("secondary"));
         }
 
-        // Set destination in navigation store so the full nav UI activates
         const auto &dest = route.waypoints.last();
-        m_repo->set(QStringLiteral("navigation"), QStringLiteral("latitude"),
-                    QString::number(dest.latitude, 'f', 8));
-        m_repo->set(QStringLiteral("navigation"), QStringLiteral("longitude"),
-                    QString::number(dest.longitude, 'f', 8));
         QString address;
         if (index == 3)
             address = QStringLiteral("Boxhagener Str. 105, Friedrichshain");
@@ -1046,12 +1041,15 @@ void SimulatorService::loadTestRoute(int index)
             address = QStringLiteral("Karl-Marx-Allee, Friedrichshain");
         else
             address = QStringLiteral("Invalidenstraße, Moabit");
-        m_repo->set(QStringLiteral("navigation"), QStringLiteral("address"), address);
-
-        // Delay setRoute so GPS store picks up the position we just wrote
-        QTimer::singleShot(100, this, [this, route]() {
+        auto connection = std::make_shared<QMetaObject::Connection>();
+        *connection = connect(m_nav, &NavigationService::planChanged, this,
+                              [this, route, dest, connection]() {
+            if (m_nav->destLatitude() != dest.latitude
+                || m_nav->destLongitude() != dest.longitude) return;
+            disconnect(*connection);
             m_nav->setRoute(route);
         });
+        m_nav->setDestination(dest.latitude, dest.longitude, address);
     } else {
         qWarning() << "Simulator: Failed to parse route" << index;
     }

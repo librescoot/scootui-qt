@@ -16,6 +16,7 @@ class NavigationStore : public SyncableStore
     // echo.
     Q_PROPERTY(QString waypoints READ waypoints NOTIFY waypointsChanged)
     Q_PROPERTY(QString currentStep READ currentStep NOTIFY currentStepChanged)
+    Q_PROPERTY(QString plan READ plan NOTIFY planChanged)
 
 public:
     explicit NavigationStore(MdbRepository *repo, QObject *parent = nullptr);
@@ -27,9 +28,7 @@ public:
     QString destination() const { return m_destination; }
     QString waypoints() const { return m_waypoints; }
     QString currentStep() const { return m_currentStep; }
-
-    Q_INVOKABLE void setDestination(const QString &dest);
-    Q_INVOKABLE void clearDestination();
+    QString plan() const { return m_plan; }
 
 signals:
     void latitudeChanged();
@@ -39,6 +38,7 @@ signals:
     void destinationChanged();
     void waypointsChanged();
     void currentStepChanged();
+    void planChanged();
 
 protected:
     SyncSettings syncSettings() const override;
@@ -52,4 +52,5 @@ private:
     QString m_destination;
     QString m_waypoints;
     QString m_currentStep;
+    QString m_plan;
 };
