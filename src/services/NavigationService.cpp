@@ -1369,13 +1369,15 @@ QVariantList NavigationService::planStops() const
 void NavigationService::clearNavigation()
 {
     if (m_planId.isEmpty()) {
-        const bool ownerUnknown = m_restorePending || m_pendingPlanMutations > 0;
+        if (m_restorePending || m_pendingPlanMutations > 0) {
+            raiseError(QStringLiteral("Route plan is still loading"));
+            return;
+        }
         clearLocalNavigation();
-        if (!ownerUnknown) return;
+        return;
     }
     requestPlan(QStringLiteral("plan.clear"),
-                m_planId.isEmpty() ? QJsonObject{} :
-                QJsonObject{{QStringLiteral("expected_plan_id"), m_planId}});
+                {{QStringLiteral("expected_plan_id"), m_planId}});
 }
 
 void NavigationService::clearLocalNavigation()

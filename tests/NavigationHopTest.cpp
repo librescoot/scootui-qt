@@ -21,10 +21,11 @@ class NavigationHopTest : public QObject
     Q_OBJECT
 private slots:
     void twoImmediateAppendsRetainBothStops();
+    void clearWhilePlanLoadingCannotEraseExternalRoute();
     void concurrentExternalAppendRetainsBothStops();
     void staleProgressDoesNotAdvanceReplacement();
     void queuedArrivalCannotReachReplacement();
-    void reachedStopAdvancesAndFinalArrivalClearsOwner();
+    void reachedStopAdvancesAndFinalArrivalRetainsOwner();
     void moveJumpAndRemovePreserveTarget();
     void rebootRestoresOwnerSnapshot();
     void rebootCompletedPlanDoesNotRearmArrival();
@@ -89,6 +90,16 @@ void NavigationHopTest::twoImmediateAppendsRetainBothStops()
     QVERIFY(f.repo.getAll(QStringLiteral("settings")).isEmpty());
 }
 
+void NavigationHopTest::clearWhilePlanLoadingCannotEraseExternalRoute()
+{
+    Fixture f;
+    f.nav.appendStop(52.51, 13.41, QStringLiteral("queued"));
+    f.nav.clearNavigation();
+    QVERIFY(f.nav.errorMessage().contains(QStringLiteral("loading")));
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.stopCount(), 1, 3000);
+    QCOMPARE(snapshot(f.repo).value(QStringLiteral("stops")).toArray().size(), 1);
+}
+
 void NavigationHopTest::concurrentExternalAppendRetainsBothStops()
 {
     Fixture f;
@@ -149,7 +160,7 @@ void NavigationHopTest::queuedArrivalCannotReachReplacement()
     QCOMPARE(f.nav.planState(), int(RoutePlanState::Navigating));
 }
 
-void NavigationHopTest::reachedStopAdvancesAndFinalArrivalClearsOwner()
+void NavigationHopTest::reachedStopAdvancesAndFinalArrivalRetainsOwner()
 {
     Fixture f;
     gps(f, 52.50, 13.40);
