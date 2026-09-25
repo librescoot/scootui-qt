@@ -103,6 +103,17 @@ bool writeFileAtomic(const QString &path, const QByteArray &contents)
     return synced;
 }
 
+// The next milestone strictly above `km`, following milestoneForKm()'s
+// cadence: 10 km, then every 100 km. `km` is the previously celebrated
+// milestone (-1 for none), so the sequence 10, 100, 200, ... can be walked
+// forward one rung at a time.
+int nextMilestoneAfter(int km)
+{
+    if (km < 10) return 10;
+    if (km < 100) return 100;
+    return km + 100;
+}
+
 }  // namespace
 
 OdometerMilestoneService::OdometerMilestoneService(EngineStore *engineStore,
@@ -274,30 +285,57 @@ void OdometerMilestoneService::onOdometerChanged()
         return;
     }
 
-    // Easter eggs first — fire on upward crossing of the exact value.
-    if (mode == QLatin1String("all"))
-    for (const auto &egg : kEasterEggs) {
-        QString tag = QString::fromLatin1(egg.tag);
-        if (m_firedEasterEggs.contains(tag)) continue;
-        if (prevKm >= 0.0 && prevKm < egg.km && odoKm >= egg.km) {
-            markEasterEggFired(tag);
-            qDebug() << "OdometerMilestone: easter egg" << tag << "at" << egg.km << "km";
-            emit firedEasterEggsChanged();
-            enqueueAndCross(egg.km, egg.intensity, tag);
-            return;  // one crossing at a time
+    // Every upward crossing in (prevKm, odoKm]. One odometer update can span
+    // several of them — a coarse source reading, updates missed while the
+    // link was down or the vehicle state unknown, a simulator scrub, a manual
+    // edit — and each one is owed its own celebration. Taking only the first
+    // egg or only the top milestone would silently consume the rest, because
+    // m_lastOdoKm advances past them and they are never seen again.
+    struct Crossing {
+        double km;
+        int intensity;
+        QString tag;
+    };
+    QList<Crossing> crossings;
+
+    // Easter eggs fire on upward crossing of the exact value.
+    if (mode == QLatin1String("all")) {
+        for (const auto &egg : kEasterEggs) {
+            QString tag = QString::fromLatin1(egg.tag);
+            if (m_firedEasterEggs.contains(tag)) continue;
+            if (prevKm >= 0.0 && prevKm < egg.km && odoKm >= egg.km)
+                crossings.append({egg.km, egg.intensity, tag});
         }
     }
 
-    const int milestone = milestoneForKm(odoKm);
-    if (milestone <= m_lastCelebrated) return;
+    // Every milestone rung between the last celebrated one and the rung
+    // containing the new reading.
+    const int topMilestone = milestoneForKm(odoKm);
+    for (int km = nextMilestoneAfter(m_lastCelebrated); km <= topMilestone;
+         km = nextMilestoneAfter(km))
+        crossings.append({static_cast<double>(km), intensityForMilestone(km), QString()});
 
-    m_lastCelebrated = milestone;
-    saveLastMilestone(milestone);
+    if (crossings.isEmpty()) return;
 
-    const int intensity = intensityForMilestone(milestone);
-    qDebug() << "OdometerMilestone: reached" << milestone << "km (intensity"
-             << intensity << ")";
-    enqueueAndCross(static_cast<double>(milestone), intensity, QString());
+    // Eggs and milestones interleave (666, 696.9, 700), so queue them in km
+    // order rather than eggs-then-milestones.
+    std::sort(crossings.begin(), crossings.end(),
+              [](const Crossing &a, const Crossing &b) { return a.km < b.km; });
+
+    for (const Crossing &crossing : crossings) {
+        if (crossing.tag.isEmpty()) {
+            m_lastCelebrated = static_cast<int>(crossing.km);
+            saveLastMilestone(m_lastCelebrated);
+            qDebug() << "OdometerMilestone: reached" << m_lastCelebrated << "km (intensity"
+                     << crossing.intensity << ")";
+        } else {
+            markEasterEggFired(crossing.tag);
+            qDebug() << "OdometerMilestone: easter egg" << crossing.tag << "at"
+                     << crossing.km << "km";
+            emit firedEasterEggsChanged();
+        }
+        enqueueAndCross(crossing.km, crossing.intensity, crossing.tag);
+    }
 }
 
 void OdometerMilestoneService::enqueueAndCross(double km, int intensity, const QString &tag, bool demo)

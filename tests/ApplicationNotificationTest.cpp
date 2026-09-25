@@ -539,6 +539,54 @@ private slots:
         QVERIFY(schedule.m_pendingWrites.contains(schedule.firedEggsPath()));
     }
 
+    void milestoneMultiCrossingQueuesEveryCelebration()
+    {
+        DataPartition unmounted;
+        unmounted.m_mounted = false;
+        OdometerMilestoneService schedule(context<EngineStore>("engineStore"),
+                                         context<VehicleStore>("vehicleStore"),
+                                         context<ConnectionStore>("connectionStore"),
+                                         context<SettingsStore>("settingsStore"),
+                                         &unmounted);
+        schedule.m_settleTimer->stop();
+        schedule.m_settled = true;
+        schedule.m_lastCelebrated = 600;
+        schedule.m_lastOdoKm = 665.0;
+        auto *repo = m_application->m_repository.get();
+        repo->set("settings", "dashboard.milestones.mode", "all");
+        repo->set("vehicle", "state", "stand-by");
+        QSignalSpy crossed(&schedule, &OdometerMilestoneService::milestoneCrossed);
+        QSignalSpy celebrated(&schedule, &OdometerMilestoneService::milestoneCelebrate);
+
+        // One odometer update spanning 666, 696.9 and 700 at once.
+        repo->set("engine-ecu", "odometer", "700000");
+        QTRY_COMPARE(crossed.size(), 3);
+        QCOMPARE(crossed.at(0).at(0).toDouble(), 666.0);
+        QCOMPARE(crossed.at(0).at(2).toString(), QStringLiteral("devil"));
+        QCOMPARE(crossed.at(1).at(0).toDouble(), 696.9);
+        QCOMPARE(crossed.at(1).at(2).toString(), QStringLiteral("nice69"));
+        QCOMPARE(crossed.at(2).at(0).toDouble(), 700.0);
+        QCOMPARE(crossed.at(2).at(2).toString(), QString());
+        QCOMPARE(schedule.m_lastCelebrated, 700);
+        QCOMPARE(schedule.m_queue.size(), 3);
+        QCOMPARE(celebrated.size(), 0);
+
+        // Parking plays them one at a time, in km order.
+        repo->set("vehicle", "state", "parked");
+        QTRY_COMPARE(celebrated.size(), 1);
+        QCOMPARE(celebrated.last().at(0).toDouble(), 666.0);
+        QCOMPARE(schedule.m_queue.size(), 2);
+        schedule.advanceCelebration();
+        QCOMPARE(celebrated.size(), 2);
+        QCOMPARE(celebrated.last().at(0).toDouble(), 696.9);
+        schedule.advanceCelebration();
+        QCOMPARE(celebrated.size(), 3);
+        QCOMPARE(celebrated.last().at(0).toDouble(), 700.0);
+        schedule.advanceCelebration();
+        QCOMPARE(celebrated.size(), 3);
+        QVERIFY(!schedule.m_celebrating);
+    }
+
     void milestoneModesAndPresentation()
     {
         DataPartition unmounted;
