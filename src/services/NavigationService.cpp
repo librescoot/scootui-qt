@@ -2,6 +2,7 @@
 #include "MapService.h"
 #include "routing/ValhallaClient.h"
 #include "routing/RouteHelpers.h"
+#include "routing/BlockedRoadSelector.h"
 #include "stores/GpsStore.h"
 #include "stores/NavigationStore.h"
 #include "stores/VehicleStore.h"
@@ -107,6 +108,7 @@ NavigationService::NavigationService(GpsStore *gps, NavigationStore *nav,
 
     // Listen to Valhalla URL changes
     connect(settings, &SettingsStore::valhallaUrlChanged, this, [this]() {
+        resetBlockedRoad();
         QString url = m_settings->valhallaUrl();
         if (!url.isEmpty()) {
             m_valhalla->setEndpoint(url);
@@ -716,6 +718,56 @@ double NavigationService::durationPadFactor() const
 
 // --- Actions ---
 
+bool NavigationService::canAvoidRoad() const
+{
+    if (!m_route.isValid() || m_blockedLocation.isValid() || m_wasArrived)
+        return false;
+    return BlockedRoadSelector::ahead(m_route, selectRouteOrigin().position,
+                                      m_currentSegmentIndex).isValid();
+}
+
+void NavigationService::avoidRoadAhead()
+{
+    if (!canAvoidRoad())
+        return;
+    m_blockedLocation = BlockedRoadSelector::ahead(
+        m_route, selectRouteOrigin().position, m_currentSegmentIndex);
+    m_valhalla->cancelPending();
+    m_valhalla->setBlockedLocation(m_blockedLocation);
+    emit blockedRoadChanged();
+    emit positionChanged();
+    requestRoute(ValhallaClient::Reason::RoadBlocked);
+}
+
+void NavigationService::clearRoadAvoidance()
+{
+    if (!m_blockedLocation.isValid())
+        return;
+    m_valhalla->cancelPending();
+    resetBlockedRoad();
+    if (m_destination.isValid())
+        requestRoute(ValhallaClient::Reason::RoadBlocked);
+}
+
+void NavigationService::resetBlockedRoad()
+{
+    if (!m_blockedLocation.isValid())
+        return;
+    m_blockedLocation = {};
+    m_valhalla->setBlockedLocation({});
+    emit blockedRoadChanged();
+    emit positionChanged();
+}
+
+void NavigationService::reportBlockedRoadError(const QString &message)
+{
+    resetBlockedRoad();
+    m_errorMessage = message;
+    emit errorChanged();
+    m_errorLinger->start();
+    setStatus(NavigationStatus::Navigating);
+}
+
 void NavigationService::setDestination(double lat, double lng, const QString &address)
 {
     qDebug() << "NavigationService::setDestination:" << lat << lng << address;
@@ -1030,6 +1082,7 @@ void NavigationService::applyPlanSnapshot(const QJsonObject &snapshot)
     m_plan = plan;
     emit planChanged();
     if (targetChanged) {
+        resetBlockedRoad();
         stopHopAdvanceTimer();
         m_restoreReachedAwaitingVehicleState = false;
         if (plan.currentStop().reached) {
@@ -1088,6 +1141,7 @@ void NavigationService::beginCurrentHop(ValhallaClient::Reason reason)
     // this the old polyline, arrival pill, and stale distances linger on the
     // map until the new route comes back from the router.
     m_valhalla->cancelPending();
+    resetBlockedRoad();
     stopHopAdvanceTimer();
     m_route = Route();
     m_upcomingInstructions.clear();
@@ -1386,6 +1440,7 @@ void NavigationService::clearLocalNavigation()
         return;
     const bool wasArrived = m_wasArrived;
     m_valhalla->cancelPending();
+    resetBlockedRoad();
     stopHopAdvanceTimer();
     m_route = Route();
     m_destination = {};
@@ -1426,6 +1481,7 @@ void NavigationService::setRoute(const Route &route)
     // An injected route supersedes any real request still queued, so a late
     // dispatch cannot clobber it (simulator and tests inject routes).
     m_valhalla->cancelPending();
+    resetBlockedRoad();
     clearPendingRoute();
     m_wasArrived = false;
     emit arrivalReset();
@@ -1639,6 +1695,10 @@ void NavigationService::onRouteAttributesReady(const QList<EdgeAttrs> &attrs)
 
 void NavigationService::onRouteError(const QString &error)
 {
+    if (m_activeRouteReason == ValhallaClient::Reason::RoadBlocked && m_route.isValid()) {
+        reportBlockedRoadError(QStringLiteral("No alternative route; existing route unchanged: %1").arg(error));
+        return;
+    }
     if (m_activeRouteReason == ValhallaClient::Reason::Reroute
         && m_route.isValid()) {
         setStatus(NavigationStatus::Navigating);
@@ -1657,9 +1717,14 @@ void NavigationService::onRequestRejected(ValhallaClient::Reason reason,
     const bool userReason =
         reason == ValhallaClient::Reason::Initial ||
         reason == ValhallaClient::Reason::Destination ||
-        reason == ValhallaClient::Reason::LanguageChange;
+        reason == ValhallaClient::Reason::LanguageChange ||
+        reason == ValhallaClient::Reason::RoadBlocked;
 
     if (userReason) {
+        if (reason == ValhallaClient::Reason::RoadBlocked && m_route.isValid()) {
+            reportBlockedRoadError(QStringLiteral("No alternative route; existing route unchanged"));
+            return;
+        }
         if (cause == ValhallaClient::RejectionCause::RateLimited) {
             raiseError(QStringLiteral("Too many routing requests"));
             return;

@@ -13,12 +13,18 @@ class NavigationStub : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(bool hasRoute READ hasRoute NOTIFY routeChanged)
+    Q_PROPERTY(bool canAvoidRoad READ canAvoidRoad NOTIFY positionChanged)
+    Q_PROPERTY(bool blockedRoadActive READ blockedRoadActive NOTIFY blockedRoadChanged)
     Q_PROPERTY(bool hasPlan READ hasPlan NOTIFY planChanged)
     Q_PROPERTY(int currentStep READ currentStep NOTIFY planChanged)
     Q_PROPERTY(int stopCount READ stopCount NOTIFY planChanged)
     Q_PROPERTY(bool hopPromptVisible READ hopPromptVisible NOTIFY hopPromptChanged)
 public:
     bool hasRoute() const { return m_hasRoute; }
+    bool canAvoidRoad() const { return m_hasRoute; }
+    bool blockedRoadActive() const { return m_blockedRoad; }
+    Q_INVOKABLE void avoidRoadAhead() { m_blockedRoad = true; emit blockedRoadChanged(); }
+    Q_INVOKABLE void clearRoadAvoidance() { m_blockedRoad = false; emit blockedRoadChanged(); }
     bool hasPlan() const { return m_hasPlan; }
     int currentStep() const { return m_currentStep; }
     int stopCount() const { return m_stopCount; }
@@ -48,12 +54,15 @@ public:
     int pauseCalls = 0;
     bool menuOpen = false;
 signals:
+    void positionChanged();
+    void blockedRoadChanged();
     void routeChanged();
     void planChanged();
     void planStateChanged();
     void hopPromptChanged();
 private:
     bool m_hasRoute = true;
+    bool m_blockedRoad = false;
     bool m_hopPromptVisible = false;
     bool m_hasPlan = false;
     int m_currentStep = 0;
@@ -82,6 +91,8 @@ private slots:
     void developerModeOffersDebugOverlay();
     void testingAndNightlyOfferDebugActions();
     void activeNavigationOffersOverviewAndStop();
+    void blockedRoadShortcutCanBeCleared();
+    void storedShortcutsExposeBlockedRoad();
     void planNavigationOffersSkipBetweenStops();
     void pendingHopOffersKeepStopFirst();
     void seatboxPressPausesHopCountdown();
@@ -431,12 +442,14 @@ void ShortcutMenuStoreTest::activeNavigationOffersOverviewAndStop()
                            &navigation, &map, nullptr, &repo, nullptr);
 
     menu.show();
-    QCOMPARE(menu.actionCount(), 3);
+    QCOMPARE(menu.actionCount(), 4);
     QCOMPARE(menu.actions().at(0).toMap().value(QStringLiteral("kind")).toString(),
              QStringLiteral("view"));
     QCOMPARE(menu.actions().at(1).toMap().value(QStringLiteral("kind")).toString(),
              QStringLiteral("route-overview"));
     QCOMPARE(menu.actions().at(2).toMap().value(QStringLiteral("kind")).toString(),
+             QStringLiteral("road-blocked"));
+    QCOMPARE(menu.actions().at(3).toMap().value(QStringLiteral("kind")).toString(),
              QStringLiteral("stop-navigation"));
 
     menu.cycle();
@@ -448,10 +461,56 @@ void ShortcutMenuStoreTest::activeNavigationOffersOverviewAndStop()
     menu.show();
     menu.cycle();
     menu.cycle();
+    menu.cycle();
     menu.confirm();
     repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
     QVERIFY(!navigation.hasRoute());
     QCOMPARE(menu.actionCount(), 1);
+}
+
+void ShortcutMenuStoreTest::blockedRoadShortcutCanBeCleared()
+{
+    InMemoryMdbRepository repo;
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
+             QStringLiteral("ready-to-drive"), false);
+    VehicleStore vehicle(&repo);
+    vehicle.start();
+    NavigationStub navigation;
+    ShortcutMenuStore menu(nullptr, &vehicle, nullptr, nullptr, nullptr,
+                           &navigation, nullptr, nullptr, &repo, nullptr);
+
+    menu.show();
+    menu.cycle();
+    menu.cycle();
+    menu.confirm();
+    repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
+    QVERIFY(navigation.blockedRoadActive());
+    QCOMPARE(menu.actions().at(2).toMap().value(QStringLiteral("active")).toBool(), true);
+
+    menu.show();
+    menu.cycle();
+    menu.cycle();
+    menu.confirm();
+    repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
+    QVERIFY(!navigation.blockedRoadActive());
+}
+
+void ShortcutMenuStoreTest::storedShortcutsExposeBlockedRoad()
+{
+    InMemoryMdbRepository repo;
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
+             QStringLiteral("ready-to-drive"), false);
+    repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.shortcut-menu.items"),
+             QStringLiteral("[\"view\",\"route-overview\",\"stop-navigation\"]"), false);
+    VehicleStore vehicle(&repo);
+    SettingsStore settings(&repo);
+    vehicle.start();
+    settings.start();
+    NavigationStub navigation;
+    ShortcutMenuStore menu(nullptr, &vehicle, nullptr, nullptr, nullptr,
+                           &navigation, nullptr, &settings, &repo, nullptr);
+    QCOMPARE(menu.actions().at(2).toMap().value(QStringLiteral("kind")).toString(),
+             QStringLiteral("road-blocked"));
 }
 
 void ShortcutMenuStoreTest::planNavigationOffersSkipBetweenStops()
@@ -469,10 +528,11 @@ void ShortcutMenuStoreTest::planNavigationOffersSkipBetweenStops()
 
     navigation.setPlan(true, 0, 2);
     menu.show();
-    QCOMPARE(menu.actionCount(), 4);
-    QCOMPARE(menu.actions().at(2).toMap().value(QStringLiteral("kind")).toString(),
+    QCOMPARE(menu.actionCount(), 5);
+    QCOMPARE(menu.actions().at(3).toMap().value(QStringLiteral("kind")).toString(),
              QStringLiteral("skip-stop"));
 
+    menu.cycle();
     menu.cycle();
     menu.cycle();
     menu.confirm();
@@ -481,7 +541,7 @@ void ShortcutMenuStoreTest::planNavigationOffersSkipBetweenStops()
 
     // There is nothing to skip on the final hop, so the action disappears.
     navigation.setPlan(true, 1, 2);
-    QCOMPARE(menu.actionCount(), 3);
+    QCOMPARE(menu.actionCount(), 4);
 }
 
 void ShortcutMenuStoreTest::pendingHopOffersKeepStopFirst()

@@ -20,7 +20,8 @@ public:
         Destination,     // user-initiated destination change
         Reroute,         // automatic, off-route
         Recovery,        // automatic, post-error GPS edge
-        LanguageChange   // user-initiated, re-route on locale change
+        LanguageChange,  // user-initiated, re-route on locale change
+        RoadBlocked      // user-initiated, avoid/clear a reported blockage
     };
     Q_ENUM(Reason)
 
@@ -43,6 +44,7 @@ public:
     // Unknown values fall back to the defaults rather than being sent on.
     void setRoutePreference(const QString &pref);
     void setAvoidCobblestone(const QString &level);
+    void setBlockedLocation(const LatLng &location) { m_blockedLocation = location; }
 
     // Optional provider for the route departure time. Called at request-build
     // time; returns a local wall-clock string "yyyy-MM-ddTHH:mm" to attach as
@@ -120,7 +122,8 @@ private:
     };
 
     static bool isUserReason(Reason r) {
-        return r == Reason::Initial || r == Reason::Destination || r == Reason::LanguageChange;
+        return r == Reason::Initial || r == Reason::Destination || r == Reason::LanguageChange
+            || r == Reason::RoadBlocked;
     }
 
     void dispatchPending();
@@ -160,6 +163,7 @@ private:
     // skip a rough stretch, as a multiple of the time it would take to ride it.
     double m_avoidBadSurfaces = 0.5;
     std::function<QString()> m_departureTimeProvider;
+    LatLng m_blockedLocation;
 
     // Debounce: latest pending request, dispatched when m_debounce fires
     QTimer m_debounce;

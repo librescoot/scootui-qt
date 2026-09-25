@@ -30,6 +30,8 @@ class NavigationService : public QObject
     Q_PROPERTY(bool isRerouting READ isRerouting NOTIFY statusChanged)
     Q_PROPERTY(bool isWaitingForPosition READ isWaitingForPosition NOTIFY statusChanged)
     Q_PROPERTY(bool hasRoute READ hasRoute NOTIFY routeChanged)
+    Q_PROPERTY(bool canAvoidRoad READ canAvoidRoad NOTIFY positionChanged)
+    Q_PROPERTY(bool blockedRoadActive READ blockedRoadActive NOTIFY blockedRoadChanged)
     Q_PROPERTY(QString errorMessage READ errorMessage NOTIFY errorChanged)
 
     // Destination
@@ -111,6 +113,8 @@ public:
         return m_status == NavigationStatus::WaitingForPosition;
     }
     bool hasRoute() const { return m_route.isValid(); }
+    bool canAvoidRoad() const;
+    bool blockedRoadActive() const { return m_blockedLocation.isValid(); }
     bool lastRouteWasReroute() const {
         return m_activeRouteReason == ValhallaClient::Reason::Reroute;
     }
@@ -193,6 +197,8 @@ public:
 
     Q_INVOKABLE void setDestination(double lat, double lng, const QString &address = {});
     Q_INVOKABLE void clearNavigation();
+    Q_INVOKABLE void avoidRoadAhead();
+    Q_INVOKABLE void clearRoadAvoidance();
     Q_INVOKABLE void setRoute(const Route &route);
 
     // Replace the plan and start guiding to stops[startStep]. Registered stops
@@ -231,6 +237,7 @@ signals:
     void arrived();
     void arrivalReset();
     void routeChanged();
+    void blockedRoadChanged();
     void routeAttributesChanged();
     void errorChanged();
     void destinationChanged();
@@ -302,6 +309,8 @@ private:
     void retryPendingRoute();
     void clearPendingRoute();
     void armRerouteRetry();
+    void resetBlockedRoad();
+    void reportBlockedRoadError(const QString &message);
 
     // --- Plan and hop state ---
     void setPlanState(RoutePlanState state);
@@ -384,6 +393,7 @@ private:
     NavigationStatus m_status = NavigationStatus::Idle;
     Route m_route;
     LatLng m_destination;
+    LatLng m_blockedLocation;
     QString m_destAddress;
     QString m_errorMessage;
 

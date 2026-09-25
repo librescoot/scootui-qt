@@ -700,6 +700,8 @@ class Translations : public QObject
     Q_PROPERTY(QString shortcutStartDestination READ shortcutStartDestination NOTIFY languageChanged)
     Q_PROPERTY(QString shortcutRouteOverview READ shortcutRouteOverview NOTIFY languageChanged)
     Q_PROPERTY(QString shortcutSkipStop READ shortcutSkipStop NOTIFY languageChanged)
+    Q_PROPERTY(QString shortcutRoadBlocked READ shortcutRoadBlocked NOTIFY languageChanged)
+    Q_PROPERTY(QString shortcutClearRoadAvoidance READ shortcutClearRoadAvoidance NOTIFY languageChanged)
     Q_PROPERTY(QString shortcutKeepStop READ shortcutKeepStop NOTIFY languageChanged)
 
 public:
@@ -1395,6 +1397,8 @@ public:
     QString shortcutStartDestination() const { return lookup("shortcutStartDestination"); }
     QString shortcutRouteOverview() const { return lookup("shortcutRouteOverview"); }
     QString shortcutSkipStop() const { return lookup("shortcutSkipStop"); }
+    QString shortcutRoadBlocked() const { return lookup("shortcutRoadBlocked"); }
+    QString shortcutClearRoadAvoidance() const { return lookup("shortcutClearRoadAvoidance"); }
     QString shortcutKeepStop() const { return lookup("shortcutKeepStop"); }
 
 signals:

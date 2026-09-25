@@ -1924,6 +1924,10 @@ void Translations::initStrings()
     de[QStringLiteral("shortcutRouteOverview")] = QStringLiteral("Routenübersicht");
     en[QStringLiteral("shortcutSkipStop")] = QStringLiteral("Skip stop");
     de[QStringLiteral("shortcutSkipStop")] = QStringLiteral("Stopp überspringen");
+    en[QStringLiteral("shortcutRoadBlocked")] = QStringLiteral("Road ahead blocked");
+    de[QStringLiteral("shortcutRoadBlocked")] = QStringLiteral("Straße voraus gesperrt");
+    en[QStringLiteral("shortcutClearRoadAvoidance")] = QStringLiteral("Clear road avoidance");
+    de[QStringLiteral("shortcutClearRoadAvoidance")] = QStringLiteral("Straßensperre aufheben");
     en[QStringLiteral("shortcutKeepStop")] = QStringLiteral("Keep this stop");
     de[QStringLiteral("shortcutKeepStop")] = QStringLiteral("Bei diesem Stopp bleiben");
 

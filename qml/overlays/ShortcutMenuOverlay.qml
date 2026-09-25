@@ -29,6 +29,9 @@ Item {
             return translations.shortcutKeepStop
         if (selectedAction.kind === "route-overview")
             return translations.shortcutRouteOverview
+        if (selectedAction.kind === "road-blocked")
+            return selectedAction.active ? translations.shortcutClearRoadAvoidance
+                                         : translations.shortcutRoadBlocked
         if (selectedAction.kind === "skip-stop")
             return translations.shortcutSkipStop
         if (selectedAction.kind === "stop-navigation")
@@ -63,6 +66,8 @@ Item {
             return MaterialIcon.iconPlace
         if (action.kind === "route-overview")
             return MaterialIcon.iconMap
+        if (action.kind === "road-blocked")
+            return action.active ? MaterialIcon.iconRefresh : MaterialIcon.iconWarningAmber
         if (action.kind === "skip-stop")
             return MaterialIcon.iconArrowForward
         if (action.kind === "stop-navigation")

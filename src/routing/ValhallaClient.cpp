@@ -417,6 +417,12 @@ void ValhallaClient::sendRouteRequest(const RouteOrigin &from, const LatLng &to)
                                   {QStringLiteral("lon"), to.longitude},
                                   {QStringLiteral("radius"), 150}});
     request[QStringLiteral("locations")] = locations;
+    if (m_blockedLocation.isValid()) {
+        request[QStringLiteral("exclude_locations")] = QJsonArray{
+            QJsonObject{{QStringLiteral("lat"), m_blockedLocation.latitude},
+                        {QStringLiteral("lon"), m_blockedLocation.longitude}}
+        };
+    }
 
     QNetworkRequest req(QUrl(m_endpoint + QStringLiteral("route")));
     req.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));

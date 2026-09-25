@@ -39,6 +39,18 @@ and a Valhalla endpoint for routing. The application also listens on the
 Use the normal dashboard UI or platform tooling for routine operations. The
 commands above are intended for controlled operational automation.
 
+## Road avoidance
+
+During navigation, the seatbox shortcut menu offers **Road ahead blocked** when
+there is enough route ahead to select a point. Confirming it asks Valhalla for
+an alternative with a point approximately 60 m ahead excluded. **Clear road
+avoidance** removes the exclusion and recalculates. The avoidance applies only
+to the current destination or plan hop; it is not shared with other riders or
+stored after navigation ends. If Valhalla cannot calculate an alternative, the
+existing route remains visible and an error is shown. A nearby junction or
+parallel road may affect which road Valhalla excludes, so check the suggested
+route before following it.
+
 ## Route plans
 
 The MDB settings-service owns the route plan. The dashboard reads complete JSON

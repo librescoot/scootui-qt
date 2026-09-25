@@ -65,6 +65,10 @@ ShortcutMenuStore::ShortcutMenuStore(EngineStore *engine, VehicleStore *vehicle,
                 this, SLOT(rebuildActions()));
     if (m_navigation)
         connect(m_navigation, SIGNAL(routeChanged()), this, SLOT(rebuildActions()));
+    if (m_navigation) {
+        connect(m_navigation, SIGNAL(positionChanged()), this, SLOT(rebuildActions()));
+        connect(m_navigation, SIGNAL(blockedRoadChanged()), this, SLOT(rebuildActions()));
+    }
     if (m_navigation)
         connect(m_navigation, SIGNAL(planChanged()), this, SLOT(rebuildActions()));
     if (m_navigation) {
@@ -221,6 +225,12 @@ QVariantList ShortcutMenuStore::availableActions() const
         } else if (item == QLatin1String("route-overview")) {
             if (hasRoute)
                 actions.append(QVariantMap{{QStringLiteral("kind"), item}});
+        } else if (item == QLatin1String("road-blocked")) {
+            if (hasRoute && (m_navigation->property("blockedRoadActive").toBool()
+                             || m_navigation->property("canAvoidRoad").toBool()))
+                actions.append(QVariantMap{{QStringLiteral("kind"), item},
+                                           {QStringLiteral("active"),
+                                            m_navigation->property("blockedRoadActive").toBool()}});
         } else if (item == QLatin1String("skip-stop")) {
             if (!hasRoute)
                 continue;
@@ -243,9 +253,17 @@ QStringList ShortcutMenuStore::currentItems() const
         const QString raw = m_settings->shortcutMenuItems();
         if (!raw.isEmpty()) {
             bool ok = false;
-            const QStringList configured = ShortcutMenuItems::parse(raw, &ok);
-            if (ok)
+            QStringList configured = ShortcutMenuItems::parse(raw, &ok);
+            if (ok) {
+                if (!configured.contains(QLatin1String("road-blocked"))) {
+                    const int afterOverview = configured.indexOf(QLatin1String("route-overview"));
+                    const int beforeStop = configured.indexOf(QLatin1String("stop-navigation"));
+                    const int index = afterOverview >= 0 ? afterOverview + 1
+                                    : beforeStop >= 0 ? beforeStop : configured.size();
+                    configured.insert(index, QStringLiteral("road-blocked"));
+                }
                 return configured;
+            }
         }
     }
     return ShortcutMenuItems::defaultItems();
@@ -264,7 +282,9 @@ void ShortcutMenuStore::maybeMigrateLegacyQuickItems()
     if (!raw.isEmpty()) {
         bool ok = false;
         const QStringList configured = ShortcutMenuItems::parse(raw, &ok);
-        if (ok && configured != defaults) {
+        QStringList previousDefaults = defaults;
+        previousDefaults.removeAll(QLatin1String("road-blocked"));
+        if (ok && configured != defaults && configured != previousDefaults) {
             m_migrationSettled = true;
             return;
         }
@@ -439,6 +459,14 @@ void ShortcutMenuStore::executePendingAction()
     }
     if (kind == QLatin1String("route-overview")) {
         showRouteOverview();
+        resetState();
+        return;
+    }
+    if (kind == QLatin1String("road-blocked")) {
+        if (m_navigation->property("blockedRoadActive").toBool())
+            QMetaObject::invokeMethod(m_navigation, "clearRoadAvoidance");
+        else
+            QMetaObject::invokeMethod(m_navigation, "avoidRoadAhead");
         resetState();
         return;
     }

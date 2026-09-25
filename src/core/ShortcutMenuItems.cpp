@@ -17,6 +17,7 @@ const QStringList &fixedActionIds()
         QStringLiteral("debug-overlay"),
         QStringLiteral("motion-debug"),
         QStringLiteral("route-overview"),
+        QStringLiteral("road-blocked"),
         QStringLiteral("skip-stop"),
         QStringLiteral("stop-navigation"),
     };

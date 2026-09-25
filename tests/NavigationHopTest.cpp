@@ -2,8 +2,11 @@
 #include <QDateTime>
 #include <QJsonDocument>
 #include <QSignalSpy>
+#include <QTcpServer>
+#include <QTcpSocket>
 
 #include "routing/ValhallaClient.h"
+#include "routing/BlockedRoadSelector.h"
 #include "services/AddressDatabaseService.h"
 #include "services/NavigationService.h"
 #include "repositories/InMemoryMdbRepository.h"
@@ -33,6 +36,9 @@ private slots:
     void appendAfterFinalArrivalReopensPrompt();
     void unavailableOwnerReportsErrorWithoutBlocking();
     void keepStopIsDurableAndClearedOnDismount();
+    void blockedRoadSelectionTracksProgress();
+    void blockedRoadIsSentOnlyOnGuidanceRequests();
+    void blockedRoadCanBeClearedAndDoesNotSurviveHopChange();
 
 private:
     struct Fixture {
@@ -77,6 +83,83 @@ private:
             .arg(QDateTime::currentDateTimeUtc().toString(Qt::ISODate)));
     }
 };
+
+void NavigationHopTest::blockedRoadSelectionTracksProgress()
+{
+    Route route;
+    route.waypoints = {{52.5, 13.4}, {52.5, 13.401}, {52.5, 13.402}};
+    const LatLng start{52.5, 13.4};
+    const LatLng ahead = BlockedRoadSelector::ahead(route, start, 0);
+    QVERIFY(ahead.isValid());
+    QVERIFY(ahead.distanceTo(start) > 55.0);
+    QVERIFY(ahead.distanceTo(start) < 65.0);
+    QVERIFY(!BlockedRoadSelector::ahead(route, {52.5, 13.402}, 1).isValid());
+    QVERIFY(!BlockedRoadSelector::ahead(route, {52.501, 13.4}, 0).isValid());
+    QVERIFY(!BlockedRoadSelector::ahead(route, start, -1).isValid());
+}
+
+void NavigationHopTest::blockedRoadIsSentOnlyOnGuidanceRequests()
+{
+    QTcpServer server;
+    QVERIFY(server.listen(QHostAddress::LocalHost));
+    QByteArray routeRequest;
+    QByteArray previewRequest;
+    connect(&server, &QTcpServer::newConnection, &server, [&]() {
+        auto *socket = server.nextPendingConnection();
+        connect(socket, &QTcpSocket::readyRead, socket, [&, socket]() {
+            const QByteArray request = socket->readAll();
+            if (request.startsWith("GET /status")) {
+                socket->write("HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}");
+            } else if (request.startsWith("POST /route")) {
+                if (request.contains("exclude_locations"))
+                    routeRequest = request;
+                else
+                    previewRequest = request;
+                socket->write("HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n");
+            }
+            socket->flush();
+            socket->disconnectFromHost();
+        });
+    });
+    ValhallaClient client;
+    client.setEndpoint(QStringLiteral("http://127.0.0.1:%1/").arg(server.serverPort()));
+    QTRY_VERIFY(client.isHealthy());
+    client.setBlockedLocation({52.5, 13.401});
+    RouteOrigin origin;
+    origin.position = {52.5, 13.4};
+    client.requestRoute(origin, {52.5, 13.402}, ValhallaClient::Reason::RoadBlocked);
+    QTRY_VERIFY(!routeRequest.isEmpty());
+    QVERIFY(routeRequest.contains("13.401"));
+    client.requestPreviewRoute(origin, QList<LatLng>{{52.5, 13.402}});
+    QTRY_VERIFY(!previewRequest.isEmpty());
+    QVERIFY(!previewRequest.contains("exclude_locations"));
+}
+
+void NavigationHopTest::blockedRoadCanBeClearedAndDoesNotSurviveHopChange()
+{
+    Fixture f;
+    gps(f, 52.5, 13.4);
+    Route route;
+    route.waypoints = {{52.5, 13.4}, {52.5, 13.401}, {52.5, 13.402}};
+    RouteInstruction arrival;
+    arrival.type = ManeuverType::Arrive;
+    arrival.originalShapeIndex = 2;
+    route.instructions = {arrival};
+    route.distance = 140;
+    route.duration = 30;
+    f.nav.setRoute(route);
+    QVERIFY(f.nav.canAvoidRoad());
+    f.nav.avoidRoadAhead();
+    QVERIFY(f.nav.blockedRoadActive());
+    QVERIFY(!f.nav.canAvoidRoad());
+    f.nav.clearRoadAvoidance();
+    QVERIFY(!f.nav.blockedRoadActive());
+    f.nav.avoidRoadAhead();
+    QVERIFY(f.nav.blockedRoadActive());
+    f.nav.setRoutePlan(QVariantList{QVariantMap{{QStringLiteral("lat"), 52.51},
+                                                {QStringLiteral("lon"), 13.41}}});
+    QTRY_VERIFY_WITH_TIMEOUT(!f.nav.blockedRoadActive(), 3000);
+}
 
 void NavigationHopTest::twoImmediateAppendsRetainBothStops()
 {
