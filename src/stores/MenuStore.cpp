@@ -1910,6 +1910,7 @@ void MenuStore::fireMilestoneDemo()
     if (!m_isOpen || !m_odometerMilestone) return;
     closeForScreen();
     m_milestoneDemoPending = true;
+    m_milestoneDemoReturnScheduled = false;
     // MenuOverlay fades out in 300 ms. Start the particles only after its
     // frosted backdrop is gone.
     QTimer::singleShot(350, this, [this]() {
@@ -1923,10 +1924,20 @@ void MenuStore::fireMilestoneDemo()
     });
 }
 
+void MenuStore::scheduleMilestoneDemoReturn()
+{
+    if (!m_milestoneDemoPending || m_milestoneDemoReturnScheduled) return;
+    m_milestoneDemoReturnScheduled = true;
+    // A stopped particle system needs a clear frame before the menu's
+    // frosted glass resamples its backdrop (every 200 ms).
+    QTimer::singleShot(500, this, &MenuStore::completeMilestoneDemo);
+}
+
 void MenuStore::completeMilestoneDemo()
 {
     if (!m_milestoneDemoPending) return;
     m_milestoneDemoPending = false;
+    m_milestoneDemoReturnScheduled = false;
     resume();
 }
 
@@ -2132,6 +2143,7 @@ void MenuStore::openAt(const QStringList &path, const QList<int> &indexStack, in
 
     qDebug() << "MenuStore: opening menu";
     m_milestoneDemoPending = false;
+    m_milestoneDemoReturnScheduled = false;
     clearResume();
     m_isOpen = true;
     // rebuildMenuTree() replays the path against the tree it just built and

@@ -534,6 +534,8 @@ private slots:
         QVERIFY(QTest::qWaitForWindowExposed(window));
         QQuickItem *ticket = nullptr;
         QTRY_VERIFY_WITH_TIMEOUT((ticket = window->findChild<QQuickItem *>("milestoneTicket")) != nullptr, 5000);
+        QObject *particles = nullptr;
+        QTRY_VERIFY_WITH_TIMEOUT((particles = window->findChild<QObject *>("milestoneConfettiSystem")) != nullptr, 5000);
 
         menu->openEasterEggs();
         const auto items = menu->currentItems();
@@ -547,12 +549,19 @@ private slots:
         QVERIFY(demoIndex >= 0);
         QTest::qWait(170);
         for (int i = 0; i < demoIndex; ++i) menu->navigateDown();
+        QSignalSpy started(m_application->m_odometerMilestoneService,
+                           &OdometerMilestoneService::milestoneDemoStarted);
         menu->selectItem();
         QVERIFY(!menu->isOpen());
+        QTRY_COMPARE_WITH_TIMEOUT(started.size(), 1, 2500);
         QTRY_VERIFY_WITH_TIMEOUT(ticket->opacity() > 0.99, 2500);
+        QVERIFY(particles->property("running").toBool());
         capture(window, "milestone-ticket-demo");
         QVERIFY(!menu->isOpen());
-        QTRY_VERIFY_WITH_TIMEOUT(menu->isOpen(), 11500);
+        QTRY_VERIFY_WITH_TIMEOUT(!particles->property("running").toBool(), 11000);
+        QVERIFY(!menu->isOpen());
+        QTRY_VERIFY_WITH_TIMEOUT(menu->isOpen(), 2500);
+        QVERIFY(!particles->property("running").toBool());
         QCOMPARE(menu->currentTitle(), QStringLiteral("EASTER EGGS"));
         QCOMPARE(menu->selectedIndex(), demoIndex);
     }

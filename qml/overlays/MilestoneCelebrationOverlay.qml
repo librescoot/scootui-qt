@@ -48,14 +48,6 @@ Item {
             dismissTimer.interval = Math.max(3500, 1800 + intens * 450 + 1500)
             dismissTimer.restart()
         }
-        function onMilestoneDemoStarted(intens) {
-            // The menu returns only after both the ticket and the last
-            // confetti particles have cleared the screen.
-            demoResumeTimer.interval = Math.max(3500, 1800 + intens * 450 + 1500) + 300
-            demoResumeTimer.interval = Math.max(demoResumeTimer.interval,
-                                               Math.round(1800 + intens * 450) + 4000)
-            demoResumeTimer.restart()
-        }
     }
 
     Timer {
@@ -66,14 +58,6 @@ Item {
                 if (typeof odometerMilestoneService !== "undefined")
                     odometerMilestoneService.advanceCelebration()
             })
-        }
-    }
-
-    Timer {
-        id: demoResumeTimer
-        onTriggered: {
-            if (typeof menuStore !== "undefined")
-                menuStore.completeMilestoneDemo()
         }
     }
 

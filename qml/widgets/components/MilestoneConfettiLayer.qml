@@ -10,6 +10,7 @@ Item {
 
     property int intensity: 0
     property bool emitting: false
+    property bool demoOutstanding: false
     property string tag: ""
 
     readonly property int emitDurationMs: Math.round(1800 + intensity * 450)
@@ -64,6 +65,7 @@ Item {
 
     Connections {
         target: odometerMilestoneService ? odometerMilestoneService : null
+        function onMilestoneDemoStarted() { root.demoOutstanding = true }
         function onMilestoneCelebrate(km, intens, tagIn) {
             root.tag = tagIn
             root.intensity = intens
@@ -87,11 +89,19 @@ Item {
     // emission stops so in-flight confetti can finish falling.
     Timer {
         id: systemStopTimer
-        onTriggered: sys.running = false
+        onTriggered: {
+            sys.running = false
+            if (root.demoOutstanding) {
+                root.demoOutstanding = false
+                if (typeof menuStore !== "undefined")
+                    menuStore.scheduleMilestoneDemoReturn()
+            }
+        }
     }
 
     ParticleSystem {
         id: sys
+        objectName: "milestoneConfettiSystem"
         running: false
     }
 
