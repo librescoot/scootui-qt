@@ -21,6 +21,7 @@
 #include "services/NavigationService.h"
 #undef private
 #include "services/NotificationService.h"
+#include "services/OdometerMilestoneService.h"
 #include "services/SettingsService.h"
 #include "stores/BatteryStore.h"
 #include "stores/EngineStore.h"
@@ -79,7 +80,7 @@ private slots:
         QNetworkProxy::setApplicationProxy(QNetworkProxy(QNetworkProxy::HttpProxy, "127.0.0.1", 1));
         EnvConfig::initialize();
         g_bootTimer.start();
-        for (const auto *font : {"Roboto-Regular.ttf", "Roboto-Bold.ttf", "Roboto-Medium.ttf", "MaterialSymbolsOutlined-Filled.ttf"})
+        for (const auto *font : {"Roboto-Regular.ttf", "Roboto-Bold.ttf", "Roboto-Medium.ttf", "RobotoCondensed-Bold.ttf", "MaterialSymbolsOutlined-Filled.ttf"})
             QVERIFY(QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/subset/") + font) >= 0);
         QFont::insertSubstitution(QStringLiteral("Material Icons"), QStringLiteral("Material Symbols Outlined"));
         QGuiApplication::setFont(QFont("Roboto"));
@@ -477,6 +478,83 @@ private slots:
         QTRY_COMPARE(mainId(), QStringLiteral("navigation-hop-parked"));
         navigation->setPlanState(RoutePlanState::Navigating);
         QTRY_VERIFY(mainId() != QStringLiteral("navigation-hop-parked"));
+    }
+
+    void easterEggDemoRestoresMenuSelection()
+    {
+        auto *menu = context<MenuStore>("menuStore");
+        auto *milestones = m_application->m_odometerMilestoneService;
+        auto *repo = m_application->m_repository.get();
+        QVERIFY(menu && milestones);
+
+        menu->openEasterEggs();
+        QVERIFY(menu->isOpen());
+        QCOMPARE(menu->currentTitle(), QStringLiteral("EASTER EGGS"));
+        const QVariantList items = menu->currentItems();
+        int demoIndex = -1;
+        for (int i = 0; i < items.size(); ++i) {
+            if (items[i].toMap().value("id") == QStringLiteral("egg_fire_random")) {
+                demoIndex = i;
+                break;
+            }
+        }
+        QVERIFY(demoIndex >= 0);
+        QTest::qWait(170);
+        for (int i = 0; i < demoIndex; ++i) menu->navigateDown();
+        QCOMPARE(menu->selectedIndex(), demoIndex);
+
+        QSignalSpy started(milestones, &OdometerMilestoneService::milestoneDemoStarted);
+        menu->selectItem();
+        QVERIFY(!menu->isOpen());
+        QCOMPARE(repo->get("dashboard", "menu-open"), QStringLiteral("false"));
+        QTRY_COMPARE_WITH_TIMEOUT(started.size(), 1, 1500);
+        menu->completeMilestoneDemo();
+        QVERIFY(menu->isOpen());
+        QCOMPARE(menu->currentTitle(), QStringLiteral("EASTER EGGS"));
+        QCOMPARE(menu->selectedIndex(), demoIndex);
+        QCOMPARE(menu->currentItems()[demoIndex].toMap().value("id"), QStringLiteral("egg_fire_random"));
+        QCOMPARE(repo->get("dashboard", "menu-open"), QStringLiteral("true"));
+
+        menu->selectItem();
+        QVERIFY(!menu->isOpen());
+        repo->set("vehicle", "state", "ready-to-drive");
+        QTest::qWait(450);
+        menu->completeMilestoneDemo();
+        QVERIFY(!menu->isOpen());
+    }
+
+    void easterEggDemoShowsTicketAndReturnsAfterConfetti()
+    {
+        auto *menu = context<MenuStore>("menuStore");
+        QVERIFY(menu);
+        m_engine->load(QUrl("qrc:/ScootUI/qml/Main.qml"));
+        QVERIFY(!m_engine->rootObjects().isEmpty());
+        auto *window = qobject_cast<QQuickWindow *>(m_engine->rootObjects().first());
+        QVERIFY(window);
+        QVERIFY(QTest::qWaitForWindowExposed(window));
+        QQuickItem *ticket = nullptr;
+        QTRY_VERIFY_WITH_TIMEOUT((ticket = window->findChild<QQuickItem *>("milestoneTicket")) != nullptr, 5000);
+
+        menu->openEasterEggs();
+        const auto items = menu->currentItems();
+        int demoIndex = -1;
+        for (int i = 0; i < items.size(); ++i) {
+            if (items[i].toMap().value("id") == QStringLiteral("egg_fire_random")) {
+                demoIndex = i;
+                break;
+            }
+        }
+        QVERIFY(demoIndex >= 0);
+        QTest::qWait(170);
+        for (int i = 0; i < demoIndex; ++i) menu->navigateDown();
+        menu->selectItem();
+        QVERIFY(!menu->isOpen());
+        QTRY_VERIFY_WITH_TIMEOUT(ticket->opacity() > 0.99, 2500);
+        capture(window, "milestone-ticket-demo");
+        QVERIFY(!menu->isOpen());
+        QTRY_VERIFY_WITH_TIMEOUT(menu->isOpen(), 11500);
+        QCOMPARE(menu->currentTitle(), QStringLiteral("EASTER EGGS"));
+        QCOMPARE(menu->selectedIndex(), demoIndex);
     }
 
     void dualBatteryToggleRefreshesUnchangedSlotOneFault()

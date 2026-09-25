@@ -94,6 +94,7 @@ public:
     // Reveals the easter-egg level and opens the menu on it. Called from the
     // About screen once the secret brake sequence has been entered.
     Q_INVOKABLE void openEasterEggs();
+    Q_INVOKABLE void completeMilestoneDemo();
 
 signals:
     void isOpenChanged();
@@ -109,6 +110,7 @@ private:
     void clearResume();
     void rebuildMenuTree();
     void buildEasterEggs();
+    void fireMilestoneDemo();
     QString lastMapCheckLabel() const;
     QString lastCheckLabel(const QString &iso) const;
     MenuNode *findCurrentNode() const;
@@ -151,6 +153,7 @@ private:
     QList<int> m_resumeIndexStack;
     int m_resumeIndex = 0;
     bool m_resumeArmed = false;
+    bool m_milestoneDemoPending = false;
     bool m_executingAction = false; // guard against reentrant rebuilds
     // Set once the About screen's sequence has been entered. Session-only on
     // purpose: it is an easter egg, not a setting.

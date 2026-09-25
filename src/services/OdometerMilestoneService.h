@@ -56,6 +56,9 @@ signals:
     //      "leet", "power2", "sequence", "boobs", "rollover".
     void milestoneCrossed(double km, int intensity, QString tag);
 
+    // Fired when the menu's random demo reaches the front of the queue.
+    void milestoneDemoStarted(int intensity);
+
     // Fired one-at-a-time when the scooter parks with one or more queued
     // crossings from the ride. Drives confetti + the big centered banner.
     // The overlay calls advanceCelebration() when its hold finishes to
@@ -67,6 +70,7 @@ private:
         double km;
         int intensity;
         QString tag;
+        bool demo = false;
     };
 
     static int milestoneForKm(double km);
@@ -74,7 +78,7 @@ private:
 
     void onOdometerChanged();
     void onVehicleStateChanged();
-    void enqueueAndCross(double km, int intensity, const QString &tag);
+    void enqueueAndCross(double km, int intensity, const QString &tag, bool demo = false);
     void startNextCelebration();
 
     // Master on/off for all milestone output (confetti, banner, toast,

@@ -28,6 +28,7 @@
 #include <QLocale>
 #include <QDebug>
 #include <QProcess>
+#include <QTimer>
 #include <iterator>
 
 MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
@@ -254,6 +255,12 @@ void MenuStore::setOdometerMilestoneService(OdometerMilestoneService *svc)
                 this, &MenuStore::rebuildMenuTree);
         connect(m_odometerMilestone, &OdometerMilestoneService::firedEasterEggsChanged,
                 this, &MenuStore::rebuildMenuTree);
+        connect(m_odometerMilestone, &OdometerMilestoneService::milestoneDemoStarted,
+                this, [this](int) {
+                    // Recover the menu even if the asynchronous celebration overlay
+                    // was not ready to schedule its normal completion timer.
+                    QTimer::singleShot(12000, this, &MenuStore::completeMilestoneDemo);
+                });
     }
     rebuildMenuTree();
 }
@@ -1871,7 +1878,7 @@ void MenuStore::buildEasterEggs()
 
         node->addChild(MenuNode::action(QStringLiteral("egg_fire_random"),
             QStringLiteral("Fire a random easter egg"),
-            [this]() { m_odometerMilestone->celebrateRandomEasterEgg(); }));
+            [this]() { fireMilestoneDemo(); }));
 
         auto *reset = MenuNode::action(QStringLiteral("egg_reset"),
             QStringLiteral("Reset fired easter eggs"),
@@ -1896,6 +1903,31 @@ void MenuStore::buildEasterEggs()
                 {QStringLiteral("Off"), [this]() { m_settingsService->updateMilestoneCelebrations(false); }},
             }, celebrations ? 0 : 1));
     }
+}
+
+void MenuStore::fireMilestoneDemo()
+{
+    if (!m_isOpen || !m_odometerMilestone) return;
+    closeForScreen();
+    m_milestoneDemoPending = true;
+    // MenuOverlay fades out in 300 ms. Start the particles only after its
+    // frosted backdrop is gone.
+    QTimer::singleShot(350, this, [this]() {
+        if (!m_milestoneDemoPending) return;
+        if (!m_vehicle->isParked() || m_isOpen || !m_odometerMilestone) {
+            m_milestoneDemoPending = false;
+            clearResume();
+            return;
+        }
+        m_odometerMilestone->celebrateRandomEasterEgg();
+    });
+}
+
+void MenuStore::completeMilestoneDemo()
+{
+    if (!m_milestoneDemoPending) return;
+    m_milestoneDemoPending = false;
+    resume();
 }
 
 void MenuStore::openEasterEggs()
@@ -2099,6 +2131,7 @@ void MenuStore::openAt(const QStringList &path, const QList<int> &indexStack, in
     }
 
     qDebug() << "MenuStore: opening menu";
+    m_milestoneDemoPending = false;
     clearResume();
     m_isOpen = true;
     // rebuildMenuTree() replays the path against the tree it just built and

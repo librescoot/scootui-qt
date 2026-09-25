@@ -1,10 +1,6 @@
 import QtQuick
 import ScootUI 1.0
 
-// Large centered banner shown when the scooter parks with one or more
-// queued milestone crossings from the ride. Companion to the confetti
-// layer (MilestoneConfettiLayer). Sequential: when the hold ends, asks
-// the service to advance to the next queued milestone (if any).
 Item {
     id: root
     anchors.fill: parent
@@ -21,14 +17,14 @@ Item {
                                        || currentScreen === Scooter.ScreenMode.Map
 
     readonly property var themeMap: ({
-        "":         { bg0: "#D4AF37", bg1: "#F6E27A", bg2: "#D4AF37", fg: "#1a1200", border: "#8B6914", icon: "★", title: "Milestone reached" },
-        "devil":    { bg0: "#7f0000", bg1: "#d32f2f", bg2: "#7f0000", fg: "#fff3b0", border: "#3a0000", icon: "☠", title: "666" },
-        "leet":     { bg0: "#00695C", bg1: "#00E676", bg2: "#00695C", fg: "#002814", border: "#004D40", icon: "⚡", title: "L33T" },
-        "leet_rev": { bg0: "#004D40", bg1: "#64FFDA", bg2: "#004D40", fg: "#002814", border: "#003830", icon: "⚡", title: "ELITE" },
-        "power2":   { bg0: "#0D47A1", bg1: "#64B5F6", bg2: "#0D47A1", fg: "#E3F2FD", border: "#082C66", icon: "◉", title: "2^10" },
-        "sequence": { bg0: "#E91E63", bg1: "#FFEB3B", bg2: "#2196F3", fg: "#1a1200", border: "#6A1B9A", icon: "♫", title: "1.2.3.4.5" },
-        "boobs":    { bg0: "#F48FB1", bg1: "#FFE0EC", bg2: "#F48FB1", fg: "#4A148C", border: "#AD1457", icon: "♥", title: "nice" },
-        "rollover": { bg0: "#FF6F00", bg1: "#FFCA28", bg2: "#FF6F00", fg: "#3E2723", border: "#E65100", icon: "⟳", title: "9999.9" }
+        "":         { a: "#D4AF37", b: "#F6E27A", c: "#D4AF37", paper: "#f6eedc", ink: "#8B6914", icon: "★", title: "Milestone reached" },
+        "devil":    { a: "#7f0000", b: "#d32f2f", c: "#7f0000", paper: "#f7e9df", ink: "#8f1d20", icon: "☠", title: "666" },
+        "leet":     { a: "#00695C", b: "#00E676", c: "#00695C", paper: "#e7f5eb", ink: "#00695c", icon: "⚡", title: "L33T" },
+        "leet_rev": { a: "#004D40", b: "#64FFDA", c: "#004D40", paper: "#e5f3ef", ink: "#005747", icon: "⚡", title: "ELITE" },
+        "power2":   { a: "#0D47A1", b: "#64B5F6", c: "#0D47A1", paper: "#e9f0f7", ink: "#174887", icon: "◉", title: "2^10" },
+        "sequence": { a: "#E91E63", b: "#FFEB3B", c: "#2196F3", paper: "#f8eaf0", ink: "#9b245e", icon: "♫", title: "1.2.3.4.5" },
+        "boobs":    { a: "#F48FB1", b: "#FFE0EC", c: "#F48FB1", paper: "#f9eaf1", ink: "#9b305f", icon: "♥", title: "nice" },
+        "rollover": { a: "#FF6F00", b: "#FFCA28", c: "#FF6F00", paper: "#f8eed9", ink: "#aa4500", icon: "⟳", title: "9999.9" }
     })
     readonly property var theme: themeMap[tag] !== undefined ? themeMap[tag] : themeMap[""]
 
@@ -42,20 +38,23 @@ Item {
         target: odometerMilestoneService ? odometerMilestoneService : null
         function onMilestoneCelebrate(km, intens, tagIn) {
             if (!root.allowedScreen) {
-                // Skip to next queued item — overlay only renders on
-                // cluster/map.
-                Qt.callLater(function() {
-                    odometerMilestoneService.advanceCelebration()
-                })
+                Qt.callLater(function() { odometerMilestoneService.advanceCelebration() })
                 return
             }
             root.milestoneKm = km
             root.intensity = intens
             root.tag = tagIn
             root.active = true
-            var holdMs = Math.max(3500, 1800 + intens * 450 + 1500)
-            dismissTimer.interval = holdMs
+            dismissTimer.interval = Math.max(3500, 1800 + intens * 450 + 1500)
             dismissTimer.restart()
+        }
+        function onMilestoneDemoStarted(intens) {
+            // The menu returns only after both the ticket and the last
+            // confetti particles have cleared the screen.
+            demoResumeTimer.interval = Math.max(3500, 1800 + intens * 450 + 1500) + 300
+            demoResumeTimer.interval = Math.max(demoResumeTimer.interval,
+                                               Math.round(1800 + intens * 450) + 4000)
+            demoResumeTimer.restart()
         }
     }
 
@@ -63,7 +62,6 @@ Item {
         id: dismissTimer
         onTriggered: {
             root.active = false
-            // Give the exit animation a beat before the next banner pops in.
             Qt.callLater(function() {
                 if (typeof odometerMilestoneService !== "undefined")
                     odometerMilestoneService.advanceCelebration()
@@ -71,55 +69,130 @@ Item {
         }
     }
 
-    Rectangle {
-        id: card
-        width: Math.min(parent.width - 32, contentCol.implicitWidth + 60)
-        height: contentCol.implicitHeight + 36
-        radius: themeStore && themeStore.radiusCard !== undefined ? themeStore.radiusCard * 1.5 : 18
+    Timer {
+        id: demoResumeTimer
+        onTriggered: {
+            if (typeof menuStore !== "undefined")
+                menuStore.completeMilestoneDemo()
+        }
+    }
+
+    Item {
+        id: ticket
+        objectName: "milestoneTicket"
+        width: Math.min(parent.width - 32, 414)
+        height: 226
         anchors.centerIn: parent
-        transformOrigin: Item.Center
+        rotation: -2
         opacity: root.active ? 1 : 0
-        scale: root.active ? 1 : 0.6
+        scale: root.active ? 1 : 0.72
         visible: opacity > 0.01
 
-        gradient: Gradient {
-            orientation: Gradient.Horizontal
-            GradientStop { position: 0.0; color: root.theme.bg0 }
-            GradientStop { position: 0.5; color: root.theme.bg1 }
-            GradientStop { position: 1.0; color: root.theme.bg2 }
+        Rectangle {
+            x: 0; y: 10
+            width: parent.width; height: parent.height
+            radius: 8
+            color: "#99000000"
         }
 
-        border.color: root.theme.border
-        border.width: 2
+        Rectangle {
+            id: card
+            anchors.fill: parent
+            radius: 8
+            clip: true
+            color: root.theme.paper
+            border.color: "#55777777"
+            border.width: 1
 
-        Column {
-            id: contentCol
-            anchors.centerIn: parent
-            spacing: 6
+            Rectangle {
+                anchors.top: parent.top
+                width: parent.width / 3; height: 8
+                color: root.theme.a
+            }
+            Rectangle {
+                anchors.top: parent.top
+                x: parent.width / 3
+                width: parent.width / 3; height: 8
+                color: root.theme.b
+            }
+            Rectangle {
+                anchors.top: parent.top
+                x: parent.width * 2 / 3
+                width: parent.width / 3; height: 8
+                color: root.theme.c
+            }
 
             Text {
-                anchors.horizontalCenter: parent.horizontalCenter
+                x: 7; y: 110
                 text: root.theme.icon
-                color: root.theme.fg
-                font.pixelSize: 56
+                color: root.theme.ink
+                opacity: 0.13
+                font.pixelSize: 160
+                rotation: -12
+            }
+
+            Text {
+                x: 26; y: 27
+                text: root.theme.title.toUpperCase()
+                font.pixelSize: 13
+                font.weight: Font.Bold
+                font.letterSpacing: 1.5
+                color: root.theme.ink
             }
             Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: root.theme.title
-                color: root.theme.fg
-                font.pixelSize: themeStore && themeStore.fontTitle !== undefined ? themeStore.fontTitle : 22
-                font.weight: Font.Medium
+                anchors.right: parent.right
+                anchors.rightMargin: 27
+                y: 22
+                text: root.theme.icon
+                font.pixelSize: 26
+                color: root.theme.ink
             }
             Text {
-                anchors.horizontalCenter: parent.horizontalCenter
+                x: 26; y: 72
+                width: parent.width - 52; height: 80
                 text: root.formatKm(root.milestoneKm)
-                color: root.theme.fg
+                font.family: "Roboto Condensed"
                 font.pixelSize: 72
                 font.weight: Font.Bold
+                fontSizeMode: Text.Fit
+                minimumPixelSize: 54
+                color: "#202120"
+            }
+            Text {
+                x: 26; y: 151
+                text: "A little further every day"
+                font.pixelSize: 15
+                color: "#202120"
+            }
+            Repeater {
+                model: Math.max(0, Math.floor((card.width - 52) / 9))
+                Rectangle {
+                    x: 26 + index * 9; y: 185
+                    width: 5; height: 1
+                    color: "#66777777"
+                }
+            }
+            Text {
+                x: 26; y: 199
+                text: "MILESTONE"
+                font.pixelSize: 12
+                font.weight: Font.Bold
+                font.letterSpacing: 1
+                color: root.theme.ink
+            }
+            Text {
+                anchors.right: parent.right
+                anchors.rightMargin: 26
+                y: 199
+                text: root.formatKm(root.milestoneKm).toUpperCase()
+                font.pixelSize: 12
+                font.weight: Font.Bold
+                font.letterSpacing: 1
+                color: root.theme.ink
             }
         }
 
         Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
-        Behavior on scale   { NumberAnimation { duration: 420; easing.type: Easing.OutBack } }
+        Behavior on scale { NumberAnimation { duration: 420; easing.type: Easing.OutBack } }
     }
 }

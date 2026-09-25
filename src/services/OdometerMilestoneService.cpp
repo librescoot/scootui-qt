@@ -294,10 +294,10 @@ void OdometerMilestoneService::onOdometerChanged()
     enqueueAndCross(static_cast<double>(milestone), intensity, QString());
 }
 
-void OdometerMilestoneService::enqueueAndCross(double km, int intensity, const QString &tag)
+void OdometerMilestoneService::enqueueAndCross(double km, int intensity, const QString &tag, bool demo)
 {
     emit milestoneCrossed(km, intensity, tag);
-    m_queue.append({km, intensity, tag});
+    m_queue.append({km, intensity, tag, demo});
 
     // If the scooter is already parked when a milestone is crossed (e.g.
     // simulator scrub, manual odometer edit), kick off the celebration
@@ -335,6 +335,8 @@ void OdometerMilestoneService::startNextCelebration()
     const Pending next = m_queue.takeFirst();
     m_celebrating = true;
     qDebug() << "OdometerMilestone: celebrate" << next.km << "km tag" << next.tag;
+    if (next.demo)
+        emit milestoneDemoStarted(next.intensity);
     emit milestoneCelebrate(next.km, next.intensity, next.tag);
 }
 
@@ -357,7 +359,7 @@ void OdometerMilestoneService::celebrateRandomEasterEgg()
     // enqueueAndCross rather than a bare emit: it is the same path a real
     // crossing takes, so the queue and m_celebrating stay consistent, and it
     // deliberately leaves the fired set alone.
-    enqueueAndCross(egg.km, egg.intensity, QString::fromLatin1(egg.tag));
+    enqueueAndCross(egg.km, egg.intensity, QString::fromLatin1(egg.tag), true);
 }
 
 void OdometerMilestoneService::resetEasterEggs()
