@@ -476,9 +476,10 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     m_dataPartition = new DataPartition(this);
 
-    // Odometer milestone celebration (500 km, then every 1000 km)
+    // Odometer milestones at 10 km and every 100 km, plus one-shot easter eggs
     m_odometerMilestoneService = new OdometerMilestoneService(
         engineStore, vehicleStore, connectionStore, settingsStore, m_dataPartition, this);
+    m_odometerMilestoneService->setSettingsService(m_settingsService);
 
     // Map service (A2)
     m_mapService = new MapService(gpsStore, engineStore, m_navigationService,

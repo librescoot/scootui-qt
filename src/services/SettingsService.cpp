@@ -256,10 +256,27 @@ void SettingsService::updateMapAutoDownload(bool enabled)
                  enabled ? QStringLiteral("true") : QStringLiteral("false"));
 }
 
-void SettingsService::updateMilestoneCelebrations(bool enabled)
+void SettingsService::updateMilestoneMode(const QString &mode)
 {
-    writeSetting(QStringLiteral("dashboard.milestone-celebrations"),
-                 enabled ? QStringLiteral("true") : QStringLiteral("false"));
+    if (mode != QLatin1String("off") && mode != QLatin1String("regular")
+        && mode != QLatin1String("all")) return;
+    writeSetting(QStringLiteral("dashboard.milestones.mode"), mode);
+    if (m_settings && m_settings->legacyMilestoneEggsPending())
+        writeSetting(QStringLiteral("dashboard.milestones.legacy-eggs-pending"), QStringLiteral("false"));
+}
+
+void SettingsService::updateMilestonePresentation(const QString &presentation)
+{
+    if (presentation != QLatin1String("notice") && presentation != QLatin1String("banner")
+        && presentation != QLatin1String("banner-and-confetti")) return;
+    writeSetting(QStringLiteral("dashboard.milestones.presentation"), presentation);
+}
+
+void SettingsService::completeLegacyMilestoneEggsMigration(bool enabled)
+{
+    if (enabled)
+        writeSetting(QStringLiteral("dashboard.milestones.mode"), QStringLiteral("all"));
+    writeSetting(QStringLiteral("dashboard.milestones.legacy-eggs-pending"), QStringLiteral("false"));
 }
 
 void SettingsService::updateTripCounterReset(const QString &policy)

@@ -72,7 +72,8 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
     connect(m_settings, &SettingsStore::mapAutoDownloadChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::mapViewModeChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::mapNorthOrientedChanged, this, &MenuStore::rebuildMenuTree);
-    connect(m_settings, &SettingsStore::milestoneCelebrationsChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::milestoneModeChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::milestonePresentationChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::serviceActiveChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::tripCounterResetChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::tripExpungeChanged, this, &MenuStore::rebuildMenuTree);
@@ -251,8 +252,6 @@ void MenuStore::setOdometerMilestoneService(OdometerMilestoneService *svc)
 {
     m_odometerMilestone = svc;
     if (m_odometerMilestone) {
-        connect(m_odometerMilestone, &OdometerMilestoneService::easterEggsEnabledChanged,
-                this, &MenuStore::rebuildMenuTree);
         connect(m_odometerMilestone, &OdometerMilestoneService::firedEasterEggsChanged,
                 this, &MenuStore::rebuildMenuTree);
         connect(m_odometerMilestone, &OdometerMilestoneService::milestoneDemoStarted,
@@ -1265,14 +1264,23 @@ void MenuStore::rebuildMenuTree()
     // by a toggle.
     appearanceNode->addChild(statusBarNode);
 
-    // Milestone Celebrations (toggle): confetti + banner when passing a
-    // 500 km milestone or an easter-egg number. Off by default and the least
-    // consequential setting on the vehicle, so it goes last.
     {
-        bool milestonesOn = settings->milestoneCelebrations();
-        appearanceNode->addChild(MenuNode::setting(QStringLiteral("settings_milestones"),
-            tr->menuMilestones(), milestonesOn ? 1 : 0,
-            [svc, milestonesOn]() { svc->updateMilestoneCelebrations(!milestonesOn); }));
+        const QString mode = settings->milestoneMode();
+        appearanceNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_milestones"),
+            tr->menuMilestones(),
+            {
+                {tr->menuMilestoneOff(), [svc]() { svc->updateMilestoneMode(QStringLiteral("off")); }},
+                {tr->menuMilestoneRegular(), [svc]() { svc->updateMilestoneMode(QStringLiteral("regular")); }},
+                {tr->menuMilestoneAll(), [svc]() { svc->updateMilestoneMode(QStringLiteral("all")); }}
+            }, mode == QLatin1String("all") ? 2 : mode == QLatin1String("regular") ? 1 : 0));
+        const QString presentation = settings->milestonePresentation();
+        appearanceNode->addChild(MenuNode::cycleSetting(QStringLiteral("settings_milestone_presentation"),
+            tr->menuMilestonePresentation(),
+            {
+                {tr->menuMilestoneNotice(), [svc]() { svc->updateMilestonePresentation(QStringLiteral("notice")); }},
+                {tr->menuMilestoneBanner(), [svc]() { svc->updateMilestonePresentation(QStringLiteral("banner")); }},
+                {tr->menuMilestoneConfetti(), [svc]() { svc->updateMilestonePresentation(QStringLiteral("banner-and-confetti")); }}
+            }, presentation == QLatin1String("notice") ? 0 : presentation == QLatin1String("banner") ? 1 : 2));
     }
 
     // Alarm
@@ -1868,14 +1876,6 @@ void MenuStore::buildEasterEggs()
     }
 
     if (m_odometerMilestone) {
-        const bool eggs = m_odometerMilestone->easterEggsEnabled();
-        node->addChild(MenuNode::cycleSetting(QStringLiteral("egg_milestone_eggs"),
-            QStringLiteral("Milestone easter eggs"),
-            {
-                {QStringLiteral("On"), [this]() { m_odometerMilestone->setEasterEggsEnabled(true); }},
-                {QStringLiteral("Off"), [this]() { m_odometerMilestone->setEasterEggsEnabled(false); }},
-            }, eggs ? 0 : 1));
-
         node->addChild(MenuNode::action(QStringLiteral("egg_fire_random"),
             QStringLiteral("Fire a random easter egg"),
             [this]() { fireMilestoneDemo(); }));
@@ -1893,16 +1893,6 @@ void MenuStore::buildEasterEggs()
         node->addChild(reset);
     }
 
-    // The master switch: the service celebrates nothing while this is off.
-    if (m_settings && m_settingsService) {
-        const bool celebrations = m_settings->milestoneCelebrations();
-        node->addChild(MenuNode::cycleSetting(QStringLiteral("egg_celebrations"),
-            QStringLiteral("Confetti & banners"),
-            {
-                {QStringLiteral("On"), [this]() { m_settingsService->updateMilestoneCelebrations(true); }},
-                {QStringLiteral("Off"), [this]() { m_settingsService->updateMilestoneCelebrations(false); }},
-            }, celebrations ? 0 : 1));
-    }
 }
 
 void MenuStore::fireMilestoneDemo()

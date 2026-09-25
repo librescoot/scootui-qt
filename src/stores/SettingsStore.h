@@ -53,7 +53,9 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(bool mapCheckForUpdates READ mapCheckForUpdates NOTIFY mapCheckForUpdatesChanged)
     Q_PROPERTY(bool mapAutoDownload READ mapAutoDownload NOTIFY mapAutoDownloadChanged)
     Q_PROPERTY(bool mapTrafficOverlay READ mapTrafficOverlay NOTIFY mapTrafficOverlayChanged)
-    Q_PROPERTY(bool milestoneCelebrations READ milestoneCelebrations NOTIFY milestoneCelebrationsChanged)
+    Q_PROPERTY(QString milestoneMode READ milestoneMode NOTIFY milestoneModeChanged)
+    Q_PROPERTY(QString milestonePresentation READ milestonePresentation NOTIFY milestonePresentationChanged)
+    Q_PROPERTY(bool legacyMilestoneEggsPending READ legacyMilestoneEggsPending NOTIFY legacyMilestoneEggsPendingChanged)
     Q_PROPERTY(QString serviceActive READ serviceActive NOTIFY serviceActiveChanged)
     Q_PROPERTY(QString tripCounterReset READ tripCounterReset NOTIFY tripCounterResetChanged)
     Q_PROPERTY(QString tripExpunge READ tripExpunge NOTIFY tripExpungeChanged)
@@ -137,7 +139,9 @@ public:
     bool mapCheckForUpdates() const { return m_mapCheckForUpdates == QLatin1String("true"); }
     bool mapAutoDownload() const { return m_mapAutoDownload == QLatin1String("true"); }
     bool mapTrafficOverlay() const { return m_mapTrafficOverlay == QLatin1String("true"); }
-    bool milestoneCelebrations() const { return m_milestoneCelebrations == QLatin1String("true"); }
+    QString milestoneMode() const { return m_milestoneMode; }
+    QString milestonePresentation() const { return m_milestonePresentation; }
+    bool legacyMilestoneEggsPending() const { return m_legacyMilestoneEggsPending == QLatin1String("true"); }
     QString serviceActive() const { return m_serviceActive; }
     QString tripCounterReset() const { return m_tripCounterReset; }
     QString tripExpunge() const { return m_tripExpunge; }
@@ -230,7 +234,9 @@ signals:
     void mapCheckForUpdatesChanged();
     void mapAutoDownloadChanged();
     void mapTrafficOverlayChanged();
-    void milestoneCelebrationsChanged();
+    void milestoneModeChanged();
+    void milestonePresentationChanged();
+    void legacyMilestoneEggsPendingChanged();
     void serviceActiveChanged();
     void tripCounterResetChanged();
     void tripExpungeChanged();
@@ -363,8 +369,12 @@ private:
     QString m_mapAutoDownload = QStringLiteral("false");
     // @schema dashboard.map.traffic-overlay
     QString m_mapTrafficOverlay = QStringLiteral("false");
-    // @schema dashboard.milestone-celebrations
-    QString m_milestoneCelebrations = QStringLiteral("false");
+    // @schema dashboard.milestones.mode
+    QString m_milestoneMode = QStringLiteral("off");
+    // @schema dashboard.milestones.presentation
+    QString m_milestonePresentation = QStringLiteral("banner-and-confetti");
+    // @schema dashboard.milestones.legacy-eggs-pending
+    QString m_legacyMilestoneEggsPending = QStringLiteral("false");
     // Runtime status published by settings-service rather than a setting a
     // rider picks, so the schema has it user-visible false. Annotated anyway:
     // the marker records which key backs the field, and coverage only cares

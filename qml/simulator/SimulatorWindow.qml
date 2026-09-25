@@ -325,21 +325,32 @@ ApplicationWindow {
                                 RowLayout {
                                     Layout.fillWidth: true
                                     spacing: 4
-                                    SimLabel { text: "Easter" }
-                                    CheckBox {
-                                        checked: typeof odometerMilestoneService !== "undefined"
-                                                 && odometerMilestoneService.easterEggsEnabled
-                                        onToggled: {
-                                            if (typeof odometerMilestoneService !== "undefined")
-                                                odometerMilestoneService.easterEggsEnabled = checked
-                                        }
+                                    SimLabel { text: "Milestones" }
+                                    ComboBox {
+                                        model: ["Off", "Regular", "Regular + Easter eggs"]
+                                        currentIndex: settingsStore.milestoneMode === "all" ? 2
+                                                      : settingsStore.milestoneMode === "regular" ? 1 : 0
+                                        onActivated: index => settingsService.updateMilestoneMode(
+                                            ["off", "regular", "all"][index])
                                     }
                                     Text {
                                         Layout.fillWidth: true
-                                        text: "666, 1024, 1234.5, 1337, 3133.7, 8008.5, 9999.9"
+                                        text: "666, 696.9, 1024, 1234.5, 1337, 3133.7, 8008.5, 9999.9"
                                         color: "#888"
                                         font.pixelSize: 10
                                         wrapMode: Text.WordWrap
+                                    }
+                                }
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 4
+                                    SimLabel { text: "Display" }
+                                    ComboBox {
+                                        model: ["Notice", "Banner", "Banner + confetti"]
+                                        currentIndex: settingsStore.milestonePresentation === "notice" ? 0
+                                                      : settingsStore.milestonePresentation === "banner" ? 1 : 2
+                                        onActivated: index => settingsService.updateMilestonePresentation(
+                                            ["notice", "banner", "banner-and-confetti"][index])
                                     }
                                 }
                             }

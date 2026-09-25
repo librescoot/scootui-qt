@@ -188,7 +188,9 @@ SyncSettings SettingsStore::syncSettings() const
             {QStringLiteral("mapCheckForUpdates"), QStringLiteral("dashboard.maps.check-for-updates")},
             {QStringLiteral("mapAutoDownload"), QStringLiteral("dashboard.maps.auto-download")},
             {QStringLiteral("mapTrafficOverlay"), QStringLiteral("dashboard.map.traffic-overlay")},
-            {QStringLiteral("milestoneCelebrations"), QStringLiteral("dashboard.milestone-celebrations")},
+            {QStringLiteral("milestoneMode"), QStringLiteral("dashboard.milestones.mode")},
+        {QStringLiteral("milestonePresentation"), QStringLiteral("dashboard.milestones.presentation")},
+        {QStringLiteral("legacyMilestoneEggsPending"), QStringLiteral("dashboard.milestones.legacy-eggs-pending")},
             {QStringLiteral("serviceActive"), QStringLiteral("dashboard.service-mode-active")},
             {QStringLiteral("tripCounterReset"), QStringLiteral("trip.counter-reset")},
             {QStringLiteral("tripExpunge"), QStringLiteral("trip.expunge"), true},
@@ -304,8 +306,12 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
         if (value != m_mapAutoDownload) { m_mapAutoDownload = value; emit mapAutoDownloadChanged(); }
     } else if (variable == QLatin1String("dashboard.map.traffic-overlay")) {
         if (value != m_mapTrafficOverlay) { m_mapTrafficOverlay = value; emit mapTrafficOverlayChanged(); }
-    } else if (variable == QLatin1String("dashboard.milestone-celebrations")) {
-        if (value != m_milestoneCelebrations) { m_milestoneCelebrations = value; emit milestoneCelebrationsChanged(); }
+    } else if (variable == QLatin1String("dashboard.milestones.mode")) {
+        if (value != m_milestoneMode) { m_milestoneMode = value; emit milestoneModeChanged(); }
+    } else if (variable == QLatin1String("dashboard.milestones.presentation")) {
+        if (value != m_milestonePresentation) { m_milestonePresentation = value; emit milestonePresentationChanged(); }
+    } else if (variable == QLatin1String("dashboard.milestones.legacy-eggs-pending")) {
+        if (value != m_legacyMilestoneEggsPending) { m_legacyMilestoneEggsPending = value; emit legacyMilestoneEggsPendingChanged(); }
     } else if (variable == QLatin1String("dashboard.service-mode-active")) {
         if (value != m_serviceActive) {
             m_serviceActive = value;

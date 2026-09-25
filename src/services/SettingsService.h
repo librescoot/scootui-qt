@@ -50,7 +50,9 @@ public:
     Q_INVOKABLE void updateHopOnCombo(const QString &combo);
     Q_INVOKABLE void updateMapCheckForUpdates(bool enabled);
     Q_INVOKABLE void updateMapAutoDownload(bool enabled);
-    Q_INVOKABLE void updateMilestoneCelebrations(bool enabled);
+    Q_INVOKABLE void updateMilestoneMode(const QString &mode);
+    Q_INVOKABLE void updateMilestonePresentation(const QString &presentation);
+    void completeLegacyMilestoneEggsMigration(bool enabled);
     Q_INVOKABLE void updateTripCounterReset(const QString &policy);
     Q_INVOKABLE void updateTripExpunge(const QString &policy, const QString &value = {});
 

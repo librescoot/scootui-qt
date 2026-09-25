@@ -34,6 +34,9 @@ Item {
     readonly property var paletteDevil: dark
         ? ["#E53935", "#212121", "#FFEB3B"]
         : ["#B71C1C", "#4A0000", "#E65100"]
+    readonly property var paletteNice69: dark
+        ? ["#BA68C8", "#E1BEE7", "#FFFFFF"]
+        : ["#6A1B9A", "#AB47BC", "#7B1FA2"]
     readonly property var paletteLeet: dark
         ? ["#00E676", "#64FFDA", "#FFFFFF"]
         : ["#00695C", "#00B8D4", "#2E7D32"]
@@ -53,6 +56,7 @@ Item {
     readonly property var activePalette: {
         switch (tag) {
             case "devil":    return paletteDevil
+            case "nice69":   return paletteNice69
             case "leet":
             case "leet_rev": return paletteLeet
             case "power2":   return palettePower
@@ -67,6 +71,8 @@ Item {
         target: odometerMilestoneService ? odometerMilestoneService : null
         function onMilestoneDemoStarted() { root.demoOutstanding = true }
         function onMilestoneCelebrate(km, intens, tagIn) {
+            if (!root.demoOutstanding && typeof settingsStore !== "undefined" && settingsStore
+                && settingsStore.milestonePresentation !== "banner-and-confetti") return
             root.tag = tagIn
             root.intensity = intens
             sys.running = true

@@ -8,9 +8,12 @@
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <algorithm>
+#include <tuple>
 
 #define private public
 #include "core/Application.h"
+#include "core/DataPartition.h"
+#include "services/OdometerMilestoneService.h"
 #undef private
 #include "core/BootGate.h"
 #include "core/EnvConfig.h"
@@ -21,9 +24,9 @@
 #include "services/NavigationService.h"
 #undef private
 #include "services/NotificationService.h"
-#include "services/OdometerMilestoneService.h"
 #include "services/SettingsService.h"
 #include "stores/BatteryStore.h"
+#include "stores/ConnectionStore.h"
 #include "stores/EngineStore.h"
 #include "stores/MenuStore.h"
 #include "stores/SavedLocationsStore.h"
@@ -33,6 +36,7 @@
 #define private public
 #include "stores/TripStore.h"
 #undef private
+#include "stores/VehicleStore.h"
 
 QElapsedTimer g_bootTimer;
 
@@ -480,6 +484,210 @@ private slots:
         QTRY_VERIFY(mainId() != QStringLiteral("navigation-hop-parked"));
     }
 
+    void milestoneCadenceAndIntensity()
+    {
+        QCOMPARE(OdometerMilestoneService::milestoneForKm(9.9), 0);
+        QCOMPARE(OdometerMilestoneService::milestoneForKm(10.0), 10);
+        QCOMPARE(OdometerMilestoneService::milestoneForKm(99.9), 10);
+        QCOMPARE(OdometerMilestoneService::milestoneForKm(100.0), 100);
+        QCOMPARE(OdometerMilestoneService::milestoneForKm(199.9), 100);
+        QCOMPARE(OdometerMilestoneService::milestoneForKm(200.0), 200);
+        QCOMPARE(OdometerMilestoneService::milestoneForKm(696.9), 600);
+        QCOMPARE(OdometerMilestoneService::milestoneForKm(700.0), 700);
+        QCOMPARE(OdometerMilestoneService::milestoneForKm(5000.0), 5000);
+        QCOMPARE(OdometerMilestoneService::intensityForMilestone(10), 1);
+        QCOMPARE(OdometerMilestoneService::intensityForMilestone(100), 1);
+        QCOMPARE(OdometerMilestoneService::intensityForMilestone(500), 1);
+        QCOMPARE(OdometerMilestoneService::intensityForMilestone(1000), 2);
+        QCOMPARE(OdometerMilestoneService::intensityForMilestone(5000), 10);
+    }
+
+    void milestoneCrossingsUseNewCadenceAndEgg()
+    {
+        DataPartition unmounted;
+        unmounted.m_mounted = false;
+        OdometerMilestoneService schedule(context<EngineStore>("engineStore"),
+                                         context<VehicleStore>("vehicleStore"),
+                                         context<ConnectionStore>("connectionStore"),
+                                         context<SettingsStore>("settingsStore"),
+                                         &unmounted);
+        schedule.m_settleTimer->stop();
+        schedule.m_settled = true;
+        schedule.m_lastCelebrated = 0;
+        schedule.m_lastOdoKm = 9.9;
+        auto *repo = m_application->m_repository.get();
+        repo->set("settings", "dashboard.milestones.mode", "all");
+        QSignalSpy crossed(&schedule, &OdometerMilestoneService::milestoneCrossed);
+
+        repo->set("engine-ecu", "odometer", "10000");
+        QTRY_COMPARE(crossed.size(), 1);
+        QCOMPARE(crossed.last().at(0).toDouble(), 10.0);
+        QCOMPARE(crossed.last().at(1).toInt(), 1);
+        schedule.advanceCelebration();
+        repo->set("engine-ecu", "odometer", "99900");
+        repo->set("engine-ecu", "odometer", "100000");
+        QTRY_COMPARE(crossed.size(), 2);
+        QCOMPARE(crossed.last().at(0).toDouble(), 100.0);
+        QCOMPARE(crossed.last().at(1).toInt(), 1);
+        schedule.advanceCelebration();
+        schedule.m_lastCelebrated = 600;
+        schedule.m_lastOdoKm = 696.8;
+        repo->set("engine-ecu", "odometer", "696900");
+        QTRY_COMPARE(crossed.size(), 3);
+        QCOMPARE(crossed.last().at(0).toDouble(), 696.9);
+        QCOMPARE(crossed.last().at(2).toString(), QStringLiteral("nice69"));
+        QVERIFY(schedule.m_pendingWrites.contains(schedule.firedEggsPath()));
+    }
+
+    void milestoneModesAndPresentation()
+    {
+        DataPartition unmounted;
+        unmounted.m_mounted = false;
+        OdometerMilestoneService schedule(context<EngineStore>("engineStore"),
+                                         context<VehicleStore>("vehicleStore"),
+                                         context<ConnectionStore>("connectionStore"),
+                                         context<SettingsStore>("settingsStore"),
+                                         &unmounted);
+        schedule.m_settleTimer->stop();
+        schedule.m_settled = true;
+        schedule.m_lastCelebrated = 0;
+        schedule.m_lastOdoKm = 9.9;
+        auto *repo = m_application->m_repository.get();
+        QSignalSpy crossed(&schedule, &OdometerMilestoneService::milestoneCrossed);
+        QSignalSpy celebrated(&schedule, &OdometerMilestoneService::milestoneCelebrate);
+
+        repo->set("settings", "dashboard.milestones.mode", "off");
+        repo->set("engine-ecu", "odometer", "10000");
+        QTRY_COMPARE(schedule.m_lastCelebrated, 10);
+        QCOMPARE(crossed.size(), 0);
+        repo->set("settings", "dashboard.milestones.mode", "regular");
+        repo->set("settings", "dashboard.milestones.presentation", "notice");
+        repo->set("engine-ecu", "odometer", "100000");
+        QTRY_COMPARE(crossed.size(), 1);
+        QCOMPARE(crossed.last().at(0).toDouble(), 100.0);
+        QCOMPARE(celebrated.size(), 0);
+        QCOMPARE(schedule.m_queue.size(), 0);
+
+        schedule.m_lastCelebrated = 600;
+        schedule.m_lastOdoKm = 696.8;
+        repo->set("engine-ecu", "odometer", "696900");
+        QTest::qWait(100);
+        QCOMPARE(crossed.size(), 1);
+        repo->set("settings", "dashboard.milestones.mode", "all");
+        repo->set("settings", "dashboard.milestones.presentation", "banner");
+        schedule.m_lastOdoKm = 696.8;
+        repo->set("engine-ecu", "odometer", "696800");
+        repo->set("engine-ecu", "odometer", "696900");
+        QTRY_COMPARE(crossed.size(), 2);
+        QCOMPARE(crossed.last().at(2).toString(), QStringLiteral("nice69"));
+        QTRY_VERIFY(celebrated.size() > 0 || !schedule.m_queue.isEmpty());
+    }
+
+    void milestoneTicketSublineMatchesEvent()
+    {
+        auto *milestones = m_application->m_odometerMilestoneService;
+        QVERIFY(milestones);
+        m_engine->load(QUrl("qrc:/ScootUI/qml/Main.qml"));
+        QVERIFY(!m_engine->rootObjects().isEmpty());
+        auto *window = qobject_cast<QQuickWindow *>(m_engine->rootObjects().first());
+        QVERIFY(window);
+        QVERIFY(QTest::qWaitForWindowExposed(window));
+        QObject *subline = nullptr;
+        QTRY_VERIFY_WITH_TIMEOUT((subline = window->findChild<QObject *>("milestoneSubline")) != nullptr, 5000);
+        auto *ticket = window->findChild<QQuickItem *>("milestoneTicket");
+        QVERIFY(ticket);
+        QTest::qWait(100);
+        milestones->milestoneCelebrate(10.0, 1, {});
+        QTRY_VERIFY_WITH_TIMEOUT(ticket->opacity() > 0.99, 1500);
+        QCOMPARE(subline->property("text").toString(), QStringLiteral("Getting your ride on"));
+        const QStringList regular = {
+            "The road is opening up", "Rolling right along", "Another stretch well traveled",
+            "Your wheels know the way", "One more chapter on the road", "The journey keeps rolling",
+            "Plenty more roads ahead", "That was worth the ride", "The long way looks good on you",
+            "There's more around the bend", "Good roads make good stories", "Here's to the next hundred"
+        };
+        for (int i = 0; i < regular.size(); ++i) {
+            milestones->milestoneCelebrate((i + 1) * 100.0, 1, {});
+            QTRY_COMPARE(subline->property("text").toString(), regular[i]);
+        }
+        milestones->milestoneCelebrate(1300.0, 1, {});
+        QCOMPARE(subline->property("text").toString(), regular.first());
+
+        for (const auto &[km, tag, expected] : {
+                 std::tuple{666.0, "devil", "A hell of a ride"},
+                 std::tuple{696.9, "nice69", "nice"},
+                 std::tuple{1234.5, "sequence", "Easy as pie"},
+                 std::tuple{8008.5, "boobs", "We saw that"} }) {
+            milestones->milestoneCelebrate(km, 5, QString::fromLatin1(tag));
+            QCOMPARE(subline->property("text").toString(), QString::fromLatin1(expected));
+        }
+        milestones->milestoneCelebrate(696.9, 5, QStringLiteral("nice69"));
+        capture(window, "milestone-6969");
+    }
+
+    void regularMilestoneBadgesCarryEveryFive()
+    {
+        m_engine->load(QUrl("qrc:/ScootUI/qml/Main.qml"));
+        QVERIFY(!m_engine->rootObjects().isEmpty());
+        auto *window = qobject_cast<QQuickWindow *>(m_engine->rootObjects().first());
+        QVERIFY(window);
+        QVERIFY(QTest::qWaitForWindowExposed(window));
+        QObject *badges = nullptr;
+        QTRY_VERIFY_WITH_TIMEOUT((badges = window->findChild<QObject *>("milestoneBadges")) != nullptr, 5000);
+        auto *ticket = window->findChild<QQuickItem *>("milestoneTicket");
+        QVERIFY(ticket);
+        QTest::qWait(150);
+        auto *milestones = m_application->m_odometerMilestoneService;
+        for (const auto &[km, counts] : {
+                 std::pair{100.0, QList<int>{}},
+                 std::pair{500.0, QList<int>{1}},
+                 std::pair{1000.0, QList<int>{2}},
+                 std::pair{2400.0, QList<int>{4}},
+                 std::pair{2500.0, QList<int>{1}},
+                 std::pair{6000.0, QList<int>{2, 2}},
+                 std::pair{12500.0, QList<int>{1}},
+                 std::pair{62500.0, QList<int>{1}},
+                 std::pair{312500.0, QList<int>{5}} }) {
+            milestones->milestoneCelebrate(km, 1, {});
+            QTRY_COMPARE(badges->property("tiers").toList().size(), counts.size());
+            for (int i = 0; i < counts.size(); ++i)
+                QTRY_COMPARE(badges->property("tiers").toList()[i].toMap().value("count").toInt(), counts[i]);
+            const QVariantList tiers = badges->property("tiers").toList();
+            if (km == 6000.0) {
+                QCOMPARE(tiers[0].toMap().value("color").toString(), QStringLiteral("#687786"));
+                QCOMPARE(tiers[1].toMap().value("color").toString(), QStringLiteral("#90532F"));
+                QTRY_VERIFY_WITH_TIMEOUT(ticket->opacity() > 0.99, 1500);
+                capture(window, "milestone-badges-6000");
+            }
+            if (km == 62500.0)
+                QCOMPARE(tiers[0].toMap().value("symbol").toString(), QStringLiteral("◆"));
+        }
+        milestones->milestoneCelebrate(666.0, 5, QStringLiteral("devil"));
+        QTRY_COMPARE(badges->property("tiers").toList().size(), 0);
+    }
+
+    void milestonePresentationControlsConfetti()
+    {
+        m_engine->load(QUrl("qrc:/ScootUI/qml/Main.qml"));
+        QVERIFY(!m_engine->rootObjects().isEmpty());
+        auto *window = qobject_cast<QQuickWindow *>(m_engine->rootObjects().first());
+        QVERIFY(window);
+        QVERIFY(QTest::qWaitForWindowExposed(window));
+        QObject *particles = nullptr;
+        QTRY_VERIFY_WITH_TIMEOUT((particles = window->findChild<QObject *>("milestoneConfettiSystem")) != nullptr, 5000);
+        auto *repo = m_application->m_repository.get();
+        repo->set("settings", "dashboard.milestones.presentation", "banner");
+        QTRY_COMPARE(context<SettingsStore>("settingsStore")->milestonePresentation(), QStringLiteral("banner"));
+        m_application->m_odometerMilestoneService->milestoneCelebrate(500.0, 1, {});
+        QTest::qWait(150);
+        QVERIFY(!particles->property("running").toBool());
+
+        repo->set("settings", "dashboard.milestones.presentation", "banner-and-confetti");
+        QTRY_COMPARE(context<SettingsStore>("settingsStore")->milestonePresentation(), QStringLiteral("banner-and-confetti"));
+        m_application->m_odometerMilestoneService->milestoneCelebrate(1000.0, 2, {});
+        QTRY_VERIFY(particles->property("running").toBool());
+    }
+
     void easterEggDemoRestoresMenuSelection()
     {
         auto *menu = context<MenuStore>("menuStore");
@@ -536,6 +744,10 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT((ticket = window->findChild<QQuickItem *>("milestoneTicket")) != nullptr, 5000);
         QObject *particles = nullptr;
         QTRY_VERIFY_WITH_TIMEOUT((particles = window->findChild<QObject *>("milestoneConfettiSystem")) != nullptr, 5000);
+        auto *repo = m_application->m_repository.get();
+        repo->set("settings", "dashboard.milestones.mode", "off");
+        repo->set("settings", "dashboard.milestones.presentation", "notice");
+        QTRY_COMPARE(context<SettingsStore>("settingsStore")->milestonePresentation(), QStringLiteral("notice"));
 
         menu->openEasterEggs();
         const auto items = menu->currentItems();

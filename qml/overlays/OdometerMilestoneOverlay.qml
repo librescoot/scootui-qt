@@ -22,6 +22,7 @@ Item {
     readonly property var themeMap: ({
         "":         { bg0: "#D4AF37", bg1: "#F6E27A", bg2: "#D4AF37", fg: "#1a1200", border: "#8B6914", icon: "★", title: "Milestone" },
         "devil":    { bg0: "#7f0000", bg1: "#d32f2f", bg2: "#7f0000", fg: "#fff3b0", border: "#3a0000", icon: "☠", title: "666" },
+        "nice69":   { bg0: "#8E24AA", bg1: "#E1BEE7", bg2: "#8E24AA", fg: "#311B40", border: "#6A1B9A", icon: "♥", title: "696.9" },
         "leet":     { bg0: "#00695C", bg1: "#00E676", bg2: "#00695C", fg: "#002814", border: "#004D40", icon: "⚡", title: "L33T" },
         "leet_rev": { bg0: "#004D40", bg1: "#64FFDA", bg2: "#004D40", fg: "#002814", border: "#003830", icon: "⚡", title: "ELITE" },
         "power2":   { bg0: "#0D47A1", bg1: "#64B5F6", bg2: "#0D47A1", fg: "#E3F2FD", border: "#082C66", icon: "◉", title: "2^10" },

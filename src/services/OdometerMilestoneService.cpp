@@ -4,6 +4,7 @@
 #include "stores/VehicleStore.h"
 #include "stores/ConnectionStore.h"
 #include "stores/SettingsStore.h"
+#include "services/SettingsService.h"
 #include "models/Enums.h"
 #include "core/DataPartition.h"
 
@@ -35,11 +36,10 @@ struct EasterEgg {
     int intensity;
 };
 
-// One-shot easter eggs. Fractional km values that users will roll past
-// naturally. Not persisted, so they can repeat across app restarts if the
-// user somehow hits them again (e.g. simulator play).
+// One-shot easter eggs. The fired tags are persisted per vehicle.
 constexpr EasterEgg kEasterEggs[] = {
     {  666.0, "devil",    5 },
+    {  696.9, "nice69",   5 },
     { 1024.0, "power2",   5 },
     { 1234.5, "sequence", 5 },
     { 1337.0, "leet",     6 },
@@ -123,12 +123,24 @@ OdometerMilestoneService::OdometerMilestoneService(EngineStore *engineStore,
     else
         connect(m_dataPartition, &DataPartition::becameMounted,
                 this, &OdometerMilestoneService::onDataMounted);
-    // If the rider turns celebrations off mid-ride, drop anything queued for
-    // the next park so it doesn't fire later.
     if (m_settingsStore) {
-        connect(m_settingsStore, &SettingsStore::milestoneCelebrationsChanged,
+        connect(m_settingsStore, &SettingsStore::milestoneModeChanged, this, [this]() {
+            const QString mode = milestoneMode();
+            if (mode == QLatin1String("off"))
+                m_queue.removeIf([](const Pending &entry) { return !entry.demo; });
+            else if (mode == QLatin1String("regular"))
+                m_queue.removeIf([](const Pending &entry) { return !entry.demo && !entry.tag.isEmpty(); });
+            migrateLegacyEasterEggs();
+        });
+        connect(m_settingsStore, &SettingsStore::milestonePresentationChanged, this, [this]() {
+            if (milestonePresentation() == QLatin1String("notice"))
+                m_queue.removeIf([](const Pending &entry) { return !entry.demo; });
+        });
+        connect(m_settingsStore, &SettingsStore::legacyMilestoneEggsPendingChanged,
                 this, [this]() {
-                    if (!m_settingsStore->milestoneCelebrations()) m_queue.clear();
+                    if (!m_settingsStore->legacyMilestoneEggsPending())
+                        m_legacyMigrationInFlight = false;
+                    migrateLegacyEasterEggs();
                 });
     }
     connect(m_engineStore, &EngineStore::odometerChanged,
@@ -189,13 +201,6 @@ void OdometerMilestoneService::loadPersistedState()
         m_lastCelebrated = loadLastMilestone();
     if (!m_pendingWrites.contains(firedEggsPath()))
         m_firedEasterEggs = loadFiredEasterEggs();
-    if (!m_pendingWrites.contains(easterEggsPath())) {
-        const bool enabled = loadEasterEggsEnabled();
-        if (enabled != m_easterEggsEnabled) {
-            m_easterEggsEnabled = enabled;
-            emit easterEggsEnabledChanged();
-        }
-    }
 }
 
 void OdometerMilestoneService::onDataMounted()
@@ -204,6 +209,7 @@ void OdometerMilestoneService::onDataMounted()
     for (auto it = m_pendingWrites.cbegin(); it != m_pendingWrites.cend(); ++it)
         writeFileAtomic(it.key(), it.value());
     m_pendingWrites.clear();
+    migrateLegacyEasterEggs();
     qDebug() << "OdometerMilestone: /data mounted, baseline" << m_lastCelebrated << "km";
     trySettle();
 }
@@ -218,16 +224,16 @@ void OdometerMilestoneService::persist(const QString &path, const QByteArray &co
 
 int OdometerMilestoneService::milestoneForKm(double km)
 {
-    if (km < 500.0) return 0;
-    return static_cast<int>(std::floor(km / 500.0)) * 500;
+    if (km < 10.0) return 0;
+    if (km < 100.0) return 10;
+    return static_cast<int>(std::floor(km / 100.0)) * 100;
 }
 
 int OdometerMilestoneService::intensityForMilestone(int milestoneKm)
 {
     if (milestoneKm <= 0) return 0;
-    // 500 → 1, 1000 → 2, 2500 → 5, 5000 → 10 (capped).
-    int base = milestoneKm / 500;
-    return std::min(base, kIntensityCap);
+    // Early milestones start at intensity 1; intensity caps at 5000 km.
+    return std::clamp(milestoneKm / 500, 1, kIntensityCap);
 }
 
 void OdometerMilestoneService::onOdometerChanged()
@@ -253,10 +259,10 @@ void OdometerMilestoneService::onOdometerChanged()
     const double prevKm = m_lastOdoKm;
     m_lastOdoKm = odoKm;
 
-    // Master off-switch: suppress all output (milestones, toast, easter
-    // eggs) but keep the baseline current so flipping it back on later
-    // celebrates future crossings, not the ones passed while it was off.
-    if (!celebrationsEnabled()) {
+    // Keep the baseline current while off so later activation never replays
+    // crossings that occurred without milestone output.
+    const QString mode = milestoneMode();
+    if (mode == QLatin1String("off")) {
         const int m = milestoneForKm(odoKm);
         if (m > m_lastCelebrated) {
             m_lastCelebrated = m;
@@ -269,7 +275,7 @@ void OdometerMilestoneService::onOdometerChanged()
     }
 
     // Easter eggs first — fire on upward crossing of the exact value.
-    if (m_easterEggsEnabled)
+    if (mode == QLatin1String("all"))
     for (const auto &egg : kEasterEggs) {
         QString tag = QString::fromLatin1(egg.tag);
         if (m_firedEasterEggs.contains(tag)) continue;
@@ -297,6 +303,7 @@ void OdometerMilestoneService::onOdometerChanged()
 void OdometerMilestoneService::enqueueAndCross(double km, int intensity, const QString &tag, bool demo)
 {
     emit milestoneCrossed(km, intensity, tag);
+    if (!demo && milestonePresentation() == QLatin1String("notice")) return;
     m_queue.append({km, intensity, tag, demo});
 
     // If the scooter is already parked when a milestone is crossed (e.g.
@@ -371,17 +378,39 @@ void OdometerMilestoneService::resetEasterEggs()
     emit firedEasterEggsChanged();
 }
 
-bool OdometerMilestoneService::celebrationsEnabled() const
+QString OdometerMilestoneService::milestoneMode() const
 {
-    return !m_settingsStore || m_settingsStore->milestoneCelebrations();
+    return m_settingsStore ? m_settingsStore->milestoneMode() : QStringLiteral("all");
 }
 
-void OdometerMilestoneService::setEasterEggsEnabled(bool enabled)
+QString OdometerMilestoneService::milestonePresentation() const
 {
-    if (enabled == m_easterEggsEnabled) return;
-    m_easterEggsEnabled = enabled;
-    saveEasterEggsEnabled(enabled);
-    emit easterEggsEnabledChanged();
+    return m_settingsStore ? m_settingsStore->milestonePresentation() : QStringLiteral("banner-and-confetti");
+}
+
+void OdometerMilestoneService::setSettingsService(SettingsService *service)
+{
+    m_settingsService = service;
+    migrateLegacyEasterEggs();
+}
+
+void OdometerMilestoneService::migrateLegacyEasterEggs()
+{
+    if (!m_settingsStore || !m_settingsService || !dataReady()
+        || !m_settingsStore->legacyMilestoneEggsPending() || m_legacyMigrationInFlight) return;
+    if (milestoneMode() == QLatin1String("all")) {
+        m_legacyMigrationInFlight = true;
+        m_settingsService->completeLegacyMilestoneEggsMigration(false);
+        return;
+    }
+    if (milestoneMode() != QLatin1String("regular")) return;
+    QFile f(easterEggsPath());
+    if (f.exists() && !f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "OdometerMilestone: cannot read legacy easter-egg preference";
+        return;
+    }
+    m_legacyMigrationInFlight = true;
+    m_settingsService->completeLegacyMilestoneEggsMigration(f.isOpen() && f.readAll().trimmed() == "1");
 }
 
 QString OdometerMilestoneService::easterEggsPath() const
@@ -392,19 +421,6 @@ QString OdometerMilestoneService::easterEggsPath() const
     const QString dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     return dir + QStringLiteral("/easter-eggs");
 #endif
-}
-
-bool OdometerMilestoneService::loadEasterEggsEnabled() const
-{
-    QFile f(easterEggsPath());
-    if (!f.exists()) return false;
-    if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) return false;
-    return f.readAll().trimmed() == "1";
-}
-
-void OdometerMilestoneService::saveEasterEggsEnabled(bool enabled)
-{
-    persist(easterEggsPath(), enabled ? QByteArrayLiteral("1\n") : QByteArrayLiteral("0\n"));
 }
 
 QString OdometerMilestoneService::firedEggsPath() const

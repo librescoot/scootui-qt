@@ -254,6 +254,13 @@ class Translations : public QObject
     Q_PROPERTY(QString menuMapUpdateCheck READ menuMapUpdateCheck NOTIFY languageChanged)
     Q_PROPERTY(QString menuMapAutoDownload READ menuMapAutoDownload NOTIFY languageChanged)
     Q_PROPERTY(QString menuMilestones READ menuMilestones NOTIFY languageChanged)
+    Q_PROPERTY(QString menuMilestonePresentation READ menuMilestonePresentation NOTIFY languageChanged)
+    Q_PROPERTY(QString menuMilestoneOff READ menuMilestoneOff NOTIFY languageChanged)
+    Q_PROPERTY(QString menuMilestoneRegular READ menuMilestoneRegular NOTIFY languageChanged)
+    Q_PROPERTY(QString menuMilestoneAll READ menuMilestoneAll NOTIFY languageChanged)
+    Q_PROPERTY(QString menuMilestoneNotice READ menuMilestoneNotice NOTIFY languageChanged)
+    Q_PROPERTY(QString menuMilestoneBanner READ menuMilestoneBanner NOTIFY languageChanged)
+    Q_PROPERTY(QString menuMilestoneConfetti READ menuMilestoneConfetti NOTIFY languageChanged)
     Q_PROPERTY(QString menuBlinker READ menuBlinker NOTIFY languageChanged)
     Q_PROPERTY(QString menuBlinkerHeader READ menuBlinkerHeader NOTIFY languageChanged)
     Q_PROPERTY(QString menuDbcBlinkerLed READ menuDbcBlinkerLed NOTIFY languageChanged)
@@ -952,6 +959,13 @@ public:
     QString menuMapUpdateCheck() const { return lookup("menuMapUpdateCheck"); }
     QString menuMapAutoDownload() const { return lookup("menuMapAutoDownload"); }
     QString menuMilestones() const { return lookup("menuMilestones"); }
+    QString menuMilestonePresentation() const { return lookup("menuMilestonePresentation"); }
+    QString menuMilestoneOff() const { return lookup("menuMilestoneOff"); }
+    QString menuMilestoneRegular() const { return lookup("menuMilestoneRegular"); }
+    QString menuMilestoneAll() const { return lookup("menuMilestoneAll"); }
+    QString menuMilestoneNotice() const { return lookup("menuMilestoneNotice"); }
+    QString menuMilestoneBanner() const { return lookup("menuMilestoneBanner"); }
+    QString menuMilestoneConfetti() const { return lookup("menuMilestoneConfetti"); }
     QString menuBlinker() const { return lookup("menuBlinker"); }
     QString menuBlinkerHeader() const { return lookup("menuBlinkerHeader"); }
     QString menuDbcBlinkerLed() const { return lookup("menuDbcBlinkerLed"); }

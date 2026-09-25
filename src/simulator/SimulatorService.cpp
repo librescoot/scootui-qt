@@ -1484,7 +1484,9 @@ void SimulatorService::applyDefaults()
     setSetting(QStringLiteral("dashboard.maps.check-for-updates"), QStringLiteral("false"));
     setSetting(QStringLiteral("dashboard.maps.auto-download"), QStringLiteral("false"));
     setSetting(QStringLiteral("dashboard.map.traffic-overlay"), QStringLiteral("false"));
-    setSetting(QStringLiteral("dashboard.milestone-celebrations"), QStringLiteral("true"));
+    setSetting(QStringLiteral("dashboard.milestones.mode"), QStringLiteral("all"));
+    setSetting(QStringLiteral("dashboard.milestones.presentation"), QStringLiteral("banner-and-confetti"));
+    setSetting(QStringLiteral("dashboard.milestones.legacy-eggs-pending"), QStringLiteral("false"));
     setSetting(QStringLiteral("dashboard.service-mode-active"), QStringLiteral("false"));
 
     // OTA. Both boards get the same value, the way SettingsService writes them.

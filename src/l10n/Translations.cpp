@@ -688,8 +688,22 @@ void Translations::initStrings()
 
     en[QStringLiteral("menuMapAutoDownload")] = QStringLiteral("Auto-download Maps");
     de[QStringLiteral("menuMapAutoDownload")] = QStringLiteral("Karten auto. laden");
-    en[QStringLiteral("menuMilestones")] = QStringLiteral("Milestone Celebrations");
-    de[QStringLiteral("menuMilestones")] = QStringLiteral("Meilensteine feiern");
+    en[QStringLiteral("menuMilestones")] = QStringLiteral("Milestones");
+    de[QStringLiteral("menuMilestones")] = QStringLiteral("Meilensteine");
+    en[QStringLiteral("menuMilestonePresentation")] = QStringLiteral("Milestone presentation");
+    de[QStringLiteral("menuMilestonePresentation")] = QStringLiteral("Meilenstein-Darstellung");
+    en[QStringLiteral("menuMilestoneOff")] = QStringLiteral("Off");
+    de[QStringLiteral("menuMilestoneOff")] = QStringLiteral("Aus");
+    en[QStringLiteral("menuMilestoneRegular")] = QStringLiteral("Regular");
+    de[QStringLiteral("menuMilestoneRegular")] = QStringLiteral("Regulär");
+    en[QStringLiteral("menuMilestoneAll")] = QStringLiteral("Regular + Easter eggs");
+    de[QStringLiteral("menuMilestoneAll")] = QStringLiteral("Regulär + Easter Eggs");
+    en[QStringLiteral("menuMilestoneNotice")] = QStringLiteral("Small notice");
+    de[QStringLiteral("menuMilestoneNotice")] = QStringLiteral("Kleiner Hinweis");
+    en[QStringLiteral("menuMilestoneBanner")] = QStringLiteral("Banner");
+    de[QStringLiteral("menuMilestoneBanner")] = QStringLiteral("Banner");
+    en[QStringLiteral("menuMilestoneConfetti")] = QStringLiteral("Banner + confetti");
+    de[QStringLiteral("menuMilestoneConfetti")] = QStringLiteral("Banner + Konfetti");
 
     // -----------------------------------------------------------------------
     // Menu headers
