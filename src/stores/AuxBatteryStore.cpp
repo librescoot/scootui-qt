@@ -36,6 +36,9 @@ void AuxBatteryStore::applyFieldUpdate(const QString &variable, const QString &v
             if (v != m_charge) { m_charge = v; emit chargeChanged(); }
         }
     } else if (variable == QLatin1String("charge-status")) {
+        if (value.isEmpty())
+            return;
+        if (!m_chargeStatusValid) { m_chargeStatusValid = true; emit chargeStatusValidChanged(); }
         auto v = ScootEnums::parseAuxChargeStatus(value);
         if (v != m_chargeStatus) { m_chargeStatus = v; emit chargeStatusChanged(); }
     }

@@ -164,6 +164,13 @@ class Translations : public QObject
     Q_PROPERTY(QString infoHealth READ infoHealth NOTIFY languageChanged)
     Q_PROPERTY(QString infoCharge READ infoCharge NOTIFY languageChanged)
     Q_PROPERTY(QString infoChargeEstimated READ infoChargeEstimated NOTIFY languageChanged)
+    Q_PROPERTY(QString infoChargingStatus READ infoChargingStatus NOTIFY languageChanged)
+    Q_PROPERTY(QString infoCharging READ infoCharging NOTIFY languageChanged)
+    Q_PROPERTY(QString infoNotCharging READ infoNotCharging NOTIFY languageChanged)
+    Q_PROPERTY(QString infoUnknown READ infoUnknown NOTIFY languageChanged)
+    Q_PROPERTY(QString infoFloatCharge READ infoFloatCharge NOTIFY languageChanged)
+    Q_PROPERTY(QString infoAbsorptionCharge READ infoAbsorptionCharge NOTIFY languageChanged)
+    Q_PROPERTY(QString infoBulkCharge READ infoBulkCharge NOTIFY languageChanged)
     Q_PROPERTY(QString infoVoltage READ infoVoltage NOTIFY languageChanged)
     Q_PROPERTY(QString infoFirmware READ infoFirmware NOTIFY languageChanged)
     Q_PROPERTY(QString infoManufactured READ infoManufactured NOTIFY languageChanged)
@@ -853,6 +860,13 @@ public:
     QString infoHealth() const { return lookup("infoHealth"); }
     QString infoCharge() const { return lookup("infoCharge"); }
     QString infoChargeEstimated() const { return lookup("infoChargeEstimated"); }
+    QString infoChargingStatus() const { return lookup("infoChargingStatus"); }
+    QString infoCharging() const { return lookup("infoCharging"); }
+    QString infoNotCharging() const { return lookup("infoNotCharging"); }
+    QString infoUnknown() const { return lookup("infoUnknown"); }
+    QString infoFloatCharge() const { return lookup("infoFloatCharge"); }
+    QString infoAbsorptionCharge() const { return lookup("infoAbsorptionCharge"); }
+    QString infoBulkCharge() const { return lookup("infoBulkCharge"); }
     QString infoVoltage() const { return lookup("infoVoltage"); }
     QString infoFirmware() const { return lookup("infoFirmware"); }
     QString infoManufactured() const { return lookup("infoManufactured"); }

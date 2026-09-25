@@ -192,12 +192,32 @@ Rectangle {
     readonly property var battery1Rows: typeof battery1Store !== "undefined"
                                         ? (void systemInfoScreen.lang, packRows(battery1Store)) : []
 
+    function auxChargingStatus(status) {
+        switch (status) {
+        case 0: return t("infoNotCharging", "Not charging")
+        case 1: return t("infoFloatCharge", "Float charge")
+        case 2: return t("infoAbsorptionCharge", "Absorption charge")
+        case 3: return t("infoBulkCharge", "Bulk charge")
+        default: return ""
+        }
+    }
+
+    function cbbChargingStatus(status) {
+        switch (status) {
+        case 0: return t("infoCharging", "Charging")
+        case 1: return t("infoNotCharging", "Not charging")
+        default: return t("infoUnknown", "Unknown")
+        }
+    }
+
     readonly property var cbbRows: hasCbb && cbBatteryStore.present
         ? (void systemInfoScreen.lang, present([
         capacityRow(t("infoCapacity", "Capacity"), cbBatteryStore.remainingCapacity,
                     cbBatteryStore.fullCapacity, cbBatteryStore.charge, uahToAh, false),
         { label: t("infoCellVoltage", "Cell voltage"),
           value: cbBatteryStore.cellVoltage > 0 ? uVToV(cbBatteryStore.cellVoltage) : "" },
+        { label: t("infoChargingStatus", "Charging status"),
+          value: cbbChargingStatus(cbBatteryStore.chargeStatus) },
         healthRow(cbBatteryStore.cycleCount, cbBatteryStore.stateOfHealth),
         { label: t("infoSerial", "Serial"), value: cbBatteryStore.serialNumber },
         { label: t("infoUniqueId", "Unique ID"), value: cbBatteryStore.uniqueId },
@@ -210,7 +230,10 @@ Rectangle {
         { label: t("infoChargeEstimated", "Charge (est.)"), value: hasAux && auxBatteryStore.chargeValid
             ? auxBatteryStore.charge + "%" : "" },
         { label: t("infoVoltage", "Voltage"), value: hasAux && auxBatteryStore.voltageValid
-            ? mvToV(auxBatteryStore.voltage) : "" }
+            ? mvToV(auxBatteryStore.voltage) : "" },
+        { label: t("infoChargingStatus", "Charging status"),
+          value: hasAux && auxBatteryStore.chargeStatusValid
+            ? auxChargingStatus(auxBatteryStore.chargeStatus) : "" }
     ]))
 
     // ---- Maps page ----

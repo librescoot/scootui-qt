@@ -16,7 +16,26 @@ class BackupBatteryMonitorTest : public QObject
 private slots:
     void warningIsDismissedWhenDrivingStarts();
     void pendingWarningIsCancelledWhenDrivingStarts();
+    void auxChargingStatusRequiresReport();
 };
+
+void BackupBatteryMonitorTest::auxChargingStatusRequiresReport()
+{
+    InMemoryMdbRepository repo;
+    AuxBatteryStore aux(&repo);
+    QVERIFY(!aux.chargeStatusValid());
+    aux.start();
+    QVERIFY(!aux.chargeStatusValid());
+
+    repo.set(QStringLiteral("aux-battery"), QStringLiteral("charge-status"),
+             QStringLiteral("float-charge"));
+    QVERIFY(aux.chargeStatusValid());
+    QCOMPARE(aux.chargeStatus(), static_cast<int>(ScootEnums::AuxChargeStatus::FloatCharge));
+
+    repo.set(QStringLiteral("aux-battery"), QStringLiteral("charge-status"),
+             QStringLiteral("bulk-charge"));
+    QCOMPARE(aux.chargeStatus(), static_cast<int>(ScootEnums::AuxChargeStatus::BulkCharge));
+}
 
 void BackupBatteryMonitorTest::warningIsDismissedWhenDrivingStarts()
 {

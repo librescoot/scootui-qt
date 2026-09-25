@@ -264,11 +264,32 @@ Item {
             }
 
             CountdownBar {
+                id: confirmCountdown
                 width: parent.width
                 height: 6
-                transitionMs: shortcutMenuStore.confirmTimeoutMs
-                active: shortcutMenuStore.confirming
-                remainingFraction: active ? 0 : 1
+                active: false
+                remainingFraction: 1
+
+                NumberAnimation {
+                    id: confirmAnimation
+                    target: confirmCountdown
+                    property: "remainingFraction"
+                    from: 1
+                    to: 0
+                    duration: shortcutMenuStore.confirmTimeoutMs
+                }
+
+                Connections {
+                    target: shortcutMenuStore
+                    function onConfirmingChanged() {
+                        if (shortcutMenuStore.confirming) {
+                            confirmAnimation.restart()
+                        } else {
+                            confirmAnimation.stop()
+                            confirmCountdown.remainingFraction = 1
+                        }
+                    }
+                }
             }
         }
     }
