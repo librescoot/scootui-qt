@@ -157,8 +157,8 @@ Rectangle {
                     Image {
                         anchors.centerIn: parent
                         source: "qrc:/ScootUI/assets/icons/librescoot-logo-small.png"
-                        width: 240
-                        height: 70
+                        width: 320
+                        height: 75
                     }
                 }
 
