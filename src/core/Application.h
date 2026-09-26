@@ -164,5 +164,6 @@ private:
     bool m_readyPublished = false;
     bool m_sdNotified = false;
     bool m_addressDatabaseStarted = false;
+    QString m_pendingRegionalMapPath;
     QList<QObject*> m_stores;
 };

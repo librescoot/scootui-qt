@@ -247,6 +247,10 @@ void MapDownloadService::resolveRegion(double lat, double lng)
 
 void MapDownloadService::startDownload(double lat, double lng, bool needsDisplay, bool needsRouting)
 {
+    if (!QDir(mapsDir()).entryList({QStringLiteral("tiles_*.mbtiles")}, QDir::Files).isEmpty()) {
+        setError(QStringLiteral("Regional packs must be updated via USB"));
+        return;
+    }
     if (m_status != ScootEnums::MapDownloadStatus::Idle &&
         m_status != ScootEnums::MapDownloadStatus::Error)
         return;
@@ -1192,7 +1196,8 @@ bool MapDownloadService::hasEnoughDiskSpace(qint64 needed) const
 
 bool MapDownloadService::hasMapsInstalled() const
 {
-    return QFile::exists(displayDestPath());
+    return QFile::exists(displayDestPath())
+        && QDir(mapsDir()).entryList({QStringLiteral("tiles_*.mbtiles")}, QDir::Files).isEmpty();
 }
 
 bool MapDownloadService::hasRoutingTilesInstalled() const

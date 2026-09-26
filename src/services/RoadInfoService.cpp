@@ -86,9 +86,10 @@ RoadInfoService::RoadInfoService(GpsStore *gps, SpeedLimitStore *speedLimit,
     });
 
     // Prefer local map.mbtiles (desktop/simulator), fall back to device path
-    QString path = QFile::exists(QStringLiteral("map.mbtiles"))
-        ? QStringLiteral("map.mbtiles")
-        : AddressDatabaseService::MbtilesPath;
+    QString path = !m_regionalMbtilesPath.isEmpty() && QFile::exists(m_regionalMbtilesPath)
+        ? m_regionalMbtilesPath
+        : (QFile::exists(QStringLiteral("map.mbtiles"))
+           ? QStringLiteral("map.mbtiles") : AddressDatabaseService::MbtilesPath);
     if (QFile::exists(path))
         openDb(path);
 
@@ -188,9 +189,10 @@ void RoadInfoService::reloadMbtiles()
 {
     if (m_stopping)
         return;
-    QString path = QFile::exists(QStringLiteral("map.mbtiles"))
-        ? QStringLiteral("map.mbtiles")
-        : AddressDatabaseService::MbtilesPath;
+    QString path = !m_regionalMbtilesPath.isEmpty() && QFile::exists(m_regionalMbtilesPath)
+        ? m_regionalMbtilesPath
+        : (QFile::exists(QStringLiteral("map.mbtiles"))
+           ? QStringLiteral("map.mbtiles") : AddressDatabaseService::MbtilesPath);
 
     if (!QFile::exists(path))
         return;

@@ -320,7 +320,9 @@ void MapService::reloadMbtiles()
 {
     QString newPath;
 
-    if (QFile::exists(QStringLiteral("map.mbtiles"))) {
+    if (!m_regionalMbtilesPath.isEmpty() && QFile::exists(m_regionalMbtilesPath)) {
+        newPath = m_regionalMbtilesPath;
+    } else if (QFile::exists(QStringLiteral("map.mbtiles"))) {
         newPath = QDir::currentPath() + QStringLiteral("/map.mbtiles");
     } else if (QFile::exists(QStringLiteral("/data/maps/map.mbtiles"))) {
         newPath = QStringLiteral("/data/maps/map.mbtiles");

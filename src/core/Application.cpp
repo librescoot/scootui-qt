@@ -56,6 +56,7 @@
 #include "services/SoundCueService.h"
 #include "services/SoundCuePlayer.h"
 #include "services/MapService.h"
+#include "services/RegionalMapCatalog.h"
 #include "services/LowTemperatureMonitor.h"
 #include "services/LowSocMonitor.h"
 #include "services/OtaMonitor.h"
@@ -93,6 +94,10 @@
 #include <QGuiApplication>
 #include <QImage>
 #include <QQuickWindow>
+#include <memory>
+#include <cerrno>
+#include <cstring>
+#include <unistd.h>
 
 // Shared boot timer defined in main.cpp — markers added at startup
 // checkpoints so we can see where time goes on a live DBC.
@@ -509,6 +514,82 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_navigationService->setRoutingTilesAvailable([this]() {
         return m_mapDownloadService->hasRoutingTilesInstalled();
     });
+
+    // Keep regional archives in place; only the active display readers and
+    // Valhalla's symlink change when the vehicle enters another installed pack.
+    auto packs = std::make_shared<QVector<RegionalMapCatalog::Pack>>();
+    auto selected = std::make_shared<QString>();
+    auto selectedMapRevision = std::make_shared<QString>();
+    auto selectedRouting = std::make_shared<QString>(QStringLiteral("(uninitialized)"));
+    const auto refreshPacks = [packs]() { *packs = RegionalMapCatalog::scan(); };
+    const auto selectPack = [this, gpsStore, packs, selected, selectedMapRevision, selectedRouting]() {
+        if (!gpsStore->hasRecentFix())
+            return;
+        const auto *pack = RegionalMapCatalog::select(*packs, gpsStore->latitude(),
+                                                      gpsStore->longitude(), *selected);
+        if (!pack)
+            return;
+        const QFileInfo mapFile(pack->mapPath);
+        const QString revision = QStringLiteral("%1:%2:%3")
+            .arg(pack->mapPath).arg(mapFile.size()).arg(mapFile.lastModified().toMSecsSinceEpoch());
+        if (revision != *selectedMapRevision) {
+            const bool changedRegion = pack->slug != *selected;
+            *selected = pack->slug;
+            *selectedMapRevision = revision;
+            if (changedRegion)
+                qDebug() << "Regional map selected:" << pack->slug;
+            m_mapService->setRegionalMbtilesPath(pack->mapPath);
+            m_roadInfoService->setRegionalMbtilesPath(pack->mapPath);
+            if (m_addressDatabaseStarted) {
+                if (changedRegion)
+                    m_addressDatabaseService->setRegionalMbtilesPath(pack->mapPath);
+                else
+                    m_addressDatabaseService->initialize();
+            } else {
+                m_pendingRegionalMapPath = pack->mapPath;
+            }
+        }
+        if (pack->routingPath == *selectedRouting)
+            return;
+        *selectedRouting = pack->routingPath;
+
+#ifdef Q_OS_LINUX
+        // Never replace a regular legacy archive. The regional installer owns
+        // creation of this symlink; swapping it atomically keeps readers valid.
+        const QByteArray active = QByteArrayLiteral("/data/valhalla/tiles.tar");
+        if (pack->routingPath.isEmpty()) {
+            QProcess::startDetached(QStringLiteral("systemctl"),
+                                    {QStringLiteral("stop"), QStringLiteral("valhalla")});
+        } else if (QFileInfo(QString::fromUtf8(active)).isSymLink()) {
+            const QByteArray target = QFile::encodeName(pack->routingPath);
+            const QByteArray temporary = active + ".next";
+            ::unlink(temporary.constData());
+            if (::symlink(target.constData(), temporary.constData()) == 0
+                && ::rename(temporary.constData(), active.constData()) == 0) {
+                QProcess::startDetached(QStringLiteral("systemctl"),
+                                        {QStringLiteral("restart"), QStringLiteral("valhalla")});
+            } else {
+                qWarning() << "Could not select regional routing archive:" << std::strerror(errno);
+                ::unlink(temporary.constData());
+            }
+        } else {
+            qWarning() << "Regional routing needs /data/valhalla/tiles.tar to be a symlink";
+            QProcess::startDetached(QStringLiteral("systemctl"),
+                                    {QStringLiteral("stop"), QStringLiteral("valhalla")});
+        }
+#endif
+    };
+    refreshPacks();
+    connect(gpsStore, &GpsStore::sampleChanged, this, selectPack);
+    auto *packTimer = new QTimer(this);
+    packTimer->setInterval(30000);
+    connect(packTimer, &QTimer::timeout, this, [refreshPacks, selectPack]() {
+        refreshPacks();
+        selectPack();
+    });
+    packTimer->start();
+    connect(m_dataPartition, &DataPartition::becameMounted, this,
+            [refreshPacks, selectPack]() { refreshPacks(); selectPack(); });
     // The service reads metadata.json and publishes the maps hash in its
     // constructor, before /data is mounted on a cold DBC boot. The mbtiles
     // watcher below cannot see the mount (inotify has no event for it), so
@@ -1158,8 +1239,12 @@ void Application::startAddressDatabase()
     // Keep the sidecar loader off the EGLFS scene-graph setup. On the DBC,
     // overlapping the two allocation-heavy phases intermittently corrupts
     // glibc's heap; queuing guarantees a complete frame has been rendered.
-    QTimer::singleShot(0, m_addressDatabaseService,
-                       &AddressDatabaseService::initialize);
+    QTimer::singleShot(0, m_addressDatabaseService, [this]() {
+        if (m_pendingRegionalMapPath.isEmpty())
+            m_addressDatabaseService->initialize();
+        else
+            m_addressDatabaseService->setRegionalMbtilesPath(m_pendingRegionalMapPath);
+    });
 }
 
 void Application::evaluateReadyGate(const char *edge)

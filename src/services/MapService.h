@@ -81,6 +81,7 @@ public:
     ~MapService() override;
 
     void reloadMbtiles();
+    void setRegionalMbtilesPath(const QString &path) { m_regionalMbtilesPath = path; reloadMbtiles(); }
 
     bool deadReckoningPaused() const { return m_deadReckoningPaused; }
     void setDeadReckoningPaused(bool paused) { if (paused != m_deadReckoningPaused) { m_deadReckoningPaused = paused; emit deadReckoningPausedChanged(); } }
@@ -375,6 +376,7 @@ private:
 
     // --- Mbtiles path (resolved at construction) ---
     QString m_mbtilesPath;
+    QString m_regionalMbtilesPath;
     // Last-modified time of m_mbtilesPath when it was loaded. An OTA install
     // can rename a new map.mbtiles over the same path, so the path alone
     // doesn't tell reloadMbtiles() whether the underlying file changed.

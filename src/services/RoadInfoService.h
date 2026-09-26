@@ -35,6 +35,7 @@ public:
     ~RoadInfoService();
 
     void reloadMbtiles();
+    void setRegionalMbtilesPath(const QString &path) { m_regionalMbtilesPath = path; reloadMbtiles(); }
     void stopWorkers();
     void setMapService(MapService *map);
 
@@ -98,6 +99,7 @@ private:
     bool m_dbOpen = false;
     QString m_dbConnectionName;
     QString m_dbPath; // path of the currently-open mbtiles (for idempotent reload)
+    QString m_regionalMbtilesPath;
     QDateTime m_dbMtime; // mtime at open — detects a same-path replacement (OTA install)
 
     // Tile cache (LRU), filled by the loader thread for the periodic match and

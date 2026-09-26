@@ -204,6 +204,27 @@ For headless captures, use the existing screenshot hook with the production
 registry (the map renderer still requires QMapLibre on a target-equivalent
 build).
 
+## Regional offline packs
+
+Multiple installed regions can switch automatically on a recent GPS fix. Put
+`tiles_<slug>.mbtiles` in `/data/maps/` and the corresponding uncompressed
+`valhalla_tiles_<slug>.tar` in `/data/valhalla/`. USB update mode accepts several
+paired region files in its `maps/` directory. The installer creates
+`/data/valhalla/tiles.tar` as a symlink on a new installation; the dashboard
+switches that symlink atomically and restarts Valhalla when the active region
+changes. A regular legacy `tiles.tar` is never overwritten to enable switching:
+move it aside and create a symlink to one installed regional archive before
+using multiple regions. Legacy `map.mbtiles` remains a fallback.
+
+Selection uses each MBTiles file's rectangular `bounds` metadata and retains the
+current region while its bounds contain the vehicle. Where bounding boxes
+heavily overlap, switching may lag the actual regional boundary. Routes must
+start and end within the active routing graph; cross-region routes are not
+supported. If the selected display pack lacks a matching routing archive, or
+multiple packs coexist with a regular legacy `tiles.tar`, local Valhalla is
+stopped rather than serving a mismatched graph. The dashboard's built-in map
+updater is for singleton packs; use USB update mode for regional packs.
+
 ## Build and test
 
 CMake requires C++17, CMake 3.16 or newer, Qt 6.4 or newer with Quick, QML,

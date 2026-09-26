@@ -387,9 +387,10 @@ QVariantList AddressDatabaseService::queryHouseNumbersFromTiles(
     qDebug() << "queryHouseNumbers: city=" << city << "street=" << street
              << "postcode=" << postcode << "near=" << nearLat << nearLng;
 
-    QString mbtilesPath = QFile::exists(QStringLiteral("map.mbtiles"))
-        ? QStringLiteral("map.mbtiles")
-        : MbtilesPath;
+    QString mbtilesPath = !m_regionalMbtilesPath.isEmpty() && QFile::exists(m_regionalMbtilesPath)
+        ? m_regionalMbtilesPath
+        : (QFile::exists(QStringLiteral("map.mbtiles"))
+           ? QStringLiteral("map.mbtiles") : MbtilesPath);
 
     if (!QFile::exists(mbtilesPath))
         return {};
@@ -1177,6 +1178,19 @@ static BuildResult buildFromTiles(AddressDatabaseService *service, const QString
 // Initialize: load from cache or build from tiles
 // ---------------------------------------------------------------------------
 
+void AddressDatabaseService::setRegionalMbtilesPath(const QString &path)
+{
+    if (path == m_regionalMbtilesPath)
+        return;
+    m_regionalMbtilesPath = path;
+    if (m_status == Loading || m_status == Building) {
+        m_pendingRegionalReload = true;
+        cancelBuild();
+    } else {
+        initialize();
+    }
+}
+
 void AddressDatabaseService::initialize()
 {
     // A rebuild spawns a QtConcurrent trie build; don't stack a second one if
@@ -1186,9 +1200,10 @@ void AddressDatabaseService::initialize()
     if (m_status == Loading || m_status == Building)
         return;
 
-    QString mbtilesPath = QFile::exists(QStringLiteral("map.mbtiles"))
-        ? QStringLiteral("map.mbtiles")
-        : MbtilesPath;
+    QString mbtilesPath = !m_regionalMbtilesPath.isEmpty() && QFile::exists(m_regionalMbtilesPath)
+        ? m_regionalMbtilesPath
+        : (QFile::exists(QStringLiteral("map.mbtiles"))
+           ? QStringLiteral("map.mbtiles") : MbtilesPath);
 
     if (!QFile::exists(mbtilesPath)) {
         setStatus(Error, QStringLiteral("Map file not found"));
@@ -1207,6 +1222,12 @@ void AddressDatabaseService::initialize()
         watcher->deleteLater();
 
         m_cancelRequested.store(false);
+        if (m_pendingRegionalReload) {
+            m_pendingRegionalReload = false;
+            setStatus(Idle, {});
+            initialize();
+            return;
+        }
         if (!result.success) {
             if (result.error == QLatin1String("Cancelled"))
                 setStatus(Idle, {});
@@ -1241,10 +1262,7 @@ void AddressDatabaseService::initialize()
 
     setStatus(Building, QStringLiteral("Building address database..."));
 
-    watcher->setFuture(QtConcurrent::run([this]() -> BuildResult {
-        QString mbtilesPath = QFile::exists(QStringLiteral("map.mbtiles"))
-            ? QStringLiteral("map.mbtiles")
-            : MbtilesPath;
+    watcher->setFuture(QtConcurrent::run([this, mbtilesPath]() -> BuildResult {
 
         // Preferred path: load prebuilt place / street / postcode tables
         // shipped inside the .mbtiles by osm-tiles' build_places.py. This is

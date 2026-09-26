@@ -81,7 +81,9 @@ void NavigationAvailabilityService::checkMaps()
         m_dataPartition->refresh();
     // Check local directory first (desktop/simulator), then device path
     bool available = QFile::exists(QStringLiteral("map.mbtiles"))
-                  || QFile::exists(QStringLiteral("/data/maps/map.mbtiles"));
+                  || QFile::exists(QStringLiteral("/data/maps/map.mbtiles"))
+                  || !QDir(QStringLiteral("/data/maps")).entryList(
+                         {QStringLiteral("tiles_*.mbtiles")}, QDir::Files).isEmpty();
     if (available != m_mapsAvailable) {
         bool becameAvailable = available && !m_mapsAvailable;
         m_mapsAvailable = available;

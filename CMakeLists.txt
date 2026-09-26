@@ -821,6 +821,11 @@ if(BUILD_TESTING)
     target_link_libraries(tile_loader_test PRIVATE Qt6::Core Qt6::Sql Qt6::Test ZLIB::ZLIB)
     add_test(NAME tile_loader_test COMMAND tile_loader_test)
 
+    qt_add_executable(regional_map_catalog_test tests/RegionalMapCatalogTest.cpp)
+    target_include_directories(regional_map_catalog_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(regional_map_catalog_test PRIVATE Qt6::Core Qt6::Sql Qt6::Test)
+    add_test(NAME regional_map_catalog_test COMMAND regional_map_catalog_test)
+
     qt_add_executable(boot_channels_test
         tests/BootChannelsTest.cpp
         src/repositories/BootChannels.h

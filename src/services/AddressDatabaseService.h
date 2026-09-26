@@ -57,6 +57,7 @@ public:
     Q_INVOKABLE QVariantMap getStreetCoordinates(const QString &city, const QString &street) const;
 
     Q_INVOKABLE void initialize();
+    void setRegionalMbtilesPath(const QString &path);
     Q_INVOKABLE void cancelBuild();
     bool isCancelled() const { return m_cancelRequested.load(); }
 
@@ -162,6 +163,8 @@ private:
                                             qint64 placeId) const;
 
 public:
+    QString m_regionalMbtilesPath;
+    bool m_pendingRegionalReload = false;
     static const QString MbtilesPath;
     static const QString CachePath;
 };
