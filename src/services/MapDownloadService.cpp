@@ -482,20 +482,41 @@ bool MapDownloadService::shouldCheckForUpdates() const
 
 void MapDownloadService::fetchTilesManifest(std::function<void(const QJsonObject &)> callback)
 {
-    QUrl url{QStringLiteral("https://downloads.librescoot.org/releases/tiles.json")};
-    QNetworkRequest req{url};
+    QNetworkRequest req{QUrl{QStringLiteral("https://downloads.librescoot.org/releases/maps-routing.json")}};
     req.setRawHeader("User-Agent", "Librescoot/1.0");
     req.setTransferTimeout(15000);
 
     auto *reply = m_nam->get(req);
-    connect(reply, &QNetworkReply::finished, this, [reply, callback]() {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, callback]() {
+        QJsonObject regions;
+        if (reply->error() == QNetworkReply::NoError) {
+            const auto doc = QJsonDocument::fromJson(reply->readAll());
+            const auto root = doc.object();
+            if (root.value(QStringLiteral("version")).toInt() == 1)
+                regions = root.value(QStringLiteral("regions")).toObject();
+        }
         reply->deleteLater();
-        if (reply->error() != QNetworkReply::NoError) {
-            callback({});
+        if (!regions.isEmpty()) {
+            QJsonObject normalized;
+            for (auto it = regions.begin(); it != regions.end(); ++it) {
+                auto region = it.value().toObject();
+                region.insert(QStringLiteral("valhalla"), region.value(QStringLiteral("routing")));
+                normalized.insert(it.key(), region);
+            }
+            callback(normalized);
             return;
         }
-        auto doc = QJsonDocument::fromJson(reply->readAll());
-        callback(doc.object());
+
+        QNetworkRequest legacy{QUrl{QStringLiteral("https://downloads.librescoot.org/releases/tiles.json")}};
+        legacy.setRawHeader("User-Agent", "Librescoot/1.0");
+        legacy.setTransferTimeout(15000);
+        auto *fallback = m_nam->get(legacy);
+        connect(fallback, &QNetworkReply::finished, this, [fallback, callback]() {
+            const auto manifest = fallback->error() == QNetworkReply::NoError
+                ? QJsonDocument::fromJson(fallback->readAll()).object() : QJsonObject{};
+            fallback->deleteLater();
+            callback(manifest);
+        });
     });
 }
 
