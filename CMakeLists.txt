@@ -613,6 +613,7 @@ if(BUILD_TESTING)
     target_include_directories(boot_theme_service_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(boot_theme_service_test PRIVATE Qt6::Core Qt6::Multimedia Qt6::Test)
     add_test(NAME boot_theme_service_test COMMAND boot_theme_service_test)
+    set_tests_properties(boot_theme_service_test PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
     qt_add_executable(keycard_store_test
         tests/KeycardStoreTest.cpp
