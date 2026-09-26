@@ -58,6 +58,7 @@ public:
 
     Q_INVOKABLE void initialize();
     void setRegionalMbtilesPath(const QString &path);
+    void reloadRegionalMbtiles();
     Q_INVOKABLE void cancelBuild();
     bool isCancelled() const { return m_cancelRequested.load(); }
 

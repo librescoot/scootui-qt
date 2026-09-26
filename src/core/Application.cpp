@@ -544,7 +544,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
                 if (changedRegion)
                     m_addressDatabaseService->setRegionalMbtilesPath(pack->mapPath);
                 else
-                    m_addressDatabaseService->initialize();
+                    m_addressDatabaseService->reloadRegionalMbtiles();
             } else {
                 m_pendingRegionalMapPath = pack->mapPath;
             }

@@ -1183,6 +1183,11 @@ void AddressDatabaseService::setRegionalMbtilesPath(const QString &path)
     if (path == m_regionalMbtilesPath)
         return;
     m_regionalMbtilesPath = path;
+    reloadRegionalMbtiles();
+}
+
+void AddressDatabaseService::reloadRegionalMbtiles()
+{
     if (m_status == Loading || m_status == Building) {
         m_pendingRegionalReload = true;
         cancelBuild();
