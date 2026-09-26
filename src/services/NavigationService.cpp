@@ -1148,9 +1148,10 @@ void NavigationService::onHopReached()
     });
 }
 
-void NavigationService::showHopReached()
+void NavigationService::showArrival()
 {
-    if (!m_plan.isValid()) return;
+    // Pin the final maneuver even when a GPS tick crosses the arrival threshold
+    // before the upcoming-instruction walker reaches it.
     RouteInstruction arrival;
     arrival.type = ManeuverType::Arrive;
     for (auto it = m_route.instructions.crbegin(); it != m_route.instructions.crend(); ++it) {
@@ -1169,6 +1170,12 @@ void NavigationService::showHopReached()
     emit instructionChanged();
     emit positionChanged();
     updateRoundaboutRender();
+}
+
+void NavigationService::showHopReached()
+{
+    if (!m_plan.isValid()) return;
+    showArrival();
     if (m_plan.atLastStop()) {
         setPlanState(RoutePlanState::Complete);
         emit arrived();
@@ -1738,15 +1745,12 @@ void NavigationService::updateNavigationState()
     m_distanceToDestination = RouteHelpers::remainingDistanceAlongRoute(
         m_snappedPosition, m_route.waypoints, m_currentSegmentIndex);
 
-    // Use the actual final maneuver, even if the proximity threshold was crossed
-    // between GPS ticks before the upcoming-instruction walker reached it.
     if (straightLineToDestination < ArrivalProximity && !m_plan.keepCurrentStop) {
         if (m_plan.isValid()) {
             onHopReached();
             return;
         }
-        m_wasArrived = true;
-        setStatus(NavigationStatus::Arrived);
+        showArrival();
         emit arrived();
         return;
     }

@@ -311,6 +311,7 @@ private:
     void applyPlanSnapshot(const QJsonObject &snapshot);
     QJsonObject progressArgs() const;
     void clearLocalNavigation();
+    void showArrival();
     void showHopReached();
     // Teardown of the previous hop, then target the current stop and request a
     // route. Shared by plan creation, hop advance, and resume.

@@ -538,6 +538,8 @@ private slots:
         QFETCH(int, mutation);
         auto gate = std::make_shared<Gate>();
         Fixture f;
+        // Settle the in-memory plan.get reply before testing a permitted clear.
+        QCoreApplication::processEvents();
         prepare(f, gate);
         Route r = route();
         if (mutation >= 3) {

@@ -29,6 +29,8 @@ TestCase {
         id: translations
         property string navAutoContinue: "Next stop in %1 s"
         property string navThen: "Then"
+        property string navCalculating: "Calculating route..."
+        property string navRecalculating: "Recalculating route..."
     }
     UnifiedAttentionDock { id: dock; width: 480; service: service }
 
