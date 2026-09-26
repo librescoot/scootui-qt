@@ -917,15 +917,27 @@ void NavigationService::resumePlan()
 }
 
 void NavigationService::requestPlan(const QString &method, const QJsonObject &payload,
-                                    std::function<void()> accepted)
+                                    std::function<void()> accepted, bool background)
 {
     if (method != QLatin1String("plan.get")) ++m_pendingPlanMutations;
-    m_planRpc.call(method, payload, [this, method, accepted = std::move(accepted)](
+    m_planRpc.call(method, payload, [this, method, accepted = std::move(accepted), background](
                        const QJsonObject &snapshot, const QString &error) {
         if (method != QLatin1String("plan.get")) --m_pendingPlanMutations;
         if (!error.isEmpty()) {
             if (m_progressPending && method == QLatin1String("plan.reached"))
                 m_progressPending = false;
+            if (background && method == QLatin1String("plan.get")) {
+                if (++m_restoreAttempts <= MaxRestoreAttempts) {
+                    QTimer::singleShot(RestoreRetryDelayMs, this, [this]() {
+                        if (m_restorePending) restorePlan();
+                    });
+                    return;
+                }
+                m_restorePending = false;
+                qWarning() << "NavigationService: route plan owner unavailable after"
+                           << MaxRestoreAttempts << "attempts:" << error;
+                return;
+            }
             raiseError(error);
             // An owner conflict or lost reply may mean our view is stale.
             if (method == QLatin1String("plan.get")) {
@@ -939,6 +951,7 @@ void NavigationService::requestPlan(const QString &method, const QJsonObject &pa
             });
             return;
         }
+        m_restoreAttempts = 0;
         const quint64 revision = snapshot.value(QStringLiteral("revision")).toVariant().toULongLong();
         if (revision < m_planRevision) {
             if (method == QLatin1String("plan.reached") && accepted)
@@ -1234,7 +1247,7 @@ void NavigationService::setPlanState(RoutePlanState state)
 
 void NavigationService::restorePlan()
 {
-    requestPlan(QStringLiteral("plan.get"), {});
+    requestPlan(QStringLiteral("plan.get"), {}, {}, /*background=*/true);
 }
 
 void NavigationService::clearPlanOverview()

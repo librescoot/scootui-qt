@@ -307,7 +307,7 @@ private:
     void setPlanState(RoutePlanState state);
     void restorePlan();
     void requestPlan(const QString &method, const QJsonObject &payload,
-                     std::function<void()> accepted = {});
+                     std::function<void()> accepted = {}, bool background = false);
     void applyPlanSnapshot(const QJsonObject &snapshot);
     QJsonObject progressArgs() const;
     void clearLocalNavigation();
@@ -451,6 +451,12 @@ private:
     quint64 m_planRevision = 0;
     bool m_progressPending = false;
     bool m_restorePending = true;
+    // A cold boot can beat settings-service to registering settings:route-plan.
+    // The startup plan.get retries quietly rather than raising a user-visible
+    // error; the navigation projection still carries a stored plan meanwhile.
+    int m_restoreAttempts = 0;
+    static constexpr int MaxRestoreAttempts = 8;
+    static constexpr int RestoreRetryDelayMs = 1000;
     int m_pendingPlanMutations = 0;
     RoutePlan m_plan;
     RoutePlanState m_planState = RoutePlanState::None;

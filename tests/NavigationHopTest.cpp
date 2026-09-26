@@ -32,6 +32,7 @@ private slots:
     void clearDoesNotRestoreLegacySettings();
     void appendAfterFinalArrivalReopensPrompt();
     void unavailableOwnerReportsErrorWithoutBlocking();
+    void unavailableOwnerRestoreStaysSilent();
     void keepStopIsDurableAndClearedOnDismount();
 
 private:
@@ -310,6 +311,29 @@ void NavigationHopTest::unavailableOwnerReportsErrorWithoutBlocking()
     QVERIFY(nav.errorMessage().contains(QStringLiteral("timed out")));
     QVERIFY(!nav.hasPlan());
     QVERIFY(repo.get(QStringLiteral("navigation"), QStringLiteral("plan")).isEmpty());
+}
+
+// A cold boot can issue the startup plan.get before settings-service has
+// registered settings:route-plan. That restore is background work, so it must
+// retry quietly; only a rider-initiated request may report a timeout.
+void NavigationHopTest::unavailableOwnerRestoreStaysSilent()
+{
+    class UnavailableRepo : public InMemoryMdbRepository {
+    public:
+        void push(const QString &channel, const QString &command) override {
+            if (channel != QLatin1String("settings:route-plan"))
+                InMemoryMdbRepository::push(channel, command);
+        }
+    } repo;
+    GpsStore gps(&repo); SpeedLimitStore speed(&repo); NavigationStore store(&repo);
+    VehicleStore vehicle(&repo); SettingsStore settings(&repo);
+    NavigationService nav(&gps, &store, &vehicle, &settings, &speed, &repo);
+    gps.start(); store.start(); vehicle.start(); settings.start(); speed.start();
+    // Long enough for the first 3s RPC timeout and the scheduled retry.
+    QTest::qWait(4500);
+    QVERIFY(!nav.errorMessage().contains(QStringLiteral("timed out")));
+    QVERIFY(nav.status() != int(NavigationStatus::Error));
+    QVERIFY(!nav.hasPlan());
 }
 
 void NavigationHopTest::clearDoesNotRestoreLegacySettings()
