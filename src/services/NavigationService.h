@@ -185,6 +185,7 @@ public:
     // Merged preview geometry for the remaining plan, for framing the overview.
     // Empty until the preview request answers.
     QList<LatLng> planGeometryWaypoints() const { return m_planGeometry; }
+    QList<LatLng> futurePlanWaypoints() const;
 
     // 1.20 for a local Valhalla whose tiles pre-date the default_speeds.json
     // rollout (see NavigationService.cpp). 1.0 for a remote endpoint or

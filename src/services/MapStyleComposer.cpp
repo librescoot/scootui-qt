@@ -77,8 +77,7 @@ QJsonObject routeLine(const QString &id, const QString &color,
     return layer;
 }
 
-// Remaining plan under the active route: dim dashed line, one marker per stop,
-// with the trip ends and the current stop distinguished by filter.
+// Remaining legs use a distinct color; stop markers sit above the active route.
 QJsonObject planLine(const MapRouteStyle &style)
 {
     QJsonObject layout;
@@ -87,9 +86,9 @@ QJsonObject planLine(const MapRouteStyle &style)
     layout[QStringLiteral("line-dasharray")] = QJsonArray{1.5, 1.5};
 
     QJsonObject paint;
-    paint[QStringLiteral("line-color")] = style.fillColor;
+    paint[QStringLiteral("line-color")] = QStringLiteral("#FFB74D");
     paint[QStringLiteral("line-width")] = style.fillWidth;
-    paint[QStringLiteral("line-opacity")] = 0.45;
+    paint[QStringLiteral("line-opacity")] = 0.9;
 
     QJsonObject layer;
     layer[QStringLiteral("id")] = QStringLiteral("plan-line");
@@ -194,8 +193,7 @@ void injectRoute(QJsonObject &root, const MapRouteStyle &style)
     }
 
     QJsonArray composed;
-    const QJsonArray planLayers{
-        planLine(style),
+    const QJsonArray stopLayers{
         planStop(QStringLiteral("plan-stop"), style.borderColor, 6),
         // Fixed semantic colours for the trip ends, readable in both themes.
         planStop(QStringLiteral("plan-stop-start"), QStringLiteral("#2E7D32"), 9,
@@ -204,10 +202,8 @@ void injectRoute(QJsonObject &root, const MapRouteStyle &style)
                  QStringLiteral("last"), 1),
         planStop(QStringLiteral("plan-stop-current"), style.fillColor, 12,
                  QStringLiteral("current"), 1, true)};
-    // Plan first so the active route draws on top.
-    const auto appendPlanAndRoute = [&composed, &planLayers, &style]() {
-        for (const QJsonValue &planLayer : planLayers)
-            composed.append(planLayer);
+    const auto appendPlanAndRoute = [&composed, &stopLayers, &style]() {
+        composed.append(planLine(style));
         composed.append(routeLine(QStringLiteral("route-border"), style.borderColor,
                                   style.borderWidth, 1.0));
         composed.append(routeLine(QStringLiteral("route-fill"), style.fillColor,
@@ -216,6 +212,8 @@ void injectRoute(QJsonObject &root, const MapRouteStyle &style)
                                          QStringLiteral("#888888"), style.fillWidth + 1, 0.85);
         traveled[QStringLiteral("source")] = QStringLiteral("overview-traveled");
         composed.append(traveled);
+        for (const QJsonValue &stopLayer : stopLayers)
+            composed.append(stopLayer);
         composed.append(overviewMarker(QStringLiteral("overview-start"),
                                        QStringLiteral("start"), QStringLiteral("#2E7D32"), 9));
         composed.append(overviewMarker(QStringLiteral("overview-finish"),

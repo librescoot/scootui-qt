@@ -21,6 +21,7 @@ class NavigationHopTest : public QObject
     Q_OBJECT
 private slots:
     void twoImmediateAppendsRetainBothStops();
+    void futureGeometryStartsAfterNextStop();
     void clearWhilePlanLoadingCannotEraseExternalRoute();
     void concurrentExternalAppendRetainsBothStops();
     void staleProgressDoesNotAdvanceReplacement();
@@ -89,6 +90,26 @@ void NavigationHopTest::twoImmediateAppendsRetainBothStops()
     QCOMPARE(f.nav.planStops().first().toMap().value(QStringLiteral("label")).toString(),
              QStringLiteral("A"));
     QVERIFY(f.repo.getAll(QStringLiteral("settings")).isEmpty());
+}
+
+void NavigationHopTest::futureGeometryStartsAfterNextStop()
+{
+    Fixture f;
+    f.nav.appendStop(52.51, 13.41, QStringLiteral("A"));
+    f.nav.appendStop(52.52, 13.42, QStringLiteral("B"));
+    f.nav.appendStop(52.53, 13.43, QStringLiteral("C"));
+    QTRY_COMPARE_WITH_TIMEOUT(f.nav.stopCount(), 3, 3000);
+
+    QList<Route> legs(3);
+    legs[0].waypoints = {{52.50, 13.40}, {52.51, 13.41}};
+    legs[1].waypoints = {{52.51, 13.41}, {52.515, 13.415}, {52.52, 13.42}};
+    legs[2].waypoints = {{52.52, 13.42}, {52.53, 13.43}};
+    QVERIFY(QMetaObject::invokeMethod(&f.nav, "onPlanPreviewReady", Qt::DirectConnection,
+                                      Q_ARG(QList<Route>, legs)));
+    QCOMPARE(f.nav.planGeometryWaypoints().first(), legs[0].waypoints.first());
+    QCOMPARE(f.nav.futurePlanWaypoints(),
+             (QList<LatLng>{{52.51, 13.41}, {52.515, 13.415},
+                            {52.52, 13.42}, {52.53, 13.43}}));
 }
 
 void NavigationHopTest::clearWhilePlanLoadingCannotEraseExternalRoute()

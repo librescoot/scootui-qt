@@ -149,6 +149,20 @@ MapView {
         }
 
         SourceParameter {
+            styleId: "plan"
+            type: "geojson"
+            property string data: typeof mapService !== "undefined" ? mapService.planGeoJson : ""
+            onDataChanged: updateNotify()
+        }
+
+        SourceParameter {
+            styleId: "plan-stops"
+            type: "geojson"
+            property string data: typeof mapService !== "undefined" ? mapService.planStopsGeoJson : ""
+            onDataChanged: updateNotify()
+        }
+
+        SourceParameter {
             styleId: "overview-traveled"
             type: "geojson"
             property string data: typeof mapService !== "undefined" ? mapService.overviewTraveledGeoJson : ""

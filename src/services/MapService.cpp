@@ -546,7 +546,7 @@ void MapService::updatePlanGeometry()
     if (!m_navigation)
         return;
 
-    const QString line = MapPlanGeometry::lineGeoJson(m_navigation->planGeometryWaypoints());
+    const QString line = MapPlanGeometry::lineGeoJson(m_navigation->futurePlanWaypoints());
     const QString stops = MapPlanGeometry::stopsGeoJson(m_navigation->planStops(),
                                                         m_navigation->currentStep());
     if (line != m_planGeoJson) {

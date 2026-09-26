@@ -113,19 +113,20 @@ void MapStyleComposerTest::preservesOnlineResourcesAndPlacesRoute()
     QCOMPARE(layer(style, QStringLiteral("route-border")).value(QStringLiteral("paint")).toObject()
                  .value(QStringLiteral("line-width")).toInt(), 12);
 
-    // The multi-hop plan overlay: both GeoJSON sources exist and its layers sit
-    // under the active route.
+    // Future legs sit below the active route; stop markers stay visible above it.
     const QJsonObject sources = style.value(QStringLiteral("sources")).toObject();
     QVERIFY(sources.contains(QStringLiteral("plan")));
     QVERIFY(sources.contains(QStringLiteral("plan-stops")));
     QVERIFY(layerIndex(style, QStringLiteral("plan-line"))
             < layerIndex(style, QStringLiteral("route-border")));
     QVERIFY(layerIndex(style, QStringLiteral("plan-stop"))
-            < layerIndex(style, QStringLiteral("route-border")));
+            > layerIndex(style, QStringLiteral("route-fill")));
     QCOMPARE(layer(style, QStringLiteral("plan-line")).value(QStringLiteral("source")).toString(),
              QStringLiteral("plan"));
     QVERIFY(layer(style, QStringLiteral("plan-line")).value(QStringLiteral("layout")).toObject()
                 .contains(QStringLiteral("line-dasharray")));
+    QCOMPARE(layer(style, QStringLiteral("plan-line")).value(QStringLiteral("paint")).toObject()
+                 .value(QStringLiteral("line-color")).toString(), QStringLiteral("#FFB74D"));
     QCOMPARE(layer(style, QStringLiteral("plan-stop-current")).value(QStringLiteral("filter")).toArray(),
              QJsonArray({QStringLiteral("=="), QStringLiteral("current"), 1}));
     QCOMPARE(layer(style, QStringLiteral("plan-stop-start")).value(QStringLiteral("filter")).toArray(),

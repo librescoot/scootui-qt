@@ -1252,9 +1252,10 @@ void NavigationService::restorePlan()
 
 void NavigationService::clearPlanOverview()
 {
-    if (m_planOverview.isEmpty() && m_planGeometry.isEmpty()
+    if (m_planOverview.isEmpty() && m_planGeometry.isEmpty() && m_plan.hops.isEmpty()
         && m_planTotalDistance == 0 && m_planTotalDuration == 0)
         return;
+    m_plan.hops.clear();
     m_planOverview.clear();
     m_planGeometry.clear();
     m_planTotalDistance = 0;
@@ -1339,6 +1340,21 @@ void NavigationService::onPlanPreviewReady(const QList<Route> &legs)
     }
 
     emit planOverviewChanged();
+}
+
+QList<LatLng> NavigationService::futurePlanWaypoints() const
+{
+    QList<LatLng> points;
+    for (int i = 1; i < m_plan.hops.size(); ++i) {
+        const QList<LatLng> &leg = m_plan.hops.at(i).route.waypoints;
+        if (leg.isEmpty())
+            continue;
+        if (!points.isEmpty() && points.last() == leg.first())
+            points.append(leg.mid(1));
+        else
+            points.append(leg);
+    }
+    return points;
 }
 
 void NavigationService::onPlanPreviewFailed(const QString &error)
