@@ -330,6 +330,10 @@ void MapDownloadService::checkForUpdatesNow()
 
 void MapDownloadService::checkForUpdates()
 {
+    if (!QDir(mapsDir()).entryList({QStringLiteral("tiles_*.mbtiles")}, QDir::Files).isEmpty()) {
+        emit updateCheckCompleted(false);
+        return;
+    }
     if (m_status != ScootEnums::MapDownloadStatus::Idle &&
         m_status != ScootEnums::MapDownloadStatus::Error)
         return;
@@ -425,6 +429,8 @@ void MapDownloadService::checkForUpdates()
 
 bool MapDownloadService::shouldCheckForUpdates() const
 {
+    if (!QDir(mapsDir()).entryList({QStringLiteral("tiles_*.mbtiles")}, QDir::Files).isEmpty())
+        return false;
     if (!hasMapsInstalled())
         return false;
 
@@ -1197,7 +1203,7 @@ bool MapDownloadService::hasEnoughDiskSpace(qint64 needed) const
 bool MapDownloadService::hasMapsInstalled() const
 {
     return QFile::exists(displayDestPath())
-        && QDir(mapsDir()).entryList({QStringLiteral("tiles_*.mbtiles")}, QDir::Files).isEmpty();
+        || !QDir(mapsDir()).entryList({QStringLiteral("tiles_*.mbtiles")}, QDir::Files).isEmpty();
 }
 
 bool MapDownloadService::hasRoutingTilesInstalled() const
