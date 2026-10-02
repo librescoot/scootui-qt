@@ -16,6 +16,8 @@ private slots:
     void returnsToOpeningScreen();
     void nestedParkedScreenReturnsToMainScreen();
     void leavesRidingScreensAlone();
+    void dashboardModeIsStartupAuthority();
+    void staleRemoteScreenCannotOverrideMode();
 };
 
 using Opener = std::function<void(ScreenStore &)>;
@@ -87,6 +89,35 @@ void ScreenStoreTest::returnsToOpeningScreen()
     QCOMPARE(store.currentScreenMode(), ScootEnums::ScreenMode::AddressSelection);
 
     store.closeParkedScreens();
+    QCOMPARE(store.currentScreenMode(), ScootEnums::ScreenMode::Map);
+}
+
+void ScreenStoreTest::dashboardModeIsStartupAuthority()
+{
+    InMemoryMdbRepository repo;
+    repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.mode"),
+             QStringLiteral("navigation"), false);
+    SettingsStore settings(&repo);
+    settings.start();
+    ScreenStore store(&settings, &repo);
+
+    QCOMPARE(store.currentScreenMode(), ScootEnums::ScreenMode::Map);
+}
+
+void ScreenStoreTest::staleRemoteScreenCannotOverrideMode()
+{
+    InMemoryMdbRepository repo;
+    repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.mode"),
+             QStringLiteral("navigation"), false);
+    repo.set(QStringLiteral("dashboard"), QStringLiteral("remote-screen"),
+             QStringLiteral("Cluster"), false);
+    SettingsStore settings(&repo);
+    settings.start();
+    ScreenStore store(&settings, &repo);
+
+    QCOMPARE(store.currentScreenMode(), ScootEnums::ScreenMode::Map);
+    repo.publish(QStringLiteral("dashboard"), QStringLiteral("remote-screen"));
+    QTest::qWait(20);
     QCOMPARE(store.currentScreenMode(), ScootEnums::ScreenMode::Map);
 }
 

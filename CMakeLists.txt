@@ -543,7 +543,7 @@ if(BUILD_TESTING)
     target_link_directories(application_notification_test PRIVATE
         $<TARGET_PROPERTY:scootui,LINK_DIRECTORIES>)
     target_link_libraries(application_notification_test PRIVATE
-        $<TARGET_PROPERTY:scootui,LINK_LIBRARIES> Qt6::Test)
+        $<GENEX_EVAL:$<TARGET_PROPERTY:scootui,LINK_LIBRARIES>> Qt6::Test)
     file(GLOB APPLICATION_TEST_ICONS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/*.svg")
     file(GLOB APPLICATION_TEST_FONTS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/subset/*")
     qt_add_resources(application_notification_test "application_notification_assets"
@@ -614,6 +614,24 @@ if(BUILD_TESTING)
     target_link_libraries(boot_theme_service_test PRIVATE Qt6::Core Qt6::Multimedia Qt6::Test)
     add_test(NAME boot_theme_service_test COMMAND boot_theme_service_test)
     set_tests_properties(boot_theme_service_test PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    qt_add_executable(auto_theme_service_test
+        tests/AutoThemeServiceTest.cpp
+        src/services/AutoThemeService.cpp
+        src/services/AutoThemeService.h
+        src/stores/ThemeStore.cpp
+        src/stores/ThemeStore.h
+        src/stores/SettingsStore.cpp
+        src/stores/SettingsStore.h
+        src/stores/SyncableStore.cpp
+        src/stores/SyncableStore.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp
+        src/repositories/InMemoryMdbRepository.h
+    )
+    target_include_directories(auto_theme_service_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(auto_theme_service_test PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
+    add_test(NAME auto_theme_service_test COMMAND auto_theme_service_test)
 
     qt_add_executable(keycard_store_test
         tests/KeycardStoreTest.cpp

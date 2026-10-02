@@ -30,6 +30,9 @@ NavigationAvailabilityService::NavigationAvailabilityService(SettingsStore *sett
 
     connect(m_settings, &SettingsStore::valhallaUrlChanged, this, &NavigationAvailabilityService::recheck);
     connect(m_internet, &InternetStore::modemStateChanged, this, &NavigationAvailabilityService::recheck);
+    if (m_dataPartition)
+        connect(m_dataPartition, &DataPartition::becameMounted,
+                this, &NavigationAvailabilityService::checkMaps);
 
     recheck();
 }

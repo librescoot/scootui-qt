@@ -12,6 +12,7 @@ private slots:
     void plainDirectoryIsNotMountPoint();
     void missingPathIsNotMountPoint();
     void refreshEmitsOnceOnEdge();
+    void delayedProbeEmitsOnTimerEdge();
 };
 
 void DataPartitionTest::mountedFilesystemIsMountPoint()
@@ -36,6 +37,22 @@ void DataPartitionTest::missingPathIsNotMountPoint()
     QTemporaryDir dir;
     QVERIFY(dir.isValid());
     QVERIFY(!DataPartition::isMountPoint(dir.path() + QStringLiteral("/absent")));
+}
+
+void DataPartitionTest::delayedProbeEmitsOnTimerEdge()
+{
+    int probes = 0;
+    DataPartition partition([&probes]() {
+        return ++probes >= 3;
+    });
+    QSignalSpy spy(&partition, &DataPartition::becameMounted);
+    QVERIFY(!partition.mounted());
+    QTRY_VERIFY_WITH_TIMEOUT(partition.mounted(), 1000);
+    QCOMPARE(spy.count(), 1);
+    const int count = probes;
+    QTest::qWait(300);
+    QCOMPARE(probes, count);
+    QCOMPARE(spy.count(), 1);
 }
 
 void DataPartitionTest::refreshEmitsOnceOnEdge()

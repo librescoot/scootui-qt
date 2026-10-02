@@ -23,6 +23,7 @@ public:
     QString get(const QString &channel, const QString &variable) override;
     FieldMap getAll(const QString &channel) override;
     void requestAll(const QString &channel) override;
+    void requestField(const QString &channel, const QString &field) override;
     void requestValue(const QString &key) override;
     void setValue(const QString &key, const QString &value);
     void set(const QString &channel, const QString &variable,

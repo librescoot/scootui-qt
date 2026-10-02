@@ -69,6 +69,13 @@ void InMemoryMdbRepository::requestAll(const QString &channel)
         emit fieldsUpdated(channel, m_storage.value(channel));
 }
 
+void InMemoryMdbRepository::requestField(const QString &channel, const QString &field)
+{
+    QTimer::singleShot(0, this, [this, channel, field]() {
+        emit fieldFetched(channel, field, get(channel, field));
+    });
+}
+
 void InMemoryMdbRepository::requestValue(const QString &key)
 {
     emit valueFetched(key, m_valueStorage.value(key));

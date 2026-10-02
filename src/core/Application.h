@@ -44,6 +44,7 @@ class HmiLatencyMonitor;
 class QQuickWindow;
 
 class BootPrefetch;
+class AmbientLightProbe;
 class BootGate;
 class ScreenPreloader;
 class QTimer;
@@ -70,9 +71,11 @@ public:
     bool isInMemoryBackend() const { return m_inMemoryBackend; }
 
     void setBootPrefetch(BootPrefetch *prefetch) { m_prefetch = prefetch; }
+    void setAmbientLightProbe(AmbientLightProbe *probe) { m_ambientLightProbe = probe; }
     // Insert-only, so calling it at several points is safe; the first call
     // that finds a result consumes it.
     void seedFromPrefetch(const char *where);
+    void applyStartupTheme();
 
 private:
     void fadeInOverlay();
@@ -153,6 +156,7 @@ private:
     bool m_simulatorMode = false;
     bool m_inMemoryBackend = false;
     BootPrefetch *m_prefetch = nullptr;
+    AmbientLightProbe *m_ambientLightProbe = nullptr;
     bool m_prefetchConsumed = false;
     QString m_backendDescription;
     quint64 m_mapCommandSubscriptionId = 0;

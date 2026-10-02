@@ -2,7 +2,6 @@
 #include "SettingsStore.h"
 #include "../repositories/MdbRepository.h"
 
-#include <QMetaEnum>
 
 ScreenStore::ScreenStore(SettingsStore *settings, MdbRepository *repo, QObject *parent)
     : SyncableStore(repo, parent), m_settings(settings)
@@ -63,28 +62,6 @@ void ScreenStore::publishMenuOpen()
                                                  : QStringLiteral("false"));
 }
 
-QString ScreenStore::screenName(ScootEnums::ScreenMode mode)
-{
-    const QMetaEnum e = QMetaEnum::fromType<ScootEnums::ScreenMode>();
-    return QString::fromLatin1(e.valueToKey(static_cast<int>(mode)));
-}
-
-bool ScreenStore::screenModeFromName(const QString &name, ScootEnums::ScreenMode &out)
-{
-    const QMetaEnum e = QMetaEnum::fromType<ScootEnums::ScreenMode>();
-    bool ok = false;
-    const int v = e.keyToValue(name.toLatin1().constData(), &ok);
-    if (ok) out = static_cast<ScootEnums::ScreenMode>(v);
-    return ok;
-}
-
-void ScreenStore::publishScreen(ScootEnums::ScreenMode mode)
-{
-    if (!m_repo) return;
-    m_repo->set(QStringLiteral("dashboard"), QStringLiteral("remote-screen"),
-                screenName(mode));
-}
-
 void ScreenStore::applyScreenLocally(ScootEnums::ScreenMode mode)
 {
     if (mode == ScootEnums::ScreenMode::MotionDebug
@@ -100,24 +77,11 @@ void ScreenStore::applyScreenLocally(ScootEnums::ScreenMode mode)
 
 SyncSettings ScreenStore::syncSettings() const
 {
-    return {
-        QStringLiteral("dashboard"),
-        500,
-        {
-            {QStringLiteral("remote-screen"), QStringLiteral("remote-screen")},
-        },
-        {},
-        {}
-    };
+    return {QStringLiteral("dashboard"), 500, {}, {}, {}};
 }
 
-void ScreenStore::applyFieldUpdate(const QString &variable, const QString &value)
+void ScreenStore::applyFieldUpdate(const QString &, const QString &)
 {
-    if (variable != QLatin1String("remote-screen") || value.isEmpty())
-        return;
-    ScootEnums::ScreenMode mode;
-    if (screenModeFromName(value, mode))
-        applyScreenLocally(mode);
 }
 
 void ScreenStore::applyMode(const QString &mode)
@@ -139,11 +103,6 @@ void ScreenStore::setScreen(int screen)
     auto mode = static_cast<ScootEnums::ScreenMode>(screen);
     if (mode == m_currentScreen) return;
 
-    // Publish the target before publishMenuOpen() writes another field in the
-    // same hash. In-memory repositories emit the complete hash after each
-    // write, so leaving the old remote-screen value there would immediately
-    // replay and restore the previous screen.
-    publishScreen(mode);
     applyScreenLocally(mode);
 }
 

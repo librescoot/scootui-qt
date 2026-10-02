@@ -266,9 +266,18 @@ bool Application::initialize(QQmlApplicationEngine &engine)
     return true;
 }
 
+void Application::applyStartupTheme()
+{
+    if (m_autoThemeService)
+        m_autoThemeService->applyStartupSample();
+}
+
 void Application::createStores(QQmlApplicationEngine &engine)
 {
     auto *repo = m_repository.get();
+
+    // Consume the nonblocking boot fetch before any setting consumers exist.
+    seedFromPrefetch("before stores constructed");
 
     // Core stores (M1)
     auto *engineStore = new EngineStore(repo, this);
@@ -282,11 +291,9 @@ void Application::createStores(QQmlApplicationEngine &engine)
     auto *modemStore = new ModemStore(repo, this);
     auto *navigationStore = new NavigationStore(repo, this);
     auto *settingsStore = new SettingsStore(repo, this);
-    // The in-memory repository is filled in before the stores exist, so there
-    // is no change notification to catch up on. A Redis backend has its sync
-    // worker for that. This follows the backend, not the panel.
-    if (m_inMemoryBackend)
-        settingsStore->refreshAllFields();
+    // ThemeStore and ScreenStore read their initial values in their
+    // constructors, so hydrate settings before constructing either consumer.
+    settingsStore->start();
     auto *otaStore = new OtaStore(repo, this);
     auto *usbStore = new UsbStore(repo, this);
     auto *umsLogStore = new UmsLogStore(repo, this);
@@ -314,6 +321,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_translations = new Translations(this);
     m_translations->setLanguage(localeStore->language());
     m_autoThemeService = new AutoThemeService(repo, themeStore, this);
+    m_autoThemeService->setLocalProbe(m_ambientLightProbe);
     m_notificationService = new NotificationService(m_simulatorMode, this);
     auto *notificationIngress = new NotificationIngress(repo, m_notificationService);
     connect(notificationIngress, &NotificationIngress::rejected, this, [](const QString &reason) {
@@ -772,6 +780,10 @@ void Application::createStores(QQmlApplicationEngine &engine)
     if (m_navAvailability)
         connect(m_navAvailability, &NavigationAvailabilityService::localMapsBecameAvailable,
                 this, &Application::reloadMapServices);
+    connect(m_dataPartition, &DataPartition::becameMounted,
+            this, &Application::reloadMapServices);
+    // MapService queues its initial reload from its constructor. Keep that work
+    // off createStores() when /data is already mounted as well.
 
     // Saved locations (B7)
     m_savedLocationsService = new SavedLocationsService(repo, this);

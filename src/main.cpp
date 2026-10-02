@@ -18,6 +18,7 @@
 #include "core/DataPartition.h"
 #include "repositories/BootChannels.h"
 #include "repositories/BootPrefetch.h"
+#include "services/AutoThemeService.h"
 #include "routing/RouteModels.h"
 
 #include <QDir>
@@ -74,6 +75,8 @@ int main(int argc, char *argv[])
     // Redis is reachable well before Qt is up, so the fetch overlaps platform
     // init instead of following it.
     std::unique_ptr<BootPrefetch> prefetch;
+    auto ambientLightProbe = std::make_unique<AmbientLightProbe>();
+    ambientLightProbe->start();
     {
         const QString host = EnvConfig::redisHost();
         if (!host.isEmpty() && host != QLatin1String("none")) {
@@ -124,6 +127,7 @@ int main(int argc, char *argv[])
     // bindings refer to these objects, so the engine must be destroyed first.
     Application application;
     application.setBootPrefetch(prefetch.get());
+    application.setAmbientLightProbe(ambientLightProbe.get());
 
     QQmlApplicationEngine engine;
     // Runs on normal exit, initialization failure and exception paths, before
@@ -186,6 +190,8 @@ int main(int argc, char *argv[])
         engine.load(url);
     }
     BOOT_MARK("engine.load() returned");
+    // Consume the async boot sample before queued map composition and painting.
+    application.applyStartupTheme();
 
     // In simulator mode, also load the simulator control panel window
     if (application.isSimulatorMode()) {
