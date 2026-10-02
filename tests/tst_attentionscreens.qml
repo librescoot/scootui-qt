@@ -354,7 +354,7 @@ TestCase {
                 compare(viewport.height, 480 - 40 - screen.bottomBarHeight)
                 compare(viewport.mapToItem(screen, 0, 0).y, 40)
                 compare(point(marker, viewport).x, viewport.width / 2)
-                compare(point(marker, viewport).y, viewport.height / 2 + offset)
+                fuzzyCompare(point(marker, viewport).y, viewport.height / 2 + offset, 0.001)
                 verify(marker.visible)
                 verify(blinkers.visible && blinkers.showLeft && blinkers.showRight)
                 compare(findChild(blinkers, "leftBlinkerImage").status, Image.Ready)

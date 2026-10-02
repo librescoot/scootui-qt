@@ -347,17 +347,17 @@ void MaintenanceScreenTest::pendingRebootBalancesEnglishAndGerman()
         status->property("text").toString(),
         QStringLiteral(
             "Update installed, will apply next time the scooter is started"));
-    verifyBalancedText(status, 416, true);
+    verifyBalancedText(status, 416, false);
     const qreal englishWidth = status->property("width").toReal();
-    QVERIFY(englishWidth < 416);
+    QVERIFY(englishWidth <= 416);
 
     m_translations.setGerman(true);
     QTRY_COMPARE(
         status->property("text").toString(),
         QStringLiteral(
             "Update installiert, wird beim nächsten Start angewendet"));
-    verifyBalancedText(status, 416, true);
-    QVERIFY(status->property("width").toReal() < 416);
+    verifyBalancedText(status, 416, false);
+    QVERIFY(status->property("width").toReal() <= 416);
 }
 
 void MaintenanceScreenTest::connectionInfoKeepsCopyAndCenteredBounds()

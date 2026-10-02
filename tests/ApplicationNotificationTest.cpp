@@ -119,7 +119,7 @@ private slots:
         auto *notifications = context<NotificationService>("notificationService");
         auto *boot = context<BootGate>("bootGate");
         QVERIFY(screens && notifications && boot);
-        m_application->m_repository->set("dashboard", "remote-screen", "Map");
+        m_application->m_repository->set("settings", "dashboard.mode", "navigation");
         notifications->setCoverageWarning(true);
         m_engine->load(QUrl("qrc:/ScootUI/qml/Main.qml"));
         QVERIFY(!m_engine->rootObjects().isEmpty());
@@ -144,11 +144,11 @@ private slots:
         capture(window, "application-map-after-hidden-warm");
 
         for (int i = 0; i < 2; ++i) {
-            m_application->m_repository->set("dashboard", "remote-screen", "Cluster");
+            m_application->m_repository->set("settings", "dashboard.mode", "speedometer");
             QTRY_COMPARE(notifications->surface(), QString("cluster"));
             QTRY_VERIFY(mainId() != "map-coverage");
             QCOMPARE(window->findChild<QQuickItem *>("clusterAttention"), cluster);
-            m_application->m_repository->set("dashboard", "remote-screen", "Map");
+            m_application->m_repository->set("settings", "dashboard.mode", "navigation");
             QTRY_COMPARE(notifications->surface(), QString("map"));
             QTRY_COMPARE(mainId(), QString("map-coverage"));
             QVERIFY(!cluster->isVisible());
@@ -373,10 +373,11 @@ private slots:
         auto *shortcuts = context<ShortcutMenuStore>("shortcutMenuStore");
         auto *screens = context<ScreenStore>("screenStore");
         auto *availability = context<NavigationAvailabilityService>("navAvailabilityService");
+        auto *navigation = context<NavigationService>("navigationService");
         auto *settingsService = context<SettingsService>("settingsService");
         auto *settingsStore = context<SettingsStore>("settingsStore");
-        QVERIFY(engine && saved && shortcuts && screens && availability && settingsService
-                && settingsStore);
+        QVERIFY(engine && saved && shortcuts && screens && availability && navigation
+                && settingsService && settingsStore);
 
         repo->set("vehicle", "state", "ready-to-drive");
         repo->set("vehicle", "kickstand", "down");
@@ -443,6 +444,11 @@ private slots:
         QCOMPARE(repo->get("navigation", "address"), QStringLiteral("unchanged"));
 
         repo->set("engine-ecu", "speed", "0");
+        // An active route suppresses destination actions even at zero speed.
+        QTRY_COMPARE(shortcuts->actionCount(), 2);
+        navigation->clearNavigation();
+        QTRY_VERIFY(!navigation->property("hasPlan").toBool());
+        availability->setOverride(true, true);
         QTRY_COMPARE(shortcuts->actionCount(), 4);
         saved->deleteLocation(1);
         QTRY_COMPARE(shortcuts->actionCount(), 3);
@@ -455,6 +461,8 @@ private slots:
         auto *notifications = context<NotificationService>("notificationService");
         QVERIFY(navigation && notifications);
         repo->set("vehicle", "state", "ready-to-drive");
+        // Isolate hop attention from the unrelated map-update warning.
+        notifications->resolveCondition(QStringLiteral("map-update"));
         RouteStop first;
         first.position = {52.5, 13.4};
         first.label = QStringLiteral("First");
@@ -475,7 +483,13 @@ private slots:
         --navigation->m_hopSecondsLeft;
         emit navigation->hopPromptChanged();
         QCOMPARE(notifications->active().size(), active.size());
-        QCOMPARE(notifications->active().first().toMap().value("revision").toInt(), 1);
+        const auto refreshedActive = notifications->active();
+        const auto refreshedHop = std::find_if(refreshedActive.cbegin(), refreshedActive.cend(),
+                                               [](const QVariant &entry) {
+            return entry.toMap().value("id") == QStringLiteral("navigation-hop");
+        });
+        QVERIFY(refreshedHop != refreshedActive.cend());
+        QCOMPARE(refreshedHop->toMap().value("revision").toInt(), 1);
 
         repo->publish("input-events", "seatbox:press");
         QTRY_VERIFY(!navigation->hopPromptVisible());
