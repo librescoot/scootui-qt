@@ -1229,6 +1229,7 @@ if(BUILD_TESTING)
     find_package(Qt6 6.4 REQUIRED COMPONENTS QuickTest)
     qt_add_executable(notification_qml_test
         tests/NotificationQuickTest.cpp
+        src/models/Enums.h
         src/services/BackupBatteryMonitor.cpp
         src/stores/BatteryStore.cpp
         src/stores/AuxBatteryStore.cpp

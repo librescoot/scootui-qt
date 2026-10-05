@@ -123,6 +123,13 @@ use 80%-opaque severity-tinted backgrounds (red, amber, green, blue, neutral),
 without a left stripe. Queued counts wrap within 112px, preserving exact numbers
 and severity/accessibility labels.
 
+Connection and maintenance screens show the selected notification in an opaque
+96px card above the connection explanation, spinner or update progress. These
+screens reserve space for the card and state indicator instead of overlaying
+their text. If navigation is primary, its notification companion occupies the
+card; navigation graphics stay on the cluster and map. Queued counts, rotation,
+preemption, scrolling and event deadlines follow the shared policy.
+
 Notification text uses tight padding, natural height within a 156px overlay
 budget, and 20px semibold titles that adapt to 18px when needed; bodies remain
 18px. The English and German native low-12V warning fits fully without scrolling,

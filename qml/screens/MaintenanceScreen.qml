@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import ScootUI 1.0
 import "../widgets/components"
+import "../notifications"
 
 Rectangle {
     id: maintenanceScreen
@@ -23,6 +24,28 @@ Rectangle {
     readonly property int spinnerStepsPerSecond: 12
     readonly property int spinnerStepDegrees: 30
     property string stateRaw: typeof vehicleStore !== "undefined" ? vehicleStore.stateRaw : ""
+    readonly property var attentionPresentation: typeof notificationService !== "undefined"
+                                                 && notificationService ? notificationService.presentation : ({})
+    readonly property real notificationInset: attentionCard.visible ? attentionCard.height + 12 : 0
+    readonly property real stateInset: attentionCard.visible
+                                      ? (stateIndicator.visible ? stateIndicator.height + 24 : 12) : 0
+
+    NotificationCard {
+        id: attentionCard
+        objectName: "maintenanceAttention"
+        anchors.top: parent.top
+        width: parent.width
+        maximumHeight: 96
+        isDark: true
+        color: tint
+        entry: {
+            var main = maintenanceScreen.attentionPresentation.main || ({})
+            return main.kind === "nav"
+                   ? maintenanceScreen.attentionPresentation.companion || ({}) : main
+        }
+        queuedCounts: maintenanceScreen.attentionPresentation.queuedCounts || ({})
+        visible: Object.keys(entry).length > 0 && entry.kind !== "nav"
+    }
 
     // Turn off backlight after 15s to save power during unattended maintenance/updates
     Timer {
@@ -54,7 +77,10 @@ Rectangle {
     // --- Loading mode (default): silent spinner + optional OTA progress ---
     Item {
         id: loadingMode
+        objectName: "maintenanceLoading"
         anchors.fill: parent
+        anchors.topMargin: maintenanceScreen.notificationInset
+        anchors.bottomMargin: maintenanceScreen.stateInset
         visible: !showConnectionInfo
 
         readonly property bool otaActive: typeof dashboardStore !== "undefined" && otaStore.isActive
@@ -171,6 +197,8 @@ Rectangle {
     Item {
         id: connectionInfoMode
         anchors.fill: parent
+        anchors.topMargin: maintenanceScreen.notificationInset
+        anchors.bottomMargin: maintenanceScreen.stateInset
         visible: showConnectionInfo
         clip: true
 
@@ -180,7 +208,7 @@ Rectangle {
             anchors.right: parent.right
             anchors.leftMargin: 32
             anchors.rightMargin: 32
-            spacing: 0
+            spacing: attentionCard.visible ? 12 : 16
 
             Item {
                 Layout.fillWidth: true
@@ -199,16 +227,12 @@ Rectangle {
                 }
             }
 
-            Item { Layout.preferredHeight: 16 }
-
             // Divider
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 1
                 color: Qt.rgba(1, 1, 1, 0.24)
             }
-
-            Item { Layout.preferredHeight: 16 }
 
             Item {
                 Layout.fillWidth: true
@@ -230,16 +254,12 @@ Rectangle {
                 }
             }
 
-            Item { Layout.preferredHeight: 16 }
-
             // Divider
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 1
                 color: Qt.rgba(1, 1, 1, 0.24)
             }
-
-            Item { Layout.preferredHeight: 16 }
 
             Item {
                 Layout.fillWidth: true
@@ -264,6 +284,8 @@ Rectangle {
 
     // --- State raw indicator at bottom ---
     Text {
+        id: stateIndicator
+        objectName: "maintenanceState"
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 12
         anchors.horizontalCenter: parent.horizontalCenter

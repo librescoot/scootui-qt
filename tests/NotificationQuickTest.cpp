@@ -9,6 +9,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTcpServer>
+#include "models/Enums.h"
 #include "services/NavigationService.h"
 #include "services/NotificationService.h"
 #include "services/NotificationIngress.h"
@@ -207,6 +208,8 @@ class NotificationQuickTestSetup : public QObject
 public slots:
     void applicationAvailable()
     {
+        qmlRegisterUncreatableMetaObject(ScootEnums::staticMetaObject, "ScootUI", 1, 0,
+                                         "Scooter", QString());
         qmlRegisterType<NativeAttentionHarness>("ScootUITest", 1, 0, "NativeAttentionHarness");
         for (const auto *font : {"Roboto-Regular.ttf", "Roboto-Bold.ttf", "Roboto-Medium.ttf",
                                  "MaterialSymbolsOutlined-Filled.ttf"})
