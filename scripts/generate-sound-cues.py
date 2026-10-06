@@ -82,8 +82,10 @@ def add_chime(
         phase += 2.0 * math.pi * frequency / SAMPLE_RATE
         attack = math.sin(0.5 * math.pi * min(1.0, age / attack_duration)) ** 2
         decay = math.exp(-decay_rate * age / duration)
+        # Each note must reach silence before its reverb taps repeat the tail.
+        release = math.sin(0.5 * math.pi * min(1.0, (count - index - 1) / (0.02 * SAMPLE_RATE))) ** 2
         tone = math.sin(phase) + brightness * math.sin(2.0 * phase + 0.4)
-        samples[offset + index] += PEAK * level * attack * decay * tone / (1.0 + brightness)
+        samples[offset + index] += PEAK * level * attack * decay * release * tone / (1.0 + brightness)
     return samples
 
 
@@ -217,7 +219,7 @@ def main() -> None:
         render(name, tones)
     for name, stages in drones.items():
         if name == "scooter-unlock.wav":
-            render_drone(name, stages, reverb=True, attack=0.48, release=0.65)
+            render_drone(name, stages, reverb=True, attack=0.48, release=0.65, smooth_levels=True)
         elif name == "battery-inserted.wav":
             render_drone(
                 name,

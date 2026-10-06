@@ -1145,6 +1145,13 @@ if(BUILD_TESTING)
     target_link_libraries(sound_cue_player_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME sound_cue_player_test COMMAND sound_cue_player_test)
 
+    find_package(Python3 COMPONENTS Interpreter)
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME sound_cue_generation_test
+            COMMAND ${Python3_EXECUTABLE} -B
+                ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_generate_sound_cues.py)
+    endif()
+
     qt_add_executable(sound_cue_service_test
         tests/SoundCueServiceTest.cpp
         src/services/SoundCueService.cpp
