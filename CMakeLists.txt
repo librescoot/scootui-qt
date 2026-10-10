@@ -75,6 +75,8 @@ set(CPP_SOURCES
     src/core/BootGate.cpp
     src/core/ShortcutMenuItems.cpp
     src/services/DestinationRpc.cpp
+    src/services/RideGroupJson.cpp
+    src/services/RideGroupJournal.cpp
     src/repositories/InMemoryMdbRepository.cpp
     src/repositories/RedisMdbRepository.cpp
     src/repositories/HiredisWorker.cpp
@@ -172,6 +174,8 @@ set(CPP_HEADERS
     src/core/AppConfig.h
     src/core/ShortcutMenuItems.h
     src/services/DestinationRpc.h
+    src/services/RideGroupJson.h
+    src/services/RideGroupJournal.h
     src/core/EnvConfig.h
     src/core/DataPartition.h
     src/core/HmiLatencyMonitor.h
@@ -532,6 +536,11 @@ install(TARGETS scootui
 
 if(BUILD_TESTING)
     find_package(Qt6 6.4 REQUIRED COMPONENTS Test)
+    qt_add_executable(ride_group_journal_test tests/RideGroupJournalTest.cpp
+        src/services/RideGroupJson.cpp src/services/RideGroupJournal.cpp)
+    target_include_directories(ride_group_journal_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(ride_group_journal_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME ride_group_journal_test COMMAND ride_group_journal_test)
 
     set(APPLICATION_NOTIFICATION_TEST_SOURCES ${CPP_SOURCES})
     list(REMOVE_ITEM APPLICATION_NOTIFICATION_TEST_SOURCES src/main.cpp)
