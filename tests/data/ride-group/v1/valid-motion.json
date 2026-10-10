@@ -1,0 +1,1 @@
+{"v":1,"type":"ride_group_position","session_id":"00000000-0000-4000-8000-000000000002","revision":2,"transport_epoch":1,"stream_id":"00000000-0000-4000-8000-000000000001","seq":2,"captured_at_ms":1781731202000,"timestamp_source":"producer_fix","lat":52.5201,"lon":13.4051,"accuracy_m":4.2,"heading_deg":0,"speed_mps":2.5,"motion_source":"position_delta"}

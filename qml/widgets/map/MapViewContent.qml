@@ -10,6 +10,22 @@ MapView {
     // its first partial or complete frame has rendered.
     property bool styledOutputReady: false
 
+    function reportSharingVisibility() {
+        if (typeof rideGroupService !== "undefined")
+            rideGroupService.setMapVisible(visible && styledOutputReady)
+    }
+    onVisibleChanged: reportSharingVisibility()
+    onStyledOutputReadyChanged: reportSharingVisibility()
+    Component.onDestruction: {
+        if (typeof rideGroupService !== "undefined") rideGroupService.setMapVisible(false)
+    }
+    Timer {
+        interval: 3000
+        repeat: true
+        running: mapView.visible && mapView.styledOutputReady
+        onTriggered: mapView.reportSharingVisibility()
+    }
+
     map.plugin: Plugin {
         id: mapPlugin
         name: "maplibre"
@@ -188,6 +204,13 @@ MapView {
             styleId: "plan-stops"
             type: "geojson"
             property string data: typeof mapService !== "undefined" ? mapService.planStopsGeoJson : ""
+            onDataChanged: updateNotify()
+        }
+
+        SourceParameter {
+            styleId: "ride-group-peers"
+            type: "geojson"
+            property string data: typeof rideGroupService !== "undefined" ? rideGroupService.peersGeoJson : '{"type":"FeatureCollection","features":[]}'
             onDataChanged: updateNotify()
         }
 

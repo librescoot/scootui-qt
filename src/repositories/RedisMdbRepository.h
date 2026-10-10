@@ -26,6 +26,8 @@ public:
     void set(const QString &channel, const QString &variable,
              const QString &value, bool publish = true) override;
     void publish(const QString &channel, const QString &message) override;
+    void publishTransient(const QString &channel, const QString &message,
+                          QDeadlineTimer deadline, std::function<bool()> permit) override;
     SubscriptionId subscribe(const QString &channel, SubscriptionCallback callback) override;
     void unsubscribe(const QString &channel, SubscriptionId id) override;
     void push(const QString &channel, const QString &command) override;

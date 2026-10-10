@@ -110,6 +110,17 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
 
 MenuStore::~MenuStore() = default;
 
+void MenuStore::setRideGroupActions(bool enabled, const QString &status, bool canEnable,
+                                    std::function<void()> stop, std::function<void()> enable)
+{
+    m_rideGroupEnabled = enabled;
+    m_rideGroupStatus = status;
+    m_rideGroupCanEnable = canEnable;
+    m_stopSharing = std::move(stop);
+    m_enableSharing = std::move(enable);
+    rebuildMenuTree();
+}
+
 void MenuStore::setNavigationService(NavigationService *svc)
 {
     m_navigationService = svc;
@@ -345,6 +356,22 @@ void MenuStore::rebuildMenuTree()
                 close();
                 m_hopOn->activate();
             }));
+    }
+
+    if (m_rideGroupEnabled) {
+        auto *sharing = MenuNode::submenu(QStringLiteral("ride_group"), tr->rideGroupTitle());
+        sharing->addChild(MenuNode::action(QStringLiteral("ride_group_status"), m_rideGroupStatus, []() {}));
+        sharing->addChild(MenuNode::action(QStringLiteral("ride_group_stop"), tr->rideGroupStop(), [this]() {
+            if (m_stopSharing) m_stopSharing();
+            close();
+        }));
+        if (m_rideGroupCanEnable) {
+            sharing->addChild(MenuNode::action(QStringLiteral("ride_group_enable"), tr->rideGroupEnable(), [this]() {
+                if (m_enableSharing) m_enableSharing();
+                close();
+            }));
+        }
+        m_rootNode->addChild(sharing);
     }
 
     // === Navigation submenu (visible when display maps and routing are ready) ===

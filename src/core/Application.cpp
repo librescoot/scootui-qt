@@ -56,6 +56,7 @@
 #include "services/SoundCueService.h"
 #include "services/SoundCuePlayer.h"
 #include "services/MapService.h"
+#include "services/RideGroupService.h"
 #include "services/RegionalMapCatalog.h"
 #include "services/LowTemperatureMonitor.h"
 #include "services/LowSocMonitor.h"
@@ -498,6 +499,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_mapService = new MapService(gpsStore, engineStore, m_navigationService,
                                    settingsStore, themeStore, speedLimitStore,
                                    motionStore, this);
+    m_rideGroupService = new RideGroupService(repo, this);
 
     // Wire MapService's dead-reckoned position into NavigationService so
     // TBT and off-route detection update smoothly between GPS samples.
@@ -924,6 +926,21 @@ void Application::createStores(QQmlApplicationEngine &engine)
                                     repo, this);
 
     // Wire saved locations, screen store, navigation, and availability into menu
+    const auto refreshSharingMenu = [this, menuStore]() {
+        QString status = m_translations->rideGroupTitle();
+        if (m_rideGroupService->busy()) status = m_translations->rideGroupSaving();
+        else if (!m_rideGroupService->storageAvailable()) status = m_translations->rideGroupUnavailable();
+        else if (m_rideGroupService->phase() == QStringLiteral("confirmed")) status = m_translations->rideGroupConfirmed();
+        else if (m_rideGroupService->phase() == QStringLiteral("uncertain")) status = m_translations->rideGroupUncertain();
+        else if (m_rideGroupService->blocked()) status = m_translations->rideGroupPending();
+        menuStore->setRideGroupActions(m_rideGroupService->enabled(), status,
+            m_rideGroupService->storageAvailable() && m_rideGroupService->blocked() && !m_rideGroupService->busy(),
+            [this]() { m_rideGroupService->stopSharing(); },
+            [this]() { m_rideGroupService->enableSharing(); });
+    };
+    connect(m_rideGroupService, &RideGroupService::changed, this, refreshSharingMenu);
+    connect(m_translations, &Translations::languageChanged, this, refreshSharingMenu);
+    refreshSharingMenu();
     menuStore->setSavedLocationsStore(savedLocationsStore);
     menuStore->setRecentDestinationsStore(recentDestinationsStore);
     menuStore->setScreenStore(screenStore);
@@ -1036,6 +1053,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("toastService"), m_toastService);
     ctx->setContextProperty(QStringLiteral("notificationService"), m_notificationService);
     ctx->setContextProperty(QStringLiteral("mapService"), m_mapService);
+    ctx->setContextProperty(QStringLiteral("rideGroupService"), m_rideGroupService);
     ctx->setContextProperty(QStringLiteral("inputHandler"), m_inputHandler);
     ctx->setContextProperty(QStringLiteral("navAvailabilityService"), m_navAvailability);
     ctx->setContextProperty(QStringLiteral("savedLocationsStore"), savedLocationsStore);

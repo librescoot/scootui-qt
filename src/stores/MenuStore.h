@@ -5,6 +5,7 @@
 #include <QVariantList>
 #include <QStringList>
 #include <memory>
+#include <functional>
 
 class MenuNode;
 class SettingsStore;
@@ -53,6 +54,8 @@ public:
                        Translations *translations, SettingsService *settingsService,
                        MdbRepository *repo, QObject *parent = nullptr);
 
+    void setRideGroupActions(bool enabled, const QString &status, bool canEnable,
+                             std::function<void()> stop, std::function<void()> enable);
     void setNavigationService(NavigationService *svc);
     void setSavedLocationsStore(SavedLocationsStore *store);
     void setRecentDestinationsStore(RecentDestinationsStore *store);
@@ -126,6 +129,10 @@ private:
     Translations *m_translations;
     SettingsService *m_settingsService;
     MdbRepository *m_repo;
+    bool m_rideGroupEnabled = false;
+    bool m_rideGroupCanEnable = false;
+    QString m_rideGroupStatus;
+    std::function<void()> m_stopSharing, m_enableSharing;
     NavigationService *m_navigationService = nullptr;
     SavedLocationsStore *m_savedLocations = nullptr;
     RecentDestinationsStore *m_recentDestinations = nullptr;

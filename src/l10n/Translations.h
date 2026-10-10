@@ -13,6 +13,14 @@ class Translations : public QObject
     // by property) has something to depend on, and re-evaluates on a
     // language change like every static binding does.
     Q_PROPERTY(QString language READ language NOTIFY languageChanged)
+    Q_PROPERTY(QString rideGroupTitle READ rideGroupTitle NOTIFY languageChanged)
+    Q_PROPERTY(QString rideGroupStop READ rideGroupStop NOTIFY languageChanged)
+    Q_PROPERTY(QString rideGroupEnable READ rideGroupEnable NOTIFY languageChanged)
+    Q_PROPERTY(QString rideGroupConfirmed READ rideGroupConfirmed NOTIFY languageChanged)
+    Q_PROPERTY(QString rideGroupPending READ rideGroupPending NOTIFY languageChanged)
+    Q_PROPERTY(QString rideGroupUncertain READ rideGroupUncertain NOTIFY languageChanged)
+    Q_PROPERTY(QString rideGroupSaving READ rideGroupSaving NOTIFY languageChanged)
+    Q_PROPERTY(QString rideGroupUnavailable READ rideGroupUnavailable NOTIFY languageChanged)
     Q_PROPERTY(QString menuTitle READ menuTitle NOTIFY languageChanged)
     Q_PROPERTY(QString menuSettings READ menuSettings NOTIFY languageChanged)
     Q_PROPERTY(QString menuTheme READ menuTheme NOTIFY languageChanged)
@@ -1397,6 +1405,14 @@ public:
     QString standbyCancel() const { return lookup("standbyCancel"); }
 
     // Destination & map
+    QString rideGroupTitle() const { return lookup("rideGroupTitle"); }
+    QString rideGroupStop() const { return lookup("rideGroupStop"); }
+    QString rideGroupEnable() const { return lookup("rideGroupEnable"); }
+    QString rideGroupConfirmed() const { return lookup("rideGroupConfirmed"); }
+    QString rideGroupPending() const { return lookup("rideGroupPending"); }
+    QString rideGroupUncertain() const { return lookup("rideGroupUncertain"); }
+    QString rideGroupSaving() const { return lookup("rideGroupSaving"); }
+    QString rideGroupUnavailable() const { return lookup("rideGroupUnavailable"); }
     QString mapWaitingForGps() const { return lookup("mapWaitingForGps"); }
     QString mapOutOfCoverage() const { return lookup("mapOutOfCoverage"); }
 

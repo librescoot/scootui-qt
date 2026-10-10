@@ -35,6 +35,22 @@ void Translations::initStrings()
 {
     auto &en = m_strings[QStringLiteral("en")];
     auto &de = m_strings[QStringLiteral("de")];
+    en[QStringLiteral("rideGroupTitle")] = QStringLiteral("Live sharing");
+    de[QStringLiteral("rideGroupTitle")] = QStringLiteral("Live-Standort teilen");
+    en[QStringLiteral("rideGroupStop")] = QStringLiteral("Stop sharing");
+    de[QStringLiteral("rideGroupStop")] = QStringLiteral("Teilen beenden");
+    en[QStringLiteral("rideGroupEnable")] = QStringLiteral("Enable sharing");
+    de[QStringLiteral("rideGroupEnable")] = QStringLiteral("Teilen aktivieren");
+    en[QStringLiteral("rideGroupConfirmed")] = QStringLiteral("Sharing stopped");
+    de[QStringLiteral("rideGroupConfirmed")] = QStringLiteral("Teilen beendet");
+    en[QStringLiteral("rideGroupPending")] = QStringLiteral("Stop pending");
+    de[QStringLiteral("rideGroupPending")] = QStringLiteral("Beenden ausstehend");
+    en[QStringLiteral("rideGroupUncertain")] = QStringLiteral("Stop unconfirmed");
+    de[QStringLiteral("rideGroupUncertain")] = QStringLiteral("Beenden unbestätigt");
+    en[QStringLiteral("rideGroupSaving")] = QStringLiteral("Saving sharing state…");
+    de[QStringLiteral("rideGroupSaving")] = QStringLiteral("Freigabestatus wird gespeichert…");
+    en[QStringLiteral("rideGroupUnavailable")] = QStringLiteral("Sharing storage unavailable");
+    de[QStringLiteral("rideGroupUnavailable")] = QStringLiteral("Freigabespeicher nicht verfügbar");
 
     // -----------------------------------------------------------------------
     // Menu strings

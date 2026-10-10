@@ -21,6 +21,7 @@ class ToastService;
 class NotificationService;
 class SoundCueService;
 class MapService;
+class RideGroupService;
 class LowTemperatureMonitor;
 class LowSocMonitor;
 class OtaMonitor;
@@ -126,6 +127,7 @@ private:
     NotificationService *m_notificationService = nullptr;
     SoundCueService *m_soundCueService = nullptr;
     MapService *m_mapService = nullptr;
+    RideGroupService *m_rideGroupService = nullptr;
     LowTemperatureMonitor *m_lowTempMonitor = nullptr;
     LowSocMonitor *m_lowSocMonitor = nullptr;
     OtaMonitor *m_otaMonitor = nullptr;

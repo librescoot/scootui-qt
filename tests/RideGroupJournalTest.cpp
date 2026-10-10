@@ -22,6 +22,14 @@ QJsonObject record(QString phase, int revision = 1) {
           {"committed_generation", QJsonValue(QJsonValue::Null)}};
 }
 } // namespace
+class FaultJournal : public RideGroupJournal {
+public:
+  explicit FaultJournal(const QString &root) : RideGroupJournal(root, false) {}
+  int faultAt = 0, calls = 0;
+
+protected:
+  bool checkpoint(WriteStage) override { return ++calls != faultAt; }
+};
 class RideGroupJournalTest : public QObject {
   Q_OBJECT
 private slots:
@@ -133,6 +141,31 @@ private slots:
     replacement.setPermissions(QFile::ReadOwner | QFile::WriteOwner);
     replacement.close();
     QVERIFY(!journal.save(record("idle")));
+  }
+  void interruptedWritesRequireResynchronization() {
+    for (int stage = 1; stage <= 5; ++stage) {
+      QTemporaryDir root;
+      FaultJournal journal(root.path());
+      QVERIFY(journal.load().ok);
+      QVERIFY(journal.save(record("preparing")));
+      journal.calls = 0;
+      journal.faultAt = stage;
+      auto prepared = record("prepared", 2);
+      prepared["expected_generation"] = 7;
+      QVERIFY(!journal.save(prepared));
+      QVERIFY(!journal.save(prepared));
+      journal.faultAt = 0;
+      auto recovered = journal.load();
+      QVERIFY(recovered.ok);
+      QVERIFY(recovered.record["blocked"].toBool());
+      QCOMPARE(recovered.record["phase"].toString(),
+               stage == 5 ? QString("prepared") : QString("uncertain"));
+      QCOMPARE(recovered.record["revision"].toInt(), 2);
+      if (stage == 5)
+        QCOMPARE(recovered.record["expected_generation"].toInt(), 7);
+      else
+        QVERIFY(recovered.record["expected_generation"].isNull());
+    }
   }
   void strictJson() {
     QJsonObject parsed;

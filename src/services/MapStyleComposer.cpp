@@ -157,6 +157,7 @@ void injectRoute(QJsonObject &root, const MapRouteStyle &style)
     sources[QStringLiteral("plan-stops")] = routeSource;
     sources[QStringLiteral("overview-traveled")] = routeSource;
     sources[QStringLiteral("overview-markers")] = routeSource;
+    sources[QStringLiteral("ride-group-peers")] = routeSource;
     root[QStringLiteral("sources")] = sources;
 
     QJsonArray layers;
@@ -173,7 +174,10 @@ void injectRoute(QJsonObject &root, const MapRouteStyle &style)
             && id != QLatin1String("overview-traveled")
             && id != QLatin1String("overview-start")
             && id != QLatin1String("overview-finish")
-            && id != QLatin1String("overview-current")) {
+            && id != QLatin1String("overview-current")
+            && id != QLatin1String("ride-group-tether")
+            && id != QLatin1String("ride-group-markers")
+            && id != QLatin1String("ride-group-labels")) {
             layers.append(value);
         }
     }
@@ -232,6 +236,27 @@ void injectRoute(QJsonObject &root, const MapRouteStyle &style)
     }
     if (firstExtrusion < 0 && firstSymbol < 0)
         appendPlanAndRoute();
+    const QJsonArray palette{QStringLiteral("match"), QJsonArray{QStringLiteral("get"), QStringLiteral("palette_index")},
+        0, QStringLiteral("#00BCD4"), 1, QStringLiteral("#FFB300"), 2, QStringLiteral("#E040FB"),
+        3, QStringLiteral("#76FF03"), 4, QStringLiteral("#FF5252"), QStringLiteral("#448AFF")};
+    const QJsonArray color{QStringLiteral("case"), QJsonArray{QStringLiteral("get"), QStringLiteral("stale")}, QStringLiteral("#888888"), palette};
+    composed.append(QJsonObject{{QStringLiteral("id"), QStringLiteral("ride-group-tether")},
+        {QStringLiteral("type"), QStringLiteral("line")}, {QStringLiteral("source"), QStringLiteral("ride-group-peers")},
+        {QStringLiteral("filter"), QJsonArray{QStringLiteral("=="), QStringLiteral("$type"), QStringLiteral("LineString")}},
+        {QStringLiteral("paint"), QJsonObject{{QStringLiteral("line-color"), color}, {QStringLiteral("line-width"), 2}, {QStringLiteral("line-opacity"), 0.6}}}});
+    composed.append(QJsonObject{{QStringLiteral("id"), QStringLiteral("ride-group-markers")},
+        {QStringLiteral("type"), QStringLiteral("circle")}, {QStringLiteral("source"), QStringLiteral("ride-group-peers")},
+        {QStringLiteral("filter"), QJsonArray{QStringLiteral("=="), QStringLiteral("$type"), QStringLiteral("Point")}},
+        {QStringLiteral("paint"), QJsonObject{
+            {QStringLiteral("circle-color"), QJsonArray{QStringLiteral("case"), QJsonArray{QStringLiteral("get"), QStringLiteral("estimated")}, QStringLiteral("rgba(0,0,0,0)"), color}},
+            {QStringLiteral("circle-radius"), 7}, {QStringLiteral("circle-stroke-color"), color}, {QStringLiteral("circle-stroke-width"), 2}}}});
+    if (!root.value(QStringLiteral("glyphs")).toString().isEmpty()) {
+        composed.append(QJsonObject{{QStringLiteral("id"), QStringLiteral("ride-group-labels")},
+            {QStringLiteral("type"), QStringLiteral("symbol")}, {QStringLiteral("source"), QStringLiteral("ride-group-peers")},
+            {QStringLiteral("filter"), QJsonArray{QStringLiteral("all"), QJsonArray{QStringLiteral("=="), QStringLiteral("$type"), QStringLiteral("Point")}, QJsonArray{QStringLiteral("=="), QStringLiteral("current"), true}}},
+            {QStringLiteral("layout"), QJsonObject{{QStringLiteral("text-field"), QStringLiteral("{label}")}, {QStringLiteral("text-size"), 14}, {QStringLiteral("text-offset"), QJsonArray{0, 1.2}}}},
+            {QStringLiteral("paint"), QJsonObject{{QStringLiteral("text-color"), color}, {QStringLiteral("text-halo-color"), QStringLiteral("#222222")}, {QStringLiteral("text-halo-width"), 2}}}});
+    }
     root[QStringLiteral("layers")] = composed;
 }
 

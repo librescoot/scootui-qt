@@ -77,6 +77,7 @@ set(CPP_SOURCES
     src/services/DestinationRpc.cpp
     src/services/RideGroupJson.cpp
     src/services/RideGroupJournal.cpp
+    src/services/RideGroupService.cpp
     src/repositories/InMemoryMdbRepository.cpp
     src/repositories/RedisMdbRepository.cpp
     src/repositories/HiredisWorker.cpp
@@ -176,6 +177,7 @@ set(CPP_HEADERS
     src/services/DestinationRpc.h
     src/services/RideGroupJson.h
     src/services/RideGroupJournal.h
+    src/services/RideGroupService.h
     src/core/EnvConfig.h
     src/core/DataPartition.h
     src/core/HmiLatencyMonitor.h
@@ -541,6 +543,27 @@ if(BUILD_TESTING)
     target_include_directories(ride_group_journal_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(ride_group_journal_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME ride_group_journal_test COMMAND ride_group_journal_test)
+    qt_add_executable(ride_group_ipc_writer_test tests/RideGroupIpcWriterTest.cpp
+        src/repositories/HiredisWorker.cpp src/repositories/HiredisWorker.h)
+    target_include_directories(ride_group_ipc_writer_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${HIREDIS_INCLUDE_DIRS})
+    target_link_directories(ride_group_ipc_writer_test PRIVATE ${HIREDIS_LIBRARY_DIRS})
+    target_link_libraries(ride_group_ipc_writer_test PRIVATE Qt6::Core Qt6::Test ${HIREDIS_LIBRARIES})
+    add_test(NAME ride_group_ipc_writer_test COMMAND ride_group_ipc_writer_test)
+    qt_add_executable(ride_group_service_test tests/RideGroupServiceTest.cpp
+        src/services/RideGroupJson.cpp src/services/RideGroupJournal.cpp src/services/RideGroupService.cpp
+        src/services/RideGroupService.h src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp src/repositories/InMemoryMdbRepository.h)
+    target_include_directories(ride_group_service_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(ride_group_service_test PRIVATE Qt6::Core Qt6::Gui Qt6::Concurrent Qt6::Test)
+    add_test(NAME ride_group_service_test COMMAND ride_group_service_test)
+    qt_add_executable(ride_group_map_render_test tests/RideGroupMapRenderTest.cpp
+        src/services/RideGroupJson.cpp src/services/RideGroupJournal.cpp src/services/RideGroupService.cpp
+        src/services/RideGroupService.h src/services/MapStyleComposer.cpp src/services/MapStyleMetadata.cpp
+        src/repositories/MdbRepository.h src/repositories/InMemoryMdbRepository.cpp src/repositories/InMemoryMdbRepository.h)
+    target_include_directories(ride_group_map_render_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(ride_group_map_render_test PRIVATE Qt6::Quick Qt6::Concurrent Qt6::Test)
+    add_test(NAME ride_group_map_render_test COMMAND ride_group_map_render_test)
+    set_tests_properties(ride_group_map_render_test PROPERTIES LABELS "map-render" TIMEOUT 30)
 
     set(APPLICATION_NOTIFICATION_TEST_SOURCES ${CPP_SOURCES})
     list(REMOVE_ITEM APPLICATION_NOTIFICATION_TEST_SOURCES src/main.cpp)

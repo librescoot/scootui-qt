@@ -392,6 +392,17 @@ void RedisMdbRepository::publish(const QString &channel, const QString &message)
     }
 }
 
+void RedisMdbRepository::publishTransient(const QString &channel, const QString &message,
+    QDeadlineTimer deadline, std::function<bool()> permit)
+{
+    auto *worker = m_worker;
+    if (!worker || !isConnected() || deadline.hasExpired() || !permit || !permit()) return;
+    const quint64 generation = worker->connectionGeneration();
+    QMetaObject::invokeMethod(worker, [worker, channel, message, deadline, generation, permit]() {
+        worker->doPublishTransient(channel, message, deadline, generation, permit);
+    }, Qt::QueuedConnection);
+}
+
 void RedisMdbRepository::dashboardReady()
 {
     set(QStringLiteral("dashboard"), QStringLiteral("ready"), QStringLiteral("true"));

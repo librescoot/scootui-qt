@@ -118,6 +118,7 @@ bool HiredisWorker::ensureConnected()
 {
     if (m_ctx && !m_ctx->err) {
         if (!m_connected) {
+            ++m_generation;
             m_connected = true;
             emit connectionChanged(true, m_usingBackup);
         }
@@ -133,6 +134,7 @@ bool HiredisWorker::ensureConnected()
         // Set socket timeout so commands don't block forever on a half-open connection
         struct timeval cmdTimeout = {2, 0};
         redisSetTimeout(m_ctx, cmdTimeout);
+        ++m_generation;
         m_connected = true;
         m_usingBackup = false;
         m_everConnected = true;
@@ -151,6 +153,7 @@ bool HiredisWorker::ensureConnected()
         if (m_ctx && !m_ctx->err) {
             struct timeval cmdTimeout = {2, 0};
             redisSetTimeout(m_ctx, cmdTimeout);
+            ++m_generation;
             m_connected = true;
             m_usingBackup = true;
             m_everConnected = true;
@@ -186,6 +189,7 @@ void HiredisWorker::scheduleReconnect()
 
 void HiredisWorker::disconnectRedis()
 {
+    ++m_generation;
     if (m_ctx) {
         redisFree(m_ctx);
         m_ctx = nullptr;
@@ -371,6 +375,26 @@ void HiredisWorker::doPush(const QString &channel, const QString &command)
         return;
     }
     freeReplyObject(reply);
+}
+
+void HiredisWorker::doPublishTransient(const QString &channel, const QString &message,
+    QDeadlineTimer deadline, quint64 generation, const std::function<bool()> &permit)
+{
+    if (!m_ctx || m_ctx->err || !m_connected || generation != m_generation.load()
+        || deadline.hasExpired() || !permit || !permit()) return;
+    const auto channelBytes = channel.toUtf8();
+    const auto bytes = message.toUtf8();
+    if (bytes.size() > 1024) return;
+    const qint64 ms = qMin<qint64>(250, deadline.remainingTime() / 2);
+    if (ms <= 0) return;
+    const timeval timeout{0, static_cast<suseconds_t>(ms * 1000)};
+    if (redisSetTimeout(m_ctx, timeout) != REDIS_OK) return;
+    if (!deadline.hasExpired() && generation == m_generation.load() && permit()) {
+        auto *reply = static_cast<redisReply *>(redisCommand(m_ctx, "PUBLISH %b %b",
+            channelBytes.constData(), size_t(channelBytes.size()), bytes.constData(), size_t(bytes.size())));
+        if (reply) freeReplyObject(reply);
+    }
+    if (m_ctx) redisSetTimeout(m_ctx, timeval{2, 0});
 }
 
 void HiredisWorker::doPublish(const QString &channel, const QString &message)

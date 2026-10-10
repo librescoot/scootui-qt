@@ -268,13 +268,18 @@ bool RideGroupJournal::save(const QJsonObject &record) {
     offset += n;
   }
   if (ok)
-    ok = fsync(fd) == 0;
+    ok = checkpoint(WriteStage::Written);
+  if (ok)
+    ok = checkpoint(WriteStage::FileSync) && fsync(fd) == 0;
   if (close(fd) != 0)
     ok = false;
   if (ok)
-    ok = renameat(m_directory, temp.constData(), m_directory, "stop.json") == 0;
+    ok = checkpoint(WriteStage::Close);
   if (ok)
-    ok = fsync(m_directory) == 0;
+    ok = checkpoint(WriteStage::Rename) &&
+         renameat(m_directory, temp.constData(), m_directory, "stop.json") == 0;
+  if (ok)
+    ok = checkpoint(WriteStage::DirectorySync) && fsync(m_directory) == 0;
   if (!ok) {
     m_faulted = true;
     unlinkat(m_directory, temp.constData(), 0);

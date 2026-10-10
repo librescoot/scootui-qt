@@ -1,0 +1,9 @@
+{
+  "challenge": "00000000-0000-4000-8000-000000000002",
+  "capabilities": [
+    "ride_group_v2"
+  ],
+  "connection_nonce": "00000000-0000-4000-8000-000000000001",
+  "type": "ride_group_hello",
+  "v": 2
+}

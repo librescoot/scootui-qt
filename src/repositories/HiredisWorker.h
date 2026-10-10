@@ -9,6 +9,9 @@
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
+#include <QDeadlineTimer>
+#include <atomic>
+#include <functional>
 
 struct redisContext;
 
@@ -38,6 +41,10 @@ public:
 
     // Snapshot of registered channel names (main thread, before worker starts).
     QStringList registeredChannels() const;
+    quint64 connectionGeneration() const { return m_generation.load(); }
+    void doPublishTransient(const QString &channel, const QString &message,
+                            QDeadlineTimer deadline, quint64 generation,
+                            const std::function<bool()> &permit);
 
 public slots:
     // Called on the worker thread
@@ -102,6 +109,7 @@ private:
     // quick, so leave it until the primary has really failed.
     static constexpr int kBackupAfterFailures = 8;
 
+    std::atomic<quint64> m_generation{0};
     bool ensureConnected();
     void disconnectRedis();
     void onPollTimer();

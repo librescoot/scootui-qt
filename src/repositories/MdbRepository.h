@@ -6,6 +6,7 @@
 #include <QHash>
 #include <QVariantList>
 #include <functional>
+#include <QDeadlineTimer>
 
 using FieldMap = QHash<QString, QString>;
 using SubscriptionCallback = std::function<void(const QString &channel, const QString &message)>;
@@ -24,6 +25,11 @@ public:
     virtual void set(const QString &channel, const QString &variable,
                      const QString &value, bool publish = true) = 0;
     virtual void publish(const QString &channel, const QString &message) = 0;
+    // permit must be thread-safe; implementations recheck it at admission.
+    virtual void publishTransient(const QString &channel, const QString &message,
+                                  QDeadlineTimer deadline, std::function<bool()> permit) {
+        if (isConnected() && !deadline.hasExpired() && permit && permit()) publish(channel, message);
+    }
     // Each registration has independent ownership. A channel can have several
     // consumers, so removing one must not disconnect the others.
     virtual SubscriptionId subscribe(const QString &channel,
