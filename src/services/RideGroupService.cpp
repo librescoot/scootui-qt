@@ -86,10 +86,10 @@ RideGroupService::RideGroupService(MdbRepository *repo, QObject *parent,
           receive(c, message);
         }));
   connect(repo, &MdbRepository::fieldsUpdated, this,
-          [this](const QString &channel, const FieldMap &) {
+          [this](const QString &channel, const FieldMap &fields) {
             if (channel == "settings")
               configure();
-            else if (channel == "vehicle")
+            else if (channel == "vehicle" && fields.contains("state"))
               heartbeat();
           });
   if (auto *application =
