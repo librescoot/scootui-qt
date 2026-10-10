@@ -77,6 +77,7 @@ private:
   std::shared_ptr<RideGroupJournal> m_journal;
   QJsonObject m_record, m_grant;
   QHash<QString, Attempt> m_attempts;
+  QHash<QString, qint64> m_activityChallenges;
   QHash<QString, Peer> m_peers;
   QList<quint64> m_subscriptions;
   QTimer m_heartbeat, m_animation;

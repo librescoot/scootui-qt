@@ -73,6 +73,45 @@ private slots:
       return QString("00000000-0000-4000-8000-%1")
           .arg(value, 12, 10, QChar('0'));
     };
+    MapProvider map;
+    QQmlEngine engine;
+    engine.rootContext()->setContextProperty("mapService", &map);
+    engine.rootContext()->setContextProperty("rideGroupService", &sharing);
+    QQmlComponent component(&engine);
+    QString directory = QFINDTESTDATA("../qml/widgets/map");
+    component.setData(
+        QString("import QtQuick\nimport \"%1\"\nWindow { visible:true; "
+                "width:480; height:480; MapViewContentLegacy { "
+                "objectName:\"live-map\"; anchors.fill:parent } }")
+            .arg(QUrl::fromLocalFile(directory).toString())
+            .toUtf8(),
+        QUrl::fromLocalFile(directory + "/render-test.qml"));
+    QTRY_VERIFY_WITH_TIMEOUT(component.status() != QQmlComponent::Loading,
+                             10000);
+    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+    std::unique_ptr<QObject> object(component.create());
+    QVERIFY2(object, qPrintable(component.errorString()));
+    auto *window = qobject_cast<QQuickWindow *>(object.get());
+    QVERIFY(window);
+    QVERIFY(QTest::qWaitForWindowExposed(window));
+    window->requestActivate();
+    QTRY_COMPARE(QGuiApplication::applicationState(), Qt::ApplicationActive);
+    QObject *view = object->findChild<QObject *>("live-map");
+    QVERIFY(view);
+    QTRY_VERIFY_WITH_TIMEOUT(view->property("styledOutputReady").toBool(),
+                             10000);
+    QJsonValue challenge;
+    auto subscription = repo.subscribe(
+        "ride-group:activity", [&](const QString &, const QString &message) {
+          auto value = QJsonDocument::fromJson(message.toUtf8()).object();
+          if (value["type"] == "ride_group_activity" &&
+              value["active"].toBool())
+            challenge = value["challenge"];
+        });
+    sharing.setMapVisible(false);
+    sharing.setMapVisible(true);
+    QVERIFY(challenge.isString());
+    repo.unsubscribe("ride-group:activity", subscription);
     double now = QDateTime::currentMSecsSinceEpoch();
     QJsonArray descriptors;
     for (int n = 0; n < 5; ++n)
@@ -89,7 +128,7 @@ private slots:
         {"revision", 1},
         {"transport_epoch", 1},
         {"stream_id", id(4)},
-        {"challenge", id(5)},
+        {"challenge", challenge},
         {"server_time_ms", now},
         {"lease_ttl_ms", 10000},
         {"cadence_ms", 2000},
@@ -130,31 +169,6 @@ private slots:
                           QJsonDocument(point).toJson(QJsonDocument::Compact)));
     }
     QCOMPARE(sharing.peerCount(), 5);
-    MapProvider map;
-    QQmlEngine engine;
-    engine.rootContext()->setContextProperty("mapService", &map);
-    engine.rootContext()->setContextProperty("rideGroupService", &sharing);
-    QQmlComponent component(&engine);
-    QString directory = QFINDTESTDATA("../qml/widgets/map");
-    component.setData(
-        QString("import QtQuick\nimport \"%1\"\nWindow { visible:true; "
-                "width:480; height:480; MapViewContentLegacy { "
-                "objectName:\"live-map\"; anchors.fill:parent } }")
-            .arg(QUrl::fromLocalFile(directory).toString())
-            .toUtf8(),
-        QUrl::fromLocalFile(directory + "/render-test.qml"));
-    QTRY_VERIFY_WITH_TIMEOUT(component.status() != QQmlComponent::Loading,
-                             10000);
-    QVERIFY2(component.isReady(), qPrintable(component.errorString()));
-    std::unique_ptr<QObject> object(component.create());
-    QVERIFY2(object, qPrintable(component.errorString()));
-    auto *window = qobject_cast<QQuickWindow *>(object.get());
-    QVERIFY(window);
-    QVERIFY(QTest::qWaitForWindowExposed(window));
-    QObject *view = object->findChild<QObject *>("live-map");
-    QVERIFY(view);
-    QTRY_VERIFY_WITH_TIMEOUT(view->property("styledOutputReady").toBool(),
-                             10000);
     QTest::qWait(250);
     QImage image = window->grabWindow();
     QCOMPARE(image.size(), QSize(480, 480));

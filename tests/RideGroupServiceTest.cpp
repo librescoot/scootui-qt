@@ -10,6 +10,7 @@
 namespace {
 class Repository : public InMemoryMdbRepository {
 public:
+  Repository() { set("vehicle", "state", "parked"); }
   QList<QJsonObject> messages;
   void publish(const QString &channel, const QString &payload) override {
     if (channel == "ride-group:activity")
@@ -44,6 +45,17 @@ void send(RideGroupService &service, QJsonObject value) {
   service.receive(
       "ride-group:control",
       QString::fromUtf8(QJsonDocument(value).toJson(QJsonDocument::Compact)));
+}
+void sendGrant(RideGroupService &service, Repository &repo, QJsonObject value) {
+  service.setMapVisible(false);
+  service.setMapVisible(true);
+  for (auto i = repo.messages.crbegin(); i != repo.messages.crend(); ++i)
+    if ((*i)["type"] == "ride_group_activity" && (*i)["active"].toBool()) {
+      value["challenge"] = (*i)["challenge"];
+      send(service, value);
+      return;
+    }
+  QFAIL("active challenge missing");
 }
 QJsonObject lastState(const Repository &repo) {
   for (auto i = repo.messages.crbegin(); i != repo.messages.crend(); ++i)
@@ -91,7 +103,7 @@ private slots:
     QTRY_VERIFY(!service.busy());
     auto grant = fixture("control-grant.json");
     grant["server_time_ms"] = double(QDateTime::currentMSecsSinceEpoch());
-    send(service, grant);
+    sendGrant(service, repo, grant);
     auto point = fixture("peer-position.json");
     double now = QDateTime::currentMSecsSinceEpoch();
     point["captured_at_ms"] = now - 2000;
@@ -128,7 +140,7 @@ private slots:
     QTRY_VERIFY(!service.busy());
     service.enableSharing();
     QTRY_VERIFY(!service.busy());
-    send(service, fixture("control-grant.json"));
+    sendGrant(service, repo, fixture("control-grant.json"));
     auto point = fixture("peer-position.json");
     double now = QDateTime::currentMSecsSinceEpoch();
     point["captured_at_ms"] = now + 100000;
@@ -155,7 +167,7 @@ private slots:
     QTRY_VERIFY(!service.busy());
     service.enableSharing();
     QTRY_VERIFY(!service.busy());
-    send(service, fixture("control-grant.json"));
+    sendGrant(service, repo, fixture("control-grant.json"));
     auto point = fixture("peer-position.json");
     double now = QDateTime::currentMSecsSinceEpoch();
     point["captured_at_ms"] = now - 2500;
@@ -218,6 +230,98 @@ private slots:
     emit repo.connectionStateChanged(false);
     QVERIFY(!fresh.permit());
     QVERIFY(!repo.deliver(fresh));
+  }
+  void grantsAndPeersCountWholeActivityRoundTrip() {
+    Repository repo;
+    repo.set("settings", "ride-group.enabled", "true");
+    QTemporaryDir root;
+    RideGroupService service(
+        &repo, nullptr, std::make_shared<RideGroupJournal>(root.path(), false));
+    QTRY_VERIFY(!service.busy());
+    service.enableSharing();
+    QTRY_VERIFY(!service.busy());
+    auto grant = fixture("control-grant.json");
+    auto point = fixture("peer-position.json");
+    const auto publishPoint = [&] {
+      double now = QDateTime::currentMSecsSinceEpoch();
+      point["captured_at_ms"] = now;
+      point["received_at_ms"] = now;
+      point["server_time_ms"] = now;
+      service.receive("ride-group:peers",
+                      QString::fromUtf8(
+                          QJsonDocument(point).toJson(QJsonDocument::Compact)));
+    };
+    send(service, grant);
+    publishPoint();
+    QCOMPARE(service.peerCount(), 0);
+    const auto request = [&] {
+      service.setMapVisible(false);
+      service.setMapVisible(true);
+      for (auto i = repo.messages.crbegin(); i != repo.messages.crend(); ++i)
+        if ((*i)["type"] == "ride_group_activity" && (*i)["active"].toBool()) {
+          grant["challenge"] = (*i)["challenge"];
+          return;
+        }
+    };
+    request();
+    grant["lease_ttl_ms"] = 20;
+    QTest::qWait(30);
+    send(service, grant);
+    publishPoint();
+    QCOMPARE(service.peerCount(), 0);
+    request();
+    grant["lease_ttl_ms"] = 500;
+    QTest::qWait(80);
+    send(service, grant);
+    point["valid_for_ms"] = 50;
+    publishPoint();
+    QCOMPARE(service.peerCount(), 0);
+    point["valid_for_ms"] = 200;
+    publishPoint();
+    QCOMPARE(service.peerCount(), 1);
+    QTest::qWait(130);
+    QCOMPARE(service.peerCount(), 0);
+  }
+  void backendMixedTransportConformance() {
+    auto input = qgetenv("RIDE_GROUP_CONFORMANCE_INPUT");
+    if (input.isEmpty())
+      QSKIP("cross-repository trace not supplied");
+    QFile file(QString::fromUtf8(input));
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    auto flows = QJsonDocument::fromJson(file.readAll()).array();
+    int recipients = 0;
+    for (const auto &flow : flows) {
+      bool hasPeers = false;
+      for (const auto &frame : flow.toArray())
+        if (QJsonDocument::fromJson(frame.toString().toUtf8())
+                .object()["type"] == "ride_group_peer")
+          hasPeers = true;
+      if (!hasPeers)
+        continue;
+      Repository repo;
+      repo.set("settings", "ride-group.enabled", "true");
+      QTemporaryDir root;
+      RideGroupService service(
+          &repo, nullptr,
+          std::make_shared<RideGroupJournal>(root.path(), false));
+      QTRY_VERIFY(!service.busy());
+      service.enableSharing();
+      QTRY_VERIFY(!service.busy());
+      for (const auto &frame : flow.toArray()) {
+        auto value =
+            QJsonDocument::fromJson(frame.toString().toUtf8()).object();
+        if (value["action"] == "grant" || value["action"] == "renew")
+          sendGrant(service, repo, value);
+        else
+          service.receive(value["type"] == "ride_group_peer"
+                              ? "ride-group:peers"
+                              : "ride-group:control",
+                          frame.toString());
+      }
+      QCOMPARE(service.peerCount(), 5);
+      ++recipients;
+    }
+    QCOMPARE(recipients, 6);
   }
   void defaultOffDoesNotCreateStorage() {
     Repository repo;

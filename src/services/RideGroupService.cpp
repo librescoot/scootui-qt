@@ -89,7 +89,13 @@ RideGroupService::RideGroupService(MdbRepository *repo, QObject *parent,
           [this](const QString &channel, const FieldMap &) {
             if (channel == "settings")
               configure();
+            else if (channel == "vehicle")
+              heartbeat();
           });
+  if (auto *application =
+          qobject_cast<QGuiApplication *>(QCoreApplication::instance()))
+    connect(application, &QGuiApplication::applicationStateChanged, this,
+            [this] { heartbeat(); });
   connect(repo, &MdbRepository::connectionStateChanged, this, [this](bool up) {
     m_link = up;
     ++m_ioEpoch;
@@ -329,11 +335,27 @@ void RideGroupService::heartbeat() {
       {"session_id", m_grant.isEmpty() ? null() : m_grant["session_id"]},
       {"member_id", m_grant.isEmpty() ? null() : m_grant["member_id"]},
       {"challenge", uuid()}};
+  if (active) {
+    const auto now = m_clock.elapsed();
+    for (auto i = m_activityChallenges.begin();
+         i != m_activityChallenges.end();) {
+      if (now - i.value() >= 10000)
+        i = m_activityChallenges.erase(i);
+      else
+        ++i;
+    }
+    if (m_activityChallenges.size() >= 10)
+      return;
+    m_activityChallenges.insert(message["challenge"].toString(), now);
+  } else {
+    clearLive();
+  }
   publishLive(message, true);
 }
 void RideGroupService::clearLive() {
   ++*m_publicationEpoch;
   m_grant = {};
+  m_activityChallenges.clear();
   m_grantDeadline = 0;
   for (auto &p : m_peers) {
     p.hasFix = false;
@@ -510,6 +532,14 @@ void RideGroupService::control(const QJsonObject &value) {
       (value["stream_id"] != m_grant["stream_id"] ||
        value["connection_nonce"] != m_grant["connection_nonce"]))
     return;
+  const auto challenge =
+      m_activityChallenges.constFind(value["challenge"].toString());
+  if (challenge == m_activityChallenges.cend())
+    return;
+  const auto elapsed = m_clock.elapsed() - challenge.value();
+  const auto remaining = qint64(value["lease_ttl_ms"].toDouble()) - elapsed;
+  if (elapsed < 0 || elapsed >= 10000 || remaining <= 0)
+    return;
   QHash<QString, QJsonObject> roster;
   for (const auto &entry : value["peers"].toArray()) {
     if (!entry.isObject())
@@ -550,8 +580,7 @@ void RideGroupService::control(const QJsonObject &value) {
   m_epochFloor = value["transport_epoch"].toDouble();
   m_generationFloor = value["consent_generation"].toDouble();
   m_grant = value;
-  m_grantDeadline =
-      m_clock.elapsed() + qint64(value["lease_ttl_ms"].toDouble());
+  m_grantDeadline = m_clock.elapsed() + remaining;
   if (m_mapVisible)
     m_animation.start();
   emit peersChanged();
@@ -607,8 +636,12 @@ void RideGroupService::peer(const QJsonObject &value) {
         bounded(value["accuracy_m"], 0.000001, 100000)) ||
       value["timestamp_source"] != "producer_fix" ||
       !RideGroupJson::counter(value["valid_for_ms"], false) ||
-      value["valid_for_ms"].toDouble() > 5000 ||
-      value["label"] != i->descriptor["label"] ||
+      value["valid_for_ms"].toDouble() > 10000 || !value["label"].isString() ||
+      QJsonDocument(QJsonArray{value["label"]})
+                  .toJson(QJsonDocument::Compact)
+                  .size() -
+              4 >
+          32 ||
       value["palette_index"] != i->descriptor["palette_index"])
     return;
   if (!RideGroupJson::counter(value["received_at_ms"], false) ||
@@ -620,7 +653,7 @@ void RideGroupService::peer(const QJsonObject &value) {
   if (motion == "unknown") {
     if (!value["heading_deg"].isNull() || !value["speed_mps"].isNull())
       return;
-  } else if (motion == "producer_pair") {
+  } else if (motion == "position_delta") {
     if (!bounded(value["heading_deg"], 0, 359.999999999) ||
         !bounded(value["speed_mps"], 0, 40))
       return;
@@ -628,7 +661,16 @@ void RideGroupService::peer(const QJsonObject &value) {
     return;
   double now = QDateTime::currentMSecsSinceEpoch(),
          captured = value["captured_at_ms"].toDouble();
-  if (captured > now || now - captured > 5000)
+  const auto request =
+      m_activityChallenges.constFind(m_grant["challenge"].toString());
+  if (request == m_activityChallenges.cend())
+    return;
+  const auto elapsed = m_clock.elapsed() - request.value();
+  const auto remaining = qint64(value["valid_for_ms"].toDouble()) - elapsed;
+  const auto age = qMax(now - captured, value["server_time_ms"].toDouble() +
+                                            elapsed - captured);
+  if (captured > now || elapsed < 0 || age < 0 || age >= 10000 ||
+      remaining <= 0)
     return;
   double lat = value["lat"].toDouble(), lon = value["lon"].toDouble(),
          accuracy =
@@ -639,8 +681,8 @@ void RideGroupService::peer(const QJsonObject &value) {
                 6371000.0 * qCos(qDegreesToRadians(lat));
   double displacement = std::hypot(north, east);
   bool predict = i->hasFix && epoch == i->epoch && dt >= 1 && dt <= 5 &&
-                 accuracy > 0 && i->accuracy > 0 &&
-                 displacement > accuracy + i->accuracy &&
+                 accuracy > 0 && accuracy <= 50 && i->accuracy > 0 &&
+                 i->accuracy <= 50 && displacement > accuracy + i->accuracy &&
                  displacement / dt <= 40;
   double oldSeconds =
       i->predict
@@ -650,7 +692,7 @@ void RideGroupService::peer(const QJsonObject &value) {
   double oldSpeed = std::hypot(i->north, i->east);
   if (oldSpeed * oldSeconds > 50)
     oldSeconds = 50 / oldSpeed;
-  double producerAge = (now - captured) / 1000.0;
+  double producerAge = age / 1000.0;
   double nextSeconds = predict ? qMin(producerAge, 3.0) : 0;
   double nextNorth = predict ? north / dt : 0,
          nextEast = predict ? east / dt : 0;
@@ -674,9 +716,10 @@ void RideGroupService::peer(const QJsonObject &value) {
   i->lat = lat;
   i->lon = lon;
   i->accuracy = accuracy;
+  i->descriptor["label"] = value["label"];
   i->captured = captured;
   i->received = m_clock.elapsed();
-  i->validUntil = i->received + qint64(value["valid_for_ms"].toDouble());
+  i->validUntil = i->received + remaining;
   i->epoch = epoch;
   i->stream = stream;
   i->sequence = value["seq"].toDouble();
@@ -687,14 +730,18 @@ void RideGroupService::peer(const QJsonObject &value) {
 int RideGroupService::peerCount() const {
   int count = 0;
   for (const auto &p : m_peers)
-    if (p.hasFix && m_clock.elapsed() - p.received < 30000)
+    if (p.hasFix && m_clock.elapsed() < p.validUntil &&
+        m_clock.elapsed() < m_grantDeadline &&
+        m_clock.elapsed() - p.received < 30000)
       ++count;
   return count;
 }
 QString RideGroupService::peersGeoJson() const {
   QJsonArray features;
   for (const auto &p : m_peers) {
-    if (!p.hasFix || m_clock.elapsed() - p.received >= 30000)
+    if (!p.hasFix || m_clock.elapsed() >= p.validUntil ||
+        m_clock.elapsed() >= m_grantDeadline ||
+        m_clock.elapsed() - p.received >= 30000)
       continue;
     double elapsed = (m_clock.elapsed() - p.received) / 1000.0;
     double age = p.producerAge + elapsed;
