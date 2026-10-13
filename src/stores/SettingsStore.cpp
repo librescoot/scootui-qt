@@ -155,6 +155,11 @@ SyncSettings SettingsStore::syncSettings() const
             {QStringLiteral("speedometerBaseColor"), QStringLiteral("dashboard.speedometer.base-color")},
             {QStringLiteral("speedometerWarnColor"), QStringLiteral("dashboard.speedometer.warn-color")},
             {QStringLiteral("speedometerOverspeedColor"), QStringLiteral("dashboard.speedometer.overspeed-color")},
+            {QStringLiteral("speedometerRegenColor"), QStringLiteral("dashboard.speedometer.regen-color")},
+            {QStringLiteral("speedometerErrorColor"), QStringLiteral("dashboard.speedometer.error-color")},
+            {QStringLiteral("powerRegenColor"), QStringLiteral("dashboard.power.regen-color")},
+            {QStringLiteral("powerDischargeColor"), QStringLiteral("dashboard.power.discharge-color")},
+            {QStringLiteral("powerBoostColor"), QStringLiteral("dashboard.power.boost-color")},
             {QStringLiteral("batteryDisplayMode"), QStringLiteral("dashboard.battery-display-mode")},
             {QStringLiteral("mapType"), QStringLiteral("dashboard.map.type")},
             {QStringLiteral("mapViewMode"), QStringLiteral("dashboard.map.view-mode")},
@@ -236,6 +241,16 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
         if (value != m_speedometerWarnColor) { m_speedometerWarnColor = value; emit speedometerWarnColorChanged(); }
     } else if (variable == QLatin1String("dashboard.speedometer.overspeed-color")) {
         if (value != m_speedometerOverspeedColor) { m_speedometerOverspeedColor = value; emit speedometerOverspeedColorChanged(); }
+    } else if (variable == QLatin1String("dashboard.speedometer.regen-color")) {
+        if (value != m_speedometerRegenColor) { m_speedometerRegenColor = value; emit speedometerRegenColorChanged(); }
+    } else if (variable == QLatin1String("dashboard.speedometer.error-color")) {
+        if (value != m_speedometerErrorColor) { m_speedometerErrorColor = value; emit speedometerErrorColorChanged(); }
+    } else if (variable == QLatin1String("dashboard.power.regen-color")) {
+        if (value != m_powerRegenColor) { m_powerRegenColor = value; emit powerRegenColorChanged(); }
+    } else if (variable == QLatin1String("dashboard.power.discharge-color")) {
+        if (value != m_powerDischargeColor) { m_powerDischargeColor = value; emit powerDischargeColorChanged(); }
+    } else if (variable == QLatin1String("dashboard.power.boost-color")) {
+        if (value != m_powerBoostColor) { m_powerBoostColor = value; emit powerBoostColorChanged(); }
     } else if (variable == QLatin1String("dashboard.battery-display-mode")) {
         if (value != m_batteryDisplayMode) { m_batteryDisplayMode = value; emit batteryDisplayModeChanged(); }
     } else if (variable == QLatin1String("dashboard.map.type")) {

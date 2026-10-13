@@ -85,10 +85,12 @@ Item {
 
     // Palette
     readonly property color trackBaseColor: isDark ? "#424242" : "#E0E0E0"
-    readonly property color regenTintColor: "#4DFF0000"
+    readonly property color regenTintColor: hasSettings ? settingsStore.speedometerRegenColor : "#4DFF0000"
     readonly property color dimColor: isDark ? "#80FFFFFF" : "#1F000000"
     readonly property color majorLabelColor: isDark ? "#CCFFFFFF" : "#4D000000"
-    readonly property color errorColor: "#F44336"
+    readonly property color errorColor: hasSettings ? settingsStore.speedometerErrorColor : "#F44336"
+    readonly property color errorPulseColor: Qt.rgba(errorColor.r, errorColor.g, errorColor.b,
+                                                    errorColor.a * (0.15 + 0.35 * errorPulse))
     // lerpColor reads .r/.g/.b/.a, so these have to be color properties rather
     // than string literals passed straight into the call. The four configurable
     // stops are origin, normal range, warning and overspeed.
@@ -265,7 +267,7 @@ Item {
             visible: speedometer.ecuStale
             preferredRendererType: Shape.CurveRenderer
             ShapePath {
-                strokeColor: Qt.rgba(0.957, 0.263, 0.212, 0.15 + 0.35 * speedometer.errorPulse)
+                strokeColor: speedometer.errorPulseColor
                 strokeWidth: speedometer.arcStrokeWidth + 12
                 fillColor: "transparent"
                 capStyle: ShapePath.RoundCap

@@ -1,6 +1,7 @@
 import QtQuick
 import QtTest
 import "../qml/widgets/speedometer"
+import "../qml/widgets/power"
 
 // The fill ramp has configurable origin, normal, warning and overspeed stops.
 // These checks keep each configured colour attached to its named speed.
@@ -14,6 +15,9 @@ TestCase {
         property real rawSpeed: 0
         property bool hasRawSpeed: false
         property real motorCurrent: 0
+        property real motorVoltage: 54000
+        property bool regenAvailable: true
+        property string regenReason: "none"
         property int faultCode: 0
         property bool dataStale: false
     }
@@ -29,6 +33,13 @@ TestCase {
         property string speedometerBaseColor: "#2196F3"
         property string speedometerWarnColor: "#9C27B0"
         property string speedometerOverspeedColor: "#E91E63"
+        property string speedometerRegenColor: "#4DFF0000"
+        property string speedometerErrorColor: "#F44336"
+        property string powerRegenColor: "#43A047"
+        property string powerDischargeColor: "#1E88E5"
+        property string powerBoostColor: "#FB8C00"
+        property int powerDisplayMode: 0
+        property bool dualBattery: false
         property string showRoadName: "always"
         property string showSpeedLimit: "always"
     }
@@ -54,6 +65,8 @@ TestCase {
         property int fontTitle: 16
         property int fontCaption: 12
         property int fontMicro: 9
+        property int fontBody: 16
+        property color textHint: "#99ffffff"
         property int radiusBar: 8
         property int radiusCard: 12
     }
@@ -62,6 +75,18 @@ TestCase {
         id: speedometer
         width: 300
         height: 240
+    }
+
+    QtObject {
+        id: translations
+        property string powerRegen: "Regen"
+        property string powerDischarge: "Discharge"
+    }
+
+    PowerDisplay {
+        id: powerDisplay
+        width: 200
+        height: 56
     }
 
     function init() {
@@ -73,9 +98,51 @@ TestCase {
         settingsStore.speedometerBaseColor = "#2196F3"
         settingsStore.speedometerWarnColor = "#9C27B0"
         settingsStore.speedometerOverspeedColor = "#E91E63"
+        settingsStore.speedometerRegenColor = "#4DFF0000"
+        settingsStore.speedometerErrorColor = "#F44336"
+        settingsStore.powerRegenColor = "#43A047"
+        settingsStore.powerDischargeColor = "#1E88E5"
+        settingsStore.powerBoostColor = "#FB8C00"
+        themeStore.isDark = true
         engineStore.speed = 0
+        speedometer.errorPulse = 0
         speedometer.animatedSpeed = 0
         speedometer.overspeedPulse = 1
+    }
+
+    function test_regenTintUsesConfiguredColor() {
+        settingsStore.speedometerRegenColor = "#8000FF00"
+        compare(speedometer.regenTintColor.toString(), "#8000ff00")
+        speedometer.regenTransition = 1
+        tryCompare(speedometer, "regenTransition", 1, 1500)
+        compare(speedometer.trackColor.toString(), "#8000ff00")
+    }
+
+    function test_errorPulseUsesConfiguredColorAndAlpha() {
+        settingsStore.speedometerErrorColor = "#8000FF00"
+        compare(speedometer.errorColor.toString(), "#8000ff00")
+        speedometer.errorPulse = 0
+        fuzzyCompare(speedometer.errorPulseColor.a, (128 / 255) * 0.15, 0.005)
+        speedometer.errorPulse = 1
+        compare(speedometer.errorPulseColor.r, 0)
+        compare(speedometer.errorPulseColor.g, 1)
+        compare(speedometer.errorPulseColor.b, 0)
+        fuzzyCompare(speedometer.errorPulseColor.a, (128 / 255) * 0.5, 0.005)
+    }
+
+    function test_powerColorsApplyAtRuntime() {
+        compare(powerDisplay.regenColor.toString(), "#43a047")
+        compare(powerDisplay.dischargeColor.toString(), "#1e88e5")
+        compare(powerDisplay.boostColor.toString(), "#fb8c00")
+        settingsStore.powerRegenColor = "#80123456"
+        settingsStore.powerDischargeColor = "#abcdef"
+        settingsStore.powerBoostColor = "#fedcba"
+        compare(powerDisplay.regenColor.toString(), "#80123456")
+        compare(powerDisplay.dischargeColor.toString(), "#abcdef")
+        compare(powerDisplay.boostColor.toString(), "#fedcba")
+        compare(powerDisplay.reasonColdColor.toString(), "#40c4ff")
+        compare(powerDisplay.reasonHotColor.toString(), "#ff6e40")
+        compare(powerDisplay.reasonFullColor.toString(), "#69f0ae")
     }
 
     function test_shippedColorsReachNamedStops() {

@@ -27,6 +27,10 @@ Item {
     readonly property bool showReasonIcon: !regenDisplayAvailable
                                            && (regenReason === "cold" || regenReason === "hot"
                                                || regenReason === "full")
+    readonly property bool hasSettings: typeof settingsStore !== "undefined"
+    readonly property color regenColor: hasSettings ? settingsStore.powerRegenColor : "#43A047"
+    readonly property color dischargeColor: hasSettings ? settingsStore.powerDischargeColor : "#1E88E5"
+    readonly property color boostColor: hasSettings ? settingsStore.powerBoostColor : "#FB8C00"
     readonly property color trackColor: themeStore.isDark ? "#424242" : "#E0E0E0"
     // Reason-icon colors, theme-reactive (bright in dark, deep in light) for
     // legible contrast on the grey regen track.
@@ -201,7 +205,7 @@ Item {
                 radius: themeStore.radiusBar
                 width: Math.min(Math.abs(displayValue) / maxRegen, 1.0) * (parent.width / 2)
                 x: parent.width / 2 - width
-                color: "#43A047"
+                color: powerDisplay.regenColor
             }
 
             // Discharge bar (grows right from center)
@@ -212,7 +216,7 @@ Item {
                 height: 6
                 radius: themeStore.radiusBar
                 width: Math.min(displayValue / maxDischarge, 1.0) * (parent.width / 2)
-                color: displayValue > boostThreshold ? "#FB8C00" : "#1E88E5"
+                color: displayValue > boostThreshold ? powerDisplay.boostColor : powerDisplay.dischargeColor
             }
         }
 

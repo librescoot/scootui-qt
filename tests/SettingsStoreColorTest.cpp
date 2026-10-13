@@ -12,6 +12,8 @@ class SettingsStoreColorTest : public QObject
 
 private slots:
     void unsetFallsBackToShippedColors();
+    void additionalColors_data();
+    void additionalColors();
     void speedStopsApplyAndFallBack();
     void acceptsRgbAndArgbHex();
     void rejectsMalformedValues();
@@ -29,6 +31,54 @@ void SettingsStoreColorTest::unsetFallsBackToShippedColors()
     QCOMPARE(store.speedometerBaseColor(), QStringLiteral("#2196F3"));
     QCOMPARE(store.speedometerWarnColor(), QStringLiteral("#9C27B0"));
     QCOMPARE(store.speedometerOverspeedColor(), QStringLiteral("#E91E63"));
+}
+
+void SettingsStoreColorTest::additionalColors_data()
+{
+    QTest::addColumn<QString>("key");
+    QTest::addColumn<QByteArray>("property");
+    QTest::addColumn<QString>("fallback");
+    QTest::newRow("regen-arc") << QStringLiteral("dashboard.speedometer.regen-color")
+        << QByteArray("speedometerRegenColor") << QStringLiteral("#4DFF0000");
+    QTest::newRow("error-arc") << QStringLiteral("dashboard.speedometer.error-color")
+        << QByteArray("speedometerErrorColor") << QStringLiteral("#F44336");
+    QTest::newRow("regen-bar") << QStringLiteral("dashboard.power.regen-color")
+        << QByteArray("powerRegenColor") << QStringLiteral("#43A047");
+    QTest::newRow("discharge-bar") << QStringLiteral("dashboard.power.discharge-color")
+        << QByteArray("powerDischargeColor") << QStringLiteral("#1E88E5");
+    QTest::newRow("boost-bar") << QStringLiteral("dashboard.power.boost-color")
+        << QByteArray("powerBoostColor") << QStringLiteral("#FB8C00");
+}
+
+void SettingsStoreColorTest::additionalColors()
+{
+    QFETCH(QString, key);
+    QFETCH(QByteArray, property);
+    QFETCH(QString, fallback);
+
+    InMemoryMdbRepository repo;
+    SettingsStore defaults(&repo);
+    defaults.start();
+    QCOMPARE(defaults.property(property.constData()).toString(), fallback);
+
+    repo.set(QStringLiteral("settings"), key, QStringLiteral("#80123456"), false);
+    SettingsStore store(&repo);
+    store.start();
+    QCOMPARE(store.property(property.constData()).toString(), QStringLiteral("#80123456"));
+
+    const auto metaProperty = store.metaObject()->property(
+        store.metaObject()->indexOfProperty(property.constData()));
+    QSignalSpy changed(&store, metaProperty.notifySignal());
+    QVERIFY(changed.isValid());
+    repo.set(QStringLiteral("settings"), key, QStringLiteral("#abcdef"));
+    QCOMPARE(store.property(property.constData()).toString(), QStringLiteral("#abcdef"));
+    QCOMPARE(changed.count(), 1);
+    repo.set(QStringLiteral("settings"), key, QStringLiteral("invalid"));
+    QCOMPARE(store.property(property.constData()).toString(), fallback);
+    QCOMPARE(changed.count(), 2);
+    repo.set(QStringLiteral("settings"), key, QString());
+    QCOMPARE(store.property(property.constData()).toString(), fallback);
+    QCOMPARE(changed.count(), 3);
 }
 
 void SettingsStoreColorTest::speedStopsApplyAndFallBack()

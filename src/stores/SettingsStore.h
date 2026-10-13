@@ -20,6 +20,11 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(QString speedometerBaseColor READ speedometerBaseColor NOTIFY speedometerBaseColorChanged)
     Q_PROPERTY(QString speedometerWarnColor READ speedometerWarnColor NOTIFY speedometerWarnColorChanged)
     Q_PROPERTY(QString speedometerOverspeedColor READ speedometerOverspeedColor NOTIFY speedometerOverspeedColorChanged)
+    Q_PROPERTY(QString speedometerRegenColor READ speedometerRegenColor NOTIFY speedometerRegenColorChanged)
+    Q_PROPERTY(QString speedometerErrorColor READ speedometerErrorColor NOTIFY speedometerErrorColorChanged)
+    Q_PROPERTY(QString powerRegenColor READ powerRegenColor NOTIFY powerRegenColorChanged)
+    Q_PROPERTY(QString powerDischargeColor READ powerDischargeColor NOTIFY powerDischargeColorChanged)
+    Q_PROPERTY(QString powerBoostColor READ powerBoostColor NOTIFY powerBoostColorChanged)
     Q_PROPERTY(QString batteryDisplayMode READ batteryDisplayMode NOTIFY batteryDisplayModeChanged)
     Q_PROPERTY(int mapType READ mapType NOTIFY mapTypeChanged)
     Q_PROPERTY(int mapViewMode READ mapViewMode NOTIFY mapViewModeChanged)
@@ -99,12 +104,16 @@ public:
     int speedometerNormalSpeed() const { return intSetting(m_speedometerNormalSpeed, 30, 1, 200); }
     int speedometerWarnSpeed() const { return intSetting(m_speedometerWarnSpeed, 55, 1, 200); }
     int speedometerOverspeed() const { return intSetting(m_speedometerOverspeed, 60, 1, 200); }
-    // Speedometer fill colours: #RRGGBB or #AARRGGBB. Anything else falls back
-    // to the shipped four-stop ramp.
+    // Dashboard colours accept #RRGGBB or #AARRGGBB; invalid values use defaults.
     QString speedometerOriginColor() const { return colorSetting(m_speedometerOriginColor, QStringLiteral("#90CAF9")); }
     QString speedometerBaseColor() const { return colorSetting(m_speedometerBaseColor, QStringLiteral("#2196F3")); }
     QString speedometerWarnColor() const { return colorSetting(m_speedometerWarnColor, QStringLiteral("#9C27B0")); }
     QString speedometerOverspeedColor() const { return colorSetting(m_speedometerOverspeedColor, QStringLiteral("#E91E63")); }
+    QString speedometerRegenColor() const { return colorSetting(m_speedometerRegenColor, QStringLiteral("#4DFF0000")); }
+    QString speedometerErrorColor() const { return colorSetting(m_speedometerErrorColor, QStringLiteral("#F44336")); }
+    QString powerRegenColor() const { return colorSetting(m_powerRegenColor, QStringLiteral("#43A047")); }
+    QString powerDischargeColor() const { return colorSetting(m_powerDischargeColor, QStringLiteral("#1E88E5")); }
+    QString powerBoostColor() const { return colorSetting(m_powerBoostColor, QStringLiteral("#FB8C00")); }
     QString batteryDisplayMode() const { return m_batteryDisplayMode; }
     int mapType() const { return static_cast<int>(m_mapType); }
     int mapViewMode() const { return static_cast<int>(m_mapViewMode); }
@@ -201,6 +210,11 @@ signals:
     void speedometerBaseColorChanged();
     void speedometerWarnColorChanged();
     void speedometerOverspeedColorChanged();
+    void speedometerRegenColorChanged();
+    void speedometerErrorColorChanged();
+    void powerRegenColorChanged();
+    void powerDischargeColorChanged();
+    void powerBoostColorChanged();
     void batteryDisplayModeChanged();
     void mapTypeChanged();
     void mapViewModeChanged();
@@ -278,6 +292,16 @@ private:
     QString m_speedometerWarnColor;
     // @schema dashboard.speedometer.overspeed-color
     QString m_speedometerOverspeedColor;
+    // @schema dashboard.speedometer.regen-color
+    QString m_speedometerRegenColor;
+    // @schema dashboard.speedometer.error-color
+    QString m_speedometerErrorColor;
+    // @schema dashboard.power.regen-color
+    QString m_powerRegenColor;
+    // @schema dashboard.power.discharge-color
+    QString m_powerDischargeColor;
+    // @schema dashboard.power.boost-color
+    QString m_powerBoostColor;
 
     static int intSetting(const QString &raw, int fallback, int lo, int hi)
     {

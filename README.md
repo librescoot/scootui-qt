@@ -88,6 +88,26 @@ corresponding datastore hashes and channels; ScootUI Qt does not replace the
 services that own that state. The source settings store is the implementation
 reference for the keys consumed by a given release.
 
+### Cluster colors
+
+Advanced color settings accept `#RRGGBB` or `#AARRGGBB` and apply at runtime.
+Unset or malformed values use the defaults below. These settings are available
+through settings-service tooling, not the dashboard menu.
+
+| Setting | Default | Use |
+| --- | --- | --- |
+| `dashboard.speedometer.origin-color` | `#90CAF9` | Speed arc at zero |
+| `dashboard.speedometer.base-color` | `#2196F3` | Normal speed arc |
+| `dashboard.speedometer.warn-color` | `#9C27B0` | Warning speed arc |
+| `dashboard.speedometer.overspeed-color` | `#E91E63` | Overspeed arc/pulse |
+| `dashboard.speedometer.regen-color` | `#4DFF0000` | Recuperation track tint, including opacity |
+| `dashboard.speedometer.error-color` | `#F44336` | ECU-disconnect arc/pulse |
+| `dashboard.power.regen-color` | `#43A047` | Recuperation power fill |
+| `dashboard.power.discharge-color` | `#1E88E5` | Normal discharge power fill |
+| `dashboard.power.boost-color` | `#FB8C00` | Discharge power fill above the boost threshold |
+
+Regen-unavailable reason icons retain their theme-dependent colors.
+
 ## Unified notifications
 
 The dashboard uses one production notification registry and attention policy for
