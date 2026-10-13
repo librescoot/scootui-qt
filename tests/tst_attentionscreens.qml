@@ -371,12 +371,12 @@ TestCase {
         harness = null
     }
 
-    function useNative() {
+    function useNative(component) {
         harness = createTemporaryObject(nativeComponent, this)
         verify(harness !== null)
         compare(harness.vehicle.state, 2) // ReadyToDrive
         notificationService.presentation = Qt.binding(function() { return harness ? harness.notifications.presentation : ({}) })
-        return createTemporaryObject(clusterComponent, this)
+        return createTemporaryObject(component || clusterComponent, this)
     }
 
     function test_nativeBackupAuxTextFit_data() {
@@ -647,6 +647,51 @@ TestCase {
         compare(harness.notifications.presentation.queuedCounts, {})
         compare(findChild(screen, "speedometerDial").width, 300)
         compare(findChild(screen, "speedometerDial").height, 240)
+    }
+
+    function test_nativeWaitingForPosition_data() {
+        const cases = []
+        for (const surface of ["map", "cluster"])
+            for (const dark of [true, false])
+                cases.push({tag: surface + (dark ? "-dark" : "-light"), surface: surface, dark: dark})
+        return cases
+    }
+
+    function test_nativeWaitingForPosition(data) {
+        themeStore.isDark = data.dark
+        themeStore.backgroundColor = data.dark ? "black" : "white"
+        const screen = useNative(data.surface === "map" ? mapComponent : clusterComponent)
+        harness.navigation.setDestination(52.53, 13.41, "Destination")
+        tryCompare(harness.navigation, "status", 6)
+        if (data.surface === "map") {
+            screen.navStatus = Qt.binding(function() { return harness.navigation.status })
+            verify(screen.showWaitingForGps)
+        }
+        waitForRendering(screen)
+        const dock = findChild(screen, data.surface === "map" ? "mapAttention" : "clusterAttention")
+        verify(!dock.visible)
+        compare(dock.height, 0)
+        verify(findChild(dock, "attentionTurnByTurn") === null)
+        capture(screen, "waiting-for-position-" + data.tag)
+
+        verify(harness.receive(JSON.stringify({id: "info", title: "Phone connected", severity: "info"})))
+        waitForRendering(screen)
+        verify(dock.visible)
+        compare(findChild(dock, "notificationTitle").text, "Phone connected")
+        verify(findChild(dock, "attentionTurnByTurn") === null)
+        verify(findChild(dock, "attentionCompanion") === null)
+        verify(harness.receive(JSON.stringify({id: "info", action: "dismiss"})))
+        waitForRendering(screen)
+        verify(!dock.visible)
+        compare(dock.height, 0)
+
+        verify(harness.loadFixture("route1"))
+        harness.approach()
+        tryCompare(harness.navigation, "status", 2)
+        tryVerify(function() {
+            const card = findChild(dock, "attentionTurnByTurn")
+            return card !== null && card.visible
+        })
     }
 
     function test_nativeCalculatingRoute() {
