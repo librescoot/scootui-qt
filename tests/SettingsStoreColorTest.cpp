@@ -14,6 +14,7 @@ private slots:
     void unsetFallsBackToShippedColors();
     void additionalColors_data();
     void additionalColors();
+    void regenMinPowerAppliesAndFallsBack();
     void speedStopsApplyAndFallBack();
     void acceptsRgbAndArgbHex();
     void rejectsMalformedValues();
@@ -79,6 +80,33 @@ void SettingsStoreColorTest::additionalColors()
     repo.set(QStringLiteral("settings"), key, QString());
     QCOMPARE(store.property(property.constData()).toString(), fallback);
     QCOMPARE(changed.count(), 3);
+}
+
+void SettingsStoreColorTest::regenMinPowerAppliesAndFallsBack()
+{
+    InMemoryMdbRepository repo;
+    SettingsStore defaults(&repo);
+    defaults.start();
+    QCOMPARE(defaults.speedometerRegenMinPower(), 50);
+
+    const QString key = QStringLiteral("dashboard.speedometer.regen-min-power");
+    repo.set(QStringLiteral("settings"), key, QStringLiteral("75"), false);
+    SettingsStore store(&repo);
+    store.start();
+    QCOMPARE(store.speedometerRegenMinPower(), 75);
+    QSignalSpy changed(&store, &SettingsStore::speedometerRegenMinPowerChanged);
+
+    for (const auto &value : {QStringLiteral("0"), QStringLiteral("10000")}) {
+        repo.set(QStringLiteral("settings"), key, value);
+        QCOMPARE(store.speedometerRegenMinPower(), value.toInt());
+    }
+    QCOMPARE(changed.count(), 2);
+    for (const auto &value : {QStringLiteral("-1"), QStringLiteral("10001"),
+                             QStringLiteral("50.5"), QStringLiteral("invalid"), QString()}) {
+        repo.set(QStringLiteral("settings"), key, value);
+        QCOMPARE(store.speedometerRegenMinPower(), 50);
+    }
+    QCOMPARE(changed.count(), 7);
 }
 
 void SettingsStoreColorTest::speedStopsApplyAndFallBack()

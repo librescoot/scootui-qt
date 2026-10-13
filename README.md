@@ -106,6 +106,11 @@ through settings-service tooling, not the dashboard menu.
 | `dashboard.power.discharge-color` | `#1E88E5` | Normal discharge power fill |
 | `dashboard.power.boost-color` | `#FB8C00` | Discharge power fill above the boost threshold |
 
+`dashboard.speedometer.regen-min-power` sets the minimum charging power for
+activating the recuperation track tint (default **50 W**, range 0–10000 W).
+Below the threshold, the tint fades back to neutral. Set it to 0 to tint for
+any negative motor current. This does not affect the recuperation power bar.
+
 Regen-unavailable reason icons retain their theme-dependent colors.
 
 ## Unified notifications

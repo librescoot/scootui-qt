@@ -155,6 +155,7 @@ SyncSettings SettingsStore::syncSettings() const
             {QStringLiteral("speedometerBaseColor"), QStringLiteral("dashboard.speedometer.base-color")},
             {QStringLiteral("speedometerWarnColor"), QStringLiteral("dashboard.speedometer.warn-color")},
             {QStringLiteral("speedometerOverspeedColor"), QStringLiteral("dashboard.speedometer.overspeed-color")},
+            {QStringLiteral("speedometerRegenMinPower"), QStringLiteral("dashboard.speedometer.regen-min-power")},
             {QStringLiteral("speedometerRegenColor"), QStringLiteral("dashboard.speedometer.regen-color")},
             {QStringLiteral("speedometerErrorColor"), QStringLiteral("dashboard.speedometer.error-color")},
             {QStringLiteral("powerRegenColor"), QStringLiteral("dashboard.power.regen-color")},
@@ -241,6 +242,8 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
         if (value != m_speedometerWarnColor) { m_speedometerWarnColor = value; emit speedometerWarnColorChanged(); }
     } else if (variable == QLatin1String("dashboard.speedometer.overspeed-color")) {
         if (value != m_speedometerOverspeedColor) { m_speedometerOverspeedColor = value; emit speedometerOverspeedColorChanged(); }
+    } else if (variable == QLatin1String("dashboard.speedometer.regen-min-power")) {
+        if (value != m_speedometerRegenMinPower) { m_speedometerRegenMinPower = value; emit speedometerRegenMinPowerChanged(); }
     } else if (variable == QLatin1String("dashboard.speedometer.regen-color")) {
         if (value != m_speedometerRegenColor) { m_speedometerRegenColor = value; emit speedometerRegenColorChanged(); }
     } else if (variable == QLatin1String("dashboard.speedometer.error-color")) {

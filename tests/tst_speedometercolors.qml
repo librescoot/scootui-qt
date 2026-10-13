@@ -33,6 +33,7 @@ TestCase {
         property string speedometerBaseColor: "#2196F3"
         property string speedometerWarnColor: "#9C27B0"
         property string speedometerOverspeedColor: "#E91E63"
+        property int speedometerRegenMinPower: 50
         property string speedometerRegenColor: "#4DFF0000"
         property string speedometerErrorColor: "#F44336"
         property string powerRegenColor: "#43A047"
@@ -98,6 +99,7 @@ TestCase {
         settingsStore.speedometerBaseColor = "#2196F3"
         settingsStore.speedometerWarnColor = "#9C27B0"
         settingsStore.speedometerOverspeedColor = "#E91E63"
+        settingsStore.speedometerRegenMinPower = 50
         settingsStore.speedometerRegenColor = "#4DFF0000"
         settingsStore.speedometerErrorColor = "#F44336"
         settingsStore.powerRegenColor = "#43A047"
@@ -105,9 +107,45 @@ TestCase {
         settingsStore.powerBoostColor = "#FB8C00"
         themeStore.isDark = true
         engineStore.speed = 0
+        engineStore.motorVoltage = 54000
+        engineStore.motorCurrent = 0
         speedometer.errorPulse = 0
         speedometer.animatedSpeed = 0
         speedometer.overspeedPulse = 1
+    }
+
+    function test_regenTintRequiresMinimumChargingPower() {
+        engineStore.motorVoltage = 50000
+        engineStore.motorCurrent = -999
+        fuzzyCompare(speedometer.regenPowerW, 49.95, 0.001)
+        verify(!speedometer.isRegenerating)
+
+        engineStore.motorCurrent = -1000
+        compare(speedometer.regenPowerW, 50)
+        verify(speedometer.isRegenerating)
+        tryCompare(speedometer, "regenTransition", 1, 1500)
+
+        settingsStore.speedometerRegenMinPower = 75
+        verify(!speedometer.isRegenerating)
+        tryCompare(speedometer, "regenTransition", 0, 1500)
+        compare(speedometer.trackColor, speedometer.trackBaseColor)
+
+        engineStore.motorVoltage = 75000
+        verify(speedometer.isRegenerating)
+        engineStore.motorCurrent = 1000
+        verify(!speedometer.isRegenerating)
+        engineStore.motorCurrent = 0
+        verify(!speedometer.isRegenerating)
+    }
+
+    function test_zeroThresholdRequiresNegativeCurrent() {
+        settingsStore.speedometerRegenMinPower = 0
+        engineStore.motorCurrent = 0
+        verify(!speedometer.isRegenerating)
+        engineStore.motorCurrent = 1
+        verify(!speedometer.isRegenerating)
+        engineStore.motorCurrent = -1
+        verify(speedometer.isRegenerating)
     }
 
     function test_regenTintUsesConfiguredColor() {

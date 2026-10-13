@@ -17,6 +17,10 @@ Item {
         return typeof engineStore !== "undefined" ? engineStore.speed : 0
     }
     readonly property real motorCurrent: typeof engineStore !== "undefined" ? engineStore.motorCurrent : 0
+    readonly property real motorVoltage: typeof engineStore !== "undefined" ? engineStore.motorVoltage : 0
+    // Telemetry uses mV and mA; charging power is positive here, in watts.
+    readonly property real regenPowerW: Math.max(0, -motorVoltage * motorCurrent / 1000000)
+    readonly property real regenMinPowerW: hasSettings ? settingsStore.speedometerRegenMinPower : 50
     readonly property bool ecuStale: typeof engineStore !== "undefined" && engineStore.faultCode === 20
     readonly property bool telemetryTrustLost: typeof notificationService !== "undefined" && notificationService
         && notificationService.telemetryTrustLost
@@ -39,13 +43,13 @@ Item {
     readonly property real overspeedSpeed: hasSettings ? settingsStore.speedometerOverspeed : 60
 
     // Animation state
-    property bool isRegenerating: motorCurrent < 0
+    readonly property bool isRegenerating: motorCurrent < 0 && regenPowerW >= regenMinPowerW
     property bool isAccelerating: motorCurrent > 0
     property real overspeedPulse: 1
     property real accelPulse: 0
     property real errorPulse: 0
 
-    // Regen fade: grey track bleeds to red over a second and back
+    // Recuperation tint fades in and out over a second.
     property real regenTransition: isRegenerating ? 1.0 : 0.0
     Behavior on regenTransition {
         NumberAnimation { duration: 1000; easing.type: Easing.InOutQuad }

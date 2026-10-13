@@ -20,6 +20,7 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(QString speedometerBaseColor READ speedometerBaseColor NOTIFY speedometerBaseColorChanged)
     Q_PROPERTY(QString speedometerWarnColor READ speedometerWarnColor NOTIFY speedometerWarnColorChanged)
     Q_PROPERTY(QString speedometerOverspeedColor READ speedometerOverspeedColor NOTIFY speedometerOverspeedColorChanged)
+    Q_PROPERTY(int speedometerRegenMinPower READ speedometerRegenMinPower NOTIFY speedometerRegenMinPowerChanged)
     Q_PROPERTY(QString speedometerRegenColor READ speedometerRegenColor NOTIFY speedometerRegenColorChanged)
     Q_PROPERTY(QString speedometerErrorColor READ speedometerErrorColor NOTIFY speedometerErrorColorChanged)
     Q_PROPERTY(QString powerRegenColor READ powerRegenColor NOTIFY powerRegenColorChanged)
@@ -109,6 +110,7 @@ public:
     QString speedometerBaseColor() const { return colorSetting(m_speedometerBaseColor, QStringLiteral("#2196F3")); }
     QString speedometerWarnColor() const { return colorSetting(m_speedometerWarnColor, QStringLiteral("#9C27B0")); }
     QString speedometerOverspeedColor() const { return colorSetting(m_speedometerOverspeedColor, QStringLiteral("#E91E63")); }
+    int speedometerRegenMinPower() const { return intSetting(m_speedometerRegenMinPower, 50, 0, 10000); }
     QString speedometerRegenColor() const { return colorSetting(m_speedometerRegenColor, QStringLiteral("#4DFF0000")); }
     QString speedometerErrorColor() const { return colorSetting(m_speedometerErrorColor, QStringLiteral("#F44336")); }
     QString powerRegenColor() const { return colorSetting(m_powerRegenColor, QStringLiteral("#43A047")); }
@@ -210,6 +212,7 @@ signals:
     void speedometerBaseColorChanged();
     void speedometerWarnColorChanged();
     void speedometerOverspeedColorChanged();
+    void speedometerRegenMinPowerChanged();
     void speedometerRegenColorChanged();
     void speedometerErrorColorChanged();
     void powerRegenColorChanged();
@@ -292,6 +295,8 @@ private:
     QString m_speedometerWarnColor;
     // @schema dashboard.speedometer.overspeed-color
     QString m_speedometerOverspeedColor;
+    // @schema dashboard.speedometer.regen-min-power
+    QString m_speedometerRegenMinPower;
     // @schema dashboard.speedometer.regen-color
     QString m_speedometerRegenColor;
     // @schema dashboard.speedometer.error-color
