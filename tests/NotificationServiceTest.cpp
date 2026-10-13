@@ -591,6 +591,30 @@ private slots:
         QVERIFY(selected.companion.isEmpty());
     }
 
+    void waitingForPositionDoesNotPresentNavigation()
+    {
+        NotificationService service(true);
+        QVariantMap nav{{"id", "navigation-session"}, {"valid", true}, {"status", 6}};
+        service.setNavigationPayload(nav);
+        QVERIFY(service.presentation().value("main").toMap().isEmpty());
+        QVERIFY(service.presentation().value("companion").toMap().isEmpty());
+
+        service.publishCondition("warning", "test", "Battery warning", {}, 2, "warning");
+        QCOMPARE(mainId(service), QStringLiteral("warning"));
+        QVERIFY(service.presentation().value("companion").toMap().isEmpty());
+        service.resolveCondition("warning");
+        QVERIFY(service.presentation().value("main").toMap().isEmpty());
+
+        for (int status : {1, 2, 3, 4}) {
+            nav["status"] = status;
+            service.setNavigationPayload(nav);
+            QCOMPARE(mainId(service), QStringLiteral("navigation-session"));
+            nav["status"] = 6;
+            service.setNavigationPayload(nav);
+            QVERIFY(service.presentation().value("main").toMap().isEmpty());
+        }
+    }
+
     void distantNavigationIsSelected()
     {
         QVariantMap nav{{"id", "navigation-session"}, {"kind", "nav"}, {"valid", true},

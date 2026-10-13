@@ -80,9 +80,11 @@ AttentionSelection AttentionPolicy::select(const QList<QVariantMap> &conditions,
             ++criticalCount;
     }
 
+    const int navigationStatus = navigation.value(QStringLiteral("status"), 0).toInt();
+    // Waiting for position belongs to the map's GPS panel, not the maneuver card.
     const bool hasNavigation = !navigation.isEmpty()
         && navigation.value(QStringLiteral("valid"), false).toBool()
-        && navigation.value(QStringLiteral("status"), 0).toInt() != 5;
+        && navigationStatus != 5 && navigationStatus != 6;
     if (hasNavigation) {
         QVariantMap nav = navigation;
         nav[QStringLiteral("priority")] = 3;
