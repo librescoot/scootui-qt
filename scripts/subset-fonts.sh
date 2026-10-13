@@ -59,7 +59,7 @@ fi
 
 MATERIAL_COUNT=$(echo "${MATERIAL_CODEPOINTS}" | wc -l)
 # Always include U+0020 (space) as a fallback glyph.
-MATERIAL_UNICODES="0020,$(echo "${MATERIAL_CODEPOINTS}" | paste -s -d , -)"
+MATERIAL_UNICODES="0020,$(echo "${MATERIAL_CODEPOINTS}" | paste -s -d , -),E692"
 
 # Roboto/RobotoCondensed: broad-but-bounded baseline, no per-character
 # curation. Adding a new dash / quote / typography glyph to a translation
@@ -82,13 +82,14 @@ MATERIAL_UNICODES="0020,$(echo "${MATERIAL_CODEPOINTS}" | paste -s -d , -)"
 # assets/fonts/symbols/LICENSE-DejaVu.txt) as a fallback family; the licence
 # reserves the names for unmodified copies, so the subset is renamed.
 #
-#   2192 →   map toast         2423 ␣   address keyboard
+#   2192 →   map toast         2248 ≈   estimated position label
+#   2423 ␣   address keyboard
 #   25B6 ▶   25BC ▼   simulator
 #   25C6 ◆  25C9 ◉  2605 ★  2620 ☠  2665 ♥  266B ♫  26A1 ⚡  27F3 ⟳   milestones
 ROBOTO_UNICODES="0020-017F,2000-206F,20AC,0394,2264,2265"
 SYMBOLS_SOURCE="${FONTS_DIR}/symbols/DejaVuSans.ttf"
 SYMBOLS_OUTPUT="${SUBSET_DIR}/ScootUISymbols.ttf"
-SYMBOLS_UNICODES="2192,2423,25B6,25BC,25C6,25C9,2605,2620,2665,266B,26A1,27F3"
+SYMBOLS_UNICODES="2192,2248,2423,25B6,25BC,25C6,25C9,2605,2620,2665,266B,26A1,27F3"
 
 echo "=== scootui-qt font subsetter ==="
 echo "MaterialIcon codepoints (${MATERIAL_COUNT} used):"

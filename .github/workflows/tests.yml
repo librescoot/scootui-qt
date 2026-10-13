@@ -53,8 +53,8 @@ jobs:
           pip install aqtinstall
           aqt install-qt linux desktop 6.9.3 linux_gcc_64 -m qtmultimedia -O "$HOME/Qt"
 
-      # No QMapLibre on the runner: the tests cover everything except real map
-      # rendering, which needs the device GPU anyway (see TESTING.md).
+      # No QMapLibre on the runner; map-widget tests are not registered in this
+      # reduced build. Real rendering is verified on the device (see TESTING.md).
       - name: Configure
         run: |
           cmake -B build -G Ninja \
@@ -68,4 +68,7 @@ jobs:
         run: cmake --build build -j"$(nproc)"
 
       - name: Test
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QT_QUICK_BACKEND: software
         run: ctest --test-dir build --output-on-failure -j"$(nproc)"
