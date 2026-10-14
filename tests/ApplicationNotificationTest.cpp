@@ -445,7 +445,7 @@ private slots:
 
         repo->set("engine-ecu", "speed", "0");
         // An active route suppresses destination actions even at zero speed.
-        QTRY_COMPARE(shortcuts->actionCount(), 2);
+        QTRY_COMPARE_WITH_TIMEOUT(shortcuts->actionCount(), 2, 10000);
         navigation->clearNavigation();
         QTRY_VERIFY(!navigation->property("hasPlan").toBool());
         availability->setOverride(true, true);

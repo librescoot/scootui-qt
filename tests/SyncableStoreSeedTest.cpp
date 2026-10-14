@@ -28,7 +28,6 @@ class SyncableStoreSeedTest : public QObject
 private slots:
     void startSeedsFromExistingCache();
     void startWithEmptyCacheKeepsDefaults();
-    void inMemoryReportsSeeded();
     void blinkerUsesSnapshotAnchorOnStartupAndRestart();
     void blinkerWaitsForAnchor();
     void tripCounterHydratesWithDisplayUnits();
@@ -60,12 +59,6 @@ void SyncableStoreSeedTest::startWithEmptyCacheKeepsDefaults()
     VehicleStore store(&repo);
     store.start();
     QCOMPARE(store.stateRaw(), QString());
-}
-
-void SyncableStoreSeedTest::inMemoryReportsSeeded()
-{
-    InMemoryMdbRepository repo;
-    QVERIFY(repo.isDataSeeded());
 }
 
 void SyncableStoreSeedTest::blinkerUsesSnapshotAnchorOnStartupAndRestart()

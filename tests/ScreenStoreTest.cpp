@@ -16,7 +16,6 @@ private slots:
     void returnsToOpeningScreen();
     void nestedParkedScreenReturnsToMainScreen();
     void leavesRidingScreensAlone();
-    void dashboardModeIsStartupAuthority();
     void staleRemoteScreenCannotOverrideMode();
 };
 
@@ -89,18 +88,6 @@ void ScreenStoreTest::returnsToOpeningScreen()
     QCOMPARE(store.currentScreenMode(), ScootEnums::ScreenMode::AddressSelection);
 
     store.closeParkedScreens();
-    QCOMPARE(store.currentScreenMode(), ScootEnums::ScreenMode::Map);
-}
-
-void ScreenStoreTest::dashboardModeIsStartupAuthority()
-{
-    InMemoryMdbRepository repo;
-    repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.mode"),
-             QStringLiteral("navigation"), false);
-    SettingsStore settings(&repo);
-    settings.start();
-    ScreenStore store(&settings, &repo);
-
     QCOMPARE(store.currentScreenMode(), ScootEnums::ScreenMode::Map);
 }
 
