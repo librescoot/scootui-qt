@@ -538,12 +538,14 @@ private slots:
         QCOMPARE(crossed.last().at(0).toDouble(), 10.0);
         QCOMPARE(crossed.last().at(1).toInt(), 1);
         schedule.advanceCelebration();
+        repo->set("settings", "dashboard.milestones.mode", "regular");
         repo->set("engine-ecu", "odometer", "99900");
         repo->set("engine-ecu", "odometer", "100000");
         QTRY_COMPARE(crossed.size(), 2);
         QCOMPARE(crossed.last().at(0).toDouble(), 100.0);
         QCOMPARE(crossed.last().at(1).toInt(), 1);
         schedule.advanceCelebration();
+        repo->set("settings", "dashboard.milestones.mode", "all");
         schedule.m_lastCelebrated = 600;
         schedule.m_lastOdoKm = 696.8;
         repo->set("engine-ecu", "odometer", "696900");
@@ -572,33 +574,119 @@ private slots:
         QSignalSpy crossed(&schedule, &OdometerMilestoneService::milestoneCrossed);
         QSignalSpy celebrated(&schedule, &OdometerMilestoneService::milestoneCelebrate);
 
-        // One odometer update spanning 666, 696.9 and 700 at once.
+        // A coarse update crosses both special eggs, repeated digits and a regular milestone.
         repo->set("engine-ecu", "odometer", "700000");
-        QTRY_COMPARE(crossed.size(), 3);
+        QTRY_COMPARE(crossed.size(), 4);
         QCOMPARE(crossed.at(0).at(0).toDouble(), 666.0);
         QCOMPARE(crossed.at(0).at(2).toString(), QStringLiteral("devil"));
-        QCOMPARE(crossed.at(1).at(0).toDouble(), 696.9);
-        QCOMPARE(crossed.at(1).at(2).toString(), QStringLiteral("nice69"));
-        QCOMPARE(crossed.at(2).at(0).toDouble(), 700.0);
-        QCOMPARE(crossed.at(2).at(2).toString(), QString());
+        QCOMPARE(crossed.at(1).at(0).toDouble(), 666.6);
+        QCOMPARE(crossed.at(1).at(2).toString(), QStringLiteral("repeated_6666"));
+        QCOMPARE(crossed.at(2).at(0).toDouble(), 696.9);
+        QCOMPARE(crossed.at(2).at(2).toString(), QStringLiteral("nice69"));
+        QCOMPARE(crossed.at(3).at(0).toDouble(), 700.0);
+        QCOMPARE(crossed.at(3).at(2).toString(), QString());
         QCOMPARE(schedule.m_lastCelebrated, 700);
-        QCOMPARE(schedule.m_queue.size(), 3);
+        QCOMPARE(schedule.m_queue.size(), 4);
         QCOMPARE(celebrated.size(), 0);
 
         // Parking plays them one at a time, in km order.
         repo->set("vehicle", "state", "parked");
         QTRY_COMPARE(celebrated.size(), 1);
         QCOMPARE(celebrated.last().at(0).toDouble(), 666.0);
-        QCOMPARE(schedule.m_queue.size(), 2);
+        QCOMPARE(schedule.m_queue.size(), 3);
         schedule.advanceCelebration();
         QCOMPARE(celebrated.size(), 2);
+        QCOMPARE(celebrated.last().at(0).toDouble(), 666.6);
+        schedule.advanceCelebration();
+        QCOMPARE(celebrated.size(), 3);
         QCOMPARE(celebrated.last().at(0).toDouble(), 696.9);
         schedule.advanceCelebration();
-        QCOMPARE(celebrated.size(), 3);
+        QCOMPARE(celebrated.size(), 4);
         QCOMPARE(celebrated.last().at(0).toDouble(), 700.0);
         schedule.advanceCelebration();
-        QCOMPARE(celebrated.size(), 3);
+        QCOMPARE(celebrated.size(), 4);
         QVERIFY(!schedule.m_celebrating);
+    }
+
+    void repeatedDigitMilestones()
+    {
+        DataPartition unmounted;
+        unmounted.m_mounted = false;
+        OdometerMilestoneService schedule(context<EngineStore>("engineStore"),
+                                         context<VehicleStore>("vehicleStore"),
+                                         context<ConnectionStore>("connectionStore"),
+                                         context<SettingsStore>("settingsStore"), &unmounted);
+        schedule.m_settleTimer->stop();
+        schedule.m_settled = true;
+        auto *repo = m_application->m_repository.get();
+        repo->set("settings", "dashboard.milestones.mode", "all");
+        repo->set("vehicle", "state", "stand-by");
+        QSignalSpy crossed(&schedule, &OdometerMilestoneService::milestoneCrossed);
+
+        for (int length = 3; length <= 7; ++length) {
+            for (int digit = 1; digit <= 9; ++digit) {
+                const QString digits(length, QChar('0' + digit));
+                const int meters = digits.toInt() * 100;
+                const double km = meters / 1000.0;
+                const double before = (meters - 100) / 1000.0;
+                const QString tag = digits == "99999" ? QStringLiteral("rollover")
+                                                      : QStringLiteral("repeated_") + digits;
+                schedule.m_lastCelebrated = OdometerMilestoneService::milestoneForKm(before);
+                schedule.m_lastOdoKm = before;
+                crossed.clear();
+                schedule.m_queue.clear();
+
+                repo->set("engine-ecu", "odometer", QString::number(meters - 1));
+                QTRY_COMPARE(context<EngineStore>("engineStore")->odometer(), meters - 1);
+                QCOMPARE(crossed.size(), 0);
+                repo->set("engine-ecu", "odometer", QString::number(meters));
+                QTRY_COMPARE(crossed.size(), 1);
+                QCOMPARE(crossed.first().at(0).toDouble(), km);
+                QCOMPARE(crossed.first().at(2).toString(), tag);
+                QCOMPARE(schedule.m_queue.size(), 1);
+                QVERIFY(schedule.m_firedEasterEggs.contains(tag));
+                QVERIFY(schedule.m_pendingWrites.value(schedule.firedEggsPath()).contains(tag.toLatin1() + '\n'));
+
+                repo->set("engine-ecu", "odometer", QString::number(meters - 100));
+                QTRY_COMPARE(schedule.m_lastOdoKm, before);
+                repo->set("engine-ecu", "odometer", QString::number(meters));
+                QTRY_COMPARE(schedule.m_lastOdoKm, km);
+                QCOMPARE(crossed.size(), 1);
+            }
+        }
+    }
+
+    void repeatedDigitsRespectMode_data()
+    {
+        QTest::addColumn<QString>("mode");
+        QTest::newRow("off") << QStringLiteral("off");
+        QTest::newRow("regular") << QStringLiteral("regular");
+    }
+
+    void repeatedDigitsRespectMode()
+    {
+        QFETCH(QString, mode);
+        DataPartition unmounted;
+        unmounted.m_mounted = false;
+        OdometerMilestoneService schedule(context<EngineStore>("engineStore"),
+                                         context<VehicleStore>("vehicleStore"),
+                                         context<ConnectionStore>("connectionStore"),
+                                         context<SettingsStore>("settingsStore"), &unmounted);
+        schedule.m_settleTimer->stop();
+        schedule.m_settled = true;
+        schedule.m_lastCelebrated = 7700;
+        schedule.m_lastOdoKm = 7777.6;
+        auto *repo = m_application->m_repository.get();
+        repo->set("settings", "dashboard.milestones.mode", mode);
+        QSignalSpy crossed(&schedule, &OdometerMilestoneService::milestoneCrossed);
+        repo->set("engine-ecu", "odometer", "7777700");
+        QTRY_COMPARE(schedule.m_lastOdoKm, 7777.7);
+        QCOMPARE(crossed.size(), 0);
+        QVERIFY(schedule.m_queue.isEmpty());
+        repo->set("settings", "dashboard.milestones.mode", "all");
+        repo->set("engine-ecu", "odometer", "7777800");
+        QTRY_COMPARE(schedule.m_lastOdoKm, 7777.8);
+        QCOMPARE(crossed.size(), 0);
     }
 
     void milestoneModesAndPresentation()
@@ -679,7 +767,9 @@ private slots:
                  std::tuple{666.0, "devil", "A hell of a ride"},
                  std::tuple{696.9, "nice69", "nice"},
                  std::tuple{1234.5, "sequence", "Easy as pie"},
-                 std::tuple{8008.5, "boobs", "We saw that"} }) {
+                 std::tuple{8008.5, "boobs", "We saw that"},
+                 std::tuple{7777.7, "repeated_77777", "All lined up"},
+                 std::tuple{9999.9, "rollover", "Five digits, here we come"} }) {
             milestones->milestoneCelebrate(km, 5, QString::fromLatin1(tag));
             QCOMPARE(subline->property("text").toString(), QString::fromLatin1(expected));
         }

@@ -32,21 +32,32 @@ constexpr int kSettleMs = 5000;
 
 struct EasterEgg {
     double km;
-    const char *tag;
+    QString tag;
     int intensity;
 };
 
 // One-shot easter eggs. The fired tags are persisted per vehicle.
-constexpr EasterEgg kEasterEggs[] = {
-    {  666.0, "devil",    5 },
-    {  696.9, "nice69",   5 },
-    { 1024.0, "power2",   5 },
-    { 1234.5, "sequence", 5 },
-    { 1337.0, "leet",     6 },
-    { 3133.7, "leet_rev", 6 },
-    { 8008.5, "boobs",    7 },
-    { 9999.9, "rollover", 8 },
-};
+const QList<EasterEgg> kEasterEggs = [] {
+    QList<EasterEgg> eggs = {
+        {  666.0, "devil",    5 },
+        {  696.9, "nice69",   5 },
+        { 1024.0, "power2",   5 },
+        { 1234.5, "sequence", 5 },
+        { 1337.0, "leet",     6 },
+        { 3133.7, "leet_rev", 6 },
+        { 8008.5, "boobs",    7 },
+        { 9999.9, "rollover", 8 },
+    };
+    // Three to seven matching digits, including the displayed tenth of a km.
+    for (int ones = 111; ones <= 1111111; ones = ones * 10 + 1) {
+        for (int digit = 1; digit <= 9; ++digit) {
+            const int tenths = ones * digit;
+            if (tenths == 99999) continue; // Keep the existing rollover celebration and fired tag.
+            eggs.append({tenths / 10.0, QStringLiteral("repeated_%1").arg(tenths), 6});
+        }
+    }
+    return eggs;
+}();
 
 // Write-temp, fsync, rename. The DBC loses power without syncing (a lock cuts
 // dashboard power outright), so a plain truncate-and-write can sit in the page
@@ -196,7 +207,7 @@ void OdometerMilestoneService::trySettle()
     // Mark any easter eggs already below current odo as seen so we don't
     // retroactively celebrate them on startup.
     for (const auto &egg : kEasterEggs) {
-        if (km >= egg.km) markEasterEggFired(QString::fromLatin1(egg.tag));
+        if (km >= egg.km) markEasterEggFired(egg.tag);
     }
     m_lastOdoKm = km;
 }
@@ -280,7 +291,7 @@ void OdometerMilestoneService::onOdometerChanged()
             saveLastMilestone(m);
         }
         for (const auto &egg : kEasterEggs) {
-            if (odoKm >= egg.km) markEasterEggFired(QString::fromLatin1(egg.tag));
+            if (odoKm >= egg.km) markEasterEggFired(egg.tag);
         }
         return;
     }
@@ -301,7 +312,7 @@ void OdometerMilestoneService::onOdometerChanged()
     // Easter eggs fire on upward crossing of the exact value.
     if (mode == QLatin1String("all")) {
         for (const auto &egg : kEasterEggs) {
-            QString tag = QString::fromLatin1(egg.tag);
+            const QString &tag = egg.tag;
             if (m_firedEasterEggs.contains(tag)) continue;
             if (prevKm >= 0.0 && prevKm < egg.km && odoKm >= egg.km)
                 crossings.append({egg.km, egg.intensity, tag});
@@ -396,7 +407,7 @@ void OdometerMilestoneService::advanceCelebration()
 
 void OdometerMilestoneService::celebrateRandomEasterEgg()
 {
-    constexpr int count = static_cast<int>(sizeof(kEasterEggs) / sizeof(kEasterEggs[0]));
+    const int count = static_cast<int>(kEasterEggs.size());
     if (count <= 0)
         return;
     const EasterEgg &egg = kEasterEggs[QRandomGenerator::global()->bounded(count)];
@@ -404,7 +415,7 @@ void OdometerMilestoneService::celebrateRandomEasterEgg()
     // enqueueAndCross rather than a bare emit: it is the same path a real
     // crossing takes, so the queue and m_celebrating stay consistent, and it
     // deliberately leaves the fired set alone.
-    enqueueAndCross(egg.km, egg.intensity, QString::fromLatin1(egg.tag), true);
+    enqueueAndCross(egg.km, egg.intensity, egg.tag, true);
 }
 
 void OdometerMilestoneService::resetEasterEggs()

@@ -25,9 +25,11 @@ Item {
         "power2":   { a: "#0D47A1", b: "#64B5F6", c: "#0D47A1", paper: "#e9f0f7", ink: "#174887", icon: "◉", title: "2^10", subline: "A power of two on two wheels" },
         "sequence": { a: "#E91E63", b: "#FFEB3B", c: "#2196F3", paper: "#f8eaf0", ink: "#9b245e", icon: "♫", title: "1.2.3.4.5", subline: "Easy as pie" },
         "boobs":    { a: "#F48FB1", b: "#FFE0EC", c: "#F48FB1", paper: "#f9eaf1", ink: "#9b305f", icon: "♥", title: "nice", subline: "We saw that" },
+        "repeated": { a: "#6A1B9A", b: "#CE93D8", c: "#6A1B9A", paper: "#f3eafa", ink: "#6A1B9A", icon: "★", title: "Matching digits", subline: "All lined up" },
         "rollover": { a: "#FF6F00", b: "#FFCA28", c: "#FF6F00", paper: "#f8eed9", ink: "#aa4500", icon: "⟳", title: "9999.9", subline: "Five digits, here we come" }
     })
-    readonly property var theme: themeMap[tag] !== undefined ? themeMap[tag] : themeMap[""]
+    readonly property var theme: tag.indexOf("repeated_") === 0 ? themeMap["repeated"]
+                                : (themeMap[tag] !== undefined ? themeMap[tag] : themeMap[""])
     readonly property var regularTaglines: [
         "The road is opening up", "Rolling right along", "Another stretch well traveled",
         "Your wheels know the way", "One more chapter on the road", "The journey keeps rolling",

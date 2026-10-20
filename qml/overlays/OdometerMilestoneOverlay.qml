@@ -28,9 +28,11 @@ Item {
         "power2":   { bg0: "#0D47A1", bg1: "#64B5F6", bg2: "#0D47A1", fg: "#E3F2FD", border: "#082C66", icon: "◉", title: "2^10" },
         "sequence": { bg0: "#E91E63", bg1: "#FFEB3B", bg2: "#2196F3", fg: "#1a1200", border: "#6A1B9A", icon: "♫", title: "1.2.3.4.5" },
         "boobs":    { bg0: "#F48FB1", bg1: "#FFE0EC", bg2: "#F48FB1", fg: "#4A148C", border: "#AD1457", icon: "♥", title: "nice" },
+        "repeated": { bg0: "#6A1B9A", bg1: "#CE93D8", bg2: "#6A1B9A", fg: "#311B40", border: "#4A148C", icon: "★", title: "Matching digits" },
         "rollover": { bg0: "#FF6F00", bg1: "#FFCA28", bg2: "#FF6F00", fg: "#3E2723", border: "#E65100", icon: "⟳", title: "9999.9" }
     })
-    readonly property var theme: themeMap[tag] !== undefined ? themeMap[tag] : themeMap[""]
+    readonly property var theme: tag.indexOf("repeated_") === 0 ? themeMap["repeated"]
+                                : (themeMap[tag] !== undefined ? themeMap[tag] : themeMap[""])
 
     function formatKm(km) {
         return (Math.abs(km - Math.round(km)) < 0.05)
