@@ -79,6 +79,8 @@ private slots:
     void closedMenuDoubleTapTogglesHazards();
     void themeActionCyclesTheme();
     void viewActionTogglesMapAndCluster();
+    void viewActionLeavesMotionDebug_data();
+    void viewActionLeavesMotionDebug();
     void developerModeOffersDebugOverlay();
     void testingAndNightlyOfferDebugActions();
     void activeNavigationOffersOverviewAndStop();
@@ -277,6 +279,92 @@ void ShortcutMenuStoreTest::viewActionTogglesMapAndCluster()
     QCOMPARE(repo.get(QStringLiteral("settings"), QStringLiteral("dashboard.mode")),
              QStringLiteral("speedometer"));
     QVERIFY(!menu.visible());
+}
+
+void ShortcutMenuStoreTest::viewActionLeavesMotionDebug_data()
+{
+    QTest::addColumn<QString>("initialMode");
+    QTest::addColumn<bool>("developerMode");
+    QTest::addColumn<QString>("channel");
+
+    for (const auto &mode : {QStringLiteral("speedometer"), QStringLiteral("navigation"),
+                             QStringLiteral("motion-debug")}) {
+        for (const auto &gate : {QStringLiteral("developer"), QStringLiteral("testing"),
+                                 QStringLiteral("nightly")}) {
+            const bool developer = gate == QLatin1String("developer");
+            const QString name = mode + QLatin1Char('-') + gate;
+            QTest::newRow(qPrintable(name)) << mode << developer
+                << (developer ? QStringLiteral("stable") : gate);
+        }
+    }
+}
+
+void ShortcutMenuStoreTest::viewActionLeavesMotionDebug()
+{
+    QFETCH(QString, initialMode);
+    QFETCH(bool, developerMode);
+    QFETCH(QString, channel);
+
+    InMemoryMdbRepository repo;
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("state"),
+             QStringLiteral("ready-to-drive"), false);
+    repo.set(QStringLiteral("vehicle"), QStringLiteral("kickstand"),
+             QStringLiteral("down"), false);
+    repo.set(QStringLiteral("settings"), QStringLiteral("dashboard.mode"), initialMode, false);
+    repo.set(QStringLiteral("settings"), QStringLiteral("scooter.developer-mode"),
+             developerMode ? QStringLiteral("true") : QStringLiteral("false"), false);
+    repo.set(QStringLiteral("settings"), QStringLiteral("updates.mdb.channel"), channel, false);
+    repo.set(QStringLiteral("settings"), QStringLiteral("updates.dbc.channel"), channel, false);
+
+    VehicleStore vehicle(&repo);
+    SettingsStore settings(&repo);
+    vehicle.start();
+    settings.start();
+    ScreenStore screen(&settings, &repo);
+    SettingsService settingsService(&repo, &settings);
+    ShortcutMenuStore menu(nullptr, &vehicle, &screen, nullptr, nullptr, nullptr,
+                           nullptr, &settings, &repo, &settingsService);
+
+    const auto executeAction = [&menu, &repo](int index) {
+        repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:long-tap"));
+        QVERIFY(menu.visible());
+        for (int i = 0; i < index; ++i)
+            menu.cycle();
+        repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:release"));
+        QVERIFY(menu.confirming());
+        repo.publish(QStringLiteral("input-events"), QStringLiteral("seatbox:press"));
+        QVERIFY(!menu.visible());
+        QVERIFY(!menu.confirming());
+    };
+
+    QCOMPARE(menu.actions().at(0).toMap().value(QStringLiteral("kind")).toString(),
+             QStringLiteral("view"));
+    QCOMPARE(menu.actions().at(3).toMap().value(QStringLiteral("kind")).toString(),
+             QStringLiteral("motion-debug"));
+    if (initialMode != QLatin1String("motion-debug"))
+        executeAction(3);
+    QCOMPARE(screen.currentScreenMode(), ScootEnums::ScreenMode::MotionDebug);
+    QCOMPARE(settings.mode(), QStringLiteral("motion-debug"));
+    QCOMPARE(repo.get(QStringLiteral("settings"), QStringLiteral("dashboard.mode")),
+             QStringLiteral("motion-debug"));
+
+    executeAction(0);
+    QCOMPARE(screen.currentScreenMode(), ScootEnums::ScreenMode::Cluster);
+    QCOMPARE(settings.mode(), QStringLiteral("speedometer"));
+    QCOMPARE(repo.get(QStringLiteral("settings"), QStringLiteral("dashboard.mode")),
+             QStringLiteral("speedometer"));
+
+    SettingsStore reloadedSettings(&repo);
+    reloadedSettings.start();
+    ScreenStore reloadedScreen(&reloadedSettings, &repo);
+    QCOMPARE(reloadedScreen.currentScreenMode(), ScootEnums::ScreenMode::Cluster);
+
+    executeAction(0);
+    QCOMPARE(screen.currentScreenMode(), ScootEnums::ScreenMode::Map);
+    QCOMPARE(settings.mode(), QStringLiteral("navigation"));
+    executeAction(0);
+    QCOMPARE(screen.currentScreenMode(), ScootEnums::ScreenMode::Cluster);
+    QCOMPARE(settings.mode(), QStringLiteral("speedometer"));
 }
 
 void ShortcutMenuStoreTest::developerModeOffersDebugOverlay()

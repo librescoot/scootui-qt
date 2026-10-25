@@ -500,7 +500,8 @@ void ShortcutMenuStore::toggleView()
         m_screenStore->setScreen(static_cast<int>(ScootEnums::ScreenMode::Map));
         if (m_settingsService)
             m_settingsService->updateMode(QStringLiteral("navigation"));
-    } else if (current == ScootEnums::ScreenMode::Map) {
+    } else if (current == ScootEnums::ScreenMode::Map
+               || current == ScootEnums::ScreenMode::MotionDebug) {
         m_screenStore->setScreen(static_cast<int>(ScootEnums::ScreenMode::Cluster));
         if (m_settingsService)
             m_settingsService->updateMode(QStringLiteral("speedometer"));
