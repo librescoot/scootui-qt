@@ -1397,8 +1397,11 @@ void Translations::initStrings()
     en[QStringLiteral("navWaitingForGps")] = QStringLiteral("Waiting for GPS fix");
     de[QStringLiteral("navWaitingForGps")] = QStringLiteral("Warte auf GPS-Signal");
 
+    en[QStringLiteral("navWaitingForAccuracy")] = QStringLiteral("Waiting for better GPS accuracy to calculate route.");
+    de[QStringLiteral("navWaitingForAccuracy")] = QStringLiteral("Warte auf eine genauere GPS-Position zur Routenberechnung.");
+
     en[QStringLiteral("navWaitingForGpsRoute")] = QStringLiteral("Waiting for recent GPS fix to calculate route.");
-    de[QStringLiteral("navWaitingForGpsRoute")] = QStringLiteral("Warte auf GPS-Signal zur Routenberechnung.");
+    de[QStringLiteral("navWaitingForGpsRoute")] = QStringLiteral("Warte auf eine aktuelle GPS-Position zur Routenberechnung.");
 
     en[QStringLiteral("navResumingNavigation")] = QStringLiteral("Resuming navigation.");
     de[QStringLiteral("navResumingNavigation")] = QStringLiteral("Navigation wird fortgesetzt.");

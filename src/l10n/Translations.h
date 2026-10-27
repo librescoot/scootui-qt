@@ -518,6 +518,7 @@ class Translations : public QObject
     Q_PROPERTY(QString navNewDestination READ navNewDestination NOTIFY languageChanged)
     Q_PROPERTY(QString navWaitingForGps READ navWaitingForGps NOTIFY languageChanged)
     Q_PROPERTY(QString navWaitingForGpsRoute READ navWaitingForGpsRoute NOTIFY languageChanged)
+    Q_PROPERTY(QString navWaitingForAccuracy READ navWaitingForAccuracy NOTIFY languageChanged)
     Q_PROPERTY(QString navResumingNavigation READ navResumingNavigation NOTIFY languageChanged)
     Q_PROPERTY(QString navArrivedAtDestination READ navArrivedAtDestination NOTIFY languageChanged)
     Q_PROPERTY(QString navOffRouteRerouting READ navOffRouteRerouting NOTIFY languageChanged)
@@ -1227,6 +1228,7 @@ public:
     QString navNewDestination() const { return lookup("navNewDestination"); }
     QString navWaitingForGps() const { return lookup("navWaitingForGps"); }
     QString navWaitingForGpsRoute() const { return lookup("navWaitingForGpsRoute"); }
+    QString navWaitingForAccuracy() const { return lookup("navWaitingForAccuracy"); }
     QString navResumingNavigation() const { return lookup("navResumingNavigation"); }
     QString navArrivedAtDestination() const { return lookup("navArrivedAtDestination"); }
     QString navOffRouteRerouting() const { return lookup("navOffRouteRerouting"); }

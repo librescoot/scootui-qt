@@ -33,14 +33,10 @@ Rectangle {
     property bool mapReady: typeof mapService !== "undefined" && mapService.isReady
     property bool hasRoute: typeof navigationService !== "undefined" && navigationService.hasRoute
 
-    // Full-screen "waiting for GPS" takes over only when there's no position
-    // we can do anything useful with: no recent fix AND no route to dead-
-    // reckon along. If we have a route, we keep the map and DR along it —
-    // the vehicle marker grays out on its own (via hasRecentFix). A route
-    // request held because no position is accurate enough also lands here, so
-    // the rider sees why the route has not appeared yet.
     property bool waitingForPosition: navStatus === statusWaitingForPosition
-    property bool showWaitingForGps: (!hasRecentFix && !hasRoute) || waitingForPosition
+    property bool waitingForAccuracy: waitingForPosition && hasRecentFix
+    property bool showWaitingForGps: (!hasRecentFix && !hasRoute)
+                                     || (waitingForPosition && !mapReady)
 
     ColumnLayout {
         anchors.fill: parent
@@ -73,8 +69,14 @@ Rectangle {
                 }
 
                 Text {
+                    objectName: "gpsWaitText"
                     anchors.horizontalCenter: parent.horizontalCenter
+                    width: Math.min(implicitWidth, mapScreen.width - 32)
+                    wrapMode: Text.WordWrap
                     text: {
+                        if (mapScreen.waitingForAccuracy)
+                            return typeof translations !== "undefined" ? translations.navWaitingForAccuracy
+                                 : "Waiting for better GPS accuracy to calculate route."
                         if (typeof translations === "undefined")
                             return mapScreen.waitingForPosition
                                  ? "Waiting for recent GPS fix to calculate route."
@@ -190,6 +192,7 @@ Rectangle {
             VehicleMarker {
                 id: vehicleMarkerItem
                 objectName: "mapVehicleMarker"
+                hasRecentFix: mapScreen.hasRecentFix && !mapScreen.waitingForAccuracy
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: parent.height / 2 + (typeof mapService !== "undefined" ? mapService.vehicleOffsetY : 0) - height / 2
                 visible: typeof mapService !== "undefined" && mapService.isReady
@@ -199,6 +202,30 @@ Rectangle {
                     origin.y: vehicleMarkerItem.height / 2
                     axis { x: 1; y: 0; z: 0 }
                     angle: (typeof settingsStore !== "undefined" && settingsStore.mapViewMode === 1) ? 0 : 55
+                }
+            }
+
+            Rectangle {
+                objectName: "accuracyWaitBanner"
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: parent.top
+                anchors.topMargin: 8
+                width: parent.width - 32
+                height: accuracyWaitText.implicitHeight + 16
+                radius: 8
+                color: themeStore.backgroundColor
+                visible: mapScreen.waitingForAccuracy
+                Text {
+                    id: accuracyWaitText
+                    objectName: "accuracyWaitText"
+                    anchors.centerIn: parent
+                    width: parent.width - 16
+                    text: typeof translations !== "undefined" ? translations.navWaitingForAccuracy
+                          : "Waiting for better GPS accuracy to calculate route."
+                    color: themeStore.textColor
+                    font.pixelSize: themeStore.fontBody
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
                 }
             }
 

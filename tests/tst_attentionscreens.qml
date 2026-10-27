@@ -111,7 +111,8 @@ TestCase {
         language: "en", dateDayMonth: "%1 %2", monthAbbrev: function(month) { return "Jun" },
         powerRegen: "Regen", powerDischarge: "Power", statusBarDuration: "Duration",
         statusBarAvgSpeed: "Avg", statusBarTrip: "Trip", statusBarOdometer: "ODO", statusBarTotal: "Total", navUnavailable: "Navigation unavailable",
-        mapWaitingForGps: "Waiting for GPS fix", navSetDestination: "Set a destination",
+        mapWaitingForGps: "Waiting for GPS fix", navWaitingForAccuracy: "Waiting for better GPS accuracy to calculate route.",
+        navWaitingForGpsRoute: "Waiting for recent GPS fix to calculate route.", navSetDestination: "Set a destination",
         navThen: "Then", navCalculating: "Calculating route", navRecalculating: "Recalculating route",
         navArrived: "Arrived"
     })
@@ -167,6 +168,7 @@ TestCase {
         engineStore.speed = 0
         themeStore.isDark = true
         themeStore.backgroundColor = "black"
+        themeStore.textColor = "white"
     }
     function point(item, screen) { return item.mapToItem(screen, item.width / 2, item.height / 2) }
     function matchesInk(pixel, ink) {
@@ -647,6 +649,38 @@ TestCase {
         compare(harness.notifications.presentation.queuedCounts, {})
         compare(findChild(screen, "speedometerDial").width, 300)
         compare(findChild(screen, "speedometerDial").height, 240)
+    }
+
+    function test_mapAccuracyWait_data() {
+        return [
+            {tag: "en-dark", language: "en", dark: true},
+            {tag: "de-light", language: "de", dark: false},
+            {tag: "de-dark", language: "de", dark: true},
+            {tag: "en-light", language: "en", dark: false}
+        ]
+    }
+
+    function test_mapAccuracyWait(data) {
+        themeStore.isDark = data.dark
+        themeStore.backgroundColor = data.dark ? "black" : "white"
+        themeStore.textColor = data.dark ? "white" : "black"
+        const screen = useNative(mapComponent)
+        harness.translations.setLanguage(data.language)
+        screen.navStatus = 6
+        screen.hasRecentFix = true
+        screen.mapReady = true
+        waitForRendering(screen)
+        verify(!screen.showWaitingForGps)
+        const banner = findChild(screen, "accuracyWaitBanner")
+        verify(banner.visible)
+        compare(findChild(banner, "accuracyWaitText").text, harness.translations.navWaitingForAccuracy)
+        verify(findChild(screen, "mapVehicleMarker").hasRecentFix === false)
+        capture(screen, "accuracy-wait-" + data.tag)
+        screen.mapReady = false
+        verify(screen.showWaitingForGps)
+        compare(findChild(screen, "gpsWaitText").text, harness.translations.navWaitingForAccuracy)
+        screen.hasRecentFix = false
+        compare(findChild(screen, "gpsWaitText").text, harness.translations.navWaitingForGpsRoute)
     }
 
     function test_nativeWaitingForPosition_data() {
