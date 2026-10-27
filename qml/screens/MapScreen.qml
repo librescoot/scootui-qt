@@ -210,7 +210,7 @@ Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.top
                 anchors.topMargin: 8
-                width: parent.width - 32
+                width: parent.width - 120
                 height: accuracyWaitText.implicitHeight + 16
                 radius: 8
                 color: themeStore.backgroundColor

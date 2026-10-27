@@ -673,7 +673,12 @@ TestCase {
         verify(!screen.showWaitingForGps)
         const banner = findChild(screen, "accuracyWaitBanner")
         verify(banner.visible)
-        compare(findChild(banner, "accuracyWaitText").text, harness.translations.navWaitingForAccuracy)
+        verify(banner.x >= 60)
+        verify(banner.x + banner.width <= screen.width - 60)
+        const text = findChild(banner, "accuracyWaitText")
+        compare(text.text, harness.translations.navWaitingForAccuracy)
+        verify(text.paintedWidth <= text.width)
+        verify(text.paintedHeight <= banner.height)
         verify(findChild(screen, "mapVehicleMarker").hasRecentFix === false)
         capture(screen, "accuracy-wait-" + data.tag)
         screen.mapReady = false
