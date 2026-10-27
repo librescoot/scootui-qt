@@ -34,6 +34,7 @@
 #include "stores/SavedLocationsStore.h"
 #include "stores/ScreenStore.h"
 #include "stores/SettingsStore.h"
+#include "stores/ThemeStore.h"
 #include "stores/ShortcutMenuStore.h"
 #define private public
 #include "stores/TripStore.h"
@@ -41,6 +42,21 @@
 #include "stores/VehicleStore.h"
 
 QElapsedTimer g_bootTimer;
+
+class BluetoothTestRepository : public InMemoryMdbRepository
+{
+public:
+    bool connected = false;
+    QStringList bluetoothCommands;
+    bool isConnected() const override { return connected; }
+    void push(const QString &channel, const QString &command) override
+    {
+        if (channel == QLatin1String("scooter:bluetooth"))
+            bluetoothCommands.append(command);
+        else
+            InMemoryMdbRepository::push(channel, command);
+    }
+};
 
 class ApplicationNotificationTest : public QObject
 {
@@ -199,6 +215,51 @@ private slots:
             const auto entry = toast->toasts().last().toMap();
             QCOMPARE(entry.value("message").toString(), tr->clearPairedPhonesToast());
         }
+    }
+
+    void clearBluetoothDisconnectedAndParkedGate()
+    {
+        BluetoothTestRepository repo;
+        auto *vehicle = context<VehicleStore>("vehicleStore");
+        auto *tr = context<Translations>("translations");
+        MenuStore menu(context<SettingsStore>("settingsStore"), vehicle,
+                       context<ThemeStore>("themeStore"), context<TripStore>("tripStore"),
+                       tr, context<SettingsService>("settingsService"), &repo);
+        ToastService toast;
+        menu.setToastService(&toast);
+        const auto select = [&menu](const QString &id) {
+            const auto items = menu.currentItems();
+            for (int i = 0; i < items.size(); ++i) {
+                if (items.at(i).toMap().value("id").toString() != id) continue;
+                while (menu.selectedIndex() != i) menu.navigateDown();
+                menu.selectItem();
+                return true;
+            }
+            return false;
+        };
+        const auto openSystem = [&] {
+            menu.open();
+            QTest::qWait(160);
+            return select("settings") && select("settings_system");
+        };
+        for (const QString &language : {QStringLiteral("en"), QStringLiteral("de")}) {
+            tr->setLanguage(language);
+            QVERIFY(openSystem());
+            QVERIFY(select("clear_paired_phones"));
+            QSignalSpy spy(&toast, &ToastService::toastAdded);
+            QVERIFY(select("confirm_clear_paired_phones"));
+            QCOMPARE(spy.size(), 1);
+            QCOMPARE(spy.first().first().toString(), QStringLiteral("error"));
+            QCOMPARE(toast.toasts().last().toMap().value("message").toString(),
+                     tr->clearPairedPhonesDisconnected());
+            QVERIFY(repo.bluetoothCommands.isEmpty());
+        }
+        m_application->m_repository->set("vehicle", "state", "ready-to-drive");
+        QTRY_VERIFY(!vehicle->isParked());
+        menu.open();
+        QVERIFY(!menu.isOpen());
+        QVERIFY(!select("clear_paired_phones"));
+        QVERIFY(repo.bluetoothCommands.isEmpty());
     }
 
     void keycardsAreDirectSettingsEntry()
