@@ -112,6 +112,7 @@ class Translations : public QObject
     Q_PROPERTY(QString menuClearPairedPhonesConfirm READ menuClearPairedPhonesConfirm NOTIFY languageChanged)
     Q_PROPERTY(QString menuClearPairedPhonesAction READ menuClearPairedPhonesAction NOTIFY languageChanged)
     Q_PROPERTY(QString clearPairedPhonesToast READ clearPairedPhonesToast NOTIFY languageChanged)
+    Q_PROPERTY(QString clearPairedPhonesDisconnected READ clearPairedPhonesDisconnected NOTIFY languageChanged)
     Q_PROPERTY(QString menuFaults READ menuFaults NOTIFY languageChanged)
     Q_PROPERTY(QString menuSystemInfo READ menuSystemInfo NOTIFY languageChanged)
     Q_PROPERTY(QString menuAppearance READ menuAppearance NOTIFY languageChanged)
@@ -819,6 +820,7 @@ public:
     QString menuClearPairedPhonesConfirm() const { return lookup("menuClearPairedPhonesConfirm"); }
     QString menuClearPairedPhonesAction() const { return lookup("menuClearPairedPhonesAction"); }
     QString clearPairedPhonesToast() const { return lookup("clearPairedPhonesToast"); }
+    QString clearPairedPhonesDisconnected() const { return lookup("clearPairedPhonesDisconnected"); }
     QString menuFaults() const { return lookup("menuFaults"); }
     QString menuSystemInfo() const { return lookup("menuSystemInfo"); }
     QString menuAppearance() const { return lookup("menuAppearance"); }

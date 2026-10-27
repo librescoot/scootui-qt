@@ -24,6 +24,8 @@
 #include "services/NavigationService.h"
 #undef private
 #include "services/NotificationService.h"
+#include "services/ToastService.h"
+#include "l10n/Translations.h"
 #include "services/SettingsService.h"
 #include "stores/BatteryStore.h"
 #include "stores/ConnectionStore.h"
@@ -164,6 +166,39 @@ private slots:
         m_application->m_repository->set("vehicle", "state", "parked");
         QTRY_COMPARE(notifications->surface(), QString("map"));
         QTRY_COMPARE(mainId(), QString("map-coverage"));
+    }
+
+    void clearBluetoothReportsRequestNotCompletion()
+    {
+        auto *menu = context<MenuStore>("menuStore");
+        auto *toast = m_application->m_toastService;
+        auto *tr = context<Translations>("translations");
+        QVERIFY(menu && toast && tr);
+        toast->setNotificationService(nullptr);
+        const auto select = [menu](const QString &id) {
+            const auto items = menu->currentItems();
+            for (int i = 0; i < items.size(); ++i) {
+                if (items.at(i).toMap().value("id").toString() != id) continue;
+                while (menu->selectedIndex() != i) menu->navigateDown();
+                menu->selectItem();
+                return true;
+            }
+            return false;
+        };
+        for (const QString &language : {QStringLiteral("en"), QStringLiteral("de")}) {
+            tr->setLanguage(language);
+            menu->open();
+            QTest::qWait(160);
+            QVERIFY(select("settings"));
+            QVERIFY(select("settings_system"));
+            QVERIFY(select("clear_paired_phones"));
+            QSignalSpy spy(toast, &ToastService::toastAdded);
+            QVERIFY(select("confirm_clear_paired_phones"));
+            QCOMPARE(spy.size(), 1);
+            QCOMPARE(spy.first().first().toString(), QStringLiteral("info"));
+            const auto entry = toast->toasts().last().toMap();
+            QCOMPARE(entry.value("message").toString(), tr->clearPairedPhonesToast());
+        }
     }
 
     void keycardsAreDirectSettingsEntry()

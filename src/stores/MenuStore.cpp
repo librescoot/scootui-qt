@@ -1543,9 +1543,14 @@ void MenuStore::rebuildMenuTree()
     auto *confirmClearBondsNode = clearBondsNode->addChild(MenuNode::action(
         QStringLiteral("confirm_clear_paired_phones"),
         tr->menuClearPairedPhonesAction(), [this, repo]() {
-            repo->push(QStringLiteral("scooter:bluetooth"), QStringLiteral("delete-all-bonds"));
-            if (m_toastService)
-                m_toastService->showSuccess(m_translations->clearPairedPhonesToast());
+            if (!repo->isConnected()) {
+                if (m_toastService)
+                    m_toastService->showError(m_translations->clearPairedPhonesDisconnected());
+            } else {
+                repo->push(QStringLiteral("scooter:bluetooth"), QStringLiteral("delete-all-bonds"));
+                if (m_toastService)
+                    m_toastService->showInfo(m_translations->clearPairedPhonesToast());
+            }
             close();
         }));
     confirmClearBondsNode->setCaution(true);

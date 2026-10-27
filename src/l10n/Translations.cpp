@@ -281,8 +281,11 @@ void Translations::initStrings()
     de[QStringLiteral("menuClearPairedPhonesConfirm")] = QStringLiteral("WIRKLICH ALLE LÖSCHEN?");
     en[QStringLiteral("menuClearPairedPhonesAction")] = QStringLiteral("Clear All Bluetooth Connections");
     de[QStringLiteral("menuClearPairedPhonesAction")] = QStringLiteral("Alle Bluetooth-Verbindungen löschen");
-    en[QStringLiteral("clearPairedPhonesToast")] = QStringLiteral("Bluetooth connections cleared");
-    de[QStringLiteral("clearPairedPhonesToast")] = QStringLiteral("Bluetooth-Verbindungen gelöscht");
+    en[QStringLiteral("clearPairedPhonesToast")] = QStringLiteral("Bluetooth clearing requested");
+    de[QStringLiteral("clearPairedPhonesToast")] = QStringLiteral("Löschen der Bluetooth-Verbindungen angefordert");
+
+    en[QStringLiteral("clearPairedPhonesDisconnected")] = QStringLiteral("Cannot request Bluetooth clearing: disconnected");
+    de[QStringLiteral("clearPairedPhonesDisconnected")] = QStringLiteral("Bluetooth-Löschung nicht angefordert: keine Verbindung");
 
     en[QStringLiteral("updateModeTitle")] = QStringLiteral("Update Mode");
     de[QStringLiteral("updateModeTitle")] = QStringLiteral("Update-Modus");
