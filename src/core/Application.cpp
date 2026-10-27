@@ -408,6 +408,18 @@ void Application::createStores(QQmlApplicationEngine &engine)
                         {QStringLiteral("error"), m_navigationService->errorMessage()}};
         m_notificationService->setNavigationPayload(nav);
     };
+    const auto refreshAccuracyWaitAttention = [this, gpsStore]() {
+        if (m_navigationService->isWaitingForPosition() && gpsStore->hasRecentFix())
+            m_notificationService->publishCondition(
+                QStringLiteral("navigation-accuracy-wait"), QStringLiteral("navigation"),
+                m_translations->navWaitingForAccuracy(), {}, 4, QStringLiteral("info"));
+        else
+            m_notificationService->resolveCondition(QStringLiteral("navigation-accuracy-wait"));
+    };
+    connect(m_navigationService, &NavigationService::statusChanged, this, refreshAccuracyWaitAttention);
+    connect(gpsStore, &GpsStore::recentFixChanged, this, refreshAccuracyWaitAttention);
+    connect(m_translations, &Translations::languageChanged, this, refreshAccuracyWaitAttention);
+    refreshAccuracyWaitAttention();
     connect(m_navigationService, &NavigationService::statusChanged, this, refreshNavigationAttention);
     connect(m_navigationService, &NavigationService::routeChanged, this, refreshNavigationAttention);
     connect(m_navigationService, &NavigationService::instructionChanged, this, refreshNavigationAttention);

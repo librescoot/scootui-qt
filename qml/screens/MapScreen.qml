@@ -35,8 +35,8 @@ Rectangle {
 
     property bool waitingForPosition: navStatus === statusWaitingForPosition
     property bool waitingForAccuracy: waitingForPosition && hasRecentFix
-    property bool showWaitingForGps: (!hasRecentFix && !hasRoute)
-                                     || (waitingForPosition && !mapReady)
+    property bool showWaitingForGps: !hasRecentFix
+                                     && (!hasRoute || (waitingForPosition && !mapReady))
 
     ColumnLayout {
         anchors.fill: parent
@@ -74,9 +74,6 @@ Rectangle {
                     width: Math.min(implicitWidth, mapScreen.width - 32)
                     wrapMode: Text.WordWrap
                     text: {
-                        if (mapScreen.waitingForAccuracy)
-                            return typeof translations !== "undefined" ? translations.navWaitingForAccuracy
-                                 : "Waiting for better GPS accuracy to calculate route."
                         if (typeof translations === "undefined")
                             return mapScreen.waitingForPosition
                                  ? "Waiting for recent GPS fix to calculate route."
@@ -205,36 +202,14 @@ Rectangle {
                 }
             }
 
-            Rectangle {
-                objectName: "accuracyWaitBanner"
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.top: parent.top
-                anchors.topMargin: 8
-                width: parent.width - 120
-                height: accuracyWaitText.implicitHeight + 16
-                radius: 8
-                color: themeStore.backgroundColor
-                visible: mapScreen.waitingForAccuracy
-                Text {
-                    id: accuracyWaitText
-                    objectName: "accuracyWaitText"
-                    anchors.centerIn: parent
-                    width: parent.width - 16
-                    text: typeof translations !== "undefined" ? translations.navWaitingForAccuracy
-                          : "Waiting for better GPS accuracy to calculate route."
-                    color: themeStore.textColor
-                    font.pixelSize: themeStore.fontBody
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.WordWrap
-                }
-            }
-
             // Coverage is presented by the shared attention dock.
 
             // No-map message (shown when not navigating and no map position)
             Text {
+                objectName: "mapDestinationHint"
                 anchors.centerIn: parent
-                visible: !mapScreen.hasNav && (typeof mapService === "undefined" || !mapService.isReady)
+                visible: !mapScreen.hasNav && !mapScreen.waitingForPosition
+                         && (typeof mapService === "undefined" || !mapService.isReady)
                 text: typeof navigationService !== "undefined"
                       ? (typeof translations !== "undefined" ? translations.navSetDestination
                          : "Set a destination to start navigation")

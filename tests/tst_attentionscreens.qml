@@ -169,6 +169,7 @@ TestCase {
         themeStore.isDark = true
         themeStore.backgroundColor = "black"
         themeStore.textColor = "white"
+        mapService.isReady = true
     }
     function point(item, screen) { return item.mapToItem(screen, item.width / 2, item.height / 2) }
     function matchesInk(pixel, ink) {
@@ -669,23 +670,75 @@ TestCase {
         screen.navStatus = 6
         screen.hasRecentFix = true
         screen.mapReady = true
+        harness.notifications.publishCondition("navigation-accuracy-wait", "navigation",
+                                               harness.translations.navWaitingForAccuracy, "", 4, "info")
         waitForRendering(screen)
         verify(!screen.showWaitingForGps)
-        const banner = findChild(screen, "accuracyWaitBanner")
-        verify(banner.visible)
-        verify(banner.x >= 60)
-        verify(banner.x + banner.width <= screen.width - 60)
-        const text = findChild(banner, "accuracyWaitText")
-        compare(text.text, harness.translations.navWaitingForAccuracy)
-        verify(text.paintedWidth <= text.width)
-        verify(text.paintedHeight <= banner.height)
+        const dock = findChild(screen, "mapAttention")
+        verify(dock.visible)
+        const card = findChild(dock, "attentionMainCard")
+        verify(card.visible)
+        compare(findChild(card, "notificationTitle").text, harness.translations.navWaitingForAccuracy)
+        verify(findChild(dock, "attentionTurnByTurn") === null)
+        const blinkers = findChild(screen, "mapBlinkers")
+        verify(blinkers.y >= dock.y + dock.height)
         verify(findChild(screen, "mapVehicleMarker").hasRecentFix === false)
-        capture(screen, "accuracy-wait-" + data.tag)
+        capture(screen, "accuracy-wait-card-" + data.tag)
+        verify(harness.receive(JSON.stringify({id: "critical", title: "Stop safely", severity: "error"})))
+        waitForRendering(screen)
+        compare(findChild(dock, "notificationTitle").text, "Stop safely")
+        compare(harness.notifications.presentation.queuedCounts.info, 1)
+        verify(blinkers.y >= dock.y + dock.height)
+        capture(screen, "accuracy-wait-critical-" + data.tag)
+        verify(harness.receive(JSON.stringify({id: "critical", action: "dismiss"})))
+        waitForRendering(screen)
+        compare(findChild(dock, "notificationTitle").text, harness.translations.navWaitingForAccuracy)
+        verify(harness.receive(JSON.stringify({id: "success", title: "Trip updated", severity: "success"})))
+        waitForRendering(screen)
+        compare(findChild(dock, "notificationTitle").text, "Trip updated")
+        compare(harness.notifications.presentation.queuedCounts.info, 1)
+        verify(harness.receive(JSON.stringify({id: "success", action: "dismiss"})))
+        verify(harness.receive(JSON.stringify({id: "info", title: "Phone connected", severity: "info"})))
+        waitForRendering(screen)
+        compare(findChild(dock, "notificationTitle").text, harness.translations.navWaitingForAccuracy)
+        harness.advance(5000)
+        waitForRendering(screen)
+        compare(findChild(dock, "notificationTitle").text, "Phone connected")
+        verify(harness.receive(JSON.stringify({id: "info", action: "dismiss"})))
         screen.mapReady = false
-        verify(screen.showWaitingForGps)
-        compare(findChild(screen, "gpsWaitText").text, harness.translations.navWaitingForAccuracy)
+        mapService.isReady = false
+        verify(!screen.showWaitingForGps)
+        verify(dock.visible)
+        verify(!findChild(screen, "mapDestinationHint").visible)
+        compare(findChild(dock, "notificationTitle").text, harness.translations.navWaitingForAccuracy)
         screen.hasRecentFix = false
+        verify(screen.showWaitingForGps)
+        harness.notifications.resolveCondition("navigation-accuracy-wait")
         compare(findChild(screen, "gpsWaitText").text, harness.translations.navWaitingForGpsRoute)
+        tryVerify(function() { return !dock.visible })
+    }
+
+    function test_clusterAccuracyWait_data() { return test_mapAccuracyWait_data() }
+
+    function test_clusterAccuracyWait(data) {
+        themeStore.isDark = data.dark
+        themeStore.backgroundColor = data.dark ? "black" : "white"
+        const screen = useNative(clusterComponent)
+        harness.translations.setLanguage(data.language)
+        harness.navigation.setDestination(52.53, 13.41, "Destination")
+        tryCompare(harness.navigation, "status", 6)
+        harness.notifications.publishCondition("navigation-accuracy-wait", "navigation",
+                                               harness.translations.navWaitingForAccuracy, "", 4, "info")
+        waitForRendering(screen)
+        const dock = findChild(screen, "clusterAttention")
+        verify(dock.visible)
+        compare(findChild(dock, "notificationTitle").text, harness.translations.navWaitingForAccuracy)
+        verify(findChild(dock, "attentionTurnByTurn") === null)
+        const blinkers = findChild(screen, "clusterBlinkers")
+        verify(blinkers.y >= dock.y + dock.height)
+        capture(screen, "cluster-accuracy-wait-" + data.tag)
+        harness.notifications.resolveCondition("navigation-accuracy-wait")
+        tryVerify(function() { return !dock.visible })
     }
 
     function test_nativeWaitingForPosition_data() {

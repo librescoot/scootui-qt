@@ -184,6 +184,34 @@ private slots:
         QTRY_COMPARE(mainId(), QString("map-coverage"));
     }
 
+    void navigationAccuracyWaitUsesNotificationCondition()
+    {
+        auto *repo = m_application->m_repository.get();
+        auto *nav = context<NavigationService>("navigationService");
+        auto *notifications = context<NotificationService>("notificationService");
+        auto *tr = context<Translations>("translations");
+        QVERIFY(nav && notifications && tr);
+        nav->setMapService(nullptr);
+        repo->publish("gps:tpv", R"({"latitude":"52.52","longitude":"13.405","state":"fix-established","timestamp":"2026-01-01T00:00:00Z","eph":"72.2"})");
+        nav->setDestination(52.53, 13.43, "Destination");
+        QTRY_COMPARE(nav->status(), int(NavigationStatus::WaitingForPosition));
+        QTRY_COMPARE(mainId(), QStringLiteral("navigation-accuracy-wait"));
+        auto main = notifications->presentation().value("main").toMap();
+        QCOMPARE(main.value("kind").toString(), QStringLiteral("info"));
+        QCOMPARE(main.value("priority").toInt(), 4);
+        QCOMPARE(main.value("title").toString(), tr->navWaitingForAccuracy());
+        tr->setLanguage("de");
+        QTRY_COMPARE(notifications->presentation().value("main").toMap().value("title").toString(),
+                     tr->navWaitingForAccuracy());
+        repo->publish("gps:tpv", R"({"state":"searching","timestamp":"2026-01-01T00:00:01Z"})");
+        QTRY_VERIFY(mainId() != QStringLiteral("navigation-accuracy-wait"));
+        QCOMPARE(nav->status(), int(NavigationStatus::WaitingForPosition));
+        repo->publish("gps:tpv", R"({"latitude":"52.52","longitude":"13.405","state":"fix-established","timestamp":"2026-01-01T00:00:02Z","eph":"72.2"})");
+        QTRY_COMPARE(mainId(), QStringLiteral("navigation-accuracy-wait"));
+        nav->clearNavigation();
+        QTRY_VERIFY(mainId() != QStringLiteral("navigation-accuracy-wait"));
+    }
+
     void clearBluetoothReportsRequestNotCompletion()
     {
         auto *menu = context<MenuStore>("menuStore");
