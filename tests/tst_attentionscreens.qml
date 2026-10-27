@@ -695,6 +695,7 @@ TestCase {
         themeStore.isDark = data.dark
         themeStore.backgroundColor = data.dark ? "black" : "white"
         const screen = useNative(data.surface === "map" ? mapComponent : clusterComponent)
+        if (data.surface === "map") screen.hasRecentFix = false
         harness.navigation.setDestination(52.53, 13.41, "Destination")
         tryCompare(harness.navigation, "status", 6)
         if (data.surface === "map") {
