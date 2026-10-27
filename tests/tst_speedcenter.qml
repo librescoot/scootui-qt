@@ -56,12 +56,33 @@ TestCase {
     UnifiedBottomStatusBar {
         id: tripBar
         width: 480
+        centerContentHeight: barCenter.implicitHeight
+        SpeedCenterWidget { id: barCenter }
     }
 
     SpeedCenterWidget {
         id: speedCenter
         width: 120
         height: 80
+    }
+
+    function test_bottomBarHeightIndependentOfAnchoredPositions() {
+        const left = findChild(tripBar, "bottomBarLeft")
+        const right = findChild(tripBar, "bottomBarRight")
+        const center = findChild(tripBar, "bottomBarCenter")
+        for (const dark of [true, false]) {
+            themeStore.isDark = dark
+            for (const size of [14, 24, 18]) {
+                themeStore.fontBody = size
+                compare(tripBar.implicitHeight,
+                        Math.max(left.implicitHeight, right.implicitHeight, barCenter.implicitHeight) + 8)
+                compare(center.height, barCenter.implicitHeight)
+                compare(left.y + left.height, tripBar.height - 2)
+                compare(right.y + right.height, tripBar.height - 2)
+            }
+        }
+        themeStore.fontBody = 14
+        themeStore.isDark = true
     }
 
     function test_connectionLossInvalidatesSpeed() {

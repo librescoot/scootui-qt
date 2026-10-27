@@ -4,7 +4,8 @@ import QtQuick.Layouts
 Rectangle {
     id: bottomBar
     color: typeof themeStore !== "undefined" ? themeStore.backgroundColor : "black"
-    implicitHeight: Math.max(leftCol.height, centerItem.childrenRect.height, rightCol.height) + 8
+    property real centerContentHeight: 0
+    implicitHeight: Math.max(leftCol.implicitHeight, centerContentHeight, rightCol.implicitHeight) + 8
 
     Component.onCompleted: if (typeof bootTimer !== "undefined")
         console.log("[boot +" + bootTimer.elapsed() + "ms] UnifiedBottomStatusBar completed")
@@ -27,6 +28,7 @@ Rectangle {
     // Left side
     Row {
         id: leftCol
+        objectName: "bottomBarLeft"
         anchors.left: parent.left
         anchors.bottom: parent.bottom
         anchors.leftMargin: 4
@@ -83,16 +85,18 @@ Rectangle {
     // Center: configurable widget
     Item {
         id: centerItem
+        objectName: "bottomBarCenter"
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 2
         width: childrenRect.width
-        height: childrenRect.height
+        height: bottomBar.centerContentHeight
     }
 
     // Right side
     Row {
         id: rightCol
+        objectName: "bottomBarRight"
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.rightMargin: 4

@@ -288,8 +288,9 @@ Rectangle {
         UnifiedBottomStatusBar {
             id: bottomBar
             Layout.fillWidth: true
+            centerContentHeight: speedCenter.implicitHeight
 
-            SpeedCenterWidget {}
+            SpeedCenterWidget { id: speedCenter }
         }
     }
 
