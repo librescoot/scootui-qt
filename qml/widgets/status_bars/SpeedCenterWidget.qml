@@ -17,16 +17,12 @@ Item {
     readonly property bool ecuStale: typeof engineStore !== "undefined" && engineStore.faultCode === 20
     readonly property bool telemetryTrustLost: typeof notificationService !== "undefined"
                                                 && notificationService.telemetryTrustLost
-    // Frozen drive telemetry; see SpeedometerDisplay.
-    readonly property bool speedStale: typeof engineStore !== "undefined" && engineStore.dataStale
-                                       && speed > 0
     readonly property bool startupZero: typeof notificationService !== "undefined"
                                         && notificationService.startupSpeedPlaceholder === true && speed === 0
                                         && (typeof engineStore === "undefined" || (engineStore.speed === 0
                                             && (!engineStore.hasRawSpeed || engineStore.rawSpeed === 0)))
     readonly property string displayedSpeed: speedCenter.ecuStale
                                              || (speedCenter.telemetryTrustLost && !speedCenter.startupZero)
-                                             || speedCenter.speedStale
                                              ? "—" : Math.floor(speed).toString()
 
     // Tight bounding rect metrics for pixel-perfect sizing

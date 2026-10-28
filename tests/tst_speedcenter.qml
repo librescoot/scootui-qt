@@ -128,12 +128,10 @@ TestCase {
         compare(speedCenter.displayedSpeed, "42")
     }
 
-    // Only a moving speed is invalidated: a static hash with a correct 0 on
-    // screen is the healthy case at a standstill.
-    function test_staleEngineDataInvalidatesOnlyMovingSpeed() {
+    function test_valueChangeTimeoutDoesNotInvalidateSteadySpeed() {
         compare(speedCenter.displayedSpeed, "42")
         engineStore.dataStale = true
-        compare(speedCenter.displayedSpeed, "—")
+        compare(speedCenter.displayedSpeed, "42")
 
         engineStore.speed = 0
         compare(speedCenter.displayedSpeed, "0")

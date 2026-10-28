@@ -155,7 +155,8 @@ TestCase {
         compare(digits.text, "0")
         engineStore.speed = 12
         engineStore.dataStale = true
-        compare(digits.text, "—")
+        speedometer.animatedSpeed = 12
+        compare(digits.text, "12")
     }
 
     function test_regenTintRequiresMinimumChargingPower() {

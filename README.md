@@ -39,6 +39,15 @@ and a Valhalla endpoint for routing. The application also listens on the
 Use the normal dashboard UI or platform tooling for routine operations. The
 commands above are intended for controlled operational automation.
 
+## Speed display validity
+
+Unchanged telemetry values do not invalidate speed or power: identical snapshots
+cannot distinguish steady riding from a stalled producer. The dashboard does not
+infer an ECU timeout from a lack of value changes. ECU communication fault E20
+still masks speed and power; lost dashboard-to-MDB telemetry trust also masks
+speed. The startup-zero placeholder does not override E20 or mask connection loss
+during riding.
+
 ## Route plans
 
 The MDB settings-service owns the route plan. The dashboard reads complete JSON

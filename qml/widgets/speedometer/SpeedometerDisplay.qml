@@ -28,12 +28,8 @@ Item {
                                         && notificationService.startupSpeedPlaceholder === true && targetSpeed === 0
                                         && (typeof engineStore === "undefined" || (engineStore.speed === 0
                                             && (!engineStore.hasRawSpeed || engineStore.rawSpeed === 0)))
-    readonly property string displayedSpeed: ecuStale || (telemetryTrustLost && !startupZero) || speedStale
+    readonly property string displayedSpeed: ecuStale || (telemetryTrustLost && !startupZero)
                                              ? "—" : startupZero ? "0" : Math.floor(animatedSpeed).toString()
-    // Frozen drive telemetry: only a non-zero speed is dashed, so a correct 0
-    // in the boot window or at a standstill is not reported as missing data.
-    readonly property bool speedStale: typeof engineStore !== "undefined" && engineStore.dataStale
-        && targetSpeed > 0
     readonly property bool isDark: themeStore.isDark
 
     // Internal animated speed
@@ -310,7 +306,6 @@ Item {
         Shape {
             anchors.fill: parent
             visible: speedometer.animatedSpeed > 0 && !speedometer.ecuStale && !speedometer.telemetryTrustLost
-                 && !speedometer.speedStale
             opacity: speedometer.isAccelerating && speedometer.animatedSpeed <= speedometer.overspeedSpeed
                      ? 0.7 + 0.3 * speedometer.accelPulse : 1.0
             preferredRendererType: Shape.CurveRenderer

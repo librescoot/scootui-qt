@@ -214,6 +214,53 @@ private slots:
         QTRY_VERIFY(mainId() != QStringLiteral("navigation-accuracy-wait"));
     }
 
+    void steadySpeedSurvivesUnchangedTelemetry()
+    {
+        auto *repo = m_application->m_repository.get();
+        auto *engine = context<EngineStore>("engineStore");
+        auto *notifications = context<NotificationService>("notificationService");
+        QVERIFY(engine && notifications);
+        repo->set("vehicle", "state", "ready-to-drive");
+        repo->set("engine-ecu", "speed", "50");
+        repo->set("engine-ecu", "raw-speed", "48");
+        repo->set("engine-ecu", "rpm", "500");
+        repo->set("engine-ecu", "motor:current", "0");
+        repo->set("engine-ecu", "fault:code", "0");
+        notifications->setTelemetryConnected(true);
+        QQmlComponent component(m_engine.get(), QUrl("qrc:/ScootUI/qml/widgets/status_bars/SpeedCenterWidget.qml"));
+        std::unique_ptr<QObject> widget(component.create());
+        QVERIFY2(widget, qPrintable(component.errorString()));
+        QCOMPARE(widget->property("displayedSpeed").toString(), QStringLiteral("50"));
+
+        QQmlComponent powerComponent(m_engine.get(), QUrl("qrc:/ScootUI/qml/widgets/power/PowerDisplay.qml"));
+        std::unique_ptr<QObject> power(powerComponent.create());
+        QVERIFY2(power, qPrintable(powerComponent.errorString()));
+        auto *powerValue = power->findChild<QObject *>("powerValue");
+        QVERIFY(powerValue);
+        QCOMPARE(powerValue->property("text").toString(), QStringLiteral("0 kW"));
+
+        // Identical Redis snapshots cannot distinguish steady riding from a
+        // stalled producer. Only explicit fault/connection evidence masks speed.
+        for (int poll = 0; poll < 36; ++poll) {
+            repo->requestAll("engine-ecu");
+            QTest::qWait(100);
+        }
+        QCOMPARE(widget->property("displayedSpeed").toString(), QStringLiteral("50"));
+
+        QCOMPARE(powerValue->property("text").toString(), QStringLiteral("0 kW"));
+        repo->set("engine-ecu", "fault:code", "20");
+        QCOMPARE(widget->property("displayedSpeed").toString(), QString::fromUtf8("—"));
+        QCOMPARE(powerValue->property("text").toString(), QString::fromUtf8("—"));
+        repo->set("engine-ecu", "fault:code", "0");
+        QCOMPARE(powerValue->property("text").toString(), QStringLiteral("0 kW"));
+        notifications->setTelemetryConnected(false);
+        QCOMPARE(widget->property("displayedSpeed").toString(), QString::fromUtf8("—"));
+        notifications->setTelemetryConnected(true);
+        QCOMPARE(widget->property("displayedSpeed").toString(), QStringLiteral("50"));
+        notifications->publishCondition("redis-disconnect", "connection", "Disconnected", {}, 1, "error");
+        QCOMPARE(widget->property("displayedSpeed").toString(), QString::fromUtf8("—"));
+    }
+
     void consumptionInfoMenuAndLiveCounters()
     {
         auto *menu = context<MenuStore>("menuStore");
