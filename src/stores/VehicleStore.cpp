@@ -55,6 +55,7 @@ SyncSettings VehicleStore::syncSettings() const
             {QStringLiteral("brakeRight"), QStringLiteral("brake:right")},
             {QStringLiteral("kickstand"), QStringLiteral("kickstand")},
             {QStringLiteral("state"), QStringLiteral("state")},
+            {QStringLiteral("driveStartStatus"), QStringLiteral("drive-start-status")},
             {QStringLiteral("handleBarLockSensor"), QStringLiteral("handlebar:lock-sensor")},
             {QStringLiteral("handleBarLockState"), QStringLiteral("handlebar:lock-state")},
             {QStringLiteral("handlebarInLockPosition"), QStringLiteral("handlebar:position")},
@@ -140,6 +141,11 @@ void VehicleStore::applyFieldUpdate(const QString &variable, const QString &valu
             if (wasLearning != nowLearning) emit hopOnLearningChanged();
         }
         if (value != m_stateRaw) { m_stateRaw = value; emit stateRawChanged(); }
+    } else if (variable == QLatin1String("drive-start-status")) {
+        if (value != m_driveStartStatus) {
+            m_driveStartStatus = value;
+            emit driveStartStatusChanged();
+        }
     } else if (variable == QLatin1String("handlebar:lock-sensor")) {
         auto v = ScootEnums::parseHandleBarLockSensor(value);
         if (v != m_handleBarLockSensor) { m_handleBarLockSensor = v; emit handleBarLockSensorChanged(); }

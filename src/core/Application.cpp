@@ -410,6 +410,27 @@ void Application::createStores(QQmlApplicationEngine &engine)
                         {QStringLiteral("error"), m_navigationService->errorMessage()}};
         m_notificationService->setNavigationPayload(nav);
     };
+    const auto refreshDriveStartAttention = [this, vehicleStore]() {
+        const QString status = vehicleStore->driveStartStatus();
+        const QString title = m_translations->driveStartTitle(status);
+        const QString id = QStringLiteral("vehicle-drive-start");
+        if (vehicleStore->state() != int(ScootEnums::VehicleState::Parked)
+            || vehicleStore->kickstand() != int(ScootEnums::Kickstand::Up) || title.isEmpty()) {
+            m_notificationService->resolveCondition(id);
+            return;
+        }
+        const bool failed = status == QLatin1String("timeout");
+        const bool action = status == QLatin1String("release-throttle")
+            || status == QLatin1String("stop-vehicle") || status == QLatin1String("close-seatbox");
+        m_notificationService->publishCondition(id, QStringLiteral("vehicle"), title,
+            failed ? m_translations->driveStartRetry() : QString{}, failed ? 0 : (action ? 2 : 4),
+            failed ? QStringLiteral("error") : (action ? QStringLiteral("warning") : QStringLiteral("info")));
+    };
+    connect(vehicleStore, &VehicleStore::driveStartStatusChanged, this, refreshDriveStartAttention);
+    connect(vehicleStore, &VehicleStore::stateChanged, this, refreshDriveStartAttention);
+    connect(vehicleStore, &VehicleStore::kickstandChanged, this, refreshDriveStartAttention);
+    connect(m_translations, &Translations::languageChanged, this, refreshDriveStartAttention);
+    refreshDriveStartAttention();
     const auto refreshAccuracyWaitAttention = [this, gpsStore]() {
         if (m_navigationService->isWaitingForPosition() && gpsStore->hasRecentFix())
             m_notificationService->publishCondition(

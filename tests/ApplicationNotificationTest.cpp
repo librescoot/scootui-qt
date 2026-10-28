@@ -214,6 +214,57 @@ private slots:
         QTRY_VERIFY(mainId() != QStringLiteral("navigation-accuracy-wait"));
     }
 
+    void driveStartWaitingAndTimeout()
+    {
+        auto *repo = m_application->m_repository.get();
+        auto *notifications = context<NotificationService>("notificationService");
+        auto *tr = context<Translations>("translations");
+        auto *theme = context<ThemeStore>("themeStore");
+        auto *vehicle = context<VehicleStore>("vehicleStore");
+        QVERIFY(notifications && tr && theme && vehicle);
+        repo->set("vehicle", "kickstand", "up");
+        repo->set("vehicle", "drive-start-status", "waiting-battery");
+        m_engine->load(QUrl("qrc:/ScootUI/qml/Main.qml"));
+        QVERIFY(!m_engine->rootObjects().isEmpty());
+        auto *window = qobject_cast<QQuickWindow *>(m_engine->rootObjects().first());
+        QVERIFY(window && QTest::qWaitForWindowExposed(window));
+        const auto main = [notifications]() { return notifications->presentation().value("main").toMap(); };
+        for (const QString &language : {QStringLiteral("en"), QStringLiteral("de")}) {
+            tr->setLanguage(language);
+            for (const QString &status : {QStringLiteral("waiting-battery"), QStringLiteral("waiting-power"),
+                 QStringLiteral("waiting-ecu"), QStringLiteral("release-throttle"), QStringLiteral("stop-vehicle"),
+                 QStringLiteral("close-seatbox"), QStringLiteral("timeout")}) {
+                repo->set("vehicle", "drive-start-status", status);
+                QTRY_COMPARE(vehicle->driveStartStatus(), status);
+                QTRY_COMPARE(mainId(), QStringLiteral("vehicle-drive-start"));
+                QTRY_COMPARE(main().value("title").toString(), tr->driveStartTitle(status));
+                const bool failed = status == QLatin1String("timeout");
+                QCOMPARE(main().value("body").toString(), failed ? tr->driveStartRetry() : QString{});
+                if (failed) QCOMPARE(main().value("priority").toInt(), 0);
+                for (const QString &mode : {QStringLiteral("dark"), QStringLiteral("light")}) {
+                    theme->setTheme(mode);
+                    if (failed || status == QLatin1String("waiting-battery"))
+                        capture(window, "drive-start-" + status + "-" + language + "-" + mode);
+                }
+            }
+        }
+        repo->set("vehicle", "kickstand", "down");
+        QTRY_VERIFY(mainId() != QStringLiteral("vehicle-drive-start"));
+        repo->set("vehicle", "kickstand", "up");
+        QTRY_COMPARE(mainId(), QStringLiteral("vehicle-drive-start"));
+        for (const QString &state : {QStringLiteral("ready-to-drive"), QStringLiteral("hop-on"), QStringLiteral("stand-by")}) {
+            repo->set("vehicle", "state", state);
+            QTRY_VERIFY(mainId() != QStringLiteral("vehicle-drive-start"));
+        }
+        repo->set("vehicle", "state", "parked");
+        repo->set("vehicle", "drive-start-status", "unknown-future-value");
+        QTRY_VERIFY(mainId() != QStringLiteral("vehicle-drive-start"));
+        repo->set("vehicle", "drive-start-status", "waiting-battery");
+        QTRY_COMPARE(mainId(), QStringLiteral("vehicle-drive-start"));
+        repo->set("vehicle", "drive-start-status", "");
+        QTRY_VERIFY(mainId() != QStringLiteral("vehicle-drive-start"));
+    }
+
     void steadySpeedSurvivesUnchangedTelemetry()
     {
         auto *repo = m_application->m_repository.get();

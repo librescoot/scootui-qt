@@ -19,6 +19,7 @@ class VehicleStore : public SyncableStore
     // reading it directly would never re-evaluate when the state moves.
     Q_PROPERTY(bool parked READ isParked NOTIFY stateChanged)
     Q_PROPERTY(QString stateRaw READ stateRaw NOTIFY stateRawChanged)
+    Q_PROPERTY(QString driveStartStatus READ driveStartStatus NOTIFY driveStartStatusChanged)
     Q_PROPERTY(int handleBarLockSensor READ handleBarLockSensor NOTIFY handleBarLockSensorChanged)
     Q_PROPERTY(int handleBarLockState READ handleBarLockState NOTIFY handleBarLockStateChanged)
     Q_PROPERTY(bool handlebarInLockPosition READ handlebarInLockPosition NOTIFY handlebarInLockPositionChanged)
@@ -43,6 +44,7 @@ public:
     int kickstand() const { return static_cast<int>(m_kickstand); }
     int state() const { return static_cast<int>(m_state); }
     QString stateRaw() const { return m_stateRaw; }
+    QString driveStartStatus() const { return m_driveStartStatus; }
     int handleBarLockSensor() const { return static_cast<int>(m_handleBarLockSensor); }
     int handleBarLockState() const { return static_cast<int>(m_handleBarLockState); }
     bool handlebarInLockPosition() const { return m_handlebarInLockPosition; }
@@ -81,6 +83,7 @@ signals:
     void kickstandChanged();
     void stateChanged();
     void stateRawChanged();
+    void driveStartStatusChanged();
     void handleBarLockSensorChanged();
     void handleBarLockStateChanged();
     void handlebarInLockPositionChanged();
@@ -137,6 +140,7 @@ private:
     ScootEnums::Kickstand m_kickstand = ScootEnums::Kickstand::Down;
     ScootEnums::VehicleState m_state = ScootEnums::VehicleState::Unknown;
     QString m_stateRaw;
+    QString m_driveStartStatus;
     ScootEnums::HandleBarLockSensor m_handleBarLockSensor = ScootEnums::HandleBarLockSensor::Unknown;
     ScootEnums::HandleBarLockSensor m_handleBarLockState = ScootEnums::HandleBarLockSensor::Unknown;
     bool m_handlebarInLockPosition = false;

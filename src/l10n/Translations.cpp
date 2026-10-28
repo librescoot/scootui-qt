@@ -31,6 +31,18 @@ QString Translations::lookup(const char *key) const
     return QLatin1String(key);
 }
 
+QString Translations::driveStartTitle(const QString &status) const
+{
+    if (status == QLatin1String("waiting-battery")) return lookup("driveStartBattery");
+    if (status == QLatin1String("waiting-power")) return lookup("driveStartPower");
+    if (status == QLatin1String("waiting-ecu")) return lookup("driveStartECU");
+    if (status == QLatin1String("release-throttle")) return lookup("driveStartThrottle");
+    if (status == QLatin1String("stop-vehicle")) return lookup("driveStartStop");
+    if (status == QLatin1String("close-seatbox")) return lookup("driveStartSeatbox");
+    if (status == QLatin1String("timeout")) return lookup("driveStartTimeout");
+    return {};
+}
+
 void Translations::initStrings()
 {
     auto &en = m_strings[QStringLiteral("en")];
@@ -1408,6 +1420,22 @@ void Translations::initStrings()
     en[QStringLiteral("navWaitingForGps")] = QStringLiteral("Waiting for GPS fix");
     de[QStringLiteral("navWaitingForGps")] = QStringLiteral("Warte auf GPS-Signal");
 
+    en[QStringLiteral("driveStartBattery")] = QStringLiteral("Activating battery");
+    de[QStringLiteral("driveStartBattery")] = QStringLiteral("Akku wird aktiviert");
+    en[QStringLiteral("driveStartPower")] = QStringLiteral("Waiting for power");
+    de[QStringLiteral("driveStartPower")] = QStringLiteral("Warte auf Stromversorgung");
+    en[QStringLiteral("driveStartECU")] = QStringLiteral("Waiting for motor controller");
+    de[QStringLiteral("driveStartECU")] = QStringLiteral("Warte auf Motorcontroller");
+    en[QStringLiteral("driveStartThrottle")] = QStringLiteral("Release the throttle");
+    de[QStringLiteral("driveStartThrottle")] = QStringLiteral("Gasgriff loslassen");
+    en[QStringLiteral("driveStartStop")] = QStringLiteral("Stop before starting");
+    de[QStringLiteral("driveStartStop")] = QStringLiteral("Zum Anfahren anhalten");
+    en[QStringLiteral("driveStartSeatbox")] = QStringLiteral("Close the seatbox");
+    de[QStringLiteral("driveStartSeatbox")] = QStringLiteral("Sitzfach schließen");
+    en[QStringLiteral("driveStartTimeout")] = QStringLiteral("Unable to start");
+    de[QStringLiteral("driveStartTimeout")] = QStringLiteral("Fahrbereitschaft fehlt");
+    en[QStringLiteral("driveStartRetry")] = QStringLiteral("Check the battery. Lower and raise the kickstand with the throttle released.");
+    de[QStringLiteral("driveStartRetry")] = QStringLiteral("Akku prüfen. Ständer absenken und mit losgelassenem Gasgriff erneut anheben.");
     en[QStringLiteral("navWaitingForAccuracy")] = QStringLiteral("Waiting for better GPS accuracy to calculate route.");
     de[QStringLiteral("navWaitingForAccuracy")] = QStringLiteral("Warte auf eine genauere GPS-Position zur Routenberechnung.");
 

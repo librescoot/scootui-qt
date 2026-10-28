@@ -1239,6 +1239,8 @@ public:
     QString navWaitingForGps() const { return lookup("navWaitingForGps"); }
     QString navWaitingForGpsRoute() const { return lookup("navWaitingForGpsRoute"); }
     QString navWaitingForAccuracy() const { return lookup("navWaitingForAccuracy"); }
+    QString driveStartTitle(const QString &status) const;
+    QString driveStartRetry() const { return lookup("driveStartRetry"); }
     QString navResumingNavigation() const { return lookup("navResumingNavigation"); }
     QString navArrivedAtDestination() const { return lookup("navArrivedAtDestination"); }
     QString navOffRouteRerouting() const { return lookup("navOffRouteRerouting"); }

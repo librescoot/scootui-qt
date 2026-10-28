@@ -48,6 +48,16 @@ still masks speed and power; lost dashboard-to-MDB telemetry trust also masks
 speed. The startup-zero placeholder does not override E20 or mask connection loss
 during riding.
 
+## Ride-start feedback
+
+While the vehicle is parked with the kickstand raised,
+`vehicle[drive-start-status]` supplies the shared notification card with battery
+activation, power/ECU waiting, throttle-release, stopping, or seatbox guidance.
+A start timeout shows an error with battery and kickstand retry instructions.
+The card follows the selected language and theme and clears when driving starts,
+the kickstand is lowered, or the status is cleared. Vehicle-service owns the
+start interlock; the dashboard neither activates batteries nor enables driving.
+
 ## Route plans
 
 The MDB settings-service owns the route plan. The dashboard reads complete JSON
