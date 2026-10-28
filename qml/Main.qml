@@ -263,6 +263,7 @@ Window {
         address:       "screens/AddressSelectionScreen.qml",
         navSetup:      "screens/NavigationSetupScreen.qml",
         faults:        "screens/FaultsScreen.qml",
+        smsInbox:      "screens/SmsInboxScreen.qml",
         systemInfo:    "screens/SystemInfoScreen.qml",
         umsInfo:       "screens/UpdateModeInfoScreen.qml",
         updateChannel: "screens/UpdateChannelScreen.qml",
@@ -294,6 +295,7 @@ Window {
                 case Scooter.ScreenMode.AddressSelection:name = "address";       break
                 case Scooter.ScreenMode.NavigationSetup: name = "navSetup";      break
                 case Scooter.ScreenMode.Faults:          name = "faults";        break
+                case Scooter.ScreenMode.SmsInbox:        name = "smsInbox";      break
                 case Scooter.ScreenMode.SystemInfo:      name = "systemInfo";    break
                 case Scooter.ScreenMode.UpdateModeInfo:  name = "umsInfo";       break
                 case Scooter.ScreenMode.UpdateChannel:   name = "updateChannel"; break

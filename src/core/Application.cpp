@@ -36,6 +36,7 @@
 #include "stores/HopOnStore.h"
 #include "stores/KeycardStore.h"
 #include "stores/FaultEventStore.h"
+#include "stores/SmsStore.h"
 #include "stores/FaultsStore.h"
 #include "stores/TripStore.h"
 #include "stores/ShutdownStore.h"
@@ -290,6 +291,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     auto *bluetoothStore = new BluetoothStore(repo, this);
     auto *internetStore = new InternetStore(repo, this);
     auto *modemStore = new ModemStore(repo, this);
+    auto *smsStore = new SmsStore(repo, this);
     auto *navigationStore = new NavigationStore(repo, this);
     auto *settingsStore = new SettingsStore(repo, this);
     // ThemeStore and ScreenStore read their initial values in their
@@ -1036,6 +1038,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("bluetoothStore"), bluetoothStore);
     ctx->setContextProperty(QStringLiteral("internetStore"), internetStore);
     ctx->setContextProperty(QStringLiteral("modemStore"), modemStore);
+    ctx->setContextProperty(QStringLiteral("smsStore"), smsStore);
     ctx->setContextProperty(QStringLiteral("navigationStore"), navigationStore);
     ctx->setContextProperty(QStringLiteral("settingsStore"), settingsStore);
     ctx->setContextProperty(QStringLiteral("otaStore"), otaStore);
@@ -1102,7 +1105,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
 
     // Store references for lifecycle management
     m_stores = {engineStore, vehicleStore, battery0Store, battery1Store,
-                gpsStore, motionStore, bluetoothStore, internetStore, modemStore, navigationStore,
+                gpsStore, motionStore, bluetoothStore, internetStore, modemStore, smsStore, navigationStore,
                 settingsStore, otaStore, usbStore, speedLimitStore,
                 autoStandbyStore, scooterStore, cbBatteryStore, auxBatteryStore, dashboardStore,
                 screenStore, keycardStore, tripStore};

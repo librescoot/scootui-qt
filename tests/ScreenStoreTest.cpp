@@ -28,6 +28,7 @@ static QList<QPair<ScootEnums::ScreenMode, Opener>> parkedOnlyScreens()
         {ScootEnums::ScreenMode::AddressSelection, [](ScreenStore &s) { s.showAddressSelection(); }},
         {ScootEnums::ScreenMode::NavigationSetup, [](ScreenStore &s) { s.showNavigationSetup(); }},
         {ScootEnums::ScreenMode::Faults, [](ScreenStore &s) { s.showFaults(); }},
+        {ScootEnums::ScreenMode::SmsInbox, [](ScreenStore &s) { s.showSmsInbox(); }},
         {ScootEnums::ScreenMode::SystemInfo, [](ScreenStore &s) { s.showSystemInfo(); }},
         {ScootEnums::ScreenMode::UpdateModeInfo, [](ScreenStore &s) { s.showUpdateModeInfo(); }},
         {ScootEnums::ScreenMode::UpdateChannel, [](ScreenStore &s) { s.showUpdateChannel(); }},

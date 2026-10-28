@@ -168,6 +168,7 @@ set(CPP_SOURCES
     src/utils/FaultFormatter.cpp
     src/utils/ZstdDecompressor.cpp
     src/stores/FaultEventStore.cpp
+    src/stores/SmsStore.cpp
     src/stores/FaultsStore.cpp
 )
 
@@ -274,6 +275,7 @@ set(CPP_HEADERS
     src/utils/FaultFormatter.h
     src/utils/ZstdDecompressor.h
     src/stores/FaultEventStore.h
+    src/stores/SmsStore.h
     src/stores/FaultsStore.h
 )
 
@@ -298,6 +300,7 @@ set(QML_FILES
     qml/screens/AddressSelectionScreen.qml
     qml/screens/NavigationSetupScreen.qml
     qml/screens/FaultsScreen.qml
+    qml/screens/SmsInboxScreen.qml
     qml/screens/SystemInfoScreen.qml
     qml/screens/UpdateModeInfoScreen.qml
     qml/screens/UpdateChannelScreen.qml
@@ -589,6 +592,21 @@ if(BUILD_TESTING)
     set_tests_properties(application_notification_test PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software"
         TIMEOUT 60)
+
+    qt_add_executable(sms_inbox_screen_test tests/SmsInboxScreenTest.cpp)
+    target_link_libraries(sms_inbox_screen_test PRIVATE Qt6::Quick Qt6::Test)
+    add_test(NAME sms_inbox_screen_test COMMAND sms_inbox_screen_test)
+    set_tests_properties(sms_inbox_screen_test PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+
+    qt_add_executable(sms_store_test
+        tests/SmsStoreTest.cpp
+        src/repositories/MdbRepository.h
+        src/stores/SmsStore.cpp src/stores/SmsStore.h
+        src/stores/SyncableStore.cpp src/stores/SyncableStore.h
+        src/repositories/InMemoryMdbRepository.cpp src/repositories/InMemoryMdbRepository.h)
+    target_include_directories(sms_store_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(sms_store_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME sms_store_test COMMAND sms_store_test)
 
     qt_add_executable(gps_store_test
         tests/GpsStoreTest.cpp

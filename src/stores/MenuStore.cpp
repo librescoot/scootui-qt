@@ -1822,6 +1822,12 @@ void MenuStore::rebuildMenuTree()
         }));
     }
 
+    m_rootNode->addChild(MenuNode::action(QStringLiteral("sms_inbox"), QObject::tr("Messages"), [this]() {
+        closeForScreen();
+        if (m_screenStore)
+            m_screenStore->showSmsInbox();
+    }));
+
     buildEasterEggs();
 
     m_rootNode->addChild(MenuNode::action(QStringLiteral("exit"), tr->menuExit(), [this]() {
