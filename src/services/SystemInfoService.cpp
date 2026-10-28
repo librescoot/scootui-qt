@@ -69,6 +69,19 @@ void SystemInfoService::recomputeVersions()
     FieldMap engineEcu = m_repo->getAll(QStringLiteral("engine-ecu"));
     FieldMap ble = m_repo->getAll(QStringLiteral("ble"));
 
+    QVariantMap energyTotals;
+    for (const QString &name : {QStringLiteral("consumed"), QStringLiteral("recovered")}) {
+        bool valid = false;
+        const auto mwh = engineEcu.value(QStringLiteral("energy:") + name).toULongLong(&valid);
+        // ECU counters are mWh; absent or invalid counters remain unknown.
+        if (valid)
+            energyTotals.insert(name, static_cast<double>(mwh) / 1000000.0);
+    }
+    if (energyTotals != m_energyTotals) {
+        m_energyTotals = energyTotals;
+        emit energyTotalsChanged();
+    }
+
     QVariantList rows;
 
     auto addRow = [&rows](const QString &label, const QString &value) {

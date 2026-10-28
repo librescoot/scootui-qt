@@ -25,6 +25,7 @@ Rectangle {
     readonly property int pageConnectivity: 1
     readonly property int pageBatteries: 2
     readonly property int pageMaps: 3
+    readonly property int pageConsumption: 4
     readonly property int page: typeof screenStore !== "undefined" ? screenStore.systemInfoPage : 0
 
     readonly property string placeholder: "-"
@@ -236,6 +237,19 @@ Rectangle {
             ? auxChargingStatus(auxBatteryStore.chargeStatus) : "" }
     ]))
 
+    readonly property var energyTotals: typeof systemInfoService !== "undefined"
+                                        ? systemInfoService.energyTotals : ({})
+
+    function energyValue(value) {
+        return typeof value === "number" && isFinite(value) && value >= 0
+            ? value.toLocaleString(Qt.locale(lang), "f", 3) + " kWh" : placeholder
+    }
+
+    readonly property var energyRows: (void systemInfoScreen.lang, [
+        { label: t("infoEnergyConsumed", "Consumed"), value: energyValue(energyTotals.consumed) },
+        { label: t("infoEnergyRecovered", "Recovered"), value: energyValue(energyTotals.recovered) }
+    ])
+
     // ---- Maps page ----
 
     // Keyed exactly as the `maps` Redis hash, so what the rider reads here and
@@ -308,7 +322,7 @@ Rectangle {
                    && cbbRows.length === 0 && auxRows.length === 0
         // tileRows() always returns at least a "not installed" row, so the maps
         // page is never empty.
-        if (page === pageMaps)
+        if (page === pageMaps || page === pageConsumption)
             return false
         return mdbBoardRows.length === 0 && dbcBoardRows.length === 0
                && nrfBoardRows.length === 0 && ecuBoardRows.length === 0
@@ -320,6 +334,7 @@ Rectangle {
         if (page === pageConnectivity) return translations.menuInfoConnectivity
         if (page === pageBatteries) return translations.menuInfoBatteries
         if (page === pageMaps) return translations.menuInfoMaps
+        if (page === pageConsumption) return translations.menuInfoConsumption
         return translations.menuInfoComponents
     }
 
@@ -512,6 +527,14 @@ Rectangle {
                     sectionTitle: typeof translations !== "undefined"
                                   ? translations.systemInfoMapsRouting : "ROUTING TILES"
                     rows: systemInfoScreen.mapRoutingRows
+                }
+
+                InfoSection {
+                    objectName: "consumptionSection"
+                    width: content.width
+                    pageActive: systemInfoScreen.page === systemInfoScreen.pageConsumption
+                    sectionTitle: (void systemInfoScreen.lang, systemInfoScreen.t("infoEnergyTotals", "ENERGY COUNTERS"))
+                    rows: systemInfoScreen.energyRows
                 }
 
                 // Shown when a whole page has nothing to report, so it never

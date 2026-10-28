@@ -1,6 +1,8 @@
 #include <QtTest>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QQmlComponent>
+#include <QJSValue>
 #include <QFontDatabase>
 #include <QNetworkProxy>
 #include <QQuickItem>
@@ -210,6 +212,78 @@ private slots:
         QTRY_COMPARE(mainId(), QStringLiteral("navigation-accuracy-wait"));
         nav->clearNavigation();
         QTRY_VERIFY(mainId() != QStringLiteral("navigation-accuracy-wait"));
+    }
+
+    void consumptionInfoMenuAndLiveCounters()
+    {
+        auto *menu = context<MenuStore>("menuStore");
+        auto *screens = context<ScreenStore>("screenStore");
+        auto *tr = context<Translations>("translations");
+        auto *theme = context<ThemeStore>("themeStore");
+        auto *repo = m_application->m_repository.get();
+        QVERIFY(menu && screens && tr && theme);
+        const auto select = [menu](const QString &id) {
+            const auto items = menu->currentItems();
+            for (int i = 0; i < items.size(); ++i) {
+                if (items.at(i).toMap().value("id").toString() != id) continue;
+                while (menu->selectedIndex() != i) menu->navigateDown();
+                menu->selectItem();
+                return true;
+            }
+            return false;
+        };
+
+        QQuickWindow window;
+        window.resize(480, 480);
+        QQmlComponent component(m_engine.get(), QUrl("qrc:/ScootUI/qml/screens/SystemInfoScreen.qml"));
+        std::unique_ptr<QQuickItem> screen(qobject_cast<QQuickItem *>(component.create()));
+        QVERIFY2(screen, qPrintable(component.errorString()));
+        screen->setParentItem(window.contentItem());
+        screen->setSize(QSizeF(480, 480));
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        const auto row = [&screen](int index) {
+            return screen->property("energyRows").value<QJSValue>().toVariant()
+                .toList().at(index).toMap();
+        };
+
+        for (const QString &language : {QStringLiteral("en"), QStringLiteral("de")}) {
+            tr->setLanguage(language);
+            menu->open();
+            QTest::qWait(160);
+            QVERIFY(select("info"));
+            QVERIFY(select("info_consumption"));
+            QCOMPARE(screens->currentScreenMode(), ScootEnums::ScreenMode::SystemInfo);
+            QCOMPARE(screens->systemInfoPage(), int(ScreenStore::SystemInfoConsumption));
+            QTRY_COMPARE(screen->property("pageTitle").toString(), tr->menuInfoConsumption());
+            QCOMPARE(row(0).value("label").toString(), tr->infoEnergyConsumed());
+            QCOMPARE(row(1).value("label").toString(), tr->infoEnergyRecovered());
+            QVERIFY(!screen->property("pageIsEmpty").toBool());
+            auto *section = screen->findChild<QQuickItem *>("consumptionSection");
+            QVERIFY(section && section->isVisible());
+
+            repo->set("engine-ecu", "energy:consumed", "");
+            repo->set("engine-ecu", "energy:recovered", "");
+            QTRY_COMPARE(row(0).value("value").toString(), QStringLiteral("-"));
+            QCOMPARE(row(1).value("value").toString(), QStringLiteral("-"));
+            repo->set("engine-ecu", "energy:consumed", "1234567");
+            repo->set("engine-ecu", "energy:recovered", "0");
+            const bool german = language == QLatin1String("de");
+            QTRY_COMPARE(row(0).value("value").toString(), german ? "1,235 kWh" : "1.235 kWh");
+            QCOMPARE(row(1).value("value").toString(), german ? "0,000 kWh" : "0.000 kWh");
+            repo->set("engine-ecu", "energy:recovered", "89123");
+            QTRY_COMPARE(row(1).value("value").toString(), german ? "0,089 kWh" : "0.089 kWh");
+            QCOMPARE(row(0).value("value").toString(), german ? "1,235 kWh" : "1.235 kWh");
+            for (const QString &mode : {QStringLiteral("dark"), QStringLiteral("light")}) {
+                theme->setTheme(mode);
+                capture(&window, "consumption-" + language + "-" + mode);
+            }
+            QVERIFY(QMetaObject::invokeMethod(screen.get(), "closeScreen"));
+            QVERIFY(screens->currentScreenMode() != ScootEnums::ScreenMode::SystemInfo);
+            QVERIFY(menu->isOpen());
+            QVERIFY(!menu->isRoot());
+            menu->close();
+        }
     }
 
     void clearBluetoothReportsRequestNotCompletion()

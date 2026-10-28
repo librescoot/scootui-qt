@@ -76,7 +76,7 @@ public:
     int systemInfoPage() const { return m_systemInfoPage; }
 
     enum SystemInfoPage { SystemInfoDevice = 0, SystemInfoConnectivity = 1, SystemInfoBatteries = 2,
-                          SystemInfoMaps = 3 };
+                          SystemInfoMaps = 3, SystemInfoConsumption = 4 };
     Q_ENUM(SystemInfoPage)
 
 signals:

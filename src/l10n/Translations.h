@@ -145,6 +145,10 @@ class Translations : public QObject
     Q_PROPERTY(QString menuInfoConnectivity READ menuInfoConnectivity NOTIFY languageChanged)
     Q_PROPERTY(QString menuInfoBatteries READ menuInfoBatteries NOTIFY languageChanged)
     Q_PROPERTY(QString menuInfoMaps READ menuInfoMaps NOTIFY languageChanged)
+    Q_PROPERTY(QString menuInfoConsumption READ menuInfoConsumption NOTIFY languageChanged)
+    Q_PROPERTY(QString infoEnergyTotals READ infoEnergyTotals NOTIFY languageChanged)
+    Q_PROPERTY(QString infoEnergyConsumed READ infoEnergyConsumed NOTIFY languageChanged)
+    Q_PROPERTY(QString infoEnergyRecovered READ infoEnergyRecovered NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoMapsRegion READ systemInfoMapsRegion NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoMapsDisplay READ systemInfoMapsDisplay NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoMapsRouting READ systemInfoMapsRouting NOTIFY languageChanged)
@@ -853,6 +857,10 @@ public:
     QString menuInfoConnectivity() const { return lookup("menuInfoConnectivity"); }
     QString menuInfoBatteries() const { return lookup("menuInfoBatteries"); }
     QString menuInfoMaps() const { return lookup("menuInfoMaps"); }
+    QString menuInfoConsumption() const { return lookup("menuInfoConsumption"); }
+    QString infoEnergyTotals() const { return lookup("infoEnergyTotals"); }
+    QString infoEnergyConsumed() const { return lookup("infoEnergyConsumed"); }
+    QString infoEnergyRecovered() const { return lookup("infoEnergyRecovered"); }
     QString systemInfoMapsRegion() const { return lookup("systemInfoMapsRegion"); }
     QString systemInfoMapsDisplay() const { return lookup("systemInfoMapsDisplay"); }
     QString systemInfoMapsRouting() const { return lookup("systemInfoMapsRouting"); }

@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QVariantList>
+#include <QVariantMap>
 
 #include "../repositories/MdbRepository.h"
 
@@ -19,6 +20,7 @@ class SystemInfoService : public QObject
     Q_PROPERTY(QString dbcVersion READ dbcVersion NOTIFY versionRowsChanged)
     Q_PROPERTY(QString nrfVersion READ nrfVersion NOTIFY versionRowsChanged)
     Q_PROPERTY(QString ecuVersion READ ecuVersion NOTIFY versionRowsChanged)
+    Q_PROPERTY(QVariantMap energyTotals READ energyTotals NOTIFY energyTotalsChanged)
 
 public:
     explicit SystemInfoService(MdbRepository *repo, QObject *parent = nullptr);
@@ -38,17 +40,20 @@ public:
     QString dbcVersion() const { return m_dbcVersion; }
     QString nrfVersion() const { return m_nrfVersion; }
     QString ecuVersion() const { return m_ecuVersion; }
+    QVariantMap energyTotals() const { return m_energyTotals; }
 
     // Call once repository is ready to fetch version data
     Q_INVOKABLE void loadVersions();
 
 signals:
     void versionRowsChanged();
+    void energyTotalsChanged();
 
 private:
     void recomputeVersions();
 
     MdbRepository *m_repo;
+    QVariantMap m_energyTotals;
     QVariantList m_versionRows; // [{label, value}, ...]
     QVariantList m_mdbBoardRows;
     QVariantList m_dbcBoardRows;

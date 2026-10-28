@@ -379,6 +379,14 @@ void Translations::initStrings()
     de[QStringLiteral("menuInfoBatteries")] = QStringLiteral("Akkus");
     en[QStringLiteral("menuInfoMaps")] = QStringLiteral("Maps");
     de[QStringLiteral("menuInfoMaps")] = QStringLiteral("Karten");
+    en[QStringLiteral("menuInfoConsumption")] = QStringLiteral("Consumption");
+    de[QStringLiteral("menuInfoConsumption")] = QStringLiteral("Verbrauch");
+    en[QStringLiteral("infoEnergyTotals")] = QStringLiteral("ENERGY COUNTERS");
+    de[QStringLiteral("infoEnergyTotals")] = QStringLiteral("ENERGIEZÄHLER");
+    en[QStringLiteral("infoEnergyConsumed")] = QStringLiteral("Consumed");
+    de[QStringLiteral("infoEnergyConsumed")] = QStringLiteral("Verbraucht");
+    en[QStringLiteral("infoEnergyRecovered")] = QStringLiteral("Recovered");
+    de[QStringLiteral("infoEnergyRecovered")] = QStringLiteral("Zurückgewonnen");
     en[QStringLiteral("systemInfoMapsRegion")] = QStringLiteral("REGION");
     de[QStringLiteral("systemInfoMapsRegion")] = QStringLiteral("REGION");
     en[QStringLiteral("systemInfoMapsDisplay")] = QStringLiteral("DISPLAY TILES");
