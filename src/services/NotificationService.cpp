@@ -27,6 +27,7 @@ NotificationService::NotificationService(bool simulatorInjectionEnabled, QObject
       m_simulatorInjectionEnabled(simulatorInjectionEnabled)
 {
     m_clock.start();
+    m_speedStartupDeadlineMs = nowMs() + 3000;
     m_expiryTimer.setInterval(250);
     connect(&m_expiryTimer, &QTimer::timeout, this, &NotificationService::expireEvents);
     m_expiryTimer.start();
@@ -83,8 +84,19 @@ void NotificationService::setTelemetryConnected(bool connected)
 {
     const bool wasLost = telemetryTrustLost();
     m_telemetryConnected = connected;
+    if (connected)
+        finishSpeedStartup();
     if (wasLost != telemetryTrustLost())
         emit telemetryTrustChanged();
+}
+
+void NotificationService::finishSpeedStartup()
+{
+    if (!m_startupSpeedPlaceholder)
+        return;
+    // Presentation only: cached zero is not evidence of a fresh ECU sample.
+    m_startupSpeedPlaceholder = false;
+    emit startupSpeedPlaceholderChanged();
 }
 
 void NotificationService::setNavigationPayload(const QVariantMap &navigation)
@@ -112,6 +124,8 @@ void NotificationService::onVehicleStateChanged()
         return;
     const auto state = static_cast<ScootEnums::VehicleState>(m_vehicleStore->state());
     const bool riding = state == ScootEnums::VehicleState::ReadyToDrive;
+    if (riding)
+        finishSpeedStartup();
     if (riding == m_riding)
         return;
     m_riding = riding;
@@ -134,6 +148,8 @@ QString NotificationService::publishCondition(const QString &id, const QString &
     entry[QStringLiteral("order")] = old.value(QStringLiteral("order"), m_nextOrder++);
     const bool wasLost = telemetryTrustLost();
     m_conditions.insert(id, entry);
+    if (id == QLatin1String("redis-disconnect"))
+        finishSpeedStartup();
     if (wasLost != telemetryTrustLost())
         emit telemetryTrustChanged();
     if (old != entry) {
@@ -220,6 +236,8 @@ void NotificationService::clearEvent(const QString &id)
 void NotificationService::expireEvents()
 {
     const qint64 now = nowMs();
+    if (now >= m_speedStartupDeadlineMs)
+        finishSpeedStartup();
     bool changed = false;
     QList<QVariantMap> kept;
     for (const auto &entry : std::as_const(m_events)) {

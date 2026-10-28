@@ -4,6 +4,7 @@
 #include "services/NotificationIngress.h"
 #include "services/ToastService.h"
 #include "repositories/InMemoryMdbRepository.h"
+#include "stores/VehicleStore.h"
 
 class NotificationServiceTest : public QObject
 {
@@ -703,6 +704,70 @@ private slots:
         QCOMPARE(conditionSpy.count(), 4);
         service.publishCondition("visible", "test", "Updated", {}, 0, "critical");
         QCOMPARE(conditionSpy.count(), 4);
+    }
+
+    void startupZeroExpiresWithoutChangingTelemetryTrust()
+    {
+        qint64 now = 1000;
+        NotificationService service(false, nullptr, [&now] { return now; });
+        QSignalSpy placeholder(&service, &NotificationService::startupSpeedPlaceholderChanged);
+        service.setTelemetryConnected(false);
+        QVERIFY(service.startupSpeedPlaceholder());
+        QVERIFY(service.telemetryTrustLost());
+        now = 3999;
+        tick(service);
+        QVERIFY(service.startupSpeedPlaceholder());
+        now = 4000;
+        tick(service);
+        QVERIFY(!service.startupSpeedPlaceholder());
+        QVERIFY(service.telemetryTrustLost());
+        QCOMPARE(placeholder.count(), 1);
+        service.setTelemetryConnected(false);
+        tick(service);
+        QCOMPARE(placeholder.count(), 1);
+        QVERIFY(!service.startupSpeedPlaceholder());
+    }
+
+    void startupZeroDoesNotRestartAfterConnection()
+    {
+        NotificationService service;
+        service.setTelemetryConnected(false);
+        QVERIFY(service.startupSpeedPlaceholder());
+        service.setTelemetryConnected(true);
+        QVERIFY(!service.startupSpeedPlaceholder());
+        QVERIFY(!service.telemetryTrustLost());
+        service.setTelemetryConnected(false);
+        QVERIFY(!service.startupSpeedPlaceholder());
+        QVERIFY(service.telemetryTrustLost());
+        service.setTelemetryConnected(true);
+        QVERIFY(!service.startupSpeedPlaceholder());
+    }
+
+    void startupZeroEndsOnExplicitDisconnect()
+    {
+        NotificationService service;
+        service.setTelemetryConnected(false);
+        service.publishCondition("redis-disconnect", "connection", "Disconnected", {}, 0);
+        QVERIFY(!service.startupSpeedPlaceholder());
+        service.resolveCondition("redis-disconnect");
+        QVERIFY(!service.startupSpeedPlaceholder());
+        QVERIFY(service.telemetryTrustLost());
+    }
+
+    void startupZeroEndsWhenReadyToDrive()
+    {
+        InMemoryMdbRepository repo;
+        VehicleStore vehicle(&repo);
+        vehicle.start();
+        NotificationService service;
+        service.setTelemetryConnected(false);
+        service.setVehicleStore(&vehicle);
+        QVERIFY(service.startupSpeedPlaceholder());
+        repo.set("vehicle", "state", "ready-to-drive");
+        QTRY_VERIFY(!service.startupSpeedPlaceholder());
+        QVERIFY(service.telemetryTrustLost());
+        repo.set("vehicle", "state", "parked");
+        QVERIFY(!service.startupSpeedPlaceholder());
     }
 
     void telemetryLossDoesNotWaitForBanner()

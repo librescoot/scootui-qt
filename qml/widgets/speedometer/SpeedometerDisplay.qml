@@ -24,6 +24,12 @@ Item {
     readonly property bool ecuStale: typeof engineStore !== "undefined" && engineStore.faultCode === 20
     readonly property bool telemetryTrustLost: typeof notificationService !== "undefined" && notificationService
         && notificationService.telemetryTrustLost
+    readonly property bool startupZero: typeof notificationService !== "undefined" && notificationService
+                                        && notificationService.startupSpeedPlaceholder === true && targetSpeed === 0
+                                        && (typeof engineStore === "undefined" || (engineStore.speed === 0
+                                            && (!engineStore.hasRawSpeed || engineStore.rawSpeed === 0)))
+    readonly property string displayedSpeed: ecuStale || (telemetryTrustLost && !startupZero) || speedStale
+                                             ? "—" : startupZero ? "0" : Math.floor(animatedSpeed).toString()
     // Frozen drive telemetry: only a non-zero speed is dashed, so a correct 0
     // in the boot window or at a standstill is not reported as missing data.
     readonly property bool speedStale: typeof engineStore !== "undefined" && engineStore.dataStale
@@ -381,7 +387,7 @@ Item {
         objectName: "speedometerDigits"
         anchors.horizontalCenter: parent.horizontalCenter
         y: parent.height / 2 - height / 2
-        text: speedometer.ecuStale || speedometer.telemetryTrustLost || speedometer.speedStale ? "—" : Math.floor(speedometer.animatedSpeed).toString()
+        text: speedometer.displayedSpeed
         font.pixelSize: themeStore.fontDisplay
         font.weight: Font.Bold
         color: speedometer.isDark ? "#FFFFFF" : "#000000"

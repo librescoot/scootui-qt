@@ -24,6 +24,7 @@ TestCase {
     QtObject {
         id: notificationService
         property bool telemetryTrustLost: false
+        property bool startupSpeedPlaceholder: false
     }
 
     QtObject {
@@ -83,6 +84,40 @@ TestCase {
         }
         themeStore.fontBody = 14
         themeStore.isDark = true
+    }
+
+    function test_startupZeroPreservesFaultAndMovingMasks() {
+        engineStore.speed = 0
+        notificationService.telemetryTrustLost = true
+        notificationService.startupSpeedPlaceholder = true
+        compare(speedCenter.displayedSpeed, "0")
+
+        engineStore.faultCode = 20
+        compare(speedCenter.displayedSpeed, "—")
+        engineStore.faultCode = 0
+        engineStore.speed = 12
+        compare(speedCenter.displayedSpeed, "—")
+        engineStore.speed = 0
+        engineStore.hasRawSpeed = true
+        settingsStore.showRawSpeed = true
+        compare(speedCenter.displayedSpeed, "—")
+        settingsStore.showRawSpeed = false
+        compare(speedCenter.displayedSpeed, "—")
+        engineStore.rawSpeed = 0
+        settingsStore.showRawSpeed = true
+        engineStore.speed = 12
+        compare(speedCenter.displayedSpeed, "—")
+        engineStore.speed = 0
+        compare(speedCenter.displayedSpeed, "0")
+        settingsStore.showRawSpeed = false
+        engineStore.hasRawSpeed = false
+        engineStore.rawSpeed = 42
+
+        notificationService.startupSpeedPlaceholder = false
+        compare(speedCenter.displayedSpeed, "—")
+        notificationService.telemetryTrustLost = false
+        compare(speedCenter.displayedSpeed, "0")
+        engineStore.speed = 42
     }
 
     function test_connectionLossInvalidatesSpeed() {

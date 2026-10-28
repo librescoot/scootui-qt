@@ -21,6 +21,7 @@ class NotificationService : public QObject
     Q_PROPERTY(bool mapUpdateAvailable READ mapUpdateAvailable NOTIFY mapUpdateAvailableChanged)
     Q_PROPERTY(bool coverageWarning READ coverageWarning NOTIFY coverageWarningChanged)
     Q_PROPERTY(bool telemetryTrustLost READ telemetryTrustLost NOTIFY telemetryTrustChanged)
+    Q_PROPERTY(bool startupSpeedPlaceholder READ startupSpeedPlaceholder NOTIFY startupSpeedPlaceholderChanged)
     Q_PROPERTY(bool simulatorInjectionEnabled READ simulatorInjectionEnabled CONSTANT)
     Q_PROPERTY(QString surface READ surface WRITE setSurface NOTIFY surfaceChanged)
 
@@ -36,6 +37,7 @@ public:
     bool mapUpdateAvailable() const { return m_mapUpdateAvailable; }
     bool coverageWarning() const { return m_coverageWarning; }
     bool telemetryTrustLost() const { return !m_telemetryConnected || m_conditions.contains(QStringLiteral("redis-disconnect")); }
+    bool startupSpeedPlaceholder() const { return m_startupSpeedPlaceholder; }
     void setTelemetryConnected(bool connected);
     bool simulatorInjectionEnabled() const { return m_simulatorInjectionEnabled; }
     QString surface() const { return m_surface; }
@@ -73,6 +75,7 @@ signals:
     void coverageWarningChanged();
     void surfaceChanged();
     void telemetryTrustChanged();
+    void startupSpeedPlaceholderChanged();
     void eventPresented(const QString &kind);
     void conditionPresented(const QString &kind);
 
@@ -81,6 +84,7 @@ private:
     void refreshPresentation();
     void emitPresentationCue(const QVariantMap &main);
     void onVehicleStateChanged();
+    void finishSpeedStartup();
     Q_SLOT void expireEvents();
     QVariantMap makeEntry(const QString &id, const QString &source, const QString &title,
                           const QString &body, int priority, const QString &kind) const;
@@ -101,6 +105,8 @@ private:
     QString m_surface = QStringLiteral("cluster");
     bool m_riding = false;
     bool m_telemetryConnected = true;
+    bool m_startupSpeedPlaceholder = true;
+    qint64 m_speedStartupDeadlineMs = 0;
     bool m_mapUpdateAvailable = false;
     bool m_coverageWarning = false;
     bool m_simulatorInjectionEnabled = false;

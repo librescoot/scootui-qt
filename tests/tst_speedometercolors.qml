@@ -48,6 +48,7 @@ TestCase {
     QtObject {
         id: notificationService
         property bool telemetryTrustLost: false
+        property bool startupSpeedPlaceholder: false
     }
 
     QtObject {
@@ -107,11 +108,54 @@ TestCase {
         settingsStore.powerBoostColor = "#FB8C00"
         themeStore.isDark = true
         engineStore.speed = 0
+        engineStore.rawSpeed = 0
+        engineStore.hasRawSpeed = false
+        engineStore.faultCode = 0
+        engineStore.dataStale = false
+        settingsStore.showRawSpeed = false
+        notificationService.telemetryTrustLost = false
+        notificationService.startupSpeedPlaceholder = false
         engineStore.motorVoltage = 54000
         engineStore.motorCurrent = 0
         speedometer.errorPulse = 0
         speedometer.animatedSpeed = 0
         speedometer.overspeedPulse = 1
+    }
+
+    function test_startupZeroPreservesFaultAndMovingMasks() {
+        const digits = findChild(speedometer, "speedometerDigits")
+        notificationService.telemetryTrustLost = true
+        notificationService.startupSpeedPlaceholder = true
+        compare(digits.text, "0")
+        speedometer.animatedSpeed = 42
+        compare(digits.text, "0")
+        engineStore.faultCode = 20
+        compare(digits.text, "—")
+        engineStore.faultCode = 0
+        engineStore.speed = 12
+        compare(digits.text, "—")
+        engineStore.speed = 0
+        engineStore.rawSpeed = 12
+        engineStore.hasRawSpeed = true
+        settingsStore.showRawSpeed = true
+        compare(digits.text, "—")
+        settingsStore.showRawSpeed = false
+        compare(digits.text, "—")
+        engineStore.rawSpeed = 0
+        settingsStore.showRawSpeed = true
+        engineStore.speed = 12
+        compare(digits.text, "—")
+        engineStore.speed = 0
+        compare(digits.text, "0")
+        settingsStore.showRawSpeed = false
+        notificationService.startupSpeedPlaceholder = false
+        compare(digits.text, "—")
+        notificationService.telemetryTrustLost = false
+        speedometer.animatedSpeed = 0
+        compare(digits.text, "0")
+        engineStore.speed = 12
+        engineStore.dataStale = true
+        compare(digits.text, "—")
     }
 
     function test_regenTintRequiresMinimumChargingPower() {
