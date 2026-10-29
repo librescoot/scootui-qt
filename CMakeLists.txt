@@ -73,6 +73,7 @@ set(CPP_SOURCES
     src/core/HmiLatencyMonitor.cpp
     src/core/Application.cpp
     src/core/BootGate.cpp
+    src/core/BootTransition.cpp
     src/core/ShortcutMenuItems.cpp
     src/services/DestinationRpc.cpp
     src/services/RideGroupJson.cpp
@@ -185,6 +186,7 @@ set(CPP_HEADERS
     src/core/HmiLatencyMetrics.h
     src/core/Application.h
     src/core/BootGate.h
+    src/core/BootTransition.h
     src/models/Enums.h
     src/models/EnumStrings.h
     src/models/MenuNode.h
@@ -966,6 +968,12 @@ if(BUILD_TESTING)
     target_include_directories(road_match_dispatcher_test PRIVATE src)
     target_link_libraries(road_match_dispatcher_test PRIVATE Qt6::Core Qt6::Test ZLIB::ZLIB)
     add_test(NAME road_match_dispatcher_test COMMAND road_match_dispatcher_test)
+
+    qt_add_executable(boot_transition_test tests/BootTransitionTest.cpp
+        src/core/BootTransition.cpp src/core/BootTransition.h)
+    target_include_directories(boot_transition_test PRIVATE src)
+    target_link_libraries(boot_transition_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME boot_transition_test COMMAND boot_transition_test)
 
     qt_add_executable(hmi_latency_test tests/HmiLatencyTest.cpp
         src/core/HmiLatencyMonitor.cpp src/core/HmiLatencyMonitor.h)

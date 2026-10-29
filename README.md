@@ -39,6 +39,19 @@ and a Valhalla endpoint for routing. The application also listens on the
 Use the normal dashboard UI or platform tooling for routine operations. The
 commands above are intended for controlled operational automation.
 
+## Boot animation handoff
+
+On DBC images with the IPU overlay framebuffer, the launcher selects
+`eglfs_fbdev`: GPU rendering goes to `/dev/fb1` while the boot animation stays
+live on `/dev/fb0`. After the first completed UI frame, the overlay fades from
+transparent to opaque over one second. Only then is the boot animation asked
+to stop. This does not wait for the animation to finish playing.
+
+If the fade helper fails or times out, the dashboard attempts to reveal the
+overlay directly before stopping the animation. If that also fails, it exits
+for the service supervisor to restart it. Images without a usable overlay
+use DRM/KMS and a direct first-frame handoff.
+
 ## Speed display validity
 
 Unchanged telemetry values do not invalidate speed or power: identical snapshots

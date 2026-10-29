@@ -5,6 +5,7 @@
 #include "AppConfig.h"
 #include "EnvConfig.h"
 #include "core/BootGate.h"
+#include "core/BootTransition.h"
 #include "repositories/BootChannels.h"
 #include "repositories/BootPrefetch.h"
 #include "repositories/MdbRepository.h"
@@ -1372,30 +1373,26 @@ void Application::fadeInOverlay()
     auto stopBootAnimation = []() {
         QProcess::startDetached(QStringLiteral("systemctl"),
                                  {QStringLiteral("stop"), QStringLiteral("boot-animation.service")});
-        qDebug() << "Boot animation stopped";
+        qDebug() << "Boot animation stop requested";
     };
 
-    if (!QFile::exists(QStringLiteral("/sys/class/graphics/fb1/overlay_alpha"))) {
-        // No overlay alpha (kernel 6.6 imx-drm) — stop boot-animation directly
+    if (qEnvironmentVariable("QT_QPA_EGLFS_INTEGRATION") != QLatin1String("eglfs_fbdev")
+        || !QFile::exists(QStringLiteral("/sys/class/graphics/fb1/overlay_alpha"))) {
         stopBootAnimation();
         return;
     }
 
-    qDebug() << "Starting boot animation fade-in...";
-    auto *proc = new QProcess(this);
-    proc->setProgram(QStringLiteral("/usr/bin/imx-overlay-alpha"));
-    proc->setArguments({QStringLiteral("fade"), QStringLiteral("0"),
-                        QStringLiteral("255"), QStringLiteral("1000")});
-
-    connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-            this, [proc, stopBootAnimation](int exitCode, QProcess::ExitStatus) {
-        proc->deleteLater();
-        if (exitCode == 0) {
+    qDebug() << "Starting live boot crossfade";
+    auto *transition = new BootTransition(this);
+    connect(transition, &BootTransition::finished, this, [stopBootAnimation](bool visible) {
+        if (visible) {
             stopBootAnimation();
+        } else {
+            qCritical() << "Cannot reveal dashboard overlay; restarting the display application";
+            QCoreApplication::exit(1);
         }
     });
-
-    proc->start();
+    transition->start();
 #endif
 }
 
