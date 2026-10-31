@@ -164,6 +164,8 @@ class Translations : public QObject
     Q_PROPERTY(QString infoOperator READ infoOperator NOTIFY languageChanged)
     Q_PROPERTY(QString infoAccessTech READ infoAccessTech NOTIFY languageChanged)
     Q_PROPERTY(QString infoSignal READ infoSignal NOTIFY languageChanged)
+    Q_PROPERTY(QString infoConfiguredApn READ infoConfiguredApn NOTIFY languageChanged)
+    Q_PROPERTY(QString infoAutomatic READ infoAutomatic NOTIFY languageChanged)
     Q_PROPERTY(QString infoRegistration READ infoRegistration NOTIFY languageChanged)
     Q_PROPERTY(QString infoRoaming READ infoRoaming NOTIFY languageChanged)
     Q_PROPERTY(QString infoSim READ infoSim NOTIFY languageChanged)
@@ -876,6 +878,8 @@ public:
     QString infoOperator() const { return lookup("infoOperator"); }
     QString infoAccessTech() const { return lookup("infoAccessTech"); }
     QString infoSignal() const { return lookup("infoSignal"); }
+    QString infoConfiguredApn() const { return lookup("infoConfiguredApn"); }
+    QString infoAutomatic() const { return lookup("infoAutomatic"); }
     QString infoRegistration() const { return lookup("infoRegistration"); }
     QString infoRoaming() const { return lookup("infoRoaming"); }
     QString infoSim() const { return lookup("infoSim"); }

@@ -198,6 +198,7 @@ SyncSettings SettingsStore::syncSettings() const
         {QStringLiteral("milestonePresentation"), QStringLiteral("dashboard.milestones.presentation")},
         {QStringLiteral("legacyMilestoneEggsPending"), QStringLiteral("dashboard.milestones.legacy-eggs-pending")},
             {QStringLiteral("serviceActive"), QStringLiteral("dashboard.service-mode-active")},
+            {QStringLiteral("cellularApn"), QStringLiteral("cellular.apn")},
             {QStringLiteral("tripCounterReset"), QStringLiteral("trip.counter-reset")},
             {QStringLiteral("tripExpunge"), QStringLiteral("trip.expunge"), true},
             {QStringLiteral("otaChannel"), QStringLiteral("updates.mdb.channel")},
@@ -334,6 +335,12 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
         if (value != m_serviceActive) {
             m_serviceActive = value;
             emit serviceActiveChanged();
+        }
+    } else if (variable == QLatin1String("cellular.apn")) {
+        if (!m_cellularApnKnown || value != m_cellularApn) {
+            m_cellularApnKnown = true;
+            m_cellularApn = value;
+            emit cellularApnChanged();
         }
     } else if (variable == QLatin1String("trip.counter-reset")) {
         if (value != m_tripCounterReset) { m_tripCounterReset = value; emit tripCounterResetChanged(); }

@@ -118,6 +118,9 @@ Rectangle {
         { label: t("infoAccessTech", "Access tech"), value: hasNet ? internetStore.accessTech : "" },
         { label: t("infoSignal", "Signal"), value: hasNet && internetStore.signalQuality > 0
             ? internetStore.signalQuality + "%" : "" },
+        { label: t("infoConfiguredApn", "Configured APN"), wrap: true,
+          value: typeof settingsStore !== "undefined" && settingsStore.cellularApnKnown
+            ? (settingsStore.cellularApn !== "" ? settingsStore.cellularApn : t("infoAutomatic", "Automatic")) : "" },
         { label: t("infoConnectivity", "Connectivity"), value: hasNet ? internetStore.connectivity : "" },
         { label: t("infoIpAddress", "IP address"), value: hasNet ? internetStore.ipAddress : "" }
     ]))
@@ -635,7 +638,7 @@ Rectangle {
 
             delegate: Item {
                 width: infoSection.width
-                height: 30
+                height: modelData.wrap ? Math.max(30, rowValue.implicitHeight + 8) : 30
 
                 Text {
                     id: rowLabel
@@ -652,6 +655,8 @@ Rectangle {
 
                 // Plain string value.
                 Text {
+                    id: rowValue
+                    objectName: modelData.wrap ? "wrappedInfoValue" : ""
                     visible: modelData.valueSegments === undefined
                     anchors.left: rowLabel.right
                     anchors.leftMargin: 8
@@ -663,7 +668,8 @@ Rectangle {
                     color: systemInfoScreen.textPrimary
                     font.pixelSize: themeStore.fontBody
                     font.family: "monospace"
-                    elide: Text.ElideRight
+                    wrapMode: modelData.wrap ? Text.WrapAnywhere : Text.NoWrap
+                    elide: modelData.wrap ? Text.ElideNone : Text.ElideRight
                 }
 
                 // Segment value: {text, icon, warning} runs laid out left to

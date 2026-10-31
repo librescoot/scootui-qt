@@ -10,6 +10,7 @@
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <algorithm>
+#include <functional>
 #include <tuple>
 
 #define private public
@@ -310,6 +311,66 @@ private slots:
         QCOMPARE(widget->property("displayedSpeed").toString(), QStringLiteral("50"));
         notifications->publishCondition("redis-disconnect", "connection", "Disconnected", {}, 1, "error");
         QCOMPARE(widget->property("displayedSpeed").toString(), QString::fromUtf8("—"));
+    }
+
+    void connectivityShowsConfiguredApn()
+    {
+        for (const QString &initial : {QStringLiteral(""), QStringLiteral("startup.apn")}) {
+            InMemoryMdbRepository seed;
+            seed.set("settings", "cellular.apn", initial, false);
+            SettingsStore store(&seed);
+            store.start();
+            QVERIFY(store.cellularApnKnown());
+            QCOMPARE(store.cellularApn(), initial);
+        }
+        auto *repo = m_application->m_repository.get();
+        auto *tr = context<Translations>("translations");
+        auto *settings = context<SettingsStore>("settingsStore");
+        auto *screens = context<ScreenStore>("screenStore");
+        QVERIFY(tr && settings && screens);
+        screens->showSystemInfo(ScreenStore::SystemInfoConnectivity);
+        QQuickWindow window;
+        window.resize(480, 480);
+        QQmlComponent component(m_engine.get(), QUrl("qrc:/ScootUI/qml/screens/SystemInfoScreen.qml"));
+        std::unique_ptr<QQuickItem> screen(qobject_cast<QQuickItem *>(component.create()));
+        QVERIFY2(screen, qPrintable(component.errorString()));
+        screen->setParentItem(window.contentItem());
+        screen->setSize(QSizeF(480, 480));
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        const auto apnValue = [&]() {
+            const auto rows = screen->property("networkRows").value<QJSValue>().toVariant().toList();
+            for (const auto &entry : rows) {
+                const auto row = entry.toMap();
+                if (row.value("label").toString() == tr->infoConfiguredApn())
+                    return row.value("value").toString();
+            }
+            return QString();
+        };
+
+        QVERIFY(!settings->cellularApnKnown());
+        QVERIFY(apnValue().isEmpty());
+        repo->set("settings", "cellular.apn", "example.apn");
+        QTRY_COMPARE(apnValue(), QStringLiteral("example.apn"));
+        repo->set("settings", "cellular.apn", "");
+        QTRY_COMPARE(apnValue(), QStringLiteral("Automatic"));
+        tr->setLanguage("de");
+        QTRY_COMPARE(apnValue(), QStringLiteral("Automatisch"));
+        repo->set("settings", "cellular.apn", "other.apn");
+        QTRY_COMPARE(apnValue(), QStringLiteral("other.apn"));
+        repo->set("settings", "cellular.apn", "a-very-long-apn-name.example.mobile-provider.test");
+        QTRY_COMPARE(apnValue(), QStringLiteral("a-very-long-apn-name.example.mobile-provider.test"));
+        const std::function<QQuickItem *(QQuickItem *)> findValue = [&](QQuickItem *item) -> QQuickItem * {
+            if (item->objectName() == QLatin1String("wrappedInfoValue"))
+                return item;
+            for (auto *child : item->childItems())
+                if (auto *found = findValue(child)) return found;
+            return nullptr;
+        };
+        QQuickItem *value = nullptr;
+        QTRY_VERIFY((value = findValue(screen.get())));
+        QTRY_VERIFY(value->property("lineCount").toInt() > 1);
+        QVERIFY(!value->property("truncated").toBool());
     }
 
     void consumptionInfoMenuAndLiveCounters()

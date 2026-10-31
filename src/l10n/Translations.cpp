@@ -445,6 +445,10 @@ void Translations::initStrings()
     de[QStringLiteral("infoAccessTech")] = QStringLiteral("Funktechnik");
     en[QStringLiteral("infoSignal")] = QStringLiteral("Signal");
     de[QStringLiteral("infoSignal")] = QStringLiteral("Signal");
+    en[QStringLiteral("infoConfiguredApn")] = QStringLiteral("Configured APN");
+    de[QStringLiteral("infoConfiguredApn")] = QStringLiteral("APN (gesetzt)");
+    en[QStringLiteral("infoAutomatic")] = QStringLiteral("Automatic");
+    de[QStringLiteral("infoAutomatic")] = QStringLiteral("Automatisch");
     en[QStringLiteral("infoRegistration")] = QStringLiteral("Registration");
     de[QStringLiteral("infoRegistration")] = QStringLiteral("Registrierung");
     en[QStringLiteral("infoRoaming")] = QStringLiteral("roaming");

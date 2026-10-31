@@ -63,6 +63,8 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(QString milestonePresentation READ milestonePresentation NOTIFY milestonePresentationChanged)
     Q_PROPERTY(bool legacyMilestoneEggsPending READ legacyMilestoneEggsPending NOTIFY legacyMilestoneEggsPendingChanged)
     Q_PROPERTY(QString serviceActive READ serviceActive NOTIFY serviceActiveChanged)
+    Q_PROPERTY(QString cellularApn READ cellularApn NOTIFY cellularApnChanged)
+    Q_PROPERTY(bool cellularApnKnown READ cellularApnKnown NOTIFY cellularApnChanged)
     Q_PROPERTY(QString tripCounterReset READ tripCounterReset NOTIFY tripCounterResetChanged)
     Q_PROPERTY(QString tripExpunge READ tripExpunge NOTIFY tripExpungeChanged)
     Q_PROPERTY(bool tripExpungeAvailable READ tripExpungeAvailable NOTIFY tripExpungeAvailableChanged)
@@ -154,6 +156,8 @@ public:
     QString milestonePresentation() const { return m_milestonePresentation; }
     bool legacyMilestoneEggsPending() const { return m_legacyMilestoneEggsPending == QLatin1String("true"); }
     QString serviceActive() const { return m_serviceActive; }
+    QString cellularApn() const { return m_cellularApn; }
+    bool cellularApnKnown() const { return m_cellularApnKnown; }
     QString tripCounterReset() const { return m_tripCounterReset; }
     QString tripExpunge() const { return m_tripExpunge; }
     bool tripExpungeAvailable() const { return m_tripExpungeAvailable; }
@@ -255,6 +259,7 @@ signals:
     void milestonePresentationChanged();
     void legacyMilestoneEggsPendingChanged();
     void serviceActiveChanged();
+    void cellularApnChanged();
     void tripCounterResetChanged();
     void tripExpungeChanged();
     void tripExpungeAvailableChanged();
@@ -410,6 +415,9 @@ private:
     // that no user-visible setting is missing one.
     // @schema dashboard.service-mode-active
     QString m_serviceActive = QStringLiteral("false");
+    // @schema cellular.apn
+    QString m_cellularApn;
+    bool m_cellularApnKnown = false;
     // @schema trip.counter-reset
     QString m_tripCounterReset = QStringLiteral("ride");
     // @schema trip.expunge
