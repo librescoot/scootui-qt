@@ -48,6 +48,8 @@ public:
     Q_INVOKABLE void closeFaults();
     Q_INVOKABLE void showSmsInbox();
     Q_INVOKABLE void closeSmsInbox();
+    Q_INVOKABLE void showCloudPairing();
+    Q_INVOKABLE void closeCloudPairing();
     // page selects which System Info section is shown; see SystemInfoPage.
     Q_INVOKABLE void showSystemInfo(int page = 0);
     Q_INVOKABLE void closeSystemInfo();
@@ -106,6 +108,7 @@ private:
     ScootEnums::ScreenMode m_screenBeforeNavSetup = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeFaults = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeSmsInbox = ScootEnums::ScreenMode::Cluster;
+    ScootEnums::ScreenMode m_screenBeforeCloudPairing = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeSystemInfo = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeUpdateModeInfo = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeUpdateChannel = ScootEnums::ScreenMode::Cluster;

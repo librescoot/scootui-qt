@@ -74,6 +74,7 @@
 #include "services/AddressDatabaseService.h"
 #include "services/MapDownloadService.h"
 #include "services/UpdateChannelService.h"
+#include "services/CloudPairingService.h"
 #include "services/RoadInfoService.h"
 #include "services/OdometerMilestoneService.h"
 #include "core/DataPartition.h"
@@ -1013,6 +1014,18 @@ void Application::createStores(QQmlApplicationEngine &engine)
                                                       m_systemInfoService, this);
     menuStore->setUpdateChannelService(m_updateChannelService);
 
+    m_cloudPairingService = new CloudPairingService(repo, this);
+    const auto syncPairingStationary = [this, vehicleStore]() {
+        const auto state = vehicleStore->state();
+        m_cloudPairingService->setStationary(state == static_cast<int>(ScootEnums::VehicleState::Parked)
+            || state == static_cast<int>(ScootEnums::VehicleState::StandBy));
+    };
+    connect(vehicleStore, &VehicleStore::stateChanged, this, syncPairingStationary);
+    syncPairingStationary();
+    connect(screenStore, &ScreenStore::currentScreenChanged, this, [this, screenStore]() {
+        m_cloudPairingService->setVisible(screenStore->currentScreenMode() == ScootEnums::ScreenMode::CloudPairing);
+    });
+
     // Speed up polling while the faults screen is open, slow it back down
     // when it closes so the active-count badge still refreshes without
     // hammering Redis.
@@ -1104,6 +1117,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("odometerMilestoneService"), m_odometerMilestoneService);
     ctx->setContextProperty(QStringLiteral("faultsStore"), faultsStore);
     ctx->setContextProperty(QStringLiteral("updateChannelService"), m_updateChannelService);
+    ctx->setContextProperty(QStringLiteral("cloudPairingService"), m_cloudPairingService);
 
     // Simulator service (created in sim mode, null otherwise)
     if (m_simulatorMode) {

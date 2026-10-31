@@ -29,6 +29,7 @@ static QList<QPair<ScootEnums::ScreenMode, Opener>> parkedOnlyScreens()
         {ScootEnums::ScreenMode::NavigationSetup, [](ScreenStore &s) { s.showNavigationSetup(); }},
         {ScootEnums::ScreenMode::Faults, [](ScreenStore &s) { s.showFaults(); }},
         {ScootEnums::ScreenMode::SmsInbox, [](ScreenStore &s) { s.showSmsInbox(); }},
+        {ScootEnums::ScreenMode::CloudPairing, [](ScreenStore &s) { s.showCloudPairing(); }},
         {ScootEnums::ScreenMode::SystemInfo, [](ScreenStore &s) { s.showSystemInfo(); }},
         {ScootEnums::ScreenMode::UpdateModeInfo, [](ScreenStore &s) { s.showUpdateModeInfo(); }},
         {ScootEnums::ScreenMode::UpdateChannel, [](ScreenStore &s) { s.showUpdateChannel(); }},
@@ -85,6 +86,10 @@ void ScreenStoreTest::returnsToOpeningScreen()
     ScreenStore store(&settings, &repo);
 
     store.setScreen(static_cast<int>(ScootEnums::ScreenMode::Map));
+    store.showCloudPairing();
+    QCOMPARE(store.currentScreenMode(), ScootEnums::ScreenMode::CloudPairing);
+    store.closeCloudPairing();
+    QCOMPARE(store.currentScreenMode(), ScootEnums::ScreenMode::Map);
     store.showAddressSelection();
     QCOMPARE(store.currentScreenMode(), ScootEnums::ScreenMode::AddressSelection);
 

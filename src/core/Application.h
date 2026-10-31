@@ -38,6 +38,7 @@ class SystemInfoService;
 class SimulatorService;
 class MapDownloadService;
 class UpdateChannelService;
+class CloudPairingService;
 class RoadInfoService;
 class OdometerMilestoneService;
 class DataPartition;
@@ -144,6 +145,7 @@ private:
     SimulatorService *m_simulatorService = nullptr;
     MapDownloadService *m_mapDownloadService = nullptr;
     UpdateChannelService *m_updateChannelService = nullptr;
+    CloudPairingService *m_cloudPairingService = nullptr;
     RoadInfoService *m_roadInfoService = nullptr;
     OdometerMilestoneService *m_odometerMilestoneService = nullptr;
     DataPartition *m_dataPartition = nullptr;

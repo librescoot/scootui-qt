@@ -23,6 +23,21 @@ class Translations : public QObject
     Q_PROPERTY(QString rideGroupUnavailable READ rideGroupUnavailable NOTIFY languageChanged)
     Q_PROPERTY(QString menuTitle READ menuTitle NOTIFY languageChanged)
     Q_PROPERTY(QString menuSettings READ menuSettings NOTIFY languageChanged)
+    Q_PROPERTY(QString menuCloud READ menuCloud NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingTitle READ pairingTitle NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingInstructions READ pairingInstructions NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingSafety READ pairingSafety NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingStart READ pairingStart NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingStop READ pairingStop NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingReady READ pairingReady NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingStarting READ pairingStarting NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingApprove READ pairingApprove NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingApplying READ pairingApplying NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingStopping READ pairingStopping NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingPaused READ pairingPaused NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingConnected READ pairingConnected NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingUnavailable READ pairingUnavailable NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingExpires READ pairingExpires NOTIFY languageChanged)
     Q_PROPERTY(QString menuTheme READ menuTheme NOTIFY languageChanged)
     Q_PROPERTY(QString menuThemeAuto READ menuThemeAuto NOTIFY languageChanged)
     Q_PROPERTY(QString menuThemeDark READ menuThemeDark NOTIFY languageChanged)
@@ -752,6 +767,21 @@ public:
     // Getters - use lookup() not Qt's tr()
     QString menuTitle() const { return lookup("menuTitle"); }
     QString menuSettings() const { return lookup("menuSettings"); }
+    QString menuCloud() const { return lookup("menuCloud"); }
+    QString pairingTitle() const { return lookup("pairingTitle"); }
+    QString pairingInstructions() const { return lookup("pairingInstructions"); }
+    QString pairingSafety() const { return lookup("pairingSafety"); }
+    QString pairingStart() const { return lookup("pairingStart"); }
+    QString pairingStop() const { return lookup("pairingStop"); }
+    QString pairingReady() const { return lookup("pairingReady"); }
+    QString pairingStarting() const { return lookup("pairingStarting"); }
+    QString pairingApprove() const { return lookup("pairingApprove"); }
+    QString pairingApplying() const { return lookup("pairingApplying"); }
+    QString pairingStopping() const { return lookup("pairingStopping"); }
+    QString pairingPaused() const { return lookup("pairingPaused"); }
+    QString pairingConnected() const { return lookup("pairingConnected"); }
+    QString pairingUnavailable() const { return lookup("pairingUnavailable"); }
+    QString pairingExpires() const { return lookup("pairingExpires"); }
     QString menuTheme() const { return lookup("menuTheme"); }
     QString menuThemeAuto() const { return lookup("menuThemeAuto"); }
     QString menuThemeDark() const { return lookup("menuThemeDark"); }

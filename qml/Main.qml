@@ -264,6 +264,7 @@ Window {
         navSetup:      "screens/NavigationSetupScreen.qml",
         faults:        "screens/FaultsScreen.qml",
         smsInbox:      "screens/SmsInboxScreen.qml",
+        cloudPairing:  "screens/CloudPairingScreen.qml",
         systemInfo:    "screens/SystemInfoScreen.qml",
         umsInfo:       "screens/UpdateModeInfoScreen.qml",
         updateChannel: "screens/UpdateChannelScreen.qml",
@@ -296,6 +297,7 @@ Window {
                 case Scooter.ScreenMode.NavigationSetup: name = "navSetup";      break
                 case Scooter.ScreenMode.Faults:          name = "faults";        break
                 case Scooter.ScreenMode.SmsInbox:        name = "smsInbox";      break
+                case Scooter.ScreenMode.CloudPairing:    name = "cloudPairing";  break
                 case Scooter.ScreenMode.SystemInfo:      name = "systemInfo";    break
                 case Scooter.ScreenMode.UpdateModeInfo:  name = "umsInfo";       break
                 case Scooter.ScreenMode.UpdateChannel:   name = "updateChannel"; break

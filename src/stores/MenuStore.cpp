@@ -1772,6 +1772,13 @@ void MenuStore::rebuildMenuTree()
         close();
     }));
 
+    auto *cloudNode = MenuNode::submenu(QStringLiteral("settings_cloud"), tr->menuCloud());
+    settingsNode->addChild(cloudNode);
+    cloudNode->addChild(MenuNode::action(QStringLiteral("settings_cloud_pairing"), tr->pairingTitle(), [this]() {
+        closeForScreen();
+        if (m_screenStore) m_screenStore->showCloudPairing();
+    }));
+
     // === Info (root level) ===
     //
     // Read-only diagnostics, not settings, and the thing support and

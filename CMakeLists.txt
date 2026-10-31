@@ -155,6 +155,7 @@ set(CPP_SOURCES
     src/services/VectorTileDecoder.cpp
     src/services/MapDownloadService.cpp
     src/services/UpdateChannelService.cpp
+    src/services/CloudPairingService.cpp
     src/services/RoadMatcher.cpp
     src/services/StreetQueryDispatcher.cpp
     src/services/StreetQueryDispatcher.h
@@ -260,6 +261,7 @@ set(CPP_HEADERS
     src/services/FlatTrie.h
     src/services/SystemInfoService.h
     src/services/UpdateChannelService.h
+    src/services/CloudPairingService.h
     src/services/VectorTileDecoder.h
     src/services/MapDownloadService.h
     src/services/RoadMatcher.h
@@ -303,6 +305,7 @@ set(QML_FILES
     qml/screens/NavigationSetupScreen.qml
     qml/screens/FaultsScreen.qml
     qml/screens/SmsInboxScreen.qml
+    qml/screens/CloudPairingScreen.qml
     qml/screens/SystemInfoScreen.qml
     qml/screens/UpdateModeInfoScreen.qml
     qml/screens/UpdateChannelScreen.qml
@@ -403,6 +406,7 @@ qt_add_qml_module(scootui
     RESOURCES
         qml/widgets/components/qmldir
         qml/screens/MapDownloadPolicy.js
+        assets/icons/connect-pairing-qr.svg
         assets/icons/librescoot-turn-left.svg
         assets/icons/librescoot-turn-right.svg
         assets/icons/librescoot-keep-left.svg
@@ -594,6 +598,21 @@ if(BUILD_TESTING)
     set_tests_properties(application_notification_test PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software"
         TIMEOUT 60)
+
+    qt_add_executable(cloud_pairing_service_test tests/CloudPairingServiceTest.cpp
+        src/services/CloudPairingService.cpp src/services/CloudPairingService.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp src/repositories/InMemoryMdbRepository.h)
+    target_include_directories(cloud_pairing_service_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(cloud_pairing_service_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME cloud_pairing_service_test COMMAND cloud_pairing_service_test)
+
+    qt_add_executable(cloud_pairing_screen_test tests/CloudPairingScreenTest.cpp
+        src/l10n/Translations.cpp src/l10n/Translations.h)
+    target_include_directories(cloud_pairing_screen_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(cloud_pairing_screen_test PRIVATE Qt6::Quick Qt6::Svg Qt6::Test)
+    add_test(NAME cloud_pairing_screen_test COMMAND cloud_pairing_screen_test)
+    set_tests_properties(cloud_pairing_screen_test PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 
     qt_add_executable(sms_inbox_screen_test tests/SmsInboxScreenTest.cpp)
     target_link_libraries(sms_inbox_screen_test PRIVATE Qt6::Quick Qt6::Test)
