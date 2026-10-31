@@ -52,6 +52,26 @@ overlay directly before stopping the animation. If that also fails, it exits
 for the service supervisor to restart it. Images without a usable overlay
 use DRM/KMS and a direct first-frame handoff.
 
+## Battery consumption
+
+System > Info > Consumption shows the traction-pack net energy estimate from
+trip-service's `energy` hash. Signed mWh values are converted to kWh, including
+negative net consumption when pack capacity increases. The phase rows are
+ready-to-drive (including stops), parked, standby and unassigned. They sum to the
+net total; they are not a breakdown by motor, AUX/CBB charger or other loads.
+
+The collection section shows the accounting start time, live availability and
+recorded discontinuities. Missing or not-yet-established totals remain unknown,
+while a measured zero remains visible. A publisher timestamp older than ten
+seconds marks collection unavailable without erasing historical totals. The
+estimate uses BMS capacity changes and endpoint voltages; gaps and gauge
+corrections affect its coverage and precision.
+
+The independent ECU lifetime counters remain in a separately labelled section
+below. Their measurement period is different, so they must not be subtracted
+from the pack estimate to calculate accessory consumption. Instantaneous power
+in the riding display still comes from the ECU and is unchanged.
+
 ## Speed display validity
 
 Unchanged telemetry values do not invalidate speed or power: identical snapshots

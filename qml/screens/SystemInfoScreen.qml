@@ -253,6 +253,42 @@ Rectangle {
         { label: t("infoEnergyRecovered", "Recovered"), value: energyValue(energyTotals.recovered) }
     ])
 
+    readonly property var batteryEnergy: typeof systemInfoService !== "undefined"
+                                         ? systemInfoService.batteryEnergy : ({})
+
+    function netEnergyValue(value) {
+        return typeof value === "number" && isFinite(value)
+            ? value.toLocaleString(Qt.locale(lang), "f", 3) + " kWh" : placeholder
+    }
+
+    readonly property var batteryEnergyRows: (void systemInfoScreen.lang, [
+        { label: t("infoEnergyNet", "Net consumption"), value: netEnergyValue(batteryEnergy.net) },
+        { label: t("infoEnergyDriving", "Ready to drive"), value: netEnergyValue(batteryEnergy.driving) },
+        { label: t("infoEnergyParked", "Parked"), value: netEnergyValue(batteryEnergy.parked) },
+        { label: t("infoEnergyStandby", "Standby"), value: netEnergyValue(batteryEnergy.standby) },
+        { label: t("infoEnergyUnassigned", "Unassigned"), value: netEnergyValue(batteryEnergy.unassigned) }
+    ])
+
+    function energyStatus(status) {
+        switch (status) {
+        case "collecting": return t("infoEnergyCollecting", "Running")
+        case "partial": return t("infoEnergyPartial", "Partial")
+        case "waiting": return t("infoEnergyWaiting", "Waiting for packs")
+        default: return t("infoEnergyUnavailable", "Unavailable")
+        }
+    }
+
+    function energySince(value) {
+        var date = new Date(value || "")
+        return isNaN(date.getTime()) ? placeholder : Qt.formatDateTime(date, "dd.MM.yy HH:mm")
+    }
+
+    readonly property var energyCoverageRows: (void systemInfoScreen.lang, [
+        { label: t("infoEnergySince", "Recorded since"), value: energySince(batteryEnergy.since) },
+        { label: t("infoEnergyCoverage", "Collection"), value: energyStatus(batteryEnergy.status) },
+        { label: t("infoEnergyGaps", "Discontinuities"), value: shown(batteryEnergy.gaps) }
+    ])
+
     // ---- Maps page ----
 
     // Keyed exactly as the `maps` Redis hash, so what the rider reads here and
@@ -533,10 +569,25 @@ Rectangle {
                 }
 
                 InfoSection {
+                    objectName: "batteryConsumptionSection"
+                    width: content.width
+                    pageActive: systemInfoScreen.page === systemInfoScreen.pageConsumption
+                    sectionTitle: (void systemInfoScreen.lang, systemInfoScreen.t("infoBatteryEnergy", "TRACTION PACKS (ESTIMATE)"))
+                    rows: systemInfoScreen.batteryEnergyRows
+                }
+
+                InfoSection {
+                    width: content.width
+                    pageActive: systemInfoScreen.page === systemInfoScreen.pageConsumption
+                    sectionTitle: (void systemInfoScreen.lang, systemInfoScreen.t("infoEnergyPeriod", "COLLECTION"))
+                    rows: systemInfoScreen.energyCoverageRows
+                }
+
+                InfoSection {
                     objectName: "consumptionSection"
                     width: content.width
                     pageActive: systemInfoScreen.page === systemInfoScreen.pageConsumption
-                    sectionTitle: (void systemInfoScreen.lang, systemInfoScreen.t("infoEnergyTotals", "ENERGY COUNTERS"))
+                    sectionTitle: (void systemInfoScreen.lang, systemInfoScreen.t("infoEcuEnergyTotals", "DRIVE (ECU COUNTERS)"))
                     rows: systemInfoScreen.energyRows
                 }
 

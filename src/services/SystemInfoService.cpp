@@ -1,12 +1,22 @@
 #include "SystemInfoService.h"
 
 #include <QVariantMap>
+#include <QDateTime>
+#include <QTimer>
+#include <cmath>
 
 SystemInfoService::SystemInfoService(MdbRepository *repo, QObject *parent)
     : QObject(parent), m_repo(repo)
 {
+    m_repo->registerPollChannel(QStringLiteral("energy"), 1000);
+    auto *energyTimer = new QTimer(this);
+    energyTimer->setInterval(1000);
+    connect(energyTimer, &QTimer::timeout, this, &SystemInfoService::recomputeBatteryEnergy);
+    energyTimer->start();
     connect(m_repo, &MdbRepository::fieldsUpdated,
             this, [this](const QString &channel, const FieldMap &) {
+        if (channel == QLatin1String("energy"))
+            recomputeBatteryEnergy();
         if (channel == QLatin1String("system")
             || channel == QLatin1String("version:mdb")
             || channel == QLatin1String("version:dbc")
@@ -27,8 +37,39 @@ void SystemInfoService::loadVersions()
     m_repo->requestAll(QStringLiteral("version:dbc"));
     m_repo->requestAll(QStringLiteral("engine-ecu"));
     m_repo->requestAll(QStringLiteral("ble"));
+    m_repo->requestAll(QStringLiteral("energy"));
 
     recomputeVersions();
+    recomputeBatteryEnergy();
+}
+
+void SystemInfoService::recomputeBatteryEnergy()
+{
+    const FieldMap data = m_repo->getAll(QStringLiteral("energy"));
+    QVariantMap result;
+    if (data.value(QStringLiteral("source")) == QLatin1String("bms-capacity-delta")) {
+        result.insert(QStringLiteral("since"), data.value(QStringLiteral("since")));
+        bool valid = false;
+        const qint64 updated = data.value(QStringLiteral("updated-at")).toLongLong(&valid);
+        const qint64 age = QDateTime::currentMSecsSinceEpoch() - updated;
+        result.insert(QStringLiteral("status"), valid && age >= 0 && age <= 10000
+            ? data.value(QStringLiteral("status")) : QStringLiteral("unavailable"));
+        const qulonglong gaps = data.value(QStringLiteral("gaps")).toULongLong(&valid);
+        if (valid)
+            result.insert(QStringLiteral("gaps"), gaps);
+        if (data.value(QStringLiteral("known")) == QLatin1String("true")) {
+            for (const QString &key : {QStringLiteral("net"), QStringLiteral("driving"),
+                    QStringLiteral("parked"), QStringLiteral("standby"), QStringLiteral("unassigned")}) {
+                const double mwh = data.value(key + QLatin1String(":mwh")).toDouble(&valid);
+                if (valid && std::isfinite(mwh) && std::abs(mwh) <= 1e15)
+                    result.insert(key, mwh / 1000000.0);
+            }
+        }
+    }
+    if (result != m_batteryEnergy) {
+        m_batteryEnergy = result;
+        emit batteryEnergyChanged();
+    }
 }
 
 // Picks the human-readable version from a version:<board> hash, falling back

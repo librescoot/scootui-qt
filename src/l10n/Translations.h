@@ -147,6 +147,21 @@ class Translations : public QObject
     Q_PROPERTY(QString menuInfoMaps READ menuInfoMaps NOTIFY languageChanged)
     Q_PROPERTY(QString menuInfoConsumption READ menuInfoConsumption NOTIFY languageChanged)
     Q_PROPERTY(QString infoEnergyTotals READ infoEnergyTotals NOTIFY languageChanged)
+    Q_PROPERTY(QString infoBatteryEnergy READ infoBatteryEnergy NOTIFY languageChanged)
+    Q_PROPERTY(QString infoEnergyNet READ infoEnergyNet NOTIFY languageChanged)
+    Q_PROPERTY(QString infoEnergyDriving READ infoEnergyDriving NOTIFY languageChanged)
+    Q_PROPERTY(QString infoEnergyParked READ infoEnergyParked NOTIFY languageChanged)
+    Q_PROPERTY(QString infoEnergyStandby READ infoEnergyStandby NOTIFY languageChanged)
+    Q_PROPERTY(QString infoEnergyUnassigned READ infoEnergyUnassigned NOTIFY languageChanged)
+    Q_PROPERTY(QString infoEnergySince READ infoEnergySince NOTIFY languageChanged)
+    Q_PROPERTY(QString infoEnergyCoverage READ infoEnergyCoverage NOTIFY languageChanged)
+    Q_PROPERTY(QString infoEnergyGaps READ infoEnergyGaps NOTIFY languageChanged)
+    Q_PROPERTY(QString infoEnergyCollecting READ infoEnergyCollecting NOTIFY languageChanged)
+    Q_PROPERTY(QString infoEnergyWaiting READ infoEnergyWaiting NOTIFY languageChanged)
+    Q_PROPERTY(QString infoEnergyPartial READ infoEnergyPartial NOTIFY languageChanged)
+    Q_PROPERTY(QString infoEnergyUnavailable READ infoEnergyUnavailable NOTIFY languageChanged)
+    Q_PROPERTY(QString infoEnergyPeriod READ infoEnergyPeriod NOTIFY languageChanged)
+    Q_PROPERTY(QString infoEcuEnergyTotals READ infoEcuEnergyTotals NOTIFY languageChanged)
     Q_PROPERTY(QString infoEnergyConsumed READ infoEnergyConsumed NOTIFY languageChanged)
     Q_PROPERTY(QString infoEnergyRecovered READ infoEnergyRecovered NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoMapsRegion READ systemInfoMapsRegion NOTIFY languageChanged)
@@ -861,6 +876,21 @@ public:
     QString menuInfoMaps() const { return lookup("menuInfoMaps"); }
     QString menuInfoConsumption() const { return lookup("menuInfoConsumption"); }
     QString infoEnergyTotals() const { return lookup("infoEnergyTotals"); }
+    QString infoBatteryEnergy() const { return lookup("infoBatteryEnergy"); }
+    QString infoEnergyNet() const { return lookup("infoEnergyNet"); }
+    QString infoEnergyDriving() const { return lookup("infoEnergyDriving"); }
+    QString infoEnergyParked() const { return lookup("infoEnergyParked"); }
+    QString infoEnergyStandby() const { return lookup("infoEnergyStandby"); }
+    QString infoEnergyUnassigned() const { return lookup("infoEnergyUnassigned"); }
+    QString infoEnergySince() const { return lookup("infoEnergySince"); }
+    QString infoEnergyCoverage() const { return lookup("infoEnergyCoverage"); }
+    QString infoEnergyGaps() const { return lookup("infoEnergyGaps"); }
+    QString infoEnergyCollecting() const { return lookup("infoEnergyCollecting"); }
+    QString infoEnergyWaiting() const { return lookup("infoEnergyWaiting"); }
+    QString infoEnergyPartial() const { return lookup("infoEnergyPartial"); }
+    QString infoEnergyUnavailable() const { return lookup("infoEnergyUnavailable"); }
+    QString infoEnergyPeriod() const { return lookup("infoEnergyPeriod"); }
+    QString infoEcuEnergyTotals() const { return lookup("infoEcuEnergyTotals"); }
     QString infoEnergyConsumed() const { return lookup("infoEnergyConsumed"); }
     QString infoEnergyRecovered() const { return lookup("infoEnergyRecovered"); }
     QString systemInfoMapsRegion() const { return lookup("systemInfoMapsRegion"); }

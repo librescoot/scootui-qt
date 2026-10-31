@@ -405,6 +405,10 @@ private slots:
             return screen->property("energyRows").value<QJSValue>().toVariant()
                 .toList().at(index).toMap();
         };
+        const auto batteryRow = [&screen](int index) {
+            return screen->property("batteryEnergyRows").value<QJSValue>().toVariant()
+                .toList().at(index).toMap();
+        };
 
         for (const QString &language : {QStringLiteral("en"), QStringLiteral("de")}) {
             tr->setLanguage(language);
@@ -433,6 +437,31 @@ private slots:
             repo->set("engine-ecu", "energy:recovered", "89123");
             QTRY_COMPARE(row(1).value("value").toString(), german ? "0,089 kWh" : "0.089 kWh");
             QCOMPARE(row(0).value("value").toString(), german ? "1,235 kWh" : "1.235 kWh");
+            repo->set("energy", "source", "bms-capacity-delta");
+            repo->set("energy", "known", "false");
+            QTRY_COMPARE(batteryRow(0).value("value").toString(), QStringLiteral("-"));
+            repo->set("energy", "since", "2026-10-31T10:00:00Z");
+            repo->set("energy", "status", "collecting");
+            repo->set("energy", "updated-at", QString::number(QDateTime::currentMSecsSinceEpoch()));
+            repo->set("energy", "gaps", "0");
+            repo->set("energy", "net:mwh", "-5300");
+            repo->set("energy", "driving:mwh", "-6300");
+            repo->set("energy", "parked:mwh", "0");
+            repo->set("energy", "standby:mwh", "1000");
+            repo->set("energy", "unassigned:mwh", "0");
+            repo->set("energy", "known", "true");
+            QTRY_COMPARE(batteryRow(0).value("value").toString(), german ? "-0,005 kWh" : "-0.005 kWh");
+            QCOMPARE(batteryRow(0).value("label").toString(), tr->infoEnergyNet());
+            QCOMPARE(batteryRow(1).value("label").toString(), tr->infoEnergyDriving());
+            QCOMPARE(batteryRow(2).value("value").toString(), german ? "0,000 kWh" : "0.000 kWh");
+            auto *batterySection = screen->findChild<QQuickItem *>("batteryConsumptionSection");
+            QVERIFY(batterySection && batterySection->isVisible());
+            repo->set("energy", "net:mwh", "1234567");
+            repo->set("energy", "driving:mwh", "1200000");
+            repo->set("energy", "parked:mwh", "14567");
+            repo->set("energy", "standby:mwh", "10000");
+            repo->set("energy", "unassigned:mwh", "10000");
+            QTRY_COMPARE(batteryRow(0).value("value").toString(), german ? "1,235 kWh" : "1.235 kWh");
             for (const QString &mode : {QStringLiteral("dark"), QStringLiteral("light")}) {
                 theme->setTheme(mode);
                 capture(&window, "consumption-" + language + "-" + mode);

@@ -14,6 +14,9 @@ private slots:
     void updatesEnergyCountersIndependently();
     void rejectsInvalidEnergyCounters_data();
     void rejectsInvalidEnergyCounters();
+    void readsBatteryEnergyWithoutEcuFallback();
+    void preservesSignedNetEnergyAndCoverage();
+    void marksStaleBatteryAccountingUnavailable();
 };
 
 void SystemInfoServiceTest::showsBaudAndOtaTunnelSeparately()
@@ -112,6 +115,70 @@ void SystemInfoServiceTest::rejectsInvalidEnergyCounters()
     QVERIFY(!service.energyTotals().contains("consumed"));
     QVERIFY(service.energyTotals().contains("recovered"));
     QCOMPARE(service.energyTotals().value("recovered").toDouble(), 0.0);
+}
+
+void SystemInfoServiceTest::readsBatteryEnergyWithoutEcuFallback()
+{
+    InMemoryMdbRepository repo;
+    repo.set("engine-ecu", "energy:consumed", "1000000", false);
+    SystemInfoService service(&repo);
+    service.loadVersions();
+    QVERIFY(service.batteryEnergy().isEmpty());
+    repo.set("energy", "source", "bms-capacity-delta");
+    repo.set("energy", "net:mwh", "1000000");
+    QVERIFY(!service.batteryEnergy().contains("net"));
+    repo.set("energy", "known", "true");
+    QCOMPARE(service.batteryEnergy().value("net").toDouble(), 1.0);
+    repo.set("energy", "net:mwh", "NaN");
+    QVERIFY(!service.batteryEnergy().contains("net"));
+    repo.set("energy", "net:mwh", "1e20");
+    QVERIFY(!service.batteryEnergy().contains("net"));
+    repo.set("energy", "source", "unknown");
+    QVERIFY(service.batteryEnergy().isEmpty());
+}
+
+void SystemInfoServiceTest::preservesSignedNetEnergyAndCoverage()
+{
+    InMemoryMdbRepository repo;
+    repo.set("energy", "source", "bms-capacity-delta", false);
+    repo.set("energy", "known", "true", false);
+    repo.set("energy", "net:mwh", "-5300", false);
+    repo.set("energy", "driving:mwh", "0", false);
+    repo.set("energy", "gaps", "2", false);
+    repo.set("energy", "since", "2026-10-31T10:00:00Z", false);
+    repo.set("energy", "status", "partial", false);
+    repo.set("energy", "updated-at", QString::number(QDateTime::currentMSecsSinceEpoch()), false);
+    SystemInfoService service(&repo);
+    service.loadVersions();
+    QCOMPARE(service.batteryEnergy().value("net").toDouble(), -0.0053);
+    QCOMPARE(service.batteryEnergy().value("driving").toDouble(), 0.0);
+    QCOMPARE(service.batteryEnergy().value("gaps").toULongLong(), 2ULL);
+    QCOMPARE(service.batteryEnergy().value("status").toString(), QStringLiteral("partial"));
+    QVERIFY(!service.batteryEnergy().contains("parked"));
+    QSignalSpy changed(&service, &SystemInfoService::batteryEnergyChanged);
+    repo.set("energy", "net:mwh", "5300");
+    QCOMPARE(changed.size(), 1);
+    QCOMPARE(service.batteryEnergy().value("net").toDouble(), 0.0053);
+    repo.set("energy", "known", "false");
+    QVERIFY(!service.batteryEnergy().contains("net"));
+}
+
+void SystemInfoServiceTest::marksStaleBatteryAccountingUnavailable()
+{
+    InMemoryMdbRepository repo;
+    repo.set("energy", "source", "bms-capacity-delta", false);
+    repo.set("energy", "status", "collecting", false);
+    repo.set("energy", "known", "true", false);
+    repo.set("energy", "net:mwh", "1000", false);
+    repo.set("energy", "updated-at", QString::number(QDateTime::currentMSecsSinceEpoch() - 20000), false);
+    SystemInfoService service(&repo);
+    service.loadVersions();
+    QCOMPARE(service.batteryEnergy().value("status").toString(), QStringLiteral("unavailable"));
+    QCOMPARE(service.batteryEnergy().value("net").toDouble(), 0.001);
+    repo.set("energy", "updated-at", QString::number(QDateTime::currentMSecsSinceEpoch()));
+    QCOMPARE(service.batteryEnergy().value("status").toString(), QStringLiteral("collecting"));
+    repo.set("energy", "updated-at", QString::number(QDateTime::currentMSecsSinceEpoch() + 60000));
+    QCOMPARE(service.batteryEnergy().value("status").toString(), QStringLiteral("unavailable"));
 }
 
 QTEST_GUILESS_MAIN(SystemInfoServiceTest)

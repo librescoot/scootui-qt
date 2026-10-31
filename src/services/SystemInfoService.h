@@ -21,6 +21,7 @@ class SystemInfoService : public QObject
     Q_PROPERTY(QString nrfVersion READ nrfVersion NOTIFY versionRowsChanged)
     Q_PROPERTY(QString ecuVersion READ ecuVersion NOTIFY versionRowsChanged)
     Q_PROPERTY(QVariantMap energyTotals READ energyTotals NOTIFY energyTotalsChanged)
+    Q_PROPERTY(QVariantMap batteryEnergy READ batteryEnergy NOTIFY batteryEnergyChanged)
 
 public:
     explicit SystemInfoService(MdbRepository *repo, QObject *parent = nullptr);
@@ -41,6 +42,7 @@ public:
     QString nrfVersion() const { return m_nrfVersion; }
     QString ecuVersion() const { return m_ecuVersion; }
     QVariantMap energyTotals() const { return m_energyTotals; }
+    QVariantMap batteryEnergy() const { return m_batteryEnergy; }
 
     // Call once repository is ready to fetch version data
     Q_INVOKABLE void loadVersions();
@@ -48,12 +50,15 @@ public:
 signals:
     void versionRowsChanged();
     void energyTotalsChanged();
+    void batteryEnergyChanged();
 
 private:
     void recomputeVersions();
+    void recomputeBatteryEnergy();
 
     MdbRepository *m_repo;
     QVariantMap m_energyTotals;
+    QVariantMap m_batteryEnergy;
     QVariantList m_versionRows; // [{label, value}, ...]
     QVariantList m_mdbBoardRows;
     QVariantList m_dbcBoardRows;
