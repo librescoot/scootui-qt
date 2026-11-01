@@ -707,6 +707,17 @@ private slots:
         QVERIFY(!has("settings_cloud"));
         repo.set("internet", "status", "connected");
         QTRY_VERIFY(has("settings_cloud"));
+        for (int i = 0; i < menu.currentItems().size() && menu.currentItems().at(menu.selectedIndex()).toMap().value("id").toString() != "settings_cloud"; ++i) menu.navigateDown();
+        QCOMPARE(menu.currentItems().at(menu.selectedIndex()).toMap().value("id").toString(), QStringLiteral("settings_cloud"));
+        menu.selectItem();
+        QCOMPARE(menu.currentTitle(), context<Translations>("translations")->menuCloud().toUpper());
+        QVERIFY(has("settings_cloud_pairing"));
+        repo.set("internet", "status", "disconnected");
+        QTRY_COMPARE(menu.currentTitle(), context<Translations>("translations")->menuSettings().toUpper());
+        QVERIFY(!has("settings_cloud_pairing"));
+        QVERIFY(!has("settings_cloud"));
+        repo.set("internet", "status", "connected");
+        QTRY_VERIFY(has("settings_cloud"));
         repo.connected = false; emit repo.connectionStateChanged(false);
         QTRY_VERIFY(!has("settings_cloud"));
         repo.connected = true; emit repo.connectionStateChanged(true);
