@@ -131,6 +131,7 @@ Rectangle {
                 color: root.muted
                 font.pixelSize: themeStore.fontBody
                 text: tripHistoryService.loading ? (root.german ? "Wird geladen …" : "Loading …")
+                    : tripHistoryService.error === "trip not found" ? (root.german ? "Diese Fahrt ist nicht mehr gespeichert" : "This trip is no longer stored")
                     : tripHistoryService.error !== "" ? (root.german ? "Fahrtenverlauf nicht verfügbar" : "Trip history unavailable")
                     : root.page === 2 && (mapService.styleJson.length === 0 || tripMap.status === Loader.Error) ? (root.german ? "Karte nicht verfügbar" : "Map unavailable")
                     : root.page === 2 ? (root.german ? "Keine GPS-Spur" : "No GPS trace")
