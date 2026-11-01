@@ -54,12 +54,15 @@ use DRM/KMS and a direct first-frame handoff.
 
 ## SMS inbox
 
-Messages is a regular dashboard submenu, available while parked. It lists senders
-and message previews, marks unread entries, and offers Read message and a separate
-cancel-first deletion confirmation. Holding the right brake on a message opens
-it directly. The reader uses the shared control hints for scrolling and returning
-to the menu. SMS forwarding has its own submenu rather than a hidden gesture.
-All labels follow the dashboard's English/German language selection.
+Info > SMS is available while parked. It lists senders and message previews,
+marks unread entries, and opens a message directly when selected. In the reader,
+tap the left brake to scroll down, hold the right brake to scroll up, and hold the
+left brake to return. Tap the right brake to open the deletion confirmation, which
+starts on Cancel. All labels follow the dashboard's English/German language selection.
+
+The SMS forwarding submenu shows the configured destination and allows disabling
+forwarding. To enter or change a destination, open Settings in the scooter web
+interface, enable Advanced mode, and search for SMS.
 
 Cached messages remain readable while the MDB connection is unavailable; deletion
 and forwarding changes are unavailable until reconnection. Opening a message marks
@@ -67,12 +70,14 @@ it read only while connected. Message content is rendered as plain text.
 
 ## Connect pairing
 
-While stationary, use the Connect account screen to start pairing. When a valid
-short code is available, the dashboard displays it and a QR link containing the
-code in its URL fragment. Scanning opens the Connect pairing page with the code
-prefilled; the user must still continue and approve ownership in the browser.
-The Stop action requests a cooperative pause. Background status checks do not
-block the dashboard action, though registration still depends on connectivity.
+Settings > Cloud appears when internet reachability is connected and the MDB
+connection is live. While stationary, use Connect account to start pairing. The
+screen shows preparation while waiting for a valid code, then displays the code,
+its remaining lifetime and a QR link containing it in the URL fragment. Scan with
+a phone or enter the code at the displayed address, then confirm with the provider
+in the browser. The Stop action requests a cooperative pause. Background status
+checks do not block the dashboard action. If internet access is lost while the
+screen is open, it shows the offline state until connectivity returns.
 
 For QR capture regression tests, run `cloud_pairing_screen_test` with
 `CONNECT_CAPTURE_DIR` set under XCB, then run `tests/check_pairing_qr.py` on
