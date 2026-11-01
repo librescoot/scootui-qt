@@ -19,7 +19,6 @@
 #include "repositories/BootChannels.h"
 #include "repositories/BootPrefetch.h"
 #include "services/AutoThemeService.h"
-#include "services/PairingQrItem.h"
 #include "routing/RouteModels.h"
 
 #include <QDir>
@@ -93,7 +92,6 @@ int main(int argc, char *argv[])
     keepCachesOffUnmountedData();
 
     QGuiApplication app(argc, argv);
-    qmlRegisterType<PairingQrItem>("ScootUI.Pairing", 1, 0, "PairingQr");
     BOOT_MARK("QGuiApplication ready");
 
     app.setApplicationName(QStringLiteral("ScootUI"));

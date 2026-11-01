@@ -553,6 +553,61 @@ private slots:
         QVERIFY(repo.bluetoothCommands.isEmpty());
     }
 
+    void cloudPairingMenuLoadsAndCloses()
+    {
+        auto *repo = m_application->m_repository.get();
+        auto *menu = context<MenuStore>("menuStore");
+        auto *screens = context<ScreenStore>("screenStore");
+        auto *tr = context<Translations>("translations");
+        QVERIFY(menu && screens && tr);
+        m_engine->load(QUrl("qrc:/ScootUI/qml/Main.qml"));
+        QVERIFY(!m_engine->rootObjects().isEmpty());
+        auto *window = qobject_cast<QQuickWindow *>(m_engine->rootObjects().first());
+        QVERIFY(window && QTest::qWaitForWindowExposed(window));
+        window->resize(480, 480);
+        const auto select = [menu](const QString &id) {
+            for (int n = 0; n < menu->currentItems().size(); ++n) {
+                if (menu->currentItems().at(menu->selectedIndex()).toMap().value("id").toString() == id) {
+                    menu->selectItem();
+                    return true;
+                }
+                menu->navigateDown();
+            }
+            return false;
+        };
+        const auto openPairing = [&] {
+            menu->open();
+            QTest::qWait(160);
+            return select("settings") && select("settings_cloud") && select("settings_cloud_pairing");
+        };
+        for (const QString &language : {QStringLiteral("de"), QStringLiteral("en")}) {
+            tr->setLanguage(language);
+            QVERIFY(openPairing());
+            QCOMPARE(screens->currentScreenMode(), ScootEnums::ScreenMode::CloudPairing);
+            QVERIFY(!menu->isOpen());
+            QQuickItem *title = nullptr;
+            QTRY_VERIFY_WITH_TIMEOUT((title = window->findChild<QQuickItem *>("pairingTitle")), 3000);
+            QVERIFY(title->isVisible());
+            QCOMPARE(title->property("text").toString(), tr->pairingTitle());
+            auto *controls = window->findChild<QQuickItem *>("pairingControls");
+            QVERIFY(controls && controls->isVisible());
+            QCOMPARE(controls->property("leftHold").toString(), tr->controlBack());
+            QVERIFY(window->findChild<QQuickItem *>("pairingQr"));
+            repo->publish("input-events", "brake:left:long-tap");
+            QTRY_VERIFY(screens->currentScreenMode() != ScootEnums::ScreenMode::CloudPairing);
+            QTRY_VERIFY(menu->isOpen());
+            QVERIFY(!menu->isRoot());
+            QCOMPARE(menu->currentTitle(), tr->menuCloud().toUpper());
+            menu->close();
+        }
+        QVERIFY(openPairing());
+        QTRY_VERIFY(window->findChild<QQuickItem *>("pairingTitle"));
+        repo->set("vehicle", "state", "ready-to-drive");
+        QTRY_VERIFY(screens->currentScreenMode() != ScootEnums::ScreenMode::CloudPairing);
+        QTRY_VERIFY(!window->findChild<QQuickItem *>("pairingTitle"));
+        QVERIFY(!menu->isOpen());
+    }
+
     void smsMenu_data()
     {
         QTest::addColumn<QString>("language");

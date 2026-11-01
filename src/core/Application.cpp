@@ -75,6 +75,7 @@
 #include "services/MapDownloadService.h"
 #include "services/UpdateChannelService.h"
 #include "services/CloudPairingService.h"
+#include "services/PairingQrItem.h"
 #include "services/RoadInfoService.h"
 #include "services/OdometerMilestoneService.h"
 #include "core/DataPartition.h"
@@ -257,6 +258,7 @@ bool Application::initialize(QQmlApplicationEngine &engine)
              << "backend:" << (m_inMemoryBackend ? QStringLiteral("in-memory") : redisHost);
 
     qmlRegisterUncreatableMetaObject(ScootEnums::staticMetaObject, "ScootUI", 1, 0, "Scooter", "");
+    qmlRegisterType<PairingQrItem>("ScootUI.Pairing", 1, 0, "PairingQr");
 
     BOOT_MARK("createStores() start");
     createStores(engine);
