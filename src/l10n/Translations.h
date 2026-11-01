@@ -196,6 +196,14 @@ class Translations : public QObject
     Q_PROPERTY(QString systemInfoMapsRegion READ systemInfoMapsRegion NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoMapsDisplay READ systemInfoMapsDisplay NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoMapsRouting READ systemInfoMapsRouting NOTIFY languageChanged)
+    Q_PROPERTY(QString infoRegion READ infoRegion NOTIFY languageChanged)
+    Q_PROPERTY(QString infoLastChecked READ infoLastChecked NOTIFY languageChanged)
+    Q_PROPERTY(QString infoUpdateAvailable READ infoUpdateAvailable NOTIFY languageChanged)
+    Q_PROPERTY(QString infoSize READ infoSize NOTIFY languageChanged)
+    Q_PROPERTY(QString infoChecksum READ infoChecksum NOTIFY languageChanged)
+    Q_PROPERTY(QString infoPublished READ infoPublished NOTIFY languageChanged)
+    Q_PROPERTY(QString infoInstalled READ infoInstalled NOTIFY languageChanged)
+    Q_PROPERTY(QString infoNotInstalled READ infoNotInstalled NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoBluetooth READ systemInfoBluetooth NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoBattery0 READ systemInfoBattery0 NOTIFY languageChanged)
     Q_PROPERTY(QString systemInfoBattery1 READ systemInfoBattery1 NOTIFY languageChanged)
@@ -954,6 +962,14 @@ public:
     QString systemInfoMapsRegion() const { return lookup("systemInfoMapsRegion"); }
     QString systemInfoMapsDisplay() const { return lookup("systemInfoMapsDisplay"); }
     QString systemInfoMapsRouting() const { return lookup("systemInfoMapsRouting"); }
+    QString infoRegion() const { return lookup("infoRegion"); }
+    QString infoLastChecked() const { return lookup("infoLastChecked"); }
+    QString infoUpdateAvailable() const { return lookup("infoUpdateAvailable"); }
+    QString infoSize() const { return lookup("infoSize"); }
+    QString infoChecksum() const { return lookup("infoChecksum"); }
+    QString infoPublished() const { return lookup("infoPublished"); }
+    QString infoInstalled() const { return lookup("infoInstalled"); }
+    QString infoNotInstalled() const { return lookup("infoNotInstalled"); }
     QString systemInfoBluetooth() const { return lookup("systemInfoBluetooth"); }
     QString systemInfoBattery0() const { return lookup("systemInfoBattery0"); }
     QString systemInfoBattery1() const { return lookup("systemInfoBattery1"); }

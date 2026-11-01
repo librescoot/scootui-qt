@@ -1140,6 +1140,13 @@ if(BUILD_TESTING)
     target_link_libraries(charging_system_monitor_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME charging_system_monitor_test COMMAND charging_system_monitor_test)
 
+    qt_add_executable(map_info_screen_test tests/MapInfoScreenTest.cpp
+        src/l10n/Translations.cpp src/l10n/Translations.h)
+    target_include_directories(map_info_screen_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(map_info_screen_test PRIVATE Qt6::Quick Qt6::Test)
+    add_test(NAME map_info_screen_test COMMAND map_info_screen_test)
+    set_tests_properties(map_info_screen_test PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+
     qt_add_executable(system_info_service_test
         tests/SystemInfoServiceTest.cpp
         src/repositories/MdbRepository.h

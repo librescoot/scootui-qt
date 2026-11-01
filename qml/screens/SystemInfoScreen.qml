@@ -325,6 +325,7 @@ Rectangle {
         { label: t("infoRegion", "Region"),
           value: mapInfo["region-name"] || mapInfo["region"] || "" },
         { label: t("infoLastChecked", "Last checked"),
+          wrap: mapInfo["update-available"] === "true", wordWrap: true,
           value: shortDate(mapInfo["last-update-check"])
                  + (mapInfo["update-available"] === "true"
                     ? " · " + t("infoUpdateAvailable", "update available") : "") }
@@ -340,6 +341,7 @@ Rectangle {
             return [{ label: t("infoStatus", "Status"), value: t("infoNotInstalled", "Not installed") }]
         return present([
             { label: t("infoPublished", "Published"),
+              wrap: mapInfo[prefix + ":update-available"] === "true", wordWrap: true,
               value: shortDate(mapInfo[prefix + ":published-at"])
                      + (mapInfo[prefix + ":update-available"] === "true"
                         ? " · " + t("infoUpdateAvailable", "update available") : "") },
@@ -440,6 +442,7 @@ Rectangle {
 
         Flickable {
             id: flickable
+            objectName: "infoFlickable"
             width: parent.width
             height: parent.height - header.height - controlBar.height
             contentHeight: content.height
@@ -614,6 +617,7 @@ Rectangle {
         // Footer
         Rectangle {
             id: controlBar
+            objectName: "infoControlBar"
             width: parent.width
             height: controlHints.height
             color: systemInfoScreen.isDark ? "black" : "white"
@@ -693,6 +697,7 @@ Rectangle {
 
                 Text {
                     id: rowLabel
+                    objectName: "infoRowLabel"
                     anchors.left: parent.left
                     anchors.leftMargin: 20
                     anchors.verticalCenter: parent.verticalCenter
@@ -707,7 +712,7 @@ Rectangle {
                 // Plain string value.
                 Text {
                     id: rowValue
-                    objectName: modelData.wrap ? "wrappedInfoValue" : ""
+                    objectName: modelData.wrap ? "wrappedInfoValue" : "infoRowValue"
                     visible: modelData.valueSegments === undefined
                     anchors.left: rowLabel.right
                     anchors.leftMargin: 8
@@ -719,7 +724,7 @@ Rectangle {
                     color: systemInfoScreen.textPrimary
                     font.pixelSize: themeStore.fontBody
                     font.family: "monospace"
-                    wrapMode: modelData.wrap ? Text.WrapAnywhere : Text.NoWrap
+                    wrapMode: modelData.wrap ? (modelData.wordWrap ? Text.Wrap : Text.WrapAnywhere) : Text.NoWrap
                     elide: modelData.wrap ? Text.ElideNone : Text.ElideRight
                 }
 
