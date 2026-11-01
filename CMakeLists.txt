@@ -616,6 +616,9 @@ if(BUILD_TESTING)
 
     qt_add_executable(cloud_pairing_screen_test tests/CloudPairingScreenTest.cpp
         src/services/PairingQrItem.cpp src/services/PairingQrItem.h third_party/qrcodegen/qrcodegen.cpp
+        src/services/CloudPairingService.cpp src/services/CloudPairingService.h
+        src/repositories/MdbRepository.h
+        src/repositories/InMemoryMdbRepository.cpp src/repositories/InMemoryMdbRepository.h
         src/l10n/Translations.cpp src/l10n/Translations.h)
     target_include_directories(cloud_pairing_screen_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/third_party/qrcodegen)
     target_link_libraries(cloud_pairing_screen_test PRIVATE Qt6::Quick Qt6::Svg Qt6::Test)

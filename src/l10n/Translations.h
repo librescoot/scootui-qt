@@ -28,6 +28,18 @@ class Translations : public QObject
     Q_PROPERTY(QString pairingOffline READ pairingOffline NOTIFY languageChanged)
     Q_PROPERTY(QString pairingExpired READ pairingExpired NOTIFY languageChanged)
     Q_PROPERTY(QString pairingRetry READ pairingRetry NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingPhaseCode READ pairingPhaseCode NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingPhaseConfirm READ pairingPhaseConfirm NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingPhaseFinish READ pairingPhaseFinish NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingCheckingTitle READ pairingCheckingTitle NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingPreparingTitle READ pairingPreparingTitle NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingOfflineTitle READ pairingOfflineTitle NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingExpiredTitle READ pairingExpiredTitle NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingErrorTitle READ pairingErrorTitle NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingSlow READ pairingSlow NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingApplyingBody READ pairingApplyingBody NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingStoppingBody READ pairingStoppingBody NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingConnectedBody READ pairingConnectedBody NOTIFY languageChanged)
     Q_PROPERTY(QString smsTitle READ smsTitle NOTIFY languageChanged)
     Q_PROPERTY(QString smsMessage READ smsMessage NOTIFY languageChanged)
     Q_PROPERTY(QString smsUnknownSender READ smsUnknownSender NOTIFY languageChanged)
@@ -800,6 +812,18 @@ public:
     QString pairingOffline() const { return lookup("pairingOffline"); }
     QString pairingExpired() const { return lookup("pairingExpired"); }
     QString pairingRetry() const { return lookup("pairingRetry"); }
+    QString pairingPhaseCode() const { return lookup("pairingPhaseCode"); }
+    QString pairingPhaseConfirm() const { return lookup("pairingPhaseConfirm"); }
+    QString pairingPhaseFinish() const { return lookup("pairingPhaseFinish"); }
+    QString pairingCheckingTitle() const { return lookup("pairingCheckingTitle"); }
+    QString pairingPreparingTitle() const { return lookup("pairingPreparingTitle"); }
+    QString pairingOfflineTitle() const { return lookup("pairingOfflineTitle"); }
+    QString pairingExpiredTitle() const { return lookup("pairingExpiredTitle"); }
+    QString pairingErrorTitle() const { return lookup("pairingErrorTitle"); }
+    QString pairingSlow() const { return lookup("pairingSlow"); }
+    QString pairingApplyingBody() const { return lookup("pairingApplyingBody"); }
+    QString pairingStoppingBody() const { return lookup("pairingStoppingBody"); }
+    QString pairingConnectedBody() const { return lookup("pairingConnectedBody"); }
     QString smsTitle() const { return lookup("smsTitle"); }
     QString smsMessage() const { return lookup("smsMessage"); }
     QString smsUnknownSender() const { return lookup("smsUnknownSender"); }

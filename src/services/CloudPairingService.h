@@ -17,6 +17,7 @@ class CloudPairingService : public QObject
     Q_PROPERTY(bool online READ online NOTIFY changed)
     Q_PROPERTY(bool expired READ expired NOTIFY changed)
     Q_PROPERTY(bool loadingStatus READ loadingStatus NOTIFY changed)
+    Q_PROPERTY(bool checkingStatus READ checkingStatus NOTIFY changed)
 public:
     explicit CloudPairingService(MdbRepository *repo, QObject *parent = nullptr);
     ~CloudPairingService() override;
@@ -30,12 +31,14 @@ public:
     bool online() const;
     bool expired() const { return m_expired; }
     bool loadingStatus() const { return m_busy && m_action == QLatin1String("status"); }
+    bool checkingStatus() const { return m_foregroundStatus && loadingStatus(); }
     void setInternetAvailable(bool available);
     void setVisible(bool visible);
     void setStationary(bool stationary);
     Q_INVOKABLE void start();
     Q_INVOKABLE void stop();
     Q_INVOKABLE void refresh();
+    Q_INVOKABLE void retry();
 signals:
     void changed();
 private:
@@ -49,5 +52,5 @@ private:
     qint64 m_expiresAt = 0, m_deadline = 0;
     SubscriptionId m_subscription = 0;
     bool m_visible = false, m_stationary = false, m_running = false, m_busy = false, m_sent = false;
-    bool m_internetAvailable = true, m_expired = false;
+    bool m_internetAvailable = false, m_expired = false, m_foregroundStatus = true;
 };

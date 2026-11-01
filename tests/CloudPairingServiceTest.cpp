@@ -37,9 +37,25 @@ public:
 class CloudPairingServiceTest : public QObject {
     Q_OBJECT
 private slots:
+    void unknownInternetDoesNotExposeCodeOrStart() {
+        PairingRepository repo;
+        repo.snapshot = {{"state", "waiting_for_web_setup"}, {"running", true},
+            {"code", "01234-56789"}, {"expires_at", QDateTime::currentSecsSinceEpoch() + 300}};
+        CloudPairingService service(&repo);
+        service.setStationary(true);
+        service.setVisible(true);
+        QTRY_COMPARE(service.state(), QStringLiteral("waiting_for_web_setup"));
+        QVERIFY(!service.online());
+        QVERIFY(!service.canStart());
+        QVERIFY(!service.canStop());
+        QVERIFY(service.code().isEmpty());
+        service.setInternetAvailable(true);
+        QTRY_COMPARE(service.code(), QStringLiteral("01234-56789"));
+    }
     void explicitStartAndStationaryGuard() {
         PairingRepository repo;
         CloudPairingService service(&repo);
+        service.setInternetAvailable(true);
         QCOMPARE(repo.methods.size(), 0);
         service.setVisible(true);
         QTRY_COMPARE(service.state(), QStringLiteral("not_registered"));
@@ -64,6 +80,7 @@ private slots:
     void internetLossDoesNotInterruptMutation() {
         PairingRepository repo;
         CloudPairingService service(&repo);
+        service.setInternetAvailable(true);
         service.setStationary(true);
         service.setVisible(true);
         QTRY_VERIFY(service.canStart());
@@ -87,6 +104,7 @@ private slots:
             {"code", "01234-56789"}, {"expires_at", QDateTime::currentSecsSinceEpoch() + 1},
             {"url", "https://attacker.invalid"}, {"token", "private-token"}};
         CloudPairingService service(&repo);
+        service.setInternetAvailable(true);
         service.setVisible(true);
         QTRY_COMPARE(service.code(), QStringLiteral("01234-56789"));
         QTRY_VERIFY_WITH_TIMEOUT(service.code().isEmpty(), 2500);
@@ -110,6 +128,7 @@ private slots:
         repo.snapshot = {{"state", "waiting_for_web_setup"}, {"running", true},
             {"code", "01234-56789"}, {"expires_at", QDateTime::currentSecsSinceEpoch() + 300}};
         CloudPairingService service(&repo);
+        service.setInternetAvailable(true);
         service.setVisible(true);
         QTRY_COMPARE(service.code(), QStringLiteral("01234-56789"));
         service.setVisible(false);
@@ -124,6 +143,7 @@ private slots:
     void pollingIsPreemptedAndMutationsStaySerialized() {
         PairingRepository repo;
         CloudPairingService service(&repo);
+        service.setInternetAvailable(true);
         service.setStationary(true);
         service.setVisible(true);
         QTRY_COMPARE(service.state(), QStringLiteral("not_registered"));
@@ -156,9 +176,35 @@ private slots:
         QCOMPARE(service.state(), QStringLiteral("unavailable"));
         QVERIFY(!service.canStart());
     }
+    void failedStatusStaysActionableDuringBackgroundPolls() {
+        PairingRepository repo;
+        repo.autoReply = false;
+        CloudPairingService service(&repo);
+        service.setInternetAvailable(true);
+        service.setVisible(true);
+        QTRY_COMPARE(repo.methods.size(), 1);
+        QVERIFY(service.checkingStatus());
+        repo.reply(repo.last.value("reply_channel").toString(), {{"state", "invalid"}, {"running", false}});
+        QCOMPARE(service.state(), QStringLiteral("unavailable"));
+        QVERIFY(!service.checkingStatus());
+        service.refresh();
+        QTRY_COMPARE(repo.methods.size(), 2);
+        QVERIFY(service.loadingStatus());
+        QVERIFY(!service.checkingStatus());
+        const QString stale = repo.last.value("reply_channel").toString();
+        service.retry();
+        QTRY_COMPARE(repo.methods.size(), 3);
+        QVERIFY(service.checkingStatus());
+        repo.reply(stale, {{"state", "connected"}, {"running", false}});
+        QCOMPARE(service.state(), QStringLiteral("unavailable"));
+        repo.reply(repo.last.value("reply_channel").toString(), {{"state", "registered"}, {"running", false}});
+        QCOMPARE(service.state(), QStringLiteral("registered"));
+        QVERIFY(!service.checkingStatus());
+    }
     void timedOutMutationRejectsLateReply() {
         PairingRepository repo;
         CloudPairingService service(&repo);
+        service.setInternetAvailable(true);
         service.setStationary(true);
         service.setVisible(true);
         QTRY_VERIFY(service.canStart());
@@ -183,6 +229,7 @@ private slots:
         repo.snapshot = {{"state", "waiting_for_web_setup"}, {"running", true},
             {"code", "<unsafe>"}, {"expires_at", QDateTime::currentSecsSinceEpoch() + 300}};
         CloudPairingService service(&repo);
+        service.setInternetAvailable(true);
         service.setVisible(true);
         QTRY_COMPARE(service.state(), QStringLiteral("waiting_for_web_setup"));
         QVERIFY(service.code().isEmpty());

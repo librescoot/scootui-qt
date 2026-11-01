@@ -110,6 +110,13 @@ void CloudPairingService::setVisible(bool visible)
 void CloudPairingService::start() { if (canStart()) { clearRequest(); request(QStringLiteral("start")); } }
 void CloudPairingService::stop() { if (canStop()) { clearRequest(); request(QStringLiteral("stop")); } }
 void CloudPairingService::refresh() { if (m_visible && !m_busy) request(QStringLiteral("status")); }
+void CloudPairingService::retry()
+{
+    if (!m_visible || !online() || busy()) return;
+    clearRequest();
+    m_foregroundStatus = true;
+    request(QStringLiteral("status"));
+}
 
 void CloudPairingService::request(const QString &action)
 {
@@ -148,6 +155,7 @@ void CloudPairingService::unavailable()
 {
     clearRequest();
     m_state = QStringLiteral("unavailable");
+    m_foregroundStatus = false;
     m_code.clear();
     m_expiresAt = 0;
     m_running = false;
@@ -170,6 +178,7 @@ void CloudPairingService::receive(const QString &channel, const QString &data)
     if (!states.contains(state) || !snapshot.value(QStringLiteral("running")).isBool()) { unavailable(); return; }
     clearRequest();
     m_state = state;
+    m_foregroundStatus = false;
     if (state != QLatin1String("waiting_for_web_setup")) m_expired = false;
     m_running = snapshot.value(QStringLiteral("running")).toBool();
     m_code.clear();
