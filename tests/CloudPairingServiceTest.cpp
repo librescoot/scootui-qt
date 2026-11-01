@@ -156,6 +156,28 @@ private slots:
         QCOMPARE(service.state(), QStringLiteral("unavailable"));
         QVERIFY(!service.canStart());
     }
+    void timedOutMutationRejectsLateReply() {
+        PairingRepository repo;
+        CloudPairingService service(&repo);
+        service.setStationary(true);
+        service.setVisible(true);
+        QTRY_VERIFY(service.canStart());
+        repo.autoReply = false;
+        service.start();
+        QTRY_COMPARE(repo.methods.last(), QStringLiteral("start"));
+        const QString channel = repo.last.value("reply_channel").toString();
+        service.setVisible(false);
+        QTRY_COMPARE_WITH_TIMEOUT(service.state(), QStringLiteral("unavailable"), 12000);
+        QVERIFY(!service.busy());
+        repo.reply(channel, {{"state", "waiting_for_web_setup"}, {"running", true},
+                             {"code", "01234-56789"}, {"expires_at", QDateTime::currentSecsSinceEpoch() + 300}});
+        QCOMPARE(service.state(), QStringLiteral("unavailable"));
+        QVERIFY(service.code().isEmpty());
+        repo.autoReply = true;
+        service.setVisible(true);
+        QTRY_COMPARE(service.state(), QStringLiteral("not_registered"));
+        QVERIFY(service.canStart());
+    }
     void unknownStatesAndUnsafeCodesAreNotExposed() {
         PairingRepository repo;
         repo.snapshot = {{"state", "waiting_for_web_setup"}, {"running", true},
