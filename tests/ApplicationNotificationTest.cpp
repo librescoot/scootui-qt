@@ -439,27 +439,180 @@ private slots:
         QCOMPARE(history.trips().size(), 1);
     }
 
+    void tripHistoryUsesMenuAndControlHints_data()
+    {
+        QTest::addColumn<QString>("language");
+        QTest::addColumn<bool>("dark");
+        for (const auto &language : {QStringLiteral("de"), QStringLiteral("en")})
+            for (bool dark : {false, true})
+                QTest::newRow(qPrintable(language + (dark ? "-dark" : "-light"))) << language << dark;
+    }
+
     void tripHistoryUsesMenuAndControlHints()
     {
+        QFETCH(QString, language);
+        QFETCH(bool, dark);
         QQmlComponent fixture(m_engine.get());
         fixture.setData(R"(import QtQml
             QtObject {
-                property var trips: [{id:"one",started_at_s:1793343600,distance_m:8400}]
+                signal changed()
+                property var trips: [{id:"one",started_at_s:1793343600,distance_m:8400}, {id:"two",started_at_s:1793340000,distance_m:1200}]
                 property var selected: ({})
                 property var points: []
                 property bool loading: false
                 property bool hasMore: false
                 property string error: ""
+                property int pointRequests: 0
                 function refresh() {}
-                function close() {}
-                function selectTrip(id) { selected = {id:id, started_at_s:1793343600, distance_m:8400, ready_duration_s:1680, average_speed_kmh:18, point_count:2} }
+                function close() { loading = false; changed() }
+                function selectTrip(id) { selected = {id:id, started_at_s:1793343600, distance_m:8400, ready_duration_s:1680, average_speed_kmh:18, max_recorded_gps_speed_kmh:42, point_count:2}; changed() }
                 function loadMore() {}
-                function loadPoints() { points = [{id:1, latitude:52.52, longitude:13.40, timestamp_ms:1793343600000}, {id:2, latitude:52.53, longitude:13.42, timestamp_ms:1793343660000}] }
+                function loadPoints() { pointRequests++; loading = true; changed() }
+                function completePoints() { points = [{id:1, latitude:52.52, longitude:13.40, timestamp_ms:1793343600000}, {id:2, latitude:52.53, longitude:13.42, timestamp_ms:1793343660000}]; loading = false; changed() }
             })", QUrl());
         std::unique_ptr<QObject> fake(fixture.create());
         QVERIFY2(fake, qPrintable(fixture.errorString()));
         m_engine->rootContext()->setContextProperty("tripHistoryService", fake.get());
-        context<Translations>("translations")->setLanguage("de");
+        auto *tr = context<Translations>("translations");
+        tr->setLanguage(language);
+        context<ThemeStore>("themeStore")->setTheme(dark ? "dark" : "light");
+        context<ScreenStore>("screenStore")->showTripHistory();
+        if (!qEnvironmentVariableIsEmpty("SCOOTUI_TEST_MAP_PLUGIN_PATH"))
+            m_engine->addImportPath(qEnvironmentVariable("SCOOTUI_TEST_MAP_PLUGIN_PATH"));
+        QQuickWindow window;
+        window.resize(480, 480);
+        QQmlComponent component(m_engine.get(), QUrl("qrc:/ScootUI/qml/screens/TripHistoryScreen.qml"));
+        std::unique_ptr<QQuickItem> screen(qobject_cast<QQuickItem *>(component.create()));
+        QVERIFY2(screen, qPrintable(component.errorString()));
+        screen->setParentItem(window.contentItem());
+        screen->setSize(QSizeF(480, 480));
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto *repo = m_application->m_repository.get();
+        auto *hints = screen->findChild<QQuickItem *>("tripHistoryHints");
+        QVERIFY(hints && screen->findChild<QObject *>("tripHistoryList"));
+        repo->publish("input-events", "brake:left:tap");
+        QTRY_COMPARE(screen->property("selectedIndex").toInt(), 1);
+        repo->publish("input-events", "brake:right:tap");
+        QTRY_COMPARE(screen->property("page").toInt(), 1);
+        QTRY_COMPARE(fake->property("pointRequests").toInt(), 1);
+        auto *detail = screen->findChild<QQuickItem *>("tripHistoryDetail");
+        auto *metrics = screen->findChild<QQuickItem *>("tripHistoryMetrics");
+        auto *area = screen->findChild<QQuickItem *>("tripHistoryMapArea");
+        auto *status = screen->findChild<QQuickItem *>("tripHistoryMapStatus");
+        QVERIFY(detail && metrics && area && status);
+        QVariant unknownDate;
+        QVERIFY(QMetaObject::invokeMethod(screen.get(), "dateString", Q_RETURN_ARG(QVariant, unknownDate),
+                                          Q_ARG(QVariant, QVariant(0))));
+        QCOMPARE(unknownDate.toString(), language == "de" ? QStringLiteral("Datum unbekannt") : QStringLiteral("Unknown date"));
+        QVERIFY(detail->isVisible() && metrics->isVisible());
+        QCOMPARE(hints->property("rightTap").toString(), QString());
+        QVERIFY(status->property("text").toString().contains(language == "de" ? QStringLiteral("geladen") : QStringLiteral("Loading")));
+        QVERIFY(area->height() >= 200);
+        QVERIFY(area->mapRectToScene(area->boundingRect()).bottom() < hints->mapRectToScene(hints->boundingRect()).top());
+        capture(&window, "trip-inline-loading-" + language + (dark ? "-dark" : "-light"));
+        QVERIFY(QMetaObject::invokeMethod(fake.get(), "completePoints"));
+        if (!qEnvironmentVariableIsEmpty("SCOOTUI_TEST_MAP_PLUGIN_PATH")) {
+            auto *loader = screen->findChild<QObject *>("tripHistoryMapLoader");
+            QVERIFY(loader);
+            QTRY_COMPARE_WITH_TIMEOUT(loader->property("status").toInt(), 1, 10000);
+            auto *mapItem = qvariant_cast<QObject *>(loader->property("item"));
+            QVERIFY(mapItem);
+            if (qEnvironmentVariableIsSet("SCOOTUI_TEST_EXPECT_PRODUCTION_MAP"))
+                QVERIFY(loader->property("source").toUrl().fileName() == QStringLiteral("TripHistoryMap.qml"));
+            QVERIFY(mapItem->property("traceJson").toString().contains("13.4"));
+            const auto styleSources = QJsonDocument::fromJson(mapItem->property("historyStyleJson").toString().toUtf8())
+                                          .object().value("sources").toObject();
+            for (const auto &name : {QStringLiteral("plan"), QStringLiteral("plan-stops"),
+                                     QStringLiteral("overview-traveled"), QStringLiteral("overview-markers"),
+                                     QStringLiteral("ride-group-peers")}) {
+                const auto data = styleSources.value(name).toObject().value("data").toObject();
+                QCOMPARE(data.value("features").toArray().size(), 0);
+            }
+            const QVariantList brokenTrace{
+                QVariantMap{{"latitude", 52.52}, {"longitude", 13.40}, {"timestamp_ms", 1000}},
+                QVariantMap{{"latitude", 52.53}, {"longitude", 13.41}, {"timestamp_ms", 2000}},
+                QVariantMap{{"latitude", QVariant()}, {"longitude", 13.42}, {"timestamp_ms", 3000}},
+                QVariantMap{{"latitude", 52.54}, {"longitude", 13.43}, {"timestamp_ms", 4000}},
+                QVariantMap{{"latitude", 52.55}, {"longitude", 13.44}, {"timestamp_ms", 5000}},
+                QVariantMap{{"latitude", 91}, {"longitude", 13.45}, {"timestamp_ms", 6000}},
+                QVariantMap{{"latitude", 52.56}, {"longitude", 13.46}, {"timestamp_ms", 7000}},
+                QVariantMap{{"latitude", 52.57}, {"longitude", 13.47}, {"timestamp_ms", 8000}},
+                QVariantMap{{"latitude", 52.58}, {"longitude", 13.48}, {"timestamp_ms", 300000}},
+                QVariantMap{{"latitude", 52.59}, {"longitude", 13.49}, {"timestamp_ms", 301000}}
+            };
+            QVariant trace;
+            QVERIFY(QMetaObject::invokeMethod(mapItem, "makeTrace", Q_RETURN_ARG(QVariant, trace),
+                                              Q_ARG(QVariant, QVariant::fromValue(brokenTrace))));
+            const auto geometry = QJsonDocument::fromJson(trace.toString().toUtf8()).object().value("geometry").toObject();
+            QCOMPARE(geometry.value("type").toString(), QStringLiteral("MultiLineString"));
+            QCOMPARE(geometry.value("coordinates").toArray().size(), 4);
+            QVariant zeroCoordinateValid;
+            QVERIFY(QMetaObject::invokeMethod(mapItem, "validCoordinate", Q_RETURN_ARG(QVariant, zeroCoordinateValid),
+                                              Q_ARG(QVariant, QVariant(QVariantMap{{"latitude", 0}, {"longitude", 0}}))));
+            QVERIFY(zeroCoordinateValid.toBool());
+            QTRY_VERIFY_WITH_TIMEOUT(mapItem->property("styledOutputReady").toBool(), 10000);
+            QTest::qWait(1800);
+            const QImage image = window.grabWindow();
+            int bluePixels = 0;
+            const QRect bounds = area->mapRectToScene(area->boundingRect()).toRect().intersected(image.rect());
+            for (int y = bounds.top(); y <= bounds.bottom(); ++y) {
+                for (int x = bounds.left(); x <= bounds.right(); ++x) {
+                    const QColor c = image.pixelColor(x, y);
+                    if (c.blue() > 150 && c.blue() > c.red() * 1.35 && c.blue() > c.green() * 1.1)
+                        ++bluePixels;
+                }
+            }
+            QVERIFY2(bluePixels > 100, "GPS trace was not rendered on the inline map");
+            capture(&window, "trip-inline-map-" + language + (dark ? "-dark" : "-light"));
+            if (language == "en" && dark) {
+                context<ThemeStore>("themeStore")->setTheme("light");
+                QTest::qWait(600);
+                const QImage lightImage = window.grabWindow();
+                int changedPixels = 0;
+                for (int y = bounds.top(); y <= bounds.bottom(); ++y)
+                    for (int x = bounds.left(); x <= bounds.right(); ++x)
+                        if (image.pixelColor(x, y) != lightImage.pixelColor(x, y)) ++changedPixels;
+                QVERIFY2(changedPixels > 10000, "Map did not recolor after the theme changed");
+                context<ThemeStore>("themeStore")->setTheme("dark");
+                QTest::qWait(300);
+            }
+        }
+        QVariantMap noGps = fake->property("selected").toMap();
+        noGps["point_count"] = 0;
+        noGps.remove("max_recorded_gps_speed_kmh");
+        fake->setProperty("points", QVariantList{});
+        fake->setProperty("selected", noGps);
+        QTRY_COMPARE(status->property("text").toString(), language == "de" ? QStringLiteral("Keine GPS-Spur") : QStringLiteral("No GPS trace"));
+        QVERIFY(metrics->isVisible());
+        QCOMPARE(metrics->property("items").value<QJSValue>().toVariant().toList().size(), 3);
+        capture(&window, "trip-inline-no-gps-" + language + (dark ? "-dark" : "-light"));
+        fake->setProperty("error", "offline");
+        QTRY_COMPARE(status->property("text").toString(), language == "de" ? QStringLiteral("GPS-Spur nicht verfügbar") : QStringLiteral("GPS trace unavailable"));
+        QVERIFY(metrics->isVisible());
+        capture(&window, "trip-inline-error-" + language + (dark ? "-dark" : "-light"));
+        fake->setProperty("selected", QVariantMap{});
+        fake->setProperty("error", "trip not found");
+        auto *pageStatus = screen->findChild<QQuickItem *>("tripHistoryStatus");
+        QTRY_VERIFY(pageStatus->isVisible());
+        QCOMPARE(pageStatus->property("text").toString(), language == "de" ? QStringLiteral("Diese Fahrt ist nicht mehr gespeichert") : QStringLiteral("This trip is no longer stored"));
+        repo->publish("input-events", "brake:left:long-tap");
+        QTRY_COMPARE(screen->property("page").toInt(), 0);
+        QCOMPARE(screen->property("selectedIndex").toInt(), 1);
+        fake->setProperty("error", "");
+        repo->publish("input-events", "brake:right:tap");
+        QTRY_COMPARE(screen->property("page").toInt(), 1);
+        repo->publish("input-events", "brake:left:hold");
+        QTRY_VERIFY(context<ScreenStore>("screenStore")->currentScreen() != static_cast<int>(ScootEnums::ScreenMode::TripHistory));
+        screen.reset();
+        m_engine->rootContext()->setContextProperty("tripHistoryService", m_application->m_tripHistoryService);
+    }
+
+    void tripHistoryInlineLoadsThroughRpc()
+    {
+        HistoryTestRepository repo;
+        TripHistoryService history(&repo);
+        m_engine->rootContext()->setContextProperty("tripHistoryService", &history);
         context<ScreenStore>("screenStore")->showTripHistory();
         QQuickWindow window;
         window.resize(480, 480);
@@ -470,36 +623,30 @@ private slots:
         screen->setSize(QSizeF(480, 480));
         window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
-        QVERIFY(screen->findChild<QObject *>("tripHistoryTitle"));
-        QVERIFY(screen->findChild<QObject *>("tripHistoryList"));
-        QVERIFY(screen->findChild<QObject *>("tripHistoryHints"));
-        capture(&window, "trip-history-list");
-        QVERIFY(QMetaObject::invokeMethod(screen.get(), "select"));
-        QTRY_COMPARE(screen->property("page").toInt(), 1);
-        capture(&window, "trip-history-detail");
-        if (!qEnvironmentVariableIsEmpty("SCOOTUI_TEST_MAP_PLUGIN_PATH")) {
-            m_engine->addImportPath(qEnvironmentVariable("SCOOTUI_TEST_MAP_PLUGIN_PATH"));
-            QVERIFY(QMetaObject::invokeMethod(screen.get(), "select"));
-            QTRY_COMPARE(screen->property("page").toInt(), 2);
-            auto *loader = screen->findChild<QObject *>("tripHistoryMapLoader");
-            QVERIFY(loader);
-            QTRY_COMPARE(loader->property("status").toInt(), 1);
-            auto *mapItem = qvariant_cast<QObject *>(loader->property("item"));
-            QVERIFY(mapItem);
-            QVERIFY(mapItem->property("traceJson").toString().contains("13.4"));
-            QTest::qWait(1800);
-            const QImage image = window.grabWindow();
-            int bluePixels = 0;
-            for (int y = 60; y < image.height() - 60; ++y) {
-                for (int x = 0; x < image.width(); ++x) {
-                    const QColor c = image.pixelColor(x, y);
-                    if (c.blue() > 150 && c.blue() > c.red() * 1.35 && c.blue() > c.green() * 1.1)
-                        ++bluePixels;
-                }
-            }
-            QVERIFY2(bluePixels > 300, "GPS trace was not rendered on the map");
-            capture(&window, "trip-history-map");
-        }
+        QTRY_COMPARE(history.trips().size(), 1);
+        m_application->m_repository->publish("input-events", "brake:right:tap");
+        QTRY_COMPARE(history.points().size(), 1);
+        QCOMPARE(repo.methods, (QStringList{"history.list", "history.get", "history.points"}));
+        QCOMPARE(screen->property("page").toInt(), 1);
+        m_application->m_repository->publish("input-events", "brake:left:long-tap");
+        QTRY_COMPARE(screen->property("page").toInt(), 0);
+        m_application->m_repository->publish("input-events", "brake:right:tap");
+        QTRY_COMPARE(repo.methods.size(), 5);
+        QTRY_COMPARE(history.points().size(), 1);
+        QCOMPARE(repo.methods.mid(3), (QStringList{"history.get", "history.points"}));
+        m_application->m_repository->publish("input-events", "brake:left:long-tap");
+        QTRY_COMPARE(screen->property("page").toInt(), 0);
+        repo.autoReply = false;
+        m_application->m_repository->publish("input-events", "brake:right:tap");
+        QTRY_COMPARE(repo.methods.size(), 6);
+        repo.reply(repo.lastReply, {{"id", "one"}, {"point_count", 1}});
+        QTRY_COMPARE(repo.methods.size(), 7);
+        const QString latePointsReply = repo.lastReply;
+        m_application->m_repository->publish("input-events", "brake:left:long-tap");
+        QTRY_COMPARE(screen->property("page").toInt(), 0);
+        repo.reply(latePointsReply, {{"points", QJsonArray{QJsonObject{{"id", 99}}}}});
+        QTest::qWait(30);
+        QVERIFY(history.points().isEmpty());
         screen.reset();
         m_engine->rootContext()->setContextProperty("tripHistoryService", m_application->m_tripHistoryService);
     }
