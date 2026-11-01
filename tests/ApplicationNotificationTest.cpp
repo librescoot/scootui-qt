@@ -683,6 +683,41 @@ private slots:
         QVERIFY(repo.bluetoothCommands.isEmpty());
     }
 
+    void backlightMenuLabelFollowsLanguage()
+    {
+        auto *menu = context<MenuStore>("menuStore");
+        auto *tr = context<Translations>("translations");
+        QVERIFY(menu && tr);
+        const auto select = [menu](const QString &id) {
+            for (int n = 0; n < menu->currentItems().size(); ++n) {
+                if (menu->currentItems().at(menu->selectedIndex()).toMap().value("id").toString() == id) {
+                    menu->selectItem();
+                    return true;
+                }
+                menu->navigateDown();
+            }
+            return false;
+        };
+        const auto backlightTitle = [menu]() {
+            for (const auto &entry : menu->currentItems()) {
+                const auto item = entry.toMap();
+                if (item.value("id").toString() == QLatin1String("settings_backlight"))
+                    return item.value("title").toString();
+            }
+            return QString();
+        };
+        menu->open();
+        QTest::qWait(160);
+        QVERIFY(select("settings"));
+        QVERIFY(select("settings_appearance"));
+        tr->setLanguage("de");
+        QCOMPARE(tr->menuBacklight(), QStringLiteral("Helligkeit"));
+        QCOMPARE(backlightTitle(), QStringLiteral("Helligkeit"));
+        tr->setLanguage("en");
+        QCOMPARE(tr->menuBacklight(), QStringLiteral("Backlight"));
+        QCOMPARE(backlightTitle(), QStringLiteral("Backlight"));
+    }
+
     void cloudMenuFollowsInternetReachability()
     {
         BluetoothTestRepository repo;
