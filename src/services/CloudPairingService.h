@@ -21,7 +21,7 @@ public:
     QString code() const;
     qint64 expiresAt() const { return m_expiresAt; }
     bool running() const { return m_running; }
-    bool busy() const { return m_busy; }
+    bool busy() const { return m_busy && m_action != QLatin1String("status"); }
     bool canStart() const;
     bool canStop() const;
     void setVisible(bool visible);
@@ -33,7 +33,7 @@ signals:
     void changed();
 private:
     void request(const QString &action);
-    void receive(const QString &data);
+    void receive(const QString &channel, const QString &data);
     void clearRequest();
     void unavailable();
     MdbRepository *m_repo;

@@ -156,6 +156,8 @@ set(CPP_SOURCES
     src/services/MapDownloadService.cpp
     src/services/UpdateChannelService.cpp
     src/services/CloudPairingService.cpp
+    src/services/PairingQrItem.cpp
+    third_party/qrcodegen/qrcodegen.cpp
     src/services/RoadMatcher.cpp
     src/services/StreetQueryDispatcher.cpp
     src/services/StreetQueryDispatcher.h
@@ -262,6 +264,7 @@ set(CPP_HEADERS
     src/services/SystemInfoService.h
     src/services/UpdateChannelService.h
     src/services/CloudPairingService.h
+    src/services/PairingQrItem.h
     src/services/VectorTileDecoder.h
     src/services/MapDownloadService.h
     src/services/RoadMatcher.h
@@ -406,7 +409,6 @@ qt_add_qml_module(scootui
     RESOURCES
         qml/widgets/components/qmldir
         qml/screens/MapDownloadPolicy.js
-        assets/icons/connect-pairing-qr.svg
         assets/icons/librescoot-turn-left.svg
         assets/icons/librescoot-turn-right.svg
         assets/icons/librescoot-keep-left.svg
@@ -536,7 +538,7 @@ if(DESKTOP_MODE)
     target_link_libraries(scootui PRIVATE Qt6::QuickControls2)
 endif()
 
-target_include_directories(scootui PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(scootui PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/third_party/qrcodegen)
 target_include_directories(scootui PRIVATE ${ZSTD_INCLUDE_DIRS})
 target_link_directories(scootui PRIVATE ${ZSTD_LIBRARY_DIRS})
 
@@ -608,8 +610,9 @@ if(BUILD_TESTING)
     add_test(NAME cloud_pairing_service_test COMMAND cloud_pairing_service_test)
 
     qt_add_executable(cloud_pairing_screen_test tests/CloudPairingScreenTest.cpp
+        src/services/PairingQrItem.cpp src/services/PairingQrItem.h third_party/qrcodegen/qrcodegen.cpp
         src/l10n/Translations.cpp src/l10n/Translations.h)
-    target_include_directories(cloud_pairing_screen_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_include_directories(cloud_pairing_screen_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/third_party/qrcodegen)
     target_link_libraries(cloud_pairing_screen_test PRIVATE Qt6::Quick Qt6::Svg Qt6::Test)
     add_test(NAME cloud_pairing_screen_test COMMAND cloud_pairing_screen_test)
     set_tests_properties(cloud_pairing_screen_test PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")

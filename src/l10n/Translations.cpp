@@ -79,8 +79,8 @@ void Translations::initStrings()
     de[QStringLiteral("menuCloud")] = QStringLiteral("Cloud");
     en[QStringLiteral("pairingTitle")] = QStringLiteral("Connect account");
     de[QStringLiteral("pairingTitle")] = QStringLiteral("Konto verbinden");
-    en[QStringLiteral("pairingInstructions")] = QStringLiteral("Start pairing, scan this QR code, then enter the code in your browser.");
-    de[QStringLiteral("pairingInstructions")] = QStringLiteral("Starte die Kopplung, scanne den QR-Code und gib den Code im Browser ein.");
+    en[QStringLiteral("pairingInstructions")] = QStringLiteral("Scan the QR code or enter the code in your browser.");
+    de[QStringLiteral("pairingInstructions")] = QStringLiteral("QR-Code scannen oder Code im Browser eingeben.");
     en[QStringLiteral("pairingSafety")] = QStringLiteral("Keep the scooter online and stationary. Approve in Sunshine. Existing ownership and credentials are retained.");
     de[QStringLiteral("pairingSafety")] = QStringLiteral("Roller online stehen lassen. In Sunshine bestätigen. Bestehende Eigentümer und Zugangsdaten bleiben erhalten.");
     en[QStringLiteral("pairingStart")] = QStringLiteral("Start pairing");

@@ -54,13 +54,13 @@ QString CloudPairingService::code() const
 
 bool CloudPairingService::canStart() const
 {
-    return m_visible && m_stationary && m_repo->isConnected() && !m_busy && !m_running
-        && m_state != QLatin1String("connected");
+    return m_visible && m_stationary && m_repo->isConnected() && !busy() && !m_running
+        && m_state != QLatin1String("connected") && m_state != QLatin1String("unavailable");
 }
 
 bool CloudPairingService::canStop() const
 {
-    return m_visible && m_repo->isConnected() && !m_busy && m_running
+    return m_visible && m_repo->isConnected() && !busy() && m_running
         && m_state != QLatin1String("stopping");
 }
 
@@ -82,15 +82,15 @@ void CloudPairingService::setVisible(bool visible)
     } else {
         m_poll.stop();
         m_expiry.stop();
-        clearRequest();
+        if (!busy()) clearRequest();
         m_code.clear();
         m_expiresAt = 0;
     }
     emit changed();
 }
 
-void CloudPairingService::start() { if (canStart()) request(QStringLiteral("start")); }
-void CloudPairingService::stop() { if (canStop()) request(QStringLiteral("stop")); }
+void CloudPairingService::start() { if (canStart()) { clearRequest(); request(QStringLiteral("start")); } }
+void CloudPairingService::stop() { if (canStop()) { clearRequest(); request(QStringLiteral("stop")); } }
 void CloudPairingService::refresh() { if (m_visible && !m_busy) request(QStringLiteral("status")); }
 
 void CloudPairingService::request(const QString &action)
@@ -99,11 +99,17 @@ void CloudPairingService::request(const QString &action)
     m_busy = true;
     m_sent = false;
     m_action = action;
+    if (action == QLatin1String("start")) m_state = QStringLiteral("starting");
+    if (action == QLatin1String("stop")) {
+        m_state = QStringLiteral("stopping");
+        m_code.clear();
+        m_expiresAt = 0;
+    }
     m_channel = Channel + QStringLiteral(":reply:") + QUuid::createUuid().toString(QUuid::WithoutBraces);
     m_deadline = QDateTime::currentMSecsSinceEpoch() + TimeoutMs;
     m_timeout.start(TimeoutMs);
     // Publish only after SUBSCRIBE acknowledgment, never optimistically.
-    m_subscription = m_repo->subscribe(m_channel, [this](const QString &, const QString &data) { receive(data); });
+    m_subscription = m_repo->subscribe(m_channel, [this](const QString &channel, const QString &data) { receive(channel, data); });
     emit changed();
 }
 
@@ -125,9 +131,9 @@ void CloudPairingService::unavailable()
     emit changed();
 }
 
-void CloudPairingService::receive(const QString &data)
+void CloudPairingService::receive(const QString &channel, const QString &data)
 {
-    if (!m_busy || !m_sent) return;
+    if (!m_busy || !m_sent || channel != m_channel) return;
     if (data.toUtf8().size() > 1024) { unavailable(); return; }
     QJsonParseError parse;
     const QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8(), &parse);
@@ -147,8 +153,8 @@ void CloudPairingService::receive(const QString &data)
     const QString code = snapshot.value(QStringLiteral("code")).toString();
     static const QRegularExpression format(QStringLiteral("^[0-9ABCDEFGHJKMNPQRSTVWXYZ]{5}-[0-9ABCDEFGHJKMNPQRSTVWXYZ]{5}$"));
     const qint64 expiry = snapshot.value(QStringLiteral("expires_at")).toInteger();
-    if (m_running && state == QLatin1String("waiting_for_web_setup")
-        && format.match(code).hasMatch() && expiry > QDateTime::currentSecsSinceEpoch()
+    if (m_visible && m_running && state == QLatin1String("waiting_for_web_setup")
+        && code.size() == 11 && format.match(code).hasMatch() && expiry > QDateTime::currentSecsSinceEpoch()
         && expiry <= QDateTime::currentSecsSinceEpoch() + 3600) {
         m_code = code;
         m_expiresAt = expiry;

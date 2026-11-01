@@ -1,11 +1,13 @@
 import QtQuick
+import ScootUI.Pairing 1.0
 import "../widgets/components"
 
 Rectangle {
     id: root
     color: themeStore.isDark ? "black" : "white"
     readonly property color foreground: themeStore.isDark ? "white" : "black"
-    readonly property color muted: themeStore.isDark ? "#aaaaaa" : "#555555"
+    readonly property color muted: themeStore.isDark ? "#99ffffff" : "#8a000000"
+    readonly property color divider: themeStore.isDark ? "#1fffffff" : "#1f000000"
     property double now: Date.now() / 1000
     readonly property string pairingState: cloudPairingService.state
     readonly property string stateText: {
@@ -39,107 +41,121 @@ Rectangle {
         onTriggered: root.now = Date.now() / 1000
     }
     Column {
-        id: content
-        objectName: "pairingContent"
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.margins: 20
-        spacing: 12
-        Text {
-            objectName: "pairingTitle"
+        anchors.fill: parent
+        Item {
             width: parent.width
-            text: translations.pairingTitle
-            color: root.foreground
-            font.pixelSize: 28
-            font.bold: true
-            textFormat: Text.PlainText
-        }
-        Text {
-            objectName: "pairingInstructions"
-            width: parent.width
-            text: translations.pairingInstructions
-            color: root.foreground
-            font.pixelSize: 18
-            wrapMode: Text.WordWrap
-            textFormat: Text.PlainText
-        }
-        Row {
-            width: parent.width
-            height: 185
-            spacing: 14
-            Image {
-                objectName: "pairingQr"
-                width: 185
-                height: 185
-                source: Qt.resolvedUrl("../../assets/icons/connect-pairing-qr.svg")
-                sourceSize.width: 185
-                sourceSize.height: 185
-                smooth: false
-                Accessible.name: translations.pairingInstructions
+            height: 56
+            Text {
+                objectName: "pairingTitle"
+                anchors.left: parent.left
+                anchors.leftMargin: 20
+                anchors.verticalCenter: parent.verticalCenter
+                text: translations.pairingTitle
+                color: root.foreground
+                font.pixelSize: themeStore.fontBody + 6
+                font.weight: Font.DemiBold
             }
+            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: root.divider }
+        }
+        Item {
+            width: parent.width
+            height: parent.height - 56 - footer.height
             Column {
-                width: parent.width - 199
-                spacing: 10
-                Text {
-                    width: parent.width
-                    text: "connect.librescoot.org/pair"
-                    color: root.foreground
-                    font.pixelSize: 16
-                    wrapMode: Text.WrapAnywhere
-                    textFormat: Text.PlainText
-                }
-                Text {
-                    objectName: "pairingCode"
-                    width: parent.width
-                    height: 42
-                    text: cloudPairingService.code || "----- -----"
-                    color: cloudPairingService.code ? root.foreground : root.muted
-                    font.family: "Roboto Condensed"
-                    font.pixelSize: 34
-                    minimumPixelSize: 20
-                    fontSizeMode: Text.Fit
-                    textFormat: Text.PlainText
-                }
-                Text {
-                    objectName: "pairingExpiry"
-                    width: parent.width
-                    text: cloudPairingService.code ? translations.pairingExpires.arg(Math.max(0, Math.ceil(cloudPairingService.expiresAt - root.now))) : ""
-                    color: root.muted
-                    font.pixelSize: 16
-                    wrapMode: Text.WordWrap
-                    textFormat: Text.PlainText
-                }
+                id: content
+                objectName: "pairingContent"
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 20
+                spacing: 12
                 Text {
                     objectName: "pairingStatus"
                     width: parent.width
                     text: root.stateText
                     color: root.foreground
-                    font.pixelSize: 18
+                    font.pixelSize: themeStore.fontBody
+                    font.weight: Font.Medium
                     wrapMode: Text.WordWrap
-                    textFormat: Text.PlainText
+                }
+                Text {
+                    objectName: "pairingInstructions"
+                    width: parent.width
+                    visible: cloudPairingService.code !== ""
+                    text: visible ? translations.pairingInstructions : ""
+                    color: root.foreground
+                    font.pixelSize: themeStore.fontBody
+                    wrapMode: Text.WordWrap
+                }
+                Row {
+                    width: parent.width
+                    height: visible ? 180 : 0
+                    visible: cloudPairingService.code !== ""
+                    spacing: 14
+                    PairingQr {
+                        objectName: "pairingQr"
+                        width: 180
+                        height: 180
+                        code: cloudPairingService.code
+                        Accessible.name: translations.pairingInstructions
+                    }
+                    Column {
+                        width: parent.width - 194
+                        spacing: 10
+                        Text {
+                            width: parent.width
+                            text: "connect.librescoot.org/pair"
+                            color: root.foreground
+                            font.pixelSize: themeStore.fontCaption
+                            wrapMode: Text.WrapAnywhere
+                        }
+                        Text {
+                            objectName: "pairingCode"
+                            width: parent.width
+                            text: cloudPairingService.code
+                            color: root.foreground
+                            font.family: "Roboto Condensed"
+                            font.pixelSize: 30
+                            minimumPixelSize: 20
+                            fontSizeMode: Text.Fit
+                        }
+                        Text {
+                            objectName: "pairingExpiry"
+                            width: parent.width
+                            text: cloudPairingService.code ? translations.pairingExpires.arg(Math.max(0, Math.ceil(cloudPairingService.expiresAt - root.now))) : ""
+                            color: root.muted
+                            font.pixelSize: themeStore.fontCaption
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+                }
+                Text {
+                    objectName: "pairingSafety"
+                    width: parent.width
+                    text: translations.pairingSafety
+                    color: root.muted
+                    font.pixelSize: themeStore.fontCaption
+                    wrapMode: Text.WordWrap
                 }
             }
         }
-        Text {
-            objectName: "pairingSafety"
+        Rectangle {
+            id: footer
             width: parent.width
-            text: translations.pairingSafety
-            color: root.muted
-            font.pixelSize: 16
-            wrapMode: Text.WordWrap
-            textFormat: Text.PlainText
+            height: controls.height + 1
+            color: root.color
+            Rectangle { anchors.top: parent.top; width: parent.width; height: 1; color: root.divider }
+            ControlHints {
+                id: controls
+                objectName: "pairingControls"
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                reservedRows: 2
+                leftHold: translations.controlBack
+                rightTap: cloudPairingService.canStop ? translations.pairingStop
+                    : cloudPairingService.canStart ? translations.pairingStart : ""
+                isDark: themeStore.isDark
+            }
         }
-    }
-    ControlHints {
-        objectName: "pairingControls"
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.margins: 20
-        leftHold: translations.controlBack
-        rightTap: cloudPairingService.canStop ? translations.pairingStop
-            : cloudPairingService.canStart ? translations.pairingStart : ""
-        isDark: themeStore.isDark
     }
 }

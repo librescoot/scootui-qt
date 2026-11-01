@@ -6,7 +6,7 @@
 class PairingRepository : public InMemoryMdbRepository {
     Q_OBJECT
 public:
-    bool connected = true, acknowledged = false;
+    bool connected = true, acknowledged = false, autoReply = true;
     QStringList methods;
     QJsonObject snapshot{{"state", "not_registered"}, {"running", false}};
     QJsonObject last;
@@ -26,8 +26,11 @@ public:
         QCOMPARE(last.value("reply_channel").toString(), channel + ":reply:" + last.value("id").toString());
         QVERIFY(last.value("deadline").toDouble() > QDateTime::currentMSecsSinceEpoch());
         QVERIFY(last.value("payload").toObject().isEmpty());
-        const auto reply = QJsonDocument(QJsonObject{{"ok", true}, {"payload", snapshot}}).toJson(QJsonDocument::Compact);
-        publish(last.value("reply_channel").toString(), QString::fromUtf8(reply));
+        if (autoReply) reply(last.value("reply_channel").toString(), snapshot);
+    }
+    void reply(const QString &channel, const QJsonObject &value) {
+        const auto response = QJsonDocument(QJsonObject{{"ok", true}, {"payload", value}}).toJson(QJsonDocument::Compact);
+        publish(channel, QString::fromUtf8(response));
     }
 };
 
@@ -39,7 +42,7 @@ private slots:
         CloudPairingService service(&repo);
         QCOMPARE(repo.methods.size(), 0);
         service.setVisible(true);
-        QTRY_VERIFY(!service.busy());
+        QTRY_COMPARE(service.state(), QStringLiteral("not_registered"));
         QCOMPARE(repo.methods, QStringList{"status"});
         QVERIFY(!service.canStart());
         service.start();
@@ -81,13 +84,57 @@ private slots:
         QCOMPARE(service.state(), QStringLiteral("unavailable"));
         QVERIFY(!service.canStart());
     }
+    void pollingIsPreemptedAndMutationsStaySerialized() {
+        PairingRepository repo;
+        CloudPairingService service(&repo);
+        service.setStationary(true);
+        service.setVisible(true);
+        QTRY_COMPARE(service.state(), QStringLiteral("not_registered"));
+        repo.autoReply = false;
+        service.refresh();
+        QTRY_COMPARE(repo.methods.size(), 2);
+        const QString staleChannel = repo.last.value("reply_channel").toString();
+        QVERIFY(service.canStart());
+        service.start();
+        QCOMPARE(service.state(), QStringLiteral("starting"));
+        QVERIFY(service.busy());
+        service.start(); service.stop();
+        QTRY_COMPARE(repo.methods.size(), 3);
+        const QString startChannel = repo.last.value("reply_channel").toString();
+        repo.reply(staleChannel, {{"state", "connected"}, {"running", false}});
+        QCOMPARE(service.state(), QStringLiteral("starting"));
+        service.setVisible(false);
+        service.setVisible(true);
+        service.start();
+        QCOMPARE(repo.methods.size(), 3);
+        repo.reply(startChannel, {{"state", "starting"}, {"running", true}});
+        QVERIFY(!service.busy());
+        QVERIFY(service.canStop());
+        service.stop();
+        QCOMPARE(service.state(), QStringLiteral("stopping"));
+        service.stop(); service.start();
+        QTRY_COMPARE(repo.methods.size(), 4);
+        repo.connected = false;
+        emit repo.connectionStateChanged(false);
+        QCOMPARE(service.state(), QStringLiteral("unavailable"));
+        QVERIFY(!service.canStart());
+    }
     void unknownStatesAndUnsafeCodesAreNotExposed() {
         PairingRepository repo;
         repo.snapshot = {{"state", "waiting_for_web_setup"}, {"running", true},
             {"code", "<unsafe>"}, {"expires_at", QDateTime::currentSecsSinceEpoch() + 300}};
         CloudPairingService service(&repo);
         service.setVisible(true);
-        QTRY_VERIFY(!service.busy());
+        QTRY_COMPARE(service.state(), QStringLiteral("waiting_for_web_setup"));
+        QVERIFY(service.code().isEmpty());
+        repo.snapshot["code"] = "01234-56789\n";
+        service.refresh();
+        QTRY_COMPARE(repo.methods.size(), 2);
+        QVERIFY(service.code().isEmpty());
+        repo.snapshot["code"] = "01234-56789";
+        repo.snapshot["expires_at"] = QDateTime::currentSecsSinceEpoch() - 1;
+        service.refresh();
+        QTRY_COMPARE(repo.methods.size(), 3);
         QVERIFY(service.code().isEmpty());
         repo.snapshot["state"] = "private-unknown-state";
         service.refresh();

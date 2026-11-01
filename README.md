@@ -65,6 +65,19 @@ Cached messages remain readable while the MDB connection is unavailable; deletio
 and forwarding changes are unavailable until reconnection. Opening a message marks
 it read only while connected. Message content is rendered as plain text.
 
+## Connect pairing
+
+While stationary, use the Connect account screen to start pairing. When a valid
+short code is available, the dashboard displays it and a QR link containing the
+code in its URL fragment. Scanning opens the Connect pairing page with the code
+prefilled; the user must still continue and approve ownership in the browser.
+The Stop action requests a cooperative pause. Background status checks do not
+block the dashboard action, though registration still depends on connectivity.
+
+For QR capture regression tests, run `cloud_pairing_screen_test` with
+`CONNECT_CAPTURE_DIR` set under XCB, then run `tests/check_pairing_qr.py` on
+that directory with the `pillow` and `zxing-cpp` Python packages installed.
+
 ## Battery consumption
 
 System > Info > Consumption shows the traction-pack net energy estimate from
