@@ -3,6 +3,8 @@
 #include <QQmlContext>
 #include <QQmlComponent>
 #include <QJSValue>
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <QFontDatabase>
 #include <QNetworkProxy>
 #include <QQuickItem>
@@ -28,6 +30,7 @@
 #undef private
 #include "services/NotificationService.h"
 #include "services/ToastService.h"
+#include "services/TripHistoryService.h"
 #include "l10n/Translations.h"
 #include "services/SettingsService.h"
 #include "stores/BatteryStore.h"
@@ -59,6 +62,38 @@ public:
             bluetoothCommands.append(command);
         else
             InMemoryMdbRepository::push(channel, command);
+    }
+};
+
+class HistoryTestRepository : public InMemoryMdbRepository
+{
+public:
+    QStringList methods;
+    bool autoReply = true;
+    QString lastReply;
+    void push(const QString &channel, const QString &payload) override
+    {
+        if (channel != QLatin1String("trip:history:rpc")) {
+            InMemoryMdbRepository::push(channel, payload);
+            return;
+        }
+        const auto request = QJsonDocument::fromJson(payload.toUtf8()).object();
+        const QString method = request.value("method").toString();
+        methods.append(method);
+        lastReply = request.value("reply_channel").toString();
+        if (!autoReply) return;
+        QJsonObject result;
+        if (method == QLatin1String("history.list"))
+            result = {{"trips", QJsonArray{QJsonObject{{"id", "one"}, {"distance_m", 8400}}}}};
+        else if (method == QLatin1String("history.get"))
+            result = {{"id", "one"}, {"point_count", 1}};
+        else if (method == QLatin1String("history.points"))
+            result = {{"points", QJsonArray{QJsonObject{{"id", 1}, {"latitude", 52.0}, {"longitude", 13.0}}}}};
+        reply(lastReply, result);
+    }
+    void reply(const QString &channel, const QJsonObject &value)
+    {
+        publish(channel, QString::fromUtf8(QJsonDocument(QJsonObject{{"ok", true}, {"payload", value}}).toJson(QJsonDocument::Compact)));
     }
 };
 
@@ -372,6 +407,100 @@ private slots:
         QTRY_VERIFY((value = findValue(screen.get())));
         QTRY_VERIFY(value->property("lineCount").toInt() > 1);
         QVERIFY(!value->property("truncated").toBool());
+    }
+
+    void tripHistoryRpcAndCancellation()
+    {
+        HistoryTestRepository repo;
+        TripHistoryService history(&repo);
+        history.refresh();
+        QTRY_VERIFY(!history.loading());
+        QCOMPARE(repo.methods, QStringList{"history.list"});
+        QCOMPARE(history.trips().size(), 1);
+        history.selectTrip("one");
+        QTRY_VERIFY(!history.loading());
+        QCOMPARE(history.selected().value("id").toString(), QStringLiteral("one"));
+        history.loadPoints();
+        QTRY_VERIFY(!history.loading());
+        QCOMPARE(history.points().size(), 1);
+        repo.autoReply = false;
+        history.refresh();
+        QTRY_VERIFY(repo.methods.size() == 4);
+        const QString oldReply = repo.lastReply;
+        history.close();
+        repo.reply(oldReply, {{"trips", QJsonArray{QJsonObject{{"id", "stale"}}}}});
+        QTest::qWait(30);
+        QVERIFY(history.trips().isEmpty());
+        QVERIFY(!history.loading());
+        repo.autoReply = true;
+        history.refresh();
+        QTRY_VERIFY(!history.loading());
+        QCOMPARE(history.trips().size(), 1);
+    }
+
+    void tripHistoryUsesMenuAndControlHints()
+    {
+        QQmlComponent fixture(m_engine.get());
+        fixture.setData(R"(import QtQml
+            QtObject {
+                property var trips: [{id:"one",started_at_s:1793343600,distance_m:8400}]
+                property var selected: ({})
+                property var points: []
+                property bool loading: false
+                property bool hasMore: false
+                property string error: ""
+                function refresh() {}
+                function close() {}
+                function selectTrip(id) { selected = {id:id, started_at_s:1793343600, distance_m:8400, ready_duration_s:1680, average_speed_kmh:18, point_count:2} }
+                function loadMore() {}
+                function loadPoints() { points = [{id:1, latitude:52.52, longitude:13.40, timestamp_ms:1793343600000}, {id:2, latitude:52.53, longitude:13.42, timestamp_ms:1793343660000}] }
+            })", QUrl());
+        std::unique_ptr<QObject> fake(fixture.create());
+        QVERIFY2(fake, qPrintable(fixture.errorString()));
+        m_engine->rootContext()->setContextProperty("tripHistoryService", fake.get());
+        context<Translations>("translations")->setLanguage("de");
+        context<ScreenStore>("screenStore")->showTripHistory();
+        QQuickWindow window;
+        window.resize(480, 480);
+        QQmlComponent component(m_engine.get(), QUrl("qrc:/ScootUI/qml/screens/TripHistoryScreen.qml"));
+        std::unique_ptr<QQuickItem> screen(qobject_cast<QQuickItem *>(component.create()));
+        QVERIFY2(screen, qPrintable(component.errorString()));
+        screen->setParentItem(window.contentItem());
+        screen->setSize(QSizeF(480, 480));
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY(screen->findChild<QObject *>("tripHistoryTitle"));
+        QVERIFY(screen->findChild<QObject *>("tripHistoryList"));
+        QVERIFY(screen->findChild<QObject *>("tripHistoryHints"));
+        capture(&window, "trip-history-list");
+        QVERIFY(QMetaObject::invokeMethod(screen.get(), "select"));
+        QTRY_COMPARE(screen->property("page").toInt(), 1);
+        capture(&window, "trip-history-detail");
+        if (!qEnvironmentVariableIsEmpty("SCOOTUI_TEST_MAP_PLUGIN_PATH")) {
+            m_engine->addImportPath(qEnvironmentVariable("SCOOTUI_TEST_MAP_PLUGIN_PATH"));
+            QVERIFY(QMetaObject::invokeMethod(screen.get(), "select"));
+            QTRY_COMPARE(screen->property("page").toInt(), 2);
+            auto *loader = screen->findChild<QObject *>("tripHistoryMapLoader");
+            QVERIFY(loader);
+            QTRY_COMPARE(loader->property("status").toInt(), 1);
+            auto *mapItem = qvariant_cast<QObject *>(loader->property("item"));
+            QVERIFY(mapItem);
+            QVERIFY(mapItem->property("traceJson").toString().contains("13.4"));
+            QTest::qWait(1800);
+            const QImage image = window.grabWindow();
+            int bluePixels = 0;
+            for (int y = 60; y < image.height() - 60; ++y) {
+                for (int x = 0; x < image.width(); ++x) {
+                    const QColor c = image.pixelColor(x, y);
+                    if (c.blue() > 150 && c.blue() > c.red() * 1.35 && c.blue() > c.green() * 1.1)
+                        ++bluePixels;
+                }
+            }
+            QVERIFY2(bluePixels > 300, "GPS trace was not rendered on the map");
+            capture(&window, "trip-history-map");
+        }
+        screen.reset();
+        m_engine->rootContext()->setContextProperty("tripHistoryService", m_application->m_tripHistoryService);
     }
 
     void consumptionInfoMenuAndLiveCounters()

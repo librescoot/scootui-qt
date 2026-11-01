@@ -15,14 +15,17 @@ class RoutePlanRpc : public QObject
 public:
     using Completion = std::function<void(const QJsonObject &, const QString &)>;
     explicit RoutePlanRpc(MdbRepository *repo, QObject *parent = nullptr);
+    RoutePlanRpc(MdbRepository *repo, const QString &channel, QObject *parent = nullptr);
     ~RoutePlanRpc() override;
     void call(const QString &method, const QJsonObject &payload, Completion completion);
+    void cancelAll();
 
 private:
     struct Request { QString method; QJsonObject payload; Completion completion; };
     void sendNext();
     void finish(const QJsonObject &plan, const QString &error);
     MdbRepository *m_repo;
+    QString m_channel;
     QString m_replyChannel;
     SubscriptionId m_subscription = 0;
     QQueue<Request> m_queue;

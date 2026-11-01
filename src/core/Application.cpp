@@ -80,6 +80,7 @@
 #include "services/OdometerMilestoneService.h"
 #include "core/DataPartition.h"
 #include "services/SystemInfoService.h"
+#include "services/TripHistoryService.h"
 #include "l10n/Translations.h"
 #include "utils/FaultFormatter.h"
 #include "simulator/SimulatorService.h"
@@ -362,6 +363,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_soundCueService->setNotificationService(m_notificationService);
     m_serialNumberService = new SerialNumberService(this);
     m_systemInfoService = new SystemInfoService(repo, this);
+    m_tripHistoryService = new TripHistoryService(repo, this);
 
     // Address database (for destination code lookup). Its asynchronous build
     // starts after the first rendered frame; starting it during scene-graph
@@ -1117,6 +1119,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("mapDownloadService"), m_mapDownloadService);
     ctx->setContextProperty(QStringLiteral("umsLogStore"), umsLogStore);
     ctx->setContextProperty(QStringLiteral("systemInfoService"), m_systemInfoService);
+    ctx->setContextProperty(QStringLiteral("tripHistoryService"), m_tripHistoryService);
     ctx->setContextProperty(QStringLiteral("odometerMilestoneService"), m_odometerMilestoneService);
     ctx->setContextProperty(QStringLiteral("faultsStore"), faultsStore);
     ctx->setContextProperty(QStringLiteral("updateChannelService"), m_updateChannelService);

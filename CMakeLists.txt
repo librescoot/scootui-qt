@@ -124,6 +124,7 @@ set(CPP_SOURCES
     src/services/InputHandler.cpp
     src/services/NavigationService.cpp
     src/services/RoutePlanRpc.cpp
+    src/services/TripHistoryService.cpp
     src/services/ToastService.cpp
     src/services/AttentionPolicy.cpp
     src/services/NotificationService.cpp
@@ -262,6 +263,7 @@ set(CPP_HEADERS
     src/services/AddressDatabaseService.h
     src/services/FlatTrie.h
     src/services/SystemInfoService.h
+    src/services/TripHistoryService.h
     src/services/UpdateChannelService.h
     src/services/CloudPairingService.h
     src/services/PairingQrItem.h
@@ -308,6 +310,9 @@ set(QML_FILES
     qml/screens/NavigationSetupScreen.qml
     qml/screens/FaultsScreen.qml
     qml/screens/SmsInboxScreen.qml
+    qml/screens/TripHistoryScreen.qml
+    qml/screens/TripHistoryMap.qml
+    qml/screens/TripHistoryMapLegacy.qml
     qml/screens/CloudPairingScreen.qml
     qml/screens/SystemInfoScreen.qml
     qml/screens/UpdateModeInfoScreen.qml

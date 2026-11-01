@@ -10,7 +10,12 @@ const QString Channel = QStringLiteral("settings:route-plan");
 }
 
 RoutePlanRpc::RoutePlanRpc(MdbRepository *repo, QObject *parent)
-    : QObject(parent), m_repo(repo)
+    : RoutePlanRpc(repo, Channel, parent)
+{
+}
+
+RoutePlanRpc::RoutePlanRpc(MdbRepository *repo, const QString &channel, QObject *parent)
+    : QObject(parent), m_repo(repo), m_channel(channel)
 {
     m_timeout.setSingleShot(true);
     connect(&m_timeout, &QTimer::timeout, this, [this]() {
@@ -21,13 +26,13 @@ RoutePlanRpc::RoutePlanRpc(MdbRepository *repo, QObject *parent)
         m_inFlight = true;
         const Request &request = m_queue.head();
         const QJsonObject envelope{
-            {QStringLiteral("id"), m_replyChannel.mid(Channel.size() + 7)},
+            {QStringLiteral("id"), m_replyChannel.mid(m_channel.size() + 7)},
             {QStringLiteral("method"), request.method},
             {QStringLiteral("reply_channel"), m_replyChannel},
             {QStringLiteral("deadline"), double(QDateTime::currentMSecsSinceEpoch() + TimeoutMs)},
             {QStringLiteral("payload"), request.payload}
         };
-        m_repo->push(Channel, QString::fromUtf8(QJsonDocument(envelope).toJson(QJsonDocument::Compact)));
+        m_repo->push(m_channel, QString::fromUtf8(QJsonDocument(envelope).toJson(QJsonDocument::Compact)));
     });
     connect(repo, &MdbRepository::connectionStateChanged, this, [this](bool connected) {
         if (!connected && !m_queue.isEmpty())
@@ -41,6 +46,16 @@ RoutePlanRpc::~RoutePlanRpc()
         m_repo->unsubscribe(m_replyChannel, m_subscription);
 }
 
+void RoutePlanRpc::cancelAll()
+{
+    m_timeout.stop();
+    if (m_subscription)
+        m_repo->unsubscribe(m_replyChannel, m_subscription);
+    m_subscription = 0;
+    m_inFlight = false;
+    m_queue.clear();
+}
+
 void RoutePlanRpc::call(const QString &method, const QJsonObject &payload, Completion completion)
 {
     m_queue.enqueue({method, payload, std::move(completion)});
@@ -50,7 +65,7 @@ void RoutePlanRpc::call(const QString &method, const QJsonObject &payload, Compl
 void RoutePlanRpc::sendNext()
 {
     if (m_subscription || m_queue.isEmpty()) return;
-    m_replyChannel = Channel + QStringLiteral(":reply:")
+    m_replyChannel = m_channel + QStringLiteral(":reply:")
         + QUuid::createUuid().toString(QUuid::WithoutBraces);
     m_inFlight = false;
     m_timeout.start(TimeoutMs);

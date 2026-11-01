@@ -26,6 +26,7 @@ bool ScreenStore::isBrakeNavigated(ScootEnums::ScreenMode mode)
     case ScootEnums::ScreenMode::NavigationSetup:
     case ScootEnums::ScreenMode::Faults:
     case ScootEnums::ScreenMode::SmsInbox:
+    case ScootEnums::ScreenMode::TripHistory:
     case ScootEnums::ScreenMode::CloudPairing:
     case ScootEnums::ScreenMode::SystemInfo:
     case ScootEnums::ScreenMode::UpdateModeInfo:
@@ -175,6 +176,17 @@ void ScreenStore::showSmsInbox()
 void ScreenStore::closeSmsInbox()
 {
     setScreen(static_cast<int>(m_screenBeforeSmsInbox));
+}
+
+void ScreenStore::showTripHistory()
+{
+    m_screenBeforeTripHistory = m_currentScreen;
+    setScreen(static_cast<int>(ScootEnums::ScreenMode::TripHistory));
+}
+
+void ScreenStore::closeTripHistory()
+{
+    setScreen(static_cast<int>(m_screenBeforeTripHistory));
 }
 
 void ScreenStore::showCloudPairing()
