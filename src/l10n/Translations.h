@@ -23,6 +23,20 @@ class Translations : public QObject
     Q_PROPERTY(QString rideGroupUnavailable READ rideGroupUnavailable NOTIFY languageChanged)
     Q_PROPERTY(QString menuTitle READ menuTitle NOTIFY languageChanged)
     Q_PROPERTY(QString menuSettings READ menuSettings NOTIFY languageChanged)
+    Q_PROPERTY(QString smsTitle READ smsTitle NOTIFY languageChanged)
+    Q_PROPERTY(QString smsMessage READ smsMessage NOTIFY languageChanged)
+    Q_PROPERTY(QString smsUnknownSender READ smsUnknownSender NOTIFY languageChanged)
+    Q_PROPERTY(QString smsEmpty READ smsEmpty NOTIFY languageChanged)
+    Q_PROPERTY(QString smsUnavailable READ smsUnavailable NOTIFY languageChanged)
+    Q_PROPERTY(QString smsDisconnected READ smsDisconnected NOTIFY languageChanged)
+    Q_PROPERTY(QString smsRead READ smsRead NOTIFY languageChanged)
+    Q_PROPERTY(QString smsUnread READ smsUnread NOTIFY languageChanged)
+    Q_PROPERTY(QString smsDelete READ smsDelete NOTIFY languageChanged)
+    Q_PROPERTY(QString smsDeleteConfirm READ smsDeleteConfirm NOTIFY languageChanged)
+    Q_PROPERTY(QString smsForwarding READ smsForwarding NOTIFY languageChanged)
+    Q_PROPERTY(QString smsForwardOff READ smsForwardOff NOTIFY languageChanged)
+    Q_PROPERTY(QString smsForwardTo READ smsForwardTo NOTIFY languageChanged)
+    Q_PROPERTY(QString smsDisableForwarding READ smsDisableForwarding NOTIFY languageChanged)
     Q_PROPERTY(QString menuCloud READ menuCloud NOTIFY languageChanged)
     Q_PROPERTY(QString pairingTitle READ pairingTitle NOTIFY languageChanged)
     Q_PROPERTY(QString pairingInstructions READ pairingInstructions NOTIFY languageChanged)
@@ -767,6 +781,20 @@ public:
     // Getters - use lookup() not Qt's tr()
     QString menuTitle() const { return lookup("menuTitle"); }
     QString menuSettings() const { return lookup("menuSettings"); }
+    QString smsTitle() const { return lookup("smsTitle"); }
+    QString smsMessage() const { return lookup("smsMessage"); }
+    QString smsUnknownSender() const { return lookup("smsUnknownSender"); }
+    QString smsEmpty() const { return lookup("smsEmpty"); }
+    QString smsUnavailable() const { return lookup("smsUnavailable"); }
+    QString smsDisconnected() const { return lookup("smsDisconnected"); }
+    QString smsRead() const { return lookup("smsRead"); }
+    QString smsUnread() const { return lookup("smsUnread"); }
+    QString smsDelete() const { return lookup("smsDelete"); }
+    QString smsDeleteConfirm() const { return lookup("smsDeleteConfirm"); }
+    QString smsForwarding() const { return lookup("smsForwarding"); }
+    QString smsForwardOff() const { return lookup("smsForwardOff"); }
+    QString smsForwardTo() const { return lookup("smsForwardTo"); }
+    QString smsDisableForwarding() const { return lookup("smsDisableForwarding"); }
     QString menuCloud() const { return lookup("menuCloud"); }
     QString pairingTitle() const { return lookup("pairingTitle"); }
     QString pairingInstructions() const { return lookup("pairingInstructions"); }

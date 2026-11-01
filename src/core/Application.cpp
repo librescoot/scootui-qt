@@ -992,6 +992,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     menuStore->setHopOnStore(hopOnStore);
     auto *keycardStore = new KeycardStore(repo, this);
     menuStore->setKeycardStore(keycardStore);
+    menuStore->setSmsStore(smsStore);
     menuStore->setMapDownloadService(m_mapDownloadService);
 
     // Fault aggregation: stream tail + union of per-service active-fault sets.

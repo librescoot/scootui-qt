@@ -614,7 +614,9 @@ if(BUILD_TESTING)
     add_test(NAME cloud_pairing_screen_test COMMAND cloud_pairing_screen_test)
     set_tests_properties(cloud_pairing_screen_test PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 
-    qt_add_executable(sms_inbox_screen_test tests/SmsInboxScreenTest.cpp)
+    qt_add_executable(sms_inbox_screen_test tests/SmsInboxScreenTest.cpp
+        src/l10n/Translations.cpp src/l10n/Translations.h)
+    target_include_directories(sms_inbox_screen_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(sms_inbox_screen_test PRIVATE Qt6::Quick Qt6::Test)
     add_test(NAME sms_inbox_screen_test COMMAND sms_inbox_screen_test)
     set_tests_properties(sms_inbox_screen_test PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")

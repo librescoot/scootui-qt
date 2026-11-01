@@ -41,6 +41,19 @@ void SmsStore::applyFieldUpdate(const QString &variable, const QString &value)
     emit messagesChanged();
 }
 
+bool SmsStore::openMessage(const QString &id)
+{
+    for (const auto &entry : m_messages) {
+        const auto message = entry.toMap();
+        if (message.value(QStringLiteral("id")).toString() != id) continue;
+        m_openedMessage = message;
+        emit openedMessageChanged();
+        markRead(id);
+        return true;
+    }
+    return false;
+}
+
 void SmsStore::sendCommand(const QString &action, const QString &id)
 {
     static const QRegularExpression validId(QStringLiteral("^[a-f0-9]{32}$"));

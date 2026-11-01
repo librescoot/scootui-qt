@@ -7,6 +7,8 @@ class SmsRepository : public InMemoryMdbRepository
 public:
     QString queue;
     QString payload;
+    bool online = true;
+    bool isConnected() const override { return online; }
     void push(const QString &channel, const QString &command) override { queue = channel; payload = command; }
 };
 
@@ -15,6 +17,7 @@ class SmsStoreTest : public QObject
     Q_OBJECT
 private slots:
     void snapshotAndCommands();
+    void openByIdentityAndReadOffline();
 };
 
 void SmsStoreTest::snapshotAndCommands()
@@ -39,6 +42,35 @@ void SmsStoreTest::snapshotAndCommands()
     repo.set(QStringLiteral("sms:inbox"), QStringLiteral("snapshot"), QStringLiteral("bad"));
     QVERIFY(!store.available());
     QVERIFY(store.messages().isEmpty());
+}
+
+void SmsStoreTest::openByIdentityAndReadOffline()
+{
+    SmsRepository repo;
+    SmsStore store(&repo);
+    store.start();
+    const QString id(32, QLatin1Char('a'));
+    repo.set("sms:inbox", "snapshot", QStringLiteral(R"({"version":1,"messages":[{"id":"%1","text":"hello"}]})").arg(id));
+    QSignalSpy opened(&store, &SmsStore::openedMessageChanged);
+    QVERIFY(store.openMessage(id));
+    QCOMPARE(opened.size(), 1);
+    QCOMPARE(store.openedMessage().value("text").toString(), QStringLiteral("hello"));
+    QVERIFY(repo.payload.contains("\"action\":\"read\""));
+    repo.payload.clear();
+    QVERIFY(!store.openMessage(QString(32, QLatin1Char('b'))));
+    QCOMPARE(opened.size(), 1);
+    QVERIFY(repo.payload.isEmpty());
+    repo.online = false;
+    emit repo.connectionStateChanged(false);
+    QVERIFY(store.openMessage(id));
+    QCOMPARE(opened.size(), 2);
+    store.deleteMessage(id);
+    store.disableForwarding();
+    QVERIFY(repo.payload.isEmpty());
+    QVERIFY(repo.get("settings", "sms.forward-to").isEmpty());
+    repo.set("sms:inbox", "snapshot", QStringLiteral(R"({"version":1,"messages":[]})"));
+    QVERIFY(!store.openMessage(id));
+    QCOMPARE(store.openedMessage().value("text").toString(), QStringLiteral("hello"));
 }
 
 QTEST_MAIN(SmsStoreTest)

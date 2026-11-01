@@ -10,6 +10,7 @@
 #include "InternetStore.h"
 #include "HopOnStore.h"
 #include "KeycardStore.h"
+#include "SmsStore.h"
 #include "FaultsStore.h"
 #include "l10n/Translations.h"
 #include "services/ToastService.h"
@@ -209,6 +210,14 @@ void MenuStore::setKeycardStore(KeycardStore *store)
         connect(m_keycard, &KeycardStore::aliasesChanged,
                 this, &MenuStore::rebuildMenuTree);
     }
+    rebuildMenuTree();
+}
+
+void MenuStore::setSmsStore(SmsStore *store)
+{
+    m_sms = store;
+    if (m_sms)
+        connect(m_sms, &SmsStore::messagesChanged, this, &MenuStore::rebuildMenuTree);
     rebuildMenuTree();
 }
 
@@ -1830,11 +1839,7 @@ void MenuStore::rebuildMenuTree()
         }));
     }
 
-    m_rootNode->addChild(MenuNode::action(QStringLiteral("sms_inbox"), QObject::tr("Messages"), [this]() {
-        closeForScreen();
-        if (m_screenStore)
-            m_screenStore->showSmsInbox();
-    }));
+    buildSmsMenu();
 
     buildEasterEggs();
 
@@ -1882,6 +1887,65 @@ void MenuStore::rebuildMenuTree()
     rememberSelection();
 
     emitMenuChanged();
+}
+
+void MenuStore::buildSmsMenu()
+{
+    if (!m_sms) return;
+    auto *tr = m_translations;
+    auto *inbox = m_rootNode->addChild(MenuNode::submenu(QStringLiteral("sms_inbox"), tr->smsTitle()));
+    if (m_sms->unread() > 0)
+        inbox->setValueLabel(QString::number(m_sms->unread()));
+    if (!m_sms->available()) {
+        inbox->addChild(MenuNode::action(QStringLiteral("sms_unavailable"), tr->smsUnavailable()));
+        return;
+    }
+    if (!m_sms->connected())
+        inbox->addChild(MenuNode::action(QStringLiteral("sms_disconnected"), tr->smsDisconnected()));
+    if (m_sms->messages().isEmpty())
+        inbox->addChild(MenuNode::action(QStringLiteral("sms_empty"), tr->smsEmpty()));
+
+    for (const auto &entry : m_sms->messages()) {
+        const auto message = entry.toMap();
+        const QString id = message.value(QStringLiteral("id")).toString();
+        QString sender = message.value(QStringLiteral("from")).toString();
+        if (sender.isEmpty()) sender = tr->smsUnknownSender();
+        const QString preview = message.value(QStringLiteral("text")).toString().simplified().left(100);
+        auto *node = inbox->addChild(MenuNode::submenu(
+            QStringLiteral("sms_message_%1").arg(id),
+            preview.isEmpty() ? sender : QStringLiteral("%1: %2").arg(sender, preview), tr->smsMessage()));
+        if (!message.value(QStringLiteral("read")).toBool()) node->setValueLabel(tr->smsUnread());
+        const QString readId = QStringLiteral("sms_read_%1").arg(id);
+        node->addChild(MenuNode::action(readId, tr->smsRead(), [this, id]() {
+            if (!m_screenStore || !m_sms->openMessage(id)) return;
+            closeForScreen();
+            m_screenStore->showSmsInbox();
+        }));
+        node->setPrimaryChildId(readId);
+        if (m_sms->connected()) {
+            auto *remove = node->addChild(MenuNode::submenu(
+                QStringLiteral("sms_delete_%1").arg(id), tr->smsDelete(), tr->smsDeleteConfirm()));
+            remove->addChild(MenuNode::action(QStringLiteral("sms_delete_cancel"), tr->controlCancel(),
+                                             [this]() { goBack(); }));
+            auto *confirm = remove->addChild(MenuNode::action(
+                QStringLiteral("sms_delete_confirm"), tr->smsDelete(), [this, id]() {
+                    m_sms->deleteMessage(id);
+                    goBack();
+                    goBack();
+                }));
+            confirm->setCaution(true);
+        }
+    }
+    auto *forward = inbox->addChild(MenuNode::submenu(QStringLiteral("sms_forwarding"), tr->smsForwarding()));
+    const QString target = m_sms->forwardTo();
+    if (target.isEmpty() || target == QLatin1String("off")) {
+        forward->addChild(MenuNode::action(QStringLiteral("sms_forward_off"), tr->smsForwardOff()));
+    } else {
+        forward->addChild(MenuNode::action(QStringLiteral("sms_forward_to"), tr->smsForwardTo().arg(target)));
+        if (m_sms->connected())
+            forward->addChild(MenuNode::action(QStringLiteral("sms_forward_disable"), tr->smsDisableForwarding(),
+                                              [this]() { m_sms->disableForwarding(); }));
+    }
 }
 
 // The easter-egg level is a normal submenu so it reuses the menu's rendering,

@@ -27,6 +27,7 @@ class FaultsStore;
 class ToastService;
 class UpdateChannelService;
 class KeycardStore;
+class SmsStore;
 class BootThemeService;
 class OdometerMilestoneService;
 
@@ -68,6 +69,7 @@ public:
     void setToastService(ToastService *svc);
     void setUpdateChannelService(UpdateChannelService *svc);
     void setKeycardStore(KeycardStore *store);
+    void setSmsStore(SmsStore *store);
     void setBootThemeService(BootThemeService *svc);
     void setOdometerMilestoneService(OdometerMilestoneService *svc);
     ~MenuStore() override;
@@ -114,6 +116,7 @@ private:
     void clearResume();
     void rebuildMenuTree();
     void buildEasterEggs();
+    void buildSmsMenu();
     void fireMilestoneDemo();
     QString lastMapCheckLabel() const;
     QString lastCheckLabel(const QString &iso) const;
@@ -145,6 +148,7 @@ private:
     ToastService *m_toastService = nullptr;
     UpdateChannelService *m_updateChannel = nullptr;
     KeycardStore *m_keycard = nullptr;
+    SmsStore *m_sms = nullptr;
     BootThemeService *m_bootTheme = nullptr;
     OdometerMilestoneService *m_odometerMilestone = nullptr;
 

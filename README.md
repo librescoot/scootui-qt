@@ -52,6 +52,19 @@ overlay directly before stopping the animation. If that also fails, it exits
 for the service supervisor to restart it. Images without a usable overlay
 use DRM/KMS and a direct first-frame handoff.
 
+## SMS inbox
+
+Messages is a regular dashboard submenu, available while parked. It lists senders
+and message previews, marks unread entries, and offers Read message and a separate
+cancel-first deletion confirmation. Holding the right brake on a message opens
+it directly. The reader uses the shared control hints for scrolling and returning
+to the menu. SMS forwarding has its own submenu rather than a hidden gesture.
+All labels follow the dashboard's English/German language selection.
+
+Cached messages remain readable while the MDB connection is unavailable; deletion
+and forwarding changes are unavailable until reconnection. Opening a message marks
+it read only while connected. Message content is rendered as plain text.
+
 ## Battery consumption
 
 System > Info > Consumption shows the traction-pack net energy estimate from

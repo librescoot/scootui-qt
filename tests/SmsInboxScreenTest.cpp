@@ -1,17 +1,21 @@
 #include <QtTest>
 #include <QQmlContext>
+#include <QQmlEngine>
 #include <QQuickView>
 #include <QQuickItem>
+#include "l10n/Translations.h"
 
 class SmsFakeTheme : public QObject {
     Q_OBJECT
-    Q_PROPERTY(bool isDark READ isDark CONSTANT)
-    Q_PROPERTY(int fontBody READ fontBody CONSTANT)
-    Q_PROPERTY(int fontCaption READ fontCaption CONSTANT)
+    Q_PROPERTY(bool isDark MEMBER dark CONSTANT)
+    Q_PROPERTY(int fontHeading MEMBER heading CONSTANT)
+    Q_PROPERTY(int fontTitle MEMBER title CONSTANT)
+    Q_PROPERTY(int fontBody MEMBER body CONSTANT)
+    Q_PROPERTY(int fontCaption MEMBER caption CONSTANT)
+    Q_PROPERTY(int fontMicro MEMBER micro CONSTANT)
 public:
-    bool isDark() const { return true; }
-    int fontBody() const { return 20; }
-    int fontCaption() const { return 14; }
+    bool dark = true;
+    int heading = 28, title = 24, body = 20, caption = 16, micro = 10;
 };
 class SmsFakeInput : public QObject {
     Q_OBJECT
@@ -20,24 +24,12 @@ signals:
     void rightTap();
     void leftHold();
     void rightHold();
-    void leftDoubleTap();
 };
 class SmsFakeStore : public QObject {
     Q_OBJECT
-    Q_PROPERTY(QVariantList messages READ messages CONSTANT)
-    Q_PROPERTY(bool available READ available CONSTANT)
-    Q_PROPERTY(bool connected READ connected CONSTANT)
-    Q_PROPERTY(QString forwardTo READ forwardTo CONSTANT)
+    Q_PROPERTY(QVariantMap openedMessage MEMBER message CONSTANT)
 public:
-    QString marked, deleted;
-    bool disabled = false;
-    QVariantList messages() const { return {QVariantMap{{"id", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}, {"from", "+49123"}, {"text", "hello"}, {"timestamp", "2026-01-01"}, {"read", false}}}; }
-    bool available() const { return true; }
-    bool connected() const { return true; }
-    QString forwardTo() const { return "+4915112345678"; }
-    Q_INVOKABLE void markRead(const QString &id) { marked = id; }
-    Q_INVOKABLE void deleteMessage(const QString &id) { deleted = id; }
-    Q_INVOKABLE void disableForwarding() { disabled = true; }
+    QVariantMap message;
 };
 class SmsFakeNavigation : public QObject {
     Q_OBJECT
@@ -49,40 +41,85 @@ public:
 class SmsInboxScreenTest : public QObject {
     Q_OBJECT
 private slots:
-    void gestures();
+    void reader_data();
+    void reader();
 };
-void SmsInboxScreenTest::gestures() {
+void SmsInboxScreenTest::reader_data() {
+    QTest::addColumn<QString>("language");
+    QTest::addColumn<bool>("dark");
+    QTest::addColumn<bool>("longText");
+    for (const QString &lang : {QStringLiteral("de"), QStringLiteral("en")})
+        for (bool dark : {false, true})
+            for (bool longText : {false, true})
+                QTest::newRow(qPrintable(QStringLiteral("%1-%2-%3").arg(lang, dark ? "dark" : "light", longText ? "long" : "short")))
+                    << lang << dark << longText;
+}
+void SmsInboxScreenTest::reader() {
+    QFETCH(QString, language);
+    QFETCH(bool, dark);
+    QFETCH(bool, longText);
     SmsFakeTheme theme;
+    theme.dark = dark;
     SmsFakeInput input;
     SmsFakeStore store;
+    store.message = {{"from", ""}, {"timestamp", "2026-11-01T09:15:00Z"},
+        {"text", longText ? QStringLiteral("<b>Ihr Datenvolumen ist fast aufgebraucht.</b>\n").repeated(30)
+                          : QStringLiteral("<b>Ihr Datenvolumen ist fast aufgebraucht.</b>")}};
     SmsFakeNavigation nav;
+    Translations translations;
+    translations.setLanguage(language);
     QQuickView view;
+    QSignalSpy warnings(view.engine(), &QQmlEngine::warnings);
     view.rootContext()->setContextProperty("themeStore", &theme);
+    view.rootContext()->setContextProperty("translations", &translations);
     view.rootContext()->setContextProperty("inputHandler", &input);
     view.rootContext()->setContextProperty("smsStore", &store);
     view.rootContext()->setContextProperty("screenStore", &nav);
     view.rootContext()->setContextProperty("menuStore", &nav);
+    view.setResizeMode(QQuickView::SizeRootObjectToView);
     view.resize(480, 480);
-    const auto source = QFINDTESTDATA("../qml/screens/SmsInboxScreen.qml");
+    QString source = qEnvironmentVariable("SCOOTUI_SMS_SCREEN_SOURCE");
+    if (source.isEmpty()) source = QFINDTESTDATA("../qml/screens/SmsInboxScreen.qml");
     QVERIFY(!source.isEmpty());
     view.setSource(QUrl::fromLocalFile(source));
     QCOMPARE(view.status(), QQuickView::Ready);
     view.show();
-    QCoreApplication::processEvents();
+    QVERIFY(QTest::qWaitForWindowExposed(&view));
+    auto *root = view.rootObject();
+    auto *title = root->findChild<QQuickItem *>("smsReaderTitle");
+    auto *sender = root->findChild<QQuickItem *>("smsSender");
+    auto *body = root->findChild<QQuickItem *>("smsBody");
+    auto *scroll = root->findChild<QQuickItem *>("smsBodyScroll");
+    QVERIFY(title && sender && body && scroll);
+    QCOMPARE(title->property("text").toString(), language == "de" ? QStringLiteral("Nachricht") : QStringLiteral("Message"));
+    QCOMPARE(sender->property("text").toString(), translations.smsUnknownSender());
+    QCOMPARE(body->property("text").toString(), store.message.value("text").toString());
+    QCOMPARE(body->property("textFormat").toInt(), 0); // PlainText, including markup in received SMS.
+    QVERIFY(scroll->height() > 250);
+    QVERIFY(scroll->mapToScene(QPointF(0, scroll->height())).y() <= 427);
+    QTRY_COMPARE(root->property("canScrollDown").toBool(), longText);
+    if (longText) {
+        emit input.leftTap();
+        QTRY_VERIFY(scroll->property("contentY").toDouble() > 100);
+        QVERIFY(root->property("canScrollUp").toBool());
+        emit input.rightHold();
+        QTRY_COMPARE(scroll->property("contentY").toDouble(), 0.0);
+    }
+    const QString captureDir = qEnvironmentVariable("SCOOTUI_TEST_CAPTURE_DIR");
+    if (!captureDir.isEmpty()) {
+        QDir().mkpath(captureDir);
+        const auto image = view.grabWindow();
+        QVERIFY(!image.isNull());
+        QVERIFY(image.save(captureDir + "/sms-reader-" + QLatin1String(QTest::currentDataTag()) + ".png"));
+    }
+    translations.setLanguage(language == "de" ? "en" : "de");
+    QTRY_COMPARE(title->property("text").toString(), translations.smsMessage());
+    QTRY_COMPARE(sender->property("text").toString(), translations.smsUnknownSender());
     emit input.rightTap();
-    QCOMPARE(store.marked, QStringLiteral("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
-    emit input.rightTap();
-    QVERIFY(view.rootObject()->property("confirmingDelete").toBool());
+    QVERIFY(!nav.closed);
     emit input.leftHold();
-    QVERIFY(!view.rootObject()->property("confirmingDelete").toBool());
-    emit input.rightTap();
-    emit input.rightTap();
-    QCOMPARE(store.deleted, store.marked);
-    emit input.leftDoubleTap();
-    QVERIFY(store.disabled);
-    emit input.leftHold();
-    QVERIFY(nav.closed);
-    QVERIFY(nav.resumed);
+    QVERIFY(nav.closed && nav.resumed);
+    QVERIFY(warnings.isEmpty());
 }
 QTEST_MAIN(SmsInboxScreenTest)
 #include "SmsInboxScreenTest.moc"

@@ -57,6 +57,7 @@ Rectangle {
                    - (leadingIconText.visible ? leadingIconText.width + parent.spacing : 0)
                    - (cautionIcon.visible ? cautionIcon.width + parent.spacing : 0)
             text: menuItem.title
+            textFormat: Text.PlainText
             font.pixelSize: themeStore.fontTitle
             font.weight: isSelected ? Font.Bold : Font.Normal
             color: themeStore.isDark ? "#FFFFFF" : "#000000"
