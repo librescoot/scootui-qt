@@ -88,6 +88,7 @@ Item {
                     hasChildren: modelData.hasChildren
                     leadingIcon: modelData.leadingIcon !== undefined ? modelData.leadingIcon : ""
                     valueLabel: modelData.valueLabel !== undefined ? modelData.valueLabel : ""
+                    secondaryText: modelData.secondaryText !== undefined ? modelData.secondaryText : ""
                     caution: modelData.caution !== undefined ? modelData.caution : false
                 }
 

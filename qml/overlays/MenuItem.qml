@@ -5,6 +5,7 @@ Rectangle {
     id: menuItem
 
     property string title: ""
+    property string secondaryText: ""
     property string itemType: "action"
     property bool isSelected: false
     property int currentValue: 0
@@ -14,7 +15,7 @@ Rectangle {
     property bool caution: false
 
     // Selected labels may wrap, so grow the row instead of overlapping its successor.
-    height: Math.max(50, titleText.implicitHeight + 16)
+    height: Math.max(50, labels.implicitHeight + 16)
     color: isSelected
            ? (themeStore.isDark ? "#3DFFFFFF" : "#1F000000")
            : "transparent"
@@ -48,23 +49,36 @@ Rectangle {
             color: themeStore.isDark ? "#B3FFFFFF" : "#8A000000"
         }
 
-        Text {
-            id: titleText
+        Column {
+            id: labels
             anchors.verticalCenter: parent.verticalCenter
             width: parent.width
                    - (trailingIcon.visible ? trailingIcon.width + parent.spacing : 0)
                    - (trailingValue.visible ? trailingValue.implicitWidth + parent.spacing : 0)
                    - (leadingIconText.visible ? leadingIconText.width + parent.spacing : 0)
                    - (cautionIcon.visible ? cautionIcon.width + parent.spacing : 0)
-            text: menuItem.title
-            textFormat: Text.PlainText
-            font.pixelSize: themeStore.fontTitle
-            font.weight: isSelected ? Font.Bold : Font.Normal
-            color: themeStore.isDark ? "#FFFFFF" : "#000000"
-            // Bound geocoded saved-location labels while keeping a selected row readable.
-            elide: Text.ElideRight
-            wrapMode: isSelected ? Text.WordWrap : Text.NoWrap
-            maximumLineCount: isSelected ? 3 : 1
+            Text {
+                id: titleText
+                width: parent.width
+                text: menuItem.title
+                textFormat: Text.PlainText
+                font.pixelSize: themeStore.fontTitle
+                font.weight: isSelected ? Font.Bold : Font.Normal
+                color: themeStore.isDark ? "#FFFFFF" : "#000000"
+                elide: Text.ElideRight
+                wrapMode: menuItem.secondaryText === "" && isSelected ? Text.WordWrap : Text.NoWrap
+                maximumLineCount: menuItem.secondaryText === "" && isSelected ? 3 : 1
+            }
+            Text {
+                width: parent.width
+                visible: menuItem.secondaryText !== ""
+                text: menuItem.secondaryText
+                textFormat: Text.PlainText
+                font.pixelSize: themeStore.fontCaption
+                color: themeStore.isDark ? "#B3FFFFFF" : "#8A000000"
+                elide: Text.ElideRight
+                maximumLineCount: 1
+            }
         }
 
         Text {

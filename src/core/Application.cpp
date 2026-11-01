@@ -1020,6 +1020,11 @@ void Application::createStores(QQmlApplicationEngine &engine)
     menuStore->setUpdateChannelService(m_updateChannelService);
 
     m_cloudPairingService = new CloudPairingService(repo, this);
+    const auto syncPairingInternet = [this, internetStore]() {
+        m_cloudPairingService->setInternetAvailable(internetStore->status() == static_cast<int>(ScootEnums::ConnectionStatus::Connected));
+    };
+    connect(internetStore, &InternetStore::statusChanged, this, syncPairingInternet);
+    syncPairingInternet();
     const auto syncPairingStationary = [this, vehicleStore]() {
         const auto state = vehicleStore->state();
         m_cloudPairingService->setStationary(state == static_cast<int>(ScootEnums::VehicleState::Parked)

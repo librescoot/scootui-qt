@@ -18,6 +18,7 @@ class SmsStoreTest : public QObject
 private slots:
     void snapshotAndCommands();
     void openByIdentityAndReadOffline();
+    void deleteOpenedRequiresSameLiveIdentity();
 };
 
 void SmsStoreTest::snapshotAndCommands()
@@ -71,6 +72,28 @@ void SmsStoreTest::openByIdentityAndReadOffline()
     repo.set("sms:inbox", "snapshot", QStringLiteral(R"({"version":1,"messages":[]})"));
     QVERIFY(!store.openMessage(id));
     QCOMPARE(store.openedMessage().value("text").toString(), QStringLiteral("hello"));
+}
+
+void SmsStoreTest::deleteOpenedRequiresSameLiveIdentity()
+{
+    SmsRepository repo;
+    SmsStore store(&repo);
+    store.start();
+    const QString first(32, QLatin1Char('a')), second(32, QLatin1Char('b'));
+    repo.set("sms:inbox", "snapshot", QStringLiteral(R"({"version":1,"messages":[{"id":"%1"}]})").arg(first));
+    QVERIFY(store.openMessage(first));
+    repo.payload.clear();
+    repo.set("sms:inbox", "snapshot", QStringLiteral(R"({"version":1,"messages":[{"id":"%1"},{"id":"%2"}]})").arg(second, first));
+    QVERIFY(store.deleteOpenedMessage());
+    QVERIFY(repo.payload.contains(first));
+    QVERIFY(!repo.payload.contains(second));
+    repo.payload.clear();
+    repo.online = false;
+    QVERIFY(!store.deleteOpenedMessage());
+    repo.online = true;
+    repo.set("sms:inbox", "snapshot", QStringLiteral(R"({"version":1,"messages":[{"id":"%1"}]})").arg(second));
+    QVERIFY(!store.deleteOpenedMessage());
+    QVERIFY(repo.payload.isEmpty());
 }
 
 QTEST_MAIN(SmsStoreTest)

@@ -61,6 +61,26 @@ private slots:
         QCOMPARE(repo.methods.last(), QStringLiteral("stop"));
         QVERIFY(service.canStart());
     }
+    void internetLossDoesNotInterruptMutation() {
+        PairingRepository repo;
+        CloudPairingService service(&repo);
+        service.setStationary(true);
+        service.setVisible(true);
+        QTRY_VERIFY(service.canStart());
+        repo.autoReply = false;
+        service.start();
+        QTRY_COMPARE(repo.methods.last(), QStringLiteral("start"));
+        const QString channel = repo.last.value("reply_channel").toString();
+        service.setInternetAvailable(false);
+        QVERIFY(!service.online());
+        QVERIFY(!service.canStart());
+        QVERIFY(!service.canStop());
+        repo.reply(channel, {{"state", "starting"}, {"running", true}});
+        QVERIFY(!service.busy());
+        service.setInternetAvailable(true);
+        QVERIFY(service.online());
+        QVERIFY(service.canStop());
+    }
     void expiryPrivacyAndDisconnect() {
         PairingRepository repo;
         repo.snapshot = {{"state", "waiting_for_web_setup"}, {"running", true},
@@ -70,6 +90,7 @@ private slots:
         service.setVisible(true);
         QTRY_COMPARE(service.code(), QStringLiteral("01234-56789"));
         QTRY_VERIFY_WITH_TIMEOUT(service.code().isEmpty(), 2500);
+        QTRY_VERIFY_WITH_TIMEOUT(service.expired(), 2500);
         repo.snapshot["expires_at"] = QDateTime::currentSecsSinceEpoch() + 300;
         service.refresh();
         QTRY_COMPARE(service.code(), QStringLiteral("01234-56789"));
@@ -83,6 +104,22 @@ private slots:
         emit repo.connectionStateChanged(false);
         QCOMPARE(service.state(), QStringLiteral("unavailable"));
         QVERIFY(!service.canStart());
+    }
+    void reopenWaitsForFreshStatus() {
+        PairingRepository repo;
+        repo.snapshot = {{"state", "waiting_for_web_setup"}, {"running", true},
+            {"code", "01234-56789"}, {"expires_at", QDateTime::currentSecsSinceEpoch() + 300}};
+        CloudPairingService service(&repo);
+        service.setVisible(true);
+        QTRY_COMPARE(service.code(), QStringLiteral("01234-56789"));
+        service.setVisible(false);
+        repo.autoReply = false;
+        service.setVisible(true);
+        QVERIFY(service.code().isEmpty());
+        QTRY_COMPARE(repo.methods.size(), 2);
+        QVERIFY(service.code().isEmpty());
+        repo.reply(repo.last.value("reply_channel").toString(), repo.snapshot);
+        QTRY_COMPARE(service.code(), QStringLiteral("01234-56789"));
     }
     void pollingIsPreemptedAndMutationsStaySerialized() {
         PairingRepository repo;

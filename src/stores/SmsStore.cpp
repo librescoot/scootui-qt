@@ -54,6 +54,24 @@ bool SmsStore::openMessage(const QString &id)
     return false;
 }
 
+bool SmsStore::openedAvailable() const
+{
+    if (!m_available || m_openedMessage.isEmpty()) return false;
+    const QString id = m_openedMessage.value(QStringLiteral("id")).toString();
+    for (const auto &entry : m_messages)
+        if (entry.toMap().value(QStringLiteral("id")).toString() == id) return true;
+    return false;
+}
+
+bool SmsStore::deleteOpenedMessage()
+{
+    const QString id = m_openedMessage.value(QStringLiteral("id")).toString();
+    static const QRegularExpression validId(QStringLiteral("^[a-f0-9]{32}$"));
+    if (!connected() || !openedAvailable() || !validId.match(id).hasMatch()) return false;
+    deleteMessage(id);
+    return true;
+}
+
 void SmsStore::sendCommand(const QString &action, const QString &id)
 {
     static const QRegularExpression validId(QStringLiteral("^[a-f0-9]{32}$"));

@@ -23,6 +23,7 @@ public:
     // Accessors
     QString id() const { return m_id; }
     QString title() const { return m_title; }
+    QString secondaryText() const { return m_secondaryText; }
     QString headerTitle() const { return m_headerTitle.isEmpty() ? m_title.toUpper() : m_headerTitle; }
     MenuNodeType type() const { return m_type; }
     MenuNode *parent() const { return m_parent; }
@@ -48,6 +49,7 @@ public:
 
     // Setters
     void setHeaderTitle(const QString &t) { m_headerTitle = t; }
+    void setSecondaryText(const QString &t) { m_secondaryText = t; }
     // Trailing text for rows that aren't cycle settings, e.g. an action that
     // reports state alongside what it does.
     void setValueLabel(const QString &t) { m_valueLabel = t; }
@@ -129,6 +131,7 @@ public:
 private:
     QString m_id;
     QString m_title;
+    QString m_secondaryText;
     QString m_primaryChildId;
     QString m_headerTitle;
     QString m_valueLabel;

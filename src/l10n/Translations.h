@@ -23,6 +23,11 @@ class Translations : public QObject
     Q_PROPERTY(QString rideGroupUnavailable READ rideGroupUnavailable NOTIFY languageChanged)
     Q_PROPERTY(QString menuTitle READ menuTitle NOTIFY languageChanged)
     Q_PROPERTY(QString menuSettings READ menuSettings NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingPreparing READ pairingPreparing NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingChecking READ pairingChecking NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingOffline READ pairingOffline NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingExpired READ pairingExpired NOTIFY languageChanged)
+    Q_PROPERTY(QString pairingRetry READ pairingRetry NOTIFY languageChanged)
     Q_PROPERTY(QString smsTitle READ smsTitle NOTIFY languageChanged)
     Q_PROPERTY(QString smsMessage READ smsMessage NOTIFY languageChanged)
     Q_PROPERTY(QString smsUnknownSender READ smsUnknownSender NOTIFY languageChanged)
@@ -35,6 +40,7 @@ class Translations : public QObject
     Q_PROPERTY(QString smsDeleteConfirm READ smsDeleteConfirm NOTIFY languageChanged)
     Q_PROPERTY(QString smsForwarding READ smsForwarding NOTIFY languageChanged)
     Q_PROPERTY(QString smsForwardOff READ smsForwardOff NOTIFY languageChanged)
+    Q_PROPERTY(QString smsForwardSetup READ smsForwardSetup NOTIFY languageChanged)
     Q_PROPERTY(QString smsForwardTo READ smsForwardTo NOTIFY languageChanged)
     Q_PROPERTY(QString smsDisableForwarding READ smsDisableForwarding NOTIFY languageChanged)
     Q_PROPERTY(QString menuCloud READ menuCloud NOTIFY languageChanged)
@@ -789,6 +795,11 @@ public:
     // Getters - use lookup() not Qt's tr()
     QString menuTitle() const { return lookup("menuTitle"); }
     QString menuSettings() const { return lookup("menuSettings"); }
+    QString pairingPreparing() const { return lookup("pairingPreparing"); }
+    QString pairingChecking() const { return lookup("pairingChecking"); }
+    QString pairingOffline() const { return lookup("pairingOffline"); }
+    QString pairingExpired() const { return lookup("pairingExpired"); }
+    QString pairingRetry() const { return lookup("pairingRetry"); }
     QString smsTitle() const { return lookup("smsTitle"); }
     QString smsMessage() const { return lookup("smsMessage"); }
     QString smsUnknownSender() const { return lookup("smsUnknownSender"); }
@@ -801,6 +812,7 @@ public:
     QString smsDeleteConfirm() const { return lookup("smsDeleteConfirm"); }
     QString smsForwarding() const { return lookup("smsForwarding"); }
     QString smsForwardOff() const { return lookup("smsForwardOff"); }
+    QString smsForwardSetup() const { return lookup("smsForwardSetup"); }
     QString smsForwardTo() const { return lookup("smsForwardTo"); }
     QString smsDisableForwarding() const { return lookup("smsDisableForwarding"); }
     QString menuCloud() const { return lookup("menuCloud"); }

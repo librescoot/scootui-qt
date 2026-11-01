@@ -36,6 +36,7 @@
 #include "stores/BatteryStore.h"
 #include "stores/ConnectionStore.h"
 #include "stores/EngineStore.h"
+#include "stores/InternetStore.h"
 #include "stores/MenuStore.h"
 #include "stores/SavedLocationsStore.h"
 #include "stores/ScreenStore.h"
@@ -682,6 +683,36 @@ private slots:
         QVERIFY(repo.bluetoothCommands.isEmpty());
     }
 
+    void cloudMenuFollowsInternetReachability()
+    {
+        BluetoothTestRepository repo;
+        repo.connected = true;
+        InternetStore internet(&repo);
+        internet.start();
+        MenuStore menu(context<SettingsStore>("settingsStore"), context<VehicleStore>("vehicleStore"),
+                       context<ThemeStore>("themeStore"), context<TripStore>("tripStore"),
+                       context<Translations>("translations"), context<SettingsService>("settingsService"), &repo);
+        menu.setInternetStore(&internet);
+        const auto has = [&menu](const QString &id) {
+            for (const auto &entry : menu.currentItems())
+                if (entry.toMap().value("id").toString() == id) return true;
+            return false;
+        };
+        menu.open(); QTest::qWait(160);
+        for (int i = 0; i < menu.currentItems().size() && menu.currentItems().at(menu.selectedIndex()).toMap().value("id").toString() != "settings"; ++i) menu.navigateDown();
+        QCOMPARE(menu.currentItems().at(menu.selectedIndex()).toMap().value("id").toString(), QStringLiteral("settings"));
+        menu.selectItem();
+        repo.set("internet", "modem-state", "connected");
+        repo.set("internet", "status", "disconnected");
+        QVERIFY(!has("settings_cloud"));
+        repo.set("internet", "status", "connected");
+        QTRY_VERIFY(has("settings_cloud"));
+        repo.connected = false; emit repo.connectionStateChanged(false);
+        QTRY_VERIFY(!has("settings_cloud"));
+        repo.connected = true; emit repo.connectionStateChanged(true);
+        QTRY_VERIFY(has("settings_cloud"));
+    }
+
     void cloudPairingMenuLoadsAndCloses()
     {
         auto *repo = m_application->m_repository.get();
@@ -704,6 +735,7 @@ private slots:
             }
             return false;
         };
+        repo->set("internet", "status", "connected");
         const auto openPairing = [&] {
             menu->open();
             QTest::qWait(160);
@@ -777,7 +809,8 @@ private slots:
         };
         menu->open();
         QTest::qWait(160);
-        QCOMPARE(item("sms_inbox").value("title").toString(), language == "de" ? QStringLiteral("Nachrichten") : QStringLiteral("Messages"));
+        QVERIFY(select("info"));
+        QCOMPARE(item("sms_inbox").value("title").toString(), QStringLiteral("SMS"));
         QCOMPARE(item("sms_inbox").value("type").toString(), QStringLiteral("submenu"));
         QVERIFY(select("sms_inbox"));
         QVERIFY(menu->isOpen());
@@ -786,6 +819,7 @@ private slots:
         QCOMPARE(item("sms_empty").value("title").toString(), tr->smsEmpty());
         QVERIFY(select("sms_forwarding"));
         QCOMPARE(item("sms_forward_off").value("title").toString(), tr->smsForwardOff());
+        QCOMPARE(item("sms_forward_setup").value("title").toString(), tr->smsForwardSetup());
         menu->goBack();
         repo->set("sms:inbox", "snapshot", QStringLiteral(R"({"version":1,"unread":1,"forward-to":"+491234567890","messages":[{"id":"%1","from":"Mobilfunkanbieter","text":"Ihr Datenvolumen ist fast aufgebraucht.","read":false}]})").arg(id));
         QCOMPARE(item("sms_message_" + id).value("valueLabel").toString(), tr->smsUnread());
@@ -803,29 +837,24 @@ private slots:
         QVERIFY(QTest::qWaitForWindowExposed(&window));
         capture(&window, "sms-menu-" + language + (dark ? "-dark" : "-light"));
 
+        QCOMPARE(item("sms_message_" + id).value("secondaryText").toString(), QStringLiteral("Ihr Datenvolumen ist fast aufgebraucht."));
+        for (int n = 0; n < menu->currentItems().size() && menu->currentItems().at(menu->selectedIndex()).toMap().value("id").toString() != "sms_message_" + id; ++n) menu->navigateDown();
+        QCOMPARE(menu->currentItems().at(menu->selectedIndex()).toMap().value("id").toString(), "sms_message_" + id);
+        repo->set("sms:inbox", "snapshot", QStringLiteral(R"({"version":1,"unread":1,"forward-to":"+491234567890","messages":[{"id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","text":"new"},{"id":"%1","from":"Mobilfunkanbieter","text":"Ihr Datenvolumen ist fast aufgebraucht.","read":false}]})").arg(id));
+        QCOMPARE(menu->currentItems().at(menu->selectedIndex()).toMap().value("id").toString(), "sms_message_" + id);
         QVERIFY(select("sms_message_" + id));
-        QVERIFY(select("sms_read_" + id));
         QVERIFY(!menu->isOpen());
         QCOMPARE(screen->currentScreenMode(), ScootEnums::ScreenMode::SmsInbox);
         QCOMPARE(sms->openedMessage().value("id").toString(), id);
         screen->closeSmsInbox();
         menu->resume();
         QTest::qWait(160);
-        QVERIFY(!item("sms_read_" + id).isEmpty());
-        QVERIFY(select("sms_delete_" + id));
-        QCOMPARE(menu->currentItems().first().toMap().value("id").toString(), QStringLiteral("sms_delete_cancel"));
-        QVERIFY(item("sms_delete_confirm").value("caution").toBool());
-        capture(&window, "sms-delete-" + language + (dark ? "-dark" : "-light"));
-        QVERIFY(select("sms_delete_cancel"));
-        QVERIFY(select("sms_delete_" + id));
-        QVERIFY(select("sms_delete_confirm"));
-        QVERIFY(!item("sms_message_" + id).isEmpty());
         QVERIFY(select("sms_forwarding"));
         QCOMPARE(item("sms_forward_to").value("title").toString(), tr->smsForwardTo().arg("+491234567890"));
+        capture(&window, "sms-forwarding-" + language + (dark ? "-dark" : "-light"));
         QVERIFY(select("sms_forward_disable"));
         QCOMPARE(repo->get("settings", "sms.forward-to"), QStringLiteral("off"));
         menu->goBack();
-        QVERIFY(select("sms_message_" + id));
         repo->set("sms:inbox", "snapshot", QStringLiteral(R"({"version":1,"messages":[]})"));
         QCOMPARE(menu->currentTitle(), tr->smsTitle().toUpper());
         QVERIFY(!item("sms_empty").isEmpty());
@@ -833,6 +862,48 @@ private slots:
         QVERIFY(!menu->isOpen());
         menu->open();
         QVERIFY(!menu->isOpen());
+    }
+
+    void smsBrakeNavigationAndCancel()
+    {
+        auto *repo = m_application->m_repository.get();
+        auto *menu = context<MenuStore>("menuStore");
+        auto *screen = context<ScreenStore>("screenStore");
+        auto *sms = context<SmsStore>("smsStore");
+        const QString id(32, QLatin1Char('a'));
+        repo->set("sms:inbox", "snapshot", QStringLiteral(R"({"version":1,"messages":[{"id":"%1","from":"Sender","text":"hello"}]})").arg(id));
+        m_engine->load(QUrl("qrc:/ScootUI/qml/Main.qml"));
+        QVERIFY(!m_engine->rootObjects().isEmpty());
+        auto *window = qobject_cast<QQuickWindow *>(m_engine->rootObjects().first());
+        QVERIFY(window && QTest::qWaitForWindowExposed(window));
+        const auto select = [repo, menu](const QString &id) {
+            for (int n = 0; n < menu->currentItems().size(); ++n) {
+                if (menu->currentItems().at(menu->selectedIndex()).toMap().value("id").toString() == id) {
+                    repo->publish("input-events", "brake:right:tap");
+                    QCoreApplication::processEvents();
+                    return true;
+                }
+                repo->publish("input-events", "brake:left:tap");
+                QCoreApplication::processEvents();
+            }
+            return false;
+        };
+        menu->open(); QTest::qWait(160);
+        QVERIFY(select("info")); QVERIFY(select("sms_inbox")); QVERIFY(select("sms_message_" + id));
+        QTRY_COMPARE(screen->currentScreenMode(), ScootEnums::ScreenMode::SmsInbox);
+        QCOMPARE(sms->openedMessage().value("id").toString(), id);
+        QQuickItem *reader = nullptr;
+        QTRY_VERIFY((reader = window->findChild<QQuickItem *>("smsReaderTitle")));
+        auto *root = reader->parentItem()->parentItem();
+        QVERIFY(!root->property("confirming").toBool());
+        repo->publish("input-events", "brake:right:tap");
+        QTRY_VERIFY(root->property("confirming").toBool());
+        QVERIFY(!root->property("confirmDelete").toBool());
+        repo->publish("input-events", "brake:right:tap");
+        QTRY_VERIFY(!root->property("confirming").toBool());
+        repo->publish("input-events", "brake:left:long-tap");
+        QTRY_VERIFY(menu->isOpen());
+        QCOMPARE(menu->currentTitle(), context<Translations>("translations")->smsTitle().toUpper());
     }
 
     void smsOfflineMenuHidesMutations()
@@ -858,22 +929,13 @@ private slots:
         };
         menu.open();
         QTest::qWait(160);
+        QVERIFY(select("info"));
         QVERIFY(select("sms_inbox"));
         QVERIFY(select("sms_disconnected"));
-        QVERIFY(select("sms_message_" + id));
-        QCOMPARE(menu.currentItems().size(), 1);
-        QCOMPARE(menu.currentItems().first().toMap().value("id").toString(), "sms_read_" + id);
-        repo.connected = true;
-        emit repo.connectionStateChanged(true);
-        QCOMPARE(menu.currentItems().size(), 2);
-        QVERIFY(select("sms_delete_" + id));
-        repo.connected = false;
-        emit repo.connectionStateChanged(false);
-        QCOMPARE(menu.currentItems().size(), 1);
-        menu.goBack();
+        QCOMPARE(menu.currentItems().at(menu.selectedIndex()).toMap().value("id").toString(), QStringLiteral("sms_disconnected"));
         QVERIFY(select("sms_forwarding"));
-        QCOMPARE(menu.currentItems().size(), 1);
-        QCOMPARE(menu.currentItems().first().toMap().value("id").toString(), QStringLiteral("sms_forward_to"));
+        QCOMPARE(menu.currentItems().size(), 2);
+        QCOMPARE(menu.currentItems().last().toMap().value("id").toString(), QStringLiteral("sms_forward_to"));
     }
 
     void keycardsAreDirectSettingsEntry()

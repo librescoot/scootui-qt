@@ -116,7 +116,7 @@ private:
     void clearResume();
     void rebuildMenuTree();
     void buildEasterEggs();
-    void buildSmsMenu();
+    void buildSmsMenu(MenuNode *parent);
     void fireMilestoneDemo();
     QString lastMapCheckLabel() const;
     QString lastCheckLabel(const QString &iso) const;

@@ -10,7 +10,19 @@ Rectangle {
     readonly property color divider: themeStore.isDark ? "#1fffffff" : "#1f000000"
     property double now: Date.now() / 1000
     readonly property string pairingState: cloudPairingService.state
+    readonly property bool showCode: cloudPairingService.online && cloudPairingService.running
+        && pairingState === "waiting_for_web_setup" && cloudPairingService.code !== ""
+        && cloudPairingService.expiresAt > now
+    readonly property bool allowStop: cloudPairingService.canStop && pairingState !== "applying"
+    readonly property bool checking: cloudPairingService.online && pairingState === "unavailable" && cloudPairingService.loadingStatus
+    readonly property bool preparing: cloudPairingService.online && !cloudPairingService.expired
+        && (pairingState === "starting" || (pairingState === "waiting_for_web_setup" && cloudPairingService.running && !showCode))
     readonly property string stateText: {
+        if (!cloudPairingService.online) return translations.pairingOffline
+        if (checking) return translations.pairingChecking
+        if (cloudPairingService.expired && pairingState === "waiting_for_web_setup" && cloudPairingService.running) return translations.pairingExpired
+        if (preparing) return translations.pairingPreparing
+        if (pairingState === "waiting_for_web_setup" && !cloudPairingService.running) return translations.pairingReady
         switch (pairingState) {
         case "connected": return translations.pairingConnected
         case "starting": return translations.pairingStarting
@@ -24,14 +36,16 @@ Rectangle {
     }
     function close() {
         screenStore.closeCloudPairing()
-        menuStore.resume()
+        // Resume after this brake signal has finished dispatching.
+        Qt.callLater(function() { menuStore.resume() })
     }
     Connections {
         target: inputHandler
         function onLeftHold() { root.close() }
         function onRightTap() {
-            if (cloudPairingService.canStop) cloudPairingService.stop()
+            if (root.allowStop) cloudPairingService.stop()
             else if (cloudPairingService.canStart) cloudPairingService.start()
+            else if (cloudPairingService.online && pairingState === "unavailable") cloudPairingService.refresh()
         }
     }
     Timer {
@@ -68,19 +82,41 @@ Rectangle {
                 anchors.top: parent.top
                 anchors.margins: 20
                 spacing: 12
-                Text {
-                    objectName: "pairingStatus"
+                Rectangle {
                     width: parent.width
-                    text: root.stateText
-                    color: root.foreground
-                    font.pixelSize: themeStore.fontBody
-                    font.weight: Font.Medium
-                    wrapMode: Text.WordWrap
+                    height: statusText.implicitHeight + 28
+                    radius: 10
+                    color: themeStore.isDark ? "#202020" : "#f0f0f0"
+                    Text {
+                        id: statusText
+                        objectName: "pairingStatus"
+                        anchors.fill: parent
+                        anchors.margins: 14
+                        text: root.stateText
+                        color: root.foreground
+                        font.pixelSize: themeStore.fontBody + 2
+                        font.weight: Font.DemiBold
+                        wrapMode: Text.WordWrap
+                    }
+                }
+                Rectangle {
+                    width: 40; height: 40; radius: 20
+                    visible: root.preparing || root.checking
+                    color: "transparent"
+                    border.width: 3
+                    border.color: root.muted
+                    Rectangle {
+                        width: 8; height: 8; radius: 4
+                        color: root.foreground
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        y: -2
+                    }
+                    RotationAnimator on rotation { from: 0; to: 360; duration: 900; loops: Animation.Infinite; running: root.preparing || root.checking }
                 }
                 Text {
                     objectName: "pairingInstructions"
                     width: parent.width
-                    visible: cloudPairingService.code !== ""
+                    visible: root.showCode
                     text: visible ? translations.pairingInstructions : ""
                     color: root.foreground
                     font.pixelSize: themeStore.fontBody
@@ -89,7 +125,7 @@ Rectangle {
                 Row {
                     width: parent.width
                     height: visible ? 180 : 0
-                    visible: cloudPairingService.code !== ""
+                    visible: root.showCode
                     spacing: 14
                     PairingQr {
                         objectName: "pairingQr"
@@ -121,7 +157,8 @@ Rectangle {
                         Text {
                             objectName: "pairingExpiry"
                             width: parent.width
-                            text: cloudPairingService.code ? translations.pairingExpires.arg(Math.max(0, Math.ceil(cloudPairingService.expiresAt - root.now))) : ""
+                            readonly property int remaining: Math.max(0, Math.ceil(cloudPairingService.expiresAt - root.now))
+                            text: root.showCode ? translations.pairingExpires.arg(Math.floor(remaining / 60) + ":" + (remaining % 60).toString().padStart(2, "0")) : ""
                             color: root.muted
                             font.pixelSize: themeStore.fontCaption
                             wrapMode: Text.WordWrap
@@ -131,9 +168,11 @@ Rectangle {
                 Text {
                     objectName: "pairingSafety"
                     width: parent.width
-                    text: translations.pairingSafety
-                    color: root.muted
-                    font.pixelSize: themeStore.fontCaption
+                    visible: cloudPairingService.online && !root.preparing && !root.showCode
+                        && (pairingState === "registered" || pairingState === "not_registered" || (pairingState === "waiting_for_web_setup" && !cloudPairingService.running))
+                    text: visible ? translations.pairingSafety : ""
+                    color: root.foreground
+                    font.pixelSize: themeStore.fontBody
                     wrapMode: Text.WordWrap
                 }
             }
@@ -152,8 +191,9 @@ Rectangle {
                 anchors.bottom: parent.bottom
                 reservedRows: 2
                 leftHold: translations.controlBack
-                rightTap: cloudPairingService.canStop ? translations.pairingStop
-                    : cloudPairingService.canStart ? translations.pairingStart : ""
+                rightTap: root.allowStop ? translations.pairingStop
+                    : cloudPairingService.canStart ? translations.pairingStart
+                    : cloudPairingService.online && pairingState === "unavailable" && !root.checking ? translations.pairingRetry : ""
                 isDark: themeStore.isDark
             }
         }

@@ -10,10 +10,14 @@ Rectangle {
     readonly property var message: smsStore.openedMessage
     readonly property bool canScrollDown: bodyScroll.contentY + bodyScroll.height < bodyScroll.contentHeight - 2
     readonly property bool canScrollUp: bodyScroll.contentY > 2
+    property bool confirming: false
+    property bool confirmDelete: false
+    property bool deleting: false
 
     function close() {
         screenStore.closeSmsInbox()
-        menuStore.resume()
+        // Resume after this brake signal has finished dispatching.
+        Qt.callLater(function() { menuStore.resume() })
     }
     function scrollBy(delta) {
         scrollAnimation.to = Math.max(0, Math.min(bodyScroll.contentY + delta,
@@ -22,9 +26,74 @@ Rectangle {
     }
     Connections {
         target: inputHandler
-        function onLeftTap() { root.scrollBy(120) }
-        function onRightHold() { root.scrollBy(-120) }
-        function onLeftHold() { root.close() }
+        function onLeftTap() {
+            if (root.confirming) root.confirmDelete = !root.confirmDelete
+            else root.scrollBy(120)
+        }
+        function onRightHold() { if (!root.confirming) root.scrollBy(-120) }
+        function onRightTap() {
+            if (root.deleting) return
+            if (!root.confirming) {
+                if (smsStore.connected && smsStore.openedAvailable) {
+                    root.confirmDelete = false
+                    root.confirming = true
+                }
+            } else if (!root.confirmDelete) root.confirming = false
+            else if (smsStore.deleteOpenedMessage()) {
+                root.deleting = true
+                Qt.callLater(root.close)
+            }
+            else root.confirming = false
+        }
+        function onLeftHold() {
+            if (root.confirming) root.confirming = false
+            else root.close()
+        }
+    }
+    Rectangle {
+        anchors.fill: parent
+        z: 2
+        visible: root.confirming
+        color: root.color
+        Column {
+            anchors.left: parent.left; anchors.right: parent.right
+            anchors.top: parent.top; anchors.margins: 24
+            spacing: 20
+            Text {
+                width: parent.width
+                text: translations.smsDeleteConfirm
+                color: root.foreground
+                font.pixelSize: themeStore.fontHeading
+                font.bold: true
+                wrapMode: Text.WordWrap
+            }
+            Text {
+                width: parent.width
+                text: root.message.from || translations.smsUnknownSender
+                textFormat: Text.PlainText
+                color: root.muted
+                font.pixelSize: themeStore.fontBody
+                elide: Text.ElideRight
+            }
+            Repeater {
+                model: [translations.controlCancel, translations.smsDelete]
+                Rectangle {
+                    required property int index
+                    required property string modelData
+                    width: parent.width; height: 56; radius: 8
+                    color: (index === 1) === root.confirmDelete ? (themeStore.isDark ? "#3DFFFFFF" : "#1F000000") : "transparent"
+                    Text { anchors.centerIn: parent; text: modelData; color: root.foreground; font.pixelSize: themeStore.fontTitle }
+                }
+            }
+        }
+        ControlHints {
+            anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
+            reservedRows: 2
+            leftTap: translations.controlNext
+            leftHold: translations.controlBack
+            rightTap: root.confirmDelete ? translations.smsDelete : translations.controlCancel
+            isDark: themeStore.isDark
+        }
     }
     ColumnLayout {
         anchors.fill: parent
@@ -66,6 +135,15 @@ Rectangle {
                 id: bodyColumn
                 width: bodyScroll.width
                 spacing: 12
+                Text {
+                    width: parent.width
+                    visible: !smsStore.connected || !smsStore.openedAvailable
+                    text: !smsStore.connected ? translations.smsDisconnected : translations.smsUnavailable
+                    color: root.muted
+                    font.pixelSize: themeStore.fontCaption
+                    textFormat: Text.PlainText
+                    wrapMode: Text.WordWrap
+                }
                 Text {
                     objectName: "smsSender"
                     width: parent.width
@@ -119,6 +197,7 @@ Rectangle {
                 leftTap: root.canScrollDown ? translations.controlScroll : ""
                 leftHold: translations.controlBack
                 rightHold: root.canScrollUp ? translations.controlScrollUp : ""
+                rightTap: smsStore.connected && smsStore.openedAvailable ? translations.smsDelete : ""
             }
         }
     }

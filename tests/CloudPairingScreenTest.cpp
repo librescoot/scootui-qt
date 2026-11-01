@@ -7,6 +7,12 @@
 #include "l10n/Translations.h"
 #include "services/PairingQrItem.h"
 
+static QString pairingScreenSource()
+{
+    const QString override = qEnvironmentVariable("SCOOTUI_PAIRING_SCREEN_SOURCE");
+    return override.isEmpty() ? QFINDTESTDATA("../qml/screens/CloudPairingScreen.qml") : override;
+}
+
 class PairingTheme : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool isDark MEMBER dark CONSTANT)
@@ -32,12 +38,23 @@ class PairingScreenModel : public QObject {
     Q_PROPERTY(qint64 expiresAt MEMBER expiresAt NOTIFY changed)
     Q_PROPERTY(bool canStart MEMBER canStart NOTIFY changed)
     Q_PROPERTY(bool canStop MEMBER canStop NOTIFY changed)
+    Q_PROPERTY(bool online MEMBER online NOTIFY changed)
+    Q_PROPERTY(bool running MEMBER running NOTIFY changed)
+    Q_PROPERTY(bool expired MEMBER expired NOTIFY changed)
+    Q_PROPERTY(bool loadingStatus MEMBER loadingStatus NOTIFY changed)
 public:
     QString state = "waiting_for_web_setup", code = "WWWWW-WWWWW";
     qint64 expiresAt = QDateTime::currentSecsSinceEpoch() + 900;
-    bool canStart = false, canStop = true;
+    bool canStart = false, canStop = true, online = true, running = true, expired = false, loadingStatus = false;
     int starts = 0, stops = 0;
-    Q_INVOKABLE void start() { ++starts; }
+    bool simulate = false;
+    Q_INVOKABLE void start() {
+        ++starts;
+        if (!simulate) return;
+        state = "starting"; running = true; canStart = false; code.clear(); emit changed();
+        QTimer::singleShot(300, this, [this]() { state = "waiting_for_web_setup"; canStop = true; emit changed(); });
+        QTimer::singleShot(900, this, [this]() { code = "01234-ABCDE"; expiresAt = QDateTime::currentSecsSinceEpoch() + 900; emit changed(); });
+    }
     Q_INVOKABLE void stop() { ++stops; }
 signals:
     void changed();
@@ -53,6 +70,56 @@ class CloudPairingScreenTest : public QObject {
     Q_OBJECT
 private slots:
     void initTestCase() { qmlRegisterType<PairingQrItem>("ScootUI.Pairing", 1, 0, "PairingQr"); }
+    void timedSequence() {
+        PairingTheme theme; PairingInput input; PairingScreenModel model; PairingScreenNavigation nav; Translations translations;
+        model.simulate = true; model.state = "registered"; model.running = false; model.canStart = true; model.canStop = false; model.code.clear();
+        QQuickView view;
+        view.resize(480, 480);
+        view.setResizeMode(QQuickView::SizeRootObjectToView);
+        view.rootContext()->setContextProperty("themeStore", &theme);
+        view.rootContext()->setContextProperty("inputHandler", &input);
+        view.rootContext()->setContextProperty("cloudPairingService", &model);
+        view.rootContext()->setContextProperty("screenStore", &nav);
+        view.rootContext()->setContextProperty("menuStore", &nav);
+        view.rootContext()->setContextProperty("translations", &translations);
+        view.setSource(QUrl::fromLocalFile(pairingScreenSource()));
+        QCOMPARE(view.status(), QQuickView::Ready); view.show(); QVERIFY(QTest::qWaitForWindowExposed(&view));
+        auto *qr = view.rootObject()->findChild<QQuickItem *>("pairingQr");
+        auto *status = view.rootObject()->findChild<QQuickItem *>("pairingStatus");
+        const QString dir = qEnvironmentVariable("CONNECT_CAPTURE_DIR");
+        auto capture = [&](const char *name) { if (!dir.isEmpty()) QVERIFY(view.grabWindow().save(dir + "/sequence-" + name + ".png")); };
+        QVERIFY(qr && status); QVERIFY(!qr->isVisible()); capture("initial");
+        emit input.rightTap(); QCOMPARE(model.starts, 1); QCOMPARE(status->property("text").toString(), translations.pairingPreparing()); capture("start");
+        QTRY_COMPARE(model.state, QStringLiteral("waiting_for_web_setup")); QVERIFY(!qr->isVisible()); capture("waiting");
+        QTRY_VERIFY(qr->isVisible()); capture("qr");
+        model.state = "applying"; model.code.clear(); emit model.changed(); QVERIFY(!qr->isVisible()); capture("applying");
+        model.state = "connected"; model.running = false; model.canStop = false; emit model.changed(); capture("connected");
+        model.state = "error"; emit model.changed(); capture("error");
+    }
+    void staleCodeAndOfflineAreHidden() {
+        PairingTheme theme; PairingInput input; PairingScreenModel model; PairingScreenNavigation nav; Translations translations;
+        QQuickView view;
+        view.rootContext()->setContextProperty("themeStore", &theme);
+        view.rootContext()->setContextProperty("inputHandler", &input);
+        view.rootContext()->setContextProperty("cloudPairingService", &model);
+        view.rootContext()->setContextProperty("screenStore", &nav);
+        view.rootContext()->setContextProperty("menuStore", &nav);
+        view.rootContext()->setContextProperty("translations", &translations);
+        view.setSource(QUrl::fromLocalFile(pairingScreenSource()));
+        QCOMPARE(view.status(), QQuickView::Ready);
+        auto *qr = view.rootObject()->findChild<QQuickItem *>("pairingQr");
+        auto *status = view.rootObject()->findChild<QQuickItem *>("pairingStatus");
+        QVERIFY(qr && status);
+        model.running = false; emit model.changed();
+        QVERIFY(!qr->isVisible());
+        QCOMPARE(status->property("text").toString(), translations.pairingReady());
+        model.running = true; model.code.clear(); emit model.changed();
+        QVERIFY(!qr->isVisible());
+        QCOMPARE(status->property("text").toString(), translations.pairingPreparing());
+        model.code = "01234-ABCDE"; model.online = false; emit model.changed();
+        QVERIFY(!qr->isVisible());
+        QCOMPARE(status->property("text").toString(), translations.pairingOffline());
+    }
     void render_data() {
         QTest::addColumn<QString>("language"); QTest::addColumn<bool>("dark"); QTest::addColumn<QString>("state"); QTest::addColumn<QString>("code");
         for (const auto &language : {QString("en"), QString("de")})
@@ -78,7 +145,7 @@ private slots:
         view.rootContext()->setContextProperty("screenStore", &nav);
         view.rootContext()->setContextProperty("menuStore", &nav);
         view.rootContext()->setContextProperty("translations", &translations);
-        view.setSource(QUrl::fromLocalFile(QFINDTESTDATA("../qml/screens/CloudPairingScreen.qml")));
+        view.setSource(QUrl::fromLocalFile(pairingScreenSource()));
         QCOMPARE(view.status(), QQuickView::Ready); view.show();
         auto *qr = view.rootObject()->findChild<QQuickItem*>("pairingQr"); QVERIFY(qr);
         QCOMPARE(qr->isVisible(), !model.code.isEmpty());
@@ -104,7 +171,7 @@ private slots:
         emit input.rightTap(); QCOMPARE(model.stops, 1);
         model.canStop = false; model.canStart = true; emit model.changed();
         emit input.rightTap(); QCOMPARE(model.starts, 1);
-        emit input.leftHold(); QVERIFY(nav.closed); QVERIFY(nav.resumed);
+        emit input.leftHold(); QVERIFY(nav.closed); QTRY_VERIFY(nav.resumed);
     }
 };
 QTEST_MAIN(CloudPairingScreenTest)

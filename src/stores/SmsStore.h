@@ -12,11 +12,14 @@ class SmsStore : public SyncableStore
     Q_PROPERTY(bool available READ available NOTIFY messagesChanged)
     Q_PROPERTY(bool connected READ connected NOTIFY messagesChanged)
     Q_PROPERTY(QString forwardTo READ forwardTo NOTIFY messagesChanged)
+    Q_PROPERTY(bool openedAvailable READ openedAvailable NOTIFY messagesChanged)
 public:
     explicit SmsStore(MdbRepository *repo, QObject *parent = nullptr);
     QVariantList messages() const { return m_messages; }
     QVariantMap openedMessage() const { return m_openedMessage; }
     bool openMessage(const QString &id);
+    bool openedAvailable() const;
+    Q_INVOKABLE bool deleteOpenedMessage();
     int unread() const { return m_unread; }
     bool available() const { return m_available; }
     bool connected() const;

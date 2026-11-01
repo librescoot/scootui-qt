@@ -28,8 +28,13 @@ signals:
 class SmsFakeStore : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantMap openedMessage MEMBER message CONSTANT)
+    Q_PROPERTY(bool connected MEMBER connected CONSTANT)
+    Q_PROPERTY(bool openedAvailable MEMBER available CONSTANT)
 public:
     QVariantMap message;
+    bool connected = true, available = true;
+    int deletes = 0;
+    Q_INVOKABLE bool deleteOpenedMessage() { ++deletes; return true; }
 };
 class SmsFakeNavigation : public QObject {
     Q_OBJECT
@@ -115,10 +120,23 @@ void SmsInboxScreenTest::reader() {
     translations.setLanguage(language == "de" ? "en" : "de");
     QTRY_COMPARE(title->property("text").toString(), translations.smsMessage());
     QTRY_COMPARE(sender->property("text").toString(), translations.smsUnknownSender());
+    translations.setLanguage(language);
+    if (longText) { emit input.leftTap(); QTRY_VERIFY(scroll->property("contentY").toDouble() > 100); }
+    const double savedPosition = scroll->property("contentY").toDouble();
     emit input.rightTap();
-    QVERIFY(!nav.closed);
-    emit input.leftHold();
-    QVERIFY(nav.closed && nav.resumed);
+    QVERIFY(root->property("confirming").toBool());
+    QVERIFY(!root->property("confirmDelete").toBool());
+    if (!captureDir.isEmpty()) QVERIFY(view.grabWindow().save(captureDir + "/sms-confirm-" + QLatin1String(QTest::currentDataTag()) + ".png"));
+    emit input.rightTap();
+    QVERIFY(!root->property("confirming").toBool());
+    QCOMPARE(scroll->property("contentY").toDouble(), savedPosition);
+    QCOMPARE(store.deletes, 0);
+    emit input.rightTap();
+    emit input.leftTap();
+    QVERIFY(root->property("confirmDelete").toBool());
+    emit input.rightTap();
+    QCOMPARE(store.deletes, 1);
+    QTRY_VERIFY(nav.closed && nav.resumed);
     QVERIFY(warnings.isEmpty());
 }
 QTEST_MAIN(SmsInboxScreenTest)

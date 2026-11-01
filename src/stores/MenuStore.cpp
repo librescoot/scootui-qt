@@ -45,6 +45,9 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
     , m_settingsService(settingsService)
     , m_repo(repo)
 {
+    if (m_repo)
+        connect(m_repo, &MdbRepository::connectionStateChanged, this, &MenuStore::rebuildMenuTree);
+
     // Rebuild menu when settings or language change
     connect(m_settings, &SettingsStore::themeChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::languageChanged, this, &MenuStore::rebuildMenuTree);
@@ -179,7 +182,11 @@ void MenuStore::setNavigationAvailabilityService(NavigationAvailabilityService *
 
 void MenuStore::setInternetStore(InternetStore *store)
 {
+    if (m_internet) disconnect(m_internet, nullptr, this, nullptr);
     m_internet = store;
+    if (m_internet)
+        connect(m_internet, &InternetStore::statusChanged, this, &MenuStore::rebuildMenuTree);
+    rebuildMenuTree();
 }
 
 void MenuStore::setHopOnStore(HopOnStore *store)
@@ -1781,7 +1788,10 @@ void MenuStore::rebuildMenuTree()
         close();
     }));
 
-    auto *cloudNode = MenuNode::submenu(QStringLiteral("settings_cloud"), tr->menuCloud());
+    auto *cloudNode = MenuNode::submenu(QStringLiteral("settings_cloud"), tr->menuCloud(), {}, [this]() {
+        return m_repo && m_repo->isConnected() && m_internet
+            && m_internet->status() == static_cast<int>(ScootEnums::ConnectionStatus::Connected);
+    });
     settingsNode->addChild(cloudNode);
     cloudNode->addChild(MenuNode::action(QStringLiteral("settings_cloud_pairing"), tr->pairingTitle(), [this]() {
         closeForScreen();
@@ -1836,14 +1846,14 @@ void MenuStore::rebuildMenuTree()
                 m_screenStore->showFaults();
         }));
 
+        buildSmsMenu(infoNode);
+
         infoNode->addChild(MenuNode::action(QStringLiteral("about"), tr->menuAbout(), [this]() {
             closeForScreen();
             if (m_screenStore)
                 m_screenStore->showAbout();
         }));
     }
-
-    buildSmsMenu();
 
     buildEasterEggs();
 
@@ -1893,11 +1903,11 @@ void MenuStore::rebuildMenuTree()
     emitMenuChanged();
 }
 
-void MenuStore::buildSmsMenu()
+void MenuStore::buildSmsMenu(MenuNode *parent)
 {
     if (!m_sms) return;
     auto *tr = m_translations;
-    auto *inbox = m_rootNode->addChild(MenuNode::submenu(QStringLiteral("sms_inbox"), tr->smsTitle()));
+    auto *inbox = parent->addChild(MenuNode::submenu(QStringLiteral("sms_inbox"), tr->smsTitle()));
     if (m_sms->unread() > 0)
         inbox->setValueLabel(QString::number(m_sms->unread()));
     if (!m_sms->available()) {
@@ -1915,32 +1925,17 @@ void MenuStore::buildSmsMenu()
         QString sender = message.value(QStringLiteral("from")).toString();
         if (sender.isEmpty()) sender = tr->smsUnknownSender();
         const QString preview = message.value(QStringLiteral("text")).toString().simplified().left(100);
-        auto *node = inbox->addChild(MenuNode::submenu(
-            QStringLiteral("sms_message_%1").arg(id),
-            preview.isEmpty() ? sender : QStringLiteral("%1: %2").arg(sender, preview), tr->smsMessage()));
+        auto *node = inbox->addChild(MenuNode::action(
+            QStringLiteral("sms_message_%1").arg(id), sender, [this, id]() {
+                if (!m_screenStore || !m_sms->openMessage(id)) return;
+                closeForScreen();
+                m_screenStore->showSmsInbox();
+            }));
+        node->setSecondaryText(preview);
         if (!message.value(QStringLiteral("read")).toBool()) node->setValueLabel(tr->smsUnread());
-        const QString readId = QStringLiteral("sms_read_%1").arg(id);
-        node->addChild(MenuNode::action(readId, tr->smsRead(), [this, id]() {
-            if (!m_screenStore || !m_sms->openMessage(id)) return;
-            closeForScreen();
-            m_screenStore->showSmsInbox();
-        }));
-        node->setPrimaryChildId(readId);
-        if (m_sms->connected()) {
-            auto *remove = node->addChild(MenuNode::submenu(
-                QStringLiteral("sms_delete_%1").arg(id), tr->smsDelete(), tr->smsDeleteConfirm()));
-            remove->addChild(MenuNode::action(QStringLiteral("sms_delete_cancel"), tr->controlCancel(),
-                                             [this]() { goBack(); }));
-            auto *confirm = remove->addChild(MenuNode::action(
-                QStringLiteral("sms_delete_confirm"), tr->smsDelete(), [this, id]() {
-                    m_sms->deleteMessage(id);
-                    goBack();
-                    goBack();
-                }));
-            confirm->setCaution(true);
-        }
     }
     auto *forward = inbox->addChild(MenuNode::submenu(QStringLiteral("sms_forwarding"), tr->smsForwarding()));
+    forward->addChild(MenuNode::action(QStringLiteral("sms_forward_setup"), tr->smsForwardSetup()));
     const QString target = m_sms->forwardTo();
     if (target.isEmpty() || target == QLatin1String("off")) {
         forward->addChild(MenuNode::action(QStringLiteral("sms_forward_off"), tr->smsForwardOff()));
@@ -2218,6 +2213,8 @@ QVariantList MenuStore::currentItems() const
         QVariantMap item;
         item[QStringLiteral("id")] = child->id();
         item[QStringLiteral("title")] = child->title();
+        if (!child->secondaryText().isEmpty())
+            item[QStringLiteral("secondaryText")] = child->secondaryText();
         item[QStringLiteral("type")] = child->type() == MenuNodeType::Action ? QStringLiteral("action")
                                      : child->type() == MenuNodeType::Submenu ? QStringLiteral("submenu")
                                      : child->type() == MenuNodeType::CycleSetting ? QStringLiteral("cycle")
