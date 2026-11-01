@@ -36,6 +36,7 @@ class MenuStore : public QObject
     Q_OBJECT
     Q_PROPERTY(bool isOpen READ isOpen NOTIFY isOpenChanged)
     Q_PROPERTY(QString currentTitle READ currentTitle NOTIFY menuChanged)
+    Q_PROPERTY(QString currentDescription READ currentDescription NOTIFY menuChanged)
     Q_PROPERTY(QVariantList currentItems READ currentItems NOTIFY menuChanged)
     Q_PROPERTY(int selectedIndex READ selectedIndex NOTIFY menuChanged)
     Q_PROPERTY(bool isRoot READ isRoot NOTIFY menuChanged)
@@ -76,6 +77,7 @@ public:
 
     bool isOpen() const { return m_isOpen; }
     QString currentTitle() const;
+    QString currentDescription() const;
     QVariantList currentItems() const;
     int selectedIndex() const { return m_selectedIndex; }
     bool isRoot() const { return m_pathStack.isEmpty(); }

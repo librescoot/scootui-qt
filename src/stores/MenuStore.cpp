@@ -1935,7 +1935,7 @@ void MenuStore::buildSmsMenu(MenuNode *parent)
         if (!message.value(QStringLiteral("read")).toBool()) node->setValueLabel(tr->smsUnread());
     }
     auto *forward = inbox->addChild(MenuNode::submenu(QStringLiteral("sms_forwarding"), tr->smsForwarding()));
-    forward->addChild(MenuNode::action(QStringLiteral("sms_forward_setup"), tr->smsForwardSetup()));
+    forward->setDescription(tr->smsForwardSetup());
     const QString target = m_sms->forwardTo();
     if (target.isEmpty() || target == QLatin1String("off")) {
         forward->addChild(MenuNode::action(QStringLiteral("sms_forward_off"), tr->smsForwardOff()));
@@ -2198,6 +2198,12 @@ QString MenuStore::currentTitle() const
 {
     auto *node = findCurrentNode();
     return node ? node->headerTitle() : m_translations->menuTitle();
+}
+
+QString MenuStore::currentDescription() const
+{
+    auto *node = findCurrentNode();
+    return node ? node->description() : QString();
 }
 
 QVariantList MenuStore::currentItems() const

@@ -62,6 +62,20 @@ Item {
 
         Item { Layout.preferredHeight: 8 }
 
+        Text {
+            objectName: "menuDescription"
+            Layout.fillWidth: true
+            Layout.leftMargin: 40
+            Layout.rightMargin: 40
+            Layout.bottomMargin: visible ? 10 : 0
+            visible: text !== ""
+            text: menuStore.currentDescription
+            textFormat: Text.PlainText
+            color: themeStore.isDark ? "#B3FFFFFF" : "#8A000000"
+            font.pixelSize: themeStore.fontBody
+            wrapMode: Text.WordWrap
+        }
+
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true

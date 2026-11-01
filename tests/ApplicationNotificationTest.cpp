@@ -819,7 +819,8 @@ private slots:
         QCOMPARE(item("sms_empty").value("title").toString(), tr->smsEmpty());
         QVERIFY(select("sms_forwarding"));
         QCOMPARE(item("sms_forward_off").value("title").toString(), tr->smsForwardOff());
-        QCOMPARE(item("sms_forward_setup").value("title").toString(), tr->smsForwardSetup());
+        QCOMPARE(menu->currentDescription(), tr->smsForwardSetup());
+        QVERIFY(item("sms_forward_setup").isEmpty());
         menu->goBack();
         repo->set("sms:inbox", "snapshot", QStringLiteral(R"({"version":1,"unread":1,"forward-to":"+491234567890","messages":[{"id":"%1","from":"Mobilfunkanbieter","text":"Ihr Datenvolumen ist fast aufgebraucht.","read":false}]})").arg(id));
         QCOMPARE(item("sms_message_" + id).value("valueLabel").toString(), tr->smsUnread());
@@ -851,6 +852,11 @@ private slots:
         QTest::qWait(160);
         QVERIFY(select("sms_forwarding"));
         QCOMPARE(item("sms_forward_to").value("title").toString(), tr->smsForwardTo().arg("+491234567890"));
+        auto *description = visual->findChild<QQuickItem *>("menuDescription");
+        QVERIFY(description && description->isVisible());
+        QCOMPARE(description->property("text").toString(), tr->smsForwardSetup());
+        QVERIFY(!description->property("truncated").toBool());
+        QVERIFY(description->mapRectToScene(description->boundingRect()).bottom() < 420);
         capture(&window, "sms-forwarding-" + language + (dark ? "-dark" : "-light"));
         QVERIFY(select("sms_forward_disable"));
         QCOMPARE(repo->get("settings", "sms.forward-to"), QStringLiteral("off"));
@@ -934,7 +940,8 @@ private slots:
         QVERIFY(select("sms_disconnected"));
         QCOMPARE(menu.currentItems().at(menu.selectedIndex()).toMap().value("id").toString(), QStringLiteral("sms_disconnected"));
         QVERIFY(select("sms_forwarding"));
-        QCOMPARE(menu.currentItems().size(), 2);
+        QCOMPARE(menu.currentItems().size(), 1);
+        QCOMPARE(menu.currentDescription(), context<Translations>("translations")->smsForwardSetup());
         QCOMPARE(menu.currentItems().last().toMap().value("id").toString(), QStringLiteral("sms_forward_to"));
     }
 
