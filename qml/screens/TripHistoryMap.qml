@@ -42,6 +42,7 @@ MapView {
     readonly property var points: tripHistoryService.points
     readonly property var bounds: calculateBounds(points)
     readonly property string traceJson: makeTrace(points)
+    readonly property string endpointsJson: makeEndpoints(points)
     readonly property bool styleValid: historyStyleJson !== "{}"
     readonly property string historyStyleJson: {
         try {
@@ -52,6 +53,19 @@ MapView {
                 var source = style.sources[hiddenSources[i]]
                 if (source) source.data = {type: "FeatureCollection", features: []}
             }
+            // Where the ride started and ended. Appended last so the markers stay
+            // on top of the trace; the colours match the route-plan trip ends.
+            style.sources["trip-endpoints"] = {type: "geojson", data: JSON.parse(endpointsJson)}
+            style.layers = style.layers.concat([
+                {id: "trip-start", type: "circle", source: "trip-endpoints",
+                 filter: ["==", "kind", "start"],
+                 paint: {"circle-color": "#2E7D32", "circle-radius": 9,
+                         "circle-stroke-color": "#ffffff", "circle-stroke-width": 2}},
+                {id: "trip-end", type: "circle", source: "trip-endpoints",
+                 filter: ["==", "kind", "end"],
+                 paint: {"circle-color": "#C62828", "circle-radius": ["case", ["get", "coincident"], 5, 9],
+                         "circle-stroke-color": "#ffffff", "circle-stroke-width": 2}}
+            ])
             return JSON.stringify(style)
         } catch (e) { return "{}" }
     }
@@ -71,6 +85,24 @@ MapView {
                 || point.longitude === null || point.longitude === undefined || point.longitude === "") return false
         var lat = Number(point.latitude), lon = Number(point.longitude)
         return isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 85 && Math.abs(lon) <= 180
+    }
+    // Coincident endpoints use a smaller end marker so both colours remain visible.
+    function makeEndpoints(items) {
+        var first = null, last = null
+        for (var i = 0; i < items.length; ++i) {
+            if (!validCoordinate(items[i])) continue
+            var point = [Number(items[i].longitude), Number(items[i].latitude)]
+            if (first === null) first = point
+            last = point
+        }
+        var features = []
+        if (first !== null) {
+            features.push({type: "Feature", geometry: {type: "Point", coordinates: first},
+                           properties: {kind: "start"}})
+            features.push({type: "Feature", geometry: {type: "Point", coordinates: last},
+                           properties: {kind: "end", coincident: last[0] === first[0] && last[1] === first[1]}})
+        }
+        return JSON.stringify({type: "FeatureCollection", features: features})
     }
     function makeTrace(items) {
         var lines = [], line = [], previous = 0

@@ -521,8 +521,41 @@ private slots:
             if (qEnvironmentVariableIsSet("SCOOTUI_TEST_EXPECT_PRODUCTION_MAP"))
                 QVERIFY(loader->property("source").toUrl().fileName() == QStringLiteral("TripHistoryMap.qml"));
             QVERIFY(mapItem->property("traceJson").toString().contains("13.4"));
+
+            // The ride's first and last recorded positions are marked on the map.
+            const auto endpoints = QJsonDocument::fromJson(mapItem->property("endpointsJson").toString().toUtf8())
+                                       .object().value("features").toArray();
+            QCOMPARE(endpoints.size(), 2);
+            QCOMPARE(endpoints.at(0).toObject().value("properties").toObject().value("kind").toString(),
+                     QStringLiteral("start"));
+            QCOMPARE(endpoints.at(0).toObject().value("geometry").toObject().value("coordinates").toArray(),
+                     QJsonArray({13.40, 52.52}));
+            QCOMPARE(endpoints.at(1).toObject().value("properties").toObject().value("kind").toString(),
+                     QStringLiteral("end"));
+            QCOMPARE(endpoints.at(1).toObject().value("geometry").toObject().value("coordinates").toArray(),
+                     QJsonArray({13.42, 52.53}));
+            // Coincident endpoints retain both markers with a smaller end dot.
+            QVariant singleEndpoint;
+            QVERIFY(QMetaObject::invokeMethod(mapItem, "makeEndpoints", Q_RETURN_ARG(QVariant, singleEndpoint),
+                                              Q_ARG(QVariant, QVariant::fromValue(QVariantList{
+                                                  QVariantMap{{"latitude", 52.52}, {"longitude", 13.40}, {"timestamp_ms", 1000}}}))));
+            const auto coincident = QJsonDocument::fromJson(singleEndpoint.toString().toUtf8())
+                                        .object().value("features").toArray();
+            QCOMPARE(coincident.size(), 2);
+            QVERIFY(coincident.at(1).toObject().value("properties").toObject().value("coincident").toBool());
+
             const auto styleSources = QJsonDocument::fromJson(mapItem->property("historyStyleJson").toString().toUtf8())
                                           .object().value("sources").toObject();
+            const auto endpointSource = styleSources.value("trip-endpoints").toObject().value("data").toObject();
+            QCOMPARE(endpointSource.value("features").toArray().size(), 2);
+            const auto styleLayers = QJsonDocument::fromJson(mapItem->property("historyStyleJson").toString().toUtf8())
+                                         .object().value("layers").toArray();
+            QStringList endpointLayerIds;
+            for (const auto &layer : styleLayers) {
+                const auto id = layer.toObject().value("id").toString();
+                if (id == "trip-start" || id == "trip-end") endpointLayerIds.append(id);
+            }
+            QCOMPARE(endpointLayerIds, QStringList({"trip-start", "trip-end"}));
             for (const auto &name : {QStringLiteral("plan"), QStringLiteral("plan-stops"),
                                      QStringLiteral("overview-traveled"), QStringLiteral("overview-markers"),
                                      QStringLiteral("ride-group-peers")}) {
