@@ -77,8 +77,22 @@ MapView {
             minLat = Math.min(minLat, lat); maxLat = Math.max(maxLat, lat)
             minLon = Math.min(minLon, lon); maxLon = Math.max(maxLon, lon); ++count
         }
-        return { lat: (minLat + maxLat) / 2, lon: (minLon + maxLon) / 2,
-                 span: Math.max(maxLat - minLat, maxLon - minLon, 0.001), count: count }
+        if (!count) return { lat: 0, lon: 0, xSpan: 0, ySpan: 0, count: 0 }
+        function mercatorY(lat) {
+            var radians = lat * Math.PI / 180
+            return (1 - Math.log(Math.tan(Math.PI / 4 + radians / 2)) / Math.PI) / 2
+        }
+        var top = mercatorY(maxLat), bottom = mercatorY(minLat)
+        var centerLat = Math.atan(Math.sinh(Math.PI * (1 - top - bottom))) * 180 / Math.PI
+        return { lat: centerLat, lon: (minLon + maxLon) / 2,
+                 xSpan: (maxLon - minLon) / 360, ySpan: bottom - top, count: count }
+    }
+    function calculateZoom(box, width, height) {
+        if (!box.count) return 2
+        var usableWidth = Math.max(1, width - 60), usableHeight = Math.max(1, height - 60)
+        var zoomX = box.xSpan > 0 ? Math.log(usableWidth / (256 * box.xSpan)) / Math.LN2 : 17
+        var zoomY = box.ySpan > 0 ? Math.log(usableHeight / (256 * box.ySpan)) / Math.LN2 : 17
+        return Math.max(2, Math.min(17, zoomX, zoomY))
     }
     function validCoordinate(point) {
         if (!point || point.latitude === null || point.latitude === undefined || point.latitude === ""
@@ -131,7 +145,7 @@ MapView {
         PluginParameter { name: "maplibre.items.insert_before"; value: "buildings" }
     }
     map.center: QtPositioning.coordinate(bounds.lat, bounds.lon)
-    map.zoomLevel: Math.max(2, Math.min(17, Math.log(250 / bounds.span) / Math.LN2 - 1))
+    map.zoomLevel: calculateZoom(bounds, map.width, map.height)
     map.bearing: 0
     map.tilt: 0
 }

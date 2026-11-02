@@ -12,6 +12,7 @@
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <algorithm>
+#include <cmath>
 #include <functional>
 #include <tuple>
 
@@ -521,6 +522,35 @@ private slots:
             if (qEnvironmentVariableIsSet("SCOOTUI_TEST_EXPECT_PRODUCTION_MAP"))
                 QVERIFY(loader->property("source").toUrl().fileName() == QStringLiteral("TripHistoryMap.qml"));
             QVERIFY(mapItem->property("traceJson").toString().contains("13.4"));
+
+            const auto boundsFor = [mapItem](const QVariantList &points) {
+                QVariant result;
+                const bool ok = QMetaObject::invokeMethod(mapItem, "calculateBounds", Q_RETURN_ARG(QVariant, result),
+                                                           Q_ARG(QVariant, QVariant::fromValue(points)));
+                return ok ? result.toMap() : QVariantMap{};
+            };
+            const auto zoomFor = [mapItem](const QVariantMap &bounds, int width, int height) {
+                QVariant result;
+                const bool ok = QMetaObject::invokeMethod(mapItem, "calculateZoom", Q_RETURN_ARG(QVariant, result),
+                    Q_ARG(QVariant, QVariant(bounds)), Q_ARG(QVariant, QVariant(width)), Q_ARG(QVariant, QVariant(height)));
+                return ok ? result.toDouble() : -1.0;
+            };
+            const QVariantList horizontal{QVariantMap{{"latitude", 52.52}, {"longitude", 13.38}},
+                                          QVariantMap{{"latitude", 52.52}, {"longitude", 13.42}}};
+            const QVariantList vertical{QVariantMap{{"latitude", 52.50}, {"longitude", 13.40}},
+                                        QVariantMap{{"latitude", 52.54}, {"longitude", 13.40}}};
+            const auto h = boundsFor(horizontal), v = boundsFor(vertical);
+            QCOMPARE(h.value("count").toInt(), 2);
+            const double horizontalZoom = zoomFor(h, 448, 300);
+            const double verticalZoom = zoomFor(v, 448, 300);
+            QVERIFY(horizontalZoom > 13 && horizontalZoom < 15);
+            QVERIFY(verticalZoom < horizontalZoom);
+            QVERIFY(256 * std::pow(2, horizontalZoom) * h.value("xSpan").toDouble() <= 388.01);
+            QVERIFY(256 * std::pow(2, verticalZoom) * v.value("ySpan").toDouble() <= 240.01);
+            QVERIFY(zoomFor(h, 448, 160) == horizontalZoom);
+            QVERIFY(zoomFor(v, 448, 160) < verticalZoom);
+            QCOMPARE(zoomFor(boundsFor({}), 448, 300), 2.0);
+            QCOMPARE(zoomFor(boundsFor({horizontal.first()}), 448, 300), 17.0);
 
             // The ride's first and last recorded positions are marked on the map.
             const auto endpoints = QJsonDocument::fromJson(mapItem->property("endpointsJson").toString().toUtf8())
