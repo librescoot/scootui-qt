@@ -382,6 +382,77 @@ TestCase {
         return createTemporaryObject(component || clusterComponent, this)
     }
 
+    function test_nativeMapUpdateNotice_data() {
+        const cases = []
+        for (const language of ["en", "de"])
+            for (const dark of [true, false])
+                for (const map of [false, true])
+                    for (const nav of [false, true])
+                        cases.push({tag: language + (dark ? "-dark" : "-light")
+                            + (map ? "-map" : "-cluster") + (nav ? "-nav" : "-alone"),
+                            language: language, dark: dark, map: map, nav: nav})
+        return cases
+    }
+
+    function test_nativeMapUpdateNotice(data) {
+        themeStore.isDark = data.dark
+        themeStore.backgroundColor = data.dark ? "black" : "white"
+        const screen = useNative(data.map ? mapComponent : clusterComponent)
+        harness.translations.setLanguage(data.language)
+        harness.notifications.surface = data.map ? "map" : "cluster"
+        harness.park()
+        verify(harness.vehicle.isParked())
+        waitForRendering(screen)
+        const overlay = findChild(screen, data.map ? "mapAttention" : "clusterAttention")
+        const bounds = data.map ? null : paintedGlyphBounds(findChild(screen, "speedometerDigits"), screen)
+        const reference = grabImage(screen)
+        if (data.nav) {
+            verify(harness.loadFixture("route1"))
+            harness.approach()
+        }
+        harness.mapUpdate(true)
+        waitForRendering(screen)
+        const card = findChild(screen, data.nav ? "attentionCompanionNotification" : "attentionMainCard")
+        verify(card !== null && card.visible)
+        compare(card.entry.id, "map-update")
+        compare(findChild(card, "notificationTitle").text, harness.translations.mapUpdateAvailableToast)
+        if (bounds)
+            verifyUnobscuredGlyphs(screen, overlay, bounds, reference, data.tag + "-visible")
+        capture(screen, "native-map-update-visible-" + data.tag)
+        harness.advance(4999)
+        compare(card.entry.id, "map-update")
+        harness.advance(1)
+        waitForRendering(screen)
+        verify(harness.notifications.mapUpdateAvailable)
+        compare(overlay.hasCompanion, false)
+        if (data.nav)
+            compare(overlay.main.kind, "nav")
+        else {
+            compare(overlay.visible, false)
+            compare(overlay.height, 0)
+            compare(findChild(screen, "attentionMainRenderer").active, false)
+        }
+        if (bounds)
+            verifyUnobscuredGlyphs(screen, overlay, bounds, reference, data.tag + "-expired")
+        capture(screen, "native-map-update-expired-" + data.tag)
+        harness.mapUpdate(true)
+        compare(overlay.hasCompanion, false)
+        compare(overlay.main.id === "map-update", false)
+        harness.mapUpdate(false)
+        harness.mapUpdate(true)
+        waitForRendering(screen)
+        compare((data.nav ? overlay.companion : overlay.main).id, "map-update")
+        harness.ride()
+        waitForRendering(screen)
+        compare(overlay.hasCompanion, false)
+        compare(overlay.main.id === "map-update", false)
+        harness.park()
+        waitForRendering(screen)
+        compare(overlay.hasCompanion, false)
+        compare(overlay.main.id === "map-update", false)
+        verify(harness.notifications.mapUpdateAvailable)
+    }
+
     function test_nativeBackupAuxTextFit_data() {
         const cases = []
         for (const language of ["en", "de"])

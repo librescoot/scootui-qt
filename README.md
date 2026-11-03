@@ -219,6 +219,13 @@ count. Navigation itself is not a queued notification.
 Speed, blinkers, telltales, and pairing/UMS/system workflows remain independent
 protected surfaces.
 
+The map-update notice is silent and eligible for five seconds after an update
+becomes available while not ready-to-drive. Entering ready-to-drive dismisses it
+immediately; an update discovered while ready-to-drive shows no banner. Returning
+to parked, refreshing the status, or changing language or screen does not rearm
+it. The update remains marked in the menu and Navigation Setup until resolved.
+This presentation deadline does not suppress other warnings or notifications.
+
 Attention overlays the normal full-size cluster and map; it does not reserve
 instrument space or change the map camera or vehicle anchor. Only blinkers move
 below the overlay to stay visible. QML renders notifications and navigation with

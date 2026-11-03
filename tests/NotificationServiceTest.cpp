@@ -14,6 +14,13 @@ class NotificationServiceTest : public QObject
         return service.presentation().value("main").toMap().value("id").toString();
     }
 
+    static bool mapUpdatePresented(const NotificationService &service)
+    {
+        const auto presentation = service.presentation();
+        return presentation.value("main").toMap().value("id") == "map-update"
+            || presentation.value("companion").toMap().value("id") == "map-update";
+    }
+
     static void tick(NotificationService &service)
     {
         QVERIFY(QMetaObject::invokeMethod(&service, "expireEvents", Qt::DirectConnection));
@@ -888,6 +895,139 @@ private slots:
         QTest::qWait(300);
         QVERIFY(service.history().size() < 20);
         QCOMPARE(service.presentation().value("main").toMap().value("id").toString(), QStringLiteral("warning"));
+    }
+
+    void mapUpdateNoticeExpiresWithoutClearingAvailability_data()
+    {
+        QTest::addColumn<QString>("surface");
+        QTest::addColumn<QString>("vehicleState");
+        QTest::addColumn<bool>("navigation");
+        for (const auto &surface : {"cluster", "map"}) {
+            for (const auto &state : {"stand-by", "parked"}) {
+                for (bool navigation : {false, true}) {
+                    const auto name = QStringLiteral("%1-%2-navigation=%3")
+                        .arg(surface, state).arg(navigation).toUtf8();
+                    QTest::newRow(name.constData()) << QString::fromLatin1(surface)
+                        << QString::fromLatin1(state) << navigation;
+                }
+            }
+        }
+    }
+
+    void mapUpdateNoticeExpiresWithoutClearingAvailability()
+    {
+        QFETCH(QString, surface);
+        QFETCH(QString, vehicleState);
+        QFETCH(bool, navigation);
+        InMemoryMdbRepository repo;
+        repo.set("vehicle", "state", vehicleState);
+        VehicleStore vehicle(&repo);
+        vehicle.start();
+        QTRY_COMPARE(vehicle.isStandBy(), vehicleState == "stand-by");
+        QTRY_COMPARE(vehicle.isParked(), vehicleState == "parked");
+        qint64 now = 1000;
+        NotificationService service(false, nullptr, [&now] { return now; });
+        service.setVehicleStore(&vehicle);
+        service.setSurface(surface);
+        if (navigation)
+            service.setNavigationPayload({{"id", "navigation"}, {"valid", true}, {"status", 2}});
+        service.setMapUpdateAvailable(true, "Map update");
+        QVERIFY(mapUpdatePresented(service));
+        now = 4000;
+        service.setMapUpdateAvailable(true, "Translated map update");
+        now = 5999;
+        tick(service);
+        QVERIFY(mapUpdatePresented(service));
+        now = 6000;
+        tick(service);
+        QVERIFY(!mapUpdatePresented(service));
+        QVERIFY(service.mapUpdateAvailable());
+        QCOMPARE(service.active().size(), 1);
+        QVERIFY(service.presentation().value("queuedCounts").toMap().isEmpty());
+        if (navigation)
+            QCOMPARE(mainId(service), QStringLiteral("navigation"));
+        else
+            QVERIFY(mainId(service).isEmpty());
+        service.setSurface(surface == "map" ? "cluster" : "map");
+        service.setMapUpdateAvailable(true, "Repeated status");
+        QVERIFY(!mapUpdatePresented(service));
+        service.setMapUpdateAvailable(false);
+        QVERIFY(!service.mapUpdateAvailable());
+        QVERIFY(service.active().isEmpty());
+        service.setMapUpdateAvailable(true, "New update");
+        QVERIFY(mapUpdatePresented(service));
+    }
+
+    void mapUpdateNoticeDismissedByDriving_data()
+    {
+        QTest::addColumn<QString>("surface");
+        QTest::addColumn<bool>("alreadyDriving");
+        QTest::addColumn<bool>("navigation");
+        for (const auto &surface : {"cluster", "map"}) {
+            for (bool alreadyDriving : {false, true}) {
+                for (bool navigation : {false, true}) {
+                    const auto name = QStringLiteral("%1-driving=%2-navigation=%3")
+                        .arg(surface).arg(alreadyDriving).arg(navigation).toUtf8();
+                    QTest::newRow(name.constData()) << QString::fromLatin1(surface)
+                        << alreadyDriving << navigation;
+                }
+            }
+        }
+    }
+
+    void mapUpdateNoticeDismissedByDriving()
+    {
+        QFETCH(QString, surface);
+        QFETCH(bool, alreadyDriving);
+        QFETCH(bool, navigation);
+        InMemoryMdbRepository repo;
+        repo.set("vehicle", "state", alreadyDriving ? "ready-to-drive" : "parked");
+        VehicleStore vehicle(&repo);
+        vehicle.start();
+        QTRY_COMPARE(vehicle.isReadyToDrive(), alreadyDriving);
+        qint64 now = 0;
+        NotificationService service(false, nullptr, [&now] { return now; });
+        service.setVehicleStore(&vehicle);
+        service.setSurface(surface);
+        if (navigation)
+            service.setNavigationPayload({{"id", "navigation"}, {"valid", true}, {"status", 2}});
+        service.setMapUpdateAvailable(true, "Map update");
+        QCOMPARE(mapUpdatePresented(service), !alreadyDriving);
+        now = 1000;
+        repo.set("vehicle", "state", "ready-to-drive");
+        QTRY_VERIFY(vehicle.isReadyToDrive());
+        QVERIFY(!mapUpdatePresented(service));
+        service.setMapUpdateAvailable(true, "Repeated status while driving");
+        QVERIFY(!mapUpdatePresented(service));
+        QVERIFY(service.mapUpdateAvailable());
+        QVERIFY(service.presentation().value("queuedCounts").toMap().isEmpty());
+        service.publishCondition("warning", "test", "Warning", {}, 2);
+        QCOMPARE(mainId(service), QStringLiteral("warning"));
+        service.resolveCondition("warning");
+        now = 2000;
+        repo.set("vehicle", "state", "parked");
+        QTRY_VERIFY(vehicle.isParked());
+        QVERIFY(!mapUpdatePresented(service));
+        service.setMapUpdateAvailable(true, "Repeated status after parking");
+        QVERIFY(!mapUpdatePresented(service));
+        service.setMapUpdateAvailable(false);
+        service.setMapUpdateAvailable(true, "New update while parked");
+        QVERIFY(mapUpdatePresented(service));
+    }
+
+    void mapUpdateNoticeDoesNotReturnAfterPreemption()
+    {
+        qint64 now = 0;
+        NotificationService service(false, nullptr, [&now] { return now; });
+        service.setMapUpdateAvailable(true, "Map update");
+        service.publishCondition("critical", "test", "Critical", {}, 0);
+        QCOMPARE(mainId(service), QStringLiteral("critical"));
+        now = 5000;
+        tick(service);
+        QCOMPARE(mainId(service), QStringLiteral("critical"));
+        service.resolveCondition("critical");
+        QVERIFY(mainId(service).isEmpty());
+        QVERIFY(service.mapUpdateAvailable());
     }
 
     void mapUpdateRemainsSilent()

@@ -124,8 +124,10 @@ void NotificationService::onVehicleStateChanged()
         return;
     const auto state = static_cast<ScootEnums::VehicleState>(m_vehicleStore->state());
     const bool riding = state == ScootEnums::VehicleState::ReadyToDrive;
-    if (riding)
+    if (riding) {
         finishSpeedStartup();
+        m_mapUpdateNoticeUntilMs = 0;
+    }
     if (riding == m_riding)
         return;
     m_riding = riding;
@@ -273,6 +275,9 @@ void NotificationService::setMapUpdateAvailable(bool available, const QString &t
     }
 
     m_mapUpdateAvailable = true;
+    // Status and translation refreshes must not restart the notice deadline.
+    if (changed)
+        m_mapUpdateNoticeUntilMs = m_riding ? 0 : nowMs() + 5000;
     const QString displayTitle = title.isEmpty()
         ? m_conditions.value(QStringLiteral("map-update"))
               .value(QStringLiteral("title"), QStringLiteral("Map update")).toString()
@@ -303,6 +308,8 @@ void NotificationService::refreshPresentation()
     for (auto condition : m_conditions) {
         if (condition.value(QStringLiteral("source")) == QLatin1String("map"))
             condition[QStringLiteral("surfaceEligible")] = m_surface == QLatin1String("map");
+        if (condition.value(QStringLiteral("id")) == QLatin1String("map-update"))
+            condition[QStringLiteral("presentationOnly")] = m_riding || nowMs() >= m_mapUpdateNoticeUntilMs;
         conditions.append(condition);
     }
     const AttentionSelection selection = AttentionPolicy::select(

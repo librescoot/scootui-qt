@@ -158,6 +158,11 @@ public:
     }
 
     Q_INVOKABLE void ride() { m_repo.set("vehicle", "state", "ready-to-drive"); }
+    Q_INVOKABLE void park() { m_repo.set("vehicle", "state", "parked"); }
+    Q_INVOKABLE void mapUpdate(bool available)
+    {
+        m_notifications.setMapUpdateAvailable(available, m_translations.mapUpdateAvailableToast());
+    }
 
     Q_INVOKABLE bool receive(const QString &json) { return m_ingress.receive(json); }
 

@@ -108,6 +108,7 @@ private:
     bool m_startupSpeedPlaceholder = true;
     qint64 m_speedStartupDeadlineMs = 0;
     bool m_mapUpdateAvailable = false;
+    qint64 m_mapUpdateNoticeUntilMs = 0;
     bool m_coverageWarning = false;
     bool m_simulatorInjectionEnabled = false;
     quint64 m_nextOrder = 1;
