@@ -106,6 +106,7 @@ class Translations : public QObject
     Q_PROPERTY(QString menuAlarm READ menuAlarm NOTIFY languageChanged)
     Q_PROPERTY(QString menuAlarmEnable READ menuAlarmEnable NOTIFY languageChanged)
     Q_PROPERTY(QString menuAlarmHonk READ menuAlarmHonk NOTIFY languageChanged)
+    Q_PROPERTY(QString menuAlarmArmedLed READ menuAlarmArmedLed NOTIFY languageChanged)
     Q_PROPERTY(QString menuAlarmDuration READ menuAlarmDuration NOTIFY languageChanged)
     Q_PROPERTY(QString menuAlarmDuration10 READ menuAlarmDuration10 NOTIFY languageChanged)
     Q_PROPERTY(QString menuAlarmDuration20 READ menuAlarmDuration20 NOTIFY languageChanged)
@@ -912,6 +913,7 @@ public:
     QString menuAlarm() const { return lookup("menuAlarm"); }
     QString menuAlarmEnable() const { return lookup("menuAlarmEnable"); }
     QString menuAlarmHonk() const { return lookup("menuAlarmHonk"); }
+    QString menuAlarmArmedLed() const { return lookup("menuAlarmArmedLed"); }
     QString menuAlarmDuration() const { return lookup("menuAlarmDuration"); }
     QString menuAlarmDuration10() const { return lookup("menuAlarmDuration10"); }
     QString menuAlarmDuration20() const { return lookup("menuAlarmDuration20"); }

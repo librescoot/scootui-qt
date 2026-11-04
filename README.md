@@ -171,6 +171,10 @@ corresponding datastore hashes and channels; ScootUI Qt does not replace the
 services that own that state. The source settings store is the implementation
 reference for the keys consumed by a given release.
 
+Settings > Vehicle > Alarm includes the armed indicator LED switch
+(`alarm.armed-led`, off by default). This configures keycard-service's armed
+indicator; it does not arm or disarm the alarm.
+
 ### Cluster colors
 
 Advanced color settings accept `#RRGGBB` or `#AARRGGBB` and apply at runtime.

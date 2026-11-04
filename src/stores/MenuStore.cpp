@@ -62,6 +62,7 @@ MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
     connect(m_settings, &SettingsStore::powerDisplayModeChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::alarmEnabledChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::alarmHonkChanged, this, &MenuStore::rebuildMenuTree);
+    connect(m_settings, &SettingsStore::alarmArmedLedChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::alarmDurationChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::showGpsChanged, this, &MenuStore::rebuildMenuTree);
     connect(m_settings, &SettingsStore::showRoadNameChanged, this, &MenuStore::rebuildMenuTree);
@@ -1377,6 +1378,10 @@ void MenuStore::rebuildMenuTree()
         alarmOn ? 1 : 0, [svc, alarmOn]() { svc->updateAlarmEnabled(!alarmOn); }));
     alarmNode->addChild(MenuNode::setting(QStringLiteral("alarm_honk"), tr->menuAlarmHonk(),
         alarmHonkOn ? 1 : 0, [svc, alarmHonkOn]() { svc->updateAlarmHonk(!alarmHonkOn); }));
+
+    const bool armedLedOn = settings->alarmArmedLed();
+    alarmNode->addChild(MenuNode::setting(QStringLiteral("alarm_armed_led"), tr->menuAlarmArmedLed(),
+        armedLedOn ? 1 : 0, [svc, armedLedOn]() { svc->updateAlarmArmedLed(!armedLedOn); }));
 
     // Alarm Duration (inline cycle: 10s → 20s → 30s)
     {

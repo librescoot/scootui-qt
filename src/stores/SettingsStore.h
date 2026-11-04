@@ -54,6 +54,7 @@ class SettingsStore : public SyncableStore
     Q_PROPERTY(bool hornWhenSeatboxOpen READ hornWhenSeatboxOpen NOTIFY hornWhenSeatboxOpenChanged)
     Q_PROPERTY(bool alarmEnabled READ alarmEnabled NOTIFY alarmEnabledChanged)
     Q_PROPERTY(bool alarmHonk READ alarmHonk NOTIFY alarmHonkChanged)
+    Q_PROPERTY(bool alarmArmedLed READ alarmArmedLed NOTIFY alarmArmedLedChanged)
     Q_PROPERTY(QString alarmDuration READ alarmDuration NOTIFY alarmDurationChanged)
     Q_PROPERTY(QString hopOnCombo READ hopOnCombo NOTIFY hopOnComboChanged)
     Q_PROPERTY(bool mapCheckForUpdates READ mapCheckForUpdates NOTIFY mapCheckForUpdatesChanged)
@@ -147,6 +148,7 @@ public:
     QString showSpeedLimit() const { return m_showSpeedLimit; }
     bool alarmEnabled() const { return m_alarmEnabled == QLatin1String("true"); }
     bool alarmHonk() const { return m_alarmHonk == QLatin1String("true"); }
+    bool alarmArmedLed() const { return m_alarmArmedLed == QLatin1String("true"); }
     QString alarmDuration() const { return m_alarmDuration; }
     QString hopOnCombo() const { return m_hopOnCombo; }
     bool mapCheckForUpdates() const { return m_mapCheckForUpdates == QLatin1String("true"); }
@@ -250,6 +252,7 @@ signals:
     void hornWhenSeatboxOpenChanged();
     void alarmEnabledChanged();
     void alarmHonkChanged();
+    void alarmArmedLedChanged();
     void alarmDurationChanged();
     void hopOnComboChanged();
     void mapCheckForUpdatesChanged();
@@ -389,6 +392,8 @@ private:
     QString m_hornWhenSeatboxOpen = QStringLiteral("false");
     // @schema alarm.enabled
     QString m_alarmEnabled = QStringLiteral("true");
+    // @schema alarm.armed-led
+    QString m_alarmArmedLed = QStringLiteral("false");
     // @schema alarm.honk
     QString m_alarmHonk = QStringLiteral("false");
     // @schema alarm.duration

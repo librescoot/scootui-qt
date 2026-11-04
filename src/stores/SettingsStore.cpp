@@ -189,6 +189,7 @@ SyncSettings SettingsStore::syncSettings() const
             {QStringLiteral("showSpeedLimit"), QStringLiteral("dashboard.show-speed-limit")},
             {QStringLiteral("alarmEnabled"), QStringLiteral("alarm.enabled")},
             {QStringLiteral("alarmHonk"), QStringLiteral("alarm.honk")},
+            {QStringLiteral("alarmArmedLed"), QStringLiteral("alarm.armed-led")},
             {QStringLiteral("alarmDuration"), QStringLiteral("alarm.duration")},
             {QStringLiteral("hopOnCombo"), QStringLiteral("dashboard.hop-on-combo")},
             {QStringLiteral("mapCheckForUpdates"), QStringLiteral("dashboard.maps.check-for-updates")},
@@ -313,6 +314,8 @@ void SettingsStore::applyFieldUpdate(const QString &variable, const QString &val
         if (value != m_showSpeedLimit) { m_showSpeedLimit = value; emit showSpeedLimitChanged(); }
     } else if (variable == QLatin1String("alarm.enabled")) {
         if (value != m_alarmEnabled) { m_alarmEnabled = value; emit alarmEnabledChanged(); }
+    } else if (variable == QLatin1String("alarm.armed-led")) {
+        if (value != m_alarmArmedLed) { m_alarmArmedLed = value; emit alarmArmedLedChanged(); }
     } else if (variable == QLatin1String("alarm.honk")) {
         if (value != m_alarmHonk) { m_alarmHonk = value; emit alarmHonkChanged(); }
     } else if (variable == QLatin1String("alarm.duration")) {

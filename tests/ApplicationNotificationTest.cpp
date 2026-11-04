@@ -1641,6 +1641,57 @@ private slots:
         QVERIFY(hasItem(QStringLiteral("keycards_add_unlock")));
     }
 
+    void alarmArmedLedMenuRoundTrip()
+    {
+        auto *repo = m_application->m_repository.get();
+        auto *menu = context<MenuStore>("menuStore");
+        auto *settings = context<SettingsStore>("settingsStore");
+        QVERIFY(menu && settings);
+        QVERIFY(!settings->alarmArmedLed());
+        QSignalSpy changed(settings, &SettingsStore::alarmArmedLedChanged);
+
+        const auto select = [menu](const QString &id) {
+            const auto items = menu->currentItems();
+            for (int i = 0; i < items.size(); ++i) {
+                if (items.at(i).toMap().value("id").toString() != id)
+                    continue;
+                while (menu->selectedIndex() != i)
+                    menu->navigateDown();
+                menu->selectItem();
+                return true;
+            }
+            return false;
+        };
+        const auto value = [menu]() {
+            for (const auto &item : menu->currentItems()) {
+                const auto row = item.toMap();
+                if (row.value("id").toString() == QLatin1String("alarm_armed_led"))
+                    return row.value("currentValue").toInt();
+            }
+            return -1;
+        };
+        menu->open();
+        QTest::qWait(160);
+        QVERIFY(select(QStringLiteral("settings")));
+        QVERIFY(select(QStringLiteral("settings_vehicle")));
+        QVERIFY(select(QStringLiteral("settings_alarm")));
+        QCOMPARE(value(), 0);
+        QVERIFY(select(QStringLiteral("alarm_armed_led")));
+        QVERIFY(settings->alarmArmedLed());
+        QCOMPARE(value(), 1);
+        QVERIFY(select(QStringLiteral("alarm_armed_led")));
+        QVERIFY(!settings->alarmArmedLed());
+        QCOMPARE(value(), 0);
+        QCOMPARE(changed.count(), 2);
+
+        repo->set("settings", "alarm.armed-led", "true");
+        QVERIFY(settings->alarmArmedLed());
+        QCOMPARE(value(), 1);
+        QCOMPARE(changed.count(), 3);
+        repo->set("settings", "alarm.armed-led", "true");
+        QCOMPARE(changed.count(), 3);
+    }
+
     void tripCounterMenuUsesPersistentCapabilityAndCancelFirst()
     {
         auto *repo = m_application->m_repository.get();

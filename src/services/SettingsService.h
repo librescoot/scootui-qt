@@ -38,6 +38,7 @@ public:
     Q_INVOKABLE void updateShowSpeedLimit(const QString &mode);
     Q_INVOKABLE void updateAlarmEnabled(bool enabled);
     Q_INVOKABLE void updateAlarmHonk(bool enabled);
+    Q_INVOKABLE void updateAlarmArmedLed(bool enabled);
     Q_INVOKABLE void updateAlarmDuration(int seconds);
     Q_INVOKABLE void updateMapType(const QString &type);
     Q_INVOKABLE void updateMapViewMode(const QString &mode);

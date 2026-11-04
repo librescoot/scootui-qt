@@ -269,6 +269,8 @@ void Translations::initStrings()
     en[QStringLiteral("menuAlarmEnable")] = QStringLiteral("Enable on Lock");
     de[QStringLiteral("menuAlarmEnable")] = QStringLiteral("Bei Sperre aktivieren");
 
+    en[QStringLiteral("menuAlarmArmedLed")] = QStringLiteral("Armed indicator LED");
+    de[QStringLiteral("menuAlarmArmedLed")] = QStringLiteral("LED bei scharfem Alarm");
     en[QStringLiteral("menuAlarmHonk")] = QStringLiteral("Honk on Trigger");
     de[QStringLiteral("menuAlarmHonk")] = QStringLiteral("Hupen bei Ausl\u00F6sung");
 

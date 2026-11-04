@@ -193,6 +193,11 @@ void SettingsService::updateAlarmHonk(bool enabled)
     writeSetting(QStringLiteral("alarm.honk"), enabled ? QStringLiteral("true") : QStringLiteral("false"));
 }
 
+void SettingsService::updateAlarmArmedLed(bool enabled)
+{
+    writeSetting(QStringLiteral("alarm.armed-led"), enabled ? QStringLiteral("true") : QStringLiteral("false"));
+}
+
 void SettingsService::updateAlarmDuration(int seconds)
 {
     writeSetting(QStringLiteral("alarm.duration"), QString::number(seconds));
