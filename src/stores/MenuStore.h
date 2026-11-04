@@ -121,6 +121,7 @@ private:
     void buildSmsMenu(MenuNode *parent);
     void fireMilestoneDemo();
     QString lastMapCheckLabel() const;
+    void checkMapUpdates();
     QString lastCheckLabel(const QString &iso) const;
     MenuNode *findCurrentNode() const;
     MenuNode *selectedPrimaryNode() const;
@@ -146,6 +147,7 @@ private:
     InternetStore *m_internet = nullptr;
     HopOnStore *m_hopOn = nullptr;
     MapDownloadService *m_mapDownload = nullptr;
+    bool m_manualMapCheckPending = false;
     FaultsStore *m_faults = nullptr;
     ToastService *m_toastService = nullptr;
     UpdateChannelService *m_updateChannel = nullptr;

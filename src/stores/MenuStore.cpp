@@ -31,6 +31,7 @@
 #include <QProcess>
 #include <QTimer>
 #include <iterator>
+#include <utility>
 
 MenuStore::MenuStore(SettingsStore *settings, VehicleStore *vehicle,
                      ThemeStore *theme, TripStore *trip,
@@ -230,13 +231,49 @@ void MenuStore::setSmsStore(SmsStore *store)
 
 void MenuStore::setMapDownloadService(MapDownloadService *svc)
 {
+    if (m_mapDownload)
+        disconnect(m_mapDownload, nullptr, this, nullptr);
+    m_manualMapCheckPending = false;
     m_mapDownload = svc;
     if (m_mapDownload) {
         connect(m_mapDownload, &MapDownloadService::updateAvailableChanged,
                 this, &MenuStore::rebuildMenuTree);
         connect(m_mapDownload, &MapDownloadService::updateCheckCompleted,
-                this, &MenuStore::rebuildMenuTree);
+                this, [this](MapDownloadService::UpdateCheckResult result) {
+            const bool manual = std::exchange(m_manualMapCheckPending, false);
+            rebuildMenuTree();
+            if (!manual || !m_toastService) return;
+            switch (result) {
+            case MapDownloadService::UpdateCheckResult::UpToDate:
+                m_toastService->showSuccess(m_translations->mapsUpToDateToast());
+                break;
+            case MapDownloadService::UpdateCheckResult::Failed:
+                m_toastService->showError(m_translations->mapCheckFailedToast());
+                break;
+            case MapDownloadService::UpdateCheckResult::Unavailable:
+                m_toastService->showInfo(m_translations->mapCheckUnavailableToast());
+                break;
+            case MapDownloadService::UpdateCheckResult::UpdateAvailable:
+            case MapDownloadService::UpdateCheckResult::Cancelled:
+                break;
+            }
+        });
     }
+}
+
+void MenuStore::checkMapUpdates()
+{
+    if (!m_mapDownload) return;
+    if (!m_internet || m_internet->modemState() != static_cast<int>(ScootEnums::ModemState::Connected)) {
+        if (m_toastService) m_toastService->showError(m_translations->navSetupDownloadNoInternet());
+    } else if (m_manualMapCheckPending || !m_mapDownload->canCheckForUpdates()) {
+        if (m_toastService) m_toastService->showInfo(m_translations->mapCheckBusyToast());
+    } else {
+        m_manualMapCheckPending = true;
+        if (m_toastService) m_toastService->showInfo(m_translations->mapCheckingToast());
+        m_mapDownload->checkForUpdatesNow();
+    }
+    close();
 }
 
 void MenuStore::setFaultsStore(FaultsStore *store)
@@ -1159,33 +1196,7 @@ void MenuStore::rebuildMenuTree()
     // and the only way at all while automatic updates are off.
     if (m_mapDownload) {
         auto *checkNode = MenuNode::action(QStringLiteral("map_check_now"),
-            tr->menuMapCheckNow(), [this]() {
-                if (!m_internet || m_internet->modemState()
-                        != static_cast<int>(ScootEnums::ModemState::Connected)) {
-                    if (m_toastService)
-                        m_toastService->showError(m_translations->navSetupDownloadNoInternet());
-                    close();
-                    return;
-                }
-
-                // Report the outcome once, for this check only: the automatic
-                // path stays silent when nothing changed.
-                auto *conn = new QMetaObject::Connection;
-                *conn = connect(m_mapDownload, &MapDownloadService::updateCheckCompleted,
-                                this, [this, conn](bool updateFound) {
-                    disconnect(*conn);
-                    delete conn;
-                    if (!m_toastService)
-                        return;
-                    if (!updateFound)
-                        m_toastService->showSuccess(m_translations->mapsUpToDateToast());
-                });
-
-                if (m_toastService)
-                    m_toastService->showInfo(m_translations->mapCheckingToast());
-                m_mapDownload->checkForUpdatesNow();
-                close();
-            },
+            tr->menuMapCheckNow(), [this]() { checkMapUpdates(); },
             [this]() { return m_mapDownload && m_mapDownload->hasMapsInstalled(); });
         checkNode->setValueLabel(lastMapCheckLabel());
         mapNavNode->addChild(checkNode);

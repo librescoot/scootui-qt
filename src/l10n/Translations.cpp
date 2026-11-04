@@ -774,6 +774,14 @@ void Translations::initStrings()
 
     en[QStringLiteral("mapsUpToDateToast")] = QStringLiteral("Maps are up to date");
     de[QStringLiteral("mapsUpToDateToast")] = QStringLiteral("Karten sind aktuell");
+    en[QStringLiteral("mapCheckFailedToast")] = QStringLiteral("Map update check failed. Please try again.");
+    de[QStringLiteral("mapCheckFailedToast")] = QStringLiteral("Kartenprüfung fehlgeschlagen. Bitte erneut versuchen.");
+    en[QStringLiteral("mapCheckUnavailableToast")] = QStringLiteral("Updates cannot be checked for the installed maps.");
+    de[QStringLiteral("mapCheckUnavailableToast")] = QStringLiteral("Updates für die installierten Karten können nicht geprüft werden.");
+    en[QStringLiteral("mapCheckBusyToast")] = QStringLiteral("A map operation is already in progress.");
+    de[QStringLiteral("mapCheckBusyToast")] = QStringLiteral("Ein Kartenvorgang läuft bereits.");
+    en[QStringLiteral("mapCoverageUnavailable")] = QStringLiteral("Map coverage is unavailable here");
+    de[QStringLiteral("mapCoverageUnavailable")] = QStringLiteral("Dieser Bereich wird von den installierten Karten nicht abgedeckt");
 
     en[QStringLiteral("menuUpdates")] = QStringLiteral("Updates");
     de[QStringLiteral("menuUpdates")] = QStringLiteral("Updates");

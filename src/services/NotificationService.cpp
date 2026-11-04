@@ -288,18 +288,21 @@ void NotificationService::setMapUpdateAvailable(bool available, const QString &t
         emit mapUpdateAvailableChanged();
 }
 
-void NotificationService::setCoverageWarning(bool warning)
+void NotificationService::setCoverageWarning(bool warning, const QString &title, const QString &body)
 {
-    if (warning == m_coverageWarning)
-        return;
+    const bool changed = warning != m_coverageWarning;
     m_coverageWarning = warning;
-    if (warning)
+    if (warning) {
+        const auto previous = m_conditions.value(QStringLiteral("map-coverage"));
         publishCondition(QStringLiteral("map-coverage"), QStringLiteral("map"),
-                         QStringLiteral("No map for current location"),
-                         QStringLiteral("Map coverage is unavailable here"), 2, QStringLiteral("warning"));
-    else
+                         title.isEmpty() ? previous.value("title", QStringLiteral("No map for current location")).toString() : title,
+                         body.isEmpty() ? previous.value("body", QStringLiteral("Map coverage is unavailable here")).toString() : body,
+                         2, QStringLiteral("warning"));
+    } else if (changed) {
         resolveCondition(QStringLiteral("map-coverage"));
-    emit coverageWarningChanged();
+    }
+    if (changed)
+        emit coverageWarningChanged();
 }
 
 void NotificationService::refreshPresentation()

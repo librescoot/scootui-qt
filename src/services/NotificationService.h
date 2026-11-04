@@ -58,7 +58,7 @@ public:
     Q_INVOKABLE void clearEvent(const QString &id);
 
     void setMapUpdateAvailable(bool available, const QString &title = {});
-    void setCoverageWarning(bool warning);
+    void setCoverageWarning(bool warning, const QString &title = {}, const QString &body = {});
 
     // These methods only mutate the local notification registry. They are
     // exposed only when the simulator panel is explicitly enabled.

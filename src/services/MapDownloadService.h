@@ -36,10 +36,19 @@ class MapDownloadService : public QObject
     Q_PROPERTY(QVariantMap mapInfo READ collectMapState NOTIFY mapInfoChanged)
 
 public:
+    enum class UpdateCheckResult { UpToDate, UpdateAvailable, Failed, Unavailable, Cancelled };
+    Q_ENUM(UpdateCheckResult)
+
+    bool canCheckForUpdates() const {
+        return !m_checkInProgress && (m_status == ScootEnums::MapDownloadStatus::Idle
+                                     || m_status == ScootEnums::MapDownloadStatus::Error);
+    }
+
     // repo may be null (desktop builds without a repository). When it is set,
     // every change to the on-disk metadata is mirrored into the `maps` hash so
     // MDB-side consumers can read what is installed without touching the DBC.
-    explicit MapDownloadService(MdbRepository *repo = nullptr, QObject *parent = nullptr);
+    explicit MapDownloadService(MdbRepository *repo = nullptr, QObject *parent = nullptr,
+                                const QString &storageDirectory = {});
 
     int status() const { return static_cast<int>(m_status); }
     double progress() const { return m_progress; }
@@ -106,14 +115,14 @@ signals:
     void partialStateChanged();
     void estimatesChanged();
     void downloadComplete();
-    // Fires once per completed update check, whether or not anything changed,
-    // so a manual check can report back even when there is nothing to report.
-    void updateCheckCompleted(bool updateFound);
+    // Rejected busy requests produce no completion for the running check.
+    void updateCheckCompleted(MapDownloadService::UpdateCheckResult result);
     void mapInfoChanged();
 
 private:
     void setStatus(ScootEnums::MapDownloadStatus s);
     void setError(const QString &msg);
+    void finishUpdateCheck(UpdateCheckResult result);
 
     // Save metadata.json and mirror it into Redis. Every mutation of
     // m_metadata goes through here: a save that skips the publish leaves the
@@ -169,6 +178,8 @@ private:
         return generation == m_operationGeneration && !m_cancelled;
     }
 
+    QString m_storageDirectory;
+    QString m_metadataPath;
     MdbRepository *m_repo = nullptr;
     QNetworkAccessManager *m_nam;
     QNetworkReply *m_currentReply = nullptr;
@@ -179,6 +190,7 @@ private:
     quint64 m_operationGeneration = 0;
     // Set while an update check is waiting on region resolution to finish.
     bool m_pendingUpdateCheck = false;
+    bool m_checkInProgress = false;
     std::function<bool(double &, double &)> m_positionProvider;
     // Non-null only while a routing archive is being decompressed on a worker
     // thread. cancel() uses it to ask that worker to stop.

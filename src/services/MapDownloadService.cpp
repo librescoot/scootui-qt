@@ -16,6 +16,7 @@
 #include <QPromise>
 
 #include <cstdio>
+#include <algorithm>
 
 #ifdef Q_OS_LINUX
 #include <QProcess>
@@ -25,8 +26,11 @@
 // byte count into this many steps before handing it over.
 static constexpr int DecompressProgressSteps = 10000;
 
-MapDownloadService::MapDownloadService(MdbRepository *repo, QObject *parent)
+MapDownloadService::MapDownloadService(MdbRepository *repo, QObject *parent, const QString &storageDirectory)
     : QObject(parent)
+    , m_storageDirectory(storageDirectory)
+    , m_metadataPath(storageDirectory.isEmpty() ? MapMetadata::metadataPath()
+                                               : storageDirectory + QStringLiteral("/metadata.json"))
     , m_repo(repo)
     , m_nam(new QNetworkAccessManager(this))
 {
@@ -41,7 +45,7 @@ MapDownloadService::MapDownloadService(MdbRepository *repo, QObject *parent)
         staleDownloadDir.remove(name);
     }
 
-    m_metadata = MapMetadata::load();
+    m_metadata = MapMetadata::load(m_metadataPath);
     if (!m_metadata.region.isEmpty()) {
         m_resolvedSlug = m_metadata.region;
         // Restore friendly name so the QML's `dlRegion === ""` guard does not
@@ -72,7 +76,7 @@ void MapDownloadService::reloadMetadata()
     if (m_status != ScootEnums::MapDownloadStatus::Idle)
         return;
 
-    const MapMetadata fresh = MapMetadata::load();
+    const MapMetadata fresh = MapMetadata::load(m_metadataPath);
     const bool haveMetadata = !(fresh.region.isEmpty() && fresh.lastUpdateCheck.isEmpty());
     const bool changed = fresh.region != m_metadata.region
         || fresh.lastUpdateCheck != m_metadata.lastUpdateCheck
@@ -174,7 +178,7 @@ QVariantMap MapDownloadService::collectMapState() const
 
 void MapDownloadService::persistMetadata()
 {
-    MapMetadata::save(m_metadata);
+    MapMetadata::save(m_metadata, m_metadataPath);
     publishToRedis();
 }
 
@@ -231,6 +235,14 @@ void MapDownloadService::setError(const QString &msg)
     setStatus(ScootEnums::MapDownloadStatus::Error);
 }
 
+void MapDownloadService::finishUpdateCheck(UpdateCheckResult result)
+{
+    m_checkInProgress = false;
+    m_pendingUpdateCheck = false;
+    setStatus(ScootEnums::MapDownloadStatus::Idle);
+    emit updateCheckCompleted(result);
+}
+
 void MapDownloadService::resolveRegion(double lat, double lng)
 {
     if (m_status != ScootEnums::MapDownloadStatus::Idle &&
@@ -248,7 +260,7 @@ void MapDownloadService::resolveRegion(double lat, double lng)
 
 void MapDownloadService::startDownload(double lat, double lng, bool needsDisplay, bool needsRouting)
 {
-    if (RegionalMapCatalog::enabled() &&
+    if (RegionalMapCatalog::enabled(mapsDir(), QFileInfo(routingDestPath()).absolutePath()) &&
         !QDir(mapsDir()).entryList({QStringLiteral("tiles_*.mbtiles")}, QDir::Files).isEmpty()) {
         setError(QStringLiteral("Regional packs must be updated via USB"));
         return;
@@ -276,6 +288,8 @@ void MapDownloadService::startDownload(double lat, double lng, bool needsDisplay
 
 void MapDownloadService::cancel()
 {
+    const bool checking = m_checkInProgress;
+    m_checkInProgress = false;
     ++m_operationGeneration;
     m_cancelled = true;
     m_pendingUpdateCheck = false;
@@ -297,6 +311,8 @@ void MapDownloadService::cancel()
     m_completedBytes = 0;
     emit progressChanged();
     setStatus(ScootEnums::MapDownloadStatus::Idle);
+    if (checking)
+        emit updateCheckCompleted(UpdateCheckResult::Cancelled);
 }
 
 void MapDownloadService::checkForUpdatesAt(double lat, double lng)
@@ -311,6 +327,7 @@ void MapDownloadService::checkForUpdatesAt(double lat, double lng)
         return;
 
     // Resolve first, then check. doResolveSlug picks the check back up.
+    m_checkInProgress = true;
     ++m_operationGeneration;
     m_cancelled = false;
     m_pendingUpdateCheck = true;
@@ -332,15 +349,15 @@ void MapDownloadService::checkForUpdatesNow()
 
 void MapDownloadService::checkForUpdates()
 {
-    if (RegionalMapCatalog::enabled() &&
+    if (!canCheckForUpdates())
+        return;
+    if (RegionalMapCatalog::enabled(mapsDir(), QFileInfo(routingDestPath()).absolutePath()) &&
         !QDir(mapsDir()).entryList({QStringLiteral("tiles_*.mbtiles")}, QDir::Files).isEmpty()) {
-        emit updateCheckCompleted(false);
+        emit updateCheckCompleted(UpdateCheckResult::Unavailable);
         return;
     }
-    if (m_status != ScootEnums::MapDownloadStatus::Idle &&
-        m_status != ScootEnums::MapDownloadStatus::Error)
-        return;
 
+    m_checkInProgress = true;
     ++m_operationGeneration;
     m_cancelled = false;
     m_pendingUpdateCheck = false;
@@ -350,8 +367,7 @@ void MapDownloadService::checkForUpdates()
     fetchTilesManifest([this, generation](const QJsonObject &manifest) {
         if (!isCurrentOperation(generation)) return;
         if (manifest.isEmpty()) {
-            setStatus(ScootEnums::MapDownloadStatus::Idle);
-            emit updateCheckCompleted(false);
+            finishUpdateCheck(UpdateCheckResult::Failed);
             return;
         }
 
@@ -360,15 +376,31 @@ void MapDownloadService::checkForUpdates()
         if (m_resolvedSlug.isEmpty() && !adoptRegionFromManifest(manifest)) {
             qDebug() << "Map update check: region unknown and digests match no "
                         "published region, skipping";
-            setStatus(ScootEnums::MapDownloadStatus::Idle);
-            emit updateCheckCompleted(false);
+            finishUpdateCheck(UpdateCheckResult::Unavailable);
             return;
         }
 
         auto region = manifest[m_resolvedSlug].toObject();
         if (region.isEmpty()) {
-            setStatus(ScootEnums::MapDownloadStatus::Idle);
-            emit updateCheckCompleted(false);
+            finishUpdateCheck(UpdateCheckResult::Unavailable);
+            return;
+        }
+        const auto validDigest = [](const QString &digest) {
+            return digest.size() == 64 && std::all_of(digest.cbegin(), digest.cend(), [](QChar c) {
+                return (c >= u'0' && c <= u'9') || (c >= u'a' && c <= u'f') || (c >= u'A' && c <= u'F');
+            });
+        };
+        if ((!m_metadata.displayTiles && !m_metadata.valhallaTiles)
+            || (m_metadata.displayTiles && !validDigest(m_metadata.displayTiles->digest))
+            || (m_metadata.valhallaTiles && !validDigest(m_metadata.valhallaTiles->digest))) {
+            finishUpdateCheck(UpdateCheckResult::Unavailable);
+            return;
+        }
+        if ((m_metadata.displayTiles && !validDigest(region[QStringLiteral("map")].toObject()
+                                                       [QStringLiteral("sha256")].toString()))
+            || (m_metadata.valhallaTiles && !validDigest(region[QStringLiteral("valhalla")].toObject()
+                                                           [QStringLiteral("sha256")].toString()))) {
+            finishUpdateCheck(UpdateCheckResult::Failed);
             return;
         }
 
@@ -382,7 +414,7 @@ void MapDownloadService::checkForUpdates()
         if (m_metadata.displayTiles && !m_metadata.displayTiles->digest.isEmpty()) {
             QString remoteDigest = region[QStringLiteral("map")].toObject()
                                        [QStringLiteral("sha256")].toString();
-            if (!remoteDigest.isEmpty() && remoteDigest != m_metadata.displayTiles->digest) {
+            if (remoteDigest.compare(m_metadata.displayTiles->digest, Qt::CaseInsensitive) != 0) {
                 displayHasUpdate = true;
                 qDebug() << "Display map update available:"
                          << m_metadata.displayTiles->digest << "->" << remoteDigest;
@@ -391,7 +423,7 @@ void MapDownloadService::checkForUpdates()
         if (m_metadata.valhallaTiles && !m_metadata.valhallaTiles->digest.isEmpty()) {
             QString remoteDigest = region[QStringLiteral("valhalla")].toObject()
                                        [QStringLiteral("sha256")].toString();
-            if (!remoteDigest.isEmpty() && remoteDigest != m_metadata.valhallaTiles->digest) {
+            if (remoteDigest.compare(m_metadata.valhallaTiles->digest, Qt::CaseInsensitive) != 0) {
                 routingHasUpdate = true;
                 qDebug() << "Routing map update available:"
                          << m_metadata.valhallaTiles->digest << "->" << remoteDigest;
@@ -419,6 +451,7 @@ void MapDownloadService::checkForUpdates()
         // reacts to updateAvailableChanged (e.g. Application's auto-download
         // wiring) can immediately call startDownload() without tripping the
         // "busy" guard at the top of startDownload().
+        m_checkInProgress = false;
         setStatus(ScootEnums::MapDownloadStatus::Idle);
 
         if (hasUpdate != m_updateAvailable) {
@@ -426,13 +459,13 @@ void MapDownloadService::checkForUpdates()
             emit updateAvailableChanged();
         }
 
-        emit updateCheckCompleted(hasUpdate);
+        emit updateCheckCompleted(hasUpdate ? UpdateCheckResult::UpdateAvailable : UpdateCheckResult::UpToDate);
     });
 }
 
 bool MapDownloadService::shouldCheckForUpdates() const
 {
-    if (RegionalMapCatalog::enabled() &&
+    if (RegionalMapCatalog::enabled(mapsDir(), QFileInfo(routingDestPath()).absolutePath()) &&
         !QDir(mapsDir()).entryList({QStringLiteral("tiles_*.mbtiles")}, QDir::Files).isEmpty())
         return false;
     if (!hasMapsInstalled())
@@ -455,7 +488,10 @@ void MapDownloadService::fetchTilesManifest(std::function<void(const QJsonObject
     req.setTransferTimeout(15000);
 
     auto *reply = m_nam->get(req);
-    connect(reply, &QNetworkReply::finished, this, [this, reply, callback]() {
+    const quint64 generation = m_operationGeneration;
+    connect(reply, &QNetworkReply::finished, this, [this, reply, callback, generation]() {
+        reply->deleteLater();
+        if (!isCurrentOperation(generation)) return;
         QJsonObject regions;
         if (reply->error() == QNetworkReply::NoError) {
             const auto doc = QJsonDocument::fromJson(reply->readAll());
@@ -463,7 +499,6 @@ void MapDownloadService::fetchTilesManifest(std::function<void(const QJsonObject
             if (root.value(QStringLiteral("version")).toInt() == 1)
                 regions = root.value(QStringLiteral("regions")).toObject();
         }
-        reply->deleteLater();
         if (!regions.isEmpty()) {
             QJsonObject normalized;
             for (auto it = regions.begin(); it != regions.end(); ++it) {
@@ -506,10 +541,10 @@ void MapDownloadService::doResolveSlug(double lat, double lng)
     const quint64 generation = m_operationGeneration;
     fetchTilesManifest([this, generation, lat, lng](const QJsonObject &manifest) {
         if (!isCurrentOperation(generation)) return;
-        auto fail = [this](const QString &message) {
+        auto fail = [this](const QString &message, UpdateCheckResult result = UpdateCheckResult::Failed) {
             if (m_pendingUpdateCheck) {
-                m_pendingUpdateCheck = false;
-                emit updateCheckCompleted(false);
+                finishUpdateCheck(result);
+                return;
             }
             setError(message);
         };
@@ -536,11 +571,15 @@ void MapDownloadService::doResolveSlug(double lat, double lng)
 
             const auto address = QJsonDocument::fromJson(reply->readAll()).object()
                                      .value(QStringLiteral("address")).toObject();
+            if (address.isEmpty()) {
+                fail(QStringLiteral("Could not detect region: invalid location response"));
+                return;
+            }
             const QString slug = MapRegionResolver::resolve(address, manifest);
             if (slug.isEmpty()) {
                 const QString place = address.value(QStringLiteral("state")).toString(
                     address.value(QStringLiteral("city")).toString());
-                fail(QStringLiteral("Unsupported region: ") + place);
+                fail(QStringLiteral("Unsupported region: ") + place, UpdateCheckResult::Unavailable);
                 return;
             }
 
@@ -556,6 +595,7 @@ void MapDownloadService::doResolveSlug(double lat, double lng)
 
             if (m_pendingUpdateCheck) {
                 m_pendingUpdateCheck = false;
+                m_checkInProgress = false;
                 setStatus(ScootEnums::MapDownloadStatus::Idle);
                 checkForUpdates();
                 return;
@@ -1152,6 +1192,7 @@ QString MapDownloadService::displayNameForSlug(const QString &slug) const
 
 QString MapDownloadService::mapsDir() const
 {
+    if (!m_storageDirectory.isEmpty()) return m_storageDirectory;
 #ifdef Q_OS_LINUX
     return QStringLiteral("/data/maps");
 #else
@@ -1181,15 +1222,12 @@ QString MapDownloadService::routingCompressedPartPath() const
 
 QString MapDownloadService::displayDestPath() const
 {
-#ifdef Q_OS_LINUX
-    return QStringLiteral("/data/maps/map.mbtiles");
-#else
     return mapsDir() + QStringLiteral("/map.mbtiles");
-#endif
 }
 
 QString MapDownloadService::routingDestPath() const
 {
+    if (!m_storageDirectory.isEmpty()) return mapsDir() + QStringLiteral("/tiles.tar");
 #ifdef Q_OS_LINUX
     return QStringLiteral("/data/valhalla/tiles.tar");
 #else

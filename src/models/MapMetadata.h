@@ -95,8 +95,8 @@ struct MapMetadata {
 #endif
     }
 
-    static MapMetadata load() {
-        QFile f(metadataPath());
+    static MapMetadata load(const QString &path = metadataPath()) {
+        QFile f(path);
         if (!f.open(QIODevice::ReadOnly))
             return {};
         auto doc = QJsonDocument::fromJson(f.readAll());
@@ -105,8 +105,7 @@ struct MapMetadata {
         return fromJson(doc.object());
     }
 
-    static bool save(const MapMetadata &meta) {
-        QString path = metadataPath();
+    static bool save(const MapMetadata &meta, const QString &path = metadataPath()) {
         QDir().mkpath(QFileInfo(path).absolutePath());
 
         // QSaveFile writes to a temp file and only replaces the target on a

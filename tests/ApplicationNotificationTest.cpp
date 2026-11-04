@@ -43,7 +43,12 @@
 #include "stores/ConnectionStore.h"
 #include "stores/EngineStore.h"
 #include "stores/InternetStore.h"
+#define private public
 #include "stores/MenuStore.h"
+#include "services/MapDownloadService.h"
+#include "services/MapService.h"
+#undef private
+#include "stores/InternetStore.h"
 #include "stores/SavedLocationsStore.h"
 #include "stores/ScreenStore.h"
 #include "stores/SmsStore.h"
@@ -56,6 +61,52 @@
 #include "stores/VehicleStore.h"
 
 QElapsedTimer g_bootTimer;
+
+class MapCheckReply : public QNetworkReply
+{
+public:
+    explicit MapCheckReply(const QNetworkRequest &request, QObject *parent)
+        : QNetworkReply(parent)
+    {
+        setRequest(request);
+        setUrl(request.url());
+        open(QIODevice::ReadOnly);
+    }
+    void finish(const QByteArray &body, bool failed = false)
+    {
+        m_body = body;
+        if (failed) setError(QNetworkReply::ConnectionRefusedError, "Test connection failure");
+        setFinished(true);
+        emit readyRead();
+        emit finished();
+    }
+    void abort() override { finish({}, true); }
+    qint64 bytesAvailable() const override { return m_body.size() + QNetworkReply::bytesAvailable(); }
+protected:
+    qint64 readData(char *data, qint64 maxSize) override
+    {
+        const qint64 size = qMin(maxSize, qint64(m_body.size()));
+        if (!size) return -1;
+        memcpy(data, m_body.constData(), size);
+        m_body.remove(0, size);
+        return size;
+    }
+private:
+    QByteArray m_body;
+};
+
+class MapCheckNetwork : public QNetworkAccessManager
+{
+public:
+    QList<MapCheckReply *> replies;
+protected:
+    QNetworkReply *createRequest(Operation, const QNetworkRequest &request, QIODevice *) override
+    {
+        auto *reply = new MapCheckReply(request, this);
+        replies.append(reply);
+        return reply;
+    }
+};
 
 class BluetoothTestRepository : public InMemoryMdbRepository
 {
@@ -175,6 +226,240 @@ private slots:
         m_engine.reset();
         m_application->shutdownBackgroundWorkers();
         m_application.reset();
+    }
+
+    void mapCheckResults_data()
+    {
+        QTest::addColumn<QString>("scenario");
+        QTest::addColumn<int>("expected");
+        using Result = MapDownloadService::UpdateCheckResult;
+        QTest::newRow("current") << "current" << int(Result::UpToDate);
+        QTest::newRow("display-update") << "display-update" << int(Result::UpdateAvailable);
+        QTest::newRow("routing-update") << "routing-update" << int(Result::UpdateAvailable);
+        QTest::newRow("network-failure") << "network-failure" << int(Result::Failed);
+        QTest::newRow("malformed-manifests") << "malformed-manifests" << int(Result::Failed);
+        QTest::newRow("missing-digest") << "missing-digest" << int(Result::Failed);
+        QTest::newRow("malformed-digest") << "malformed-digest" << int(Result::Failed);
+        QTest::newRow("missing-local-digest") << "missing-local-digest" << int(Result::Unavailable);
+        QTest::newRow("unknown-region") << "unknown-region" << int(Result::Unavailable);
+        QTest::newRow("missing-region") << "missing-region" << int(Result::Unavailable);
+        QTest::newRow("no-installed-targets") << "no-installed-targets" << int(Result::Unavailable);
+        QTest::newRow("cancelled") << "cancelled" << int(Result::Cancelled);
+    }
+
+    void mapCheckResults()
+    {
+        QFETCH(QString, scenario);
+        QFETCH(int, expected);
+        QTemporaryDir directory;
+        QVERIFY(directory.isValid());
+        MapDownloadService service(nullptr, nullptr, directory.path());
+        delete service.m_nam;
+        auto *network = new MapCheckNetwork;
+        network->setParent(&service);
+        service.m_nam = network;
+        service.m_resolvedSlug = "test-region";
+        service.m_metadata.displayTiles = MapTileInfo{QString(64, 'a'), {}, 100};
+        service.m_metadata.valhallaTiles = MapTileInfo{QString(64, 'b'), {}, 100};
+        service.m_metadata.lastUpdateCheck = "previous-check";
+        service.m_metadata.updateAvailable = true;
+        service.m_metadata.displayUpdateAvailable = true;
+        service.m_updateAvailable = true;
+        QJsonObject region{{"map", QJsonObject{{"sha256", QString(64, 'a')}}},
+                           {"routing", QJsonObject{{"sha256", QString(64, 'b')}}}};
+        if (scenario == "display-update") region["map"] = QJsonObject{{"sha256", QString(64, 'c')}};
+        if (scenario == "routing-update") region["routing"] = QJsonObject{{"sha256", QString(64, 'c')}};
+        if (scenario == "missing-digest") region["routing"] = QJsonObject{};
+        if (scenario == "malformed-digest") region["map"] = QJsonObject{{"sha256", "invalid"}};
+        if (scenario == "missing-local-digest") service.m_metadata.displayTiles->digest.clear();
+        if (scenario == "unknown-region") {
+            service.m_resolvedSlug.clear();
+            region["map"] = QJsonObject{{"sha256", QString(64, 'd')}};
+            region["routing"] = QJsonObject{{"sha256", QString(64, 'e')}};
+        }
+        if (scenario == "missing-region") service.m_resolvedSlug = "absent";
+        if (scenario == "no-installed-targets") {
+            service.m_metadata.displayTiles.reset();
+            service.m_metadata.valhallaTiles.reset();
+        }
+        const auto body = QJsonDocument(QJsonObject{{"version", 1},
+            {"regions", QJsonObject{{"test-region", region}}}}).toJson();
+        QSignalSpy completed(&service, &MapDownloadService::updateCheckCompleted);
+        service.checkForUpdates();
+        QVERIFY(!service.canCheckForUpdates());
+        service.checkForUpdates();
+        QCOMPARE(network->replies.size(), 1);
+        if (scenario == "cancelled") service.cancel();
+        if (scenario == "network-failure" || scenario == "malformed-manifests") {
+            network->replies.at(0)->finish("not-json", scenario == "network-failure");
+            QCOMPARE(network->replies.size(), 2);
+            network->replies.at(1)->finish("not-json", scenario == "network-failure");
+        } else {
+            network->replies.at(0)->finish(body);
+        }
+        QCOMPARE(completed.size(), 1);
+        QCOMPARE(int(qvariant_cast<MapDownloadService::UpdateCheckResult>(completed.first().first())), expected);
+        QVERIFY(service.canCheckForUpdates());
+        if (expected >= int(MapDownloadService::UpdateCheckResult::Failed)) {
+            QVERIFY(service.updateAvailable());
+            QVERIFY(service.displayUpdateAvailable());
+            QCOMPARE(service.lastUpdateCheck(), QStringLiteral("previous-check"));
+        } else {
+            QVERIFY(service.lastUpdateCheck() != "previous-check");
+            QCOMPARE(service.updateAvailable(), expected == int(MapDownloadService::UpdateCheckResult::UpdateAvailable));
+            QCOMPARE(service.displayUpdateAvailable(), scenario == "display-update");
+            QCOMPARE(service.routingUpdateAvailable(), scenario == "routing-update");
+        }
+    }
+
+    void mapRegionCheckFailures_data()
+    {
+        QTest::addColumn<QString>("scenario");
+        for (const auto *scenario : {"index-error", "network-error", "invalid-response", "unsupported", "cancelled", "resolved"})
+            QTest::newRow(scenario) << QString::fromLatin1(scenario);
+    }
+
+    void mapRegionCheckFailures()
+    {
+        QFETCH(QString, scenario);
+        QTemporaryDir directory;
+        MapDownloadService service(nullptr, nullptr, directory.path());
+        delete service.m_nam;
+        auto *network = new MapCheckNetwork;
+        network->setParent(&service);
+        service.m_nam = network;
+        service.m_metadata.displayTiles = MapTileInfo{QString(64, 'a'), {}, 100};
+        service.setPositionProvider([](double &lat, double &lng) { lat = 52.5; lng = 13.4; return true; });
+        const auto body = QJsonDocument(QJsonObject{{"version", 1}, {"regions", QJsonObject{
+            {"berlin_brandenburg", QJsonObject{{"country", "de"},
+                {"location", QJsonObject{{"cities", QJsonArray{"Berlin"}}}},
+                {"map", QJsonObject{{"sha256", QString(64, 'a')}}},
+                {"routing", QJsonObject{{"sha256", QString(64, 'b')}}}}}}}}).toJson();
+        QSignalSpy completed(&service, &MapDownloadService::updateCheckCompleted);
+        service.checkForUpdatesNow();
+        QCOMPARE(network->replies.size(), 1);
+        service.checkForUpdatesNow();
+        QCOMPARE(network->replies.size(), 1);
+        using Result = MapDownloadService::UpdateCheckResult;
+        Result expected = Result::Failed;
+        if (scenario == "index-error") {
+            network->replies.last()->finish({}, true);
+            network->replies.last()->finish({}, true);
+        } else {
+            network->replies.last()->finish(body);
+            QCOMPARE(network->replies.size(), 2);
+            if (scenario == "cancelled") {
+                service.cancel();
+                expected = Result::Cancelled;
+            } else if (scenario == "unsupported") {
+                expected = Result::Unavailable;
+            } else if (scenario == "resolved") {
+                expected = Result::UpToDate;
+            }
+            if (scenario == "network-error") network->replies.last()->finish({}, true);
+            else if (scenario == "invalid-response") network->replies.last()->finish("not-json");
+            else network->replies.last()->finish(scenario == "resolved"
+                ? R"({"address":{"country_code":"de","state":"Berlin","city":"Berlin"}})"
+                : R"({"address":{"country_code":"xx","state":"Unknown"}})");
+            if (scenario == "resolved") {
+                QCOMPARE(network->replies.size(), 3);
+                network->replies.last()->finish(body);
+            }
+        }
+        QCOMPARE(completed.size(), 1);
+        QCOMPARE(qvariant_cast<Result>(completed.first().first()), expected);
+        QVERIFY(service.canCheckForUpdates());
+    }
+
+    void regionalMapCheckReportsUnavailable()
+    {
+        QTemporaryDir directory;
+        QFile pack(directory.filePath("tiles_test.mbtiles"));
+        QVERIFY(pack.open(QIODevice::WriteOnly));
+        pack.close();
+        MapDownloadService service(nullptr, nullptr, directory.path());
+        QSignalSpy completed(&service, &MapDownloadService::updateCheckCompleted);
+        service.checkForUpdates();
+        QCOMPARE(completed.size(), 1);
+        QCOMPARE(qvariant_cast<MapDownloadService::UpdateCheckResult>(completed.first().first()),
+                 MapDownloadService::UpdateCheckResult::Unavailable);
+        QVERIFY(service.canCheckForUpdates());
+    }
+
+    void manualMapCheckDoesNotRetainOldCallbacks()
+    {
+        QTemporaryDir directory;
+        MapDownloadService service(nullptr, nullptr, directory.path());
+        delete service.m_nam;
+        auto *network = new MapCheckNetwork;
+        network->setParent(&service);
+        service.m_nam = network;
+        service.m_resolvedSlug = "test-region";
+        service.m_metadata.displayTiles = MapTileInfo{QString(64, 'a'), {}, 100};
+        const auto body = QJsonDocument(QJsonObject{{"version", 1}, {"regions", QJsonObject{
+            {"test-region", QJsonObject{{"map", QJsonObject{{"sha256", QString(64, 'a')}}}}}}}}).toJson();
+        auto *menu = context<MenuStore>("menuStore");
+        auto *tr = context<Translations>("translations");
+        auto *toast = m_application->m_toastService;
+        toast->setNotificationService(nullptr);
+        m_application->m_repository->set("internet", "modem-state", "connected");
+        menu->setMapDownloadService(&service);
+        QSignalSpy added(toast, &ToastService::toastAdded);
+        menu->checkMapUpdates();
+        QCOMPARE(network->replies.size(), 1);
+        menu->checkMapUpdates();
+        QCOMPARE(network->replies.size(), 1);
+        QCOMPARE(toast->toasts().last().toMap().value("message").toString(), tr->mapCheckBusyToast());
+        service.cancel();
+        QVERIFY(!menu->m_manualMapCheckPending);
+        menu->checkMapUpdates();
+        QCOMPARE(network->replies.size(), 2);
+        network->replies.at(0)->finish(body);
+        QVERIFY(menu->m_manualMapCheckPending);
+        network->replies.at(1)->finish(body);
+        QVERIFY(!menu->m_manualMapCheckPending);
+        QCOMPARE(toast->toasts().last().toMap().value("message").toString(), tr->mapsUpToDateToast());
+        const int beforeAutomatic = added.size();
+        service.checkForUpdates();
+        network->replies.last()->finish(body);
+        QCOMPARE(added.size(), beforeAutomatic);
+        menu->checkMapUpdates();
+        network->replies.last()->finish({}, true);
+        network->replies.last()->finish({}, true);
+        QCOMPARE(toast->toasts().last().toMap().value("message").toString(), tr->mapCheckFailedToast());
+        QVERIFY(!menu->m_manualMapCheckPending);
+        service.m_resolvedSlug = "unknown";
+        menu->checkMapUpdates();
+        network->replies.last()->finish(body);
+        QCOMPARE(toast->toasts().last().toMap().value("message").toString(), tr->mapCheckUnavailableToast());
+        menu->setMapDownloadService(m_application->m_mapDownloadService);
+    }
+
+    void coverageWarningFollowsLanguage()
+    {
+        auto *notifications = context<NotificationService>("notificationService");
+        auto *tr = context<Translations>("translations");
+        m_application->m_mapService->m_isOutOfCoverage = true;
+        emit m_application->m_mapService->isOutOfCoverageChanged();
+        notifications->setSurface("map");
+        QSignalSpy cue(notifications, &NotificationService::conditionPresented);
+        for (const auto &language : {"de", "en"}) {
+            tr->setLanguage(language);
+            const auto entries = notifications->active();
+            bool found = false;
+            for (const auto &entry : entries) {
+                const auto item = entry.toMap();
+                if (item.value("id") != "map-coverage") continue;
+                found = true;
+                QCOMPARE(item.value("title").toString(), tr->mapOutOfCoverage());
+                QCOMPARE(item.value("body").toString(), tr->mapCoverageUnavailable());
+            }
+            QVERIFY(found);
+        }
+        QCOMPARE(cue.size(), 0);
+        m_application->m_mapService->m_isOutOfCoverage = false;
+        emit m_application->m_mapService->isOutOfCoverageChanged();
+        QVERIFY(!notifications->coverageWarning());
     }
 
     void seededMonitorsAndUnknownLockSensor()

@@ -308,6 +308,10 @@ class Translations : public QObject
     Q_PROPERTY(QString mapCheckJustNow READ mapCheckJustNow NOTIFY languageChanged)
     Q_PROPERTY(QString mapCheckingToast READ mapCheckingToast NOTIFY languageChanged)
     Q_PROPERTY(QString mapsUpToDateToast READ mapsUpToDateToast NOTIFY languageChanged)
+    Q_PROPERTY(QString mapCheckFailedToast READ mapCheckFailedToast NOTIFY languageChanged)
+    Q_PROPERTY(QString mapCheckUnavailableToast READ mapCheckUnavailableToast NOTIFY languageChanged)
+    Q_PROPERTY(QString mapCheckBusyToast READ mapCheckBusyToast NOTIFY languageChanged)
+    Q_PROPERTY(QString mapCoverageUnavailable READ mapCoverageUnavailable NOTIFY languageChanged)
     Q_PROPERTY(QString menuRouteFastest READ menuRouteFastest NOTIFY languageChanged)
     Q_PROPERTY(QString menuRouteShortest READ menuRouteShortest NOTIFY languageChanged)
     Q_PROPERTY(QString menuAvoidCobblestone READ menuAvoidCobblestone NOTIFY languageChanged)
@@ -1119,6 +1123,10 @@ public:
     QString mapCheckJustNow() const { return lookup("mapCheckJustNow"); }
     QString mapCheckingToast() const { return lookup("mapCheckingToast"); }
     QString mapsUpToDateToast() const { return lookup("mapsUpToDateToast"); }
+    QString mapCheckFailedToast() const { return lookup("mapCheckFailedToast"); }
+    QString mapCheckUnavailableToast() const { return lookup("mapCheckUnavailableToast"); }
+    QString mapCheckBusyToast() const { return lookup("mapCheckBusyToast"); }
+    QString mapCoverageUnavailable() const { return lookup("mapCoverageUnavailable"); }
     QString menuRouteFastest() const { return lookup("menuRouteFastest"); }
     QString menuRouteShortest() const { return lookup("menuRouteShortest"); }
     QString menuAvoidCobblestone() const { return lookup("menuAvoidCobblestone"); }

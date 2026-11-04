@@ -550,10 +550,13 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // onto that segment for presentation only.
     m_roadInfoService->setMapService(m_mapService);
     m_mapService->setRoadInfoService(m_roadInfoService);
-    connect(m_mapService, &MapService::isOutOfCoverageChanged, this, [this]() {
-        m_notificationService->setCoverageWarning(m_mapService->isOutOfCoverage());
-    });
-    m_notificationService->setCoverageWarning(m_mapService->isOutOfCoverage());
+    const auto refreshCoverageWarning = [this]() {
+        m_notificationService->setCoverageWarning(m_mapService->isOutOfCoverage(),
+            m_translations->mapOutOfCoverage(), m_translations->mapCoverageUnavailable());
+    };
+    connect(m_mapService, &MapService::isOutOfCoverageChanged, this, refreshCoverageWarning);
+    connect(m_translations, &Translations::languageChanged, this, refreshCoverageWarning);
+    refreshCoverageWarning();
 
     // Navigation availability (B6)
     m_navAvailability = new NavigationAvailabilityService(settingsStore, internetStore, repo,
@@ -1517,8 +1520,8 @@ void Application::setupMapCommandChannel()
                           << " region=" << m_mapDownloadService->regionName();
     });
     connect(m_mapDownloadService, &MapDownloadService::updateCheckCompleted, this,
-            [](bool updateFound) {
-        qInfo() << "Map: update check finished, update available:" << updateFound;
+            [](MapDownloadService::UpdateCheckResult result) {
+        qInfo() << "Map: update check finished:" << result;
     });
     connect(m_mapDownloadService, &MapDownloadService::downloadComplete, this, [this] {
         qInfo() << "Map: download complete, region" << m_mapDownloadService->regionName();

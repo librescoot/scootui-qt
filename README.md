@@ -226,6 +226,29 @@ to parked, refreshing the status, or changing language or screen does not rearm
 it. The update remains marked in the menu and Navigation Setup until resolved.
 This presentation deadline does not suppress other warnings or notifications.
 
+Manual map checks report "Maps are up to date" only after comparing all recorded
+installed tile sets successfully. Network or manifest errors and unidentifiable
+or unsupported maps have separate feedback; they preserve known update flags and
+the last successful check time. Busy requests do not register another completion
+handler, and cancellation prevents late replies from reporting success. Automatic
+checks remain silent when nothing changed. Coverage warnings follow the selected
+language, including a language change while the warning is visible.
+
+Handlebar-lock warnings are evaluated from the initial store state and after
+state changes. An unknown sensor cancels a pending warning but does not dismiss an
+already confirmed one while parked or ready-to-drive; leaving those states clears
+it regardless of sensor availability. Bluetooth health and low-temperature
+monitors also evaluate their initial state. AUX charging warnings react to voltage
+changes as well as charging status; charging warnings retain their debounce and
+one-transient-warning-per-failure behavior.
+
+Pairing PINs clear immediately when removed from the vehicle data and otherwise
+expire after 30 seconds; a new PIN restarts that deadline. The versions overlay
+closes when leaving parked or opening the menu, with its four-second brake-release
+linger confined to the eligible state. The hibernation countdown follows held
+brakes and resets on each hibernation-state change. During shutdown, DBC and MDB
+update status, version and error details are shown separately.
+
 Attention overlays the normal full-size cluster and map; it does not reserve
 instrument space or change the map camera or vehicle anchor. Only blinkers move
 below the overlay to stay visible. QML renders notifications and navigation with
