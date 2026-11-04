@@ -95,6 +95,35 @@ TestCase {
         vehicleStore.hopOnActive = false
         verify(!view.visible)
     }
+    function test_pinExpiryRestartsForNewCode() {
+        const view = make(pinComponent)
+        const timer = findChild(view, "bluetoothPinExpiry")
+        compare(timer.interval, 30000)
+        timer.interval = 200
+        bluetoothStore.pinCode = "123456"
+        wait(120)
+        bluetoothStore.pinCode = "654321"
+        wait(120)
+        verify(view.visible)
+        compare(view.currentPin, "654321")
+        tryCompare(view, "visible", false, 300)
+        bluetoothStore.pinCode = "654321"
+        verify(!view.visible)
+        bluetoothStore.pinCode = "111111"
+        verify(view.visible)
+        bluetoothStore.pinCode = ""
+        verify(!timer.running)
+    }
+    function test_versionLingersOnlyAfterRelease() {
+        const view = make(versionComponent)
+        vehicleStore.brakeLeft = 0
+        vehicleStore.brakeRight = 0
+        tryCompare(view, "visible", true, 4000)
+        vehicleStore.brakeLeft = 1
+        wait(100)
+        verify(view.visible)
+        tryCompare(view, "visible", false, 4500)
+    }
     function test_versionClosesOnStateOrMenu_data() {
         return [{tag: "riding", state: 5}, {tag: "standby", state: 1}, {tag: "menu", state: 4}]
     }

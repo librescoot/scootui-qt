@@ -27,6 +27,7 @@ Item {
 
     Timer {
         id: dismissTimer
+        objectName: "bluetoothPinExpiry"
         interval: 30000
         repeat: false
         onTriggered: btPinOverlay.currentPin = ""
