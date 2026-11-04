@@ -29,6 +29,7 @@ HandlebarLockMonitor::HandlebarLockMonitor(VehicleStore *vehicle, ToastService *
 
     connect(m_vehicle, &VehicleStore::stateChanged, this, &HandlebarLockMonitor::evaluate);
     connect(m_vehicle, &VehicleStore::handleBarLockStateChanged, this, &HandlebarLockMonitor::evaluate);
+    evaluate();
 }
 
 void HandlebarLockMonitor::evaluate()
@@ -38,8 +39,10 @@ void HandlebarLockMonitor::evaluate()
                         state == ScootEnums::VehicleState::Parked);
     auto lockSensor = static_cast<ScootEnums::HandleBarLockSensor>(m_vehicle->handleBarLockState());
 
-    if (lockSensor == ScootEnums::HandleBarLockSensor::Unknown)
+    if (activeState && lockSensor == ScootEnums::HandleBarLockSensor::Unknown) {
+        m_delayTimer->stop();
         return;
+    }
 
     if (activeState && lockSensor == ScootEnums::HandleBarLockSensor::Locked) {
         if (!m_showing && !m_delayTimer->isActive())

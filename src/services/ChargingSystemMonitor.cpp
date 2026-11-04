@@ -45,12 +45,14 @@ ChargingSystemMonitor::ChargingSystemMonitor(BatteryStore *battery0, CbBatterySt
     m_cb.timer = makeTimer();
 
     connect(m_aux.timer, &QTimer::timeout, this, [this]() {
+        evaluateAux();
         if (m_aux.conditionMet && !m_aux.announced) {
             m_aux.announced = true;
             m_toast->showWarning(m_translations->batteryAuxNotCharging());
         }
     });
     connect(m_cb.timer, &QTimer::timeout, this, [this]() {
+        evaluateCb();
         if (m_cb.conditionMet && !m_cb.announced) {
             m_cb.announced = true;
             m_toast->showWarning(m_translations->batteryCbNotCharging());
@@ -60,6 +62,7 @@ ChargingSystemMonitor::ChargingSystemMonitor(BatteryStore *battery0, CbBatterySt
     connect(m_battery0, &BatteryStore::presentChanged, this, &ChargingSystemMonitor::evaluateAux);
     connect(m_battery0, &BatteryStore::chargeChanged, this, &ChargingSystemMonitor::evaluateAux);
     connect(m_battery0, &BatteryStore::batteryStateChanged, this, &ChargingSystemMonitor::evaluateAux);
+    connect(m_auxBattery, &AuxBatteryStore::voltageChanged, this, &ChargingSystemMonitor::evaluateAux);
     connect(m_auxBattery, &AuxBatteryStore::voltageValidChanged, this, &ChargingSystemMonitor::evaluateAux);
     connect(m_auxBattery, &AuxBatteryStore::chargeValidChanged, this, &ChargingSystemMonitor::evaluateAux);
     connect(m_auxBattery, &AuxBatteryStore::chargeStatusChanged, this, &ChargingSystemMonitor::evaluateAux);

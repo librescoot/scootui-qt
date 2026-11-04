@@ -31,6 +31,11 @@
 #undef private
 #include "services/NotificationService.h"
 #include "services/ToastService.h"
+#include "services/HandlebarLockMonitor.h"
+#include "services/BluetoothHealthMonitor.h"
+#include "services/LowTemperatureMonitor.h"
+#include "stores/BluetoothStore.h"
+#include "stores/CbBatteryStore.h"
 #include "services/TripHistoryService.h"
 #include "l10n/Translations.h"
 #include "services/SettingsService.h"
@@ -170,6 +175,66 @@ private slots:
         m_engine.reset();
         m_application->shutdownBackgroundWorkers();
         m_application.reset();
+    }
+
+    void seededMonitorsAndUnknownLockSensor()
+    {
+        InMemoryMdbRepository repo;
+        repo.set("vehicle", "state", "parked");
+        repo.set("vehicle", "handlebar:lock-state", "locked");
+        repo.set("ble", "service-health", "error");
+        repo.set("battery:0", "temperature:2", "3");
+        VehicleStore vehicle(&repo);
+        BluetoothStore bluetooth(&repo);
+        EngineStore engine(&repo);
+        BatteryStore battery(&repo, "0");
+        CbBatteryStore cb(&repo);
+        vehicle.start(); bluetooth.start(); engine.start(); battery.start(); cb.start();
+        Translations translations;
+        ToastService lockToast, bleToast, temperatureToast;
+        HandlebarLockMonitor lock(&vehicle, &lockToast, &translations);
+        BluetoothHealthMonitor health(&bluetooth, &bleToast, &translations);
+        LowTemperatureMonitor temperature(&engine, &battery, &cb, &temperatureToast, &translations);
+        QTRY_COMPARE_WITH_TIMEOUT(lockToast.toasts().size(), 1, 2000);
+        QCOMPARE(bleToast.toasts().size(), 1);
+        repo.set("ble", "service-error", "another detail");
+        QCOMPARE(bleToast.toasts().size(), 1);
+        repo.set("ble", "service-health", "ok");
+        repo.set("ble", "service-health", "error");
+        QCOMPARE(bleToast.toasts().size(), 2);
+        QTRY_COMPARE_WITH_TIMEOUT(temperatureToast.toasts().size(), 1, 3000);
+        repo.set("vehicle", "handlebar:lock-state", "unknown");
+        QCOMPARE(lockToast.toasts().size(), 1);
+        repo.set("vehicle", "state", "stand-by");
+        QCOMPARE(lockToast.toasts().size(), 0);
+        repo.set("vehicle", "state", "parked");
+        QTest::qWait(1300);
+        QCOMPARE(lockToast.toasts().size(), 0);
+        repo.set("vehicle", "handlebar:lock-state", "locked");
+        QTest::qWait(100);
+        repo.set("vehicle", "handlebar:lock-state", "unknown");
+        QTest::qWait(1300);
+        QCOMPARE(lockToast.toasts().size(), 0);
+        repo.set("vehicle", "handlebar:lock-state", "locked");
+        QTRY_COMPARE_WITH_TIMEOUT(lockToast.toasts().size(), 1, 2000);
+        repo.set("vehicle", "handlebar:lock-state", "unlocked");
+        QCOMPARE(lockToast.toasts().size(), 0);
+    }
+
+    void bluetoothPinClearsThroughRepository()
+    {
+        InMemoryMdbRepository repo;
+        repo.set("ble", "pin-code", "123456");
+        BluetoothStore bluetooth(&repo);
+        bluetooth.start();
+        QCOMPARE(bluetooth.pinCode(), QStringLiteral("123456"));
+        repo.set("ble", "pin-code", "");
+        QCOMPARE(bluetooth.pinCode(), QString());
+        repo.set("ble", "pin-code", "654321");
+        QCOMPARE(bluetooth.pinCode(), QStringLiteral("654321"));
+        repo.hdel("ble", "pin-code");
+        repo.publish("ble", "pin-code");
+        QTRY_COMPARE(bluetooth.pinCode(), QString());
     }
 
     void mapFirstHiddenClusterKeepsSurfaceOwnership()

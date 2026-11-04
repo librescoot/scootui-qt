@@ -12,7 +12,7 @@ SyncSettings BluetoothStore::syncSettings() const
         {
             {QStringLiteral("status"), QStringLiteral("status")},
             {QStringLiteral("macAddress"), QStringLiteral("mac-address")},
-            {QStringLiteral("pinCode"), QStringLiteral("pin-code")},
+            {QStringLiteral("pinCode"), QStringLiteral("pin-code"), /*clearable=*/true},
             {QStringLiteral("serviceHealth"), QStringLiteral("service-health")},
             {QStringLiteral("serviceError"), QStringLiteral("service-error")},
         },

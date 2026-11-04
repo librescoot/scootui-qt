@@ -17,6 +17,7 @@ class ChargingSystemMonitorTest : public QObject
     Q_OBJECT
 
 private slots:
+    void voltageChangesTriggerCancelAndRearm();
     void warnsWhenAuxNotCharging();
     void staysSilentWhenAuxCharging();
     void staysSilentWhenAuxWarningSuppressed();
@@ -90,6 +91,27 @@ void ChargingSystemMonitorTest::seedChargingSystemWarning(Fixture &f, const QStr
                QStringLiteral("scooter.") + battery
                    + QStringLiteral("-battery.charging-system-warning"),
                value, notify);
+}
+
+void ChargingSystemMonitorTest::voltageChangesTriggerCancelAndRearm()
+{
+    Fixture f;
+    seedMainActive(f);
+    seedAuxNotCharging(f);
+    f.repo.set("aux-battery", "voltage", "14500", false);
+    f.start();
+    ChargingSystemMonitor monitor(&f.battery0, &f.cbBattery, &f.auxBattery,
+                                  &f.settings, &f.toast, &f.translations, nullptr, 100);
+    f.repo.set("aux-battery", "voltage", "14499");
+    QTRY_COMPARE_WITH_TIMEOUT(f.toast.toasts().size(), 1, 1000);
+    f.repo.set("aux-battery", "voltage", "14500");
+    QTRY_COMPARE_WITH_TIMEOUT(f.toast.toasts().size(), 0, 4000);
+    f.repo.set("aux-battery", "voltage", "14499");
+    f.repo.set("aux-battery", "voltage", "14500");
+    QTest::qWait(200);
+    QCOMPARE(f.toast.toasts().size(), 0);
+    f.repo.set("aux-battery", "voltage", "14499");
+    QTRY_COMPARE_WITH_TIMEOUT(f.toast.toasts().size(), 1, 1000);
 }
 
 void ChargingSystemMonitorTest::warnsWhenAuxNotCharging()

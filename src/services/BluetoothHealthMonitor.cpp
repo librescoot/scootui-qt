@@ -13,6 +13,7 @@ BluetoothHealthMonitor::BluetoothHealthMonitor(BluetoothStore *bluetooth, ToastS
     connect(m_bluetooth, &BluetoothStore::serviceHealthChanged, this, &BluetoothHealthMonitor::checkHealth);
     connect(m_bluetooth, &BluetoothStore::serviceErrorChanged, this, &BluetoothHealthMonitor::checkHealth);
     connect(m_bluetooth, &BluetoothStore::faultsChanged, this, &BluetoothHealthMonitor::checkHealth);
+    checkHealth();
 }
 
 void BluetoothHealthMonitor::checkHealth()

@@ -30,6 +30,7 @@ LowTemperatureMonitor::LowTemperatureMonitor(EngineStore *engine, BatteryStore *
     connect(m_battery0, &BatteryStore::temperature2Changed, this, trigger);
     connect(m_battery0, &BatteryStore::temperature3Changed, this, trigger);
     connect(m_cbBattery, &CbBatteryStore::temperatureChanged, this, trigger);
+    checkTemperatures();
 }
 
 void LowTemperatureMonitor::checkTemperatures()
