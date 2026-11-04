@@ -10,16 +10,19 @@ Item {
 
     visible: currentPin !== "" && !hopOn
 
+    function syncPin() {
+        currentPin = typeof bluetoothStore !== "undefined" ? bluetoothStore.pinCode : ""
+        if (currentPin !== "")
+            dismissTimer.restart()
+        else
+            dismissTimer.stop()
+    }
+
+    Component.onCompleted: syncPin()
+
     Connections {
         target: typeof bluetoothStore !== "undefined" ? bluetoothStore : null
-
-        function onPinCodeChanged() {
-            var pin = bluetoothStore.pinCode
-            if (pin !== "") {
-                btPinOverlay.currentPin = pin
-                dismissTimer.restart()
-            }
-        }
+        function onPinCodeChanged() { btPinOverlay.syncPin() }
     }
 
     Timer {

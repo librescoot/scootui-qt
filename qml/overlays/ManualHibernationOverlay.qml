@@ -15,7 +15,7 @@ Item {
 
     property int vehicleState: typeof vehicleStore !== "undefined" ? vehicleStore.state : 0
     property bool bothBrakesHeld: typeof vehicleStore !== "undefined"
-                                  ? (vehicleStore.brakeLeft === 1 && vehicleStore.brakeRight === 1)
+                                  ? (vehicleStore.brakeLeft === 0 && vehicleStore.brakeRight === 0)
                                   : false
 
     property bool isHibernating: vehicleState === stateWaitingHibernation
@@ -47,11 +47,16 @@ Item {
 
     visible: isHibernating
 
-    onBothBrakesHeldChanged: {
-        if (bothBrakesHeld && isPromptMode) {
+    onBothBrakesHeldChanged: resetCountdown()
+    onVehicleStateChanged: resetCountdown()
+    Component.onCompleted: resetCountdown()
+
+    function resetCountdown() {
+        if (bothBrakesHeld && (vehicleState === stateWaitingHibernation
+                              || vehicleState === stateWaitingHibernationAdvanced)) {
             countdown = 15
             countdownActive = true
-            countdownTimer.start()
+            countdownTimer.restart()
         } else {
             countdownActive = false
             countdownTimer.stop()
@@ -66,7 +71,8 @@ Item {
         onTriggered: {
             if (hibernationOverlay.countdown > 0) {
                 hibernationOverlay.countdown--
-            } else {
+            }
+            if (hibernationOverlay.countdown === 0) {
                 countdownTimer.stop()
                 hibernationOverlay.countdownActive = false
             }

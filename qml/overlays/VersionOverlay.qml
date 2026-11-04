@@ -12,7 +12,14 @@ Item {
                            : false
     property bool showOverlay: false
 
-    visible: showOverlay
+    visible: showOverlay && canShow
+
+    onCanShowChanged: {
+        if (!canShow) {
+            lingerTimer.stop()
+            showOverlay = false
+        }
+    }
 
     Timer {
         id: holdTimer
@@ -33,7 +40,7 @@ Item {
     }
 
     onBothBrakesChanged: {
-        if (!bothBrakes) {
+        if (!bothBrakes && showOverlay && canShow) {
             lingerTimer.start()
         } else {
             lingerTimer.stop()
