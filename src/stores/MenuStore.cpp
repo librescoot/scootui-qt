@@ -1857,6 +1857,11 @@ void MenuStore::rebuildMenuTree()
                 m_screenStore->showFaults();
         }));
 
+        infoNode->addChild(MenuNode::action(QStringLiteral("doctor"), tr->doctorTitle(), [this]() {
+            closeForScreen();
+            if (m_screenStore) m_screenStore->showDoctor();
+        }));
+
         buildSmsMenu(infoNode);
 
         infoNode->addChild(MenuNode::action(QStringLiteral("about"), tr->menuAbout(), [this]() {

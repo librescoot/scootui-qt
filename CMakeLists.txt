@@ -125,6 +125,7 @@ set(CPP_SOURCES
     src/services/NavigationService.cpp
     src/services/RoutePlanRpc.cpp
     src/services/TripHistoryService.cpp
+    src/services/DoctorService.cpp
     src/services/ToastService.cpp
     src/services/AttentionPolicy.cpp
     src/services/NotificationService.cpp
@@ -264,6 +265,7 @@ set(CPP_HEADERS
     src/services/FlatTrie.h
     src/services/SystemInfoService.h
     src/services/TripHistoryService.h
+    src/services/DoctorService.h
     src/services/UpdateChannelService.h
     src/services/CloudPairingService.h
     src/services/PairingQrItem.h
@@ -311,6 +313,7 @@ set(QML_FILES
     qml/screens/FaultsScreen.qml
     qml/screens/SmsInboxScreen.qml
     qml/screens/TripHistoryScreen.qml
+    qml/screens/DoctorScreen.qml
     qml/screens/TripHistoryMap.qml
     qml/screens/TripHistoryMapLegacy.qml
     qml/screens/CloudPairingScreen.qml
@@ -605,6 +608,12 @@ if(BUILD_TESTING)
     set_tests_properties(application_notification_test PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software"
         TIMEOUT 60)
+
+    qt_add_executable(doctor_service_test tests/DoctorServiceTest.cpp
+        src/services/DoctorService.cpp src/services/DoctorService.h)
+    target_include_directories(doctor_service_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(doctor_service_test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME doctor_service_test COMMAND doctor_service_test)
 
     qt_add_executable(cloud_pairing_service_test tests/CloudPairingServiceTest.cpp
         src/services/CloudPairingService.cpp src/services/CloudPairingService.h

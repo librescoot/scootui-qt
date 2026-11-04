@@ -196,6 +196,30 @@ any negative motor current. This does not affect the recuperation power bar.
 
 Regen-unavailable reason icons retain their theme-dependent colors.
 
+## Doctor diagnostics
+
+Info > Doctor runs a read-only diagnostic snapshot on each board: locally on the
+DBC and over the existing `ssh mdb` connection on the MDB. Both boards need an
+`lsc doctor --json` implementation supporting report schema 1. Older or missing
+tools, unreachable boards, malformed reports and timeouts are shown as not
+checkable, never as healthy. A valid report with exit status 1 still displays its
+faults normally.
+
+The page shows separate board summaries and timestamps, then checks for services,
+board links, kernel consistency, updates, vehicle faults and storage. Problems
+appear before healthy checks within each board. Labels and controls follow the UI
+language; diagnostic details and service names are preserved from lsc's report.
+Enabled continuous services that are unexpectedly inactive are reported by lsc;
+intentional inactivity of oneshots, triggered or condition-gated services is not a
+stopped-daemon fault. Local checks can still run when Redis is unavailable.
+
+Opening the page starts one check per board. Left tap scrolls down, right hold
+scrolls up, right tap checks again after completion, and left hold returns to the
+Info menu. Each board has a 40-second deadline and bounded output. Leaving the
+page or leaving parked cancels the processes. A lost board connection does not
+replace an already open Doctor page with the maintenance screen. No diagnostic
+action starts, stops or repairs a vehicle service.
+
 ## Unified notifications
 
 The dashboard uses one production notification registry and attention policy for

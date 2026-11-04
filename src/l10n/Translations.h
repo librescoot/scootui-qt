@@ -307,6 +307,24 @@ class Translations : public QObject
     Q_PROPERTY(QString mapCheckAgo READ mapCheckAgo NOTIFY languageChanged)
     Q_PROPERTY(QString mapCheckJustNow READ mapCheckJustNow NOTIFY languageChanged)
     Q_PROPERTY(QString mapCheckingToast READ mapCheckingToast NOTIFY languageChanged)
+    Q_PROPERTY(QString doctorTitle READ doctorTitle NOTIFY languageChanged)
+    Q_PROPERTY(QString doctorRunning READ doctorRunning NOTIFY languageChanged)
+    Q_PROPERTY(QString doctorRetry READ doctorRetry NOTIFY languageChanged)
+    Q_PROPERTY(QString doctorOK READ doctorOK NOTIFY languageChanged)
+    Q_PROPERTY(QString doctorWarning READ doctorWarning NOTIFY languageChanged)
+    Q_PROPERTY(QString doctorAttention READ doctorAttention NOTIFY languageChanged)
+    Q_PROPERTY(QString doctorUnknown READ doctorUnknown NOTIFY languageChanged)
+    Q_PROPERTY(QString doctorServices READ doctorServices NOTIFY languageChanged)
+    Q_PROPERTY(QString doctorLink READ doctorLink NOTIFY languageChanged)
+    Q_PROPERTY(QString doctorKernel READ doctorKernel NOTIFY languageChanged)
+    Q_PROPERTY(QString doctorStorage READ doctorStorage NOTIFY languageChanged)
+    Q_PROPERTY(QString doctorUnavailable READ doctorUnavailable NOTIFY languageChanged)
+    Q_PROPERTY(QString doctorTimeout READ doctorTimeout NOTIFY languageChanged)
+    Q_PROPERTY(QString doctorInvalid READ doctorInvalid NOTIFY languageChanged)
+    Q_PROPERTY(QString doctorUnsupported READ doctorUnsupported NOTIFY languageChanged)
+    Q_PROPERTY(QString doctorCancelled READ doctorCancelled NOTIFY languageChanged)
+    Q_PROPERTY(QString doctorSummary READ doctorSummary NOTIFY languageChanged)
+    Q_PROPERTY(QString doctorIdle READ doctorIdle NOTIFY languageChanged)
     Q_PROPERTY(QString mapsUpToDateToast READ mapsUpToDateToast NOTIFY languageChanged)
     Q_PROPERTY(QString mapCheckFailedToast READ mapCheckFailedToast NOTIFY languageChanged)
     Q_PROPERTY(QString mapCheckUnavailableToast READ mapCheckUnavailableToast NOTIFY languageChanged)
@@ -1122,6 +1140,24 @@ public:
     QString mapCheckAgo() const { return lookup("mapCheckAgo"); }
     QString mapCheckJustNow() const { return lookup("mapCheckJustNow"); }
     QString mapCheckingToast() const { return lookup("mapCheckingToast"); }
+    QString doctorTitle() const { return lookup("doctorTitle"); }
+    QString doctorRunning() const { return lookup("doctorRunning"); }
+    QString doctorRetry() const { return lookup("doctorRetry"); }
+    QString doctorOK() const { return lookup("doctorOK"); }
+    QString doctorWarning() const { return lookup("doctorWarning"); }
+    QString doctorAttention() const { return lookup("doctorAttention"); }
+    QString doctorUnknown() const { return lookup("doctorUnknown"); }
+    QString doctorServices() const { return lookup("doctorServices"); }
+    QString doctorLink() const { return lookup("doctorLink"); }
+    QString doctorKernel() const { return lookup("doctorKernel"); }
+    QString doctorStorage() const { return lookup("doctorStorage"); }
+    QString doctorUnavailable() const { return lookup("doctorUnavailable"); }
+    QString doctorTimeout() const { return lookup("doctorTimeout"); }
+    QString doctorInvalid() const { return lookup("doctorInvalid"); }
+    QString doctorUnsupported() const { return lookup("doctorUnsupported"); }
+    QString doctorCancelled() const { return lookup("doctorCancelled"); }
+    QString doctorSummary() const { return lookup("doctorSummary"); }
+    QString doctorIdle() const { return lookup("doctorIdle"); }
     QString mapsUpToDateToast() const { return lookup("mapsUpToDateToast"); }
     QString mapCheckFailedToast() const { return lookup("mapCheckFailedToast"); }
     QString mapCheckUnavailableToast() const { return lookup("mapCheckUnavailableToast"); }

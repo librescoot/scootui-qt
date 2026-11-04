@@ -36,6 +36,7 @@ class SerialNumberService;
 class AddressDatabaseService;
 class SystemInfoService;
 class TripHistoryService;
+class DoctorService;
 class SimulatorService;
 class MapDownloadService;
 class UpdateChannelService;
@@ -144,6 +145,7 @@ private:
     AddressDatabaseService *m_addressDatabaseService = nullptr;
     SystemInfoService *m_systemInfoService = nullptr;
     TripHistoryService *m_tripHistoryService = nullptr;
+    DoctorService *m_doctorService = nullptr;
     SimulatorService *m_simulatorService = nullptr;
     MapDownloadService *m_mapDownloadService = nullptr;
     UpdateChannelService *m_updateChannelService = nullptr;

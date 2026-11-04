@@ -263,6 +263,7 @@ Window {
         address:       "screens/AddressSelectionScreen.qml",
         navSetup:      "screens/NavigationSetupScreen.qml",
         faults:        "screens/FaultsScreen.qml",
+        doctor:        "screens/DoctorScreen.qml",
         smsInbox:      "screens/SmsInboxScreen.qml",
         tripHistory:   "screens/TripHistoryScreen.qml",
         cloudPairing:  "screens/CloudPairingScreen.qml",
@@ -279,10 +280,9 @@ Window {
         source: {
             var maint = root.showMaintenance
             var screen = root.currentScreen
-            // MotionDebug bypasses the maintenance gate so it can be triggered
-            // from a stand-by scooter (dev-only diagnostic, doesn't depend on
-            // a running vehicle state).
-            if (maint && screen !== Scooter.ScreenMode.MotionDebug) {
+            // Diagnostics must remain readable when the board connection fails.
+            if (maint && screen !== Scooter.ScreenMode.MotionDebug
+                      && screen !== Scooter.ScreenMode.Doctor) {
                 console.log("SCREEN: maintenance (showMaintenance=true, vehicleState=" + root.vehicleState + ")")
                 return Qt.resolvedUrl(root.screenUrls.maintenance)
             }
@@ -297,6 +297,7 @@ Window {
                 case Scooter.ScreenMode.AddressSelection:name = "address";       break
                 case Scooter.ScreenMode.NavigationSetup: name = "navSetup";      break
                 case Scooter.ScreenMode.Faults:          name = "faults";        break
+                case Scooter.ScreenMode.Doctor:          name = "doctor";        break
                 case Scooter.ScreenMode.SmsInbox:        name = "smsInbox";      break
                 case Scooter.ScreenMode.TripHistory:     name = "tripHistory";   break
                 case Scooter.ScreenMode.CloudPairing:    name = "cloudPairing";  break

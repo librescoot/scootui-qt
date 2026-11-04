@@ -46,6 +46,8 @@ public:
     Q_INVOKABLE void closeNavigationSetup();
     Q_INVOKABLE void showFaults();
     Q_INVOKABLE void closeFaults();
+    Q_INVOKABLE void showDoctor();
+    Q_INVOKABLE void closeDoctor();
     Q_INVOKABLE void showSmsInbox();
     Q_INVOKABLE void closeSmsInbox();
     Q_INVOKABLE void showTripHistory();
@@ -109,6 +111,7 @@ private:
     ScootEnums::ScreenMode m_screenBeforeAbout = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeNavSetup = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeFaults = ScootEnums::ScreenMode::Cluster;
+    ScootEnums::ScreenMode m_screenBeforeDoctor = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeSmsInbox = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeTripHistory = ScootEnums::ScreenMode::Cluster;
     ScootEnums::ScreenMode m_screenBeforeCloudPairing = ScootEnums::ScreenMode::Cluster;

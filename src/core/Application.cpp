@@ -81,6 +81,7 @@
 #include "core/DataPartition.h"
 #include "services/SystemInfoService.h"
 #include "services/TripHistoryService.h"
+#include "services/DoctorService.h"
 #include "l10n/Translations.h"
 #include "utils/FaultFormatter.h"
 #include "simulator/SimulatorService.h"
@@ -364,6 +365,13 @@ void Application::createStores(QQmlApplicationEngine &engine)
     m_serialNumberService = new SerialNumberService(this);
     m_systemInfoService = new SystemInfoService(repo, this);
     m_tripHistoryService = new TripHistoryService(repo, this);
+    m_doctorService = new DoctorService(this);
+    connect(screenStore, &ScreenStore::currentScreenChanged, this, [this, screenStore] {
+        if (screenStore->currentScreenMode() == ScootEnums::ScreenMode::Doctor)
+            m_doctorService->start();
+        else
+            m_doctorService->cancel();
+    });
 
     // Address database (for destination code lookup). Its asynchronous build
     // starts after the first rendered frame; starting it during scene-graph
@@ -1128,6 +1136,7 @@ void Application::createStores(QQmlApplicationEngine &engine)
     ctx->setContextProperty(QStringLiteral("umsLogStore"), umsLogStore);
     ctx->setContextProperty(QStringLiteral("systemInfoService"), m_systemInfoService);
     ctx->setContextProperty(QStringLiteral("tripHistoryService"), m_tripHistoryService);
+    ctx->setContextProperty(QStringLiteral("doctorService"), m_doctorService);
     ctx->setContextProperty(QStringLiteral("odometerMilestoneService"), m_odometerMilestoneService);
     ctx->setContextProperty(QStringLiteral("faultsStore"), faultsStore);
     ctx->setContextProperty(QStringLiteral("updateChannelService"), m_updateChannelService);

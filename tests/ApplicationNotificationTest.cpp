@@ -47,6 +47,7 @@
 #include "stores/MenuStore.h"
 #include "services/MapDownloadService.h"
 #include "services/MapService.h"
+#include "services/DoctorService.h"
 #undef private
 #include "stores/InternetStore.h"
 #include "stores/SavedLocationsStore.h"
@@ -226,6 +227,59 @@ private slots:
         m_engine.reset();
         m_application->shutdownBackgroundWorkers();
         m_application.reset();
+    }
+
+    void doctorMenuLifecycle()
+    {
+        auto *menu = context<MenuStore>("menuStore");
+        auto *screens = context<ScreenStore>("screenStore");
+        auto *doctor = context<DoctorService>("doctorService");
+        QVERIFY(menu && screens && doctor);
+        doctor->m_commands = {DoctorService::Command{"/bin/sh", {"-c", "exec sleep 10"}},
+                              DoctorService::Command{"/bin/sh", {"-c", "exec sleep 10"}}};
+        const auto select = [menu](const QString &id) {
+            const auto items = menu->currentItems();
+            for (int i = 0; i < items.size(); ++i) {
+                if (items.at(i).toMap().value("id").toString() != id) continue;
+                while (menu->selectedIndex() != i) menu->navigateDown();
+                menu->selectItem();
+                return true;
+            }
+            return false;
+        };
+        for (const auto mode : {ScootEnums::ScreenMode::Cluster, ScootEnums::ScreenMode::Map}) {
+            screens->setScreen(int(mode));
+            menu->open();
+            QTest::qWait(160);
+            QVERIFY(select("info"));
+            QVERIFY(select("doctor"));
+            QCOMPARE(screens->currentScreenMode(), ScootEnums::ScreenMode::Doctor);
+            QVERIFY(ScreenStore::isBrakeNavigated(ScootEnums::ScreenMode::Doctor));
+            QVERIFY(doctor->running());
+            QCOMPARE(m_application->m_repository->get("dashboard", "menu-open"), QStringLiteral("true"));
+            screens->closeDoctor();
+            menu->resume();
+            QCOMPARE(screens->currentScreenMode(), mode);
+            QVERIFY(!doctor->running());
+            QVERIFY(menu->isOpen());
+            QVERIFY(!menu->isRoot());
+            menu->close();
+        }
+        screens->showDoctor();
+        QVERIFY(doctor->running());
+        m_engine->load(QUrl("qrc:/ScootUI/qml/Main.qml"));
+        QVERIFY(!m_engine->rootObjects().isEmpty());
+        auto *window = qobject_cast<QQuickWindow *>(m_engine->rootObjects().first());
+        QVERIFY(window);
+        QTRY_VERIFY(window->findChild<QQuickItem *>("doctorScreen"));
+        emit m_application->m_repository->prolongedDisconnect(true);
+        QTest::qWait(100);
+        QVERIFY(window->findChild<QQuickItem *>("doctorScreen"));
+        emit m_application->m_repository->prolongedDisconnect(false);
+        m_application->m_repository->set("vehicle", "state", "ready-to-drive");
+        QTRY_VERIFY(screens->currentScreenMode() != ScootEnums::ScreenMode::Doctor);
+        QVERIFY(!doctor->running());
+        QCOMPARE(m_application->m_repository->get("dashboard", "menu-open"), QStringLiteral("false"));
     }
 
     void mapCheckResults_data()
