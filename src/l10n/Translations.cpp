@@ -1951,6 +1951,9 @@ void Translations::initStrings()
     en[QStringLiteral("faultNfcReaderError")] = QStringLiteral("NFC reader error");
     de[QStringLiteral("faultNfcReaderError")] = QStringLiteral("NFC-Leser Fehler");
 
+    en[QStringLiteral("faultBatteryUnexpectedPowerOff")] = QStringLiteral("Battery switched off unexpectedly");
+    de[QStringLiteral("faultBatteryUnexpectedPowerOff")] = QStringLiteral("Batterie hat unerwartet abgeschaltet");
+
     en[QStringLiteral("faultOverTempCharging")] = QStringLiteral("Over-temperature while charging");
     de[QStringLiteral("faultOverTempCharging")] = QStringLiteral("\u00DCbertemperatur beim Laden");
 

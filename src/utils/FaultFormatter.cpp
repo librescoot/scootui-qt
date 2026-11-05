@@ -12,6 +12,7 @@ FaultSeverity FaultFormatter::getSeverity(int code)
     case 32: // B32 - BMS not following
     case 34: // B34 - BMS comm error
     case 35: // B35 - NFC reader error
+    case 36: // B36 - Unexpected battery power loss
         return FaultSeverity::Critical;
     default:
         return FaultSeverity::Warning;
@@ -41,6 +42,7 @@ QString FaultFormatter::getDescription(int code, Translations *tr)
     case 33: return tr->faultBmsZeroData();
     case 34: return tr->faultBmsCommError();
     case 35: return tr->faultNfcReaderError();
+    case 36: return tr->faultBatteryUnexpectedPowerOff();
     default: return tr->faultUnknown();
     }
 }
