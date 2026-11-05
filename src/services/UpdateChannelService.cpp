@@ -8,6 +8,7 @@
 #include "models/Enums.h"
 
 #include <QDebug>
+#include <QUuid>
 
 namespace {
 
@@ -52,8 +53,10 @@ UpdateChannelService::UpdateChannelService(SettingsService *settingsService, Set
         // Nothing more is coming. Not being able to price the download is not
         // a reason to refuse the switch, so Failed still offers Confirm; it
         // just stops promising a number nobody produced.
-        qWarning() << "[UpdateChannelService] preview timed out for" << m_targetChannel;
-        setState(Failed);
+        qWarning() << "[UpdateChannelService] request timed out for" << m_targetChannel;
+        const bool wasConfirmation = m_waitingConfirmation;
+        m_waitingConfirmation = false;
+        setState(wasConfirmation ? RequestFailed : Failed);
     });
 
     m_evaluate.setSingleShot(true);
@@ -64,6 +67,7 @@ UpdateChannelService::UpdateChannelService(SettingsService *settingsService, Set
         auto schedule = [this]() { m_evaluate.start(); };
         connect(m_ota, &OtaStore::mdbPreviewChanged, this, schedule);
         connect(m_ota, &OtaStore::dbcPreviewChanged, this, schedule);
+        connect(m_ota, &OtaStore::switchChanged, this, &UpdateChannelService::evaluateSwitch);
     }
 }
 
@@ -104,6 +108,9 @@ void UpdateChannelService::beginSwitch(const QString &channel)
     m_evaluate.stop();
     m_version.clear();
     m_totalBytes = 0;
+    m_partial = false;
+    m_waitingConfirmation = false;
+    m_requestId.clear();
 
     if (m_targetChannel != channel) {
         m_targetChannel = channel;
@@ -129,15 +136,15 @@ void UpdateChannelService::beginSwitch(const QString &channel)
 // moment ago is not an answer about this one.
 void UpdateChannelService::evaluatePreviews()
 {
-    if (m_state != Checking || !m_ota)
+    if (m_state != Checking || m_waitingConfirmation || !m_ota)
         return;
 
     struct Answer { QString status; QString version; qint64 size; };
     const Answer answers[] = {
         {m_ota->mdbPreviewChannel() == m_targetChannel ? m_ota->mdbPreviewStatus() : QString(),
-         m_ota->mdbPreviewVersion(), m_ota->mdbPreviewSize()},
+         m_ota->mdbPreviewVersion(), m_ota->mdbPreviewMethod().isEmpty() ? m_ota->mdbPreviewSize() : m_ota->mdbPreviewDownloadSize()},
         {m_ota->dbcPreviewChannel() == m_targetChannel ? m_ota->dbcPreviewStatus() : QString(),
-         m_ota->dbcPreviewVersion(), m_ota->dbcPreviewSize()},
+         m_ota->dbcPreviewVersion(), m_ota->dbcPreviewMethod().isEmpty() ? m_ota->dbcPreviewSize() : m_ota->dbcPreviewDownloadSize()},
     };
 
     bool anyError = false;
@@ -156,8 +163,11 @@ void UpdateChannelService::evaluatePreviews()
             continue;
         allUnavailable = false;
         total += a.size;
-        if (version.isEmpty())
+        if (version.isEmpty()) {
             version = a.version;
+        } else if (version != a.version) {
+            version = QStringLiteral("MDB: ") + answers[0].version + QStringLiteral("\nDBC: ") + answers[1].version;
+        }
     }
 
     m_timeout.stop();
@@ -171,6 +181,12 @@ void UpdateChannelService::evaluatePreviews()
         return;
     }
 
+    m_partial = (answers[0].status == QLatin1String("unavailable")) != (answers[1].status == QLatin1String("unavailable"));
+    if (m_partial) {
+        const QString unavailable = QStringLiteral("-");
+        version = QStringLiteral("MDB: ") + (answers[0].version.isEmpty() ? unavailable : answers[0].version)
+                  + QStringLiteral("\nDBC: ") + (answers[1].version.isEmpty() ? unavailable : answers[1].version);
+    }
     m_version = version;
     m_totalBytes = total;
     setState(Ready);
@@ -180,19 +196,40 @@ void UpdateChannelService::confirm()
 {
     m_timeout.stop();
     m_evaluate.stop();
-    if (m_settingsService && !m_targetChannel.isEmpty()) {
-        m_settingsService->updateOtaChannel(m_targetChannel);
-        // Switching channels forces a full update on the next check anyway;
-        // asking for that check now means the download starts while the rider
-        // is still here rather than up to six hours later.
-        m_settingsService->triggerUpdateCheck();
+    if (!m_settingsService || m_targetChannel.isEmpty()) {
+        setState(Failed);
+        return;
     }
-    setState(Idle);
-    emit switchConfirmed();
+    m_requestId = QUuid::createUuid().toString(QUuid::Id128);
+    m_waitingConfirmation = true;
+    setState(Checking);
+    m_settingsService->requestChannelSwitch(m_targetChannel, m_requestId);
+    m_timeout.start();
+}
+
+void UpdateChannelService::evaluateSwitch()
+{
+    if (!m_waitingConfirmation || !m_ota)
+        return;
+    const QString prefix = m_requestId + QLatin1Char(':');
+    if (!m_ota->switchResult().startsWith(prefix))
+        return;
+    const QString status = m_ota->switchResult().mid(prefix.size());
+    if (status == QLatin1String("accepted") || status == QLatin1String("complete") || status == QLatin1String("partial")) {
+        m_timeout.stop();
+        m_waitingConfirmation = false;
+        setState(Idle);
+        emit switchConfirmed();
+    } else if (status == QLatin1String("busy") || status == QLatin1String("error") || status == QLatin1String("failed")) {
+        m_timeout.stop();
+        m_waitingConfirmation = false;
+        setState(RequestFailed);
+    }
 }
 
 void UpdateChannelService::cancel()
 {
+    m_waitingConfirmation = false;
     m_timeout.stop();
     m_evaluate.stop();
     setState(Idle);

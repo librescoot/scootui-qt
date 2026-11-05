@@ -70,6 +70,7 @@ public:
     // Asks both components what a switch to channel would fetch. Answers land
     // in the ota hash's preview-* fields, mirrored by OtaStore.
     Q_INVOKABLE void requestChannelPreview(const QString &channel);
+    void requestChannelSwitch(const QString &channel, const QString &requestId);
 
     // Clears the service overlay. Not a settings write: settings-service owns
     // the overlaid keys and reasserts any direct edit to them, so the only way

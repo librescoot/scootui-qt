@@ -876,11 +876,18 @@ void Translations::initStrings()
     en[QStringLiteral("channelSwitchChecking")] = QStringLiteral("Checking what this would download…");
     de[QStringLiteral("channelSwitchChecking")] = QStringLiteral("Prüfe, was heruntergeladen würde…");
 
-    en[QStringLiteral("channelSwitchSize")] = QStringLiteral("Switching channels downloads a full image, about %1.");
-    de[QStringLiteral("channelSwitchSize")] = QStringLiteral("Ein Kanalwechsel lädt ein vollständiges Image, etwa %1.");
+    en[QStringLiteral("channelSwitchSize")] = QStringLiteral("Estimated download: %1. A full download may be needed.");
+    de[QStringLiteral("channelSwitchSize")] = QStringLiteral("Geschätzter Download: %1. Ein vollständiger Download kann nötig sein.");
 
-    en[QStringLiteral("channelSwitchSizeUnknown")] = QStringLiteral("Switching channels downloads a full image. The download size could not be checked.");
-    de[QStringLiteral("channelSwitchSizeUnknown")] = QStringLiteral("Ein Kanalwechsel lädt ein vollständiges Image. Die Downloadgröße konnte nicht ermittelt werden.");
+    en[QStringLiteral("channelSwitchSizeUnknown")] = QStringLiteral("The download size could not be checked. A full download may be needed.");
+    de[QStringLiteral("channelSwitchSizeUnknown")] = QStringLiteral("Die Downloadgröße konnte nicht ermittelt werden. Ein vollständiger Download kann nötig sein.");
+
+    en[QStringLiteral("channelSwitchRequestFailed")] = QStringLiteral("The switch was not confirmed. Check update status and try again.");
+    de[QStringLiteral("channelSwitchRequestFailed")] = QStringLiteral("Der Wechsel wurde nicht bestätigt. Prüfe den Updatestatus und versuche es erneut.");
+    en[QStringLiteral("channelSwitchOlderWarning")] = QStringLiteral("The stable version may be older than the installed version.");
+    de[QStringLiteral("channelSwitchOlderWarning")] = QStringLiteral("Die stabile Version kann älter als die installierte Version sein.");
+    en[QStringLiteral("channelSwitchPartial")] = QStringLiteral("No image is available for one board (-).");
+    de[QStringLiteral("channelSwitchPartial")] = QStringLiteral("Für ein Board ist kein Image verfügbar (-).");
 
     en[QStringLiteral("channelSwitchUnavailable")] = QStringLiteral("The %1 channel has no image for this scooter.");
     de[QStringLiteral("channelSwitchUnavailable")] = QStringLiteral("Der Kanal %1 hat kein Image für diesen Roller.");

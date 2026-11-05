@@ -39,6 +39,10 @@
 #include "services/TripHistoryService.h"
 #include "l10n/Translations.h"
 #include "services/SettingsService.h"
+#define private public
+#include "services/UpdateChannelService.h"
+#undef private
+#include "stores/OtaStore.h"
 #include "stores/BatteryStore.h"
 #include "stores/ConnectionStore.h"
 #include "stores/EngineStore.h"
@@ -227,6 +231,47 @@ private slots:
         m_engine.reset();
         m_application->shutdownBackgroundWorkers();
         m_application.reset();
+    }
+
+    void channelPreviewUsesDeltaSizes()
+    {
+        auto *service = context<UpdateChannelService>("updateChannelService");
+        auto *repo = m_application->m_repository.get();
+        QVERIFY(service && repo);
+        service->m_targetChannel = QStringLiteral("testing");
+        service->setState(UpdateChannelService::Checking);
+        for (const QString board : {QStringLiteral("mdb"), QStringLiteral("dbc")}) {
+            repo->set("ota", "preview-channel:" + board, "testing");
+            repo->set("ota", "preview-version:" + board, "testing-20261105T120000");
+            repo->set("ota", "preview-size:" + board, "1000");
+            repo->set("ota", "preview-method:" + board, "delta");
+            repo->set("ota", "preview-download-size:" + board, "100");
+            repo->set("ota", "preview-status:" + board, "ready");
+        }
+        QTRY_COMPARE(service->state(), int(UpdateChannelService::Ready));
+        QCOMPARE(service->totalBytes(), qint64(200));
+    }
+
+    void channelSwitchWaitsForMatchingAcceptance()
+    {
+        auto *service = context<UpdateChannelService>("updateChannelService");
+        auto *repo = m_application->m_repository.get();
+        QVERIFY(service && repo);
+        QSignalSpy confirmed(service, &UpdateChannelService::switchConfirmed);
+        service->beginSwitch(QStringLiteral("testing"));
+        service->confirm();
+        QCOMPARE(service->state(), int(UpdateChannelService::Checking));
+        QVERIFY(!service->m_requestId.isEmpty());
+        repo->set(QStringLiteral("ota"), QStringLiteral("switch-result"), QStringLiteral("old:accepted"));
+        QTest::qWait(20);
+        QCOMPARE(confirmed.count(), 0);
+        repo->set(QStringLiteral("ota"), QStringLiteral("switch-result"), service->m_requestId + QStringLiteral(":busy"));
+        QTRY_COMPARE(service->state(), int(UpdateChannelService::RequestFailed));
+        QCOMPARE(confirmed.count(), 0);
+        service->confirm();
+        repo->set(QStringLiteral("ota"), QStringLiteral("switch-result"), service->m_requestId + QStringLiteral(":accepted"));
+        QTRY_COMPARE(confirmed.count(), 1);
+        QCOMPARE(service->state(), int(UpdateChannelService::Idle));
     }
 
     void doctorMenuLifecycle()

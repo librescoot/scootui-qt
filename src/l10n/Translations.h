@@ -354,6 +354,9 @@ class Translations : public QObject
     Q_PROPERTY(QString channelSwitchChecking READ channelSwitchChecking NOTIFY languageChanged)
     Q_PROPERTY(QString channelSwitchSize READ channelSwitchSize NOTIFY languageChanged)
     Q_PROPERTY(QString channelSwitchSizeUnknown READ channelSwitchSizeUnknown NOTIFY languageChanged)
+    Q_PROPERTY(QString channelSwitchRequestFailed READ channelSwitchRequestFailed NOTIFY languageChanged)
+    Q_PROPERTY(QString channelSwitchOlderWarning READ channelSwitchOlderWarning NOTIFY languageChanged)
+    Q_PROPERTY(QString channelSwitchPartial READ channelSwitchPartial NOTIFY languageChanged)
     Q_PROPERTY(QString channelSwitchUnavailable READ channelSwitchUnavailable NOTIFY languageChanged)
     Q_PROPERTY(QString channelSwitchOffline READ channelSwitchOffline NOTIFY languageChanged)
     Q_PROPERTY(QString channelSwitchOfflineHint READ channelSwitchOfflineHint NOTIFY languageChanged)
@@ -1129,6 +1132,9 @@ public:
     QString channelSwitchChecking() const { return lookup("channelSwitchChecking"); }
     QString channelSwitchSize() const { return lookup("channelSwitchSize"); }
     QString channelSwitchSizeUnknown() const { return lookup("channelSwitchSizeUnknown"); }
+    QString channelSwitchRequestFailed() const { return lookup("channelSwitchRequestFailed"); }
+    QString channelSwitchOlderWarning() const { return lookup("channelSwitchOlderWarning"); }
+    QString channelSwitchPartial() const { return lookup("channelSwitchPartial"); }
     QString channelSwitchUnavailable() const { return lookup("channelSwitchUnavailable"); }
     QString channelSwitchOffline() const { return lookup("channelSwitchOffline"); }
     QString channelSwitchOfflineHint() const { return lookup("channelSwitchOfflineHint"); }

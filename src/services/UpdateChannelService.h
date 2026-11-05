@@ -28,6 +28,7 @@ class UpdateChannelService : public QObject
     Q_PROPERTY(QString currentChannel READ currentChannel NOTIFY targetChannelChanged)
     Q_PROPERTY(QString version READ version NOTIFY stateChanged)
     Q_PROPERTY(qint64 totalBytes READ totalBytes NOTIFY stateChanged)
+    Q_PROPERTY(bool partial READ partial NOTIFY stateChanged)
 
 public:
     enum State {
@@ -37,6 +38,7 @@ public:
         Ready,       // version and totalBytes are the answer
         Unavailable, // the channel carries nothing for this scooter's variant
         Failed,      // the release index could not be reached
+        RequestFailed, // updater did not accept the confirmed request
     };
     Q_ENUM(State)
 
@@ -50,17 +52,16 @@ public:
     QString currentChannel() const;
     QString version() const { return m_version; }
     qint64 totalBytes() const { return m_totalBytes; }
+    bool partial() const { return m_partial; }
 
     // Starts a switch to channel. Offline is not an error here: it selects the
     // Offline state, whose screen explains the Update Mode route instead.
     Q_INVOKABLE void beginSwitch(const QString &channel);
-    // Writes the channel on both components and asks them to check now, so the
-    // download starts while the rider is still standing there rather than at
-    // the next scheduled check.
+    // Requests a durable two-board switch and waits for the MDB acceptance.
     Q_INVOKABLE void confirm();
     Q_INVOKABLE void cancel();
     // True while either component is mid-update. Switching channels then would
-    // queue a second, full download behind one already running.
+    // queue another update behind one already running.
     Q_INVOKABLE bool isUpdateInProgress() const;
 
 signals:
@@ -72,6 +73,7 @@ signals:
 private:
     void setState(State s);
     void evaluatePreviews();
+    void evaluateSwitch();
     bool isOnline() const;
 
     SettingsService *m_settingsService;
@@ -82,8 +84,11 @@ private:
 
     State m_state = Idle;
     QString m_targetChannel;
+    QString m_requestId;
+    bool m_waitingConfirmation = false;
     QString m_version;
     qint64 m_totalBytes = 0;
+    bool m_partial = false;
     QTimer m_timeout;
     // OtaStore applies a Redis snapshot field by field, emitting a change
     // signal for each. Evaluating on every one of those would read a

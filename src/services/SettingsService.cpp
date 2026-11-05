@@ -47,6 +47,12 @@ void SettingsService::triggerUpdateCheck()
     m_repo->push(QStringLiteral("scooter:update:dbc"), QStringLiteral("check-now"));
 }
 
+void SettingsService::requestChannelSwitch(const QString &channel, const QString &requestId)
+{
+    m_repo->push(QStringLiteral("scooter:update:mdb"),
+                 QStringLiteral("switch-channel:") + channel + QLatin1Char(':') + requestId);
+}
+
 void SettingsService::disableServiceMode()
 {
     m_repo->push(QStringLiteral("settings:overlay"), QStringLiteral("clear:service"));

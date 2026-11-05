@@ -40,14 +40,19 @@ SyncSettings OtaStore::syncSettings() const
             {QStringLiteral("mdbErrorEvent"), QStringLiteral("error-event:mdb")},
             {QStringLiteral("mdbDownloadProgress"), QStringLiteral("download-progress:mdb")},
             {QStringLiteral("mdbInstallProgress"), QStringLiteral("install-progress:mdb")},
+            {QStringLiteral("switchResult"), QStringLiteral("switch-result")},
             {QStringLiteral("dbcPreviewChannel"), QStringLiteral("preview-channel:dbc")},
             {QStringLiteral("dbcPreviewStatus"), QStringLiteral("preview-status:dbc")},
             {QStringLiteral("dbcPreviewVersion"), QStringLiteral("preview-version:dbc")},
             {QStringLiteral("dbcPreviewSize"), QStringLiteral("preview-size:dbc")},
+            {QStringLiteral("dbcPreviewMethod"), QStringLiteral("preview-method:dbc")},
+            {QStringLiteral("dbcPreviewDownloadSize"), QStringLiteral("preview-download-size:dbc")},
             {QStringLiteral("mdbPreviewChannel"), QStringLiteral("preview-channel:mdb")},
             {QStringLiteral("mdbPreviewStatus"), QStringLiteral("preview-status:mdb")},
             {QStringLiteral("mdbPreviewVersion"), QStringLiteral("preview-version:mdb")},
             {QStringLiteral("mdbPreviewSize"), QStringLiteral("preview-size:mdb")},
+            {QStringLiteral("mdbPreviewMethod"), QStringLiteral("preview-method:mdb")},
+            {QStringLiteral("mdbPreviewDownloadSize"), QStringLiteral("preview-download-size:mdb")},
         },
         {}, {}
     };
@@ -103,6 +108,8 @@ void OtaStore::applyFieldUpdate(const QString &variable, const QString &value)
     } else if (variable == QLatin1String("install-progress:mdb")) {
         int v = value.toInt();
         if (v != m_mdbInstallProgress) { m_mdbInstallProgress = v; emit mdbInstallProgressChanged(); }
+    } else if (variable == QLatin1String("switch-result")) {
+        if (value != m_switchResult) { m_switchResult = value; emit switchChanged(); }
     } else if (variable == QLatin1String("preview-channel:dbc")) {
         if (value != m_dbcPreviewChannel) { m_dbcPreviewChannel = value; emit dbcPreviewChanged(); }
     } else if (variable == QLatin1String("preview-status:dbc")) {
@@ -112,6 +119,11 @@ void OtaStore::applyFieldUpdate(const QString &variable, const QString &value)
     } else if (variable == QLatin1String("preview-size:dbc")) {
         qint64 v = value.toLongLong();
         if (v != m_dbcPreviewSize) { m_dbcPreviewSize = v; emit dbcPreviewChanged(); }
+    } else if (variable == QLatin1String("preview-method:dbc")) {
+        if (value != m_dbcPreviewMethod) { m_dbcPreviewMethod = value; emit dbcPreviewChanged(); }
+    } else if (variable == QLatin1String("preview-download-size:dbc")) {
+        qint64 v = value.toLongLong();
+        if (v != m_dbcPreviewDownloadSize) { m_dbcPreviewDownloadSize = v; emit dbcPreviewChanged(); }
     } else if (variable == QLatin1String("preview-channel:mdb")) {
         if (value != m_mdbPreviewChannel) { m_mdbPreviewChannel = value; emit mdbPreviewChanged(); }
     } else if (variable == QLatin1String("preview-status:mdb")) {
@@ -121,6 +133,11 @@ void OtaStore::applyFieldUpdate(const QString &variable, const QString &value)
     } else if (variable == QLatin1String("preview-size:mdb")) {
         qint64 v = value.toLongLong();
         if (v != m_mdbPreviewSize) { m_mdbPreviewSize = v; emit mdbPreviewChanged(); }
+    } else if (variable == QLatin1String("preview-method:mdb")) {
+        if (value != m_mdbPreviewMethod) { m_mdbPreviewMethod = value; emit mdbPreviewChanged(); }
+    } else if (variable == QLatin1String("preview-download-size:mdb")) {
+        qint64 v = value.toLongLong();
+        if (v != m_mdbPreviewDownloadSize) { m_mdbPreviewDownloadSize = v; emit mdbPreviewChanged(); }
     }
 
     if (activeChanged) emit isActiveChanged();

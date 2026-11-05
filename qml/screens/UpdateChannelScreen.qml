@@ -25,6 +25,7 @@ Rectangle {
     readonly property int stateReady: 3
     readonly property int stateUnavailable: 4
     readonly property int stateFailed: 5
+    readonly property int stateRequestFailed: 6
 
     readonly property int svcState: typeof updateChannelService !== "undefined"
                                     ? updateChannelService.state : stateIdle
@@ -39,7 +40,7 @@ Rectangle {
 
     // Confirming is only offered where it would actually do something: the
     // channel exists (or we merely failed to price it) and we are online.
-    readonly property bool canConfirm: svcState === stateReady || svcState === stateFailed
+    readonly property bool canConfirm: svcState === stateReady || svcState === stateFailed || svcState === stateRequestFailed
 
     function channelLabel(channel) {
         if (typeof translations === "undefined")
@@ -65,6 +66,7 @@ Rectangle {
         case stateChecking:    return translations.channelSwitchChecking
         case stateReady:       return translations.channelSwitchSize.arg(formatBytes(totalBytes))
         case stateFailed:      return translations.channelSwitchSizeUnknown
+        case stateRequestFailed: return translations.channelSwitchRequestFailed
         case stateUnavailable: return translations.channelSwitchUnavailable.arg(channelLabel(targetChannel))
         case stateOffline:     return translations.channelSwitchOffline
         }
@@ -75,8 +77,6 @@ Rectangle {
         if (!canConfirm)
             return
         updateChannelService.confirm()
-        if (typeof toastService !== "undefined" && typeof translations !== "undefined")
-            toastService.showInfo(translations.channelSwitchDownloadStarted)
     }
 
     function cancelBack() {
@@ -88,10 +88,12 @@ Rectangle {
             menuStore.resume()
     }
 
-    // confirm() only changes settings; leaving the screen is this screen's job.
+    // The screen closes only after the updater durably accepts the request.
     Connections {
         target: typeof updateChannelService !== "undefined" ? updateChannelService : null
         function onSwitchConfirmed() {
+            if (typeof toastService !== "undefined" && typeof translations !== "undefined")
+                toastService.showInfo(translations.channelSwitchDownloadStarted)
             if (typeof screenStore !== "undefined")
                 screenStore.closeUpdateChannel()
         }
@@ -179,6 +181,24 @@ Rectangle {
                     font.pixelSize: themeStore.fontBody
                     lineHeight: 1.3
                     lineHeightMode: Text.ProportionalHeight
+                    wrapMode: Text.WordWrap
+                }
+
+                Text {
+                    width: parent.width
+                    visible: typeof updateChannelService !== "undefined" && updateChannelService.partial
+                    text: typeof translations !== "undefined" ? translations.channelSwitchPartial : ""
+                    color: channelScreen.textSecondary
+                    font.pixelSize: themeStore.fontMicro
+                    wrapMode: Text.WordWrap
+                }
+
+                Text {
+                    width: parent.width
+                    visible: channelScreen.targetChannel === "stable" && channelScreen.currentChannel !== "stable"
+                    text: typeof translations !== "undefined" ? translations.channelSwitchOlderWarning : ""
+                    color: channelScreen.textSecondary
+                    font.pixelSize: themeStore.fontMicro
                     wrapMode: Text.WordWrap
                 }
 
