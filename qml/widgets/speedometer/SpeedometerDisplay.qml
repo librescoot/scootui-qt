@@ -29,7 +29,7 @@ Item {
                                         && (typeof engineStore === "undefined" || (engineStore.speed === 0
                                             && (!engineStore.hasRawSpeed || engineStore.rawSpeed === 0)))
     readonly property string displayedSpeed: ecuStale || (telemetryTrustLost && !startupZero)
-                                             ? "—" : startupZero ? "0" : Math.floor(animatedSpeed).toString()
+                                             ? "—" : startupZero ? "0" : Math.round(animatedSpeed).toString()
     readonly property bool isDark: themeStore.isDark
 
     // Internal animated speed

@@ -122,6 +122,24 @@ TestCase {
         speedometer.overspeedPulse = 1
     }
 
+    function test_roundAnimatedSpeed_data() {
+        return [
+            { tag: "zero", speed: 0, expected: "0" },
+            { tag: "below-half", speed: 0.49, expected: "0" },
+            { tag: "half", speed: 0.5, expected: "1" },
+            { tag: "round-down", speed: 40.49, expected: "40" },
+            { tag: "round-up", speed: 40.5, expected: "41" },
+            { tag: "near-next-integer", speed: 40.99, expected: "41" },
+            { tag: "integer", speed: 41, expected: "41" }
+        ]
+    }
+
+    function test_roundAnimatedSpeed(data) {
+        speedometer.animatedSpeed = data.speed
+        compare(speedometer.displayedSpeed, data.expected)
+        compare(findChild(speedometer, "speedometerDigits").text, data.expected)
+    }
+
     function test_startupZeroPreservesFaultAndMovingMasks() {
         const digits = findChild(speedometer, "speedometerDigits")
         notificationService.telemetryTrustLost = true
