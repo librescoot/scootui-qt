@@ -64,6 +64,7 @@
 #include "stores/TripStore.h"
 #undef private
 #include "stores/VehicleStore.h"
+#include "utils/FaultFormatter.h"
 
 QElapsedTimer g_bootTimer;
 
@@ -1684,6 +1685,18 @@ private slots:
         menu->goBack();
         QVERIFY(select(QStringLiteral("keycards")));
         QVERIFY(hasItem(QStringLiteral("keycards_add_unlock")));
+    }
+
+    void unexpectedBatteryPowerOffDescription()
+    {
+        Translations tr;
+        tr.setLanguage("en");
+        QCOMPARE(FaultFormatter::formatSingleFault(36, &tr),
+                 QStringLiteral("B36: Battery switched off unexpectedly"));
+        tr.setLanguage("de");
+        QCOMPARE(FaultFormatter::formatSingleFault(36, &tr),
+                 QStringLiteral("B36: Batterie hat unerwartet abgeschaltet"));
+        QCOMPARE(FaultFormatter::getSeverity(36), FaultSeverity::Critical);
     }
 
     void alarmArmedLedMenuRoundTrip()

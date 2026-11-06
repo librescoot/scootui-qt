@@ -735,6 +735,7 @@ class Translations : public QObject
     Q_PROPERTY(QString faultBmsNotFollowing READ faultBmsNotFollowing NOTIFY languageChanged)
     Q_PROPERTY(QString faultBmsCommError READ faultBmsCommError NOTIFY languageChanged)
     Q_PROPERTY(QString faultNfcReaderError READ faultNfcReaderError NOTIFY languageChanged)
+    Q_PROPERTY(QString faultBatteryUnexpectedPowerOff READ faultBatteryUnexpectedPowerOff NOTIFY languageChanged)
     Q_PROPERTY(QString faultOverTempCharging READ faultOverTempCharging NOTIFY languageChanged)
     Q_PROPERTY(QString faultUnderTempCharging READ faultUnderTempCharging NOTIFY languageChanged)
     Q_PROPERTY(QString faultOverTempDischarging READ faultOverTempDischarging NOTIFY languageChanged)
@@ -1549,6 +1550,7 @@ public:
     QString faultBmsNotFollowing() const { return lookup("faultBmsNotFollowing"); }
     QString faultBmsCommError() const { return lookup("faultBmsCommError"); }
     QString faultNfcReaderError() const { return lookup("faultNfcReaderError"); }
+    QString faultBatteryUnexpectedPowerOff() const { return lookup("faultBatteryUnexpectedPowerOff"); }
     QString faultOverTempCharging() const { return lookup("faultOverTempCharging"); }
     QString faultUnderTempCharging() const { return lookup("faultUnderTempCharging"); }
     QString faultOverTempDischarging() const { return lookup("faultOverTempDischarging"); }
