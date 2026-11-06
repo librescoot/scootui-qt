@@ -11,6 +11,7 @@ class SystemInfoService : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QVariantList versionRows READ versionRows NOTIFY versionRowsChanged)
+    Q_PROPERTY(QVariantList diagnosticVersionRows READ diagnosticVersionRows NOTIFY versionRowsChanged)
     Q_PROPERTY(QVariantList mdbBoardRows READ mdbBoardRows NOTIFY versionRowsChanged)
     Q_PROPERTY(QVariantList dbcBoardRows READ dbcBoardRows NOTIFY versionRowsChanged)
     Q_PROPERTY(QVariantList nrfBoardRows READ nrfBoardRows NOTIFY versionRowsChanged)
@@ -27,6 +28,7 @@ public:
     explicit SystemInfoService(MdbRepository *repo, QObject *parent = nullptr);
 
     QVariantList versionRows() const { return m_versionRows; }
+    QVariantList diagnosticVersionRows() const { return m_diagnosticVersionRows; }
     // Per-board identity blocks for the System > Info device page: one row
     // list each for MDB, DBC, nRF and ECU. Rows carry a translation key rather
     // than a label, and are omitted when the underlying field is absent.
@@ -60,6 +62,7 @@ private:
     QVariantMap m_energyTotals;
     QVariantMap m_batteryEnergy;
     QVariantList m_versionRows; // [{label, value}, ...]
+    QVariantList m_diagnosticVersionRows;
     QVariantList m_mdbBoardRows;
     QVariantList m_dbcBoardRows;
     QVariantList m_nrfBoardRows;

@@ -8,6 +8,8 @@ class SystemInfoServiceTest : public QObject
     Q_OBJECT
 
 private slots:
+    void diagnosticVersionsUseBoardHashesAndBuildTimestamps();
+    void diagnosticVersionsKeepMissingDataUnknown();
     void showsBaudAndOtaTunnelSeparately();
     void omitsRedundantBaudCapability();
     void convertsEnergyCountersToKwh();
@@ -18,6 +20,50 @@ private slots:
     void preservesSignedNetEnergyAndCoverage();
     void marksStaleBatteryAccountingUnavailable();
 };
+
+void SystemInfoServiceTest::diagnosticVersionsUseBoardHashesAndBuildTimestamps()
+{
+    InMemoryMdbRepository repo;
+    repo.set("version:mdb", "version", "1.4.0", false);
+    repo.set("version:mdb", "build_id", "20261105123456", false);
+    repo.set("version:dbc", "version_id", "1.4.0-dev", false);
+    repo.set("version:dbc", "build_id", "custom-image", false);
+    repo.set("system", "mdb-version", "wrong-source", false);
+    repo.set("system", "nrf-fw-version", "1.14.0", false);
+    repo.set("engine-ecu", "fw-version", "2.0", false);
+    SystemInfoService service(&repo);
+    service.loadVersions();
+
+    const auto row = [](const QString &label, const QString &value) {
+        return QVariantMap{{"label", label}, {"value", value}};
+    };
+    QCOMPARE(service.diagnosticVersionRows(), QVariantList({
+        row("MDB", "1.4.0"), row("MDB Built", "2026-11-05 12:34:56"),
+        row("DBC", "1.4.0-dev"), row("DBC build ID", "custom-image"),
+        row("nRF", "1.14.0"), row("ECU", "2.0")}));
+
+    QSignalSpy changed(&service, &SystemInfoService::versionRowsChanged);
+    repo.set("version:mdb", "build_id", "20261106123456");
+    QCOMPARE(changed.size(), 1);
+    QCOMPARE(service.diagnosticVersionRows().at(1).toMap().value("value").toString(),
+             QStringLiteral("2026-11-06 12:34:56"));
+}
+
+void SystemInfoServiceTest::diagnosticVersionsKeepMissingDataUnknown()
+{
+    InMemoryMdbRepository repo;
+    repo.set("system", "dbc-version", "wrong-source", false);
+    SystemInfoService service(&repo);
+    service.loadVersions();
+    QCOMPARE(service.diagnosticVersionRows().size(), 4);
+    for (const auto &row : service.diagnosticVersionRows())
+        QCOMPARE(row.toMap().value("value").toString(), QStringLiteral("unknown"));
+    repo.set("version:mdb", "build_id", "20261399123456");
+    QCOMPARE(service.diagnosticVersionRows().at(1).toMap().value("label").toString(),
+             QStringLiteral("MDB build ID"));
+    QCOMPARE(service.diagnosticVersionRows().at(1).toMap().value("value").toString(),
+             QStringLiteral("20261399123456"));
+}
 
 void SystemInfoServiceTest::showsBaudAndOtaTunnelSeparately()
 {

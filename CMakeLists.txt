@@ -1091,6 +1091,8 @@ if(BUILD_TESTING)
         src/stores/SyncableStore.h
         src/stores/BatteryStore.cpp
         src/stores/BatteryStore.h
+        src/stores/CbBatteryStore.cpp
+        src/stores/CbBatteryStore.h
     )
     target_include_directories(battery_store_fields_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(battery_store_fields_test PRIVATE Qt6::Core Qt6::Test)
@@ -1345,6 +1347,7 @@ if(BUILD_TESTING)
     qt_add_executable(notification_qml_test
         tests/NotificationQuickTest.cpp
         src/models/Enums.h
+        src/models/EnumStrings.cpp
         src/services/BackupBatteryMonitor.cpp
         src/stores/BatteryStore.cpp
         src/stores/AuxBatteryStore.cpp
@@ -1393,6 +1396,7 @@ if(BUILD_TESTING)
         PREFIX "/ScootUI"
         BASE "${CMAKE_CURRENT_SOURCE_DIR}"
         FILES ${NOTIFICATION_TEST_ICONS}
+              qml/widgets/components/MaterialIcon.qml
               assets/fonts/subset/Roboto-Regular.ttf
               assets/fonts/subset/Roboto-Bold.ttf
               assets/fonts/subset/Roboto-Medium.ttf

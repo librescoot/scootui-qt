@@ -211,7 +211,30 @@ void SystemInfoService::recomputeVersions()
     QString nrfVersion = ver(nrf);
     QString ecuVersion = ver(ecu);
 
+    QVariantList diagnosticRows;
+    const auto diagnosticRow = [&diagnosticRows](const QString &label, const QString &value) {
+        diagnosticRows.append(QVariantMap{{QStringLiteral("label"), label},
+                                         {QStringLiteral("value"), value}});
+    };
+    const auto boardDiagnostic = [&](const QString &name, const QString &version, const FieldMap &data) {
+        diagnosticRow(name, version);
+        const QString buildId = data.value(QStringLiteral("build_id"));
+        if (buildId.isEmpty())
+            return;
+        // Yocto timestamp build IDs describe image builds, not release dates.
+        const QDateTime buildTime = QDateTime::fromString(buildId, QStringLiteral("yyyyMMddHHmmss"));
+        const bool timestamp = buildTime.isValid()
+            && buildTime.toString(QStringLiteral("yyyyMMddHHmmss")) == buildId;
+        diagnosticRow(name + (timestamp ? QStringLiteral(" Built") : QStringLiteral(" build ID")),
+                      timestamp ? buildTime.toString(QStringLiteral("yyyy-MM-dd HH:mm:ss")) : buildId);
+    };
+    boardDiagnostic(QStringLiteral("MDB"), mdbVersion, mdbVer);
+    boardDiagnostic(QStringLiteral("DBC"), dbcVersion, dbcVer);
+    diagnosticRow(QStringLiteral("nRF"), nrfVersion);
+    diagnosticRow(QStringLiteral("ECU"), ecuVersion);
+
     if (rows == m_versionRows
+        && diagnosticRows == m_diagnosticVersionRows
         && mdbRows == m_mdbBoardRows
         && dbcRows == m_dbcBoardRows
         && nrfRows == m_nrfBoardRows
@@ -225,6 +248,7 @@ void SystemInfoService::recomputeVersions()
     }
 
     m_versionRows = rows;
+    m_diagnosticVersionRows = diagnosticRows;
     m_mdbBoardRows = mdbRows;
     m_dbcBoardRows = dbcRows;
     m_nrfBoardRows = nrfRows;

@@ -2,6 +2,7 @@
 
 #include "repositories/InMemoryMdbRepository.h"
 #include "stores/BatteryStore.h"
+#include "stores/CbBatteryStore.h"
 
 // Scooters on v1.3.0 and older publish none of these fields, so every case is
 // also a tolerance case: absent keys must keep defaults, not read as zero data.
@@ -13,6 +14,7 @@ private slots:
     void capacityAndLowSocParse();
     void absentFieldsKeepDefaults();
     void lowSocFalseAndZeroReadAsNotLow();
+    void connectivityBatteryDistinguishesMissingAndZero();
 };
 
 void BatteryStoreFieldsTest::capacityAndLowSocParse()
@@ -60,6 +62,34 @@ void BatteryStoreFieldsTest::lowSocFalseAndZeroReadAsNotLow()
     QCOMPARE(store.lowSoc(), true);
     repo.set(QStringLiteral("battery:0"), QStringLiteral("low-soc"), QStringLiteral("0"));
     QCOMPARE(store.lowSoc(), false);
+}
+
+void BatteryStoreFieldsTest::connectivityBatteryDistinguishesMissingAndZero()
+{
+    InMemoryMdbRepository repo;
+    CbBatteryStore store(&repo);
+    store.start();
+    QVERIFY(!store.currentValid());
+    QVERIFY(!store.cellVoltageValid());
+    QVERIFY(!store.temperatureValid());
+    QVERIFY(!store.cycleCountValid());
+    QVERIFY(!store.stateOfHealthValid());
+    QVERIFY(!store.remainingCapacityValid());
+    QVERIFY(!store.fullCapacityValid());
+    repo.set("cb-battery", "current", "invalid");
+    QVERIFY(!store.currentValid());
+    for (const auto *field : {"current", "cell-voltage", "temperature", "cycle-count",
+                              "state-of-health", "remaining-capacity", "full-capacity"})
+        repo.set("cb-battery", field, "0");
+    QVERIFY(store.currentValid());
+    QVERIFY(store.cellVoltageValid());
+    QVERIFY(store.temperatureValid());
+    QVERIFY(store.cycleCountValid());
+    QVERIFY(store.stateOfHealthValid());
+    QVERIFY(store.remainingCapacityValid());
+    QVERIFY(store.fullCapacityValid());
+    QCOMPARE(store.current(), 0);
+    QCOMPARE(store.cellVoltage(), 0);
 }
 
 QTEST_GUILESS_MAIN(BatteryStoreFieldsTest)

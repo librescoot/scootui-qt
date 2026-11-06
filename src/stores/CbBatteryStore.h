@@ -11,14 +11,21 @@ class CbBatteryStore : public SyncableStore
     // "never received"; the default below is not real data).
     Q_PROPERTY(bool chargeValid READ chargeValid NOTIFY chargeValidChanged)
     Q_PROPERTY(int current READ current NOTIFY currentChanged)
+    Q_PROPERTY(bool currentValid READ currentValid NOTIFY currentValidChanged)
     Q_PROPERTY(int remainingCapacity READ remainingCapacity NOTIFY remainingCapacityChanged)
+    Q_PROPERTY(bool remainingCapacityValid READ remainingCapacityValid NOTIFY remainingCapacityValidChanged)
     Q_PROPERTY(int temperature READ temperature NOTIFY temperatureChanged)
+    Q_PROPERTY(bool temperatureValid READ temperatureValid NOTIFY temperatureValidChanged)
     Q_PROPERTY(int cycleCount READ cycleCount NOTIFY cycleCountChanged)
+    Q_PROPERTY(bool cycleCountValid READ cycleCountValid NOTIFY cycleCountValidChanged)
     Q_PROPERTY(int timeToFull READ timeToFull NOTIFY timeToFullChanged)
     Q_PROPERTY(int timeToEmpty READ timeToEmpty NOTIFY timeToEmptyChanged)
     Q_PROPERTY(int cellVoltage READ cellVoltage NOTIFY cellVoltageChanged)
+    Q_PROPERTY(bool cellVoltageValid READ cellVoltageValid NOTIFY cellVoltageValidChanged)
     Q_PROPERTY(int fullCapacity READ fullCapacity NOTIFY fullCapacityChanged)
+    Q_PROPERTY(bool fullCapacityValid READ fullCapacityValid NOTIFY fullCapacityValidChanged)
     Q_PROPERTY(int stateOfHealth READ stateOfHealth NOTIFY stateOfHealthChanged)
+    Q_PROPERTY(bool stateOfHealthValid READ stateOfHealthValid NOTIFY stateOfHealthValidChanged)
     Q_PROPERTY(bool present READ present NOTIFY presentChanged)
     Q_PROPERTY(int chargeStatus READ chargeStatus NOTIFY chargeStatusChanged)
     Q_PROPERTY(QString partNumber READ partNumber NOTIFY partNumberChanged)
@@ -31,14 +38,21 @@ public:
     int charge() const { return m_charge; }
     bool chargeValid() const { return m_chargeValid; }
     int current() const { return m_current; }
+    bool currentValid() const { return m_currentValid; }
     int remainingCapacity() const { return m_remainingCapacity; }
+    bool remainingCapacityValid() const { return m_remainingCapacityValid; }
     int temperature() const { return m_temperature; }
+    bool temperatureValid() const { return m_temperatureValid; }
     int cycleCount() const { return m_cycleCount; }
+    bool cycleCountValid() const { return m_cycleCountValid; }
     int timeToFull() const { return m_timeToFull; }
     int timeToEmpty() const { return m_timeToEmpty; }
     int cellVoltage() const { return m_cellVoltage; }
+    bool cellVoltageValid() const { return m_cellVoltageValid; }
     int fullCapacity() const { return m_fullCapacity; }
+    bool fullCapacityValid() const { return m_fullCapacityValid; }
     int stateOfHealth() const { return m_stateOfHealth; }
+    bool stateOfHealthValid() const { return m_stateOfHealthValid; }
     bool present() const { return m_present; }
     int chargeStatus() const { return static_cast<int>(m_chargeStatus); }
     QString partNumber() const { return m_partNumber; }
@@ -49,14 +63,21 @@ signals:
     void chargeChanged();
     void chargeValidChanged();
     void currentChanged();
+    void currentValidChanged();
     void remainingCapacityChanged();
+    void remainingCapacityValidChanged();
     void temperatureChanged();
+    void temperatureValidChanged();
     void cycleCountChanged();
+    void cycleCountValidChanged();
     void timeToFullChanged();
     void timeToEmptyChanged();
     void cellVoltageChanged();
+    void cellVoltageValidChanged();
     void fullCapacityChanged();
+    void fullCapacityValidChanged();
     void stateOfHealthChanged();
+    void stateOfHealthValidChanged();
     void presentChanged();
     void chargeStatusChanged();
     void partNumberChanged();
@@ -71,14 +92,21 @@ private:
     int m_charge = 100;
     bool m_chargeValid = false;
     int m_current = 0;
+    bool m_currentValid = false;
     int m_remainingCapacity = 0;
+    bool m_remainingCapacityValid = false;
     int m_temperature = 0;
+    bool m_temperatureValid = false;
     int m_cycleCount = 0;
+    bool m_cycleCountValid = false;
     int m_timeToFull = 0;
     int m_timeToEmpty = 0;
     int m_cellVoltage = 0;
+    bool m_cellVoltageValid = false;
     int m_fullCapacity = 0;
+    bool m_fullCapacityValid = false;
     int m_stateOfHealth = 0;
+    bool m_stateOfHealthValid = false;
     bool m_present = false;
     ScootEnums::ChargeStatus m_chargeStatus = ScootEnums::ChargeStatus::Unknown;
     QString m_partNumber;

@@ -10,6 +10,7 @@
 #include <QJsonObject>
 #include <QTcpServer>
 #include "models/Enums.h"
+#include "models/EnumStrings.h"
 #include "services/NavigationService.h"
 #include "services/NotificationService.h"
 #include "services/NotificationIngress.h"
@@ -216,6 +217,7 @@ public slots:
         qmlRegisterUncreatableMetaObject(ScootEnums::staticMetaObject, "ScootUI", 1, 0,
                                          "Scooter", QString());
         qmlRegisterType<NativeAttentionHarness>("ScootUITest", 1, 0, "NativeAttentionHarness");
+        qmlRegisterType<EnumStrings>("ScootUITest", 1, 0, "EnumStrings");
         for (const auto *font : {"Roboto-Regular.ttf", "Roboto-Bold.ttf", "Roboto-Medium.ttf",
                                  "MaterialSymbolsOutlined-Filled.ttf"})
             QFontDatabase::addApplicationFont(QStringLiteral(":/ScootUI/assets/fonts/subset/") + font);

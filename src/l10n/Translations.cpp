@@ -1139,6 +1139,11 @@ void Translations::initStrings()
     en[QStringLiteral("controlSelect")] = QStringLiteral("Select");
     de[QStringLiteral("controlSelect")] = QStringLiteral("Ausw\u00E4hlen");
 
+    en[QStringLiteral("controlNextTab")] = QStringLiteral("Next tab");
+    de[QStringLiteral("controlNextTab")] = QStringLiteral("Nächster Tab");
+    en[QStringLiteral("controlPreviousTab")] = QStringLiteral("Previous tab");
+    de[QStringLiteral("controlPreviousTab")] = QStringLiteral("Vorheriger Tab");
+
     en[QStringLiteral("controlNext")] = QStringLiteral("Next Item");
     de[QStringLiteral("controlNext")] = QStringLiteral("N\u00E4chster Eintrag");
 

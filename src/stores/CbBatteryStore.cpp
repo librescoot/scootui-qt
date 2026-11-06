@@ -39,23 +39,51 @@ void CbBatteryStore::applyFieldUpdate(const QString &variable, const QString &va
             if (v != m_charge) { m_charge = v; emit chargeChanged(); }
         }
     } else if (variable == QLatin1String("current")) {
-        int v = value.toInt(); if (v != m_current) { m_current = v; emit currentChanged(); }
+        bool ok = false; int v = value.toInt(&ok);
+        if (ok) {
+            if (!m_currentValid) { m_currentValid = true; emit currentValidChanged(); }
+            if (v != m_current) { m_current = v; emit currentChanged(); }
+        }
     } else if (variable == QLatin1String("remaining-capacity")) {
-        int v = value.toInt(); if (v != m_remainingCapacity) { m_remainingCapacity = v; emit remainingCapacityChanged(); }
+        bool ok = false; int v = value.toInt(&ok);
+        if (ok) {
+            if (!m_remainingCapacityValid) { m_remainingCapacityValid = true; emit remainingCapacityValidChanged(); }
+            if (v != m_remainingCapacity) { m_remainingCapacity = v; emit remainingCapacityChanged(); }
+        }
     } else if (variable == QLatin1String("temperature")) {
-        int v = value.toInt(); if (v != m_temperature) { m_temperature = v; emit temperatureChanged(); }
+        bool ok = false; int v = value.toInt(&ok);
+        if (ok) {
+            if (!m_temperatureValid) { m_temperatureValid = true; emit temperatureValidChanged(); }
+            if (v != m_temperature) { m_temperature = v; emit temperatureChanged(); }
+        }
     } else if (variable == QLatin1String("cycle-count")) {
-        int v = value.toInt(); if (v != m_cycleCount) { m_cycleCount = v; emit cycleCountChanged(); }
+        bool ok = false; int v = value.toInt(&ok);
+        if (ok) {
+            if (!m_cycleCountValid) { m_cycleCountValid = true; emit cycleCountValidChanged(); }
+            if (v != m_cycleCount) { m_cycleCount = v; emit cycleCountChanged(); }
+        }
     } else if (variable == QLatin1String("time-to-full")) {
         int v = value.toInt(); if (v != m_timeToFull) { m_timeToFull = v; emit timeToFullChanged(); }
     } else if (variable == QLatin1String("time-to-empty")) {
         int v = value.toInt(); if (v != m_timeToEmpty) { m_timeToEmpty = v; emit timeToEmptyChanged(); }
     } else if (variable == QLatin1String("cell-voltage")) {
-        int v = value.toInt(); if (v != m_cellVoltage) { m_cellVoltage = v; emit cellVoltageChanged(); }
+        bool ok = false; int v = value.toInt(&ok);
+        if (ok) {
+            if (!m_cellVoltageValid) { m_cellVoltageValid = true; emit cellVoltageValidChanged(); }
+            if (v != m_cellVoltage) { m_cellVoltage = v; emit cellVoltageChanged(); }
+        }
     } else if (variable == QLatin1String("full-capacity")) {
-        int v = value.toInt(); if (v != m_fullCapacity) { m_fullCapacity = v; emit fullCapacityChanged(); }
+        bool ok = false; int v = value.toInt(&ok);
+        if (ok) {
+            if (!m_fullCapacityValid) { m_fullCapacityValid = true; emit fullCapacityValidChanged(); }
+            if (v != m_fullCapacity) { m_fullCapacity = v; emit fullCapacityChanged(); }
+        }
     } else if (variable == QLatin1String("state-of-health")) {
-        int v = value.toInt(); if (v != m_stateOfHealth) { m_stateOfHealth = v; emit stateOfHealthChanged(); }
+        bool ok = false; int v = value.toInt(&ok);
+        if (ok) {
+            if (!m_stateOfHealthValid) { m_stateOfHealthValid = true; emit stateOfHealthValidChanged(); }
+            if (v != m_stateOfHealth) { m_stateOfHealth = v; emit stateOfHealthChanged(); }
+        }
     } else if (variable == QLatin1String("present")) {
         bool v = (value == QLatin1String("true") || value == QLatin1String("1"));
         if (v != m_present) { m_present = v; emit presentChanged(); }
