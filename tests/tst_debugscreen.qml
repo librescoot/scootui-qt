@@ -3,6 +3,7 @@ import QtTest
 import ScootUI 1.0
 import ScootUITest 1.0
 import "../qml/screens"
+import "../qml/overlays"
 
 TestCase {
     name: "DebugDiagnostics"
@@ -168,7 +169,13 @@ TestCase {
         property real radiusCard: 8
     }
     QtObject { id: menuStore; property bool isOpen: false }
-    Component { id: screenComponent; DebugScreen { width: 480; height: 480 } }
+    Component {
+        id: screenComponent
+        DebugScreen {
+            width: 480; height: 480
+            ServiceModeOverlay { objectName: "serviceModeOverlay"; anchors.fill: parent; z: 915 }
+        }
+    }
 
     function init() {
         battery1Store.present = false
@@ -194,6 +201,32 @@ TestCase {
         settingsService.exits = 0
         settingsService.modeChanges = 0
         systemInfoService.loads = 0
+    }
+
+    function test_serviceBannerAndDebugTitle() {
+        const view = createTemporaryObject(screenComponent, this)
+        verify(view !== null)
+        const overlay = findChild(view, "serviceModeOverlay")
+        const banner = overlay.children[0]
+        const bannerText = banner.children[0]
+        const title = findChild(view, "debugHeaderTitle")
+        const tab = findChild(view, "debugTabTitle")
+        const content = findChild(view, "debugScroll")
+        verify(overlay.visible)
+        compare(banner.height, 24)
+        compare(bannerText.font.pixelSize, 12)
+        compare(bannerText.text, "Service Mode Active")
+        verify(!title.visible)
+        verify(tab.visible)
+        verify(tab.mapToItem(view, 0, 0).y >= banner.height)
+        verify(content.mapToItem(view, 0, 0).y >= banner.height)
+        settingsStore.serviceActive = "false"
+        verify(!overlay.visible)
+        verify(title.visible)
+        compare(title.text, "Debug diagnostics")
+        settingsStore.serviceActive = "true"
+        verify(overlay.visible)
+        verify(!title.visible)
     }
 
     function test_overviewLiveAndMissingData() {

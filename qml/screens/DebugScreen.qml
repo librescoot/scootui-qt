@@ -158,8 +158,8 @@ Rectangle {
         spacing: 0
         Item {
             Layout.fillWidth: true; Layout.preferredHeight: 66
-            Text { x: 14; y: 8; text: root.serviceActive ? "Service diagnostics" : "Debug diagnostics"; color: "white"; font.pixelSize: root.fontSize; font.family: root.fontFamily }
-            Text { x: 14; y: 38; text: root.tabs[root.tabIndex]; color: "white"; font.pixelSize: 20; font.bold: true; font.family: root.fontFamily }
+            Text { objectName: "debugHeaderTitle"; x: 14; y: 8; visible: !root.serviceActive; text: "Debug diagnostics"; color: "white"; font.pixelSize: root.fontSize; font.family: root.fontFamily }
+            Text { objectName: "debugTabTitle"; x: 14; y: 38; text: root.tabs[root.tabIndex]; color: "white"; font.pixelSize: 20; font.bold: true; font.family: root.fontFamily }
             Text { anchors.right: parent.right; anchors.rightMargin: 14; y: 38; text: (root.tabIndex + 1) + " / " + root.tabs.length; color: root.muted; font.pixelSize: root.fontSize; font.family: root.fontFamily }
             Rectangle { x: 14; y: 33; width: parent.width - 28; height: 1; color: "#454545" }
         }

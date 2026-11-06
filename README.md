@@ -39,6 +39,19 @@ and a Valhalla endpoint for routing. The application also listens on the
 Use the normal dashboard UI or platform tooling for routine operations. The
 commands above are intended for controlled operational automation.
 
+## Service diagnostics
+
+Service mode displays diagnostics across nine tabs: Overview, Power, Batteries,
+Vehicle, GPS, Network, Modem, Software and Updates. The overview prioritizes AUX,
+CBB and main battery readings, followed by switches and connectivity. Power gives
+AUX and CBB details; Batteries compares the main packs, including their BMS
+versions. A small service-mode banner remains visible at the top.
+
+While parked, tap the left brake for the next tab or the right brake for the
+previous tab. When a page has more content than fits, hold the right brake to
+scroll through it and back to the top. Hold the left brake for three seconds to
+exit service mode.
+
 ## Boot animation handoff
 
 On DBC images with the IPU overlay framebuffer, the launcher selects
