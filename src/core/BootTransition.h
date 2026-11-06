@@ -11,7 +11,7 @@ public:
     explicit BootTransition(QObject *parent = nullptr,
                             QString alphaPath = QStringLiteral("/sys/class/graphics/fb1/overlay_alpha"),
                             QString helper = QStringLiteral("/usr/bin/imx-overlay-alpha"),
-                            int durationMs = 1000);
+                            int durationMs = 250);
     void start();
 
 signals:

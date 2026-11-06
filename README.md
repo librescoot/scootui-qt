@@ -44,7 +44,7 @@ commands above are intended for controlled operational automation.
 On DBC images with the IPU overlay framebuffer, the launcher selects
 `eglfs_fbdev`: GPU rendering goes to `/dev/fb1` while the boot animation stays
 live on `/dev/fb0`. After the first completed UI frame, the overlay fades from
-transparent to opaque over one second. Only then is the boot animation asked
+transparent to opaque over 250 ms. Only then is the boot animation asked
 to stop. This does not wait for the animation to finish playing.
 
 If the fade helper fails or times out, the dashboard attempts to reveal the

@@ -30,6 +30,18 @@ private:
     }
 
 private slots:
+    void defaultFadeDuration()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString helper = script(dir, "test \"$*\" = 'fade 0 255 250'");
+        BootTransition transition(nullptr, dir.filePath(QStringLiteral("missing/alpha")), helper);
+        QSignalSpy finished(&transition, &BootTransition::finished);
+        transition.start();
+        QTRY_COMPARE(finished.size(), 1);
+        QCOMPARE(finished.first().first().toBool(), true);
+    }
+
     void successfulFadeDoesNotRevealEarly()
     {
         QTemporaryDir dir;
