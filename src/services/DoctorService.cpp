@@ -4,10 +4,13 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QProcessEnvironment>
 #include <QSet>
 #include <QTimer>
 #include <algorithm>
 #include <utility>
+#include <pwd.h>
+#include <unistd.h>
 
 namespace {
 constexpr qint64 MaxReportBytes = 256 * 1024;
@@ -112,6 +115,14 @@ void DoctorService::cancel()
 void DoctorService::launch(int index, quint64 generation)
 {
     auto *process = new QProcess(this);
+    if (index == 1) {
+        // ScootUI keeps its data in HOME=/data; SSH credentials belong to the account home.
+        auto environment = QProcessEnvironment::systemEnvironment();
+        if (const auto *account = getpwuid(geteuid())) {
+            environment.insert(QStringLiteral("HOME"), QString::fromLocal8Bit(account->pw_dir));
+        }
+        process->setProcessEnvironment(environment);
+    }
     m_boards[index].process = process;
     auto *deadline = new QTimer(process);
     deadline->setSingleShot(true);

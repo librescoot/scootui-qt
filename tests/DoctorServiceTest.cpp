@@ -4,6 +4,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTemporaryDir>
+#include <pwd.h>
+#include <unistd.h>
 #include "services/DoctorService.h"
 
 class DoctorServiceTest : public QObject
@@ -94,6 +96,31 @@ private slots:
         QTest::qWait(400);
         QCOMPARE(board(service, 0).value("warnings").toInt(), 6);
         QCOMPARE(board(service, 0).value("state").toString(), QStringLiteral("done"));
+    }
+
+    void remoteCommandUsesAccountHome()
+    {
+        const auto *account = getpwuid(geteuid());
+        QVERIFY(account);
+        const QByteArray accountHome(account->pw_dir);
+        QTemporaryDir directory;
+        const auto good = script(directory, "report.sh",
+            "test \"$HOME\" = \"$EXPECTED_HOME\" || exit 255\nprintf '%s' '" + report() + "'\n");
+        const auto inherited = qgetenv("HOME");
+        const auto expected = qgetenv("EXPECTED_HOME");
+        const bool homeWasSet = qEnvironmentVariableIsSet("HOME");
+        const bool expectedWasSet = qEnvironmentVariableIsSet("EXPECTED_HOME");
+        qputenv("HOME", directory.path().toLocal8Bit());
+        qputenv("EXPECTED_HOME", accountHome);
+        DoctorService service({"/bin/sh", {"-c", "test \"$HOME\" != \"$EXPECTED_HOME\" && printf '%s' '" + report() + "'"}},
+                              {"/bin/sh", {good}}, 2000);
+        service.start();
+        if (homeWasSet) qputenv("HOME", inherited); else qunsetenv("HOME");
+        if (expectedWasSet) qputenv("EXPECTED_HOME", expected); else qunsetenv("EXPECTED_HOME");
+        QTRY_VERIFY_WITH_TIMEOUT(!service.running(), 3000);
+        QCOMPARE(board(service, 0).value("state").toString(), QStringLiteral("done"));
+        QCOMPARE(board(service, 1).value("state").toString(), QStringLiteral("done"));
+        QCOMPARE(board(service, 1).value("checks").toList().size(), 6);
     }
 
     void excessiveOutputStopsBothChannels()

@@ -220,7 +220,9 @@ DBC and over the existing `ssh mdb` connection on the MDB. Both boards need an
 `lsc doctor --json` implementation supporting report schema 1. Older or missing
 tools, unreachable boards, malformed reports and timeouts are shown as not
 checkable, never as healthy. A valid report with exit status 1 still displays its
-faults normally.
+faults normally. The MDB SSH process uses the account home for its provisioned
+keys and known hosts, independently of the dashboard's data-directory `HOME`.
+Host-key verification remains enabled.
 
 The page shows separate board summaries and timestamps, then checks for services,
 board links, kernel consistency, updates, vehicle faults and storage. Problems
