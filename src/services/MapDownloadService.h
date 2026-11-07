@@ -11,6 +11,7 @@
 #include "models/Enums.h"
 #include "models/MapMetadata.h"
 #include "utils/ZstdDecompressor.h"
+#include "utils/HDiffPatcher.h"
 
 class MdbRepository;
 
@@ -120,6 +121,7 @@ signals:
     void mapInfoChanged();
 
 private:
+    friend class MapDownloadServiceTest;
     void setStatus(ScootEnums::MapDownloadStatus s);
     void setError(const QString &msg);
     void finishUpdateCheck(UpdateCheckResult result);
@@ -143,6 +145,8 @@ private:
     // finishInstall() once the worker is done.
     void startDecompressInstall(const QString &compressedPath, const QString &destPath,
                                 const QString &digest);
+    void startDeltaInstall(const QString &patchPath, const QString &destPath);
+    void fallbackRoutingDelta(const QString &reason);
     // Tail of doInstall: the atomic rename plus the metadata bookkeeping that
     // follows it. Always runs on the thread that owns this object.
     void finishInstall(const QString &installSource, const QString &destPath, bool isDisplay,
@@ -170,6 +174,7 @@ private:
     QString displayPartPath() const;
     QString routingPartPath() const;
     QString routingCompressedPartPath() const;
+    QString routingDeltaPartPath() const;
     QString displayDestPath() const;
     QString routingDestPath() const;
     bool hasEnoughDiskSpace(qint64 needed) const;
@@ -195,6 +200,7 @@ private:
     // Non-null only while a routing archive is being decompressed on a worker
     // thread. cancel() uses it to ask that worker to stop.
     QFutureWatcher<ZstdDecompressor::Outcome> *m_decompressWatcher = nullptr;
+    QFutureWatcher<HDiffPatcher::Outcome> *m_deltaWatcher = nullptr;
 
     ScootEnums::MapDownloadStatus m_status = ScootEnums::MapDownloadStatus::Idle;
     double m_progress = 0.0;
@@ -224,6 +230,7 @@ private:
         // Always the uncompressed artifact: what ends up on disk.
         QString url;
         QString digest;
+        QString version;
         qint64 size = 0;
         // Set only when the manifest offers a compressed variant in a codec
         // this build understands. When set, the download fetches these and
@@ -231,7 +238,13 @@ private:
         QString compressedUrl;
         QString compressedDigest;
         qint64 compressedSize = 0;
+        QString deltaUrl;
+        QString deltaDigest;
+        QString deltaBaseDigest;
+        QString deltaBaseVersion;
+        qint64 deltaSize = 0;
 
+        bool useDelta() const { return !deltaUrl.isEmpty(); }
         bool useCompressed() const { return !compressedUrl.isEmpty(); }
     };
     AssetInfo m_displayAsset;
@@ -242,4 +255,5 @@ private:
     // can decline the same artifact when the manifest offers it again; a newly
     // published one has a different digest and is tried normally.
     QString m_rejectedCompressedDigest;
+    QString m_rejectedDeltaDigest;
 };

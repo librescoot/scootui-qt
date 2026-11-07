@@ -13,6 +13,7 @@ private slots:
     void falseFlagsAreOmitted();
     void legacyCombinedFlagWidensToBothSets();
     void regionNameRoundTrip();
+    void versionsRoundTrip();
 };
 
 void MapMetadataTest::perSetFlagsRoundTrip()
@@ -80,6 +81,21 @@ void MapMetadataTest::regionNameRoundTrip()
         {QStringLiteral("region"), QStringLiteral("bayern")},
     });
     QVERIFY(older.regionName.isEmpty());
+}
+
+void MapMetadataTest::versionsRoundTrip()
+{
+    MapMetadata meta;
+    meta.displayTiles = MapTileInfo{};
+    meta.displayTiles->version = QStringLiteral("tiles-20261001T094148Z");
+    meta.valhallaTiles = MapTileInfo{};
+    meta.valhallaTiles->version = QStringLiteral("tiles-20261101T130555Z");
+    const auto restored = MapMetadata::fromJson(meta.toJson());
+    QVERIFY(restored.displayTiles.has_value());
+    QVERIFY(restored.valhallaTiles.has_value());
+    QCOMPARE(restored.displayTiles->version, meta.displayTiles->version);
+    QCOMPARE(restored.valhallaTiles->version, meta.valhallaTiles->version);
+    QVERIFY(MapTileInfo::fromJson(QJsonObject{}).version.isEmpty());
 }
 
 QTEST_GUILESS_MAIN(MapMetadataTest)

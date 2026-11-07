@@ -162,6 +162,9 @@ private slots:
                 QVERIFY(view.grabWindow().save(captureDir + "/" + language + (dark ? "-dark" : "-light") + "-update.png"));
             }
         }
+        model.info.insert("map:version", "tiles-20261001T094148Z"); emit model.changed();
+        QTRY_COMPARE(field(rows(root, "mapDisplayRows"), 0, "label"), QString("Version"));
+        QCOMPARE(field(rows(root, "mapDisplayRows"), 0, "value"), QString("tiles-20261001T094148Z"));
     }
 };
 QTEST_MAIN(MapInfoScreenTest)

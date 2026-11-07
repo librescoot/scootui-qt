@@ -425,6 +425,13 @@ supported. If the selected display pack lacks a matching routing archive,
 local Valhalla is stopped rather than serving a mismatched graph. The built-in
 map updater is for singleton packs; use USB update mode for regional packs.
 
+For singleton routing updates, the downloader selects a smaller HDiffPatch
+asset when the manifest identifies the installed base and `hpatchz` is
+available. It verifies the base, patch and reconstructed target before atomic
+replacement, and falls back to the full archive on a delta failure. The map and
+routing release tags are recorded separately when known and shown in system
+information. Older downloads without version metadata remain supported.
+
 ## Build and test
 
 CMake requires C++17, CMake 3.16 or newer, Qt 6.4 or newer with Quick, QML,

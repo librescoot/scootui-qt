@@ -11,10 +11,13 @@ struct MapTileInfo {
     QString digest;
     QString publishedAt;
     qint64 size = 0;
+    QString version;
 
     QJsonObject toJson() const {
         QJsonObject o;
         o[QStringLiteral("digest")] = digest;
+        if (!version.isEmpty())
+            o[QStringLiteral("version")] = version;
         o[QStringLiteral("publishedAt")] = publishedAt;
         o[QStringLiteral("size")] = size;
         return o;
@@ -23,6 +26,7 @@ struct MapTileInfo {
     static MapTileInfo fromJson(const QJsonObject &o) {
         MapTileInfo info;
         info.digest = o[QStringLiteral("digest")].toString();
+        info.version = o[QStringLiteral("version")].toString();
         info.publishedAt = o[QStringLiteral("publishedAt")].toString();
         info.size = o[QStringLiteral("size")].toDouble();
         return info;

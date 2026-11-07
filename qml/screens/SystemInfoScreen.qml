@@ -340,6 +340,7 @@ Rectangle {
         if (mapInfo[prefix + ":size"] === undefined)
             return [{ label: t("infoStatus", "Status"), value: t("infoNotInstalled", "Not installed") }]
         return present([
+            { label: "Version", value: mapInfo[prefix + ":version"] || "" },
             { label: t("infoPublished", "Published"),
               wrap: mapInfo[prefix + ":update-available"] === "true", wordWrap: true,
               value: shortDate(mapInfo[prefix + ":published-at"])
