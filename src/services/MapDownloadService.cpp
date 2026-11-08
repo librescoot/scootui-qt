@@ -1191,7 +1191,8 @@ void MapDownloadService::startMapDeltaInstall(const QString &patchPath, const QS
         return;
     }
 
-    auto future = QtConcurrent::run([decoder, destPath, patchPath, output, workDir, baseDigest]
+    m_patchPool.setMaxThreadCount(1);
+    auto future = QtConcurrent::run(&m_patchPool, [decoder, destPath, patchPath, output, workDir, baseDigest]
                                      (QPromise<MapDeltaPatcher::Outcome> &promise) {
         const auto outcome = MapDeltaPatcher::applyDelta(decoder, destPath, patchPath, output, workDir,
                                                           baseDigest, [&promise]() { return promise.isCanceled(); });

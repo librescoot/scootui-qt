@@ -10,6 +10,7 @@
 #include <QSqlQuery>
 #include <QUuid>
 #include "services/MapDownloadService.h"
+#include "services/MapDownloadHold.h"
 
 class FakeReply : public QNetworkReply
 {
@@ -92,7 +93,7 @@ private:
         QFile f(path); QVERIFY(f.open(QIODevice::WriteOnly)); QCOMPARE(f.write(bytes), bytes.size());
     }
     void runScenario(bool wrongBase, bool corruptOutput, bool corruptDelta = false, bool staleBase = false, bool biggerDelta = false, bool noDecoder = false);
-    void runMapScenario(bool corruptDelta, bool staleBase, bool noDecoder, bool badResult);
+    void runMapScenario(bool corruptDelta, bool staleBase, bool noDecoder, bool badResult, int mode = 0);
 private slots:
     void smallerDeltaInstalls() { runScenario(false, false); }
     void wrongBaseUsesFull() { runScenario(true, false); }
@@ -101,7 +102,16 @@ private slots:
     void changedBaseFallsBack() { runScenario(false, false, false, true); }
     void largerDeltaUsesFull() { runScenario(false, false, false, false, true); }
     void missingDecoderUsesFull() { runScenario(false, false, false, false, false, true); }
+    void holdFollowsStatus() {
+        using S = ScootEnums::MapDownloadStatus;
+        QCOMPARE(mapDownloadHoldFor(int(S::Downloading)), QStringLiteral("map-download"));
+        QCOMPARE(mapDownloadHoldFor(int(S::Installing)), QStringLiteral("map-install"));
+        for (S idle : {S::Idle, S::Locating, S::CheckingUpdates, S::Done, S::Error})
+            QVERIFY(mapDownloadHoldFor(int(idle)).isEmpty());
+    }
     void mapDeltaInstalls() { runMapScenario(false, false, false, false); }
+    void mapDeltaResumesFromPartAfterRestart() { runMapScenario(false, false, false, false, 1); }
+    void mapDeltaRestartsAfterInterruptedPatch() { runMapScenario(false, false, false, false, 2); }
     void mapDeltaCorruptDownloadUsesFull() { runMapScenario(true, false, false, false); }
     void mapDeltaChangedBaseUsesFull() { runMapScenario(false, true, false, false); }
     void mapDeltaMissingDecoderUsesFull() { runMapScenario(false, false, true, false); }
@@ -147,7 +157,9 @@ void MapDownloadServiceTest::runScenario(bool wrongBase, bool corruptOutput, boo
     qputenv("PATH",oldPath);
 }
 
-void MapDownloadServiceTest::runMapScenario(bool corruptDelta, bool staleBase, bool noDecoder, bool badResult)
+// mode 0: normal; 1: a complete delta part and stale scratch from a previous
+// session are on disk; 2: the first attempt is cancelled mid-patch, then retried.
+void MapDownloadServiceTest::runMapScenario(bool corruptDelta, bool staleBase, bool noDecoder, bool badResult, int mode)
 {
     QTemporaryDir d; QVERIFY(d.isValid());
     const QString baseMap = d.filePath("base-src.mbtiles"), targetMap = d.filePath("target.mbtiles");
@@ -172,8 +184,9 @@ void MapDownloadServiceTest::runMapScenario(bool corruptDelta, bool staleBase, b
 
     // The decoder stand-in emits the known target stream (or garbage).
     const QString decoder = d.filePath("hpatchz"), systemctl = d.filePath("systemctl");
+    const QByteArray slow = mode == 2 ? "sleep 4\n" : "";
     put(decoder, badResult ? QByteArray("#!/bin/sh\nprintf wrong > \"$4\"\n")
-                           : "#!/bin/sh\ncp '" + d.filePath("target.canon").toUtf8() + "' \"$4\"\n");
+                           : "#!/bin/sh\n" + slow + "cp '" + d.filePath("target.canon").toUtf8() + "' \"$4\"\n");
     put(systemctl, "#!/bin/sh\nexit 0\n");
     QVERIFY(QFile::setPermissions(decoder, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner));
     QVERIFY(QFile::setPermissions(systemctl, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner));
@@ -190,7 +203,18 @@ void MapDownloadServiceTest::runMapScenario(bool corruptDelta, bool staleBase, b
     meta.displayTiles->version = QStringLiteral("tiles-20261001T000000Z");
     QVERIFY(MapMetadata::save(meta, store + "/metadata.json"));
 
+    if (mode == 1) {
+        QDir().mkpath(store + "/.download");
+        put(store + "/.download/display." + sha(container) + ".hdelta.part", container);
+        put(store + "/.download/map-deadbeef0000.canon", "half a stream");
+        put(store + "/.download/map-deadbeef0000.hdiff", "stale patch");
+        put(store + "/.download/display.mbtiles.part.7", "half a rebuilt map");
+    }
     MapDownloadService service(nullptr, nullptr, store);
+    if (mode == 1) {
+        QVERIFY(service.hasPartialDisplayDownload());
+        QVERIFY(QDir(store + "/.download").entryList({"map-*", "display.mbtiles.part.*"}, QDir::Files).isEmpty());
+    }
     auto *net = new FakeNetwork; net->setParent(&service); service.m_nam = net;
     const QString manifestUrl = QStringLiteral("https://downloads.librescoot.org/releases/maps-routing.json");
     const QString fullUrl = QStringLiteral("https://example.invalid/map.mbtiles"), deltaUrl = QStringLiteral("https://example.invalid/map.hdelta");
@@ -209,14 +233,42 @@ void MapDownloadServiceTest::runMapScenario(bool corruptDelta, bool staleBase, b
     service.m_needsDisplay = true; service.m_displayDone = false;
     service.m_needsRouting = false; service.m_routingDone = true;
     QSignalSpy completed(&service, &MapDownloadService::downloadComplete);
+    const QByteArray installedBefore = slurp(store + "/map.mbtiles");
     service.doFetchReleases(true, false);
+    if (mode == 2) {
+        // Let the patch start, then pull the plug on it.
+        QTRY_COMPARE_WITH_TIMEOUT(int(service.status()), int(ScootEnums::MapDownloadStatus::Installing), 10000);
+        QTest::qWait(1200);
+        service.cancel();
+        QTest::qWait(600);
+        QCOMPARE(completed.size(), 0);
+        // The installed map is untouched and nothing is left half built.
+        QCOMPARE(slurp(store + "/map.mbtiles"), installedBefore);
+        QVERIFY(QDir(store + "/.download").entryList({"map-*", "display.mbtiles.part.*"}, QDir::Files).isEmpty());
+        // The downloaded patch survives for the retry.
+        QVERIFY(service.hasPartialDisplayDownload());
+        net->requests.clear();
+        // What startDownload() does for a fresh attempt after a cancel.
+        service.m_cancelled = false;
+        ++service.m_operationGeneration;
+        service.m_needsDisplay = true; service.m_displayDone = false;
+        service.m_needsRouting = false; service.m_routingDone = true;
+        service.doFetchReleases(true, false);
+    }
     QTRY_COMPARE_WITH_TIMEOUT(completed.size(), 1, 20000);
+    if (mode != 0) {
+        // Resumed from the part file: the patch is not fetched a second time.
+        QVERIFY(!net->requests.contains(deltaUrl));
+        QVERIFY(!net->requests.contains(fullUrl));
+    }
 
     const bool deltaWorked = !corruptDelta && !staleBase && !noDecoder && !badResult;
     // A map swapped behind the metadata's back still looks like the base, so
     // its delta is fetched; the canonical hash in the patch is what rejects it.
-    QCOMPARE(net->requests.contains(deltaUrl), !noDecoder);
-    QCOMPARE(net->requests.contains(fullUrl), !deltaWorked);
+    if (mode == 0) {
+        QCOMPARE(net->requests.contains(deltaUrl), !noDecoder);
+        QCOMPARE(net->requests.contains(fullUrl), !deltaWorked);
+    }
     const QString installed = store + "/map.mbtiles";
     if (deltaWorked) {
         QCOMPARE(MapDeltaPatcher::canonicalize(installed, d.filePath("out.canon"), {}, &err), targetCanonHash);

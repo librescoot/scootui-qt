@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QCryptographicHash>
 #include <QFutureWatcher>
+#include <QThreadPool>
 #include <QVariantMap>
 #include <functional>
 #include "models/Enums.h"
@@ -212,6 +213,8 @@ private:
     QFutureWatcher<ZstdDecompressor::Outcome> *m_decompressWatcher = nullptr;
     QFutureWatcher<HDiffPatcher::Outcome> *m_deltaWatcher = nullptr;
     QFutureWatcher<MapDeltaPatcher::Outcome> *m_mapDeltaWatcher = nullptr;
+    // Owned so the low CPU priority of a delta rebuild stays on its own thread.
+    QThreadPool m_patchPool;
 
     ScootEnums::MapDownloadStatus m_status = ScootEnums::MapDownloadStatus::Idle;
     double m_progress = 0.0;

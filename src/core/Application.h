@@ -168,7 +168,8 @@ private:
     bool m_prefetchConsumed = false;
     QString m_backendDescription;
     quint64 m_mapCommandSubscriptionId = 0;
-    bool m_mapDownloadHoldActive = false;
+    // "", "map-download" or "map-install": the hold last requested from vehicle-service.
+    QString m_mapDownloadHold;
     BootGate *m_bootGate = nullptr;
     ScreenPreloader *m_screenPreloader = nullptr;
     QTimer *m_clusterWarmFallback = nullptr;

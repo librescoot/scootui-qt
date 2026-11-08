@@ -19,6 +19,8 @@
 #include <zlib.h>
 
 #include <fcntl.h>
+#include <sys/resource.h>
+#include <sys/syscall.h>
 #include <unistd.h>
 
 #include <functional>
@@ -132,11 +134,24 @@ public:
         return digest;
     }
 
+    // Runs the calling thread, and the decoder it spawns, at the lowest CPU
+    // priority. The rebuild is minutes of work on a dashboard whose two cores
+    // also draw the UI; this keeps the dashboard responsive at the cost of
+    // finishing later. Per-thread on Linux, so callers should use a thread they
+    // own rather than a shared pool.
+    static void lowerPriority()
+    {
+#ifdef SYS_gettid
+        ::setpriority(PRIO_PROCESS, static_cast<id_t>(::syscall(SYS_gettid)), 19);
+#endif
+    }
+
     static Outcome applyDelta(const QString &decoder, const QString &installedMap,
                               const QString &delta, const QString &output, const QString &workDir,
                               const QString &expectedBaseSha256,
                               const std::function<bool()> &cancelled)
     {
+        lowerPriority();
         const QString tag = QUuid::createUuid().toString(QUuid::Id128).left(12);
         const QString baseCanon = workDir + QStringLiteral("/map-base-") + tag + QStringLiteral(".canon");
         const QString targetCanon = workDir + QStringLiteral("/map-target-") + tag + QStringLiteral(".canon");
@@ -179,6 +194,7 @@ public:
         QProcess process;
         process.setProgram(decoder);
         process.setArguments({QStringLiteral("-s-8m"), baseCanon, patch, targetCanon});
+        process.setChildProcessModifier([] { ::nice(19); });
         process.start();
         if (!process.waitForStarted(10000))
             return fail(Result::Failed, QStringLiteral("could not start map delta decoder"));

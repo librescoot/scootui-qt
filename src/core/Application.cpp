@@ -73,6 +73,7 @@
 #include "services/SerialNumberService.h"
 #include "services/AddressDatabaseService.h"
 #include "services/MapDownloadService.h"
+#include "services/MapDownloadHold.h"
 #include "services/UpdateChannelService.h"
 #include "services/CloudPairingService.h"
 #include "services/PairingQrItem.h"
@@ -730,18 +731,18 @@ void Application::createStores(QQmlApplicationEngine &engine)
     // transfer: the .part file resumes next time, but on a scooter that parks
     // often a large tar may never finish. vehicle-service caps the hold, so a
     // dashboard that dies mid download cannot pin power on.
+    //
+    // Installing asks for a longer cap than downloading. Applying a delta
+    // serialises, patches and rebuilds the map on the dashboard's own CPU for
+    // minutes, and a power cut there restarts that work from the beginning.
     connect(m_mapDownloadService, &MapDownloadService::statusChanged, this, [this]() {
         const int st = m_mapDownloadService->status();
-        // Installing is short but it renames the tar into place and restarts
-        // valhalla, so it is the worst moment to lose power.
-        const bool busy = st == static_cast<int>(ScootEnums::MapDownloadStatus::Downloading)
-                          || st == static_cast<int>(ScootEnums::MapDownloadStatus::Installing);
-        if (busy == m_mapDownloadHoldActive)
+        const QString hold = mapDownloadHoldFor(st);
+        if (hold == m_mapDownloadHold)
             return;
-        m_mapDownloadHoldActive = busy;
+        m_mapDownloadHold = hold;
         m_repository->push(QStringLiteral("scooter:dbc-hold"),
-                           busy ? QStringLiteral("map-download")
-                                : QStringLiteral("release"));
+                           hold.isEmpty() ? QStringLiteral("release") : hold);
     });
 
     // Refresh map/road-info/address-db as soon as an install finishes.
