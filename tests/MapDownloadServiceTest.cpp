@@ -106,6 +106,8 @@ private slots:
         using S = ScootEnums::MapDownloadStatus;
         QCOMPARE(mapDownloadHoldFor(int(S::Downloading)), QStringLiteral("map-download"));
         QCOMPARE(mapDownloadHoldFor(int(S::Installing)), QStringLiteral("map-install"));
+        // Several heartbeats must fit inside vehicle-service's 10 minute install cap.
+        static_assert(MapInstallHeartbeatMs * 5 <= 10 * 60 * 1000);
         for (S idle : {S::Idle, S::Locating, S::CheckingUpdates, S::Done, S::Error})
             QVERIFY(mapDownloadHoldFor(int(idle)).isEmpty());
     }

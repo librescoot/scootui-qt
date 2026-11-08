@@ -743,6 +743,18 @@ void Application::createStores(QQmlApplicationEngine &engine)
         m_mapDownloadHold = hold;
         m_repository->push(QStringLiteral("scooter:dbc-hold"),
                            hold.isEmpty() ? QStringLiteral("release") : hold);
+        // vehicle-service caps an install hold and restarts the cap on every
+        // request, so a long rebuild repeats it while a hung dashboard stops.
+        if (hold == QLatin1String("map-install"))
+            m_mapInstallHeartbeat->start();
+        else
+            m_mapInstallHeartbeat->stop();
+    });
+    m_mapInstallHeartbeat = new QTimer(this);
+    m_mapInstallHeartbeat->setInterval(MapInstallHeartbeatMs);
+    connect(m_mapInstallHeartbeat, &QTimer::timeout, this, [this]() {
+        if (m_mapDownloadHold == QLatin1String("map-install"))
+            m_repository->push(QStringLiteral("scooter:dbc-hold"), m_mapDownloadHold);
     });
 
     // Refresh map/road-info/address-db as soon as an install finishes.

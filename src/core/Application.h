@@ -170,6 +170,7 @@ private:
     quint64 m_mapCommandSubscriptionId = 0;
     // "", "map-download" or "map-install": the hold last requested from vehicle-service.
     QString m_mapDownloadHold;
+    QTimer *m_mapInstallHeartbeat = nullptr;
     BootGate *m_bootGate = nullptr;
     ScreenPreloader *m_screenPreloader = nullptr;
     QTimer *m_clusterWarmFallback = nullptr;
