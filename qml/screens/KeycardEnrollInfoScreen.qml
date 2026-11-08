@@ -48,6 +48,7 @@ Rectangle {
         switch (keycardStore.scanStatus) {
         case "accepted": return flow === "unlock" ? translations.keycardScanAccepted
                                                    : translations.keycardMasterSaved
+        case "random-id": return translations.keycardScanRandomId
         case "duplicate": return translations.keycardScanDuplicate
         case "rejected": return translations.keycardScanRejected
         case "error": return translations.keycardScanError
@@ -205,6 +206,7 @@ Rectangle {
                     visible: text !== ""
                     text: screen.feedbackText()
                     color: keycardStore.scanStatus === "error" || keycardStore.scanStatus === "rejected"
+                           || keycardStore.scanStatus === "random-id"
                            ? themeStore.statusWarning : screen.textSecondary
                     font.pixelSize: themeStore.fontBody
                     lineHeight: 1.3

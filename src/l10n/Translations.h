@@ -147,6 +147,7 @@ class Translations : public QObject
     Q_PROPERTY(QString keycardScanDuplicate READ keycardScanDuplicate NOTIFY languageChanged)
     Q_PROPERTY(QString keycardScanRejected READ keycardScanRejected NOTIFY languageChanged)
     Q_PROPERTY(QString keycardScanError READ keycardScanError NOTIFY languageChanged)
+    Q_PROPERTY(QString keycardScanRandomId READ keycardScanRandomId NOTIFY languageChanged)
     Q_PROPERTY(QString keycardPhoneAccepted READ keycardPhoneAccepted NOTIFY languageChanged)
     Q_PROPERTY(QString keycardPhoneDuplicate READ keycardPhoneDuplicate NOTIFY languageChanged)
     Q_PROPERTY(QString keycardPhoneRejected READ keycardPhoneRejected NOTIFY languageChanged)
@@ -957,6 +958,7 @@ public:
     QString keycardScanDuplicate() const { return lookup("keycardScanDuplicate"); }
     QString keycardScanRejected() const { return lookup("keycardScanRejected"); }
     QString keycardScanError() const { return lookup("keycardScanError"); }
+    QString keycardScanRandomId() const { return lookup("keycardScanRandomId"); }
     QString keycardPhoneAccepted() const { return lookup("keycardPhoneAccepted"); }
     QString keycardPhoneDuplicate() const { return lookup("keycardPhoneDuplicate"); }
     QString keycardPhoneRejected() const { return lookup("keycardPhoneRejected"); }

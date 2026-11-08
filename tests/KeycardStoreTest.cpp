@@ -117,6 +117,12 @@ void KeycardStoreTest::tracksEnrollmentFeedback()
     QCOMPARE(store.lastScannedKind(), QStringLiteral("card"));
     QCOMPARE(store.scanStatus(), QStringLiteral("duplicate"));
 
+    repo.publish("keycard:events", "card-random-id:08A1B2C3");
+    QCOMPARE(store.sessionCardCount(), 1);
+    QCOMPARE(store.lastScannedKind(), QStringLiteral("card"));
+    QCOMPARE(store.lastScannedUid(), QStringLiteral("08A1B2C3"));
+    QCOMPARE(store.scanStatus(), QStringLiteral("random-id"));
+
     repo.publish("keycard:events", "phone-learned:F7C6A7D0309ED723119742DE3F197846");
     QCOMPARE(store.sessionPhoneCount(), 1);
     QCOMPARE(store.lastScannedKind(), QStringLiteral("phone"));

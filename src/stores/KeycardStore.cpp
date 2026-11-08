@@ -139,6 +139,9 @@ void KeycardStore::onKeycardEvent(const QString &message)
         setEnrollmentFeedback(event == QLatin1String("phone-duplicate") ? QStringLiteral("phone")
                                                                         : QStringLiteral("card"),
                               uid, QStringLiteral("duplicate"));
+    } else if (event == QLatin1String("card-random-id")) {
+        // The service discarded the tap; the same ID has to be presented again.
+        setEnrollmentFeedback(QStringLiteral("card"), uid, QStringLiteral("random-id"));
     } else if (event == QLatin1String("rejected")) {
         setEnrollmentFeedback(QStringLiteral("card"), uid, QStringLiteral("rejected"));
     } else if (event == QLatin1String("error")) {
