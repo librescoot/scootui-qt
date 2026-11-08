@@ -294,10 +294,10 @@ void Translations::initStrings()
     de[QStringLiteral("keycardEnrollTitle")] = QStringLiteral("Karte oder Handy hinzufügen");
     en[QStringLiteral("keycardEnrollStart")] = QStringLiteral("Start");
     de[QStringLiteral("keycardEnrollStart")] = QStringLiteral("Starten");
-    en[QStringLiteral("keycardEnrollInfoBody")] = QStringLiteral("Start enrollment, then tap a card or a phone key set up in the app against the scooter reader.");
-    de[QStringLiteral("keycardEnrollInfoBody")] = QStringLiteral("Anlernen starten und dann eine Karte oder einen in der App eingerichteten Handyschlüssel an den Roller halten.");
-    en[QStringLiteral("keycardEnrollActiveBody")] = QStringLiteral("Tap each new card or phone at the reader. Choose Done to save them.");
-    de[QStringLiteral("keycardEnrollActiveBody")] = QStringLiteral("Neue Karten und Handys an den Leser halten. Mit Fertig speichern.");
+    en[QStringLiteral("keycardEnrollInfoBody")] = QStringLiteral("Start enrollment, then tap a card or an Android phone against the scooter reader. A phone only works as a key with the Librescoot Mobile app, where the phone key must be turned on. Otherwise it is not recognized as a phone.");
+    de[QStringLiteral("keycardEnrollInfoBody")] = QStringLiteral("Anlernen starten und dann eine Karte oder ein Android-Handy an den Roller halten. Ein Handy funktioniert nur mit der Librescoot Mobile App, in der der Handyschlüssel aktiviert sein muss. Sonst wird es nicht als Handy erkannt.");
+    en[QStringLiteral("keycardEnrollActiveBody")] = QStringLiteral("Tap each new card or phone at the reader. If a phone is detected as a card, its phone key is not active in the Librescoot Mobile app or the phone is locked. Choose Done to save.");
+    de[QStringLiteral("keycardEnrollActiveBody")] = QStringLiteral("Neue Karten und Handys an den Leser halten. Wird ein Handy als Karte erkannt, ist sein Handyschlüssel in der Librescoot Mobile App nicht aktiv oder das Handy gesperrt. Mit Fertig speichern.");
     en[QStringLiteral("keycardSetupTitle")] = QStringLiteral("Set up keycards");
     de[QStringLiteral("keycardSetupTitle")] = QStringLiteral("Schlüsselkarten einrichten");
     en[QStringLiteral("keycardSetupBody")] = QStringLiteral("Tap a card to make it the teach-in card, or skip to add unlock cards.");
