@@ -12,6 +12,7 @@
 #include "models/MapMetadata.h"
 #include "utils/ZstdDecompressor.h"
 #include "utils/HDiffPatcher.h"
+#include "utils/MapDeltaPatcher.h"
 
 class MdbRepository;
 
@@ -37,6 +38,11 @@ class MapDownloadService : public QObject
     Q_PROPERTY(QVariantMap mapInfo READ collectMapState NOTIFY mapInfoChanged)
 
 public:
+    struct DeltaChoice {
+        QString url, digest, baseDigest, baseVersion;
+        qint64 size = 0;
+    };
+
     enum class UpdateCheckResult { UpToDate, UpdateAvailable, Failed, Unavailable, Cancelled };
     Q_ENUM(UpdateCheckResult)
 
@@ -146,7 +152,10 @@ private:
     void startDecompressInstall(const QString &compressedPath, const QString &destPath,
                                 const QString &digest);
     void startDeltaInstall(const QString &patchPath, const QString &destPath);
-    void fallbackRoutingDelta(const QString &reason);
+    void startMapDeltaInstall(const QString &patchPath, const QString &destPath);
+    void startDisplayDownload();
+    bool isDeltaPart(bool isDisplay, const QString &path) const;
+    void fallbackDelta(bool isDisplay, const QString &reason);
     // Tail of doInstall: the atomic rename plus the metadata bookkeeping that
     // follows it. Always runs on the thread that owns this object.
     void finishInstall(const QString &installSource, const QString &destPath, bool isDisplay,
@@ -175,6 +184,7 @@ private:
     QString routingPartPath() const;
     QString routingCompressedPartPath() const;
     QString routingDeltaPartPath() const;
+    QString displayDeltaPartPath() const;
     QString displayDestPath() const;
     QString routingDestPath() const;
     bool hasEnoughDiskSpace(qint64 needed) const;
@@ -201,6 +211,7 @@ private:
     // thread. cancel() uses it to ask that worker to stop.
     QFutureWatcher<ZstdDecompressor::Outcome> *m_decompressWatcher = nullptr;
     QFutureWatcher<HDiffPatcher::Outcome> *m_deltaWatcher = nullptr;
+    QFutureWatcher<MapDeltaPatcher::Outcome> *m_mapDeltaWatcher = nullptr;
 
     ScootEnums::MapDownloadStatus m_status = ScootEnums::MapDownloadStatus::Idle;
     double m_progress = 0.0;
@@ -245,6 +256,12 @@ private:
         qint64 deltaSize = 0;
 
         bool useDelta() const { return !deltaUrl.isEmpty(); }
+        void clearDelta() { deltaUrl.clear(); deltaDigest.clear(); deltaBaseDigest.clear();
+                            deltaBaseVersion.clear(); deltaSize = 0; }
+        void applyDelta(const DeltaChoice &c) {
+            deltaUrl = c.url; deltaDigest = c.digest; deltaBaseDigest = c.baseDigest;
+            deltaBaseVersion = c.baseVersion; deltaSize = c.size;
+        }
         bool useCompressed() const { return !compressedUrl.isEmpty(); }
     };
     AssetInfo m_displayAsset;

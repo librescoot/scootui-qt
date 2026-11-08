@@ -427,10 +427,22 @@ supported. If the selected display pack lacks a matching routing archive,
 local Valhalla is stopped rather than serving a mismatched graph. The built-in
 map updater is for singleton packs; use USB update mode for regional packs.
 
-For singleton routing updates, the downloader selects a smaller HDiffPatch
-asset when the manifest identifies the installed base and `hpatchz` is
-available. It verifies the base, patch and reconstructed target before atomic
-replacement, and falls back to the full archive on a delta failure. The map and
+For singleton updates, the downloader selects a smaller HDiffPatch asset when
+the manifest identifies the installed base and `hpatchz` is available. It
+verifies the base, patch and reconstructed target before atomic replacement, and
+falls back to the full file on a delta failure.
+
+Map deltas patch a canonical stream of the MBTiles file (schema, rows in a fixed
+order, decompressed tiles, see `tools/canonical-mbtiles.py` in `osm-tiles`), not
+the SQLite file: the installed map is serialised, patched, hash-checked against
+the target stream and rebuilt, which takes about 17 s and 45 MB of memory for
+Berlin/Brandenburg on a desktop. The rebuilt file has the same schema, rows and
+decompressed tiles as the published one but recompressed tiles, so it is
+smaller and not byte identical; the published digest is recorded as its
+identity. A map that does not match the patch's base content is rejected by the
+canonical hash even when its recorded digest looks right, and the full file is
+downloaded instead. The disk space check uses the stream sizes from the patch
+header. The map and
 routing release tags are recorded separately when known and shown in system
 information. Older downloads without version metadata remain supported.
 

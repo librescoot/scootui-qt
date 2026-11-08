@@ -29,6 +29,36 @@
 // byte count into this many steps before handing it over.
 static constexpr int DecompressProgressSteps = 10000;
 
+// Picks the smallest manifest delta whose base is exactly what is installed.
+// Everything is validated here so the install path can trust the entry: a
+// delta that names another base, has a malformed digest, is not smaller than
+// the full transfer, or was already rejected this session is ignored.
+static void selectDelta(const QJsonObject &asset, const QString &installedDigest,
+                        const QString &rejectedDigest, qint64 fullSize,
+                        const QString &targetDigest, MapDownloadService::DeltaChoice *choice)
+{
+    static const QRegularExpression sha256(QStringLiteral("^[0-9a-f]{64}$"));
+    *choice = {};
+    if (!sha256.match(targetDigest).hasMatch() || fullSize <= 0
+        || !sha256.match(installedDigest).hasMatch())
+        return;
+    for (const auto &item : asset[QStringLiteral("deltas")].toArray()) {
+        const auto delta = item.toObject();
+        const auto base = delta[QStringLiteral("base_sha256")].toString();
+        const auto hash = delta[QStringLiteral("sha256")].toString();
+        const auto url = delta[QStringLiteral("url")].toString();
+        const auto version = delta[QStringLiteral("base_version")].toString();
+        const qint64 size = static_cast<qint64>(delta[QStringLiteral("size")].toDouble());
+        if (delta[QStringLiteral("algorithm")].toString() != QLatin1String("hdiffpatch")
+            || base != installedDigest || !sha256.match(base).hasMatch()
+            || !sha256.match(hash).hasMatch() || hash == rejectedDigest
+            || url.isEmpty() || version.isEmpty() || size <= 0 || size >= fullSize
+            || (choice->size > 0 && size >= choice->size))
+            continue;
+        *choice = {url, hash, base, version, size};
+    }
+}
+
 MapDownloadService::MapDownloadService(MdbRepository *repo, QObject *parent, const QString &storageDirectory)
     : QObject(parent)
     , m_storageDirectory(storageDirectory)
@@ -45,6 +75,14 @@ MapDownloadService::MapDownloadService(MdbRepository *repo, QObject *parent, con
         + QLatin1Char('.');
     for (const QString &name : staleDownloadDir.entryList(
              {decompressedPrefix + QLatin1Char('*')}, QDir::Files)) {
+        staleDownloadDir.remove(name);
+    }
+    // Map delta scratch: canonical streams, the staged patch and a rebuilt
+    // file that was never renamed into place. None survives a restart usefully.
+    const QString displayPrefix = QFileInfo(displayPartPath()).fileName() + QLatin1Char('.');
+    for (const QString &name : staleDownloadDir.entryList(
+             {QStringLiteral("map-*.canon"), QStringLiteral("map-*.hdiff"),
+              displayPrefix + QLatin1Char('*')}, QDir::Files)) {
         staleDownloadDir.remove(name);
     }
 
@@ -216,7 +254,8 @@ void MapDownloadService::publishToRedis()
 
 bool MapDownloadService::hasPartialDisplayDownload() const
 {
-    return QFile::exists(displayPartPath());
+    return QFile::exists(displayPartPath())
+        || !QDir(downloadDir()).entryList({QStringLiteral("display.*.hdelta.part")}, QDir::Files).isEmpty();
 }
 
 bool MapDownloadService::hasPartialRoutingDownload() const
@@ -312,6 +351,8 @@ void MapDownloadService::cancel()
         m_decompressWatcher->cancel();
     if (m_deltaWatcher)
         m_deltaWatcher->cancel();
+    if (m_mapDeltaWatcher)
+        m_mapDeltaWatcher->cancel();
     m_progress = 0.0;
     m_downloadedBytes = 0;
     m_totalBytes = 0;
@@ -706,9 +747,23 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
                 // Installed digest already matches the manifest - nothing to fetch.
                 m_displayDone = true;
             } else {
-                totalNeeded += m_displayAsset.size;
-                qint64 partial = QFileInfo(displayPartPath()).size();
-                diskNeeded += std::max<qint64>(0, m_displayAsset.size - partial);
+                m_displayAsset.clearDelta();
+                if (m_metadata.displayTiles && QFileInfo::exists(displayDestPath())
+                    && !QStandardPaths::findExecutable(QStringLiteral("hpatchz")).isEmpty()) {
+                    DeltaChoice choice;
+                    selectDelta(map, m_metadata.displayTiles->digest, m_rejectedDeltaDigest,
+                                m_displayAsset.size, m_displayAsset.digest, &choice);
+                    m_displayAsset.applyDelta(choice);
+                }
+                if (m_displayAsset.useDelta()) {
+                    totalNeeded += m_displayAsset.deltaSize;
+                    qint64 partial = QFileInfo(displayDeltaPartPath()).size();
+                    diskNeeded += std::max<qint64>(0, m_displayAsset.deltaSize - partial);
+                } else {
+                    totalNeeded += m_displayAsset.size;
+                    qint64 partial = QFileInfo(displayPartPath()).size();
+                    diskNeeded += std::max<qint64>(0, m_displayAsset.size - partial);
+                }
             }
         }
 
@@ -770,36 +825,15 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
                 }
             }
 
-            m_routingAsset.deltaUrl.clear();
-            m_routingAsset.deltaDigest.clear();
-            m_routingAsset.deltaBaseDigest.clear();
-            m_routingAsset.deltaBaseVersion.clear();
-            m_routingAsset.deltaSize = 0;
-            static const QRegularExpression sha256(QStringLiteral("^[0-9a-f]{64}$"));
-            const qint64 fullSize = m_routingAsset.useCompressed()
-                ? m_routingAsset.compressedSize : m_routingAsset.size;
+            m_routingAsset.clearDelta();
             if (m_metadata.valhallaTiles && QFileInfo::exists(routingDestPath())
-                && sha256.match(m_routingAsset.digest).hasMatch() && m_routingAsset.size > 0
-                && fullSize > 0 && !QStandardPaths::findExecutable(QStringLiteral("hpatchz")).isEmpty()) {
-                for (const auto &item : valhalla[QStringLiteral("deltas")].toArray()) {
-                    const auto delta = item.toObject();
-                    const auto base = delta[QStringLiteral("base_sha256")].toString();
-                    const auto hash = delta[QStringLiteral("sha256")].toString();
-                    const auto url = delta[QStringLiteral("url")].toString();
-                    const auto version = delta[QStringLiteral("base_version")].toString();
-                    const qint64 size = static_cast<qint64>(delta[QStringLiteral("size")].toDouble());
-                    if (delta[QStringLiteral("algorithm")].toString() != QLatin1String("hdiffpatch")
-                        || base != m_metadata.valhallaTiles->digest || !sha256.match(base).hasMatch()
-                        || !sha256.match(hash).hasMatch() || hash == m_rejectedDeltaDigest
-                        || url.isEmpty() || version.isEmpty() || size <= 0 || size >= fullSize
-                        || (m_routingAsset.deltaSize > 0 && size >= m_routingAsset.deltaSize))
-                        continue;
-                    m_routingAsset.deltaUrl = url;
-                    m_routingAsset.deltaDigest = hash;
-                    m_routingAsset.deltaBaseDigest = base;
-                    m_routingAsset.deltaBaseVersion = version;
-                    m_routingAsset.deltaSize = size;
-                }
+                && !QStandardPaths::findExecutable(QStringLiteral("hpatchz")).isEmpty()) {
+                const qint64 fullSize = m_routingAsset.useCompressed()
+                    ? m_routingAsset.compressedSize : m_routingAsset.size;
+                DeltaChoice choice;
+                selectDelta(valhalla, m_metadata.valhallaTiles->digest, m_rejectedDeltaDigest,
+                            fullSize, m_routingAsset.digest, &choice);
+                if (m_routingAsset.size > 0) m_routingAsset.applyDelta(choice);
             }
 
             if (m_metadata.valhallaTiles && !m_metadata.valhallaTiles->digest.isEmpty()
@@ -848,12 +882,30 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
         emit progressChanged();
 
         if (!m_displayDone) {
-            doDownloadFile(m_displayAsset.url, displayPartPath(),
-                          m_displayAsset.digest, m_displayAsset.size, true);
+            startDisplayDownload();
         } else if (!m_routingDone) {
             startRoutingDownload();
         }
     });
+}
+
+void MapDownloadService::startDisplayDownload()
+{
+    // Drop a delta part that is not the one about to be used: a new target
+    // version changes the delta's name, and the old part is dead weight.
+    QDir download(downloadDir());
+    const QString activeDelta = QFileInfo(displayDeltaPartPath()).fileName();
+    for (const auto &file : download.entryList({QStringLiteral("display.*.hdelta.part")}, QDir::Files)) {
+        if (!m_displayAsset.useDelta() || file != activeDelta) download.remove(file);
+    }
+    emit partialStateChanged();
+    if (m_displayAsset.useDelta()) {
+        doDownloadFile(m_displayAsset.deltaUrl, displayDeltaPartPath(),
+                       m_displayAsset.deltaDigest, m_displayAsset.deltaSize, true);
+        return;
+    }
+    doDownloadFile(m_displayAsset.url, displayPartPath(),
+                   m_displayAsset.digest, m_displayAsset.size, true);
 }
 
 void MapDownloadService::startRoutingDownload()
@@ -980,16 +1032,16 @@ void MapDownloadService::doDownloadFile(const QString &url, const QString &destP
         // A transfer-timeout abort surfaces as OperationCanceledError and must
         // remain a failure so the partial is retained for resume.
         if (reply->error() != QNetworkReply::NoError) {
-            if (!isDisplay && m_routingAsset.useDelta() && destPath == routingDeltaPartPath()) {
-                fallbackRoutingDelta(QStringLiteral("Routing delta download failed"));
+            if (isDeltaPart(isDisplay, destPath)) {
+                fallbackDelta(isDisplay, QStringLiteral("Delta download failed"));
                 return;
             }
             setError(QStringLiteral("Download failed: ") + reply->errorString());
             return;
         }
         if (statusCode != 200 && statusCode != 206) {
-            if (!isDisplay && m_routingAsset.useDelta() && destPath == routingDeltaPartPath()) {
-                fallbackRoutingDelta(QStringLiteral("Routing delta download failed"));
+            if (isDeltaPart(isDisplay, destPath)) {
+                fallbackDelta(isDisplay, QStringLiteral("Delta download failed"));
                 return;
             }
             setError(QStringLiteral("Download failed with HTTP %1").arg(statusCode));
@@ -1042,8 +1094,8 @@ void MapDownloadService::doVerify(const QString &filePath, const QString &expect
             qWarning() << "SHA256 mismatch for" << filePath
                        << "expected:" << expectedDigest << "got:" << computed;
             QFile::remove(filePath);
-            if (!isDisplay && m_routingAsset.useDelta() && filePath == routingDeltaPartPath()) {
-                fallbackRoutingDelta(QStringLiteral("Routing delta download verification failed"));
+            if (isDeltaPart(isDisplay, filePath)) {
+                fallbackDelta(isDisplay, QStringLiteral("Delta download verification failed"));
                 return;
             }
             setError(QStringLiteral("Download verification failed, please retry"));
@@ -1068,8 +1120,11 @@ void MapDownloadService::doInstall(const QString &tempPath, const QString &destP
     // startDecompressInstall() hands it to a worker thread and calls
     // finishInstall() when it comes back. The display path has no compressed
     // variant and stays entirely synchronous.
-    if (!isDisplay && m_routingAsset.useDelta() && tempPath == routingDeltaPartPath()) {
-        startDeltaInstall(tempPath, destPath);
+    if (isDeltaPart(isDisplay, tempPath)) {
+        if (isDisplay)
+            startMapDeltaInstall(tempPath, destPath);
+        else
+            startDeltaInstall(tempPath, destPath);
         return;
     }
     if (!isDisplay && m_routingAsset.useCompressed()
@@ -1081,18 +1136,29 @@ void MapDownloadService::doInstall(const QString &tempPath, const QString &destP
     finishInstall(tempPath, destPath, isDisplay, digest);
 }
 
-void MapDownloadService::fallbackRoutingDelta(const QString &reason)
+bool MapDownloadService::isDeltaPart(bool isDisplay, const QString &path) const
 {
-    qWarning() << reason << "falling back to the full routing archive";
-    QFile::remove(routingDeltaPartPath());
-    m_rejectedDeltaDigest = m_routingAsset.deltaDigest;
-    m_routingAsset.deltaUrl.clear();
-    const qint64 fullSize = m_routingAsset.useCompressed() ? m_routingAsset.compressedSize : m_routingAsset.size;
-    const QString part = m_routingAsset.useCompressed() ? routingCompressedPartPath() : routingPartPath();
+    return isDisplay
+        ? m_displayAsset.useDelta() && path == displayDeltaPartPath()
+        : m_routingAsset.useDelta() && path == routingDeltaPartPath();
+}
+
+void MapDownloadService::fallbackDelta(bool isDisplay, const QString &reason)
+{
+    qWarning() << reason << "- falling back to the full" << (isDisplay ? "map" : "routing archive");
+    AssetInfo &asset = isDisplay ? m_displayAsset : m_routingAsset;
+    QFile::remove(isDisplay ? displayDeltaPartPath() : routingDeltaPartPath());
+    m_rejectedDeltaDigest = asset.deltaDigest;
+    asset.deltaUrl.clear();
+    const bool compressed = !isDisplay && asset.useCompressed();
+    const qint64 fullSize = compressed ? asset.compressedSize : asset.size;
+    const QString part = isDisplay ? displayPartPath()
+                                   : (compressed ? routingCompressedPartPath() : routingPartPath());
     const qint64 needed = std::max<qint64>(0, fullSize - QFileInfo(part).size())
-        + (m_routingAsset.useCompressed() ? m_routingAsset.size : 0) + 16LL * 1024 * 1024;
+        + (compressed ? asset.size : 0) + 16LL * 1024 * 1024;
     if (!hasEnoughDiskSpace(needed)) {
-        setError(QStringLiteral("Insufficient disk space for full routing update"));
+        setError(isDisplay ? QStringLiteral("Insufficient disk space for full map update")
+                           : QStringLiteral("Insufficient disk space for full routing update"));
         return;
     }
     m_totalBytes = m_completedBytes + fullSize;
@@ -1100,7 +1166,61 @@ void MapDownloadService::fallbackRoutingDelta(const QString &reason)
     m_progress = 0;
     emit progressChanged();
     setStatus(ScootEnums::MapDownloadStatus::Downloading);
-    startRoutingDownload();
+    if (isDisplay)
+        startDisplayDownload();
+    else
+        startRoutingDownload();
+}
+
+void MapDownloadService::startMapDeltaInstall(const QString &patchPath, const QString &destPath)
+{
+    const quint64 generation = m_operationGeneration;
+    const QString output = displayPartPath() + QStringLiteral(".%1").arg(generation);
+    const QString decoder = QStandardPaths::findExecutable(QStringLiteral("hpatchz"));
+    const QString workDir = downloadDir();
+    const QString baseDigest = m_displayAsset.deltaBaseDigest;
+
+    // The patch tells us how large its canonical streams are; check the disk
+    // before committing to a rebuild that would fill /data halfway through.
+    MapDeltaPatcher::Header header;
+    QString error;
+    if (!MapDeltaPatcher::readHeader(patchPath, &header, &error)
+        || !hasEnoughDiskSpace(MapDeltaPatcher::diskNeeded(header, QFileInfo(patchPath).size())
+                               + 16LL * 1024 * 1024)) {
+        fallbackDelta(true, error.isEmpty() ? QStringLiteral("Not enough disk space to rebuild the map") : error);
+        return;
+    }
+
+    auto future = QtConcurrent::run([decoder, destPath, patchPath, output, workDir, baseDigest]
+                                     (QPromise<MapDeltaPatcher::Outcome> &promise) {
+        const auto outcome = MapDeltaPatcher::applyDelta(decoder, destPath, patchPath, output, workDir,
+                                                          baseDigest, [&promise]() { return promise.isCanceled(); });
+        if (promise.isCanceled()) QFile::remove(output);
+        promise.addResult(outcome);
+    });
+    auto *watcher = new QFutureWatcher<MapDeltaPatcher::Outcome>(this);
+    m_mapDeltaWatcher = watcher;
+    connect(watcher, &QFutureWatcher<MapDeltaPatcher::Outcome>::finished, this,
+            [this, watcher, generation, output, patchPath, destPath]() {
+        watcher->deleteLater();
+        if (m_mapDeltaWatcher == watcher) m_mapDeltaWatcher = nullptr;
+        if (!isCurrentOperation(generation) || watcher->isCanceled()
+            || watcher->future().resultCount() == 0) {
+            QFile::remove(output);
+            return;
+        }
+        const auto outcome = watcher->result();
+        if (!outcome.ok()) {
+            if (outcome.result != MapDeltaPatcher::Result::Cancelled)
+                fallbackDelta(true, outcome.error);
+            return;
+        }
+        QFile::remove(patchPath);
+        // The rebuilt file is not byte identical to the published one, so the
+        // published digest is what gets recorded, see finishInstall().
+        finishInstall(output, destPath, true, m_displayAsset.digest);
+    });
+    watcher->setFuture(future);
 }
 
 void MapDownloadService::startDeltaInstall(const QString &patchPath, const QString &destPath)
@@ -1132,7 +1252,7 @@ void MapDownloadService::startDeltaInstall(const QString &patchPath, const QStri
         }
         const auto outcome = watcher->result();
         if (!outcome.ok()) {
-            if (outcome.result != HDiffPatcher::Result::Cancelled) fallbackRoutingDelta(outcome.error);
+            if (outcome.result != HDiffPatcher::Result::Cancelled) fallbackDelta(false, outcome.error);
             return;
         }
         QFile::remove(patchPath);
@@ -1266,7 +1386,8 @@ void MapDownloadService::finishInstall(const QString &installSource, const QStri
     // verified digest is already the right one to persist; the non-compressed
     // routing path already verifies against m_routingAsset.digest, so this is
     // a no-op there too.
-    info.digest = isDisplay ? digest : m_routingAsset.digest;
+    info.digest = isDisplay ? (m_displayAsset.digest.isEmpty() ? digest : m_displayAsset.digest)
+                            : m_routingAsset.digest;
     info.version = isDisplay ? m_displayAsset.version : m_routingAsset.version;
     info.size = QFileInfo(destPath).size();
     info.publishedAt = QDateTime::currentDateTimeUtc().toString(Qt::ISODate);
@@ -1368,6 +1489,11 @@ QString MapDownloadService::routingPartPath() const
 QString MapDownloadService::routingCompressedPartPath() const
 {
     return downloadDir() + QStringLiteral("/routing.tar.zst.part");
+}
+
+QString MapDownloadService::displayDeltaPartPath() const
+{
+    return downloadDir() + QStringLiteral("/display.") + m_displayAsset.deltaDigest + QStringLiteral(".hdelta.part");
 }
 
 QString MapDownloadService::routingDeltaPartPath() const

@@ -286,6 +286,7 @@ set(CPP_HEADERS
     src/utils/FaultFormatter.h
     src/utils/ZstdDecompressor.h
     src/utils/HDiffPatcher.h
+    src/utils/MapDeltaPatcher.h
     src/stores/FaultEventStore.h
     src/stores/SmsStore.h
     src/stores/FaultsStore.h
@@ -1319,12 +1320,17 @@ if(BUILD_TESTING)
     target_link_libraries(hdiff_patcher_test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME hdiff_patcher_test COMMAND hdiff_patcher_test)
 
+    qt_add_executable(map_delta_patcher_test tests/MapDeltaPatcherTest.cpp src/utils/MapDeltaPatcher.h)
+    target_include_directories(map_delta_patcher_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(map_delta_patcher_test PRIVATE Qt6::Core Qt6::Sql Qt6::Test ZLIB::ZLIB)
+    add_test(NAME map_delta_patcher_test COMMAND map_delta_patcher_test)
+
     qt_add_executable(map_download_service_test
         tests/MapDownloadServiceTest.cpp
         src/services/MapDownloadService.cpp src/services/MapDownloadService.h
         src/utils/ZstdDecompressor.cpp src/repositories/MdbRepository.h)
     target_include_directories(map_download_service_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${ZSTD_INCLUDE_DIRS})
-    target_link_libraries(map_download_service_test PRIVATE Qt6::Core Qt6::Test Qt6::Network Qt6::Sql Qt6::Concurrent ${ZSTD_LIBRARIES})
+    target_link_libraries(map_download_service_test PRIVATE Qt6::Core Qt6::Test Qt6::Network Qt6::Sql Qt6::Concurrent ZLIB::ZLIB ${ZSTD_LIBRARIES})
     add_test(NAME map_download_service_test COMMAND map_download_service_test)
 
     qt_add_executable(map_region_resolver_test
