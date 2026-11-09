@@ -216,10 +216,13 @@ void SystemInfoServiceTest::marksStaleBatteryAccountingUnavailable()
     repo.set("energy", "status", "collecting", false);
     repo.set("energy", "known", "true", false);
     repo.set("energy", "net:mwh", "1000", false);
-    repo.set("energy", "updated-at", QString::number(QDateTime::currentMSecsSinceEpoch() - 20000), false);
+    repo.set("energy", "updated-at", QString::number(QDateTime::currentMSecsSinceEpoch() - 120000), false);
     SystemInfoService service(&repo);
     service.loadVersions();
     QCOMPARE(service.batteryEnergy().value("status").toString(), QStringLiteral("unavailable"));
+    // The heartbeat comes every 30 s, so a snapshot a minute old is still live.
+    repo.set("energy", "updated-at", QString::number(QDateTime::currentMSecsSinceEpoch() - 60000));
+    QCOMPARE(service.batteryEnergy().value("status").toString(), QStringLiteral("collecting"));
     QCOMPARE(service.batteryEnergy().value("net").toDouble(), 0.001);
     repo.set("energy", "updated-at", QString::number(QDateTime::currentMSecsSinceEpoch()));
     QCOMPARE(service.batteryEnergy().value("status").toString(), QStringLiteral("collecting"));

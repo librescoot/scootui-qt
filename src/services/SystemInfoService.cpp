@@ -5,12 +5,18 @@
 #include <QTimer>
 #include <cmath>
 
+namespace {
+constexpr qint64 kEnergyStaleMs = 90000;
+}
+
 SystemInfoService::SystemInfoService(MdbRepository *repo, QObject *parent)
     : QObject(parent), m_repo(repo)
 {
-    m_repo->registerPollChannel(QStringLiteral("energy"), 1000);
+    // trip-service re-publishes the snapshot at least every 30 seconds and
+    // immediately when it changes, so a few seconds of polling is plenty.
+    m_repo->registerPollChannel(QStringLiteral("energy"), 5000);
     auto *energyTimer = new QTimer(this);
-    energyTimer->setInterval(1000);
+    energyTimer->setInterval(5000);
     connect(energyTimer, &QTimer::timeout, this, &SystemInfoService::recomputeBatteryEnergy);
     energyTimer->start();
     connect(m_repo, &MdbRepository::fieldsUpdated,
@@ -52,7 +58,9 @@ void SystemInfoService::recomputeBatteryEnergy()
         bool valid = false;
         const qint64 updated = data.value(QStringLiteral("updated-at")).toLongLong(&valid);
         const qint64 age = QDateTime::currentMSecsSinceEpoch() - updated;
-        result.insert(QStringLiteral("status"), valid && age >= 0 && age <= 10000
+        // updated-at is a heartbeat refreshed at least every 30 s; three missed
+        // beats mean trip-service is gone and the totals are no longer live.
+        result.insert(QStringLiteral("status"), valid && age >= 0 && age <= kEnergyStaleMs
             ? data.value(QStringLiteral("status")) : QStringLiteral("unavailable"));
         const qulonglong gaps = data.value(QStringLiteral("gaps")).toULongLong(&valid);
         if (valid)
