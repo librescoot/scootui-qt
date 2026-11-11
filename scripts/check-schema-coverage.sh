@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Check that every user-visible setting in the schema has a corresponding
+# Check that user-visible dashboard settings have a corresponding
 # // @schema <key> annotation in the source.
 #
 # The check is one-directional. Annotating a setting that is not user-visible
@@ -31,10 +31,12 @@ done
 [[ ! -f "$SCHEMA" ]] && { echo "Error: schema file not found: $SCHEMA"; exit 1; }
 [[ ! -d "$SRC" ]] && { echo "Error: source directory not found: $SRC"; exit 1; }
 
-# Extract user-visible keys from schema
+# This local-only security setting is visible in schema clients but cannot be
+# changed through the dashboard. Keep the exception limited to its read-only form.
 mapfile -t VISIBLE_KEYS < <(
     jq -r 'to_entries[]
         | select(.value["user-visible"] == true)
+        | select((.key == "bluetooth.data-browser" and .value["read-only"] == true) | not)
         | .key' "$SCHEMA" | sort
 )
 
@@ -87,7 +89,7 @@ for ak in "${ANNOTATED_KEYS[@]}"; do
 done
 
 echo ""
-echo "Schema coverage: ${#VISIBLE_KEYS[@]} user-visible settings, ${#ANNOTATED_KEYS[@]} annotated keys"
+echo "Schema coverage: ${#VISIBLE_KEYS[@]} dashboard settings required, ${#ANNOTATED_KEYS[@]} annotated keys"
 echo "Errors: $ERRORS, Warnings: $WARNINGS"
 
 [[ $ERRORS -gt 0 ]] && exit 1

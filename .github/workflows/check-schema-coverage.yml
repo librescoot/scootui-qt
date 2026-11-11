@@ -19,6 +19,9 @@ jobs:
           repository: librescoot/settings-service
           path: settings-service
 
+      - name: Test schema coverage checker
+        run: python3 -m unittest discover -s tests -p test_schema_coverage.py -v
+
       - name: Check schema coverage
         run: |
           ./scripts/check-schema-coverage.sh \
