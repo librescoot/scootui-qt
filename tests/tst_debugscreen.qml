@@ -162,6 +162,20 @@ TestCase {
         property string simImsi: "EXAMPLE-IMSI"
     }
     QtObject {
+        id: modemStore
+        property string powerState: "on"
+        property string simState: "present"
+        property string simLock: ""
+        property string operatorName: ""
+        property string operatorCode: ""
+        property string registration: "home"
+        property bool isRoaming: false
+        property string registrationFail: ""
+        property string errorState: "ok"
+        property string pinAction: ""
+        property string apnAction: ""
+    }
+    QtObject {
         id: themeStore
         property bool isDark: true
         property real fontBody: 18
@@ -178,6 +192,8 @@ TestCase {
     }
 
     function init() {
+        modemStore.simState = "present"
+        modemStore.simLock = ""
         battery1Store.present = false
         gpsStore.gpsState = Scooter.GpsState.FixEstablished
         gpsStore.snr = 0
@@ -201,6 +217,23 @@ TestCase {
         settingsService.exits = 0
         settingsService.modeChanges = 0
         systemInfoService.loads = 0
+    }
+
+    function test_secondarySimLockKeepsRawReasonWithoutClaimingBlockedAccess() {
+        const view = createTemporaryObject(screenComponent, this, { tabIndex: 6 })
+        verify(view !== null)
+        modemStore.simState = "locked"
+        modemStore.simLock = "sim-pin2"
+        compare(view.modemRows[5].value, "Present (PIN2 only)")
+        compare(view.modemRows[6].value, "sim-pin2")
+        modemStore.simLock = "sim-puk2"
+        compare(view.modemRows[5].value, "Present (PUK2 only)")
+        modemStore.simLock = "sim-pin"
+        compare(view.modemRows[5].value, "PIN required")
+        modemStore.simLock = "sim-puk"
+        compare(view.modemRows[5].value, "PUK required")
+        modemStore.simState = "unknown"
+        compare(view.modemRows[5].value, "unknown")
     }
 
     function test_serviceBannerAndDebugTitle() {

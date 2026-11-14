@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import ScootUI 1.0
 import "../widgets/components"
+import "SimStatus.js" as SimStatus
 
 Rectangle {
     id: root
@@ -131,7 +132,7 @@ Rectangle {
     readonly property var modemRows: [
         row("Operator", modem ? modem.operatorName : "-"), row("Operator code", modem ? modem.operatorCode : "-"),
         row("Registration", modem ? modem.registration : "-"), row("Roaming", modem ? modem.isRoaming : "-"),
-        row("Power", modem ? modem.powerState : "-"), row("SIM state", modem ? modem.simState : "-"), row("SIM lock", modem ? modem.simLock : "-"),
+        row("Power", modem ? modem.powerState : "-"), row("SIM state", modem ? SimStatus.describe(modem.simState, modem.simLock) : "-"), row("SIM lock", modem ? modem.simLock : "-"),
         row("PIN action", modem ? modem.pinAction : "-"), row("APN action", modem ? modem.apnAction : "-"),
         row("Reg. failure", modem ? modem.registrationFail : "-"), row("Error", modem ? modem.errorState : "-")
     ]

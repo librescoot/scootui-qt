@@ -419,6 +419,7 @@ qt_add_qml_module(scootui
     RESOURCES
         qml/widgets/components/qmldir
         qml/screens/MapDownloadPolicy.js
+        qml/screens/SimStatus.js
         assets/icons/librescoot-turn-left.svg
         assets/icons/librescoot-turn-right.svg
         assets/icons/librescoot-keep-left.svg
@@ -603,7 +604,7 @@ if(BUILD_TESTING)
     file(GLOB APPLICATION_TEST_FONTS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/subset/*")
     qt_add_resources(application_notification_test "application_notification_assets"
         PREFIX "/ScootUI" BASE "${CMAKE_CURRENT_SOURCE_DIR}"
-        FILES ${QML_FILES} qml/widgets/components/qmldir
+        FILES ${QML_FILES} qml/widgets/components/qmldir qml/screens/SimStatus.js
               ${APPLICATION_TEST_ICONS} ${APPLICATION_TEST_FONTS} ${SOUND_CUE_FILES}
               assets/styles/mapdark.json assets/styles/maplight.json)
     add_test(NAME application_notification_test COMMAND application_notification_test)

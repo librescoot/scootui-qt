@@ -241,6 +241,11 @@ class Translations : public QObject
     Q_PROPERTY(QString infoRegistration READ infoRegistration NOTIFY languageChanged)
     Q_PROPERTY(QString infoRoaming READ infoRoaming NOTIFY languageChanged)
     Q_PROPERTY(QString infoSim READ infoSim NOTIFY languageChanged)
+    Q_PROPERTY(QString infoSimPinRequired READ infoSimPinRequired NOTIFY languageChanged)
+    Q_PROPERTY(QString infoSimPukRequired READ infoSimPukRequired NOTIFY languageChanged)
+    Q_PROPERTY(QString infoSimPin2Only READ infoSimPin2Only NOTIFY languageChanged)
+    Q_PROPERTY(QString infoSimPuk2Only READ infoSimPuk2Only NOTIFY languageChanged)
+    Q_PROPERTY(QString infoSimLocked READ infoSimLocked NOTIFY languageChanged)
     Q_PROPERTY(QString infoConnectivity READ infoConnectivity NOTIFY languageChanged)
     Q_PROPERTY(QString infoIpAddress READ infoIpAddress NOTIFY languageChanged)
     Q_PROPERTY(QString infoMac READ infoMac NOTIFY languageChanged)
@@ -1052,6 +1057,11 @@ public:
     QString infoRegistration() const { return lookup("infoRegistration"); }
     QString infoRoaming() const { return lookup("infoRoaming"); }
     QString infoSim() const { return lookup("infoSim"); }
+    QString infoSimPinRequired() const { return lookup("infoSimPinRequired"); }
+    QString infoSimPukRequired() const { return lookup("infoSimPukRequired"); }
+    QString infoSimPin2Only() const { return lookup("infoSimPin2Only"); }
+    QString infoSimPuk2Only() const { return lookup("infoSimPuk2Only"); }
+    QString infoSimLocked() const { return lookup("infoSimLocked"); }
     QString infoConnectivity() const { return lookup("infoConnectivity"); }
     QString infoIpAddress() const { return lookup("infoIpAddress"); }
     QString infoMac() const { return lookup("infoMac"); }

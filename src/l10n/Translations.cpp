@@ -583,6 +583,16 @@ void Translations::initStrings()
     de[QStringLiteral("infoRoaming")] = QStringLiteral("Roaming");
     en[QStringLiteral("infoSim")] = QStringLiteral("SIM");
     de[QStringLiteral("infoSim")] = QStringLiteral("SIM");
+    en[QStringLiteral("infoSimPinRequired")] = QStringLiteral("PIN required");
+    de[QStringLiteral("infoSimPinRequired")] = QStringLiteral("PIN erforderlich");
+    en[QStringLiteral("infoSimPukRequired")] = QStringLiteral("PUK required");
+    de[QStringLiteral("infoSimPukRequired")] = QStringLiteral("PUK erforderlich");
+    en[QStringLiteral("infoSimPin2Only")] = QStringLiteral("Present (PIN2 only)");
+    de[QStringLiteral("infoSimPin2Only")] = QStringLiteral("Vorhanden (nur PIN2)");
+    en[QStringLiteral("infoSimPuk2Only")] = QStringLiteral("Present (PUK2 only)");
+    de[QStringLiteral("infoSimPuk2Only")] = QStringLiteral("Vorhanden (nur PUK2)");
+    en[QStringLiteral("infoSimLocked")] = QStringLiteral("Locked");
+    de[QStringLiteral("infoSimLocked")] = QStringLiteral("Gesperrt");
     en[QStringLiteral("infoConnectivity")] = QStringLiteral("Connectivity");
     de[QStringLiteral("infoConnectivity")] = QStringLiteral("Konnektivität");
     en[QStringLiteral("infoIpAddress")] = QStringLiteral("IP address");

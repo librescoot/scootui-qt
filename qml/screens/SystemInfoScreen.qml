@@ -1,5 +1,6 @@
 import QtQuick
 import "../widgets/components"
+import "SimStatus.js" as SimStatus
 
 // Read-only technical summary, split into pages reached from the System > Info
 // submenu. The connectivity page exists so IMEI and ICCID can be read off the
@@ -106,7 +107,8 @@ Rectangle {
     // Ordered along the data path: SIM state, registration, then the radio
     // facts behind them, then what the connection delivers.
     readonly property var networkRows: (void systemInfoScreen.lang, present([
-        { label: t("infoSim", "SIM"), value: hasModem ? modemStore.simState : "" },
+        { label: t("infoSim", "SIM"), wrap: true,
+          value: hasModem ? SimStatus.describe(modemStore.simState, modemStore.simLock, t) : "" },
         { label: t("infoRegistration", "Registration"), value: hasModem && modemStore.registration !== ""
             ? modemStore.registration
               + (modemStore.isRoaming ? " (" + t("infoRoaming", "roaming") + ")" : "")
