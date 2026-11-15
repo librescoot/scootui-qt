@@ -345,10 +345,13 @@ private slots:
         service.checkForUpdates();
         QCOMPARE(network->replies.size(), 1);
         if (scenario == "cancelled") service.cancel();
-        if (scenario == "network-failure" || scenario == "malformed-manifests") {
-            network->replies.at(0)->finish("not-json", scenario == "network-failure");
+        if (scenario == "network-failure") {
+            network->replies.at(0)->finish("not-json", true);
             QCOMPARE(network->replies.size(), 2);
-            network->replies.at(1)->finish("not-json", scenario == "network-failure");
+            network->replies.at(1)->finish("not-json", true);
+        } else if (scenario == "malformed-manifests") {
+            network->replies.at(0)->finish("not-json");
+            QCOMPARE(network->replies.size(), 1);
         } else {
             network->replies.at(0)->finish(body);
         }
