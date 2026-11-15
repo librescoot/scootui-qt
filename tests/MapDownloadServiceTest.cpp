@@ -149,6 +149,16 @@ private slots:
         QVERIFY(!TileCapabilityPolicy::supports(delta, QStringLiteral("map-delta"), region, caps, QString(64, QLatin1Char('e')), baseHash));
         delta.insert(QStringLiteral("requires"), QJsonArray{"map-delta.format.mbtiles-canonical-v1"});
         QVERIFY(!TileCapabilityPolicy::supports(delta, QStringLiteral("map-delta"), region, caps, mapHash, baseHash));
+        const QSet<QString> routingCaps{QStringLiteral("routing-compressed.format.zstd")};
+        QJsonObject compressed{{"url", "https://example.invalid/routing.tar.zst"}, {"size", 10},
+                               {"sha256", QString(64, QLatin1Char('c'))}, {"target_sha256", mapHash},
+                               {"kind", "routing-compressed"}, {"region", "graz"},
+                               {"codec", "zstd"}, {"format", "zstd"},
+                               {"requires", QJsonArray{"routing-compressed.format.zstd"}}};
+        QVERIFY(TileCapabilityPolicy::supports(compressed, QStringLiteral("routing-compressed"), region, routingCaps, mapHash));
+        QVERIFY(!TileCapabilityPolicy::supports(compressed, QStringLiteral("routing-compressed"), region, routingCaps, baseHash));
+        compressed.insert(QStringLiteral("codec"), QStringLiteral("future"));
+        QVERIFY(!TileCapabilityPolicy::supports(compressed, QStringLiteral("routing-compressed"), region, routingCaps, mapHash));
     }
     void unsupportedManifestDoesNotFallBack() {
         QTemporaryDir d; QVERIFY(d.isValid());
