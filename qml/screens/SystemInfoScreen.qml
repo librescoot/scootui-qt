@@ -104,6 +104,22 @@ Rectangle {
         { label: "IMSI", value: hasNet ? shown(internetStore.simImsi) : placeholder }
     ]
 
+    function provider(name, code) {
+        if (name && code) return name + " (" + code + ")"
+        return name || code || t("infoUnknown", "Unknown")
+    }
+
+    function networkProvider() {
+        if (!hasModem || !modemStore.registration || modemStore.registration === "unknown")
+            return t("infoUnknown", "Unknown")
+        if (modemStore.registration === "idle" || modemStore.registration === "searching"
+                || modemStore.registration === "denied" || modemStore.registration === "failed")
+            return t("infoNotRegistered", "Not registered")
+        if (modemStore.registration !== "home" && modemStore.registration !== "roaming")
+            return t("infoUnknown", "Unknown")
+        return provider(modemStore.networkOperatorName, modemStore.networkOperatorCode)
+    }
+
     // Ordered along the data path: SIM state, registration, then the radio
     // facts behind them, then what the connection delivers.
     readonly property var networkRows: (void systemInfoScreen.lang, present([
@@ -113,10 +129,10 @@ Rectangle {
             ? modemStore.registration
               + (modemStore.isRoaming ? " (" + t("infoRoaming", "roaming") + ")" : "")
             : "" },
-        { label: t("infoOperator", "Operator"), value: hasModem && modemStore.operatorName !== ""
-            ? modemStore.operatorName
-              + (modemStore.operatorCode !== "" ? " (" + modemStore.operatorCode + ")" : "")
-            : "" },
+        { label: t("infoSimProvider", "SIM provider"), valueObjectName: "simProviderValue", wrap: true, wordWrap: true,
+          value: hasModem ? provider(modemStore.simOperatorName, modemStore.simOperatorCode) : t("infoUnknown", "Unknown") },
+        { label: t("infoNetworkProvider", "Network provider"), valueObjectName: "networkProviderValue", wrap: true, wordWrap: true,
+          value: networkProvider() },
         { label: t("infoAccessTech", "Access tech"), value: hasNet ? internetStore.accessTech : "" },
         { label: t("infoSignal", "Signal"), value: hasNet && internetStore.signalQuality > 0
             ? internetStore.signalQuality + "%" : "" },
@@ -715,7 +731,7 @@ Rectangle {
                 // Plain string value.
                 Text {
                     id: rowValue
-                    objectName: modelData.wrap ? "wrappedInfoValue" : "infoRowValue"
+                    objectName: modelData.valueObjectName || (modelData.wrap ? "wrappedInfoValue" : "infoRowValue")
                     visible: modelData.valueSegments === undefined
                     anchors.left: rowLabel.right
                     anchors.leftMargin: 8

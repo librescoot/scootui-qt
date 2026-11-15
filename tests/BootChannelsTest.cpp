@@ -39,6 +39,7 @@ class BootChannelsTest : public QObject
 private slots:
     void staticListMatchesStoreRegistration();
     void allIsStoresPlusExtras();
+    void modemOperatorFields();
 };
 
 void BootChannelsTest::staticListMatchesStoreRegistration()
@@ -84,6 +85,23 @@ void BootChannelsTest::allIsStoresPlusExtras()
     for (const QString &channel : BootChannels::extraPollChannels())
         QVERIFY(all.contains(channel));
     QVERIFY(!all.contains(QString()));
+}
+
+void BootChannelsTest::modemOperatorFields()
+{
+    InMemoryMdbRepository repo;
+    repo.set("modem", "sim-operator-name", "Lebara");
+    repo.set("modem", "sim-operator-code", "26214");
+    repo.set("modem", "network-operator-name", "E-Plus");
+    repo.set("modem", "network-operator-code", "26203");
+    ModemStore store(&repo);
+    store.start();
+    QCOMPARE(store.simOperatorName(), "Lebara");
+    QCOMPARE(store.simOperatorCode(), "26214");
+    QCOMPARE(store.networkOperatorName(), "E-Plus");
+    QCOMPARE(store.networkOperatorCode(), "26203");
+    repo.set("modem", "network-operator-name", "");
+    QTRY_COMPARE(store.networkOperatorName(), "");
 }
 
 QTEST_GUILESS_MAIN(BootChannelsTest)

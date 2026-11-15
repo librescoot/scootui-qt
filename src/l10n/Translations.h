@@ -234,6 +234,9 @@ class Translations : public QObject
     Q_PROPERTY(QString infoMdbSerial READ infoMdbSerial NOTIFY languageChanged)
     Q_PROPERTY(QString infoDbcSerial READ infoDbcSerial NOTIFY languageChanged)
     Q_PROPERTY(QString infoOperator READ infoOperator NOTIFY languageChanged)
+    Q_PROPERTY(QString infoSimProvider READ infoSimProvider NOTIFY languageChanged)
+    Q_PROPERTY(QString infoNetworkProvider READ infoNetworkProvider NOTIFY languageChanged)
+    Q_PROPERTY(QString infoNotRegistered READ infoNotRegistered NOTIFY languageChanged)
     Q_PROPERTY(QString infoAccessTech READ infoAccessTech NOTIFY languageChanged)
     Q_PROPERTY(QString infoSignal READ infoSignal NOTIFY languageChanged)
     Q_PROPERTY(QString infoConfiguredApn READ infoConfiguredApn NOTIFY languageChanged)
@@ -1050,6 +1053,9 @@ public:
     QString infoMdbSerial() const { return lookup("infoMdbSerial"); }
     QString infoDbcSerial() const { return lookup("infoDbcSerial"); }
     QString infoOperator() const { return lookup("infoOperator"); }
+    QString infoSimProvider() const { return lookup("infoSimProvider"); }
+    QString infoNetworkProvider() const { return lookup("infoNetworkProvider"); }
+    QString infoNotRegistered() const { return lookup("infoNotRegistered"); }
     QString infoAccessTech() const { return lookup("infoAccessTech"); }
     QString infoSignal() const { return lookup("infoSignal"); }
     QString infoConfiguredApn() const { return lookup("infoConfiguredApn"); }

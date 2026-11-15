@@ -852,6 +852,10 @@ void SimulatorService::loadPreset(const QString &name)
                     QStringLiteral("normal"));
         setModemField(QStringLiteral("operator-name"), QStringLiteral("Vodafone.de"));
         setModemField(QStringLiteral("operator-code"), QStringLiteral("26202"));
+        setModemField(QStringLiteral("sim-operator-name"), QStringLiteral("Vodafone.de"));
+        setModemField(QStringLiteral("sim-operator-code"), QStringLiteral("26202"));
+        setModemField(QStringLiteral("network-operator-name"), QStringLiteral("Vodafone.de"));
+        setModemField(QStringLiteral("network-operator-code"), QStringLiteral("26202"));
         setModemField(QStringLiteral("registration"), QStringLiteral("home"));
         setModemField(QStringLiteral("is-roaming"), QStringLiteral("false"));
         setModemField(QStringLiteral("power-state"), QStringLiteral("on"));

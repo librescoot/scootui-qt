@@ -569,6 +569,12 @@ void Translations::initStrings()
     de[QStringLiteral("infoDbcSerial")] = QStringLiteral("DBC-S/N");
     en[QStringLiteral("infoOperator")] = QStringLiteral("Operator");
     de[QStringLiteral("infoOperator")] = QStringLiteral("Netzbetreiber");
+    en[QStringLiteral("infoSimProvider")] = QStringLiteral("SIM provider");
+    de[QStringLiteral("infoSimProvider")] = QStringLiteral("SIM-Anbieter");
+    en[QStringLiteral("infoNetworkProvider")] = QStringLiteral("Network provider");
+    de[QStringLiteral("infoNetworkProvider")] = QStringLiteral("Netzbetreiber");
+    en[QStringLiteral("infoNotRegistered")] = QStringLiteral("Not registered");
+    de[QStringLiteral("infoNotRegistered")] = QStringLiteral("Nicht eingebucht");
     en[QStringLiteral("infoAccessTech")] = QStringLiteral("Access tech");
     de[QStringLiteral("infoAccessTech")] = QStringLiteral("Funktechnik");
     en[QStringLiteral("infoSignal")] = QStringLiteral("Signal");

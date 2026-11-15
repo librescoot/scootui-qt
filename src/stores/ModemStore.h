@@ -13,6 +13,10 @@ class ModemStore : public SyncableStore
     Q_PROPERTY(QString simLock READ simLock NOTIFY simLockChanged)
     Q_PROPERTY(QString operatorName READ operatorName NOTIFY operatorNameChanged)
     Q_PROPERTY(QString operatorCode READ operatorCode NOTIFY operatorCodeChanged)
+    Q_PROPERTY(QString simOperatorName READ simOperatorName NOTIFY simOperatorNameChanged)
+    Q_PROPERTY(QString simOperatorCode READ simOperatorCode NOTIFY simOperatorCodeChanged)
+    Q_PROPERTY(QString networkOperatorName READ networkOperatorName NOTIFY networkOperatorNameChanged)
+    Q_PROPERTY(QString networkOperatorCode READ networkOperatorCode NOTIFY networkOperatorCodeChanged)
     Q_PROPERTY(QString registration READ registration NOTIFY registrationChanged)
     Q_PROPERTY(QString registrationFail READ registrationFail NOTIFY registrationFailChanged)
     Q_PROPERTY(bool isRoaming READ isRoaming NOTIFY isRoamingChanged)
@@ -32,6 +36,10 @@ public:
     QString operatorName() const { return m_operatorName; }
     // MCC+MNC, e.g. "26202".
     QString operatorCode() const { return m_operatorCode; }
+    QString simOperatorName() const { return m_simOperatorName; }
+    QString simOperatorCode() const { return m_simOperatorCode; }
+    QString networkOperatorName() const { return m_networkOperatorName; }
+    QString networkOperatorCode() const { return m_networkOperatorCode; }
     // "home"/"roaming"/"searching"/"denied"/"idle"/"unknown"
     QString registration() const { return m_registration; }
     QString registrationFail() const { return m_registrationFail; }
@@ -49,6 +57,10 @@ signals:
     void simLockChanged();
     void operatorNameChanged();
     void operatorCodeChanged();
+    void simOperatorNameChanged();
+    void simOperatorCodeChanged();
+    void networkOperatorNameChanged();
+    void networkOperatorCodeChanged();
     void registrationChanged();
     void registrationFailChanged();
     void isRoamingChanged();
@@ -66,6 +78,10 @@ private:
     QString m_simLock;
     QString m_operatorName;
     QString m_operatorCode;
+    QString m_simOperatorName;
+    QString m_simOperatorCode;
+    QString m_networkOperatorName;
+    QString m_networkOperatorCode;
     QString m_registration;
     QString m_registrationFail;
     bool m_isRoaming = false;

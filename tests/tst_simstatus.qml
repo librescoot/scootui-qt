@@ -29,6 +29,10 @@ TestCase {
         property bool isRoaming: false
         property string operatorName: ""
         property string operatorCode: ""
+        property string simOperatorName: ""
+        property string simOperatorCode: ""
+        property string networkOperatorName: ""
+        property string networkOperatorCode: ""
     }
     Component { id: infoComponent; SystemInfoScreen { width: 480; height: 480 } }
 
@@ -62,6 +66,40 @@ TestCase {
             modemStore.simLock = "sim-puk"
             compare(view.networkRows[0].value, "PUK erforderlich")
         }
+    }
+
+    function test_providers() {
+        const view = createTemporaryObject(infoComponent, this)
+        modemStore.registration = "roaming"
+        modemStore.simOperatorName = "Lebara"
+        modemStore.simOperatorCode = "26214"
+        modemStore.networkOperatorName = "E-Plus"
+        modemStore.networkOperatorCode = "26203"
+        function row(label) { return view.networkRows.filter(r => r.label === label)[0] }
+        compare(row("SIM provider").value, "Lebara (26214)")
+        compare(row("Network provider").value, "E-Plus (26203)")
+        verify(waitForRendering(view))
+        const simValue = findChild(view, "simProviderValue")
+        const networkValue = findChild(view, "networkProviderValue")
+        verify(simValue !== null && networkValue !== null)
+        compare(simValue.text, "Lebara (26214)")
+        compare(networkValue.text, "E-Plus (26203)")
+        verify(!simValue.truncated && !networkValue.truncated)
+        verify(simValue.width > 0 && networkValue.width > 0)
+        modemStore.networkOperatorName = ""
+        compare(row("Network provider").value, "26203")
+        modemStore.networkOperatorCode = ""
+        compare(row("Network provider").value, "Unknown")
+        modemStore.registration = "searching"
+        compare(row("Network provider").value, "Not registered")
+        nativeHarness.translations.setLanguage("de")
+        compare(row("SIM-Anbieter").value, "Lebara (26214)")
+        compare(row("Netzbetreiber").value, "Nicht eingebucht")
+        modemStore.registration = "unknown"
+        compare(row("Netzbetreiber").value, "Unbekannt")
+        modemStore.simOperatorName = ""
+        modemStore.simOperatorCode = ""
+        compare(row("SIM-Anbieter").value, "Unbekannt")
     }
 
     function test_description_data() {
