@@ -32,6 +32,15 @@
 // byte count into this many steps before handing it over.
 static constexpr int DecompressProgressSteps = 10000;
 
+static bool declaresTileRequirements(const QJsonObject &asset)
+{
+    for (auto it = asset.constBegin(); it != asset.constEnd(); ++it) {
+        if (it.key().compare(QLatin1String("requires"), Qt::CaseInsensitive) == 0)
+            return true;
+    }
+    return false;
+}
+
 static bool usableCompressedRouting(const QJsonObject &plain, const QJsonObject &compressed)
 {
     static const QRegularExpression sha256(QStringLiteral("^[0-9a-f]{64}$"));
@@ -40,12 +49,7 @@ static bool usableCompressedRouting(const QJsonObject &plain, const QJsonObject 
     const auto fullHash = plain.value(QStringLiteral("sha256")).toString();
     const auto compressedHash = compressed.value(QStringLiteral("sha256")).toString();
     const double size = compressed.value(QStringLiteral("size")).toDouble();
-    if (compressed.contains(QStringLiteral("requires"))) {
-        const auto required = compressed.value(QStringLiteral("requires"));
-        if (!required.isArray() || required.toArray().size() != 1
-            || required.toArray().first().toString() != QLatin1String("routing-compressed.format.zstd"))
-            return false;
-    }
+    if (declaresTileRequirements(compressed)) return false;
     return compressed.value(QStringLiteral("codec")).toString() == QLatin1String("zstd")
         && sha256.match(fullHash).hasMatch() && sha256.match(compressedHash).hasMatch()
         && std::isfinite(size) && size > 0 && size < double(std::numeric_limits<qint64>::max())
@@ -78,7 +82,7 @@ static void selectDelta(const QJsonObject &asset, const QString &installedDigest
         const auto url = delta[QStringLiteral("url")].toString();
         const auto version = delta[QStringLiteral("base_version")].toString();
         const qint64 size = static_cast<qint64>(delta[QStringLiteral("size")].toDouble());
-        if (delta.contains(QStringLiteral("requires"))
+        if (declaresTileRequirements(delta)
             || delta[QStringLiteral("algorithm")].toString() != QLatin1String("hdiffpatch")
             || base != installedDigest || !sha256.match(base).hasMatch()
             || !sha256.match(hash).hasMatch() || hash == rejectedDigest
@@ -766,7 +770,7 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
                 setError(QStringLiteral("Display maps not available for ") + m_regionName);
                 return;
             }
-            if (map.contains(QStringLiteral("requires"))) {
+            if (declaresTileRequirements(map)) {
                 setError(QStringLiteral("Display map capabilities are unsupported"));
                 return;
             }
@@ -807,7 +811,7 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
                 setError(QStringLiteral("Routing maps not available for ") + m_regionName);
                 return;
             }
-            if (valhalla.contains(QStringLiteral("requires"))) {
+            if (declaresTileRequirements(valhalla)) {
                 setError(QStringLiteral("Routing map capabilities are unsupported"));
                 return;
             }

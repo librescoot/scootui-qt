@@ -113,8 +113,9 @@ private slots:
     void missingTargetDigestUsesFull() { runCompressedScenario(5); }
     void fractionalCompressedSizeUsesFull() { runCompressedScenario(6); }
     void unknownCompressedRequirementUsesFull() { runCompressedScenario(7); }
-    void knownCompressedRequirementInstalls() { runCompressedScenario(8); }
+    void declaredCompressedRequirementUsesFull() { runCompressedScenario(8); }
     void unknownRoutingRequirementFailsClosed() { runCompressedScenario(9); }
+    void caseAliasRequirementUsesFull() { runCompressedScenario(10); }
     void holdFollowsStatus() {
         using S = ScootEnums::MapDownloadStatus;
         QCOMPARE(mapDownloadHoldFor(int(S::Downloading)), QStringLiteral("map-download"));
@@ -160,6 +161,7 @@ void MapDownloadServiceTest::runCompressedScenario(int mode)
     if (mode == 6) packed.insert(QStringLiteral("size"), 1.5);
     if (mode == 7) packed.insert(QStringLiteral("requires"), QJsonArray{"routing-compressed.format.zstd", "future.decoder"});
     if (mode == 8) packed.insert(QStringLiteral("requires"), QJsonArray{"routing-compressed.format.zstd"});
+    if (mode == 10) packed.insert(QStringLiteral("Requires"), QJsonArray{"future.decoder"});
     QJsonObject routing{{"version", "tiles-20261101T000000Z"}, {"sha256", mode == 5 ? QString() : sha(mode == 4 ? QByteArray("wrong") : newData)},
                         {"url", fullUrl}, {"size", double(newData.size())}, {"compressed", packed}};
     if (mode == 9) routing.insert(QStringLiteral("requires"), QJsonArray{"routing.format.future"});
@@ -178,7 +180,7 @@ void MapDownloadServiceTest::runCompressedScenario(int mode)
     } else {
         QTRY_COMPARE_WITH_TIMEOUT(completed.size(), 1, 10000);
         QCOMPARE(slurp(d.filePath("tiles.tar")), newData);
-        const bool useCompressed = mode == 0 || mode == 8;
+        const bool useCompressed = mode == 0;
         QCOMPARE(net->requests.contains(compressedUrl), useCompressed);
         QCOMPARE(net->requests.contains(fullUrl), !useCompressed);
     }
