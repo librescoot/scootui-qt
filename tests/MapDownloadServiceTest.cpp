@@ -93,7 +93,7 @@ private:
     static void put(const QString &path, const QByteArray &bytes) {
         QFile f(path); QVERIFY(f.open(QIODevice::WriteOnly)); QCOMPARE(f.write(bytes), bytes.size());
     }
-    void runScenario(bool wrongBase, bool corruptOutput, bool corruptDelta = false, bool staleBase = false, bool biggerDelta = false, bool noDecoder = false);
+    void runScenario(bool wrongBase, bool corruptOutput, bool corruptDelta = false, bool staleBase = false, bool biggerDelta = false, bool noDecoder = false, bool unknownRequirement = false);
     void runCompressedScenario(int mode);
     void runMapScenario(bool corruptDelta, bool staleBase, bool noDecoder, bool badResult, int mode = 0);
 private slots:
@@ -104,6 +104,7 @@ private slots:
     void changedBaseFallsBack() { runScenario(false, false, false, true); }
     void largerDeltaUsesFull() { runScenario(false, false, false, false, true); }
     void missingDecoderUsesFull() { runScenario(false, false, false, false, false, true); }
+    void unknownDeltaRequirementUsesFull() { runScenario(false, false, false, false, false, false, true); }
     void compressedRoutingInstalls() { runCompressedScenario(0); }
     void badCompressedDigestUsesFull() { runCompressedScenario(1); }
     void unsupportedCompressedCodecUsesFull() { runCompressedScenario(2); }
@@ -184,7 +185,7 @@ void MapDownloadServiceTest::runCompressedScenario(int mode)
     qputenv("PATH", oldPath);
 }
 
-void MapDownloadServiceTest::runScenario(bool wrongBase, bool corruptOutput, bool corruptDelta, bool staleBase, bool biggerDelta, bool noDecoder)
+void MapDownloadServiceTest::runScenario(bool wrongBase, bool corruptOutput, bool corruptDelta, bool staleBase, bool biggerDelta, bool noDecoder, bool unknownRequirement)
 {
     QTemporaryDir d; QVERIFY(d.isValid());
     const QByteArray oldData(256,'a'), newData(256,'b'), delta("small-patch");
@@ -207,6 +208,7 @@ void MapDownloadServiceTest::runScenario(bool wrongBase, bool corruptOutput, boo
     QJsonObject diff{{"algorithm","hdiffpatch"},{"base_version","tiles-20261001T000000Z"},
                      {"base_sha256",sha(wrongBase ? QByteArray("other") : oldData)},
                      {"sha256",sha(delta)},{"url",deltaUrl},{"size",double(biggerDelta ? newData.size() : delta.size())}};
+    if (unknownRequirement) diff.insert(QStringLiteral("requires"), QJsonArray{"future.patch"});
     QJsonObject routing{{"version","tiles-20261101T000000Z"},{"sha256",sha(newData)},
                         {"url",fullUrl},{"size",double(newData.size())},{"deltas",QJsonArray{diff}}};
     QJsonObject manifest{{"version",1},{"regions",QJsonObject{{"bremen",QJsonObject{{"routing",routing}}}}}};
@@ -216,8 +218,8 @@ void MapDownloadServiceTest::runScenario(bool wrongBase, bool corruptOutput, boo
     service.doFetchReleases(false,true);
     QTRY_COMPARE_WITH_TIMEOUT(completed.size(),1,10000);
     QFile result(d.filePath("tiles.tar")); QVERIFY(result.open(QIODevice::ReadOnly)); QCOMPARE(result.readAll(),newData);
-    QCOMPARE(net->requests.contains(deltaUrl),!wrongBase && !biggerDelta && !noDecoder);
-    QCOMPARE(net->requests.contains(fullUrl),wrongBase || corruptOutput || corruptDelta || staleBase || biggerDelta || noDecoder);
+    QCOMPARE(net->requests.contains(deltaUrl),!wrongBase && !biggerDelta && !noDecoder && !unknownRequirement);
+    QCOMPARE(net->requests.contains(fullUrl),wrongBase || corruptOutput || corruptDelta || staleBase || biggerDelta || noDecoder || unknownRequirement);
     QCOMPARE(service.m_metadata.valhallaTiles->version,QStringLiteral("tiles-20261101T000000Z"));
     QCOMPARE(service.m_metadata.valhallaTiles->digest,sha(newData));
     qputenv("PATH",oldPath);
