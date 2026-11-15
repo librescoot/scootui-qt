@@ -116,6 +116,20 @@ private slots:
     void declaredCompressedRequirementUsesFull() { runCompressedScenario(8); }
     void unknownRoutingRequirementFailsClosed() { runCompressedScenario(9); }
     void caseAliasRequirementUsesFull() { runCompressedScenario(10); }
+    void unsupportedManifestDoesNotFallBack() {
+        QTemporaryDir d; QVERIFY(d.isValid());
+        MapDownloadService service(nullptr, nullptr, d.path());
+        auto *net = new FakeNetwork; net->setParent(&service); service.m_nam = net;
+        const QString url = QStringLiteral("https://downloads.librescoot.org/releases/maps-routing.json");
+        const QString legacy = QStringLiteral("https://downloads.librescoot.org/releases/tiles.json");
+        net->responses[url] = QByteArrayLiteral("{\"version\":2,\"regions\":{}} ");
+        net->responses[legacy] = QByteArrayLiteral("{\"bremen\":{}}");
+        bool done = false; QJsonObject result;
+        service.fetchTilesManifest([&](const QJsonObject &manifest) { result = manifest; done = true; });
+        QTRY_VERIFY_WITH_TIMEOUT(done, 5000);
+        QVERIFY(result.isEmpty());
+        QVERIFY(!net->requests.contains(legacy));
+    }
     void holdFollowsStatus() {
         using S = ScootEnums::MapDownloadStatus;
         QCOMPARE(mapDownloadHoldFor(int(S::Downloading)), QStringLiteral("map-download"));

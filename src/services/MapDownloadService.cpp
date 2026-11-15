@@ -595,8 +595,15 @@ void MapDownloadService::fetchTilesManifest(std::function<void(const QJsonObject
         if (reply->error() == QNetworkReply::NoError) {
             const auto doc = QJsonDocument::fromJson(reply->readAll());
             const auto root = doc.object();
-            if (root.value(QStringLiteral("version")).toInt() == 1)
-                regions = root.value(QStringLiteral("regions")).toObject();
+            if (root.value(QStringLiteral("version")).toInt() != 1) {
+                callback({});
+                return;
+            }
+            regions = root.value(QStringLiteral("regions")).toObject();
+            if (regions.isEmpty()) {
+                callback({});
+                return;
+            }
         }
         if (!regions.isEmpty()) {
             QJsonObject normalized;
