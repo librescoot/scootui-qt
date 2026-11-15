@@ -3,6 +3,8 @@
 #include "repositories/MdbRepository.h"
 #include "services/MapRegionResolver.h"
 #include "services/RegionalMapCatalog.h"
+#include "services/StrictJson.h"
+#include "services/TileCapabilityPolicy.h"
 #include "utils/ZstdDecompressor.h"
 
 #include <QJsonDocument>
@@ -60,6 +62,85 @@ static bool usableCompressedRouting(const QJsonObject &plain, const QJsonObject 
         && fullUrl.scheme() == QLatin1String("https") && !fullUrl.host().isEmpty()
         && fullUrl.userInfo().isEmpty() && !fullUrl.hasFragment() && !fullUrl.path().isEmpty()
         && QFileInfo(compressedUrl.path()).fileName() == QFileInfo(fullUrl.path()).fileName() + QLatin1String(".zst");
+}
+
+static bool hasRequirementAlias(const QJsonObject &object)
+{
+    for (auto it = object.constBegin(); it != object.constEnd(); ++it) {
+        if (it.key() != QLatin1String("requires") &&
+            it.key().compare(QLatin1String("requires"), Qt::CaseInsensitive) == 0)
+            return true;
+    }
+    return false;
+}
+
+// Capabilities require an image declaration as well as code support. The file
+// is absent until the installed map and routing readers have been qualified.
+static QSet<QString> qualifiedTileCapabilities(const QString &path)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) return {};
+    if (file.size() > 4096) return {};
+    const auto lines = file.readAll().split('\n');
+    if (lines.isEmpty() || lines.first() != "v1") return {};
+    const QSet<QString> supported{
+        QStringLiteral("map.format.mbtiles-mvt-v1"),
+        QStringLiteral("routing.format.valhalla-3.6.3"),
+        QStringLiteral("map-delta.format.mbtiles-canonical-v1"),
+        QStringLiteral("routing-delta.format.valhalla-3.6.3"),
+        QStringLiteral("routing-compressed.format.zstd"),
+        QStringLiteral("patch.algorithm.hdiffpatch")};
+    QSet<QString> caps;
+    for (qsizetype i = 1; i < lines.size(); ++i) {
+        const auto token = QString::fromUtf8(lines.at(i));
+        if (supported.contains(token)) caps.insert(token);
+    }
+    if (QStandardPaths::findExecutable(QStringLiteral("hpatchz")).isEmpty())
+        caps.remove(QStringLiteral("patch.algorithm.hdiffpatch"));
+    return caps;
+}
+
+static QJsonObject normalizedV2Regions(const QJsonObject &root, const QSet<QString> &caps)
+{
+    QJsonObject result;
+    const auto regions = root.value(QStringLiteral("regions")).toObject();
+    for (auto it = regions.constBegin(); it != regions.constEnd(); ++it) {
+        const QString slug = it.key();
+        auto region = it.value().toObject();
+        if (declaresTileRequirements(region)) continue;
+        for (const QString &kind : {QStringLiteral("map"), QStringLiteral("routing")}) {
+            auto asset = region.value(kind).toObject();
+            if (hasRequirementAlias(asset) || !TileCapabilityPolicy::supports(asset, kind, slug, caps)) {
+                region.insert(kind, QJsonValue::Null);
+                continue;
+            }
+            const auto target = asset.value(QStringLiteral("sha256")).toString();
+            QJsonArray checked;
+            for (const auto &item : asset.value(QStringLiteral("deltas")).toArray()) {
+                auto delta = item.toObject();
+                if (!hasRequirementAlias(delta) && TileCapabilityPolicy::supports(delta, kind + QStringLiteral("-delta"), slug, caps,
+                                                   target, delta.value(QStringLiteral("base_sha256")).toString())) {
+                    delta.remove(QStringLiteral("requires"));
+                    checked.append(delta);
+                }
+            }
+            asset.insert(QStringLiteral("deltas"), checked);
+            const auto compressed = asset.value(QStringLiteral("compressed")).toObject();
+            if (kind == QLatin1String("routing") && !hasRequirementAlias(compressed) &&
+                TileCapabilityPolicy::supports(compressed, QStringLiteral("routing-compressed"), slug, caps, target)) {
+                auto accepted = compressed;
+                accepted.remove(QStringLiteral("requires"));
+                asset.insert(QStringLiteral("compressed"), accepted);
+            } else {
+                asset.remove(QStringLiteral("compressed"));
+            }
+            asset.remove(QStringLiteral("requires"));
+            region.insert(kind, asset);
+        }
+        region.insert(QStringLiteral("valhalla"), region.value(QStringLiteral("routing")));
+        result.insert(slug, region);
+    }
+    return result;
 }
 
 // Picks the smallest manifest delta whose base is exactly what is installed.
@@ -582,15 +663,35 @@ bool MapDownloadService::shouldCheckForUpdates() const
 
 void MapDownloadService::fetchTilesManifest(std::function<void(const QJsonObject &)> callback)
 {
-    QNetworkRequest req{QUrl{QStringLiteral("https://downloads.librescoot.org/releases/maps-routing.json")}};
+    const bool useV2 = QFileInfo::exists(m_tileCapabilitiesPath);
+    const auto caps = qualifiedTileCapabilities(m_tileCapabilitiesPath);
+    if (useV2 && caps.isEmpty()) {
+        callback({});
+        return;
+    }
+    const auto url = useV2 ? QStringLiteral("https://downloads.librescoot.org/releases/v2/maps-routing.json")
+                           : QStringLiteral("https://downloads.librescoot.org/releases/maps-routing.json");
+    QNetworkRequest req{QUrl{url}};
     req.setRawHeader("User-Agent", "Librescoot/1.0");
     req.setTransferTimeout(15000);
 
     auto *reply = m_nam->get(req);
     const quint64 generation = m_operationGeneration;
-    connect(reply, &QNetworkReply::finished, this, [this, reply, callback, generation]() {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, callback, generation, caps, useV2]() {
         reply->deleteLater();
         if (!isCurrentOperation(generation)) return;
+        if (useV2) {
+            QJsonObject root;
+            if (reply->error() != QNetworkReply::NoError ||
+                !StrictJson::parseObject(reply->read(16 * 1024 * 1024 + 1), &root) ||
+                root.value(QStringLiteral("version")).toInt() != 2 || declaresTileRequirements(root) ||
+                !root.value(QStringLiteral("regions")).isObject()) {
+                callback({});
+                return;
+            }
+            callback(normalizedV2Regions(root, caps));
+            return;
+        }
         QJsonObject regions;
         if (reply->error() == QNetworkReply::NoError) {
             const auto doc = QJsonDocument::fromJson(reply->readAll());

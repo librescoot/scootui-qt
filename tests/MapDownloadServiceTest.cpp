@@ -1,5 +1,6 @@
 #include <QtTest>
 #include <QBuffer>
+#include <QEventLoop>
 #include <QCryptographicHash>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -13,6 +14,7 @@
 #include "services/MapDownloadService.h"
 #include "services/MapDownloadHold.h"
 #include "services/TileCapabilityPolicy.h"
+#include "services/StrictJson.h"
 
 class FakeReply : public QNetworkReply
 {
@@ -94,7 +96,7 @@ private:
     static void put(const QString &path, const QByteArray &bytes) {
         QFile f(path); QVERIFY(f.open(QIODevice::WriteOnly)); QCOMPARE(f.write(bytes), bytes.size());
     }
-    void runScenario(bool wrongBase, bool corruptOutput, bool corruptDelta = false, bool staleBase = false, bool biggerDelta = false, bool noDecoder = false, bool unknownRequirement = false);
+    void runScenario(bool wrongBase, bool corruptOutput, bool corruptDelta = false, bool staleBase = false, bool biggerDelta = false, bool noDecoder = false, bool unknownRequirement = false, bool v2 = false);
     void runCompressedScenario(int mode);
     void runMapScenario(bool corruptDelta, bool staleBase, bool noDecoder, bool badResult, int mode = 0);
 private slots:
@@ -106,6 +108,8 @@ private slots:
     void largerDeltaUsesFull() { runScenario(false, false, false, false, true); }
     void missingDecoderUsesFull() { runScenario(false, false, false, false, false, true); }
     void unknownDeltaRequirementUsesFull() { runScenario(false, false, false, false, false, false, true); }
+    void v2DeltaInstalls() { runScenario(false, false, false, false, false, false, false, true); }
+    void v2UnsupportedDeltaUsesFull() { runScenario(false, false, false, false, false, false, true, true); }
     void compressedRoutingInstalls() { runCompressedScenario(0); }
     void badCompressedDigestUsesFull() { runCompressedScenario(1); }
     void unsupportedCompressedCodecUsesFull() { runCompressedScenario(2); }
@@ -117,6 +121,10 @@ private slots:
     void declaredCompressedRequirementUsesFull() { runCompressedScenario(8); }
     void unknownRoutingRequirementFailsClosed() { runCompressedScenario(9); }
     void caseAliasRequirementUsesFull() { runCompressedScenario(10); }
+    void v2CompressedRoutingInstalls() { runCompressedScenario(11); }
+    void v2UnsupportedCompressedUsesFull() { runCompressedScenario(12); }
+    void v2WrongCompressedTargetUsesFull() { runCompressedScenario(13); }
+    void v2UnsupportedFullFailsClosed() { runCompressedScenario(14); }
     void v2CapabilityPolicyRejectsUnknownAndMismatchedAssets() {
         const QString mapHash(64, QLatin1Char('a')), baseHash(64, QLatin1Char('b'));
         const QString region = QStringLiteral("graz");
@@ -159,6 +167,120 @@ private slots:
         QVERIFY(!TileCapabilityPolicy::supports(compressed, QStringLiteral("routing-compressed"), region, routingCaps, baseHash));
         compressed.insert(QStringLiteral("codec"), QStringLiteral("future"));
         QVERIFY(!TileCapabilityPolicy::supports(compressed, QStringLiteral("routing-compressed"), region, routingCaps, mapHash));
+    }
+    void strictV2JsonRejectsDuplicateKeys() {
+        QJsonObject parsed;
+        QVERIFY(StrictJson::parseObject(R"({"version":2,"regions":{}})", &parsed));
+        QVERIFY(!StrictJson::parseObject(R"({"version":2,"version":1})", &parsed));
+        QVERIFY(!StrictJson::parseObject(R"({"requires":[],"requ\u0069res":["future"]})", &parsed));
+        QVERIFY(!StrictJson::parseObject(R"({"x":1} {"x":2})", &parsed));
+        QVERIFY(!StrictJson::parseObject(R"({"x":[1,]})", &parsed));
+    }
+    void qualifiedV2FeedEnforcesAssetRequirements() {
+        QTemporaryDir d; QVERIFY(d.isValid());
+        const auto marker = d.filePath("capabilities");
+        put(marker, "v1\nmap.format.mbtiles-mvt-v1\nrouting.format.valhalla-3.6.3\nrouting-compressed.format.zstd\n");
+        MapDownloadService service(nullptr, nullptr, d.path());
+        service.m_tileCapabilitiesPath = marker;
+        auto *net = new FakeNetwork; net->setParent(&service); service.m_nam = net;
+        const QString url = QStringLiteral("https://downloads.librescoot.org/releases/v2/maps-routing.json");
+        const QString hash(64, QLatin1Char('a'));
+        QJsonObject map{{"url", "https://example.org/map.mbtiles"}, {"size", 12}, {"sha256", hash},
+                        {"kind", "map"}, {"region", "graz"}, {"format", "mbtiles-mvt-v1"},
+                        {"requires", QJsonArray{"map.format.mbtiles-mvt-v1"}}};
+        QJsonObject routing{{"url", "https://example.org/tiles.tar"}, {"size", 100}, {"sha256", hash},
+                            {"kind", "routing"}, {"region", "graz"}, {"format", "valhalla-3.6.3"},
+                            {"requires", QJsonArray{"routing.format.valhalla-3.6.3"}}};
+        QJsonObject packed{{"url", "https://example.org/tiles.tar.zst"}, {"size", 10}, {"sha256", QString(64, 'b')},
+                           {"kind", "routing-compressed"}, {"region", "graz"}, {"format", "zstd"}, {"codec", "zstd"},
+                           {"target_sha256", hash}, {"requires", QJsonArray{"routing-compressed.format.zstd"}}};
+        routing.insert("compressed", packed);
+        auto fetch = [&](const QJsonObject &m, const QJsonObject &r) {
+            QJsonObject root{{"version", 2}, {"regions", QJsonObject{{"graz", QJsonObject{{"map", m}, {"routing", r}}}}}};
+            net->responses[url] = QJsonDocument(root).toJson();
+            QEventLoop loop; QJsonObject result;
+            service.fetchTilesManifest([&](const QJsonObject &value) { result = value; loop.quit(); });
+            QTimer::singleShot(5000, &loop, &QEventLoop::quit);
+            loop.exec();
+            return result;
+        };
+        auto result = fetch(map, routing);
+        auto region = result.value("graz").toObject();
+        QCOMPARE(region.value("map").toObject().value("sha256").toString(), hash);
+        QVERIFY(!region.value("map").toObject().contains("requires"));
+        QVERIFY(!region.value("valhalla").toObject().value("compressed").toObject().isEmpty());
+        map.insert("requires", QJsonArray{"map.format.mbtiles-mvt-v1", "future.codec"});
+        packed.insert("target_sha256", QString(64, 'c'));
+        routing.insert("compressed", packed);
+        region = fetch(map, routing).value("graz").toObject();
+        QVERIFY(region.value("map").isNull());
+        QVERIFY(!region.value("valhalla").toObject().contains("compressed"));
+        map.insert("requires", QJsonArray{"map.format.mbtiles-mvt-v1"});
+        map.insert("Requires", QJsonArray{"future.codec"});
+        QVERIFY(fetch(map, routing).value("graz").toObject().value("map").isNull());
+        QVERIFY(net->requests.contains(url));
+        QVERIFY(!net->requests.contains(QStringLiteral("https://downloads.librescoot.org/releases/maps-routing.json")));
+        net->responses[url] = R"({"version":2,"regions":{},"regions":{"graz":{}}})";
+        bool done = false; QJsonObject rejected;
+        service.fetchTilesManifest([&](const QJsonObject &value) { rejected = value; done = true; });
+        QTRY_VERIFY_WITH_TIMEOUT(done, 5000);
+        QVERIFY(rejected.isEmpty());
+        net->responses[url] = R"({"version":2,"requires":["future.index"],"regions":{"graz":{}}})";
+        done = false;
+        service.fetchTilesManifest([&](const QJsonObject &value) { rejected = value; done = true; });
+        QTRY_VERIFY_WITH_TIMEOUT(done, 5000);
+        QVERIFY(rejected.isEmpty());
+    }
+    void producerGeneratedV2Index() {
+        const QString fixture = qEnvironmentVariable("LIBRESCOOT_MAP_V2_FIXTURE");
+        if (fixture.isEmpty()) QSKIP("set LIBRESCOOT_MAP_V2_FIXTURE to a generated index");
+        QFile file(fixture); QVERIFY(file.open(QIODevice::ReadOnly));
+        QTemporaryDir d; QVERIFY(d.isValid());
+        MapDownloadService service(nullptr, nullptr, d.path());
+        service.m_tileCapabilitiesPath = d.filePath("capabilities");
+        put(service.m_tileCapabilitiesPath, "v1\nmap.format.mbtiles-mvt-v1\nrouting.format.valhalla-3.6.3\nrouting-compressed.format.zstd\n");
+        auto *net = new FakeNetwork; net->setParent(&service); service.m_nam = net;
+        const QString url = QStringLiteral("https://downloads.librescoot.org/releases/v2/maps-routing.json");
+        net->responses[url] = file.readAll();
+        bool done = false; QJsonObject result;
+        service.fetchTilesManifest([&](const QJsonObject &value) { result = value; done = true; });
+        QTRY_VERIFY_WITH_TIMEOUT(done, 5000);
+        const auto region = result.value("graz").toObject();
+        QCOMPARE(region.value("map").toObject().value("sha256").toString(), QString(64, 'a'));
+        const auto routing = region.value("valhalla").toObject();
+        QCOMPARE(routing.value("sha256").toString(), QString(64, 'b'));
+        QCOMPARE(routing.value("compressed").toObject().value("sha256").toString(), QString(64, 'e'));
+    }
+    void invalidCapabilityDeclarationDoesNotUseLegacy() {
+        QTemporaryDir d; QVERIFY(d.isValid());
+        MapDownloadService service(nullptr, nullptr, d.path());
+        service.m_tileCapabilitiesPath = d.filePath("capabilities");
+        put(service.m_tileCapabilitiesPath, "v1\nfuture.codec\n");
+        auto *net = new FakeNetwork; net->setParent(&service); service.m_nam = net;
+        bool done = false; QJsonObject result;
+        service.fetchTilesManifest([&](const QJsonObject &value) { result = value; done = true; });
+        QVERIFY(done); QVERIFY(result.isEmpty()); QVERIFY(net->requests.isEmpty());
+    }
+    void v2PreviewRejectsUnsupportedFullAsset() {
+        QTemporaryDir d; QVERIFY(d.isValid());
+        MapDownloadService service(nullptr, nullptr, d.path());
+        service.m_tileCapabilitiesPath = d.filePath("capabilities");
+        put(service.m_tileCapabilitiesPath, "v1\nrouting.format.valhalla-3.6.3\n");
+        auto *net = new FakeNetwork; net->setParent(&service); service.m_nam = net;
+        const QString url = QStringLiteral("https://downloads.librescoot.org/releases/v2/maps-routing.json");
+        QJsonObject routing{{"url", "https://example.org/tiles.tar"}, {"size", 100}, {"sha256", QString(64, 'a')},
+                            {"kind", "routing"}, {"region", "graz"}, {"format", "valhalla-3.6.3"},
+                            {"requires", QJsonArray{"routing.format.valhalla-3.6.3", "future.graph"}}};
+        QJsonObject root{{"version", 2}, {"regions", QJsonObject{{"graz", QJsonObject{{"routing", routing}}}}}};
+        net->responses[url] = QJsonDocument(root).toJson();
+        service.m_resolvedSlug = "graz";
+        service.m_metadata.valhallaTiles = MapTileInfo{QString(64, 'b'), {}, 100};
+        QSignalSpy completed(&service, &MapDownloadService::updateCheckCompleted);
+        service.checkForUpdates();
+        QTRY_COMPARE_WITH_TIMEOUT(completed.size(), 1, 5000);
+        QCOMPARE(qvariant_cast<MapDownloadService::UpdateCheckResult>(completed.first().first()),
+                 MapDownloadService::UpdateCheckResult::Failed);
+        QVERIFY(!service.updateAvailable());
     }
     void unsupportedManifestDoesNotFallBack() {
         QTemporaryDir d; QVERIFY(d.isValid());
@@ -210,7 +332,13 @@ void MapDownloadServiceTest::runCompressedScenario(int mode)
     QVERIFY(MapMetadata::save(meta, d.filePath("metadata.json")));
     MapDownloadService service(nullptr, nullptr, d.path());
     auto *net = new FakeNetwork; net->setParent(&service); service.m_nam = net;
-    const QString manifestUrl = QStringLiteral("https://downloads.librescoot.org/releases/maps-routing.json");
+    const bool v2 = mode >= 11;
+    if (v2) {
+        service.m_tileCapabilitiesPath = d.filePath("capabilities");
+        put(service.m_tileCapabilitiesPath, "v1\nrouting.format.valhalla-3.6.3\nrouting-compressed.format.zstd\n");
+    }
+    const QString manifestUrl = v2 ? QStringLiteral("https://downloads.librescoot.org/releases/v2/maps-routing.json")
+                                   : QStringLiteral("https://downloads.librescoot.org/releases/maps-routing.json");
     const QString fullUrl = QStringLiteral("https://example.invalid/tiles.tar");
     const QString compressedUrl = mode == 3 ? QStringLiteral("https://example.invalid/other.tar.zst")
                                             : QStringLiteral("https://example.invalid/tiles.tar.zst");
@@ -223,14 +351,25 @@ void MapDownloadServiceTest::runCompressedScenario(int mode)
     QJsonObject routing{{"version", "tiles-20261101T000000Z"}, {"sha256", mode == 5 ? QString() : sha(mode == 4 ? QByteArray("wrong") : newData)},
                         {"url", fullUrl}, {"size", double(newData.size())}, {"compressed", packed}};
     if (mode == 9) routing.insert(QStringLiteral("requires"), QJsonArray{"routing.format.future"});
-    QJsonObject manifest{{"version", 1}, {"regions", QJsonObject{{"bremen", QJsonObject{{"routing", routing}}}}}};
+    if (v2) {
+        routing.insert("kind", "routing"); routing.insert("region", "bremen");
+        routing.insert("format", "valhalla-3.6.3");
+        routing.insert("requires", mode == 14 ? QJsonArray{"routing.format.valhalla-3.6.3", "future.graph"}
+                                              : QJsonArray{"routing.format.valhalla-3.6.3"});
+        packed.insert("kind", "routing-compressed"); packed.insert("region", "bremen");
+        packed.insert("format", "zstd"); packed.insert("target_sha256", mode == 13 ? sha(oldData) : sha(newData));
+        packed.insert("requires", mode == 12 ? QJsonArray{"routing-compressed.format.zstd", "future.codec"}
+                                             : QJsonArray{"routing-compressed.format.zstd"});
+        routing.insert("compressed", packed);
+    }
+    QJsonObject manifest{{"version", v2 ? 2 : 1}, {"regions", QJsonObject{{"bremen", QJsonObject{{"routing", routing}}}}}};
     net->responses[manifestUrl] = QJsonDocument(manifest).toJson();
     net->responses[fullUrl] = newData; net->responses[compressedUrl] = compressed;
     service.m_resolvedSlug = QStringLiteral("bremen"); service.m_needsRouting = true;
     service.m_displayDone = true; service.m_routingDone = false;
     QSignalSpy completed(&service, &MapDownloadService::downloadComplete);
     service.doFetchReleases(false, true);
-    if (mode == 4 || mode == 9) {
+    if (mode == 4 || mode == 9 || mode == 14) {
         QTRY_COMPARE_WITH_TIMEOUT(int(service.status()), int(ScootEnums::MapDownloadStatus::Error), 10000);
         QCOMPARE(slurp(d.filePath("tiles.tar")), oldData);
         if (mode == 4) QCOMPARE(service.m_rejectedCompressedDigest, sha(compressed));
@@ -238,14 +377,14 @@ void MapDownloadServiceTest::runCompressedScenario(int mode)
     } else {
         QTRY_COMPARE_WITH_TIMEOUT(completed.size(), 1, 10000);
         QCOMPARE(slurp(d.filePath("tiles.tar")), newData);
-        const bool useCompressed = mode == 0;
+        const bool useCompressed = mode == 0 || mode == 11;
         QCOMPARE(net->requests.contains(compressedUrl), useCompressed);
         QCOMPARE(net->requests.contains(fullUrl), !useCompressed);
     }
     qputenv("PATH", oldPath);
 }
 
-void MapDownloadServiceTest::runScenario(bool wrongBase, bool corruptOutput, bool corruptDelta, bool staleBase, bool biggerDelta, bool noDecoder, bool unknownRequirement)
+void MapDownloadServiceTest::runScenario(bool wrongBase, bool corruptOutput, bool corruptDelta, bool staleBase, bool biggerDelta, bool noDecoder, bool unknownRequirement, bool v2)
 {
     QTemporaryDir d; QVERIFY(d.isValid());
     const QByteArray oldData(256,'a'), newData(256,'b'), delta("small-patch");
@@ -263,15 +402,32 @@ void MapDownloadServiceTest::runScenario(bool wrongBase, bool corruptOutput, boo
     QVERIFY(MapMetadata::save(meta,d.filePath("metadata.json")));
     MapDownloadService service(nullptr,nullptr,d.path());
     auto *net = new FakeNetwork; net->setParent(&service); service.m_nam=net;
-    const QString manifestUrl=QStringLiteral("https://downloads.librescoot.org/releases/maps-routing.json");
+    if (v2) {
+        service.m_tileCapabilitiesPath = d.filePath("capabilities");
+        put(service.m_tileCapabilitiesPath, "v1\nrouting.format.valhalla-3.6.3\nrouting-delta.format.valhalla-3.6.3\npatch.algorithm.hdiffpatch\n");
+    }
+    const QString manifestUrl = v2 ? QStringLiteral("https://downloads.librescoot.org/releases/v2/maps-routing.json")
+                                   : QStringLiteral("https://downloads.librescoot.org/releases/maps-routing.json");
     const QString fullUrl=QStringLiteral("https://example.invalid/full.tar"), deltaUrl=QStringLiteral("https://example.invalid/delta.hdelta");
     QJsonObject diff{{"algorithm","hdiffpatch"},{"base_version","tiles-20261001T000000Z"},
                      {"base_sha256",sha(wrongBase ? QByteArray("other") : oldData)},
                      {"sha256",sha(delta)},{"url",deltaUrl},{"size",double(biggerDelta ? newData.size() : delta.size())}};
-    if (unknownRequirement) diff.insert(QStringLiteral("requires"), QJsonArray{"future.patch"});
+    if (unknownRequirement && !v2) diff.insert(QStringLiteral("requires"), QJsonArray{"future.patch"});
+    if (v2) {
+        diff.insert("kind", "routing-delta"); diff.insert("region", "bremen");
+        diff.insert("format", "valhalla-3.6.3"); diff.insert("target_sha256", sha(newData));
+        QJsonArray requirements{"routing-delta.format.valhalla-3.6.3", "patch.algorithm.hdiffpatch"};
+        if (unknownRequirement) requirements.append("future.patch");
+        diff.insert("requires", requirements);
+    }
     QJsonObject routing{{"version","tiles-20261101T000000Z"},{"sha256",sha(newData)},
                         {"url",fullUrl},{"size",double(newData.size())},{"deltas",QJsonArray{diff}}};
-    QJsonObject manifest{{"version",1},{"regions",QJsonObject{{"bremen",QJsonObject{{"routing",routing}}}}}};
+    if (v2) {
+        routing.insert("kind", "routing"); routing.insert("region", "bremen");
+        routing.insert("format", "valhalla-3.6.3");
+        routing.insert("requires", QJsonArray{"routing.format.valhalla-3.6.3"});
+    }
+    QJsonObject manifest{{"version",v2 ? 2 : 1},{"regions",QJsonObject{{"bremen",QJsonObject{{"routing",routing}}}}}};
     net->responses[manifestUrl]=QJsonDocument(manifest).toJson(); net->responses[deltaUrl]=corruptDelta ? QByteArray("bad-patch") : delta; net->responses[fullUrl]=newData;
     service.m_needsRouting=true; service.m_displayDone=true; service.m_routingDone=false;
     QSignalSpy completed(&service,&MapDownloadService::downloadComplete);

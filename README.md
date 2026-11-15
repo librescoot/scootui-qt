@@ -432,6 +432,17 @@ the manifest identifies the installed base and `hpatchz` is available. It
 verifies the base, patch and reconstructed target before atomic replacement, and
 falls back to the full file on a delta failure.
 
+The optional v2 map index is used only when the image declares qualified reader
+capabilities in `/usr/share/librescoot/map-supported-capabilities`. The first
+line is `v1`, followed by one capability token per line. Without this file the
+existing v1 index remains in use. An unreadable file or one with no recognized
+capabilities, or an unavailable or malformed v2 index, fails the check without falling back
+to an older index. V2 full files and optional deltas must match the region,
+format and all required capabilities; unsupported deltas fall back to a
+compatible full file. `hpatchz` must also be available to select a patch.
+No image should declare a capability until its map style, search and routing
+readers have been qualified for that format.
+
 Map deltas patch a canonical stream of the MBTiles file (schema, rows in a fixed
 order, decompressed tiles, see `tools/canonical-mbtiles.py` in `osm-tiles`), not
 the SQLite file: the installed map is serialised, patched, hash-checked against

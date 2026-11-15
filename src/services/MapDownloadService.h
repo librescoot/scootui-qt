@@ -197,6 +197,7 @@ private:
     QString m_metadataPath;
     MdbRepository *m_repo = nullptr;
     QNetworkAccessManager *m_nam;
+    QString m_tileCapabilitiesPath = QStringLiteral("/usr/share/librescoot/map-supported-capabilities");
     QNetworkReply *m_currentReply = nullptr;
     QFile *m_currentFile = nullptr;
     bool m_cancelled = false;
