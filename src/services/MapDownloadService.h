@@ -148,10 +148,9 @@ private:
                   const QString &destPath, bool isDisplay);
     void doInstall(const QString &tempPath, const QString &destPath, bool isDisplay,
                    const QString &digest = {});
-    // Decompression of a routing archive, off the GUI thread. Resumes in
-    // finishInstall() once the worker is done.
-    void startDecompressInstall(const QString &compressedPath, const QString &destPath,
-                                const QString &digest);
+    // Decompression of a routing archive, off the GUI thread. The output is
+    // verified against the uncompressed digest before installation.
+    void startDecompressInstall(const QString &compressedPath, const QString &destPath);
     void startDeltaInstall(const QString &patchPath, const QString &destPath);
     void startMapDeltaInstall(const QString &patchPath, const QString &destPath);
     void startDisplayDownload();

@@ -14,12 +14,15 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QStorageInfo>
+#include <QUrl>
 #include <QDebug>
 #include <QtConcurrent>
 #include <QPromise>
 
 #include <cstdio>
 #include <algorithm>
+#include <cmath>
+#include <limits>
 
 #ifdef Q_OS_LINUX
 #include <QProcess>
@@ -28,6 +31,26 @@
 // QFuture reports progress as an int, so the decompression pass scales its
 // byte count into this many steps before handing it over.
 static constexpr int DecompressProgressSteps = 10000;
+
+static bool usableCompressedRouting(const QJsonObject &plain, const QJsonObject &compressed)
+{
+    static const QRegularExpression sha256(QStringLiteral("^[0-9a-f]{64}$"));
+    const QUrl fullUrl(plain.value(QStringLiteral("url")).toString());
+    const QUrl compressedUrl(compressed.value(QStringLiteral("url")).toString());
+    const auto fullHash = plain.value(QStringLiteral("sha256")).toString();
+    const auto compressedHash = compressed.value(QStringLiteral("sha256")).toString();
+    const double size = compressed.value(QStringLiteral("size")).toDouble();
+    return compressed.value(QStringLiteral("codec")).toString() == QLatin1String("zstd")
+        && sha256.match(fullHash).hasMatch() && sha256.match(compressedHash).hasMatch()
+        && std::isfinite(size) && size > 0 && size < double(std::numeric_limits<qint64>::max())
+        && std::floor(size) == size
+        && compressedUrl.isValid() && compressedUrl.scheme() == QLatin1String("https")
+        && !compressedUrl.host().isEmpty() && compressedUrl.userInfo().isEmpty()
+        && !compressedUrl.hasFragment() && fullUrl.isValid()
+        && fullUrl.scheme() == QLatin1String("https") && !fullUrl.host().isEmpty()
+        && fullUrl.userInfo().isEmpty() && !fullUrl.hasFragment() && !fullUrl.path().isEmpty()
+        && QFileInfo(compressedUrl.path()).fileName() == QFileInfo(fullUrl.path()).fileName() + QLatin1String(".zst");
+}
 
 // Picks the smallest manifest delta whose base is exactly what is installed.
 // Everything is validated here so the install path can trust the entry: a
@@ -792,25 +815,13 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
             m_routingAsset.compressedSize = 0;
 
             const auto compressed = valhalla[QStringLiteral("compressed")].toObject();
-            if (!compressed.isEmpty()
-                && compressed[QStringLiteral("codec")].toString() == QLatin1String("zstd")) {
+            if (!compressed.isEmpty() && usableCompressedRouting(valhalla, compressed)) {
                 m_routingAsset.compressedUrl = compressed[QStringLiteral("url")].toString();
                 m_routingAsset.compressedDigest = compressed[QStringLiteral("sha256")].toString();
                 m_routingAsset.compressedSize =
                     static_cast<qint64>(compressed[QStringLiteral("size")].toDouble());
-                // Incomplete entry: fall back to the plain tar rather than
-                // guess. The digest has to be there too, because doVerify()
-                // skips verification outright on an empty one, and installing
-                // unverified bytes is worse than spending the extra megabytes.
-                if (m_routingAsset.compressedUrl.isEmpty()
-                    || m_routingAsset.compressedDigest.isEmpty()
-                    || m_routingAsset.compressedSize <= 0) {
-                    m_routingAsset.compressedUrl.clear();
-                    m_routingAsset.compressedDigest.clear();
-                    m_routingAsset.compressedSize = 0;
-                } else if (!m_rejectedCompressedDigest.isEmpty()
-                           && m_routingAsset.compressedDigest
-                                  == m_rejectedCompressedDigest) {
+                if (!m_rejectedCompressedDigest.isEmpty()
+                    && m_routingAsset.compressedDigest == m_rejectedCompressedDigest) {
                     // This exact archive already downloaded intact and failed to
                     // decode this session. Every attempt lands here first, so
                     // without this check the clear in startDecompressInstall()
@@ -818,7 +829,7 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
                     qWarning() << "Skipping the compressed routing archive: "
                                   "sha256"
                                << m_rejectedCompressedDigest
-                               << "failed to decompress earlier this session";
+                               << "failed validation earlier this session";
                     m_routingAsset.compressedUrl.clear();
                     m_routingAsset.compressedDigest.clear();
                     m_routingAsset.compressedSize = 0;
@@ -1098,6 +1109,13 @@ void MapDownloadService::doVerify(const QString &filePath, const QString &expect
                 fallbackDelta(isDisplay, QStringLiteral("Delta download verification failed"));
                 return;
             }
+            if (!isDisplay && filePath.startsWith(routingPartPath() + QLatin1Char('.'))
+                && m_routingAsset.useCompressed()) {
+                m_rejectedCompressedDigest = m_routingAsset.compressedDigest;
+                m_routingAsset.compressedUrl.clear();
+                m_routingAsset.compressedDigest.clear();
+                m_routingAsset.compressedSize = 0;
+            }
             setError(QStringLiteral("Download verification failed, please retry"));
             return;
         }
@@ -1129,7 +1147,7 @@ void MapDownloadService::doInstall(const QString &tempPath, const QString &destP
     }
     if (!isDisplay && m_routingAsset.useCompressed()
         && tempPath == routingCompressedPartPath()) {
-        startDecompressInstall(tempPath, destPath, digest);
+        startDecompressInstall(tempPath, destPath);
         return;
     }
 
@@ -1263,8 +1281,7 @@ void MapDownloadService::startDeltaInstall(const QString &patchPath, const QStri
 }
 
 void MapDownloadService::startDecompressInstall(const QString &compressedPath,
-                                                const QString &destPath,
-                                                const QString &digest)
+                                                const QString &destPath)
 {
     const quint64 generation = m_operationGeneration;
     // Decompress into a sibling .part first so the rename in finishInstall()
@@ -1305,7 +1322,7 @@ void MapDownloadService::startDecompressInstall(const QString &compressedPath,
     });
 
     connect(watcher, &QFutureWatcher<ZstdDecompressor::Outcome>::finished, this,
-            [this, watcher, generation, compressedPath, decompressedPath, destPath, digest]() {
+            [this, watcher, generation, compressedPath, decompressedPath, destPath]() {
         watcher->deleteLater();
         if (m_decompressWatcher == watcher)
             m_decompressWatcher = nullptr;
@@ -1355,7 +1372,7 @@ void MapDownloadService::startDecompressInstall(const QString &compressedPath,
         }
 
         QFile::remove(compressedPath);
-        finishInstall(decompressedPath, destPath, false, digest);
+        doVerify(decompressedPath, m_routingAsset.digest, destPath, false);
     });
     watcher->setFuture(future);
 }

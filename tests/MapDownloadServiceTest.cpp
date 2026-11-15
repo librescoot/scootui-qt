@@ -9,6 +9,7 @@
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QUuid>
+#include <zstd.h>
 #include "services/MapDownloadService.h"
 #include "services/MapDownloadHold.h"
 
@@ -93,6 +94,7 @@ private:
         QFile f(path); QVERIFY(f.open(QIODevice::WriteOnly)); QCOMPARE(f.write(bytes), bytes.size());
     }
     void runScenario(bool wrongBase, bool corruptOutput, bool corruptDelta = false, bool staleBase = false, bool biggerDelta = false, bool noDecoder = false);
+    void runCompressedScenario(int mode);
     void runMapScenario(bool corruptDelta, bool staleBase, bool noDecoder, bool badResult, int mode = 0);
 private slots:
     void smallerDeltaInstalls() { runScenario(false, false); }
@@ -102,6 +104,13 @@ private slots:
     void changedBaseFallsBack() { runScenario(false, false, false, true); }
     void largerDeltaUsesFull() { runScenario(false, false, false, false, true); }
     void missingDecoderUsesFull() { runScenario(false, false, false, false, false, true); }
+    void compressedRoutingInstalls() { runCompressedScenario(0); }
+    void badCompressedDigestUsesFull() { runCompressedScenario(1); }
+    void unsupportedCompressedCodecUsesFull() { runCompressedScenario(2); }
+    void wrongCompressedRegionUsesFull() { runCompressedScenario(3); }
+    void compressedOutputMismatchKeepsPrevious() { runCompressedScenario(4); }
+    void missingTargetDigestUsesFull() { runCompressedScenario(5); }
+    void fractionalCompressedSizeUsesFull() { runCompressedScenario(6); }
     void holdFollowsStatus() {
         using S = ScootEnums::MapDownloadStatus;
         QCOMPARE(mapDownloadHoldFor(int(S::Downloading)), QStringLiteral("map-download"));
@@ -119,6 +128,54 @@ private slots:
     void mapDeltaMissingDecoderUsesFull() { runMapScenario(false, false, true, false); }
     void mapDeltaBadResultUsesFull() { runMapScenario(false, false, false, true); }
 };
+
+void MapDownloadServiceTest::runCompressedScenario(int mode)
+{
+    QTemporaryDir d; QVERIFY(d.isValid());
+    const QByteArray oldData(256, 'a'), newData(512, 'b');
+    const QString systemctl = d.filePath("systemctl");
+    put(systemctl, "#!/bin/sh\nexit 0\n");
+    QVERIFY(QFile::setPermissions(systemctl, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner));
+    const QByteArray oldPath = qgetenv("PATH");
+    qputenv("PATH", d.path().toUtf8() + ':' + oldPath);
+    QByteArray compressed(qsizetype(ZSTD_compressBound(size_t(newData.size()))), Qt::Uninitialized);
+    const size_t compressedSize = ZSTD_compress(compressed.data(), size_t(compressed.size()), newData.constData(), size_t(newData.size()), 1);
+    QVERIFY(!ZSTD_isError(compressedSize)); compressed.resize(qsizetype(compressedSize));
+    put(d.filePath("tiles.tar"), oldData);
+    MapMetadata meta; meta.region = QStringLiteral("bremen"); meta.valhallaTiles = MapTileInfo{};
+    meta.valhallaTiles->digest = sha(oldData);
+    QVERIFY(MapMetadata::save(meta, d.filePath("metadata.json")));
+    MapDownloadService service(nullptr, nullptr, d.path());
+    auto *net = new FakeNetwork; net->setParent(&service); service.m_nam = net;
+    const QString manifestUrl = QStringLiteral("https://downloads.librescoot.org/releases/maps-routing.json");
+    const QString fullUrl = QStringLiteral("https://example.invalid/tiles.tar");
+    const QString compressedUrl = mode == 3 ? QStringLiteral("https://example.invalid/other.tar.zst")
+                                            : QStringLiteral("https://example.invalid/tiles.tar.zst");
+    QJsonObject packed{{"codec", mode == 2 ? "future" : "zstd"}, {"url", compressedUrl},
+                       {"sha256", mode == 1 ? "bad" : sha(compressed)}, {"size", double(compressed.size())}};
+    if (mode == 6) packed.insert(QStringLiteral("size"), 1.5);
+    QJsonObject routing{{"version", "tiles-20261101T000000Z"}, {"sha256", mode == 5 ? QString() : sha(mode == 4 ? QByteArray("wrong") : newData)},
+                        {"url", fullUrl}, {"size", double(newData.size())}, {"compressed", packed}};
+    QJsonObject manifest{{"version", 1}, {"regions", QJsonObject{{"bremen", QJsonObject{{"routing", routing}}}}}};
+    net->responses[manifestUrl] = QJsonDocument(manifest).toJson();
+    net->responses[fullUrl] = newData; net->responses[compressedUrl] = compressed;
+    service.m_resolvedSlug = QStringLiteral("bremen"); service.m_needsRouting = true;
+    service.m_displayDone = true; service.m_routingDone = false;
+    QSignalSpy completed(&service, &MapDownloadService::downloadComplete);
+    service.doFetchReleases(false, true);
+    if (mode == 4) {
+        QTRY_COMPARE_WITH_TIMEOUT(int(service.status()), int(ScootEnums::MapDownloadStatus::Error), 10000);
+        QCOMPARE(slurp(d.filePath("tiles.tar")), oldData);
+        QCOMPARE(service.m_rejectedCompressedDigest, sha(compressed));
+        QVERIFY(!net->requests.contains(fullUrl));
+    } else {
+        QTRY_COMPARE_WITH_TIMEOUT(completed.size(), 1, 10000);
+        QCOMPARE(slurp(d.filePath("tiles.tar")), newData);
+        QCOMPARE(net->requests.contains(compressedUrl), mode == 0);
+        QCOMPARE(net->requests.contains(fullUrl), mode != 0);
+    }
+    qputenv("PATH", oldPath);
+}
 
 void MapDownloadServiceTest::runScenario(bool wrongBase, bool corruptOutput, bool corruptDelta, bool staleBase, bool biggerDelta, bool noDecoder)
 {
