@@ -12,6 +12,7 @@
 #include <zstd.h>
 #include "services/MapDownloadService.h"
 #include "services/MapDownloadHold.h"
+#include "services/TileCapabilityPolicy.h"
 
 class FakeReply : public QNetworkReply
 {
@@ -116,6 +117,39 @@ private slots:
     void declaredCompressedRequirementUsesFull() { runCompressedScenario(8); }
     void unknownRoutingRequirementFailsClosed() { runCompressedScenario(9); }
     void caseAliasRequirementUsesFull() { runCompressedScenario(10); }
+    void v2CapabilityPolicyRejectsUnknownAndMismatchedAssets() {
+        const QString mapHash(64, QLatin1Char('a')), baseHash(64, QLatin1Char('b'));
+        const QString region = QStringLiteral("graz");
+        const QSet<QString> caps{QStringLiteral("map.format.mbtiles-mvt-v1"),
+                                 QStringLiteral("map-delta.format.mbtiles-canonical-v1"),
+                                 QStringLiteral("patch.algorithm.hdiffpatch")};
+        QJsonObject map{{"url", "https://example.invalid/map.mbtiles"}, {"size", 100}, {"sha256", mapHash},
+                        {"kind", "map"}, {"region", "graz"}, {"format", "mbtiles-mvt-v1"},
+                        {"requires", QJsonArray{"map.format.mbtiles-mvt-v1"}}};
+        QVERIFY(TileCapabilityPolicy::supports(map, QStringLiteral("map"), region, caps));
+        auto invalid = map;
+        invalid.insert(QStringLiteral("requires"), QJsonArray{"map.format.mbtiles-mvt-v1", "future.codec"});
+        QVERIFY(!TileCapabilityPolicy::supports(invalid, QStringLiteral("map"), region, caps));
+        invalid.insert(QStringLiteral("requires"), QJsonArray{"map.format.mbtiles-mvt-v1", "map.format.mbtiles-mvt-v1"});
+        QVERIFY(!TileCapabilityPolicy::supports(invalid, QStringLiteral("map"), region, caps));
+        invalid = map; invalid.insert(QStringLiteral("format"), QStringLiteral("future"));
+        QVERIFY(!TileCapabilityPolicy::supports(invalid, QStringLiteral("map"), region, caps));
+        invalid = map; invalid.remove(QStringLiteral("requires"));
+        QVERIFY(!TileCapabilityPolicy::supports(invalid, QStringLiteral("map"), region, caps));
+        invalid = map; invalid.insert(QStringLiteral("url"), QStringLiteral("http://example.invalid/map"));
+        QVERIFY(!TileCapabilityPolicy::supports(invalid, QStringLiteral("map"), region, caps));
+        invalid = map; invalid.insert(QStringLiteral("region"), QStringLiteral("vienna"));
+        QVERIFY(!TileCapabilityPolicy::supports(invalid, QStringLiteral("map"), region, caps));
+        QJsonObject delta{{"url", "https://example.invalid/map.hdelta"}, {"size", 10}, {"sha256", QString(64, QLatin1Char('c'))},
+                          {"kind", "map-delta"}, {"region", "graz"}, {"format", "mbtiles-canonical-v1"}, {"algorithm", "hdiffpatch"},
+                          {"base_version", "tiles-20261101T000000Z"}, {"base_sha256", baseHash}, {"target_sha256", mapHash},
+                          {"requires", QJsonArray{"map-delta.format.mbtiles-canonical-v1", "patch.algorithm.hdiffpatch"}}};
+        QVERIFY(TileCapabilityPolicy::supports(delta, QStringLiteral("map-delta"), region, caps, mapHash, baseHash));
+        QVERIFY(!TileCapabilityPolicy::supports(delta, QStringLiteral("map-delta"), region, caps, mapHash, QString(64, QLatin1Char('d'))));
+        QVERIFY(!TileCapabilityPolicy::supports(delta, QStringLiteral("map-delta"), region, caps, QString(64, QLatin1Char('e')), baseHash));
+        delta.insert(QStringLiteral("requires"), QJsonArray{"map-delta.format.mbtiles-canonical-v1"});
+        QVERIFY(!TileCapabilityPolicy::supports(delta, QStringLiteral("map-delta"), region, caps, mapHash, baseHash));
+    }
     void unsupportedManifestDoesNotFallBack() {
         QTemporaryDir d; QVERIFY(d.isValid());
         MapDownloadService service(nullptr, nullptr, d.path());
