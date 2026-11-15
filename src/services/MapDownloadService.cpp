@@ -40,6 +40,12 @@ static bool usableCompressedRouting(const QJsonObject &plain, const QJsonObject 
     const auto fullHash = plain.value(QStringLiteral("sha256")).toString();
     const auto compressedHash = compressed.value(QStringLiteral("sha256")).toString();
     const double size = compressed.value(QStringLiteral("size")).toDouble();
+    if (compressed.contains(QStringLiteral("requires"))) {
+        const auto required = compressed.value(QStringLiteral("requires"));
+        if (!required.isArray() || required.toArray().size() != 1
+            || required.toArray().first().toString() != QLatin1String("routing-compressed.format.zstd"))
+            return false;
+    }
     return compressed.value(QStringLiteral("codec")).toString() == QLatin1String("zstd")
         && sha256.match(fullHash).hasMatch() && sha256.match(compressedHash).hasMatch()
         && std::isfinite(size) && size > 0 && size < double(std::numeric_limits<qint64>::max())
@@ -72,7 +78,8 @@ static void selectDelta(const QJsonObject &asset, const QString &installedDigest
         const auto url = delta[QStringLiteral("url")].toString();
         const auto version = delta[QStringLiteral("base_version")].toString();
         const qint64 size = static_cast<qint64>(delta[QStringLiteral("size")].toDouble());
-        if (delta[QStringLiteral("algorithm")].toString() != QLatin1String("hdiffpatch")
+        if (delta.contains(QStringLiteral("requires"))
+            || delta[QStringLiteral("algorithm")].toString() != QLatin1String("hdiffpatch")
             || base != installedDigest || !sha256.match(base).hasMatch()
             || !sha256.match(hash).hasMatch() || hash == rejectedDigest
             || url.isEmpty() || version.isEmpty() || size <= 0 || size >= fullSize
@@ -759,6 +766,10 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
                 setError(QStringLiteral("Display maps not available for ") + m_regionName);
                 return;
             }
+            if (map.contains(QStringLiteral("requires"))) {
+                setError(QStringLiteral("Display map capabilities are unsupported"));
+                return;
+            }
             m_displayAsset.url = map[QStringLiteral("url")].toString();
             m_displayAsset.size = static_cast<qint64>(map[QStringLiteral("size")].toDouble());
             m_displayAsset.digest = map[QStringLiteral("sha256")].toString();
@@ -794,6 +805,10 @@ void MapDownloadService::doFetchReleases(bool needsDisplay, bool needsRouting)
             auto valhalla = region[QStringLiteral("valhalla")].toObject();
             if (valhalla.isEmpty()) {
                 setError(QStringLiteral("Routing maps not available for ") + m_regionName);
+                return;
+            }
+            if (valhalla.contains(QStringLiteral("requires"))) {
+                setError(QStringLiteral("Routing map capabilities are unsupported"));
                 return;
             }
             m_routingAsset.url = valhalla[QStringLiteral("url")].toString();
