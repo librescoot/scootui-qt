@@ -652,77 +652,36 @@ bool MapDownloadService::shouldCheckForUpdates() const
 
 void MapDownloadService::fetchTilesManifest(std::function<void(const QJsonObject &)> callback)
 {
-    const bool useV2 = m_useV2MapFeed;
     const auto caps = qualifiedTileCapabilities();
-    const auto url = useV2 ? QStringLiteral("https://downloads.librescoot.org/releases/v2/maps-routing.json")
-                           : QStringLiteral("https://downloads.librescoot.org/releases/maps-routing.json");
+    const auto url = QStringLiteral("https://downloads.librescoot.org/releases/v2/maps-routing.json");
     QNetworkRequest req{QUrl{url}};
     req.setRawHeader("User-Agent", "Librescoot/1.0");
     req.setTransferTimeout(15000);
 
     auto *reply = m_nam->get(req);
     const quint64 generation = m_operationGeneration;
-    connect(reply, &QNetworkReply::finished, this, [this, reply, callback, generation, caps, useV2]() {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, callback, generation, caps]() {
         reply->deleteLater();
         if (!isCurrentOperation(generation)) return;
-        if (useV2) {
-            QJsonObject root;
-            if (reply->error() != QNetworkReply::NoError ||
-                !StrictJson::parseObject(reply->read(16 * 1024 * 1024 + 1), &root) ||
-                root.value(QStringLiteral("version")).toInt() != 2 || declaresTileRequirements(root) ||
-                !root.value(QStringLiteral("regions")).isObject()) {
-                callback({});
-                return;
-            }
-            callback(normalizedV2Regions(root, caps));
+        QJsonObject root;
+        if (reply->error() != QNetworkReply::NoError ||
+            !StrictJson::parseObject(reply->read(16 * 1024 * 1024 + 1), &root) ||
+            root.value(QStringLiteral("version")).toInt() != 2 || declaresTileRequirements(root) ||
+            !root.value(QStringLiteral("regions")).isObject()) {
+            callback({});
             return;
         }
-        QJsonObject regions;
-        if (reply->error() == QNetworkReply::NoError) {
-            const auto doc = QJsonDocument::fromJson(reply->readAll());
-            const auto root = doc.object();
-            if (root.value(QStringLiteral("version")).toInt() != 1) {
-                callback({});
-                return;
-            }
-            regions = root.value(QStringLiteral("regions")).toObject();
-            if (regions.isEmpty()) {
-                callback({});
-                return;
+        const auto regions = normalizedV2Regions(root, caps);
+        if (m_status != ScootEnums::MapDownloadStatus::Locating && m_metadata.region == m_resolvedSlug) {
+            const QString name = regions.value(m_resolvedSlug).toObject().value(QStringLiteral("name")).toString();
+            if (!name.isEmpty() && name != m_metadata.regionName) {
+                m_metadata.regionName = name;
+                m_regionName = name;
+                persistMetadata();
+                emit regionNameChanged();
             }
         }
-        if (!regions.isEmpty()) {
-            QJsonObject normalized;
-            for (auto it = regions.begin(); it != regions.end(); ++it) {
-                auto region = it.value().toObject();
-                region.insert(QStringLiteral("valhalla"), region.value(QStringLiteral("routing")));
-                normalized.insert(it.key(), region);
-            }
-            if (m_status != ScootEnums::MapDownloadStatus::Locating
-                && m_metadata.region == m_resolvedSlug) {
-                const QString name = normalized.value(m_resolvedSlug).toObject()
-                                         .value(QStringLiteral("name")).toString();
-                if (!name.isEmpty() && name != m_metadata.regionName) {
-                    m_metadata.regionName = name;
-                    m_regionName = name;
-                    persistMetadata();
-                    emit regionNameChanged();
-                }
-            }
-            callback(normalized);
-            return;
-        }
-
-        QNetworkRequest legacy{QUrl{QStringLiteral("https://downloads.librescoot.org/releases/tiles.json")}};
-        legacy.setRawHeader("User-Agent", "Librescoot/1.0");
-        legacy.setTransferTimeout(15000);
-        auto *fallback = m_nam->get(legacy);
-        connect(fallback, &QNetworkReply::finished, this, [fallback, callback]() {
-            const auto manifest = fallback->error() == QNetworkReply::NoError
-                ? QJsonDocument::fromJson(fallback->readAll()).object() : QJsonObject{};
-            fallback->deleteLater();
-            callback(manifest);
-        });
+        callback(regions);
     });
 }
 

@@ -320,24 +320,30 @@ private slots:
         service.m_metadata.updateAvailable = true;
         service.m_metadata.displayUpdateAvailable = true;
         service.m_updateAvailable = true;
-        QJsonObject region{{"map", QJsonObject{{"sha256", QString(64, 'a')}}},
-                           {"routing", QJsonObject{{"sha256", QString(64, 'b')}}}};
-        if (scenario == "display-update") region["map"] = QJsonObject{{"sha256", QString(64, 'c')}};
-        if (scenario == "routing-update") region["routing"] = QJsonObject{{"sha256", QString(64, 'c')}};
+        auto asset = [](const QString &kind, const QString &digest) {
+            const QString format = kind == "map" ? "mbtiles-mvt-v1" : "valhalla-3.6.3";
+            return QJsonObject{{"sha256", digest}, {"url", "https://example.invalid/tiles"}, {"size", 100},
+                               {"kind", kind}, {"region", "test-region"}, {"format", format},
+                               {"requires", QJsonArray{kind + ".format." + format}}};
+        };
+        QJsonObject region{{"map", asset("map", QString(64, 'a'))},
+                           {"routing", asset("routing", QString(64, 'b'))}};
+        if (scenario == "display-update") region["map"] = asset("map", QString(64, 'c'));
+        if (scenario == "routing-update") region["routing"] = asset("routing", QString(64, 'c'));
         if (scenario == "missing-digest") region["routing"] = QJsonObject{};
-        if (scenario == "malformed-digest") region["map"] = QJsonObject{{"sha256", "invalid"}};
+        if (scenario == "malformed-digest") region["map"] = asset("map", "invalid");
         if (scenario == "missing-local-digest") service.m_metadata.displayTiles->digest.clear();
         if (scenario == "unknown-region") {
             service.m_resolvedSlug.clear();
-            region["map"] = QJsonObject{{"sha256", QString(64, 'd')}};
-            region["routing"] = QJsonObject{{"sha256", QString(64, 'e')}};
+            region["map"] = asset("map", QString(64, 'd'));
+            region["routing"] = asset("routing", QString(64, 'e'));
         }
         if (scenario == "missing-region") service.m_resolvedSlug = "absent";
         if (scenario == "no-installed-targets") {
             service.m_metadata.displayTiles.reset();
             service.m_metadata.valhallaTiles.reset();
         }
-        const auto body = QJsonDocument(QJsonObject{{"version", 1},
+        const auto body = QJsonDocument(QJsonObject{{"version", 2},
             {"regions", QJsonObject{{"test-region", region}}}}).toJson();
         QSignalSpy completed(&service, &MapDownloadService::updateCheckCompleted);
         service.checkForUpdates();
@@ -347,8 +353,7 @@ private slots:
         if (scenario == "cancelled") service.cancel();
         if (scenario == "network-failure") {
             network->replies.at(0)->finish("not-json", true);
-            QCOMPARE(network->replies.size(), 2);
-            network->replies.at(1)->finish("not-json", true);
+            QCOMPARE(network->replies.size(), 1);
         } else if (scenario == "malformed-manifests") {
             network->replies.at(0)->finish("not-json");
             QCOMPARE(network->replies.size(), 1);
@@ -388,11 +393,16 @@ private slots:
         service.m_nam = network;
         service.m_metadata.displayTiles = MapTileInfo{QString(64, 'a'), {}, 100};
         service.setPositionProvider([](double &lat, double &lng) { lat = 52.5; lng = 13.4; return true; });
-        const auto body = QJsonDocument(QJsonObject{{"version", 1}, {"regions", QJsonObject{
-            {"berlin_brandenburg", QJsonObject{{"country", "de"},
-                {"location", QJsonObject{{"cities", QJsonArray{"Berlin"}}}},
-                {"map", QJsonObject{{"sha256", QString(64, 'a')}}},
-                {"routing", QJsonObject{{"sha256", QString(64, 'b')}}}}}}}}).toJson();
+        const QJsonObject map{{"sha256", QString(64, 'a')}, {"url", "https://example.invalid/map"},
+                              {"size", 100}, {"kind", "map"}, {"region", "berlin_brandenburg"},
+                              {"format", "mbtiles-mvt-v1"}, {"requires", QJsonArray{"map.format.mbtiles-mvt-v1"}}};
+        const QJsonObject routing{{"sha256", QString(64, 'b')}, {"url", "https://example.invalid/routing"},
+                                  {"size", 100}, {"kind", "routing"}, {"region", "berlin_brandenburg"},
+                                  {"format", "valhalla-3.6.3"}, {"requires", QJsonArray{"routing.format.valhalla-3.6.3"}}};
+        const QJsonObject region{{"country", "de"}, {"location", QJsonObject{{"cities", QJsonArray{"Berlin"}}}},
+                                 {"map", map}, {"routing", routing}};
+        const auto body = QJsonDocument(QJsonObject{{"version", 2},
+            {"regions", QJsonObject{{"berlin_brandenburg", region}}}}).toJson();
         QSignalSpy completed(&service, &MapDownloadService::updateCheckCompleted);
         service.checkForUpdatesNow();
         QCOMPARE(network->replies.size(), 1);
@@ -401,7 +411,6 @@ private slots:
         using Result = MapDownloadService::UpdateCheckResult;
         Result expected = Result::Failed;
         if (scenario == "index-error") {
-            network->replies.last()->finish({}, true);
             network->replies.last()->finish({}, true);
         } else {
             network->replies.last()->finish(body);
@@ -454,8 +463,11 @@ private slots:
         service.m_nam = network;
         service.m_resolvedSlug = "test-region";
         service.m_metadata.displayTiles = MapTileInfo{QString(64, 'a'), {}, 100};
-        const auto body = QJsonDocument(QJsonObject{{"version", 1}, {"regions", QJsonObject{
-            {"test-region", QJsonObject{{"map", QJsonObject{{"sha256", QString(64, 'a')}}}}}}}}).toJson();
+        const QJsonObject map{{"sha256", QString(64, 'a')}, {"url", "https://example.invalid/map"},
+                              {"size", 100}, {"kind", "map"}, {"region", "test-region"},
+                              {"format", "mbtiles-mvt-v1"}, {"requires", QJsonArray{"map.format.mbtiles-mvt-v1"}}};
+        const auto body = QJsonDocument(QJsonObject{{"version", 2},
+            {"regions", QJsonObject{{"test-region", QJsonObject{{"map", map}}}}}}).toJson();
         auto *menu = context<MenuStore>("menuStore");
         auto *tr = context<Translations>("translations");
         auto *toast = m_application->m_toastService;

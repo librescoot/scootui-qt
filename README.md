@@ -432,14 +432,11 @@ the manifest identifies the installed base and `hpatchz` is available. It
 verifies the base, patch and reconstructed target before atomic replacement, and
 falls back to the full file on a delta failure.
 
-Map and routing reader capabilities are defined in the DBC code. The build
-option `SCOOTUI_MAP_V2_FEED` selects the v2 index; it defaults to off until the
-feed and legacy boundary are ready. An unavailable or malformed v2 index fails
-the check without falling back to an older index. V2 full files and optional
-deltas must match the region, format and all required capabilities; unsupported
-deltas fall back to a compatible full file. `hpatchz` must also be available to
-select a patch. Qualify the map style, search and routing readers against the
-published formats before enabling the v2 feed.
+Map and routing reader capabilities are defined in the DBC code. The downloader
+uses the v2 index and fails a check without falling back to an older index if it
+is unavailable or malformed. Full files and optional deltas must match the
+region, format and all required capabilities; unsupported deltas fall back to
+a compatible full file. `hpatchz` must also be available to select a patch.
 
 Map deltas patch a canonical stream of the MBTiles file (schema, rows in a fixed
 order, decompressed tiles, see `tools/canonical-mbtiles.py` in `osm-tiles`), not

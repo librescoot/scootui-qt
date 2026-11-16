@@ -197,11 +197,6 @@ private:
     QString m_metadataPath;
     MdbRepository *m_repo = nullptr;
     QNetworkAccessManager *m_nam;
-#ifdef SCOOTUI_MAP_V2_FEED
-    bool m_useV2MapFeed = true;
-#else
-    bool m_useV2MapFeed = false;
-#endif
     QNetworkReply *m_currentReply = nullptr;
     QFile *m_currentFile = nullptr;
     bool m_cancelled = false;
