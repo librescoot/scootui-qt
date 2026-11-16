@@ -9,6 +9,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
 option(DESKTOP_MODE "Build for desktop development with simulator panel (QMapLibre optional)" OFF)
+option(SCOOTUI_MAP_V2_FEED "Use the capability-aware map feed" OFF)
+if(SCOOTUI_MAP_V2_FEED)
+    add_compile_definitions(SCOOTUI_MAP_V2_FEED)
+endif()
 
 # Escape hatch for build environments that have no QMapLibre (the armhf
 # cross-build container, see cross-build.sh). Produces a binary with no map

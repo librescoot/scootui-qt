@@ -100,6 +100,15 @@ private:
     void runCompressedScenario(int mode);
     void runMapScenario(bool corruptDelta, bool staleBase, bool noDecoder, bool badResult, int mode = 0);
 private slots:
+    void compiledFeedSelection() {
+        QTemporaryDir d; QVERIFY(d.isValid());
+        MapDownloadService service(nullptr, nullptr, d.path());
+#ifdef SCOOTUI_MAP_V2_FEED
+        QVERIFY(service.m_useV2MapFeed);
+#else
+        QVERIFY(!service.m_useV2MapFeed);
+#endif
+    }
     void smallerDeltaInstalls() { runScenario(false, false); }
     void wrongBaseUsesFull() { runScenario(true, false); }
     void badResultFallsBack() { runScenario(false, true); }
@@ -178,10 +187,8 @@ private slots:
     }
     void qualifiedV2FeedEnforcesAssetRequirements() {
         QTemporaryDir d; QVERIFY(d.isValid());
-        const auto marker = d.filePath("capabilities");
-        put(marker, "v1\nmap.format.mbtiles-mvt-v1\nrouting.format.valhalla-3.6.3\nrouting-compressed.format.zstd\n");
         MapDownloadService service(nullptr, nullptr, d.path());
-        service.m_tileCapabilitiesPath = marker;
+        service.m_useV2MapFeed = true;
         auto *net = new FakeNetwork; net->setParent(&service); service.m_nam = net;
         const QString url = QStringLiteral("https://downloads.librescoot.org/releases/v2/maps-routing.json");
         const QString hash(64, QLatin1Char('a'));
@@ -237,8 +244,7 @@ private slots:
         QFile file(fixture); QVERIFY(file.open(QIODevice::ReadOnly));
         QTemporaryDir d; QVERIFY(d.isValid());
         MapDownloadService service(nullptr, nullptr, d.path());
-        service.m_tileCapabilitiesPath = d.filePath("capabilities");
-        put(service.m_tileCapabilitiesPath, "v1\nmap.format.mbtiles-mvt-v1\nrouting.format.valhalla-3.6.3\nrouting-compressed.format.zstd\n");
+        service.m_useV2MapFeed = true;
         auto *net = new FakeNetwork; net->setParent(&service); service.m_nam = net;
         const QString url = QStringLiteral("https://downloads.librescoot.org/releases/v2/maps-routing.json");
         net->responses[url] = file.readAll();
@@ -251,21 +257,21 @@ private slots:
         QCOMPARE(routing.value("sha256").toString(), QString(64, 'b'));
         QCOMPARE(routing.value("compressed").toObject().value("sha256").toString(), QString(64, 'e'));
     }
-    void invalidCapabilityDeclarationDoesNotUseLegacy() {
+    void invalidV2FeedDoesNotUseLegacy() {
         QTemporaryDir d; QVERIFY(d.isValid());
         MapDownloadService service(nullptr, nullptr, d.path());
-        service.m_tileCapabilitiesPath = d.filePath("capabilities");
-        put(service.m_tileCapabilitiesPath, "v1\nfuture.codec\n");
+        service.m_useV2MapFeed = true;
         auto *net = new FakeNetwork; net->setParent(&service); service.m_nam = net;
         bool done = false; QJsonObject result;
         service.fetchTilesManifest([&](const QJsonObject &value) { result = value; done = true; });
-        QVERIFY(done); QVERIFY(result.isEmpty()); QVERIFY(net->requests.isEmpty());
+        QTRY_VERIFY_WITH_TIMEOUT(done, 5000);
+        QVERIFY(result.isEmpty());
+        QCOMPARE(net->requests, QStringList{QStringLiteral("https://downloads.librescoot.org/releases/v2/maps-routing.json")});
     }
     void v2PreviewRejectsUnsupportedFullAsset() {
         QTemporaryDir d; QVERIFY(d.isValid());
         MapDownloadService service(nullptr, nullptr, d.path());
-        service.m_tileCapabilitiesPath = d.filePath("capabilities");
-        put(service.m_tileCapabilitiesPath, "v1\nrouting.format.valhalla-3.6.3\n");
+        service.m_useV2MapFeed = true;
         auto *net = new FakeNetwork; net->setParent(&service); service.m_nam = net;
         const QString url = QStringLiteral("https://downloads.librescoot.org/releases/v2/maps-routing.json");
         QJsonObject routing{{"url", "https://example.org/tiles.tar"}, {"size", 100}, {"sha256", QString(64, 'a')},
@@ -333,10 +339,7 @@ void MapDownloadServiceTest::runCompressedScenario(int mode)
     MapDownloadService service(nullptr, nullptr, d.path());
     auto *net = new FakeNetwork; net->setParent(&service); service.m_nam = net;
     const bool v2 = mode >= 11;
-    if (v2) {
-        service.m_tileCapabilitiesPath = d.filePath("capabilities");
-        put(service.m_tileCapabilitiesPath, "v1\nrouting.format.valhalla-3.6.3\nrouting-compressed.format.zstd\n");
-    }
+    service.m_useV2MapFeed = v2;
     const QString manifestUrl = v2 ? QStringLiteral("https://downloads.librescoot.org/releases/v2/maps-routing.json")
                                    : QStringLiteral("https://downloads.librescoot.org/releases/maps-routing.json");
     const QString fullUrl = QStringLiteral("https://example.invalid/tiles.tar");
@@ -402,10 +405,7 @@ void MapDownloadServiceTest::runScenario(bool wrongBase, bool corruptOutput, boo
     QVERIFY(MapMetadata::save(meta,d.filePath("metadata.json")));
     MapDownloadService service(nullptr,nullptr,d.path());
     auto *net = new FakeNetwork; net->setParent(&service); service.m_nam=net;
-    if (v2) {
-        service.m_tileCapabilitiesPath = d.filePath("capabilities");
-        put(service.m_tileCapabilitiesPath, "v1\nrouting.format.valhalla-3.6.3\nrouting-delta.format.valhalla-3.6.3\npatch.algorithm.hdiffpatch\n");
-    }
+    service.m_useV2MapFeed = v2;
     const QString manifestUrl = v2 ? QStringLiteral("https://downloads.librescoot.org/releases/v2/maps-routing.json")
                                    : QStringLiteral("https://downloads.librescoot.org/releases/maps-routing.json");
     const QString fullUrl=QStringLiteral("https://example.invalid/full.tar"), deltaUrl=QStringLiteral("https://example.invalid/delta.hdelta");

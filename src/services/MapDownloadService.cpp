@@ -74,27 +74,16 @@ static bool hasRequirementAlias(const QJsonObject &object)
     return false;
 }
 
-// Capabilities require an image declaration as well as code support. The file
-// is absent until the installed map and routing readers have been qualified.
-static QSet<QString> qualifiedTileCapabilities(const QString &path)
+// These capabilities describe the DBC reader stack shipped with this build.
+static QSet<QString> qualifiedTileCapabilities()
 {
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly)) return {};
-    if (file.size() > 4096) return {};
-    const auto lines = file.readAll().split('\n');
-    if (lines.isEmpty() || lines.first() != "v1") return {};
-    const QSet<QString> supported{
+    QSet<QString> caps{
         QStringLiteral("map.format.mbtiles-mvt-v1"),
         QStringLiteral("routing.format.valhalla-3.6.3"),
         QStringLiteral("map-delta.format.mbtiles-canonical-v1"),
         QStringLiteral("routing-delta.format.valhalla-3.6.3"),
         QStringLiteral("routing-compressed.format.zstd"),
         QStringLiteral("patch.algorithm.hdiffpatch")};
-    QSet<QString> caps;
-    for (qsizetype i = 1; i < lines.size(); ++i) {
-        const auto token = QString::fromUtf8(lines.at(i));
-        if (supported.contains(token)) caps.insert(token);
-    }
     if (QStandardPaths::findExecutable(QStringLiteral("hpatchz")).isEmpty())
         caps.remove(QStringLiteral("patch.algorithm.hdiffpatch"));
     return caps;
@@ -663,12 +652,8 @@ bool MapDownloadService::shouldCheckForUpdates() const
 
 void MapDownloadService::fetchTilesManifest(std::function<void(const QJsonObject &)> callback)
 {
-    const bool useV2 = QFileInfo::exists(m_tileCapabilitiesPath);
-    const auto caps = qualifiedTileCapabilities(m_tileCapabilitiesPath);
-    if (useV2 && caps.isEmpty()) {
-        callback({});
-        return;
-    }
+    const bool useV2 = m_useV2MapFeed;
+    const auto caps = qualifiedTileCapabilities();
     const auto url = useV2 ? QStringLiteral("https://downloads.librescoot.org/releases/v2/maps-routing.json")
                            : QStringLiteral("https://downloads.librescoot.org/releases/maps-routing.json");
     QNetworkRequest req{QUrl{url}};

@@ -8,9 +8,9 @@
 #include <cmath>
 #include <limits>
 
-// Evaluates v2 policy against capabilities of the actual consuming environment.
-// Callers must obtain that set from a qualified image, not from the feed,
-// and reject duplicate JSON keys before constructing the QJsonObject.
+// Evaluates v2 policy against capabilities of the consuming DBC build.
+// Callers must not obtain capabilities from the feed and must reject duplicate
+// JSON keys before constructing the QJsonObject.
 class TileCapabilityPolicy
 {
 public:
